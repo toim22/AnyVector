@@ -1,0 +1,16 @@
+[package]
+name = "vector-io"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+vector-core = { path = "../vector-core" }
+vector-render = { path = "../vector-render" }
+kurbo = { workspace = true }
+tiny-skia = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+image = { workspace = true }
+usvg = { workspace = true }
+zip = { workspace = true }
+flate2 = { workspace = true }
