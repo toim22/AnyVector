@@ -1,0 +1,9 @@
+[package]
+name = "vector-render"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+vector-core = { path = "../vector-core" }
+tiny-skia = { workspace = true }
+kurbo = { workspace = true }
