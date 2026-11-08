@@ -111,6 +111,13 @@ impl DocView {
         }
     }
 
+    /// The document name without the modified mark and the drawing extension.
+    pub fn stem(&self) -> String {
+        let n = self.display_name();
+        let n = n.trim_end_matches('*');
+        n.strip_suffix(".cdr").or_else(|| n.strip_suffix(".vct")).unwrap_or(n).to_string()
+    }
+
     pub fn display_name(&self) -> String {
         let n = self.path.as_ref().and_then(|p| p.file_name()).map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| self.title.clone());
         if self.history.is_modified() {

@@ -269,6 +269,41 @@ pub fn fonts() -> &'static Mutex<FontDb> {
     })
 }
 
+/// A font file used by a document, for embedding when saving.
+#[derive(Clone, Debug)]
+pub struct FontFile {
+    /// File name of the font (e.g. "arial.ttf").
+    pub name: String,
+    pub data: Arc<Vec<u8>>,
+    /// False when the font's license forbids embedding (OS/2 fsType "restricted").
+    pub embeddable: bool,
+}
+
+/// The font files behind the given (family, bold, italic) faces, without duplicates.
+pub fn font_files(faces: &[(String, bool, bool)]) -> Vec<FontFile> {
+    let db = fonts().lock();
+    let mut out: Vec<FontFile> = Vec::new();
+    for (family, bold, italic) in faces {
+        let Some(id) = db.query(family, *bold, *italic) else { continue };
+        let Some(face) = db.db.face(id) else { continue };
+        let name = match &face.source {
+            fontdb::Source::File(p) => p.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default(),
+            _ => format!("{}.ttf", family),
+        };
+        if out.iter().any(|f| f.name.eq_ignore_ascii_case(&name)) {
+            continue;
+        }
+        let file = db.db.with_face_data(id, |data, index| {
+            let embeddable = ttf_parser::Face::parse(data, index).ok().and_then(|f| f.permissions()).map(|p| p != ttf_parser::Permissions::Restricted).unwrap_or(true);
+            (Arc::new(data.to_vec()), embeddable)
+        });
+        if let Some((data, embeddable)) = file {
+            out.push(FontFile { name, data, embeddable });
+        }
+    }
+    out
+}
+
 /// Start loading the font database on a background thread.
 pub fn preload_fonts() {
     std::thread::spawn(|| {

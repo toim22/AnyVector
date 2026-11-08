@@ -107,6 +107,70 @@ pub struct DocSettings {
     pub apply_to_all_pages: bool,
     pub pixel_grid: bool,
     pub facing_pages: bool,
+    /// Color management settings chosen in Create a New Document.
+    #[serde(default)]
+    pub color: ColorSettings,
+    /// Page view: false = single page, true = multipage.
+    #[serde(default)]
+    pub multipage_view: bool,
+}
+
+/// Rendering intent used when converting between color spaces.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum RenderingIntent {
+    Perceptual,
+    #[default]
+    RelativeColorimetric,
+    Saturation,
+    AbsoluteColorimetric,
+}
+
+impl RenderingIntent {
+    pub const ALL: [RenderingIntent; 4] = [RenderingIntent::Perceptual, RenderingIntent::RelativeColorimetric, RenderingIntent::Saturation, RenderingIntent::AbsoluteColorimetric];
+
+    pub fn name(self) -> &'static str {
+        match self {
+            RenderingIntent::Perceptual => "Perceptual",
+            RenderingIntent::RelativeColorimetric => "Relative colorimetric",
+            RenderingIntent::Saturation => "Saturation",
+            RenderingIntent::AbsoluteColorimetric => "Absolute colorimetric",
+        }
+    }
+}
+
+pub const DEFAULT_RGB_PROFILE: &str = "sRGB IEC61966-2.1";
+pub const DEFAULT_CMYK_PROFILE: &str = "U.S. Web Coated (SWOP) v2";
+pub const DEFAULT_GRAY_PROFILE: &str = "Dot Gain 20%";
+
+/// Document color settings (primary color mode and the color profiles).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ColorSettings {
+    /// Primary color mode: true = CMYK, false = RGB.
+    pub cmyk: bool,
+    pub rgb_profile: String,
+    pub cmyk_profile: String,
+    pub gray_profile: String,
+    pub intent: RenderingIntent,
+}
+
+impl Default for ColorSettings {
+    fn default() -> Self {
+        ColorSettings {
+            cmyk: true,
+            rgb_profile: DEFAULT_RGB_PROFILE.into(),
+            cmyk_profile: DEFAULT_CMYK_PROFILE.into(),
+            gray_profile: DEFAULT_GRAY_PROFILE.into(),
+            intent: RenderingIntent::RelativeColorimetric,
+        }
+    }
+}
+
+impl ColorSettings {
+    /// "sRGB IEC61966-2.1; U.S. Web Coated (SWOP) v2; Dot Gain 20%".
+    pub fn summary(&self) -> String {
+        format!("{}; {}; {}", self.rgb_profile, self.cmyk_profile, self.gray_profile)
+    }
 }
 
 impl Default for DocSettings {
@@ -139,6 +203,8 @@ impl Default for DocSettings {
             apply_to_all_pages: true,
             pixel_grid: false,
             facing_pages: false,
+            color: ColorSettings::default(),
+            multipage_view: false,
         }
     }
 }
@@ -645,6 +711,30 @@ impl Document {
                 }
             }
         }
+    }
+
+    /// The (family, bold, italic) faces used by text objects, without duplicates.
+    pub fn used_fonts(&self) -> Vec<(String, bool, bool)> {
+        let mut v: Vec<(String, bool, bool)> = vec![];
+        let mut add = |f: &crate::text::CharFormat| {
+            let k = (f.font.clone(), f.bold, f.italic);
+            if !v.contains(&k) {
+                v.push(k);
+            }
+        };
+        for p in &self.pages {
+            for o in p.all_objects() {
+                o.walk(&mut |x| {
+                    if let ObjKind::Text(t) = &x.kind {
+                        add(&t.format);
+                        for s in &t.spans {
+                            add(&s.format);
+                        }
+                    }
+                });
+            }
+        }
+        v
     }
 
     /// Images actually referenced by objects (for saving).

@@ -224,10 +224,11 @@ pub enum Cmd {
     Community,
     Support,
     Feedback,
+    ReportBug,
+    ViewReportedBugs,
     RefreshAccount,
     AccountSettings,
     About,
-    Purchase,
     // Misc
     Tool(ToolId),
     Nudge(f64, f64),

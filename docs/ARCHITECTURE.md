@@ -9,7 +9,7 @@ Vector is a Windows vector-graphics editor written in Rust. The UI follows the d
 |---|---|
 | `vector-core` | Document model: pages, layers, objects (rectangles, ellipses, polygons, spirals, curves, text, images, groups, PowerClips, tables, dimensions, connectors, blends, symbols), styles, effects, geometry (booleans, offsets, flattening), editable node paths, text layout, units, undo history and the editing operations (`ops`). |
 | `vector-render` | CPU renderer on tiny-skia, used for the drawing window, export, printing and thumbnails. Handles gradients, patterns, mesh fills, transparency, merge modes, shadows, contours, extrusions, envelopes, distortions, bitmap effects and lenses. |
-| `vector-io` | File formats: native `.vct`, SVG import/export, PDF export, PNG/JPEG/BMP/TIFF/WebP raster import/export. |
+| `vector-io` | File formats: `.cdr` (Vector's zip container: drawing JSON, XMP metadata, embedded fonts/ICC profiles, thumbnail; real CorelDRAW files are detected and refused), legacy native `.vct`, SVG import/export, PDF export, PNG/JPEG/BMP/TIFF/WebP raster import/export. |
 | `vector-app` | The egui/eframe application (binary `vector.exe`). |
 
 ## Application (`crates/vector-app/src`)
