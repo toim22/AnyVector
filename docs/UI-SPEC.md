@@ -13,7 +13,7 @@ Fonts: Segoe UI 9pt-ish (≈12.5 px).
 
 ## 1. Main window layout (top → bottom)
 
-1. **Menu bar** (File mode): `File` `Tools` `Window` `Help` `Purchase`
+1. **Menu bar** (File mode): `File` `Tools` `Window` `Help` (the `Purchase` menu was removed at the product owner's request)
 2. **Standard toolbar**: New(green +) · Open · ▾(Open Recent) │ Save · Open from Cloud · Save to Cloud · Print │ Cut · Copy · Paste │ Undo ▾ · Redo ▾ │ Import · Export · Publish to PDF │ Zoom combo `100%` ▾ · Full-Screen Preview │ Show Rulers · Show Grid · Show Guidelines │ Snap Off(magnet) · `Snap To ▾` │ `✦ AI Generate ▾` │ Options ⚙ (menu)
 3. **Property bar** (no selection / no document): Page size combo `Letter ▾` │ Page width / Page height (two stacked spin fields) │ Portrait · Landscape │ All Pages · Current Page │ `Units:` combo │ Nudge distance `0.0 "` (move icon, spin) │ Duplicate distance X `0.25 "` / Y `0.25 "` │ Treat as filled (toggled, blue) │ two transform-option toggles │ `+` (customize)
 4. **Left toolbox** (flyout triangle = has group): Pick ◢ · Shape ◢ │ Crop ◢ · Zoom ◢ │ Freehand ◢ · Artistic Media ◢ · Rectangle ◢ · Ellipse ◢ · Polygon ◢ │ Text ◢ │ Parallel Dimension ◢ · Connector ◢ │ Drop Shadow ◢ · Transparency │ Color Eyedropper ◢ · Interactive Fill ◢ │ Painterly Brush │ `+` (Quick Customize)
@@ -102,10 +102,10 @@ fold and follows the same toolbox order.)
 - **Color Palettes ▸**: Add Colors from Selection... · Add Colors from Document... · — · Create Palette from Selection... · Create Palette from Document... · Open Palette... · Close All Palettes · — · Palette Editor... · Palettes · — · Recent ▸ · — · ✓Default Palette · ✓Document Palette · Color Styles Palette
 
 ### Help
-Product Help... · — · Welcome Screen · Video Tutorials... · Learn · Quick Start Guide... · User Guide... · — · What's New?... · — · Updates... · Message Settings · Vector Community · Vector Support... · Submit Ideas and Feedback... · — · Refresh your Account · Account Settings... · — · About Vector...
+Product Help... · — · Welcome Screen · Video Tutorials... · Learn · Quick Start Guide... · User Guide... · — · What's New?... · — · Updates... · Message Settings · Vector Community · Vector Support... · Submit Ideas and Feedback... · Report a Bug ▸ (Report a Bug... · View Reported Bugs...) · — · Refresh your Account · Account Settings... · — · About Vector...
 
 ### Purchase
-Top-level item.
+Removed at the product owner's request (2026-11-08).
 
 ### Options ⚙ (standard toolbar) menu
 Vector... `Ctrl+J` · Customization... · Tools... · Global... · Workspaces...

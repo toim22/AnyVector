@@ -1,4 +1,4 @@
-//! Menu bar. "File mode" (default, as in the screenshots): File · Tools · Window · Help · Purchase.
+//! Menu bar. "File mode" (default, as in the screenshots): File · Tools · Window · Help (Purchase removed by request).
 //! "Normal mode" adds Edit · View · Layout · Object · Effects · Bitmaps · Text · Table.
 
 use crate::app::{Toolbar, VectorApp};
@@ -173,7 +173,11 @@ fn sep(ui: &mut Ui) {
 
 pub fn menu_bar(app: &mut VectorApp, ui: &mut Ui) {
     MenuBar::new().ui(ui, |ui| {
-        ui.spacing_mut().button_padding = egui::vec2(8.0, 1.0);
+        // Fill the bar height so the labels sit vertically centered with breathing room
+        // above the standard toolbar.
+        ui.spacing_mut().button_padding = egui::vec2(8.0, 4.0);
+        ui.spacing_mut().interact_size.y = 24.0;
+        ui.set_min_height(24.0);
         let normal = app.settings.menu_bar_mode == MenuBarMode::Normal;
         top(app, ui, "&File", file_menu);
         if normal {
@@ -189,9 +193,6 @@ pub fn menu_bar(app: &mut VectorApp, ui: &mut Ui) {
         top(app, ui, "&Tools", tools_menu);
         top(app, ui, "&Window", window_menu);
         top(app, ui, "&Help", help_menu);
-        if ui.add(Button::new(mnemonic("&Purchase", theme::TEXT, 12.5)).frame_when_inactive(false)).clicked() {
-            app.run(Cmd::Purchase);
-        }
     });
 }
 
@@ -487,6 +488,10 @@ pub fn help_menu(app: &mut VectorApp, ui: &mut Ui) {
     item(app, ui, Some("community"), "Vector &Community", Cmd::Community, true);
     item(app, ui, Some("support"), "Vector &Support...", Cmd::Support, true);
     item(app, ui, Some("feedback"), "Submit &Ideas and Feedback...", Cmd::Feedback, true);
+    submenu(app, ui, Some("bug"), "Report a &Bug", true, |app, ui| {
+        item(app, ui, Some("bug"), "&Report a Bug...", Cmd::ReportBug, true);
+        item(app, ui, Some("community"), "&View Reported Bugs...", Cmd::ViewReportedBugs, true);
+    });
     sep(ui);
     item(app, ui, Some("refresh"), "&Refresh your Account", Cmd::RefreshAccount, true);
     item(app, ui, Some("account"), "&Account Settings...", Cmd::AccountSettings, true);

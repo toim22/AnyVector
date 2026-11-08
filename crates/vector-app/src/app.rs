@@ -234,7 +234,7 @@ impl VectorApp {
 
         let bar = Frame::new().fill(theme::BAR).inner_margin(Margin::symmetric(2, 0));
         if self.settings.show_menu_bar {
-            egui::Panel::top("menubar").frame(Frame::new().fill(theme::BAR_DARK).inner_margin(Margin::symmetric(4, 0))).exact_size(20.0).show(ui, |ui| {
+            egui::Panel::top("menubar").frame(Frame::new().fill(theme::BAR_DARK).inner_margin(Margin::symmetric(4, 0))).exact_size(26.0).show(ui, |ui| {
                 crate::menus::menu_bar(self, ui);
             });
         }
@@ -341,7 +341,7 @@ impl VectorApp {
             let p = f.path().to_path_buf();
             if !p.as_os_str().is_empty() {
                 let ext = vector_io::extension(&p);
-                if self.has_doc() && ext != "vct" {
+                if self.has_doc() && !matches!(ext.as_str(), "cdr" | "vct") {
                     self.import_path(&p, None);
                 } else {
                     self.open_path(&p);
@@ -372,8 +372,8 @@ impl VectorApp {
             if d.history.is_modified() && now - d.last_saved_backup > interval {
                 d.last_saved_backup = now;
                 let _ = std::fs::create_dir_all(&dir);
-                let name = format!("AutoBackup_of_{}.vct", d.display_name().trim_end_matches('*').trim_end_matches(".vct"));
-                let _ = vector_io::native::save(&d.doc, &dir.join(name));
+                let name = format!("AutoBackup_of_{}.cdr", d.stem());
+                let _ = vector_io::cdr::save(&d.doc, &dir.join(name), &Default::default());
             }
         }
     }
