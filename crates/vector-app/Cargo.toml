@@ -1,0 +1,35 @@
+[package]
+name = "vector-app"
+version.workspace = true
+edition.workspace = true
+description = "Vector - vector graphics editor"
+
+[[bin]]
+name = "vector"
+path = "src/main.rs"
+
+[dependencies]
+vector-core = { path = "../vector-core" }
+vector-render = { path = "../vector-render" }
+vector-io = { path = "../vector-io" }
+eframe = { workspace = true }
+egui = { workspace = true }
+resvg = { workspace = true }
+usvg = { workspace = true }
+tiny-skia = { workspace = true }
+kurbo = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+image = { workspace = true }
+rfd = { workspace = true }
+rhai = { workspace = true }
+dirs = { workspace = true }
+arboard = { workspace = true }
+log = { workspace = true }
+ureq = { workspace = true }
+
+[build-dependencies]
+winresource = { workspace = true }
+
+[dev-dependencies]
+egui_kittest = { workspace = true, features = ["wgpu", "snapshot", "eframe"] }

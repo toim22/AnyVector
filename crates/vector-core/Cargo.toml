@@ -1,0 +1,14 @@
+[package]
+name = "vector-core"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+kurbo = { workspace = true }
+i_overlay = { workspace = true }
+fontdb = { workspace = true }
+rustybuzz = { workspace = true }
+ttf-parser = { workspace = true }
+parking_lot = { workspace = true }
