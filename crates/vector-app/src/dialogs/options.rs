@@ -762,8 +762,19 @@ fn doc_page(app: &mut VectorApp, ui: &mut Ui, page: &str) {
         _ => {
             // Save
             heading(ui, "Save options");
+            let sv = &mut app.settings.save;
+            ui.horizontal(|ui| {
+                ui.label("Optimize for:");
+                ui.radio_value(&mut sv.optimize_for_size, false, "Speed");
+                ui.radio_value(&mut sv.optimize_for_size, true, "Size");
+            });
+            ui.checkbox(&mut sv.save_presentation_attributes, "Save presentation attributes (views)");
+            ui.checkbox(&mut sv.bitmap_compression, "Use bitmap compression");
+            ui.checkbox(&mut sv.object_compression, "Use graphic object compression");
+            ui.checkbox(&mut sv.save_thumbnail, "Save thumbnail");
+            ui.checkbox(&mut sv.embed_color_profiles, "Embed color profiles");
             ui.checkbox(&mut app.settings.embed_fonts, "Embed fonts when saving files");
-            note(ui, "Documents are saved in the Vector format (.vct): a compressed archive with the drawing, embedded images and a thumbnail.");
+            note(ui, "Drawings are saved as .cdr files: a compressed container with the drawing, its images, metadata (title, subject, rating), a thumbnail and, optionally, the fonts and color profiles it uses.");
         }
     }
     app.dialogs.options.doc_edit = Some(e);
@@ -1089,7 +1100,7 @@ fn save(app: &mut VectorApp, ui: &mut Ui) {
     ui.checkbox(&mut s.embed_fonts, "Embed fonts when saving files");
     ui.horizontal(|ui| {
         label_w(ui, "Set default version:", 150.0);
-        combo_str(ui, "def_ver", &mut s.default_version, &["1.0"], 100.0);
+        combo_str(ui, "def_ver", &mut s.default_version, crate::settings::FILE_VERSIONS, 120.0);
     });
 }
 

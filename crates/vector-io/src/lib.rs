@@ -1,5 +1,6 @@
-//! File input/output for Vector: native `.vct`, SVG, PDF and raster formats.
+//! File input/output for Vector: `.cdr` drawings (default), legacy `.vct`, SVG, PDF and raster formats.
 
+pub mod cdr;
 pub mod flat;
 pub mod image_io;
 pub mod native;
@@ -46,12 +47,20 @@ pub struct FileType {
     pub vector: bool,
 }
 
+/// "Save as type" entries of Save Drawing; the first is the default.
+pub const SAVE_TYPES: &[FileType] = &[
+    FileType { name: "CDR - CorelDRAW (*.cdr)", extensions: &["cdr"], vector: true },
+    FileType { name: "VCT - Vector Drawing (*.vct)", extensions: &["vct"], vector: true },
+];
+
 pub const OPEN_TYPES: &[FileType] = &[
+    FileType { name: "CDR - CorelDRAW (*.cdr)", extensions: &["cdr"], vector: true },
     FileType { name: "Vector Drawing (*.vct)", extensions: &["vct"], vector: true },
     FileType { name: "Scalable Vector Graphics (*.svg)", extensions: &["svg", "svgz"], vector: true },
 ];
 
 pub const IMPORT_TYPES: &[FileType] = &[
+    FileType { name: "CDR - CorelDRAW (*.cdr)", extensions: &["cdr"], vector: true },
     FileType { name: "Vector Drawing (*.vct)", extensions: &["vct"], vector: true },
     FileType { name: "SVG - Scalable Vector Graphics (*.svg;*.svgz)", extensions: &["svg", "svgz"], vector: true },
     FileType { name: "PNG - Portable Network Graphics (*.png)", extensions: &["png"], vector: false },
@@ -82,6 +91,7 @@ pub fn extension(path: &Path) -> String {
 /// Open a document file (native or SVG).
 pub fn open(path: &Path) -> Result<Document> {
     match extension(path).as_str() {
+        "cdr" | "cdt" => cdr::load(path),
         "vct" => native::load(path),
         "svg" | "svgz" => {
             let data = std::fs::read(path)?;
@@ -100,11 +110,28 @@ pub fn open(path: &Path) -> Result<Document> {
     }
 }
 
+/// The preview stored in a drawing (`.cdr` or `.vct`), as RGBA pixels.
+pub fn read_thumbnail(path: &Path) -> Option<(u32, u32, Vec<u8>)> {
+    match extension(path).as_str() {
+        "cdr" | "cdt" => cdr::read_thumbnail(path).or_else(|| native::read_thumbnail(path)),
+        _ => native::read_thumbnail(path),
+    }
+}
+
+/// Whether a path is a drawing that can be saved back in place (native formats).
+pub fn is_drawing(path: &Path) -> bool {
+    matches!(extension(path).as_str(), "cdr" | "vct")
+}
+
 /// Import a file into an existing document, returning the new top-level objects (not yet placed).
 pub fn import(doc: &mut Document, path: &Path) -> Result<Vec<Object>> {
     let ext = extension(path);
     let bytes = std::fs::read(path)?;
     match ext.as_str() {
+        "cdr" | "cdt" => {
+            let other = cdr::load_from_bytes(&bytes)?;
+            Ok(merge_document(doc, other))
+        }
         "vct" => {
             let other = native::load(path)?;
             Ok(merge_document(doc, other))

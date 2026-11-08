@@ -5,30 +5,11 @@ use super::{heading, note, ok_cancel_row, separator, window};
 use crate::app::VectorApp;
 use crate::theme;
 use egui::{vec2, Color32, Ui};
-use vector_core::{Color, NamedColor, Palette, Unit};
+use vector_core::{Color, NamedColor, Palette};
 
 // ------------------------------------------------------------------------------------------
 // state
 // ------------------------------------------------------------------------------------------
-
-#[derive(Clone)]
-pub struct NewDocState {
-    pub name: String,
-    pub preset: usize,
-    pub width: f64,
-    pub height: f64,
-    pub unit: Unit,
-    pub pages: usize,
-    pub cmyk: bool,
-    pub dpi: f64,
-    pub dont_show: bool,
-}
-
-impl NewDocState {
-    pub fn new(n: usize, unit: Unit) -> NewDocState {
-        NewDocState { name: format!("Untitled-{n}"), preset: 0, width: 612.0, height: 792.0, unit, pages: 1, cmyk: false, dpi: 300.0, dont_show: false }
-    }
-}
 
 #[derive(Clone)]
 pub struct ExportState {
@@ -105,7 +86,7 @@ pub fn show_all(app: &mut VectorApp, ctx: &egui::Context) {
         confirm_close(app, ctx);
     }
     if app.dialogs.new_doc.is_some() {
-        new_doc(app, ctx);
+        super::new_doc::show(app, ctx);
     }
     if app.dialogs.export.is_some() {
         export(app, ctx);
@@ -149,13 +130,6 @@ fn label_w(ui: &mut Ui, text: &str, w: f32) {
     ui.add_sized(vec2(w, 22.0), egui::Label::new(text).halign(egui::Align::Min));
 }
 
-fn unit_combo(ui: &mut Ui, id: &str, u: &mut Unit) {
-    egui::ComboBox::from_id_salt(id).selected_text(u.name()).width(120.0).show_ui(ui, |ui| {
-        for x in Unit::ALL {
-            ui.selectable_value(u, x, x.name());
-        }
-    });
-}
 
 // ------------------------------------------------------------------------------------------
 // confirmations
@@ -279,90 +253,6 @@ fn message_box(app: &mut VectorApp, ctx: &egui::Context) {
     });
     if close || dismissed {
         app.dialogs.message_box = None;
-    }
-}
-
-// ------------------------------------------------------------------------------------------
-// New Document
-// ------------------------------------------------------------------------------------------
-
-fn new_doc(app: &mut VectorApp, ctx: &egui::Context) {
-    let Some(mut st) = app.dialogs.new_doc.clone() else { return };
-    let presets = vector_core::units::page_presets();
-    let mut result = (false, false);
-    let ((), dismissed) = window(ctx, "new_doc", "Create a New Document", vec2(520.0, 430.0), |ui| {
-        ui.add_space(10.0);
-        ui.spacing_mut().item_spacing.y = 8.0;
-        ui.horizontal(|ui| {
-            label_w(ui, "Name:", 140.0);
-            ui.add(egui::TextEdit::singleline(&mut st.name).desired_width(300.0));
-        });
-        separator(ui);
-        heading(ui, "Page");
-        ui.horizontal(|ui| {
-            label_w(ui, "Size:", 140.0);
-            let cur = st.preset.min(presets.len() - 1);
-            egui::ComboBox::from_id_salt("nd_size").selected_text(presets[cur].0).width(200.0).show_ui(ui, |ui| {
-                for (i, p) in presets.iter().enumerate() {
-                    if ui.selectable_label(i == cur, p.0).clicked() {
-                        st.preset = i;
-                        let land = st.width > st.height;
-                        st.width = if land { p.2 } else { p.1 };
-                        st.height = if land { p.1 } else { p.2 };
-                    }
-                }
-            });
-        });
-        ui.horizontal(|ui| {
-            label_w(ui, "Width:", 140.0);
-            crate::widgets::unit_field(ui, egui::Id::unique("nd_w"), &mut st.width, st.unit, st.dpi, 90.0, true);
-            unit_combo(ui, "nd_unit", &mut st.unit);
-        });
-        ui.horizontal(|ui| {
-            label_w(ui, "Height:", 140.0);
-            crate::widgets::unit_field(ui, egui::Id::unique("nd_h"), &mut st.height, st.unit, st.dpi, 90.0, true);
-            let land = st.width > st.height;
-            if ui.add(egui::Button::new("▯").selected(!land)).on_hover_text("Portrait").clicked() && land {
-                std::mem::swap(&mut st.width, &mut st.height);
-            }
-            if ui.add(egui::Button::new("▭").selected(land)).on_hover_text("Landscape").clicked() && !land {
-                std::mem::swap(&mut st.width, &mut st.height);
-            }
-        });
-        ui.horizontal(|ui| {
-            label_w(ui, "Number of pages:", 140.0);
-            ui.add(egui::DragValue::new(&mut st.pages).range(1..=999));
-        });
-        separator(ui);
-        heading(ui, "Color");
-        ui.horizontal(|ui| {
-            label_w(ui, "Primary color mode:", 140.0);
-            ui.radio_value(&mut st.cmyk, false, "RGB");
-            ui.radio_value(&mut st.cmyk, true, "CMYK");
-        });
-        ui.horizontal(|ui| {
-            label_w(ui, "Rendering resolution:", 140.0);
-            egui::ComboBox::from_id_salt("nd_dpi").selected_text(format!("{} dpi", st.dpi)).width(100.0).show_ui(ui, |ui| {
-                for d in [72.0, 96.0, 150.0, 300.0, 600.0] {
-                    ui.selectable_value(&mut st.dpi, d, format!("{d} dpi"));
-                }
-            });
-        });
-        ui.add_space(4.0);
-        ui.checkbox(&mut st.dont_show, "Do not show this dialog again");
-        result = ok_cancel_row(ui, "OK", st.width > 0.0 && st.height > 0.0);
-    });
-    let (ok, cancel) = result;
-    if ok {
-        if st.dont_show {
-            app.settings.show_new_doc_dialog = false;
-        }
-        app.dialogs.new_doc = None;
-        app.create_document(&st);
-    } else if cancel || dismissed {
-        app.dialogs.new_doc = None;
-    } else {
-        app.dialogs.new_doc = Some(st);
     }
 }
 

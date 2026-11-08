@@ -166,3 +166,24 @@ fn visual_every_tool_smoke() {
     h.state_mut().set_tool(ToolId::Pick);
     save(&mut h, "05_after_all_tools");
 }
+
+#[test]
+#[ignore]
+fn visual_new_document_and_bug_report() {
+    let mut h = harness();
+    h.state_mut().settings.show_new_doc_dialog = true;
+    h.state_mut().run(Cmd::New);
+    save(&mut h, "06_new_document");
+    // scroll the preset grid to the B5 (JIS) row by searching
+    if let Some(st) = h.state_mut().dialogs.new_doc.as_mut() {
+        st.filter = 3; // Web
+    }
+    save(&mut h, "07_new_document_web");
+    if let Some(st) = h.state_mut().dialogs.new_doc.as_mut() {
+        st.tab = 1;
+    }
+    save(&mut h, "08_new_document_templates");
+    h.state_mut().dialogs.new_doc = None;
+    h.state_mut().run(Cmd::ReportBug);
+    save(&mut h, "09_report_bug");
+}

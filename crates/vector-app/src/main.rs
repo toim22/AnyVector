@@ -3,7 +3,9 @@
 
 mod ai;
 mod app;
+mod bugreport;
 mod canvas;
+mod color_profiles;
 mod commands;
 mod dialogs;
 mod dockers;
@@ -13,6 +15,7 @@ mod icons;
 mod menus;
 mod palette;
 mod propbar;
+mod save_dialog;
 mod scripting;
 mod settings;
 mod shortcuts;

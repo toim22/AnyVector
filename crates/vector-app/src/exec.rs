@@ -200,11 +200,17 @@ impl VectorApp {
         let mut doc = Document::new(st.width, st.height);
         doc.settings.unit = st.unit;
         doc.settings.dpi = st.dpi;
+        doc.settings.color = st.color.clone();
+        doc.settings.multipage_view = st.multipage;
+        doc.settings.bleed = if st.bleed_on { st.bleed } else { 0.0 };
+        doc.settings.show_bleed = st.bleed_on;
         doc.info.author = self.settings.user_name.clone();
         for k in 1..st.pages.max(1) {
             doc.add_page(k, st.width, st.height);
         }
-        let mut dv = DocView::new(doc, format!("{}.vct", st.name.trim_end_matches(".vct")), self.settings.undo_levels);
+        let name = st.name.trim();
+        let stem = name.strip_suffix(".cdr").or_else(|| name.strip_suffix(".vct")).unwrap_or(name);
+        let mut dv = DocView::new(doc, format!("{stem}.cdr"), self.settings.undo_levels);
         dv.history.mark_saved();
         self.push_doc(dv);
     }
@@ -262,12 +268,12 @@ impl VectorApp {
                 doc.ensure_next_id();
                 let title = p.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
                 let mut dv = DocView::new(doc, title, self.settings.undo_levels);
-                if vector_io::extension(p) == "vct" {
+                if vector_io::is_drawing(p) {
                     dv.path = Some(p.to_path_buf());
                 } else {
                     // imported formats open as untitled drawings
                     let stem = p.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
-                    dv.title = format!("{stem}.vct");
+                    dv.title = format!("{stem}.cdr");
                 }
                 dv.history.mark_saved();
                 self.settings.add_recent(p);
@@ -332,28 +338,118 @@ impl VectorApp {
         }
     }
 
+    /// The `.cdr` save options for a document from the current settings.
+    fn cdr_options(&self, doc: &vector_core::Document, embed_fonts: bool, embed_profiles: bool, version: usize) -> vector_io::cdr::SaveOptions {
+        let s = &self.settings.save;
+        let fonts = if embed_fonts {
+            vector_core::text::font_files(&doc.used_fonts()).into_iter().filter(|f| f.embeddable).map(|f| vector_io::cdr::EmbeddedFile { name: f.name, data: f.data }).collect()
+        } else {
+            vec![]
+        };
+        vector_io::cdr::SaveOptions {
+            version: crate::settings::FILE_VERSIONS.get(version).unwrap_or(&crate::settings::FILE_VERSIONS[0]).to_string(),
+            fonts,
+            color_profiles: if embed_profiles { crate::color_profiles::profile_files(&doc.settings.color) } else { vec![] },
+            object_compression: s.object_compression,
+            bitmap_compression: s.bitmap_compression,
+            optimize_for_size: s.optimize_for_size,
+            thumbnail: s.save_thumbnail,
+            presentation_attributes: s.save_presentation_attributes,
+        }
+    }
+
+    fn default_version_index(&self) -> usize {
+        crate::settings::FILE_VERSIONS.iter().position(|v| *v == self.settings.default_version).unwrap_or(0)
+    }
+
+    fn advanced_from_settings(&self) -> crate::save_dialog::Advanced {
+        let s = &self.settings.save;
+        crate::save_dialog::Advanced {
+            optimize_for_size: s.optimize_for_size,
+            presentation_attributes: s.save_presentation_attributes,
+            bitmap_compression: s.bitmap_compression,
+            object_compression: s.object_compression,
+            thumbnail: s.save_thumbnail,
+        }
+    }
+
     /// Save document `i`. Returns false if cancelled or failed.
     pub fn save_doc(&mut self, i: usize, save_as: bool) -> bool {
         if i >= self.docs.len() {
             return false;
         }
+        let mut version = self.default_version_index();
+        let (mut embed_fonts, mut embed_profiles) = (self.settings.embed_fonts, self.settings.save.embed_color_profiles);
         let path = match (&self.docs[i].path, save_as) {
             (Some(p), false) => p.clone(),
             _ => {
-                let name = self.docs[i].display_name().trim_end_matches('*').to_string();
-                let mut fd = rfd::FileDialog::new().set_title("Save Drawing").add_filter("Vector Drawing (*.vct)", &["vct"]).set_file_name(if name.ends_with(".vct") { name } else { format!("{name}.vct") });
-                if let Some(d) = self.docs[i].path.as_ref().and_then(|p| p.parent()).map(|p| p.to_path_buf()).or_else(|| self.settings.last_dir.clone()) {
-                    fd = fd.set_directory(d);
-                }
-                match fd.save_file() {
-                    Some(p) => {
-                        if vector_io::extension(&p) != "vct" {
-                            p.with_extension("vct")
-                        } else {
-                            p
-                        }
-                    }
-                    None => return false,
+                let stem = self.docs[i].stem();
+                let dir = self.docs[i].path.as_ref().and_then(|p| p.parent()).map(|p| p.to_path_buf()).or_else(|| self.settings.last_dir.clone()).or_else(|| Some(crate::settings::documents_dir()));
+                let types: Vec<(String, String)> = vector_io::SAVE_TYPES.iter().map(|t| (t.name.to_string(), t.extensions[0].to_string())).collect();
+                // a .vct document stays .vct unless the user picks CDR
+                let type_index = match self.docs[i].path.as_ref().map(|p| vector_io::extension(p)) {
+                    Some(e) if e == "vct" => 1,
+                    _ => 0,
+                };
+                let advanced = self.advanced_from_settings();
+                let d = &self.docs[i].doc;
+                let fonts_size: u64 = vector_core::text::font_files(&d.used_fonts()).iter().filter(|f| f.embeddable).map(|f| f.data.len() as u64).sum();
+                let profiles_size: u64 = crate::color_profiles::profile_files(&d.settings.color).iter().map(|f| f.data.len() as u64).sum();
+                let req = crate::save_dialog::SaveRequest {
+                    dir,
+                    file_name: format!("{stem}.{}", types[type_index].1),
+                    types: types.clone(),
+                    type_index,
+                    title: d.info.title.clone(),
+                    subject: d.info.subject.clone(),
+                    rating: d.info.rating,
+                    embed_profiles,
+                    profiles_size,
+                    profiles_summary: d.settings.color.summary(),
+                    embed_fonts,
+                    fonts_size,
+                    versions: crate::settings::FILE_VERSIONS.iter().map(|v| v.to_string()).collect(),
+                    version,
+                    advanced,
+                };
+                let res = if cfg!(windows) {
+                    crate::save_dialog::show(req)
+                } else {
+                    rfd::FileDialog::new().set_title("Save Drawing").add_filter(types[0].0.as_str(), &["cdr"]).set_file_name(format!("{stem}.cdr")).save_file().map(|p| crate::save_dialog::SaveResult {
+                        path: p,
+                        type_index: 0,
+                        title: d.info.title.clone(),
+                        subject: d.info.subject.clone(),
+                        rating: d.info.rating,
+                        embed_profiles,
+                        embed_fonts,
+                        version,
+                        advanced,
+                    })
+                };
+                let Some(r) = res else { return false };
+                // remember the choices for next time
+                embed_fonts = r.embed_fonts;
+                embed_profiles = r.embed_profiles;
+                version = r.version;
+                self.settings.embed_fonts = r.embed_fonts;
+                self.settings.save.embed_color_profiles = r.embed_profiles;
+                self.settings.save.optimize_for_size = r.advanced.optimize_for_size;
+                self.settings.save.save_presentation_attributes = r.advanced.presentation_attributes;
+                self.settings.save.bitmap_compression = r.advanced.bitmap_compression;
+                self.settings.save.object_compression = r.advanced.object_compression;
+                self.settings.save.save_thumbnail = r.advanced.thumbnail;
+                let info = &mut self.docs[i].doc.info;
+                info.title = r.title;
+                info.subject = r.subject;
+                info.rating = r.rating;
+                let want = types.get(r.type_index).map(|t| t.1.clone()).unwrap_or_else(|| "cdr".into());
+                if vector_io::extension(&r.path) == want {
+                    r.path
+                } else {
+                    let mut s = r.path.into_os_string();
+                    s.push(format!(".{want}"));
+                    PathBuf::from(s)
                 }
             }
         };
@@ -363,8 +459,14 @@ impl VectorApp {
             let _ = std::fs::create_dir_all(&dir);
             let _ = std::fs::copy(&path, dir.join(name));
         }
+        let result = if vector_io::extension(&path) == "vct" {
+            vector_io::native::save(&self.docs[i].doc, &path)
+        } else {
+            let opts = self.cdr_options(&self.docs[i].doc, embed_fonts, embed_profiles, version);
+            vector_io::cdr::save(&self.docs[i].doc, &path, &opts)
+        };
         let d = &mut self.docs[i];
-        match vector_io::native::save(&d.doc, &path) {
+        match result {
             Ok(()) => {
                 d.path = Some(path.clone());
                 d.history.mark_saved();
@@ -439,7 +541,7 @@ impl VectorApp {
         let Some(d) = self.doc() else { return };
         let t = &vector_io::EXPORT_TYPES[st.format.min(vector_io::EXPORT_TYPES.len() - 1)];
         let ext = t.extensions[0];
-        let stem = d.display_name().trim_end_matches('*').trim_end_matches(".vct").to_string();
+        let stem = d.stem();
         let path = match &st.path {
             Some(p) => p.clone(),
             None => {
@@ -501,7 +603,7 @@ impl VectorApp {
 
     pub fn publish_pdf(&mut self, pages: Option<Vec<usize>>) {
         let Some(d) = self.doc() else { return };
-        let stem = d.display_name().trim_end_matches('*').trim_end_matches(".vct").to_string();
+        let stem = d.stem();
         let mut fd = rfd::FileDialog::new().set_title("Publish to PDF").add_filter("PDF - Portable Document Format (*.pdf)", &["pdf"]).set_file_name(format!("{stem}.pdf"));
         if let Some(dir) = self.settings.last_export_dir.clone() {
             fd = fd.set_directory(dir);
@@ -940,11 +1042,11 @@ impl VectorApp {
 
     fn save_copy_to(&mut self, dir: PathBuf, what: &str) {
         let Some(d) = self.doc() else { return };
-        let name = d.display_name().trim_end_matches('*').to_string();
-        let name = if name.ends_with(".vct") { name } else { format!("{name}.vct") };
+        let name = format!("{}.cdr", d.stem());
         let _ = std::fs::create_dir_all(&dir);
         let p = dir.join(name);
-        match vector_io::native::save(&d.doc, &p) {
+        let opts = self.cdr_options(&d.doc, self.settings.embed_fonts, self.settings.save.embed_color_profiles, self.default_version_index());
+        match vector_io::cdr::save(&d.doc, &p, &opts) {
             Ok(()) => self.flash(format!("Saved a copy to {what}: {}", p.display())),
             Err(e) => self.info_box("Send To", &format!("Could not save: {e}")),
         }
@@ -970,11 +1072,11 @@ impl VectorApp {
             Cmd::NewFromTemplate => {
                 let dir = crate::settings::config_dir().join("Templates");
                 let _ = std::fs::create_dir_all(&dir);
-                if let Some(p) = rfd::FileDialog::new().set_title("New From Template").add_filter("Vector Template (*.vct)", &["vct"]).set_directory(&dir).pick_file() {
+                if let Some(p) = rfd::FileDialog::new().set_title("New From Template").add_filter("Templates (*.cdr;*.cdt;*.vct)", &["cdr", "cdt", "vct"]).set_directory(&dir).pick_file() {
                     if self.open_path(&p) {
                         if let Some(d) = self.doc_mut() {
                             d.path = None;
-                            d.title = "Untitled.vct".into();
+                            d.title = "Untitled.cdr".into();
                             d.history.touch();
                         }
                     }
@@ -1028,9 +1130,10 @@ impl VectorApp {
                 if let Some(d) = self.doc() {
                     let dir = crate::settings::config_dir().join("Templates");
                     let _ = std::fs::create_dir_all(&dir);
-                    let stem = d.display_name().trim_end_matches('*').trim_end_matches(".vct").to_string();
-                    if let Some(p) = rfd::FileDialog::new().set_title("Save As Template").add_filter("Vector Template (*.vct)", &["vct"]).set_directory(&dir).set_file_name(format!("{stem}.vct")).save_file() {
-                        match vector_io::native::save(&d.doc, &p) {
+                    let stem = d.stem();
+                    if let Some(p) = rfd::FileDialog::new().set_title("Save As Template").add_filter("CDR - CorelDRAW (*.cdr)", &["cdr"]).set_directory(&dir).set_file_name(format!("{stem}.cdr")).save_file() {
+                        let opts = self.cdr_options(&d.doc, self.settings.embed_fonts, self.settings.save.embed_color_profiles, self.default_version_index());
+                        match vector_io::cdr::save(&d.doc, &p, &opts) {
                             Ok(()) => self.flash("Template saved"),
                             Err(e) => self.info_box("Save As Template", &e.to_string()),
                         }
@@ -1086,7 +1189,7 @@ impl VectorApp {
             Cmd::ExportDockerOpen => self.dockers.show(DockerId::Export),
             Cmd::SendToMail => {
                 if let Some(d) = self.doc() {
-                    let stem = d.display_name().trim_end_matches('*').trim_end_matches(".vct").to_string();
+                    let stem = d.stem();
                     let p = std::env::temp_dir().join(format!("{stem}.pdf"));
                     if vector_io::pdf::export(&d.doc, &p, &Default::default()).is_ok() {
                         reveal_in_explorer(&p);
@@ -1839,12 +1942,15 @@ impl VectorApp {
                 self.active = None;
             }
             Cmd::VideoTutorials => self.dockers.show(DockerId::Learn),
-            Cmd::WhatsNew => self.info_box("What's New?", &format!("Vector {}\n\n• Native Windows vector editor written in Rust\n• Vector drawing format (.vct)\n• PDF, SVG and bitmap export\n• PowerTRACE bitmap tracing\n• Scripting with recording\n• AI Generate", vector_core::APP_VERSION)),
+            Cmd::WhatsNew => self.info_box("What's New?", &format!("Vector {}\n\n• Native Windows vector editor written in Rust\n• CDR drawing format (.cdr); the older .vct format still opens\n• PDF, SVG and bitmap export\n• PowerTRACE bitmap tracing\n• Scripting with recording\n• AI Generate", vector_core::APP_VERSION)),
             Cmd::Updates => self.info_box("Updates", &format!("You are running Vector {}.", vector_core::APP_VERSION)),
             Cmd::MessageSettings | Cmd::RefreshAccount | Cmd::AccountSettings => self.info_box("Account", "Vector does not require an account. All your work stays on this computer."),
             Cmd::Community | Cmd::Support | Cmd::Feedback => self.info_box("Vector Community", "Share ideas and report problems to your Vector administrator or team."),
+            Cmd::ReportBug => self.dialogs.bug_report = Some(crate::bugreport::BugReportState::new()),
+            Cmd::ViewReportedBugs => {
+                crate::bugreport::open_in_browser(&crate::bugreport::issues_url());
+            }
             Cmd::About => self.dialogs.about = true,
-            Cmd::Purchase => self.info_box("Purchase", "This copy of Vector is fully licensed."),
 
             // ------------------------------------------------------------------ Misc
             Cmd::Tool(t) => {
@@ -1915,7 +2021,7 @@ fn sentence_case(s: &str) -> String {
     out
 }
 
-const HELP_TEXT: &str = "Getting started\n\n• File > New (Ctrl+N) creates a drawing; File > Open (Ctrl+O) opens .vct and .svg files.\n• Pick a tool from the toolbox on the left; the property bar above the drawing shows its options.\n• Click a color in the palette on the right to fill the selection; right-click to set the outline.\n• Hold Space to switch to the Pick tool temporarily; use the mouse wheel to zoom.\n• Window > Dockers opens panels such as Properties (Alt+Enter), Objects and Transform.\n• Tools > Options (Ctrl+J) holds all preferences.\n\nFiles are saved in the Vector format (.vct). Use File > Export (Ctrl+E) for PDF, SVG, PNG, JPG and more.";
+const HELP_TEXT: &str = "Getting started\n\n• File > New (Ctrl+N) creates a drawing; File > Open (Ctrl+O) opens .cdr, .vct and .svg files.\n• Pick a tool from the toolbox on the left; the property bar above the drawing shows its options.\n• Click a color in the palette on the right to fill the selection; right-click to set the outline.\n• Hold Space to switch to the Pick tool temporarily; use the mouse wheel to zoom.\n• Window > Dockers opens panels such as Properties (Alt+Enter), Objects and Transform.\n• Tools > Options (Ctrl+J) holds all preferences.\n\nDrawings are saved as .cdr files by default. Use File > Export (Ctrl+E) for PDF, SVG, PNG, JPG and more.";
 
 #[cfg(test)]
 mod tests {

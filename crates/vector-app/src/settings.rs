@@ -245,6 +245,43 @@ pub struct Settings {
     pub spell_errors_all: bool,
     pub theme_name: String,
     pub ui_language_ask: bool,
+    /// Page presets saved with "+" in Create a New Document.
+    pub custom_page_presets: Vec<CustomPagePreset>,
+    /// Names of presets used most recently (newest first).
+    pub recent_page_presets: Vec<String>,
+    /// Save Drawing options (also under Options ▸ Document ▸ Save and the Advanced... button).
+    pub save: SaveSettings,
+}
+
+/// A user-defined page preset.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CustomPagePreset {
+    pub name: String,
+    /// Size in points.
+    pub width: f64,
+    pub height: f64,
+    pub unit: vector_core::Unit,
+    pub dpi: f64,
+    pub cmyk: bool,
+}
+
+/// Options used when saving drawings.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct SaveSettings {
+    pub embed_color_profiles: bool,
+    /// Optimize for: false = speed, true = size.
+    pub optimize_for_size: bool,
+    pub bitmap_compression: bool,
+    pub object_compression: bool,
+    pub save_thumbnail: bool,
+    pub save_presentation_attributes: bool,
+}
+
+impl Default for SaveSettings {
+    fn default() -> Self {
+        SaveSettings { embed_color_profiles: true, optimize_for_size: false, bitmap_compression: true, object_compression: true, save_thumbnail: true, save_presentation_attributes: true }
+    }
 }
 
 impl Default for Settings {
@@ -414,15 +451,39 @@ impl Default for Settings {
             dblclick_bitmap_editor: false,
             ask_save_previous: true,
             keep_appearance: true,
-            default_version: "1.0".into(),
+            default_version: crate::settings::FILE_VERSIONS[0].into(),
             backup_dir: None,
             expand_paragraph_frames: false,
             spell_errors_all: true,
             theme_name: "Dark".into(),
             ui_language_ask: false,
+            custom_page_presets: Vec::new(),
+            recent_page_presets: Vec::new(),
+            save: SaveSettings::default(),
         }
     }
 }
+
+/// "2026-11-08 14:05" (UTC) for a file time.
+pub fn format_time(t: std::time::SystemTime) -> String {
+    let secs = t.duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0);
+    let days = secs.div_euclid(86_400);
+    let rem = secs.rem_euclid(86_400);
+    // civil-from-days (Howard Hinnant)
+    let z = days + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = yoe + era * 400 + if m <= 2 { 1 } else { 0 };
+    format!("{y:04}-{m:02}-{d:02} {:02}:{:02} UTC", rem / 3600, (rem % 3600) / 60)
+}
+
+/// File-format versions offered in Save Drawing ▸ Version and Options ▸ Save.
+pub const FILE_VERSIONS: &[&str] = &["1.0 (2026.0)"];
 
 pub fn config_dir() -> PathBuf {
     let base = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));

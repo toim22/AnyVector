@@ -2,13 +2,15 @@
 //! About, Palette Editor, page dialogs, confirmations and PowerTRACE.
 
 pub mod forms;
+pub mod new_doc;
 pub mod options;
 
 use crate::app::VectorApp;
 use crate::theme;
 use egui::{pos2, vec2, Color32, Frame, Id, Rect, Sense, Stroke, Ui, UiBuilder, Vec2};
 
-pub use forms::{ExportState, NewDocState, PaletteEditorState, PrintState, ScriptEditorState, TraceState};
+pub use forms::{ExportState, PaletteEditorState, PrintState, ScriptEditorState, TraceState};
+pub use new_doc::NewDocState;
 pub use options::OptionsState;
 
 /// What the user chose in a confirmation box.
@@ -45,6 +47,7 @@ pub struct Dialogs {
     pub insert_page: Option<(usize, bool)>,
     /// Docs still waiting for a decision while closing all / quitting.
     pub close_queue: Vec<usize>,
+    pub bug_report: Option<crate::bugreport::BugReportState>,
 }
 
 impl Dialogs {
@@ -65,6 +68,7 @@ impl Dialogs {
             || self.message_box.is_some()
             || self.resample.is_some()
             || self.insert_page.is_some()
+            || self.bug_report.is_some()
     }
 }
 
@@ -75,6 +79,9 @@ pub fn show(app: &mut VectorApp, ctx: &egui::Context) {
         options::show(app, ctx);
     }
     forms::show_all(app, ctx);
+    if app.dialogs.bug_report.is_some() {
+        crate::bugreport::dialog(app, ctx);
+    }
 }
 
 /// A dialog window in the application style: dark frame, title text at the top left and a
