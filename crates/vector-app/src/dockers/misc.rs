@@ -303,7 +303,7 @@ pub fn assets(app: &mut VectorApp, ui: &mut Ui) {
     }
     let files: Vec<std::path::PathBuf> = std::fs::read_dir(&dir).map(|r| r.filter_map(|e| e.ok()).map(|e| e.path()).collect()).unwrap_or_default();
     if files.is_empty() {
-        hint(ui, "Save .vct, .svg or image files to the library folder to see them here.");
+        hint(ui, "Save .cdr, .svg or image files to the library folder to see them here.");
     }
     for f in files {
         let name = f.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
