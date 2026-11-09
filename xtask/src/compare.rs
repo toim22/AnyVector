@@ -1,4 +1,4 @@
-//! `target/visual/compare.html`: each Vector render (written by the visual tests to
+//! `target/visual/compare.html`: each AnyVector render (written by the visual tests to
 //! `target/visual/`) next to the reference screenshot it should match.
 //!
 //! The pairs are listed in `docs/reference-map.tsv`: `render file \t reference path \t title`,

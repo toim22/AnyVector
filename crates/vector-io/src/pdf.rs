@@ -1371,7 +1371,7 @@ mod tests {
         assert!(s.contains("/Filter /Standard /V 2 /R 3 /Length 128"));
         assert!(s.contains("/Encrypt"));
         assert!(!s.contains("Caf"), "strings are encrypted");
-        if let Ok(dir) = std::env::var("VECTOR_PDF_OUT") {
+        if let Ok(dir) = std::env::var("ANYVECTOR_PDF_OUT") {
             std::fs::write(std::path::Path::new(&dir).join("secured.pdf"), &b).unwrap();
         }
         // PDF/X never carries security

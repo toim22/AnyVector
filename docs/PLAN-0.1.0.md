@@ -26,8 +26,8 @@ in the reference is not added.
 - **Edit Bitmap**: opens the bitmap in the user's default image editor and brings the result back (instead of
   Corel PHOTO-PAINT); skipped only if no generic way works.
 - **Acquire Image**: implemented for real scanners (Windows scanner support).
-- **Branding**: `vector-icon.svg` is the program icon (exe, window, shortcuts, file types, installer icon);
-  `vector-logo.svg` is the logo (splash screen, About box, installer side picture).
+- **Branding**: `anyvector-icon.svg` is the program icon (exe, window, shortcuts, file types, installer icon);
+  `anyvector-logo.svg` is the logo (splash screen, About box, installer side picture).
 
 ## Batches
 
