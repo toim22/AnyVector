@@ -264,7 +264,11 @@ pub enum CdrKind {
 }
 
 pub fn detect(bytes: &[u8]) -> CdrKind {
-    if bytes.len() >= 12 && &bytes[0..4] == b"RIFF" && &bytes[8..11] == b"CDR" {
+    // CorelDRAW drawings ("CDR") and templates ("CDT"); versions 1 and 2 start with "WL"
+    if bytes.len() >= 12 && &bytes[0..4] == b"RIFF" && (&bytes[8..11] == b"CDR" || &bytes[8..11] == b"CDT" || &bytes[8..11] == b"cdr") {
+        return CdrKind::CorelDraw;
+    }
+    if bytes.len() >= 2 && &bytes[0..2] == b"WL" {
         return CdrKind::CorelDraw;
     }
     let Ok(mut z) = zip::ZipArchive::new(std::io::Cursor::new(bytes)) else { return CdrKind::Unknown };
@@ -374,7 +378,9 @@ mod tests {
         let mut riff = b"RIFF\0\0\0\0CDRvvers".to_vec();
         riff.extend_from_slice(&[0; 16]);
         assert_eq!(detect(&riff), CdrKind::CorelDraw);
-        assert!(matches!(load_from_bytes(&riff), Err(IoError::Unsupported(_))));
+        // a CorelDRAW file with nothing in it is reported as damaged, not as unsupported
+        assert!(matches!(load_from_bytes(&riff), Err(IoError::Format(_))));
+        assert!(matches!(load_from_bytes(b"WL some old drawing"), Err(IoError::Unsupported(_))));
         // a .vct archive renamed to .cdr still opens
         let v = crate::native::save_to_bytes(&Document::new(100.0, 100.0)).unwrap();
         assert_eq!(detect(&v), CdrKind::LegacyVector);

@@ -57,12 +57,14 @@ pub const SAVE_TYPES: &[FileType] = &[
 
 pub const OPEN_TYPES: &[FileType] = &[
     FileType { name: "CDR - CorelDRAW (*.cdr)", extensions: &["cdr"], vector: true },
+    FileType { name: "CDT - CorelDRAW Template (*.cdt;*.cdrt)", extensions: &["cdt", "cdrt"], vector: true },
     FileType { name: "AnyVector Drawing (*.vct)", extensions: &["vct"], vector: true },
     FileType { name: "Scalable Vector Graphics (*.svg)", extensions: &["svg", "svgz"], vector: true },
 ];
 
 pub const IMPORT_TYPES: &[FileType] = &[
     FileType { name: "CDR - CorelDRAW (*.cdr)", extensions: &["cdr"], vector: true },
+    FileType { name: "CDT - CorelDRAW Template (*.cdt;*.cdrt)", extensions: &["cdt", "cdrt"], vector: true },
     FileType { name: "AnyVector Drawing (*.vct)", extensions: &["vct"], vector: true },
     FileType { name: "SVG - Scalable Vector Graphics (*.svg;*.svgz)", extensions: &["svg", "svgz"], vector: true },
     FileType { name: "PNG - Portable Network Graphics (*.png)", extensions: &["png"], vector: false },
@@ -121,8 +123,18 @@ pub fn read_thumbnail(path: &Path) -> Option<(u32, u32, Vec<u8>)> {
 }
 
 /// Whether a path is a drawing that can be saved back in place (native formats).
+///
+/// A `.cdr` saved by CorelDRAW is not one: it opens as a new drawing, so that saving cannot
+/// replace the original with a file CorelDRAW no longer reads.
 pub fn is_drawing(path: &Path) -> bool {
-    matches!(extension(path).as_str(), "cdr" | "vct")
+    match extension(path).as_str() {
+        "vct" => true,
+        "cdr" => match std::fs::read(path) {
+            Ok(bytes) => cdr::detect(&bytes) != cdr::CdrKind::CorelDraw,
+            Err(_) => true,
+        },
+        _ => false,
+    }
 }
 
 /// Import a file into an existing document, returning the new top-level objects (not yet placed).
