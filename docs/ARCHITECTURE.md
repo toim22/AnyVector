@@ -69,10 +69,13 @@ The interface is written in English, and translations are looked up when text is
 ## Updates
 
 `updater.rs` reads the latest GitHub release of `toim22/Vector` (anonymously, or through `gh` when the repository
-is private) and looks for an asset ending in `-setup.exe`. Depending on Options ▸ Global ▸ General ▸ Allow product
-updates it downloads it in the background (at most once every 20 hours) and asks before installing, only tells
-you, or never checks on its own. Installing closes AnyVector normally (asking to save drawings), runs the setup
-with `/SILENT /CLOSEAPPLICATIONS /RELAUNCH=1`, and the setup starts AnyVector again.
+is private) and looks for an asset ending in `-setup.exe`. Every start checks on a background thread, so the start
+is not delayed, and nothing is shown unless a newer version is found. Then a message says so, and OK installs it
+(Later asks again at the next start). Options ▸ Global ▸ General ▸ Allow product updates chooses whether the setup
+also downloads in the background meanwhile (keep the product up to date: OK then installs at once), downloads only
+after OK (check and let me choose), or whether AnyVector never checks on its own. A setup already downloaded at an
+earlier start is used again when its size matches the release's. Installing closes AnyVector normally (asking to
+save drawings), runs the setup with `/SILENT /CLOSEAPPLICATIONS /RELAUNCH=1`, and the setup starts AnyVector again.
 
 ## Data flow
 
@@ -122,4 +125,6 @@ cargo build --release -p vector-app
 The version comes from the workspace `Cargo.toml`, and the installer is written to `dist/AnyVector-<version>-setup.exe`.
 It installs per user without an administrator prompt (or for all users if chosen), adds AnyVector to "Open with" for
 `.cdr` (making it the default for `.cdr` is an unchecked option, because CorelDRAW may own that type), opens `.vct`
-files, and keeps the install folder and choices on updates.
+files, and keeps the install folder and choices on updates. Updating an install made while the program was called
+Vector moves it from its `Vector` folder to an `AnyVector` folder next to it and replaces the Vector shortcuts in the
+Start menu and on the desktop.

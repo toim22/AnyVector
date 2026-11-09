@@ -10,6 +10,9 @@
 ; chooses, for all users (in Program Files). Settings, palettes and templates live in the user profile and stay
 ; there after uninstalling.
 ;
+; Updating an install made while the program was called Vector moves it from its "Vector" folder to an "AnyVector"
+; folder and replaces the Vector shortcuts (see FindOldVector in [Code]).
+;
 ; The "Product language" page chooses the language AnyVector starts in (English or Brazilian Portuguese); the choice
 ; is written to Software\AnyVector (Language, LanguageStamp) and AnyVector applies it once, at its next start. A silent
 ; setup (the in-app update) leaves the language alone, and /RELAUNCH=1 starts AnyVector again when it is done.
@@ -127,6 +130,13 @@ Name: "assocsvg"; Description: "{cm:AssocSvg}"; GroupDescription: "{cm:AssocGrou
 [InstallDelete]
 ; the program was called Vector (vector.exe) before 0.1.0
 Type: files; Name: "{app}\vector.exe"
+; and had these shortcuts (the oldest versions also had a Start menu folder with an uninstall shortcut); they are
+; removed only when updating an install of Vector, so another program's "Vector" shortcuts are never touched
+Type: files; Name: "{autoprograms}\Vector.lnk"; Check: UpdatingVector
+Type: files; Name: "{autodesktop}\Vector.lnk"; Check: UpdatingVector
+Type: files; Name: "{autoprograms}\Vector\Vector.lnk"; Check: UpdatingVector
+Type: files; Name: "{autoprograms}\Vector\Uninstall Vector.lnk"; Check: UpdatingVector
+Type: dirifempty; Name: "{autoprograms}\Vector"; Check: UpdatingVector
 
 [Files]
 Source: "..\target\release\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion
@@ -183,10 +193,57 @@ Filename: "{app}\{#AppExe}"; Flags: nowait runasoriginaluser; Check: ShouldRelau
 var
   Relaunching: Boolean;
   LangPage: TInputOptionWizardPage;
+  OldVectorDir: String;
+
+// Before 0.1.0 the program was called Vector and was installed in a "Vector" folder. Updating such an install puts
+// AnyVector in an "AnyVector" folder next to it; once installed, the old folder's files are removed (RemoveOldVector)
+// and so are the "Vector" shortcuts ([InstallDelete]). A folder the user named differently is updated in place.
+procedure FindOldVector;
+var
+  Prev: String;
+begin
+  Prev := RemoveBackslashUnlessRoot(WizardForm.PrevAppDir);
+  if Prev = '' then
+    Exit;
+  if FileExists(AddBackslash(Prev) + 'vector.exe') or SameText(ExtractFileName(Prev), 'Vector') then
+    OldVectorDir := Prev;
+  // only the folder of the previous version, and not when Setup was given a folder (/DIR=)
+  if SameText(ExtractFileName(Prev), 'Vector') and (ExpandConstant('{param:DIR|}') = '')
+     and SameText(RemoveBackslashUnlessRoot(WizardForm.DirEdit.Text), Prev) then
+  begin
+    WizardForm.DirEdit.Text := AddBackslash(ExtractFileDir(Prev)) + '{#AppName}';
+    Log('Updating Vector in ' + Prev + ': installing in ' + WizardForm.DirEdit.Text);
+  end;
+end;
+
+function UpdatingVector: Boolean;
+begin
+  Result := OldVectorDir <> '';
+end;
+
+procedure RemoveOldVector;
+var
+  NewDir: String;
+begin
+  NewDir := RemoveBackslashUnlessRoot(ExpandConstant('{app}'));
+  if (OldVectorDir = '') or SameText(NewDir, OldVectorDir) then
+    Exit;
+  // the uninstall entry now points to the new folder's uninstaller, so the old one goes too
+  DelayDeleteFile(OldVectorDir + '\vector.exe', 8);
+  DelayDeleteFile(OldVectorDir + '\{#AppExe}', 8);
+  DeleteFile(OldVectorDir + '\vector.ico');
+  DeleteFile(OldVectorDir + '\unins000.exe');
+  DeleteFile(OldVectorDir + '\unins000.dat');
+  if RemoveDir(OldVectorDir) then
+    Log('Removed the old folder ' + OldVectorDir)
+  else
+    Log('Kept the old folder ' + OldVectorDir + ' (it still has other files, or a file is in use)');
+end;
 
 // Product language: the language AnyVector starts in, the setup's own language unless the user picks the other one
 procedure InitializeWizard;
 begin
+  FindOldVector;
   LangPage := CreateInputOptionPage(wpSelectTasks, CustomMessage('LangCaption'), CustomMessage('LangDescription'),
     CustomMessage('LangSub'), True, False);
   LangPage.Add(CustomMessage('LangEnglish'));
@@ -300,6 +357,8 @@ procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if (CurStep = ssInstall) and IsAdminInstallMode then
     RemoveOtherInstall(HKCU);
+  if CurStep = ssPostInstall then
+    RemoveOldVector;
 end;
 
 // closes this instance without asking "Exit Setup?" once the elevated one has opened
