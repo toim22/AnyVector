@@ -1,15 +1,15 @@
-//! Build helpers for Vector, run from the repository root:
+//! Build helpers for AnyVector, run from the repository root:
 //!
 //! ```text
 //! cargo run -p xtask -- brand      # app icon, logo and installer pictures from the brand SVGs
 //! cargo run -p xtask -- coverage   # docs/COVERAGE.md from the CorelDRAW reference (MAPEAMENTO)
-//! cargo run -p xtask -- compare    # target/visual/compare.html: Vector renders next to the reference
+//! cargo run -p xtask -- compare    # target/visual/compare.html: AnyVector renders next to the reference
 //! cargo run -p xtask -- licenses   # the Legal Notices text (open-source components and licenses)
 //! cargo run -p xtask -- ui         # menus, toolbars and property bars from the reference definition
 //! ```
 //!
 //! The reference folder defaults to `C:\Users\anton\Documents\Claude\corel-screenshots\MAPEAMENTO`
-//! and can be changed with the `VECTOR_REFERENCE` environment variable.
+//! and can be changed with the `ANYVECTOR_REFERENCE` environment variable.
 
 mod brand;
 mod compare;
@@ -28,7 +28,7 @@ pub fn root() -> PathBuf {
 
 /// The CorelDRAW reference material (screenshots, inventory and coverage reports).
 pub fn reference() -> PathBuf {
-    std::env::var_os("VECTOR_REFERENCE").map(PathBuf::from).unwrap_or_else(|| PathBuf::from(r"C:\Users\anton\Documents\Claude\corel-screenshots\MAPEAMENTO"))
+    std::env::var_os("ANYVECTOR_REFERENCE").map(PathBuf::from).unwrap_or_else(|| PathBuf::from(r"C:\Users\anton\Documents\Claude\corel-screenshots\MAPEAMENTO"))
 }
 
 fn main() {

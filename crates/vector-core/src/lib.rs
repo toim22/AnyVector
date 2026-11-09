@@ -1,4 +1,4 @@
-//! Vector — document model, geometry and text engine.
+//! AnyVector — document model, geometry and text engine.
 
 pub mod codes;
 pub mod color;
