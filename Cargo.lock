@@ -4318,6 +4318,7 @@ dependencies = [
  "usvg",
  "vector-core",
  "vector-render",
+ "weezl",
  "zip",
 ]
 

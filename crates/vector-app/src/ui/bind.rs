@@ -112,11 +112,16 @@ pub fn cmd(id: &str) -> Option<Cmd> {
         "d430d269" => Export,
         "cd42798b" => ExportForOffice,
         "4b3e61ff" => ExportForWeb,
+        "07592ecb" => ExportForWordPress,
+        "b089d276" => ExportDockerAddSelection,
+        "badeac4f" => ExportDockerAddPage,
+        "ea2d4e6b" => ExportDockerAddAllPages,
         "8f29b2d6" => SendToMail,
         "f5f7cfa8" => PublishPdf,
         "ea816d5e" => PrintMergeCreate,
         "9838344c" => PrintMergeEdit,
         "21dfd614" => PrintMergePerform,
+        "46c3dff5" => PrintMergeNewDoc,
         "e3f5366a" => Print,
         "51771ba9" => PrintPreview,
         "3324df3f" => DocumentProperties,
@@ -130,6 +135,9 @@ pub fn cmd(id: &str) -> Option<Cmd> {
         "f16b149b" => CopyPropertiesFrom,
         "89088287" => Paste,
         "b52abcd3" => PasteSpecial,
+        "c5b2ffa4" => PasteInView,
+        "6f43fff0" => BringIntoFocus,
+        "26889cbf" => ExitFocusMode,
         "19ae1afb" => Delete,
         "80f991a4" => Duplicate,
         "ae84ae30" => Clone,
@@ -142,7 +150,19 @@ pub fn cmd(id: &str) -> Option<Cmd> {
         "844cb5e2" => ViewMode(Vm::Normal),
         "e09c1ea0" => ViewMode(Vm::Enhanced),
         "6f9db850" => ViewMode(Vm::Pixels),
-        "e279d745" => ViewMode(Vm::SimulateOverprint),
+        "e279d745" => ToggleSimulateOverprints,
+        "4b726144" => PreviewSelectedOnly,
+        "2273acde" => ToggleMultipageView,
+        "66dd7512" => ToggleProofColors,
+        "b3f2d00d" => ToggleRasterizeEffects,
+        "f1d540fc" => TogglePrintableArea,
+        "99b1ef61" => ToggleBaselineGrid,
+        "de9c3db5" => ToggleAlignmentGuides,
+        "540eaeee" => ToggleDynamicGuides,
+        "c7533564" => ToggleDocNavigator,
+        "0a9a07c2" => ToggleScrollbars,
+        "e0c557dc" => SnapToPixels,
+        "317a9b45" => SnapToBaseline,
         "5387eaac" => FullScreenPreview,
         "073c3fba" => ZoomIn,
         "729045ed" => ZoomOut,
@@ -377,6 +397,18 @@ pub fn checked(app: &VectorApp, id: &str) -> Option<bool> {
         Cmd::SnapToObjects => doc_setting(app, |s| s.snap_to_objects),
         Cmd::SnapToPage => doc_setting(app, |s| s.snap_to_page),
         Cmd::SnapOff => doc_setting(app, |s| s.snap_off),
+        Cmd::SnapToPixels => doc_setting(app, |s| s.snap_to_pixels),
+        Cmd::SnapToBaseline => doc_setting(app, |s| s.snap_to_baseline),
+        Cmd::ToggleMultipageView => doc_setting(app, |s| s.multipage_view),
+        Cmd::TogglePrintableArea => doc_setting(app, |s| s.show_printable_area),
+        Cmd::ToggleBaselineGrid => doc_setting(app, |s| s.show_baseline_grid),
+        Cmd::ToggleProofColors => Some(app.settings.proof_colors),
+        Cmd::ToggleSimulateOverprints => Some(app.doc().is_some_and(|d| d.simulate_overprint)),
+        Cmd::ToggleRasterizeEffects => Some(app.settings.rasterize_complex_effects),
+        Cmd::ToggleAlignmentGuides => Some(app.settings.live_guides),
+        Cmd::ToggleDynamicGuides => Some(app.settings.dynamic_guides),
+        Cmd::ToggleDocNavigator => Some(app.settings.show_doc_navigator),
+        Cmd::ToggleScrollbars => Some(app.settings.show_scrollbars),
         Cmd::ButtonSize(b) => Some(app.settings.button_size == b),
         Cmd::Node(No::Elastic) => Some(app.ts.elastic),
         Cmd::Node(No::Close) => Some(selected_path(app).is_some_and(|p| !p.subpaths.is_empty() && p.subpaths.iter().all(|s| s.closed))),
@@ -407,7 +439,9 @@ pub fn enabled(app: &VectorApp, id: &str) -> Option<bool> {
         // PowerClip ▸ Fit Contents, Lock Contents to PowerClip, Extract Contents, Edit PowerClip
         "78030281" | "6ea9b15a" | "6ad732d1" | "cd3ae51f" => return Some(one_is(|k| matches!(k, ObjKind::PowerClip { .. }))),
         // Finish Editing PowerClip (the right-click and the toolbar ones)
-        "22eabb92" | "1b67872b" => return Some(d.is_some_and(|d| d.focus.is_some())),
+        "22eabb92" | "1b67872b" => return Some(d.is_some_and(|d| !d.focus.is_empty())),
+        // Pixel Grid and Snap To ▸ Pixels work in Pixels view only
+        "64c626a4" | "e0c557dc" => return Some(d.is_some_and(|d| d.view_mode == Vm::Pixels)),
         // Align to Baseline Grid: paragraph text and tables
         "38f80f45" => return Some(one_is(|k| matches!(k, ObjKind::Table(_)) || matches!(k, ObjKind::Text(t) if matches!(t.kind, vector_core::text::TextKind::Paragraph { .. })))),
         // Insert Placeholder Text: tables and empty paragraph frames
@@ -426,7 +460,10 @@ pub fn enabled(app: &VectorApp, id: &str) -> Option<bool> {
         Cmd::Redo => d.is_some_and(|d| d.history.can_redo()),
         Cmd::Repeat => d.is_some() && app.last_cmd.is_some(),
         Cmd::Revert => d.is_some_and(|d| d.history.is_modified() && d.path.is_some()),
-        Cmd::Paste => d.is_some() && (!app.clip.objects.is_empty() || crate::exec::system_clipboard_has_content()),
+        Cmd::Paste | Cmd::PasteSpecial | Cmd::PasteInView => d.is_some() && (!app.clip.objects.is_empty() || crate::exec::system_clipboard_has_content()),
+        Cmd::BringIntoFocus | Cmd::PreviewSelectedOnly => sel > 0,
+        Cmd::ExitFocusMode => d.is_some_and(|d| !d.focus.is_empty()),
+        Cmd::CopyPropertiesFrom => sel > 0,
         Cmd::Save => d.is_some_and(|d| d.history.is_modified() || d.path.is_none()),
         Cmd::ZoomToSelected => sel > 0,
         Cmd::Cut | Cmd::Copy | Cmd::Delete => sel > 0,
@@ -437,6 +474,8 @@ pub fn enabled(app: &VectorApp, id: &str) -> Option<bool> {
         Cmd::RunTemporary => d.is_some() && !app.temp_script.is_empty(),
         Cmd::WelcomeScreen | Cmd::About | Cmd::Feedback => true,
         Cmd::Node(op) => node_enabled(app, op),
+        Cmd::PrintMergeEdit => d.is_some_and(|d| d.doc.print_merge.is_some()),
+        Cmd::PrintMergePerform | Cmd::PrintMergeNewDoc => d.is_some_and(|d| d.doc.print_merge.as_ref().is_some_and(|m| m.records.iter().any(|r| r.selected))),
         _ => return None,
     })
 }
@@ -550,5 +589,35 @@ mod tests {
         }
         assert_eq!(cmd("fa65d0c1-879b-4ef5-9465-af09e00e91ab"), Some(Cmd::New));
         assert_eq!(cmd("CD42798B-A81F-4eba-9CCE-7C035B5D26C1"), Some(Cmd::ExportForOffice));
+    }
+
+    /// Writes `target/unbound.txt`: every menu item (by menu path) that has no command yet.
+    /// Run with `cargo test -p vector-app unbound_report -- --ignored`.
+    #[test]
+    #[ignore]
+    fn unbound_report() {
+        use super::super::{bar, bar_named, plain, Kind, NO_SUB};
+        fn walk(b: u16, path: &str, out: &mut Vec<String>, depth: usize) {
+            let Some(bar) = bar(b) else { return };
+            for it in bar.items {
+                let name = format!("{path} > {}", plain(super::super::label(it)));
+                match it.kind {
+                    Kind::Separator | Kind::Placeholder => {}
+                    Kind::Flyout | Kind::ButtonFlyout if it.sub != NO_SUB && depth < 4 => walk(it.sub, &name, out, depth + 1),
+                    _ if cmd(it.id).is_none() => out.push(format!("{name}	{}", it.id)),
+                    _ => {}
+                }
+            }
+        }
+        let mut out = Vec::new();
+        let (menu, _) = bar_named("Menu Bar").unwrap();
+        for it in bar(menu).unwrap().items {
+            walk(it.sub, &plain(it.text), &mut out, 0);
+        }
+        let n = out.len();
+        std::fs::write(concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/unbound.txt"), out.join("
+") + "
+").unwrap();
+        println!("{n} menu items without a command");
     }
 }

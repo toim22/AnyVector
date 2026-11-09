@@ -27,7 +27,8 @@ pub use shapes::COMMON_SHAPES;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PickTarget {
     PowerClip,
-    CopyProperties,
+    /// Copy Properties From: which properties to copy.
+    CopyProperties { pen: bool, color: bool, fill: bool, text: bool },
     CopyEffect,
     FitToPath,
 }
@@ -117,6 +118,8 @@ pub struct ToolState {
     pub eyedrop_color: Option<Color>,
     pub eyedrop_attrs: Option<(Style, vector_core::object::Effects)>,
     pub snap_mark: Option<(Point, &'static str)>,
+    /// Alignment and dynamic guides shown while snapping to them.
+    pub guide_lines: Vec<(Point, Point)>,
     pub renderer: vector_render::Renderer,
     /// Text typed at a point before the text object exists: (point, paragraph frame).
     pub pending_text: Option<(Point, Option<Rect>)>,
@@ -175,6 +178,7 @@ impl Default for ToolState {
             eyedrop_color: None,
             eyedrop_attrs: None,
             snap_mark: None,
+            guide_lines: vec![],
             renderer: vector_render::Renderer::new(),
             pending_text: None,
             text_last_edit: -10.0,
@@ -196,7 +200,7 @@ impl ToolState {
         if let Some(p) = self.pick_target {
             return match p {
                 PickTarget::PowerClip => "Click the frame object to place the selection inside it (Esc to cancel)",
-                PickTarget::CopyProperties => "Click the object to copy properties from (Esc to cancel)",
+                PickTarget::CopyProperties { .. } => "Click the object to copy properties from (Esc to cancel)",
                 PickTarget::CopyEffect => "Click the object to copy the effect from (Esc to cancel)",
                 PickTarget::FitToPath => "Click the path to fit the text to (Esc to cancel)",
             }
@@ -228,6 +232,7 @@ impl ToolState {
         self.pick_target = None;
         self.pending_text = None;
         self.snap_mark = None;
+        self.guide_lines.clear();
         self.press = None;
         self.bspline = false;
         self.copy_on_drop = false;
@@ -617,6 +622,11 @@ pub fn round_corners(np: &NodePath, r: f64, kind: usize) -> NodePath {
 
 /// Insert text: into the text being edited, or as a new artistic text object at the page center.
 pub fn insert_text(app: &mut VectorApp, s: &str, font: Option<&str>) {
+    insert_text_at(app, s, font, None);
+}
+
+/// Insert text at the caret, or as new artistic text centered on `at` (the page center).
+pub fn insert_text_at(app: &mut VectorApp, s: &str, font: Option<&str>, at: Option<Point>) {
     if !app.has_doc() {
         app.new_default_document();
     }
@@ -652,7 +662,7 @@ pub fn insert_text(app: &mut VectorApp, s: &str, font: Option<&str>) {
         }
         return;
     }
-    let c = d.page_ref().rect().center();
+    let c = at.unwrap_or_else(|| d.page_ref().rect().center());
     let id = d.doc.new_id();
     let mut style = Style::text_default();
     if let Some(f) = fill {

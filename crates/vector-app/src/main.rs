@@ -16,6 +16,7 @@ mod exec;
 mod icons;
 mod menus;
 mod palette;
+mod printing;
 mod propbar;
 mod save_dialog;
 mod scripting;

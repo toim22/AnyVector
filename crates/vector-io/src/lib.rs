@@ -5,6 +5,7 @@ pub mod flat;
 pub mod image_io;
 pub mod native;
 pub mod pdf;
+pub mod pdf_crypt;
 pub mod svg_export;
 pub mod svg_import;
 
@@ -91,7 +92,7 @@ pub fn extension(path: &Path) -> String {
 /// Open a document file (native or SVG).
 pub fn open(path: &Path) -> Result<Document> {
     match extension(path).as_str() {
-        "cdr" | "cdt" => cdr::load(path),
+        "cdr" | "cdt" | "cdrt" => cdr::load(path),
         "vct" => native::load(path),
         "svg" | "svgz" => {
             let data = std::fs::read(path)?;
@@ -113,7 +114,7 @@ pub fn open(path: &Path) -> Result<Document> {
 /// The preview stored in a drawing (`.cdr` or `.vct`), as RGBA pixels.
 pub fn read_thumbnail(path: &Path) -> Option<(u32, u32, Vec<u8>)> {
     match extension(path).as_str() {
-        "cdr" | "cdt" => cdr::read_thumbnail(path).or_else(|| native::read_thumbnail(path)),
+        "cdr" | "cdt" | "cdrt" => cdr::read_thumbnail(path).or_else(|| native::read_thumbnail(path)),
         _ => native::read_thumbnail(path),
     }
 }
@@ -128,7 +129,7 @@ pub fn import(doc: &mut Document, path: &Path) -> Result<Vec<Object>> {
     let ext = extension(path);
     let bytes = std::fs::read(path)?;
     match ext.as_str() {
-        "cdr" | "cdt" => {
+        "cdr" | "cdt" | "cdrt" => {
             let other = cdr::load_from_bytes(&bytes)?;
             Ok(merge_document(doc, other))
         }

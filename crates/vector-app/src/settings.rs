@@ -216,6 +216,21 @@ pub struct Settings {
     pub language: String,
     pub hardware_accel: bool,
     pub print_only_current: bool,
+    /// The Print dialog's last settings and printer.
+    pub print: crate::printing::PrintSettings,
+    pub printer: Option<String>,
+    /// Publish to PDF: the last PDF settings and preset.
+    pub pdf: Option<crate::dialogs::export::PdfSettings>,
+    pub pdf_preset: Option<String>,
+    /// File ▸ Export: last file type and bitmap resolution; SVG Export units.
+    pub export_format: usize,
+    pub export_dpi: Option<f64>,
+    pub svg_unit: usize,
+    /// Export For ▸ WordPress: the last site and user name (never the password).
+    pub wordpress_site: Option<String>,
+    pub wordpress_user: Option<String>,
+    /// File ▸ Acquire Image ▸ Select WIA Source: the chosen device.
+    pub wia_device: Option<String>,
     pub file_locations: Vec<(String, String)>,
     pub show_choose_palette: bool,
     pub user_name: String,
@@ -239,6 +254,13 @@ pub struct Settings {
     pub live_guides_edges: bool,
     pub live_guides_centers: bool,
     pub live_guides_page: bool,
+    /// View ▸ Dynamic Guides.
+    pub dynamic_guides: bool,
+    /// View ▸ Rasterize Complex Effects.
+    pub rasterize_complex_effects: bool,
+    /// View ▸ Document Navigator and View ▸ Scrollbars.
+    pub show_doc_navigator: bool,
+    pub show_scrollbars: bool,
     pub tablet_desktop_ws: String,
     pub tablet_touch_ws: String,
     pub dblclick_bitmap_editor: bool,
@@ -432,6 +454,16 @@ impl Default for Settings {
             language: "English-US".into(),
             hardware_accel: true,
             print_only_current: false,
+            print: Default::default(),
+            printer: None,
+            pdf: None,
+            pdf_preset: None,
+            export_format: 2,
+            export_dpi: None,
+            svg_unit: 0,
+            wordpress_site: None,
+            wordpress_user: None,
+            wia_device: None,
             file_locations: vec![],
             show_choose_palette: true,
             user_name: std::env::var("USERNAME").unwrap_or_default(),
@@ -453,6 +485,10 @@ impl Default for Settings {
             live_guides_edges: true,
             live_guides_centers: true,
             live_guides_page: true,
+            dynamic_guides: false,
+            rasterize_complex_effects: false,
+            show_doc_navigator: true,
+            show_scrollbars: true,
             tablet_desktop_ws: "Default".into(),
             tablet_touch_ws: "Touch".into(),
             dblclick_bitmap_editor: false,
