@@ -41,7 +41,7 @@ pub fn handle(app: &mut VectorApp, ctx: &egui::Context) {
         return;
     }
     let typing = ctx.egui_wants_keyboard_input();
-    let text_editing = app.doc().map(|d| d.text_edit.is_some()).unwrap_or(false) || app.ts.pending_text.is_some();
+    let text_editing = app.doc().map(|d| d.text_edit.is_some()).unwrap_or(false) || app.ts.pending_text.is_some() || crate::tools::table_typing(app);
     let mut fired: Vec<Cmd> = vec![];
     let binds = bindings(app);
     ctx.input_mut(|i| {

@@ -134,7 +134,7 @@ pub fn font_sampler(app: &mut VectorApp, ui: &mut Ui) {
 }
 
 /// Render a text sample with the document text engine (so it shows the real font).
-fn sample_texture(app: &mut VectorApp, ctx: &egui::Context, family: &str, text: &str, size: f32) -> Option<egui::TextureHandle> {
+pub(crate) fn sample_texture(app: &mut VectorApp, ctx: &egui::Context, family: &str, text: &str, size: f32) -> Option<egui::TextureHandle> {
     let key = format!("sample:{family}:{text}:{size}");
     if let Some(t) = app.ts.texture_cache.get(&key) {
         return Some(t.clone());

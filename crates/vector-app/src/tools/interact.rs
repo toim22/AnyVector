@@ -2653,6 +2653,81 @@ pub fn handle_text_keys(app: &mut VectorApp, ctx: &egui::Context) {
     }
 }
 
+/// The Table tool has one cell of the selected table chosen: typing goes into that cell.
+pub fn table_typing(app: &VectorApp) -> bool {
+    if !matches!(app.tool, ToolId::Table | ToolId::Text) {
+        return false;
+    }
+    let Some((r, c)) = app.ts.table_cell else { return false };
+    if app.ts.table_cell_to.is_some_and(|x| x != (r, c)) {
+        return false;
+    }
+    app.doc().is_some_and(|d| {
+        d.text_edit.is_none()
+            && matches!(d.selection.as_slice(), [id] if d.doc.find(*id).is_some_and(|o| matches!(&o.kind, ObjKind::Table(t) if r < t.rows && c < t.cols)))
+    })
+}
+
+/// Typing into the chosen table cell: text goes to the end of the cell (with QuickCorrect), Backspace
+/// takes the last character back, Tab moves to the next cell and Shift+Tab to the one before.
+pub fn handle_table_keys(app: &mut VectorApp, ctx: &egui::Context) {
+    if !table_typing(app) || app.dialogs.any_modal_open() || ctx.egui_wants_keyboard_input() {
+        return;
+    }
+    let Some((r, c)) = app.ts.table_cell else { return };
+    let Some(d) = app.doc() else { return };
+    let id = d.selection[0];
+    let Some(ObjKind::Table(t)) = d.doc.find(id).map(|o| &o.kind) else { return };
+    let anchors = t.anchors();
+    let events: Vec<egui::Event> = ctx.input(|i| i.events.clone());
+    let now = app.time();
+    let mut cell = (r, c);
+    for ev in events {
+        let (back, typed) = match &ev {
+            egui::Event::Text(s) | egui::Event::Paste(s) => (false, s.replace("\r\n", "\n")),
+            egui::Event::Key { key: egui::Key::Enter, pressed: true, modifiers, .. } if !modifiers.ctrl => (false, "\n".to_string()),
+            egui::Event::Key { key: egui::Key::Backspace, pressed: true, .. } => (true, String::new()),
+            egui::Event::Key { key: egui::Key::Tab, pressed: true, modifiers, .. } => {
+                let i = anchors.iter().position(|a| *a == cell).unwrap_or(0);
+                let n = anchors.len().max(1);
+                cell = anchors[if modifiers.shift { (i + n - 1) % n } else { (i + 1) % n }];
+                app.ts.table_cell = Some(cell);
+                app.ts.table_cell_to = None;
+                continue;
+            }
+            egui::Event::Key { key: egui::Key::Escape, pressed: true, .. } => {
+                app.ts.table_cell = None;
+                app.ts.table_cell_to = None;
+                return;
+            }
+            _ => continue,
+        };
+        if !back && typed.is_empty() {
+            continue;
+        }
+        let last = app.ts.text_last_edit;
+        app.ts.text_last_edit = now;
+        let settings = app.settings.clone();
+        let Some(d) = app.doc_mut() else { return };
+        if now - last > 1.0 || typed == "\n" {
+            d.checkpoint("Edit Table Text");
+        }
+        if let Some(ObjKind::Table(t)) = d.doc.find_mut(id).map(|o| &mut o.kind) {
+            let text = &mut t.cell_mut(cell.0, cell.1).text;
+            let mut chars: Vec<char> = text.chars().collect();
+            if back {
+                chars.pop();
+            } else {
+                let (k, s) = crate::dialogs::text::quick_correct(&settings, &chars, &typed);
+                chars.truncate(chars.len() - k.min(chars.len()));
+                chars.extend(s.chars());
+            }
+            *text = chars.into_iter().collect();
+        }
+        d.history.touch();
+    }
+}
+
 fn selected_text(app: &VectorApp) -> Option<String> {
     let d = app.doc()?;
     let te = d.text_edit.as_ref()?;
@@ -2679,6 +2754,7 @@ fn type_text(app: &mut VectorApp, s: &str, now: f64) {
             None => TextObj::artistic(s, fmt),
         };
         t.align = align;
+        crate::dialogs::text::apply_defaults(&mut t, &ts.text_para);
         let mut style = Style::text_default();
         if let Some(f) = fill {
             style.fill = Fill::Solid(f);
@@ -2696,14 +2772,14 @@ fn type_text(app: &mut VectorApp, s: &str, now: f64) {
     }
     ts.text_last_edit = now;
     let (a, b) = (te.caret.min(te.anchor), te.caret.max(te.anchor));
-    if let Some(o) = d.doc.find_mut(te.obj) {
-        if let ObjKind::Text(t) = &mut o.kind {
-            if b > a {
-                t.delete(a, b);
-            }
-            t.insert(a, s);
-        }
-    }
+    // QuickCorrect and custom optional hyphens as you type
+    let before: Vec<char> = match d.doc.find(te.obj).map(|o| &o.kind) {
+        Some(ObjKind::Text(t)) => t.content.chars().take(a).collect(),
+        _ => vec![],
+    };
+    let (back, s) = crate::dialogs::text::quick_correct(&app.settings, &before, s);
+    let a = a - back.min(a);
+    crate::dialogs::text::edit_chain(&mut d.doc, te.obj, a, b, &s);
     d.history.touch();
     let n = s.chars().count();
     if let Some(te) = d.text_edit.as_mut() {
@@ -2735,11 +2811,7 @@ fn delete_selection_or(app: &mut VectorApp, dir: i32, now: f64) {
         d.checkpoint("Delete Text");
     }
     ts.text_last_edit = now;
-    if let Some(o) = d.doc.find_mut(te.obj) {
-        if let ObjKind::Text(t) = &mut o.kind {
-            t.delete(a, b);
-        }
-    }
+    crate::dialogs::text::edit_chain(&mut d.doc, te.obj, a, b, "");
     d.history.touch();
     if let Some(te) = d.text_edit.as_mut() {
         te.caret = a;

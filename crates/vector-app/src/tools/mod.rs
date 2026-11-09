@@ -8,7 +8,7 @@ mod overlay;
 pub mod shapes;
 
 pub use ids::*;
-pub use interact::{guide_at, handle_input, handle_point, handle_text_keys, Input};
+pub use interact::{guide_at, handle_input, handle_point, handle_table_keys, handle_text_keys, table_typing, Input};
 pub use overlay::draw_overlay;
 
 use crate::app::VectorApp;
@@ -103,6 +103,8 @@ pub struct ToolState {
     pub distort_kind: DistortKind,
     pub text_format: CharFormat,
     pub text_align: TextAlign,
+    /// Paragraph settings for the text you create next (Text menu dialogs used with no text selected).
+    pub text_para: TextObj,
     pub recent_fonts: Vec<String>,
     pub last_coalesce: f64,
     pub texture_cache: HashMap<String, egui::TextureHandle>,
@@ -173,6 +175,7 @@ impl Default for ToolState {
             distort_kind: DistortKind::PushPull,
             text_format: CharFormat::default(),
             text_align: TextAlign::Left,
+            text_para: TextObj::artistic("", CharFormat::default()),
             recent_fonts: vec![],
             last_coalesce: -10.0,
             texture_cache: HashMap::new(),
@@ -664,6 +667,7 @@ pub fn insert_text_at(app: &mut VectorApp, s: &str, font: Option<&str>, at: Opti
         fmt.font = f.to_string();
     }
     let fill = app.ts.new_fill;
+    let para = app.ts.text_para.clone();
     let Some(d) = app.doc_mut() else { return };
     if let Some(te) = d.text_edit.clone() {
         let caret = te.caret.min(te.anchor);
@@ -697,7 +701,8 @@ pub fn insert_text_at(app: &mut VectorApp, s: &str, font: Option<&str>, at: Opti
     if let Some(f) = fill {
         style.fill = Fill::Solid(f);
     }
-    let t = TextObj::artistic(s, fmt);
+    let mut t = TextObj::artistic(s, fmt);
+    crate::dialogs::text::apply_defaults(&mut t, &para);
     let mut o = Object::new(id, ObjKind::Text(t), Affine::IDENTITY, style);
     let b = o.bounds();
     o.transform = Affine::translate(c - b.center());

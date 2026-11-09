@@ -13,3 +13,4 @@ rustybuzz = { workspace = true }
 ttf-parser = { workspace = true }
 parking_lot = { workspace = true }
 qrcode = { version = "0.14", default-features = false }
+hyphenation = { version = "0.8", features = ["embed_en-us"] }

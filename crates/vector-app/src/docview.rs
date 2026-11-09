@@ -137,6 +137,7 @@ impl DocView {
     pub fn after_change(&mut self) {
         self.doc.update_connectors();
         self.doc.update_page_numbers();
+        self.doc.update_text_flow();
         let doc = &self.doc;
         self.selection.retain(|id| doc.find(*id).is_some());
         self.node_sel.retain(|(id, _, _)| doc.find(*id).is_some());
