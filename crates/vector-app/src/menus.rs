@@ -124,7 +124,7 @@ fn raw_rows(app: &VectorApp, bar: u16, ctx: u32, strict: bool) -> Vec<Row> {
                 Kind::Separator => out.push(Row::Sep),
                 Kind::Placeholder => placeholder(app, it, ctx, strict, &mut out),
                 Kind::GroupBegin | Kind::GroupEnd | Kind::Spacer | Kind::Anchors => {}
-                _ if !spot_shows(it) => {}
+                _ if !spot_shows(it) || !selection_shows(app, it) => {}
                 _ => out.push(Row::Item(entry(app, it, ctx, strict))),
             }
         }
@@ -343,6 +343,16 @@ pub enum BarSpot {
 thread_local! {
     /// The command bar whose right-click menu is being drawn, and whether the click hit an item.
     static SPOT: std::cell::Cell<(BarSpot, bool)> = const { std::cell::Cell::new((BarSpot::MenuBar, false)) };
+}
+
+/// Object ▸ AI Generate lists the guided items when something is selected and the plain ones
+/// otherwise.
+fn selection_shows(app: &VectorApp, it: &Item) -> bool {
+    match key8(it.id).as_str() {
+        "a0776aad" | "2daeddaf" | "7e547078" => app.has_selection(),
+        "9c0ccd48" | "4bf3be7a" | "8ed410c6" => !app.has_selection(),
+        _ => true,
+    }
 }
 
 /// Customize ▸ shows the entry for the bar that was right-clicked (and its item, if one was).

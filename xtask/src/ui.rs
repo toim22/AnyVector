@@ -115,6 +115,18 @@ const EXTRAS: &[(&str, &str, &str, &[(&str, &str)])] = &[(
 )];
 const FORCE_VISIBLE: &[&str] = &[];
 
+/// Object > AI Generate: the plain items show with nothing selected and their "Guided by
+/// Selection" twins with a selection (the `SelectReferenceEnabled` binding). Vector picks at run
+/// time, so a menu shows half of these.
+const BY_SELECTION: &[&str] = &[
+    "9c0ccd48-7a5f-43c7-aff0-f59be1bb1595",
+    "a0776aad-7c8b-499b-8e67-df3801bf1769",
+    "4bf3be7a-cdd1-40a7-84ae-448ad787cc07",
+    "2daeddaf-49a3-4e1b-ab18-430357decbaa",
+    "8ed410c6-5402-4bac-8abe-97c235712914",
+    "7e547078-e4e7-4ab5-96da-d1f0c556da6b4",
+];
+
 /// Right-click menus, toolbars and other bars emitted besides the menu bar and what it reaches.
 const ROOTS: &[(&str, &str)] = &[
     ("Standard", "c2b44f69-6dec-444e-a37e-5dbf7ff43dae"),
@@ -403,9 +415,38 @@ fn hidden(d: &Defs, r: &ItemRef) -> bool {
     for (name, value) in VISIBILITY {
         if vis.contains(name) {
             // a `*Not(...)` around the binding flips it
-            let negated = vis.find("*Not(").is_some_and(|p| vis[p..].contains(name));
+            let negated = inside_not(vis, name);
             return value == &negated;
         }
+    }
+    false
+}
+
+/// Whether `name` sits inside a `*Not(...)` of the binding expression `vis`.
+fn inside_not(vis: &str, name: &str) -> bool {
+    let Some(at) = vis.find(name) else { return false };
+    let mut from = 0;
+    while let Some(p) = vis[from..].find("*Not(") {
+        let open = from + p + "*Not(".len();
+        let mut depth = 1;
+        let mut end = vis.len();
+        for (i, c) in vis[open..].char_indices() {
+            match c {
+                '(' => depth += 1,
+                ')' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        end = open + i;
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
+        if (open..end).contains(&at) {
+            return true;
+        }
+        from = open;
     }
     false
 }
@@ -766,6 +807,7 @@ fn report_heights(g: &Gen, rep: &mut String) -> Result<()> {
                 continue;
             }
             let (n, s) = visible_counts(&g.bars[bar].items);
+            let n = n - g.bars[bar].items.iter().filter(|i| BY_SELECTION.iter().any(|b| b.eq_ignore_ascii_case(&i.id))).count() as i64 / 2;
             let want = 6 + 22 * n + 7 * s;
             if g.bars[bar].items.iter().any(|i| i.kind == "Placeholder") {
                 writeln!(rep, "  ~~ {ctx}: {path}: reference {h} px, Vector {want} px before its run-time list")?;

@@ -13,14 +13,14 @@ The *Reference* column is a path inside the reference folder.
 
 | Area | Done | Partial | Todo | Omitted | Total |
 |---|---:|---:|---:|---:|---:|
-| [Menus](#menus) | 164 | 455 | 7 | 161 | 787 |
-| [Dialogs and screens](#dialogs-and-screens) | 11 | 80 | 1 | 0 | 92 |
+| [Menus](#menus) | 289 | 324 | 12 | 162 | 787 |
+| [Dialogs and screens](#dialogs-and-screens) | 37 | 53 | 1 | 1 | 92 |
 | [Bitmap effects (Properties docker)](#bitmap-effects-properties-docker) | 0 | 120 | 0 | 0 | 120 |
 | [Dockers](#dockers) | 0 | 44 | 0 | 1 | 45 |
 | [Tools](#tools) | 34 | 60 | 0 | 0 | 94 |
 | [Toolbars](#toolbars) | 12 | 0 | 0 | 0 | 12 |
 | [Right-click menus](#right-click-menus) | 24 | 0 | 0 | 3 | 27 |
-| **All** | **245** | **759** | **8** | **165** | **1177** |
+| **All** | **396** | **601** | **13** | **167** | **1177** |
 
 ## Menus
 
@@ -155,161 +155,161 @@ The *Reference* column is a path inside the reference folder.
 
 ### Layout
 
-2 done · 16 partial · 0 todo · 0 omitted
+11 done · 7 partial · 0 todo · 0 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
 | Layout | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\04 Layout\001 Layout.png` |
-| Layout > Insert Page... | opens a window | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\001 Layout ▸ Insert Page.png` |
-| Layout > Duplicate Page... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\002 Layout ▸ Duplicate Page.png` |
-| Layout > Rename Page... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\003 Layout ▸ Rename Page.png` |
-| Layout > Delete Page... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\varias-paginas\04 Layout\004 Layout ▸ Delete Page.png` |
-| Layout > Go to Page... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\varias-paginas\04 Layout\005 Layout ▸ Go to Page.png` |
+| Layout > Insert Page... | opens a window | 3 | ✅ done | Insert Page dialog: count, before/after, page size, orientation | `03-telas\doc-vazio\04 Layout\001 Layout ▸ Insert Page.png` |
+| Layout > Duplicate Page... | opens a window | 1 | ✅ done | Duplicate Page: layers only, layers and contents, or to a new document | `03-telas\doc-vazio\04 Layout\002 Layout ▸ Duplicate Page.png` |
+| Layout > Rename Page... | opens a window | 1 | ✅ done | Rename Page dialog | `03-telas\doc-vazio\04 Layout\003 Layout ▸ Rename Page.png` |
+| Layout > Delete Page... | opens a window | 1 | ✅ done | Delete Page: one page or a range | `03-telas\varias-paginas\04 Layout\004 Layout ▸ Delete Page.png` |
+| Layout > Go to Page... | opens a window | 1 | ✅ done | Go to Page dialog | `03-telas\varias-paginas\04 Layout\005 Layout ▸ Go to Page.png` |
 | Layout > Insert Page Number | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\04 Layout\002 Layout ▸ Insert Page Number.png` |
-| Layout > Insert Page Number > On Active Layer | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Layout > Insert Page Number > On All Pages | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Layout > Insert Page Number > On All Odd Pages | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Layout > Insert Page Number > On All Even Pages | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Layout > Page Number Settings... | opens a window | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\006 Layout ▸ Page Number Settings.png` |
-| Layout > Switch Page Orientation | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Layout > Document Options... | opens a window | 22 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\007 Layout ▸ Document Options.png` |
-| Layout > Page Size... | opens a window | 22 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\008 Layout ▸ Page Size.png` |
-| Layout > Page Layout... | opens a window | 22 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\009 Layout ▸ Page Layout.png` |
-| Layout > Page Background... | opens a window | 22 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\010 Layout ▸ Page Background.png` |
-| Layout > Border and Grommet... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\011 Layout ▸ Border and Grommet.png` |
+| Layout > Insert Page Number > On Active Layer | command |  | ✅ done | page number text that follows the page |  |
+| Layout > Insert Page Number > On All Pages | command |  | 🟡 partial | on every existing page; the master layer that also covers new pages comes with the Layers docker (batch 6) |  |
+| Layout > Insert Page Number > On All Odd Pages | command |  | 🟡 partial | on the odd pages that exist; master layer in batch 6 |  |
+| Layout > Insert Page Number > On All Even Pages | command |  | 🟡 partial | on the even pages that exist; master layer in batch 6 |  |
+| Layout > Page Number Settings... | opens a window | 2 | ✅ done | start number, first page, style (1, I, i, A, a) | `03-telas\doc-vazio\04 Layout\006 Layout ▸ Page Number Settings.png` |
+| Layout > Switch Page Orientation | command |  | ✅ done |  |  |
+| Layout > Document Options... | opens a window | 22 | 🟡 partial | Options > Document pages; not every control of the reference screens is in place | `03-telas\doc-vazio\04 Layout\007 Layout ▸ Document Options.png` |
+| Layout > Page Size... | opens a window | 22 | 🟡 partial | Options > Document > Page Size | `03-telas\doc-vazio\04 Layout\008 Layout ▸ Page Size.png` |
+| Layout > Page Layout... | opens a window | 22 | 🟡 partial | Options > Document > Layout | `03-telas\doc-vazio\04 Layout\009 Layout ▸ Page Layout.png` |
+| Layout > Page Background... | opens a window | 22 | 🟡 partial | Options > Document > Background | `03-telas\doc-vazio\04 Layout\010 Layout ▸ Page Background.png` |
+| Layout > Border and Grommet... | opens a window | 1 | ✅ done | banner document with border (tile, stretch, mirror, color) and grommets | `03-telas\doc-vazio\04 Layout\011 Layout ▸ Border and Grommet.png` |
 
 ### Object
 
-17 done · 106 partial · 3 todo · 0 omitted
+111 done · 6 partial · 8 todo · 1 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
 | Object | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\001 Object.png` |
 | Object > Create | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\002 Object ▸ Create.png` |
-| Object > Create > Arrowhead... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\05 Object\001 Object ▸ Create ▸ Arrowhead.png` |
-| Object > Create > Pattern Fill... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\05 Object\002 Object ▸ Create ▸ Pattern Fill.png` |
+| Object > Create > Arrowhead... | opens a window | 1 | ✅ done | Create Arrowhead; the arrowhead joins the Arrowhead selectors | `03-telas\retangulo\05 Object\001 Object ▸ Create ▸ Arrowhead.png` |
+| Object > Create > Pattern Fill... | opens a window | 1 | 🟡 partial | Create Pattern then a marquee; vector patterns are kept as 600 dpi tiles | `03-telas\retangulo\05 Object\002 Object ▸ Create ▸ Pattern Fill.png` |
 | Object > Insert | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\003 Object ▸ Insert.png` |
-| Object > Insert > QR Code | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Insert > Barcode | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Insert > Validate Barcode | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Insert > Object... | opens a window | 4 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\05 Object\003 Object ▸ Insert ▸ Object.png` |
+| Object > Insert > QR Code | command |  | ✅ done | editable QR code; its text in the Properties docker |  |
+| Object > Insert > Barcode | command |  | ✅ done | Barcode Wizard: Code 128, Code 39, EAN-13, UPC-A |  |
+| Object > Insert > Validate Barcode | command |  | ✅ done | checks the data and check digit |  |
+| Object > Insert > Object... | opens a window | 4 | ➖ omitted | OLE objects (Windows COM embedding) are not part of Vector | `03-telas\doc-vazio\05 Object\003 Object ▸ Insert ▸ Object.png` |
 | Object > AI Generate | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\004 Object ▸ AI Generate.png` |
-| Object > AI Generate > Create vector graphic | command |  | ⬜ todo |  |  |
-| Object > AI Generate > Create Vector Graphic Guided by Selection | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > AI Generate > Create image | command |  | ⬜ todo |  |  |
-| Object > AI Generate > Create Image Guided by Selection | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > AI Generate > Remix image | command |  | ⬜ todo |  |  |
-| Object > AI Generate > Remix Selection | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > AI Generate > Create vector graphic | command |  | ✅ done | AI Generate docker on Create vector graphic (shown with nothing selected) |  |
+| Object > AI Generate > Create Vector Graphic Guided by Selection | command |  | ✅ done | the selection is sent as the reference image |  |
+| Object > AI Generate > Create image | command |  | ✅ done | AI Generate docker on Create image; the result is a bitmap |  |
+| Object > AI Generate > Create Image Guided by Selection | command |  | ✅ done | the selection is the reference; the result is a bitmap |  |
+| Object > AI Generate > Remix image | command |  | ✅ done | AI Generate docker on Remix image |  |
+| Object > AI Generate > Remix Selection | command |  | ✅ done | the selection is the source; the result is a bitmap |  |
 | Object > PowerClip | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\005 Object ▸ PowerClip.png` |
-| Object > PowerClip > Place Inside Frame... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\linha-de-cota\05 Object\004 Object ▸ PowerClip ▸ Place Inside Frame (sem janela, tela principal).png` |
-| Object > PowerClip > Extract Contents | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > PowerClip > Edit PowerClip... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\powerclip\05 Object\005 Object ▸ PowerClip ▸ Edit PowerClip (sem janela, tela principal).png` |
-| Object > PowerClip > Finish Editing PowerClip | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > PowerClip > Create Empty PowerClip Frame | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > PowerClip > Lock Contents to PowerClip | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > PowerClip > Center | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > PowerClip > Fit Proportionally | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > PowerClip > Fill Proportionally | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > PowerClip > Stretch to Fill | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > PowerClip > Copy PowerClip From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\powerclip\05 Object\006 Object ▸ PowerClip ▸ Copy PowerClip From (sem janela, tela principal).png` |
-| Object > Symmetry | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\006 Object ▸ Symmetry.png` |
-| Object > Symmetry > Create New Symmetry | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Symmetry > Edit Symmetry | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Symmetry > Finish Editing Symmetry | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Symmetry > Remove Symmetry | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Symmetry > Break Symmetry Link | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > PowerClip > Place Inside Frame... | opens a window |  | ✅ done |  | `03-telas\linha-de-cota\05 Object\004 Object ▸ PowerClip ▸ Place Inside Frame (sem janela, tela principal).png` |
+| Object > PowerClip > Extract Contents | command |  | ✅ done |  |  |
+| Object > PowerClip > Edit PowerClip... | opens a window |  | ✅ done |  | `03-telas\powerclip\05 Object\005 Object ▸ PowerClip ▸ Edit PowerClip (sem janela, tela principal).png` |
+| Object > PowerClip > Finish Editing PowerClip | command |  | ✅ done |  |  |
+| Object > PowerClip > Create Empty PowerClip Frame | command |  | ✅ done |  |  |
+| Object > PowerClip > Lock Contents to PowerClip | command |  | ✅ done |  |  |
+| Object > PowerClip > Center | command |  | ✅ done |  |  |
+| Object > PowerClip > Fit Proportionally | command |  | ✅ done |  |  |
+| Object > PowerClip > Fill Proportionally | command |  | ✅ done |  |  |
+| Object > PowerClip > Stretch to Fill | command |  | ✅ done |  |  |
+| Object > PowerClip > Copy PowerClip From... | opens a window |  | ✅ done |  | `03-telas\powerclip\05 Object\006 Object ▸ PowerClip ▸ Copy PowerClip From (sem janela, tela principal).png` |
+| Object > Symmetry | submenu |  | ⬜ todo | symmetry drawing mode (batch 5) | `02-menus\doc-vazio\05 Object\006 Object ▸ Symmetry.png` |
+| Object > Symmetry > Create New Symmetry | command |  | ⬜ todo | symmetry drawing mode (batch 5) |  |
+| Object > Symmetry > Edit Symmetry | command |  | ⬜ todo | symmetry drawing mode (batch 5) |  |
+| Object > Symmetry > Finish Editing Symmetry | command |  | ⬜ todo | symmetry drawing mode (batch 5) |  |
+| Object > Symmetry > Remove Symmetry | command |  | ⬜ todo | symmetry drawing mode (batch 5) |  |
+| Object > Symmetry > Break Symmetry Link | command |  | ⬜ todo | symmetry drawing mode (batch 5) |  |
 | Object > Symbol | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\007 Object ▸ Symbol.png` |
-| Object > Symbol > Create New Symbol | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Symbol > Edit Master... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\simbolo\05 Object\007 Object ▸ Symbol ▸ Edit Master (sem janela, tela principal).png` |
-| Object > Symbol > Finish Editing Symbol | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Symbol > Revert to Objects | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Symbol > Break Link | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Symbol > Update from Link | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Symbol > Export Library... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Symbol > Symbols | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Symbol > Create New Symbol | command |  | ✅ done |  |  |
+| Object > Symbol > Edit Master... | opens a window |  | ✅ done | edits the symbol in place with a Finish button | `03-telas\simbolo\05 Object\007 Object ▸ Symbol ▸ Edit Master (sem janela, tela principal).png` |
+| Object > Symbol > Finish Editing Symbol | command |  | ✅ done |  |  |
+| Object > Symbol > Revert to Objects | command |  | ✅ done |  |  |
+| Object > Symbol > Break Link | command |  | ✅ done | for symbols linked to a library |  |
+| Object > Symbol > Update from Link | command |  | ✅ done | reloads the symbol from its library |  |
+| Object > Symbol > Export Library... | opens a window |  | ✅ done | writes the symbols to a .csl library |  |
+| Object > Symbol > Symbols | command |  | ✅ done |  |  |
 | Object > Rollover | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\008 Object ▸ Rollover.png` |
-| Object > Rollover > Create Rollover | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Rollover > Extract Rollover Objects | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Rollover > Edit Rollover... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\rollover\05 Object\009 Object ▸ Rollover ▸ Edit Rollover.png` |
-| Object > Rollover > Finish Editing rollover | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Rollover > Rollover Live Preview | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Clear Transformations | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Rollover > Create Rollover | command |  | ✅ done | Normal, Over and Down states |  |
+| Object > Rollover > Extract Rollover Objects | command |  | ✅ done |  |  |
+| Object > Rollover > Edit Rollover... | opens a window |  | ✅ done | Internet toolbar with Active Rollover State, and a Finish button | `03-telas\rollover\05 Object\009 Object ▸ Rollover ▸ Edit Rollover.png` |
+| Object > Rollover > Finish Editing rollover | command |  | ✅ done |  |  |
+| Object > Rollover > Rollover Live Preview | command |  | ✅ done | Over and Down states follow the pointer |  |
+| Object > Clear Transformations | command |  | ✅ done |  |  |
 | Object > Copy Effect | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\009 Object ▸ Copy Effect.png` |
-| Object > Copy Effect > Perspective From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\com-efeitos\05 Object\010 Object ▸ Copy Effect ▸ Perspective From (sem janela, tela principal).png` |
-| Object > Copy Effect > Envelope From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\com-efeitos\05 Object\011 Object ▸ Copy Effect ▸ Envelope From (sem janela, tela principal).png` |
-| Object > Copy Effect > Blend From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Copy Effect > Extrude From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Copy Effect > Contour From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Copy Effect > Lens From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Copy Effect > Shadow From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Copy Effect > Distortion From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\com-efeitos\05 Object\017 Object ▸ Copy Effect ▸ Distortion From (sem janela, tela principal).png` |
+| Object > Copy Effect > Perspective From... | opens a window |  | ✅ done |  | `03-telas\com-efeitos\05 Object\010 Object ▸ Copy Effect ▸ Perspective From (sem janela, tela principal).png` |
+| Object > Copy Effect > Envelope From... | opens a window |  | ✅ done |  | `03-telas\com-efeitos\05 Object\011 Object ▸ Copy Effect ▸ Envelope From (sem janela, tela principal).png` |
+| Object > Copy Effect > Blend From... | opens a window |  | ✅ done |  |  |
+| Object > Copy Effect > Extrude From... | opens a window |  | ✅ done |  |  |
+| Object > Copy Effect > Contour From... | opens a window |  | ✅ done |  |  |
+| Object > Copy Effect > Lens From... | opens a window |  | ✅ done |  |  |
+| Object > Copy Effect > Shadow From... | opens a window |  | ✅ done |  |  |
+| Object > Copy Effect > Distortion From... | opens a window |  | ✅ done |  | `03-telas\com-efeitos\05 Object\017 Object ▸ Copy Effect ▸ Distortion From (sem janela, tela principal).png` |
 | Object > Clone Effect | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\010 Object ▸ Clone Effect.png` |
-| Object > Clone Effect > Blend From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Clone Effect > Extrude From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Clone Effect > Contour From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Clone Effect > Shadow From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Clear Effect | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Clone Effect > Blend From... | opens a window |  | 🟡 partial | copies the effect; the clone does not stay linked to its master |  |
+| Object > Clone Effect > Extrude From... | opens a window |  | 🟡 partial | copies the effect; the clone does not stay linked to its master |  |
+| Object > Clone Effect > Contour From... | opens a window |  | 🟡 partial | copies the effect; the clone does not stay linked to its master |  |
+| Object > Clone Effect > Shadow From... | opens a window |  | 🟡 partial | copies the effect; the clone does not stay linked to its master |  |
+| Object > Clear Effect | command |  | ✅ done |  |  |
 | Object > Align and Distribute | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\011 Object ▸ Align and Distribute.png` |
-| Object > Align and Distribute > Align Left | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Align and Distribute > Align Right | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Align and Distribute > Align Top | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Align and Distribute > Align Bottom | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Align and Distribute > Align Centers Horizontally | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Align and Distribute > Align Centers Vertically | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Align and Distribute > Center to Page | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Align and Distribute > Center to Page Horizontally | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Align and Distribute > Center to Page Vertically | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Align and Distribute > Align with Pixel Grid | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Align and Distribute > Align and Distribute | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Fit Objects to Path | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Align and Distribute > Align Left | command |  | ✅ done |  |  |
+| Object > Align and Distribute > Align Right | command |  | ✅ done |  |  |
+| Object > Align and Distribute > Align Top | command |  | ✅ done |  |  |
+| Object > Align and Distribute > Align Bottom | command |  | ✅ done |  |  |
+| Object > Align and Distribute > Align Centers Horizontally | command |  | ✅ done |  |  |
+| Object > Align and Distribute > Align Centers Vertically | command |  | ✅ done |  |  |
+| Object > Align and Distribute > Center to Page | command |  | ✅ done |  |  |
+| Object > Align and Distribute > Center to Page Horizontally | command |  | ✅ done |  |  |
+| Object > Align and Distribute > Center to Page Vertically | command |  | ✅ done |  |  |
+| Object > Align and Distribute > Align with Pixel Grid | command |  | ✅ done |  |  |
+| Object > Align and Distribute > Align and Distribute | command |  | ✅ done |  |  |
+| Object > Fit Objects to Path | command |  | ✅ done |  |  |
 | Object > Order | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\012 Object ▸ Order.png` |
-| Object > Order > To Front of Page | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Order > To Back of Page | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Order > To Front of Layer | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Order > To Back of Layer | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Order > Forward One | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Order > Back One | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Order > In Front Of... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\linha-de-cota\05 Object\022 Object ▸ Order ▸ In Front Of (sem janela, tela principal).png` |
-| Object > Order > Behind... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\linha-de-cota\05 Object\023 Object ▸ Order ▸ Behind (sem janela, tela principal).png` |
-| Object > Order > Reverse Order | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Order > To Front of Page | command |  | ✅ done |  |  |
+| Object > Order > To Back of Page | command |  | ✅ done |  |  |
+| Object > Order > To Front of Layer | command |  | ✅ done |  |  |
+| Object > Order > To Back of Layer | command |  | ✅ done |  |  |
+| Object > Order > Forward One | command |  | ✅ done |  |  |
+| Object > Order > Back One | command |  | ✅ done |  |  |
+| Object > Order > In Front Of... | opens a window |  | ✅ done |  | `03-telas\linha-de-cota\05 Object\022 Object ▸ Order ▸ In Front Of (sem janela, tela principal).png` |
+| Object > Order > Behind... | opens a window |  | ✅ done |  | `03-telas\linha-de-cota\05 Object\023 Object ▸ Order ▸ Behind (sem janela, tela principal).png` |
+| Object > Order > Reverse Order | command |  | ✅ done |  |  |
 | Object > Group | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\013 Object ▸ Group.png` |
-| Object > Group > Group | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Group > Ungroup | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Group > Ungroup All | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Group > Group | command |  | ✅ done |  |  |
+| Object > Group > Ungroup | command |  | ✅ done |  |  |
+| Object > Group > Ungroup All | command |  | ✅ done |  |  |
 | Object > Hide | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\014 Object ▸ Hide.png` |
-| Object > Hide > Hide | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Hide > Show | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Hide > Show All | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Hide > Hide | command |  | ✅ done |  |  |
+| Object > Hide > Show | command |  | ✅ done |  |  |
+| Object > Hide > Show All | command |  | ✅ done |  |  |
 | Object > Lock | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\015 Object ▸ Lock.png` |
-| Object > Lock > Lock | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Lock > Unlock | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Lock > Unlock All | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Lock > Lock | command |  | ✅ done |  |  |
+| Object > Lock > Unlock | command |  | ✅ done |  |  |
+| Object > Lock > Unlock All | command |  | ✅ done |  |  |
 | Object > Shaping | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\016 Object ▸ Shaping.png` |
-| Object > Shaping > Weld | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Shaping > Trim | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Shaping > Intersect | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Shaping > Simplify | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Shaping > Front Minus Back | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Shaping > Back Minus Front | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Shaping > Boundary | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Shaping > Shape | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Combine | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Break Apart | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Shaping > Weld | command |  | ✅ done |  |  |
+| Object > Shaping > Trim | command |  | ✅ done |  |  |
+| Object > Shaping > Intersect | command |  | ✅ done |  |  |
+| Object > Shaping > Simplify | command |  | ✅ done |  |  |
+| Object > Shaping > Front Minus Back | command |  | ✅ done |  |  |
+| Object > Shaping > Back Minus Front | command |  | ✅ done |  |  |
+| Object > Shaping > Boundary | command |  | ✅ done |  |  |
+| Object > Shaping > Shape | command |  | ✅ done |  |  |
+| Object > Combine | command |  | ✅ done |  |  |
+| Object > Break Apart | command |  | ✅ done |  |  |
 | Object > Perspective | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\017 Object ▸ Perspective.png` |
-| Object > Perspective > Add Perspective... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\05 Object\024 Object ▸ Perspective ▸ Add Perspective (sem janela, tela principal).png` |
-| Object > Perspective > Draw in Perspective... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Perspective > Edit Perspective Group... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Convert to Curves | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Convert to Bitmap... | opens a window | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\05 Object\027 Object ▸ Convert to Bitmap.png` |
-| Object > Convert Outline to Object | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Join Curves | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Overprint Fill | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Overprint Outline | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Overprint Bitmap | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Object Hinting | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Properties | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Objects | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Pages | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Perspective > Add Perspective... | opens a window |  | 🟡 partial | envelope-style perspective; the perspective drawing modes come in batch 5 | `03-telas\retangulo\05 Object\024 Object ▸ Perspective ▸ Add Perspective (sem janela, tela principal).png` |
+| Object > Perspective > Draw in Perspective... | opens a window |  | ⬜ todo | perspective drawing mode (batch 5) |  |
+| Object > Perspective > Edit Perspective Group... | opens a window |  | ⬜ todo | perspective drawing mode (batch 5) |  |
+| Object > Convert to Curves | command |  | ✅ done |  |  |
+| Object > Convert to Bitmap... | opens a window | 3 | ✅ done |  | `03-telas\retangulo\05 Object\027 Object ▸ Convert to Bitmap.png` |
+| Object > Convert Outline to Object | command |  | ✅ done |  |  |
+| Object > Join Curves | command |  | ✅ done |  |  |
+| Object > Overprint Fill | command |  | ✅ done |  |  |
+| Object > Overprint Outline | command |  | ✅ done |  |  |
+| Object > Overprint Bitmap | command |  | ✅ done |  |  |
+| Object > Object Hinting | command |  | ✅ done |  |  |
+| Object > Properties | command |  | ✅ done |  |  |
+| Object > Objects | command |  | ✅ done |  |  |
+| Object > Pages | command |  | ✅ done |  |  |
 
 ### Effects
 
@@ -569,37 +569,37 @@ The *Reference* column is a path inside the reference folder.
 
 ### Table
 
-5 done · 22 partial · 0 todo · 0 omitted
+27 done · 0 partial · 0 todo · 0 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
 | Table | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\09 Table\001 Table.png` |
-| Table > Create New Table... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\09 Table\001 Table ▸ Create New Table.png` |
-| Table > Convert Text to Table... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\09 Table\002 Table ▸ Convert Text to Table.png` |
-| Table > Convert Table to Text... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\tabela\09 Table\003 Table ▸ Convert Table to Text.png` |
+| Table > Create New Table... | opens a window | 1 | ✅ done | Create New Table: rows, columns, size | `03-telas\doc-vazio\09 Table\001 Table ▸ Create New Table.png` |
+| Table > Convert Text to Table... | opens a window | 1 | ✅ done | commas, tabs, paragraphs or a character | `03-telas\texto-artistico\09 Table\002 Table ▸ Convert Text to Table.png` |
+| Table > Convert Table to Text... | opens a window | 1 | ✅ done | commas, tabs, paragraphs or a character | `03-telas\tabela\09 Table\003 Table ▸ Convert Table to Text.png` |
 | Table > Insert | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\09 Table\002 Table ▸ Insert.png` |
-| Table > Insert > Row Above | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Table > Insert > Row Below | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Table > Insert > Column Left | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Table > Insert > Column Right | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Table > Insert > Insert Rows... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\tabela-celulas\09 Table\004 Table ▸ Insert ▸ Insert Rows.png` |
-| Table > Insert > Insert Columns... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\tabela-celulas\09 Table\005 Table ▸ Insert ▸ Insert Columns.png` |
+| Table > Insert > Row Above | command |  | ✅ done |  |  |
+| Table > Insert > Row Below | command |  | ✅ done |  |  |
+| Table > Insert > Column Left | command |  | ✅ done |  |  |
+| Table > Insert > Column Right | command |  | ✅ done |  |  |
+| Table > Insert > Insert Rows... | opens a window | 1 | ✅ done | Insert Rows dialog: count, above or below | `03-telas\tabela-celulas\09 Table\004 Table ▸ Insert ▸ Insert Rows.png` |
+| Table > Insert > Insert Columns... | opens a window | 1 | ✅ done | Insert Columns dialog: count, left or right | `03-telas\tabela-celulas\09 Table\005 Table ▸ Insert ▸ Insert Columns.png` |
 | Table > Select | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\09 Table\003 Table ▸ Select.png` |
-| Table > Select > Cell | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Table > Select > Row | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Table > Select > Column | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Table > Select > Table | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Table > Select > Cell | command |  | ✅ done |  |  |
+| Table > Select > Row | command |  | ✅ done |  |  |
+| Table > Select > Column | command |  | ✅ done |  |  |
+| Table > Select > Table | command |  | ✅ done |  |  |
 | Table > Delete | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\09 Table\004 Table ▸ Delete.png` |
-| Table > Delete > Row | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Table > Delete > Column | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Table > Delete > Table | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Table > Delete > Row | command |  | ✅ done |  |  |
+| Table > Delete > Column | command |  | ✅ done |  |  |
+| Table > Delete > Table | command |  | ✅ done |  |  |
 | Table > Distribute | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\09 Table\005 Table ▸ Distribute.png` |
-| Table > Distribute > Rows Evenly | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Table > Distribute > Columns Evenly | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Table > Merge Cells | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Table > Unmerge Cells | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Table > Split into Rows... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\tabela-celulas\09 Table\006 Table ▸ Split into Rows.png` |
-| Table > Split into Columns... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\tabela-celulas\09 Table\007 Table ▸ Split into Columns.png` |
+| Table > Distribute > Rows Evenly | command |  | ✅ done |  |  |
+| Table > Distribute > Columns Evenly | command |  | ✅ done |  |  |
+| Table > Merge Cells | command |  | ✅ done | merged cells keep their text |  |
+| Table > Unmerge Cells | command |  | ✅ done |  |  |
+| Table > Split into Rows... | opens a window | 1 | ✅ done | Split Cells dialog | `03-telas\tabela-celulas\09 Table\006 Table ▸ Split into Rows.png` |
+| Table > Split into Columns... | opens a window | 1 | ✅ done | Split Cells dialog | `03-telas\tabela-celulas\09 Table\007 Table ▸ Split into Columns.png` |
 
 ### Tools
 
@@ -936,43 +936,43 @@ The *Reference* column is a path inside the reference folder.
 
 ### Layout
 
-0 done · 11 partial · 0 todo · 0 omitted
+7 done · 4 partial · 0 todo · 0 omitted
 
 | Opened from | Kind | Context | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|---|
-| Layout > Insert Page | dialog | doc-vazio | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\001 Layout ▸ Insert Page.png` |
-| Layout > Duplicate Page | dialog | doc-vazio | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\002 Layout ▸ Duplicate Page.png` |
-| Layout > Rename Page | dialog | doc-vazio | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\003 Layout ▸ Rename Page.png` |
-| Layout > Page Number Settings | dialog | doc-vazio | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\006 Layout ▸ Page Number Settings.png` |
-| Layout > Document Options | dialog | doc-vazio | 39 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\007 Layout ▸ Document Options.png` |
-| Layout > Page Size | dialog | doc-vazio | 22 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\008 Layout ▸ Page Size.png` |
-| Layout > Page Layout | dialog | doc-vazio | 22 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\009 Layout ▸ Page Layout.png` |
-| Layout > Page Background | dialog | doc-vazio | 22 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\010 Layout ▸ Page Background.png` |
-| Layout > Border and Grommet | dialog | doc-vazio | 5 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\011 Layout ▸ Border and Grommet.png` |
-| Layout > Delete Page | dialog | varias-paginas | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\varias-paginas\04 Layout\004 Layout ▸ Delete Page.png` |
-| Layout > Go to Page | dialog | varias-paginas | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\varias-paginas\04 Layout\005 Layout ▸ Go to Page.png` |
+| Layout > Insert Page | dialog | doc-vazio | 3 | ✅ done | checked against the reference | `03-telas\doc-vazio\04 Layout\001 Layout ▸ Insert Page.png` |
+| Layout > Duplicate Page | dialog | doc-vazio | 1 | ✅ done | checked against the reference | `03-telas\doc-vazio\04 Layout\002 Layout ▸ Duplicate Page.png` |
+| Layout > Rename Page | dialog | doc-vazio | 1 | ✅ done | checked against the reference | `03-telas\doc-vazio\04 Layout\003 Layout ▸ Rename Page.png` |
+| Layout > Page Number Settings | dialog | doc-vazio | 2 | ✅ done | checked against the reference | `03-telas\doc-vazio\04 Layout\006 Layout ▸ Page Number Settings.png` |
+| Layout > Document Options | dialog | doc-vazio | 39 | 🟡 partial | Options > Document; not every control of the reference screens is in place | `03-telas\doc-vazio\04 Layout\007 Layout ▸ Document Options.png` |
+| Layout > Page Size | dialog | doc-vazio | 22 | 🟡 partial | Options > Document > Page Size | `03-telas\doc-vazio\04 Layout\008 Layout ▸ Page Size.png` |
+| Layout > Page Layout | dialog | doc-vazio | 22 | 🟡 partial | Options > Document > Layout | `03-telas\doc-vazio\04 Layout\009 Layout ▸ Page Layout.png` |
+| Layout > Page Background | dialog | doc-vazio | 22 | 🟡 partial | Options > Document > Background | `03-telas\doc-vazio\04 Layout\010 Layout ▸ Page Background.png` |
+| Layout > Border and Grommet | dialog | doc-vazio | 5 | ✅ done | checked against the reference, with preview | `03-telas\doc-vazio\04 Layout\011 Layout ▸ Border and Grommet.png` |
+| Layout > Delete Page | dialog | varias-paginas | 1 | ✅ done | checked against the reference | `03-telas\varias-paginas\04 Layout\004 Layout ▸ Delete Page.png` |
+| Layout > Go to Page | dialog | varias-paginas | 1 | ✅ done | checked against the reference | `03-telas\varias-paginas\04 Layout\005 Layout ▸ Go to Page.png` |
 
 ### Object
 
-0 done · 15 partial · 0 todo · 0 omitted
+12 done · 2 partial · 0 todo · 1 omitted
 
 | Opened from | Kind | Context | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|---|
-| Object > Copy Effect > Perspective From | mode (no window) | com-efeitos | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\com-efeitos\05 Object\010 Object ▸ Copy Effect ▸ Perspective From (sem janela, tela principal).png` |
-| Object > Copy Effect > Envelope From | mode (no window) | com-efeitos | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\com-efeitos\05 Object\011 Object ▸ Copy Effect ▸ Envelope From (sem janela, tela principal).png` |
-| Object > Copy Effect > Distortion From | mode (no window) | com-efeitos | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\com-efeitos\05 Object\017 Object ▸ Copy Effect ▸ Distortion From (sem janela, tela principal).png` |
-| Object > Insert > Object | dialog | doc-vazio | 4 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\05 Object\003 Object ▸ Insert ▸ Object.png` |
-| Object > PowerClip > Place Inside Frame | mode (no window) | linha-de-cota | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\linha-de-cota\05 Object\004 Object ▸ PowerClip ▸ Place Inside Frame (sem janela, tela principal).png` |
-| Object > Order > In Front Of | mode (no window) | linha-de-cota | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\linha-de-cota\05 Object\022 Object ▸ Order ▸ In Front Of (sem janela, tela principal).png` |
-| Object > Order > Behind | mode (no window) | linha-de-cota | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\linha-de-cota\05 Object\023 Object ▸ Order ▸ Behind (sem janela, tela principal).png` |
-| Object > PowerClip > Edit PowerClip | mode (no window) | powerclip | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\powerclip\05 Object\005 Object ▸ PowerClip ▸ Edit PowerClip (sem janela, tela principal).png` |
-| Object > PowerClip > Copy PowerClip From | mode (no window) | powerclip | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\powerclip\05 Object\006 Object ▸ PowerClip ▸ Copy PowerClip From (sem janela, tela principal).png` |
-| Object > Create > Arrowhead | dialog | retangulo | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\05 Object\001 Object ▸ Create ▸ Arrowhead.png` |
-| Object > Create > Pattern Fill | dialog | retangulo | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\05 Object\002 Object ▸ Create ▸ Pattern Fill.png` |
-| Object > Perspective > Add Perspective | mode (no window) | retangulo | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\05 Object\024 Object ▸ Perspective ▸ Add Perspective (sem janela, tela principal).png` |
-| Object > Convert to Bitmap | dialog | retangulo | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\05 Object\027 Object ▸ Convert to Bitmap.png` |
-| Object > Rollover > Edit Rollover | dialog | rollover | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\rollover\05 Object\009 Object ▸ Rollover ▸ Edit Rollover.png` |
-| Object > Symbol > Edit Master | mode (no window) | simbolo | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\simbolo\05 Object\007 Object ▸ Symbol ▸ Edit Master (sem janela, tela principal).png` |
+| Object > Copy Effect > Perspective From | mode (no window) | com-efeitos | 0 | ✅ done | pick-target mode, as in the reference | `03-telas\com-efeitos\05 Object\010 Object ▸ Copy Effect ▸ Perspective From (sem janela, tela principal).png` |
+| Object > Copy Effect > Envelope From | mode (no window) | com-efeitos | 0 | ✅ done | pick-target mode, as in the reference | `03-telas\com-efeitos\05 Object\011 Object ▸ Copy Effect ▸ Envelope From (sem janela, tela principal).png` |
+| Object > Copy Effect > Distortion From | mode (no window) | com-efeitos | 0 | ✅ done | pick-target mode, as in the reference | `03-telas\com-efeitos\05 Object\017 Object ▸ Copy Effect ▸ Distortion From (sem janela, tela principal).png` |
+| Object > Insert > Object | dialog | doc-vazio | 4 | ➖ omitted | OLE objects are not part of Vector | `03-telas\doc-vazio\05 Object\003 Object ▸ Insert ▸ Object.png` |
+| Object > PowerClip > Place Inside Frame | mode (no window) | linha-de-cota | 0 | ✅ done | pick-target mode, as in the reference | `03-telas\linha-de-cota\05 Object\004 Object ▸ PowerClip ▸ Place Inside Frame (sem janela, tela principal).png` |
+| Object > Order > In Front Of | mode (no window) | linha-de-cota | 0 | ✅ done | pick-target mode, as in the reference | `03-telas\linha-de-cota\05 Object\022 Object ▸ Order ▸ In Front Of (sem janela, tela principal).png` |
+| Object > Order > Behind | mode (no window) | linha-de-cota | 0 | ✅ done | pick-target mode, as in the reference | `03-telas\linha-de-cota\05 Object\023 Object ▸ Order ▸ Behind (sem janela, tela principal).png` |
+| Object > PowerClip > Edit PowerClip | mode (no window) | powerclip | 0 | ✅ done | pick-target mode, as in the reference | `03-telas\powerclip\05 Object\005 Object ▸ PowerClip ▸ Edit PowerClip (sem janela, tela principal).png` |
+| Object > PowerClip > Copy PowerClip From | mode (no window) | powerclip | 0 | ✅ done | pick-target mode, as in the reference | `03-telas\powerclip\05 Object\006 Object ▸ PowerClip ▸ Copy PowerClip From (sem janela, tela principal).png` |
+| Object > Create > Arrowhead | dialog | retangulo | 1 | ✅ done | checked against the reference | `03-telas\retangulo\05 Object\001 Object ▸ Create ▸ Arrowhead.png` |
+| Object > Create > Pattern Fill | dialog | retangulo | 1 | ✅ done | checked against the reference | `03-telas\retangulo\05 Object\002 Object ▸ Create ▸ Pattern Fill.png` |
+| Object > Perspective > Add Perspective | mode (no window) | retangulo | 0 | 🟡 partial | the perspective drawing modes come in batch 5 | `03-telas\retangulo\05 Object\024 Object ▸ Perspective ▸ Add Perspective (sem janela, tela principal).png` |
+| Object > Convert to Bitmap | dialog | retangulo | 3 | 🟡 partial | Convert to Bitmap dialog; checked again with the Bitmaps menu (batch 7) | `03-telas\retangulo\05 Object\027 Object ▸ Convert to Bitmap.png` |
+| Object > Rollover > Edit Rollover | dialog | rollover | 0 | ✅ done | Internet toolbar and Finish button | `03-telas\rollover\05 Object\009 Object ▸ Rollover ▸ Edit Rollover.png` |
+| Object > Symbol > Edit Master | mode (no window) | simbolo | 0 | ✅ done | edit in place with a Finish button | `03-telas\simbolo\05 Object\007 Object ▸ Symbol ▸ Edit Master (sem janela, tela principal).png` |
 
 ### Bitmaps
 
@@ -1022,17 +1022,17 @@ The *Reference* column is a path inside the reference folder.
 
 ### Table
 
-0 done · 7 partial · 0 todo · 0 omitted
+7 done · 0 partial · 0 todo · 0 omitted
 
 | Opened from | Kind | Context | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|---|
-| Table > Create New Table | dialog | doc-vazio | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\09 Table\001 Table ▸ Create New Table.png` |
-| Table > Convert Table to Text | dialog | tabela | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\tabela\09 Table\003 Table ▸ Convert Table to Text.png` |
-| Table > Insert > Insert Rows | dialog | tabela-celulas | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\tabela-celulas\09 Table\004 Table ▸ Insert ▸ Insert Rows.png` |
-| Table > Insert > Insert Columns | dialog | tabela-celulas | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\tabela-celulas\09 Table\005 Table ▸ Insert ▸ Insert Columns.png` |
-| Table > Split into Rows | dialog | tabela-celulas | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\tabela-celulas\09 Table\006 Table ▸ Split into Rows.png` |
-| Table > Split into Columns | dialog | tabela-celulas | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\tabela-celulas\09 Table\007 Table ▸ Split into Columns.png` |
-| Table > Convert Text to Table | dialog | texto-artistico | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\09 Table\002 Table ▸ Convert Text to Table.png` |
+| Table > Create New Table | dialog | doc-vazio | 1 | ✅ done | checked against the reference | `03-telas\doc-vazio\09 Table\001 Table ▸ Create New Table.png` |
+| Table > Convert Table to Text | dialog | tabela | 1 | ✅ done | checked against the reference | `03-telas\tabela\09 Table\003 Table ▸ Convert Table to Text.png` |
+| Table > Insert > Insert Rows | dialog | tabela-celulas | 1 | ✅ done | checked against the reference | `03-telas\tabela-celulas\09 Table\004 Table ▸ Insert ▸ Insert Rows.png` |
+| Table > Insert > Insert Columns | dialog | tabela-celulas | 1 | ✅ done | checked against the reference | `03-telas\tabela-celulas\09 Table\005 Table ▸ Insert ▸ Insert Columns.png` |
+| Table > Split into Rows | dialog | tabela-celulas | 1 | ✅ done | checked against the reference | `03-telas\tabela-celulas\09 Table\006 Table ▸ Split into Rows.png` |
+| Table > Split into Columns | dialog | tabela-celulas | 1 | ✅ done | checked against the reference | `03-telas\tabela-celulas\09 Table\007 Table ▸ Split into Columns.png` |
+| Table > Convert Text to Table | dialog | texto-artistico | 1 | ✅ done | checked against the reference | `03-telas\texto-artistico\09 Table\002 Table ▸ Convert Text to Table.png` |
 
 ### Tools
 

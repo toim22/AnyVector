@@ -68,7 +68,13 @@ pub fn drawing_window(app: &mut VectorApp, ui: &mut Ui) {
     // ------------------------------------------------------------------ input
     let ctx = ui.ctx().clone();
     let resp = ui.interact(canvas, Id::unique(("canvas", app.docs[ai].uid)), Sense::click_and_drag());
-    let hovered = resp.contains_pointer();
+    // Edit Master shows a Finish button at the top left of the drawing
+    let finish = finish_label(&app.docs[ai]).map(|t| {
+        let w = 18.0 + ctx.fonts_mut(|f| f.layout_no_wrap(t.to_string(), egui::FontId::proportional(12.0), Color32::WHITE).size().x);
+        (t, Rect::from_min_size(canvas.min + vec2(8.0, 8.0), vec2(w, 24.0)))
+    });
+    let over_finish = finish.is_some_and(|(_, r)| ctx.input(|i| i.pointer.latest_pos()).is_some_and(|p| r.contains(p)));
+    let hovered = resp.contains_pointer() && !over_finish;
     let (pos, pressed, released, down, sec_pressed, mods, scroll, zoom_delta, time, dt) = ctx.input(|i| {
         (
             i.pointer.latest_pos(),
@@ -150,6 +156,10 @@ pub fn drawing_window(app: &mut VectorApp, ui: &mut Ui) {
             app.cursor_doc = pos.map(|p| app.docs[ai].to_doc(p));
         }
         tools::handle_text_keys(app, &ctx);
+        if app.rollover_live {
+            let at = if hovered { pos.map(|p| app.docs[ai].to_doc(p)) } else { None };
+            crate::dialogs::object::live_preview(app, at, down);
+        }
     }
     // right-click menu for what is under the pointer (the right-click itself selected it)
     if let Some(name) = crate::menus::canvas_menu(app) {
@@ -170,6 +180,15 @@ pub fn drawing_window(app: &mut VectorApp, ui: &mut Ui) {
     }
     tools::draw_overlay(app, &painter);
     printable_area(app, &painter, ai);
+    if let Some((text, r)) = finish {
+        let b = ui.interact(r, Id::unique(("finish_edit", app.docs[ai].uid)), Sense::click());
+        let fill = if b.hovered() { theme::HOVER } else { Color32::from_rgb(0x2b, 0x2b, 0x2b) };
+        painter.rect(r, 3.0, fill, egui::Stroke::new(1.0, Color32::from_gray(90)), egui::StrokeKind::Inside);
+        painter.text(r.center(), egui::Align2::CENTER_CENTER, text, egui::FontId::proportional(12.0), theme::TEXT);
+        if b.clicked() && !modal {
+            app.run(crate::commands::Cmd::PowerClipFinish);
+        }
+    }
 
     // ------------------------------------------------------------------ scrollbars
     if sb > 0.0 {
@@ -191,6 +210,11 @@ pub fn drawing_window(app: &mut VectorApp, ui: &mut Ui) {
     if app.ts.is_busy() || app.docs[ai].text_edit.is_some() {
         ctx.request_repaint_after(std::time::Duration::from_millis(100));
     }
+}
+
+/// The canvas button that ends Edit Master (Edit Rollover ends from the Internet toolbar).
+fn finish_label(d: &crate::docview::DocView) -> Option<&'static str> {
+    d.symbol_edit.is_some().then_some("✓  Finish")
 }
 
 /// Re-render the page into the cached texture when anything that affects it changed.
@@ -233,7 +257,16 @@ fn render_cache(app: &mut VectorApp, ctx: &egui::Context, ai: usize, canvas: Rec
         draw_page: d.doc.settings.show_page_border || true,
         desktop: Color::rgb(dc[0], dc[1], dc[2]),
         hidden: vec![],
-        dim_others: (!d.focus.is_empty()).then(|| (d.focus.clone(), (settings.inactive_visibility / 100.0).clamp(0.0, 1.0) as f32)),
+        dim_others: (!d.focus.is_empty()).then(|| {
+            // the focused objects and everything inside them stay at full strength
+            let mut keep = d.focus.clone();
+            for id in &d.focus {
+                if let Some(o) = d.doc.find(*id) {
+                    o.walk(&mut |x| keep.push(x.id));
+                }
+            }
+            (keep, (settings.inactive_visibility / 100.0).clamp(0.0, 1.0) as f32)
+        }),
         show_powerclip_frames: settings.powerclip_empty_lines,
         antialias: d.view_mode != ViewMode::Pixels,
         overprint: d.simulate_overprint,

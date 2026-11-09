@@ -346,7 +346,7 @@ impl<'a> Flattener<'a> {
             self.out.push(Prim::Stroke { path: path.clone(), color, style });
         }
         if ol.start_arrow.is_some() || ol.end_arrow.is_some() {
-            for p in arrow_paths(path, ol) {
+            for p in arrow_paths(path, ol, &self.doc.arrowheads) {
                 self.out.push(p.with_color(color));
             }
         }
@@ -428,10 +428,10 @@ impl<'a> Flattener<'a> {
         if let Fill::Solid(c) = &o.style.fill {
             self.out.push(Prim::Fill { path: xf * Rect::new(0.0, 0.0, t.width(), t.height()).to_path(0.1), paint: Paint::Solid(*c), even_odd: false });
         }
-        for r in 0..t.rows {
-            for c in 0..t.cols {
-                let cell = &t.cells[r * t.cols + c];
-                let rc = t.cell_rect(r, c);
+        for (r, c) in t.anchors() {
+            {
+                let cell = t.cell(r, c);
+                let rc = t.span_rect(r, c);
                 if let Some(f) = cell.fill {
                     self.out.push(Prim::Fill { path: xf * rc.to_path(0.1), paint: Paint::Solid(f), even_odd: false });
                 }
@@ -445,24 +445,7 @@ impl<'a> Flattener<'a> {
                 }
             }
         }
-        let mut bp = BezPath::new();
-        let (w, h) = (t.width(), t.height());
-        let mut y = 0.0;
-        for r in 0..=t.rows {
-            bp.move_to((0.0, y));
-            bp.line_to((w, y));
-            if r < t.rows {
-                y += t.row_heights[r];
-            }
-        }
-        let mut x = 0.0;
-        for c in 0..=t.cols {
-            bp.move_to((x, 0.0));
-            bp.line_to((x, h));
-            if c < t.cols {
-                x += t.col_widths[c];
-            }
-        }
+        let bp = t.grid_path();
         self.out.push(Prim::Stroke {
             path: xf * bp,
             color: t.border,
@@ -485,7 +468,7 @@ impl ArrowPrim {
     }
 }
 
-fn arrow_paths(path: &BezPath, ol: &Outline) -> Vec<ArrowPrim> {
+fn arrow_paths(path: &BezPath, ol: &Outline, custom: &[vector_core::style::CustomArrow]) -> Vec<ArrowPrim> {
     let mut out = vec![];
     let w = ol.width.max(0.5);
     let polys = geom::flatten_polylines(path, 0.1);
@@ -543,6 +526,13 @@ fn arrow_paths(path: &BezPath, ol: &Outline) -> Vec<ArrowPrim> {
                 bp.move_to(tip + n * (s * 0.5));
                 bp.line_to(tip - n * (s * 0.5));
                 stroke = Some(w);
+            }
+            ArrowHead::Custom(id) => {
+                let Some(ca) = custom.iter().find(|c| c.id == id) else { continue };
+                bp = ca.placed(tip, d, w);
+                if !ca.filled {
+                    stroke = Some(w);
+                }
             }
         }
         out.push(ArrowPrim { path: bp, stroke });
