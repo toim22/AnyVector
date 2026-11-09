@@ -1,4 +1,4 @@
-"""Writes crates/vector-app/src/fxdata.rs: the page of every bitmap effect of the Effects menu, as
+"""Writes crates/anyvector/src/fxdata.rs: the page of every bitmap effect of the Effects menu, as
 the Properties docker shows it (Bitmap Effects).
 
     python xtask/fxgen.py
@@ -7,7 +7,7 @@ The labels and the option lists come from the CorelDRAW 2026 user-interface defi
 reference was captured from (`<CorelDRAW>\\Draw\\UIConfig\\DrawUI.items.xml` and
 `DrawUI.containers.xml`, with the captions of `Resources\\caption.csv` and
 `Languages\\EN\\Data\\strings.xml`; the folder defaults to
-`C:\\Program Files\\Corel\\CorelDRAW Graphics Suite\\27` and can be changed with VECTOR_COREL).
+`C:\\Program Files\\Corel\\CorelDRAW Graphics Suite\\27` and can be changed with ANYVECTOR_COREL).
 The order of the controls, their ranges and their default values are those of the reference
 screenshots (`03-telas\\bitmap\\06 Effects`), written in PAGES below.
 """
@@ -16,7 +16,7 @@ import re
 import xml.etree.ElementTree as ET
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-COREL = os.environ.get('VECTOR_COREL', r'C:\Program Files\Corel\CorelDRAW Graphics Suite\27')
+COREL = os.environ.get('ANYVECTOR_COREL', r'C:\Program Files\Corel\CorelDRAW Graphics Suite\27')
 UI = os.path.join(COREL, 'Draw', 'UIConfig')
 
 # ------------------------------------------------------------------------------ the definition
@@ -142,7 +142,7 @@ def spec(ds):
 
 def effect_guids():
     """The Effects menu item of each effect (its On<Name> command)."""
-    data = open(os.path.join(ROOT, 'crates', 'vector-app', 'src', 'ui', 'data.rs'), encoding='utf-8').read()
+    data = open(os.path.join(ROOT, 'crates', 'anyvector', 'src', 'ui', 'data.rs'), encoding='utf-8').read()
     found = {}
     for g, it in items.items():
         m = re.search(r'EffectsDialogFactoryDS;Path=On(\w+)', it.get('onInvoke') or '')
@@ -587,7 +587,7 @@ def main():
         out.append('    },')
     out.append('];')
     missing_ids = sorted(set(guids) - set(PAGES))
-    path = os.path.join(ROOT, 'crates', 'vector-app', 'src', 'fxdata.rs')
+    path = os.path.join(ROOT, 'crates', 'anyvector', 'src', 'fxdata.rs')
     open(path, 'w', encoding='utf-8', newline='\n').write('\n'.join(out) + '\n')
     print(f'{len(PAGES)} effects -> {path}')
     if missing:

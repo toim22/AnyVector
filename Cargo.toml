@@ -4,7 +4,7 @@ members = [
     "crates/vector-core",
     "crates/vector-render",
     "crates/vector-io",
-    "crates/vector-app",
+    "crates/anyvector",
     "xtask",
 ]
 # vendor/egui is egui 0.37.0 with AnyVector's user interface translator (see vendor/egui/README.md)

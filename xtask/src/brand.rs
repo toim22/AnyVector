@@ -1,8 +1,8 @@
-//! Brand assets drawn from the two SVGs in `crates/vector-app/assets/brand/`:
+//! Brand assets drawn from the two SVGs in `crates/anyvector/assets/brand/`:
 //!
-//! - `vector-icon.svg` (the airship on its rounded dark tile) is the program's icon: the exe and
+//! - `anyvector-icon.svg` (the airship on its rounded dark tile) is the program's icon: the exe and
 //!   window icon, shortcuts, file associations and the installer's icon.
-//! - `vector-logo.svg` (the airship alone) is the logo: splash screen, About box, Welcome screen
+//! - `anyvector-logo.svg` (the airship alone) is the logo: splash screen, About box, Welcome screen
 //!   and the installer's side picture.
 
 use crate::{root, Result};
@@ -107,10 +107,10 @@ fn save_png(img: &RgbaImage, path: &Path) -> Result<()> {
 
 pub fn run() -> Result<()> {
     let root = root();
-    let assets = root.join("crates/vector-app/assets");
+    let assets = root.join("crates/anyvector/assets");
     let installer = root.join("installer");
-    let icon = std::fs::read_to_string(assets.join("brand/vector-icon.svg"))?;
-    let logo = std::fs::read_to_string(assets.join("brand/vector-logo.svg"))?;
+    let icon = std::fs::read_to_string(assets.join("brand/anyvector-icon.svg"))?;
+    let logo = std::fs::read_to_string(assets.join("brand/anyvector-logo.svg"))?;
     let opt = options();
 
     println!("program icon:");
@@ -119,7 +119,7 @@ pub fn run() -> Result<()> {
         let img = render(&icon, n, n, &opt)?;
         frames.push(IcoFrame::as_png(img.as_raw(), n, n, ExtendedColorType::Rgba8)?);
     }
-    let ico = assets.join("vector.ico");
+    let ico = assets.join("anyvector.ico");
     IcoEncoder::new(std::fs::File::create(&ico)?).encode_images(&frames)?;
     println!("  {} ({} sizes)", ico.strip_prefix(&root).unwrap_or(&ico).display(), frames.len());
     save_png(&render(&icon, 256, 256, &opt)?, &assets.join("icon-256.png"))?;

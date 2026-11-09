@@ -1,4 +1,4 @@
-//! CPU renderer for Vector documents (tiny-skia). Used for the drawing window, export and print.
+//! CPU renderer for AnyVector documents (tiny-skia). Used for the drawing window, export and print.
 
 pub mod bitfx;
 pub mod bitfx_art;

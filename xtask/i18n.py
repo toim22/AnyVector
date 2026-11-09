@@ -3,11 +3,11 @@
     python -I xtask/i18n.py <repo> [lang]          (lang: pt-BR)
 
 Lists every English string the program shows: the captions and tooltips of the generated menus,
-toolbars and context menus (crates/vector-app/src/ui/data.rs) and the string literals of the app's
+toolbars and context menus (crates/anyvector/src/ui/data.rs) and the string literals of the app's
 source that look like user interface text. Format strings keep their `{}` placeholders.
 
 Writes target/i18n/strings.tsv (index, English, where it is used) and target/i18n/missing-<lang>.tsv
-(the strings crates/vector-app/assets/i18n/<lang>.tsv does not translate yet) and prints the coverage.
+(the strings crates/anyvector/assets/i18n/<lang>.tsv does not translate yet) and prints the coverage.
 """
 import os
 import re
@@ -15,7 +15,7 @@ import sys
 
 root = sys.argv[1]
 lang = sys.argv[2] if len(sys.argv) > 2 else 'pt-BR'
-src = os.path.join(root, 'crates', 'vector-app', 'src')
+src = os.path.join(root, 'crates', 'anyvector', 'src')
 
 SKIP_LINE = re.compile(r'\b(assert\w*!|debug_assert\w*!|println!|eprintln!|print!|log::|debug!|trace!|panic!|unreachable!|todo!|include_str!|include_bytes!|env!|concat!|\.expect\(|from_id_salt\(|Id::new\(|\.with\(|id_salt\(|scope_id\(|get\(ui\.ctx\(\)|icons\.get\(|\.header\(|regex|Regex)')
 PLACEHOLDER = re.compile(r'\{[^{}]*\}')
@@ -212,7 +212,7 @@ with open(os.path.join(out_dir, 'strings.tsv'), 'w', encoding='utf-8', newline='
     for i, (k, where) in enumerate(strings):
         w.write(f'{i}\t{esc(k)}\t{where}\n')
 
-dict_path = os.path.join(root, 'crates', 'vector-app', 'assets', 'i18n', f'{lang}.tsv')
+dict_path = os.path.join(root, 'crates', 'anyvector', 'assets', 'i18n', f'{lang}.tsv')
 d = load_dict(dict_path)
 missing = [(i, k, where) for i, (k, where) in enumerate(strings) if k not in d and k.replace('%s', '{}') not in d]
 with open(os.path.join(out_dir, f'missing-{lang}.tsv'), 'w', encoding='utf-8', newline='\n') as w:

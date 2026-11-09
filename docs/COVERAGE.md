@@ -13,14 +13,14 @@ The *Reference* column is a path inside the reference folder.
 
 | Area | Done | Partial | Todo | Omitted | Total |
 |---|---:|---:|---:|---:|---:|
-| [Menus](#menus) | 551 | 73 | 0 | 163 | 787 |
+| [Menus](#menus) | 552 | 72 | 0 | 163 | 787 |
 | [Dialogs and screens](#dialogs-and-screens) | 65 | 26 | 0 | 1 | 92 |
 | [Bitmap effects (Properties docker)](#bitmap-effects-properties-docker) | 109 | 11 | 0 | 0 | 120 |
 | [Dockers](#dockers) | 11 | 33 | 0 | 1 | 45 |
 | [Tools](#tools) | 94 | 0 | 0 | 0 | 94 |
 | [Toolbars](#toolbars) | 12 | 0 | 0 | 0 | 12 |
 | [Right-click menus](#right-click-menus) | 24 | 0 | 0 | 3 | 27 |
-| **All** | **866** | **143** | **0** | **168** | **1177** |
+| **All** | **867** | **142** | **0** | **168** | **1177** |
 
 ## Menus
 
@@ -91,7 +91,7 @@ The *Reference* column is a path inside the reference folder.
 | Edit > Cut | command |  | ✅ done |  |  |
 | Edit > Copy | command |  | ✅ done |  |  |
 | Edit > Copy Properties From... | opens a window | 1 | ✅ done | Copy Properties dialog, then click the source object | `03-telas\selecao-multipla\02 Edit\001 Edit ▸ Copy Properties From.png` |
-| Edit > Paste | command |  | ✅ done | Vector objects, SVG, text or bitmap from the clipboard |  |
+| Edit > Paste | command |  | ✅ done | AnyVector objects, SVG, text or bitmap from the clipboard |  |
 | Edit > Paste in View | command |  | ✅ done | pastes centered in the window |  |
 | Edit > Paste Special... | opens a window | 1 | ✅ done | Paste Special dialog with the clipboard formats | `03-telas\doc-vazio\02 Edit\002 Edit ▸ Paste Special.png` |
 | Edit > Delete | command |  | ✅ done |  |  |
@@ -401,7 +401,7 @@ The *Reference* column is a path inside the reference folder.
 | Effects > Creative > Art Style... | opens a window |  | 🟡 partial | page as the reference; the styles are local filters, not AI | `03-telas\bitmap\06 Effects\067 Effects ▸ Creative ▸ Art Style (abre no docker Properties).png` |
 | Effects > Creative > Crystalize... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\068 Effects ▸ Creative ▸ Crystalize (abre no docker Properties).png` |
 | Effects > Creative > Fabric... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\069 Effects ▸ Creative ▸ Fabric (abre no docker Properties).png` |
-| Effects > Creative > Frame... | opens a window |  | 🟡 partial | page as the reference; the frames are drawn by Vector (no CorelDRAW frame files) | `03-telas\bitmap\06 Effects\070 Effects ▸ Creative ▸ Frame (abre no docker Properties).png` |
+| Effects > Creative > Frame... | opens a window |  | 🟡 partial | page as the reference; the frames are drawn by AnyVector (no CorelDRAW frame files) | `03-telas\bitmap\06 Effects\070 Effects ▸ Creative ▸ Frame (abre no docker Properties).png` |
 | Effects > Creative > Glass Block... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\071 Effects ▸ Creative ▸ Glass Block (abre no docker Properties).png` |
 | Effects > Creative > Mosaic... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\072 Effects ▸ Creative ▸ Mosaic (abre no docker Properties).png` |
 | Effects > Creative > Scatter... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\073 Effects ▸ Creative ▸ Scatter (abre no docker Properties).png` |
@@ -411,11 +411,11 @@ The *Reference* column is a path inside the reference folder.
 | Effects > Creative > Vortex... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\077 Effects ▸ Creative ▸ Vortex (abre no docker Properties).png` |
 | Effects > Custom | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\011 Effects ▸ Custom.png` |
 | Effects > Custom > Band Pass... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\078 Effects ▸ Custom ▸ Band Pass (abre no docker Properties).png` |
-| Effects > Custom > Bump Map... | opens a window |  | 🟡 partial | page as the reference; the maps are drawn by Vector | `03-telas\bitmap\06 Effects\079 Effects ▸ Custom ▸ Bump Map (abre no docker Properties).png` |
+| Effects > Custom > Bump Map... | opens a window |  | 🟡 partial | page as the reference; the maps are drawn by AnyVector | `03-telas\bitmap\06 Effects\079 Effects ▸ Custom ▸ Bump Map (abre no docker Properties).png` |
 | Effects > Custom > User Defined... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\080 Effects ▸ Custom ▸ User Defined (abre no docker Properties).png` |
 | Effects > Distort | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\012 Effects ▸ Distort.png` |
 | Effects > Distort > Blocks... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\081 Effects ▸ Distort ▸ Blocks (abre no docker Properties).png` |
-| Effects > Distort > Displace... | opens a window |  | 🟡 partial | page as the reference; the displacement maps are drawn by Vector | `03-telas\bitmap\06 Effects\082 Effects ▸ Distort ▸ Displace (abre no docker Properties).png` |
+| Effects > Distort > Displace... | opens a window |  | 🟡 partial | page as the reference; the displacement maps are drawn by AnyVector | `03-telas\bitmap\06 Effects\082 Effects ▸ Distort ▸ Displace (abre no docker Properties).png` |
 | Effects > Distort > Mesh Warp... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\083 Effects ▸ Distort ▸ Mesh Warp (abre no docker Properties).png` |
 | Effects > Distort > Offset... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\084 Effects ▸ Distort ▸ Offset (abre no docker Properties).png` |
 | Effects > Distort > Pixelate... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\085 Effects ▸ Distort ▸ Pixelate (abre no docker Properties).png` |
@@ -444,7 +444,7 @@ The *Reference* column is a path inside the reference folder.
 | Effects > Texture | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\015 Effects ▸ Texture.png` |
 | Effects > Texture > Brick Wall... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\106 Effects ▸ Texture ▸ Brick Wall (abre no docker Properties).png` |
 | Effects > Texture > Bubbles... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\107 Effects ▸ Texture ▸ Bubbles (abre no docker Properties).png` |
-| Effects > Texture > Canvas... | opens a window |  | 🟡 partial | page as the reference; the canvas textures are drawn by Vector | `03-telas\bitmap\06 Effects\108 Effects ▸ Texture ▸ Canvas (abre no docker Properties).png` |
+| Effects > Texture > Canvas... | opens a window |  | 🟡 partial | page as the reference; the canvas textures are drawn by AnyVector | `03-telas\bitmap\06 Effects\108 Effects ▸ Texture ▸ Canvas (abre no docker Properties).png` |
 | Effects > Texture > Cobblestone... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\109 Effects ▸ Texture ▸ Cobblestone (abre no docker Properties).png` |
 | Effects > Texture > Elephant Skin... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\110 Effects ▸ Texture ▸ Elephant Skin (abre no docker Properties).png` |
 | Effects > Texture > Etching... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\111 Effects ▸ Texture ▸ Etching (abre no docker Properties).png` |
@@ -480,7 +480,7 @@ The *Reference* column is a path inside the reference folder.
 | Bitmaps > Straighten Image... | opens a window | 2 | ✅ done | lens distortion, rotation, vertical and horizontal perspective, grid, crop | `03-telas\bitmap\07 Bitmaps\002 Bitmaps ▸ Straighten Image.png` |
 | Bitmaps > Image Adjustment Lab... | opens a window | 1 | ✅ done | temperature, tint, saturation, brightness, contrast, highlights, shadows, midtones, auto adjust, white and black points, rotation, snapshots, undo | `03-telas\bitmap\07 Bitmaps\003 Bitmaps ▸ Image Adjustment Lab.png` |
 | Bitmaps > Remove JPEG Artifacts | command |  | ✅ done | smooths the 8×8 block edges |  |
-| Bitmaps > Edit Bitmap... | opens a window |  | ✅ done | opens the bitmap in the default image editor; saving it there updates it in Vector |  |
+| Bitmaps > Edit Bitmap... | opens a window |  | ✅ done | opens the bitmap in the default image editor; saving it there updates it in AnyVector |  |
 | Bitmaps > Remove Background | command |  | 🟡 partial | removes the background color found at the borders; no AI |  |
 | Bitmaps > Crop Bitmap | command |  | ✅ done | drops the pixels outside the crop |  |
 | Bitmaps > Resample... | opens a window | 2 | ✅ done | size, resolution, units, bicubic or nearest neighbor; the AI modes are disabled as in the reference | `03-telas\bitmap\07 Bitmaps\005 Bitmaps ▸ Resample.png` |
@@ -609,7 +609,7 @@ The *Reference* column is a path inside the reference folder.
 |---|---|---|---|---|---|
 | Tools | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\10 Tools\001 Tools.png` |
 | Tools > Options | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\10 Tools\002 Tools ▸ Options.png` |
-| Tools > Options > CorelDRAW... | opens a window | 39 | 🟡 partial | Tools > Options > Vector... | `03-telas\doc-vazio\10 Tools\001 Tools ▸ Options ▸ CorelDRAW.png` |
+| Tools > Options > CorelDRAW... | opens a window | 39 | 🟡 partial | Tools > Options > AnyVector... | `03-telas\doc-vazio\10 Tools\001 Tools ▸ Options ▸ CorelDRAW.png` |
 | Tools > Options > Customization... | opens a window | 15 | 🟡 partial | exists in AnyVector; not yet checked against the reference | `03-telas\doc-vazio\10 Tools\002 Tools ▸ Options ▸ Customization.png` |
 | Tools > Options > Tools... | opens a window | 21 | 🟡 partial | exists in AnyVector; not yet checked against the reference | `03-telas\doc-vazio\10 Tools\003 Tools ▸ Options ▸ Tools.png` |
 | Tools > Options > Global... | opens a window | 38 | 🟡 partial | exists in AnyVector; not yet checked against the reference | `03-telas\doc-vazio\10 Tools\004 Tools ▸ Options ▸ Global.png` |
@@ -643,12 +643,12 @@ The *Reference* column is a path inside the reference folder.
 | Window > Tile Horizontally | command |  | ✅ done | the document windows stacked top to bottom |  |
 | Window > Tile Vertically | command |  | ✅ done | the document windows side by side |  |
 | Window > Combine Windows | command |  | ✅ done | back to one window with tabs |  |
-| Window > Dock Window | command |  | 🟡 partial | Vector's document windows never float, so Dock Window does what Combine Windows does |  |
+| Window > Dock Window | command |  | 🟡 partial | AnyVector's document windows never float, so Dock Window does what Combine Windows does |  |
 | Window > Workspace | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\11 Window\002 Window ▸ Workspace.png` |
 | Window > Workspace > <placeHolder a124f904> | command |  | 🟡 partial | list filled at run time |  |
 | Window > Workspace > New... | opens a window | 2 | ✅ done | New Workspace dialog: name, base on, description, set as current | `03-telas\doc-vazio\11 Window\001 Window ▸ Workspace ▸ New.png` |
 | Window > Workspace > Delete | command |  | ✅ done | Delete Workspace confirmation; enabled for your own workspaces only, then Default is current |  |
-| Window > Workspace > Import... | opens a window | 3 | 🟡 partial | Vector workspace files (*.cdws); workspace files saved by CorelDRAW cannot be read | `03-telas\doc-vazio\11 Window\002 Window ▸ Workspace ▸ Import.png` |
+| Window > Workspace > Import... | opens a window | 3 | 🟡 partial | AnyVector workspace files (*.cdws); workspace files saved by CorelDRAW cannot be read | `03-telas\doc-vazio\11 Window\002 Window ▸ Workspace ▸ Import.png` |
 | Window > Workspace > Export... | opens a window |  | ✅ done | Export Workspace: choose dockers, toolbars, menus and shortcut keys, saved as *.cdws |  |
 | Window > Dockers | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\11 Window\005 Window ▸ Dockers.png` |
 | Window > Dockers > Properties | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
@@ -725,31 +725,31 @@ The *Reference* column is a path inside the reference folder.
 
 ### Help
 
-8 done · 1 partial · 0 todo · 12 omitted
+9 done · 0 partial · 0 todo · 12 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
 | Help | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\12 Help\001 Help.png` |
-| Help > Product Help... | opens a window |  | ✅ done | Vector Help in the browser (pages built into the program, no internet needed) |  |
+| Help > Product Help... | opens a window |  | ✅ done | AnyVector Help in the browser (pages built into the program, no internet needed) |  |
 | Help > Welcome Screen | command |  | ✅ done | opens the Welcome Screen tab |  |
 | Help > Video Tutorials... | opens a window |  | ➖ omitted | Corel Learn content |  |
 | Help > Learn | command |  | ➖ omitted | Corel Learn content |  |
-| Help > Quick Start Guide... | opens a window |  | ✅ done | the Quick Start Guide page of Vector Help |  |
+| Help > Quick Start Guide... | opens a window |  | ✅ done | the Quick Start Guide page of AnyVector Help |  |
 | Help > User Guide... | opens a window |  | ✅ done | the User Guide page, built from the program's own tools, menus and dockers |  |
 | Help > What's New?... | opens a window |  | ✅ done | opens the Welcome Screen tab on What's New, as in the reference | `03-telas\doc-vazio\12 Help\005 Help ▸ What's New (aba Welcome Screen).png` |
-| Help > Updates... | opens a window |  | 🟡 partial | shows this version's release notes; Vector has no online update service |  |
+| Help > Updates... | opens a window |  | ✅ done | checks GitHub for a new version and installs it; AnyVector also checks at every start and offers it |  |
 | Help > Message Settings | command |  | ➖ omitted | Corel in-product messages |  |
 | Help > CorelDRAW Community | command |  | ➖ omitted | Corel online community |  |
 | Help > Corel Support... | opens a window |  | ➖ omitted | Corel Support |  |
 | Help > <placeHolder > | command |  | ➖ omitted | Corel account placeholder |  |
-| Help > Submit Ideas and Feedback... | opens a window |  | ✅ done | a new idea in the Vector issue tracker (GitHub) |  |
+| Help > Submit Ideas and Feedback... | opens a window |  | ✅ done | a new idea in the AnyVector issue tracker (GitHub) |  |
 | Help > Share Your Experience... | opens a window |  | ➖ omitted | Share Your Experience |  |
 | Help > Refresh your account | command |  | ➖ omitted | Corel account |  |
 | Help > Refresh your Account | command |  | ➖ omitted | Corel account |  |
 | Help > Account Settings... | opens a window |  | ➖ omitted | Corel account |  |
 | Help > Sign out of Cloud | command |  | ➖ omitted | Corel Cloud |  |
 | Help > Restore Purchases... | opens a window |  | ➖ omitted | Corel account |  |
-| Help > About CorelDRAW... | opens a window | 1 | ✅ done | Help > About Vector (same layout: banner, version, Source ID, System Info, Legal Notices) | `03-telas\doc-vazio\12 Help\012 Help ▸ About CorelDRAW.png` |
+| Help > About CorelDRAW... | opens a window | 1 | ✅ done | Help > About AnyVector (same layout: banner, version, Source ID, System Info, Legal Notices) | `03-telas\doc-vazio\12 Help\012 Help ▸ About CorelDRAW.png` |
 
 ### Purchase
 
@@ -1040,7 +1040,7 @@ The *Reference* column is a path inside the reference folder.
 
 | Opened from | Kind | Context | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|---|
-| Tools > Options > CorelDRAW | dialog | doc-vazio | 82 | 🟡 partial | Options > Vector | `03-telas\doc-vazio\10 Tools\001 Tools ▸ Options ▸ CorelDRAW.png` |
+| Tools > Options > CorelDRAW | dialog | doc-vazio | 82 | 🟡 partial | Options > AnyVector | `03-telas\doc-vazio\10 Tools\001 Tools ▸ Options ▸ CorelDRAW.png` |
 | Tools > Options > Customization | dialog | doc-vazio | 23 | 🟡 partial | exists in AnyVector; not yet checked against the reference | `03-telas\doc-vazio\10 Tools\002 Tools ▸ Options ▸ Customization.png` |
 | Tools > Options > Tools | dialog | doc-vazio | 22 | 🟡 partial | exists in AnyVector; not yet checked against the reference | `03-telas\doc-vazio\10 Tools\003 Tools ▸ Options ▸ Tools.png` |
 | Tools > Options > Global | dialog | doc-vazio | 40 | 🟡 partial | exists in AnyVector; not yet checked against the reference | `03-telas\doc-vazio\10 Tools\004 Tools ▸ Options ▸ Global.png` |
@@ -1071,7 +1071,7 @@ The *Reference* column is a path inside the reference folder.
 | Opened from | Kind | Context | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|---|
 | Help > What's New (aba Welcome Screen) | dialog | doc-vazio | 0 | ✅ done | Welcome Screen: Get Started, Workspace and What's New; Corel's training, store, trial and support entries left out | `03-telas\doc-vazio\12 Help\005 Help ▸ What's New (aba Welcome Screen).png` |
-| Help > About CorelDRAW | dialog | doc-vazio | 4 | ✅ done | About Vector, with System Info (5 categories, Save) and Legal Notices | `03-telas\doc-vazio\12 Help\012 Help ▸ About CorelDRAW.png` |
+| Help > About CorelDRAW | dialog | doc-vazio | 4 | ✅ done | About AnyVector, with System Info (5 categories, Save) and Legal Notices | `03-telas\doc-vazio\12 Help\012 Help ▸ About CorelDRAW.png` |
 
 ## Bitmap effects (Properties docker)
 
@@ -1206,7 +1206,7 @@ The *Reference* column is a path inside the reference folder.
 | Effects > Creative > Art Style | bitmap | 🟡 partial | page as the reference; the styles are local filters, not AI | `03-telas\bitmap\06 Effects\067 Effects ▸ Creative ▸ Art Style (abre no docker Properties).png` |
 | Effects > Creative > Crystalize | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\068 Effects ▸ Creative ▸ Crystalize (abre no docker Properties).png` |
 | Effects > Creative > Fabric | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\069 Effects ▸ Creative ▸ Fabric (abre no docker Properties).png` |
-| Effects > Creative > Frame | bitmap | 🟡 partial | page as the reference; the frames are drawn by Vector (no CorelDRAW frame files) | `03-telas\bitmap\06 Effects\070 Effects ▸ Creative ▸ Frame (abre no docker Properties).png` |
+| Effects > Creative > Frame | bitmap | 🟡 partial | page as the reference; the frames are drawn by AnyVector (no CorelDRAW frame files) | `03-telas\bitmap\06 Effects\070 Effects ▸ Creative ▸ Frame (abre no docker Properties).png` |
 | Effects > Creative > Glass Block | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\071 Effects ▸ Creative ▸ Glass Block (abre no docker Properties).png` |
 | Effects > Creative > Mosaic | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\072 Effects ▸ Creative ▸ Mosaic (abre no docker Properties).png` |
 | Effects > Creative > Scatter | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\073 Effects ▸ Creative ▸ Scatter (abre no docker Properties).png` |
@@ -1222,7 +1222,7 @@ The *Reference* column is a path inside the reference folder.
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
 | Effects > Custom > Band Pass | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\078 Effects ▸ Custom ▸ Band Pass (abre no docker Properties).png` |
-| Effects > Custom > Bump Map | bitmap | 🟡 partial | page as the reference; the maps are drawn by Vector | `03-telas\bitmap\06 Effects\079 Effects ▸ Custom ▸ Bump Map (abre no docker Properties).png` |
+| Effects > Custom > Bump Map | bitmap | 🟡 partial | page as the reference; the maps are drawn by AnyVector | `03-telas\bitmap\06 Effects\079 Effects ▸ Custom ▸ Bump Map (abre no docker Properties).png` |
 | Effects > Custom > User Defined | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\080 Effects ▸ Custom ▸ User Defined (abre no docker Properties).png` |
 
 ### Effects > Distort
@@ -1232,7 +1232,7 @@ The *Reference* column is a path inside the reference folder.
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
 | Effects > Distort > Blocks | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\081 Effects ▸ Distort ▸ Blocks (abre no docker Properties).png` |
-| Effects > Distort > Displace | bitmap | 🟡 partial | page as the reference; the displacement maps are drawn by Vector | `03-telas\bitmap\06 Effects\082 Effects ▸ Distort ▸ Displace (abre no docker Properties).png` |
+| Effects > Distort > Displace | bitmap | 🟡 partial | page as the reference; the displacement maps are drawn by AnyVector | `03-telas\bitmap\06 Effects\082 Effects ▸ Distort ▸ Displace (abre no docker Properties).png` |
 | Effects > Distort > Mesh Warp | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\083 Effects ▸ Distort ▸ Mesh Warp (abre no docker Properties).png` |
 | Effects > Distort > Offset | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\084 Effects ▸ Distort ▸ Offset (abre no docker Properties).png` |
 | Effects > Distort > Pixelate | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\085 Effects ▸ Distort ▸ Pixelate (abre no docker Properties).png` |
@@ -1279,7 +1279,7 @@ The *Reference* column is a path inside the reference folder.
 |---|---|---|---|---|
 | Effects > Texture > Brick Wall | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\106 Effects ▸ Texture ▸ Brick Wall (abre no docker Properties).png` |
 | Effects > Texture > Bubbles | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\107 Effects ▸ Texture ▸ Bubbles (abre no docker Properties).png` |
-| Effects > Texture > Canvas | bitmap | 🟡 partial | page as the reference; the canvas textures are drawn by Vector | `03-telas\bitmap\06 Effects\108 Effects ▸ Texture ▸ Canvas (abre no docker Properties).png` |
+| Effects > Texture > Canvas | bitmap | 🟡 partial | page as the reference; the canvas textures are drawn by AnyVector | `03-telas\bitmap\06 Effects\108 Effects ▸ Texture ▸ Canvas (abre no docker Properties).png` |
 | Effects > Texture > Cobblestone | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\109 Effects ▸ Texture ▸ Cobblestone (abre no docker Properties).png` |
 | Effects > Texture > Elephant Skin | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\110 Effects ▸ Texture ▸ Elephant Skin (abre no docker Properties).png` |
 | Effects > Texture > Etching | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\111 Effects ▸ Texture ▸ Etching (abre no docker Properties).png` |

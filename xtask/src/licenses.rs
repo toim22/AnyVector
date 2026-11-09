@@ -1,6 +1,6 @@
-//! `crates/vector-app/assets/legal/third-party-licenses.txt`: the open-source components that go
-//! into vector.exe (every crate the app depends on for Windows, build and test tools excluded),
-//! with their licenses. Shown by Help ▸ About Vector ▸ Legal Notices.
+//! `crates/anyvector/assets/legal/third-party-licenses.txt`: the open-source components that go
+//! into anyvector.exe (every crate the app depends on for Windows, build and test tools excluded),
+//! with their licenses. Shown by Help ▸ About AnyVector ▸ Legal Notices.
 
 use crate::{root, Result};
 use serde_json::Value;
@@ -17,9 +17,9 @@ pub fn run() -> Result<()> {
     let meta: Value = serde_json::from_slice(&out.stdout)?;
     let packages: HashMap<&str, &Value> = meta["packages"].as_array().ok_or("no packages")?.iter().filter_map(|p| Some((p["id"].as_str()?, p))).collect();
     let nodes: HashMap<&str, &Value> = meta["resolve"]["nodes"].as_array().ok_or("no resolve")?.iter().filter_map(|n| Some((n["id"].as_str()?, n))).collect();
-    let app = packages.values().find(|p| p["name"] == "vector-app").and_then(|p| p["id"].as_str()).ok_or("vector-app not found")?;
+    let app = packages.values().find(|p| p["name"] == "anyvector").and_then(|p| p["id"].as_str()).ok_or("anyvector not found")?;
 
-    // everything vector.exe links: normal dependencies only (no dev- or build-dependencies)
+    // everything anyvector.exe links: normal dependencies only (no dev- or build-dependencies)
     let mut seen: HashSet<&str> = HashSet::new();
     let mut stack = vec![app];
     while let Some(id) = stack.pop() {
@@ -40,7 +40,8 @@ pub fn run() -> Result<()> {
     for id in &seen {
         let p = packages[id];
         let name = p["name"].as_str().unwrap_or_default().to_string();
-        if name.starts_with("vector-") {
+        // the workspace's own crates
+        if name == "anyvector" || name.starts_with("vector-") {
             continue;
         }
         let version = p["version"].as_str().unwrap_or_default().to_string();
@@ -69,7 +70,7 @@ pub fn run() -> Result<()> {
             s.push_str(&format!("    {repo}\n"));
         }
     }
-    let dir = root().join("crates/vector-app/assets/legal");
+    let dir = root().join("crates/anyvector/assets/legal");
     std::fs::create_dir_all(&dir)?;
     let path = dir.join("third-party-licenses.txt");
     std::fs::write(&path, s)?;
