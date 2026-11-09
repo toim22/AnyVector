@@ -379,9 +379,14 @@ fn apply_preset(app: &mut VectorApp, effect: &str, json: &str) {
 
 /// Bake the envelope and distortion of the selection into its curves (Add New).
 fn bake_warps(app: &mut VectorApp, label: &str, fresh_envelope: bool) {
-    let mode = to(app).env_mode;
-    let mapping = to(app).env_mapping;
-    let keep = to(app).env_keep_lines;
+    let t = to(app);
+    let fresh = fresh_envelope.then(|| vector_core::object::EnvelopeEffect { mode: t.env_mode, mapping: t.env_mapping, keep_lines: t.env_keep_lines, ..Default::default() });
+    bake_warps_with(app, label, fresh);
+}
+
+/// Bake the envelopes and distortions of the selection into its curves, then give them `fresh`
+/// (Add New: a new envelope over the warped shapes).
+pub(crate) fn bake_warps_with(app: &mut VectorApp, label: &str, fresh: Option<vector_core::object::EnvelopeEffect>) {
     let Some(d) = app.doc_mut() else { return };
     let sel = d.selection.clone();
     d.modify(label, |doc, s| {
@@ -398,7 +403,7 @@ fn bake_warps(app: &mut VectorApp, label: &str, fresh_envelope: bool) {
             o.kind = ObjKind::Path(vector_core::path::NodePath::from_bez(&wp));
             o.transform = Affine::IDENTITY;
             o.effects.distort = None;
-            o.effects.envelope = fresh_envelope.then(|| vector_core::object::EnvelopeEffect { mode, mapping, keep_lines: keep, ..Default::default() });
+            o.effects.envelope = fresh.clone();
         }
         *s = ids;
     });
@@ -2035,162 +2040,48 @@ fn preset_list(app: &mut VectorApp, ui: &mut Ui, it: &Item, k: &str) {
     }
 }
 
-fn extrude_rotation(app: &mut VectorApp, ui: &mut Ui, it: &Item) {
+/// The Extrude tool's drop-down panels: the pages of the Extrude docker.
+fn extrude_panel(app: &mut VectorApp, ui: &mut Ui, it: &Item, label: &str, page: impl Fn(&mut VectorApp, &mut Ui, &mut vector_core::object::ExtrudeEffect) -> bool) {
     let e = first(app, |o| o.effects.extrude.clone()).flatten();
     let mut out = None;
-    fields::panel(app, ui, lead(it), "", 16.0, e.is_some(), &tip(it), |_, ui| {
-        let Some(e) = &e else { return };
-        let mut r = e.rotation;
-        let mut ch = false;
-        for (i, n) in ["X:", "Y:", "Z:"].iter().enumerate() {
-            ui.horizontal(|ui| {
-                ui.label(*n);
-                ch |= ui.add(egui::DragValue::new(&mut r[i]).range(-180.0..=180.0).suffix("°")).changed();
-            });
-        }
-        if ui.button("Reset").clicked() {
-            r = [0.0; 3];
-            ch = true;
-        }
-        if ch {
-            out = Some(r);
+    fields::panel(app, ui, lead(it), "", 16.0, e.is_some(), &tip(it), |app, ui| {
+        let Some(mut e) = e.clone() else { return };
+        ui.set_width(220.0);
+        if page(app, ui, &mut e) {
+            out = Some(e);
         }
     });
-    if let Some(r) = out {
-        edit_sel(app, "Extrude Rotation", |o| {
-            if let Some(e) = &mut o.effects.extrude {
-                e.rotation = r;
+    if let Some(e) = out {
+        edit_sel(app, label, |o| {
+            if o.effects.extrude.is_some() {
+                o.effects.extrude = Some(e.clone());
             }
         });
     }
+}
+
+fn extrude_rotation(app: &mut VectorApp, ui: &mut Ui, it: &Item) {
+    extrude_panel(app, ui, it, "Extrude Rotation", |app, ui, e| crate::dockers::extrude_pages::rotation_ui(&mut app.icons, ui, e, true));
 }
 
 fn extrude_color(app: &mut VectorApp, ui: &mut Ui, it: &Item) {
-    let e = first(app, |o| o.effects.extrude.clone()).flatten();
-    let mut out = None;
-    fields::panel(app, ui, lead(it), "", 16.0, e.is_some(), &tip(it), |_, ui| {
-        let Some(e) = &e else { return };
-        let mut m = e.color_mode;
-        let mut c = e.color;
-        let mut c2 = e.shade;
-        let mut ch = false;
-        for (i, n) in ["Use Object Fill", "Use Solid Color", "Use Color Shading"].iter().enumerate() {
-            ch |= ui.radio_value(&mut m, i as u8, *n).changed();
-        }
-        if m >= 1 {
-            ui.horizontal(|ui| {
-                ui.label(if m == 1 { "Color:" } else { "From:" });
-                let mut cc = crate::theme::to_c32(c);
-                if ui.color_edit_button_srgba(&mut cc).changed() {
-                    c = crate::theme::from_c32(cc);
-                    ch = true;
-                }
-            });
-        }
-        if m == 2 {
-            ui.horizontal(|ui| {
-                ui.label("To:");
-                let mut cc = crate::theme::to_c32(c2);
-                if ui.color_edit_button_srgba(&mut cc).changed() {
-                    c2 = crate::theme::from_c32(cc);
-                    ch = true;
-                }
-            });
-        }
-        if ch {
-            out = Some((m, c, c2));
-        }
-    });
-    if let Some((m, c, c2)) = out {
-        edit_sel(app, "Extrude Color", |o| {
-            if let Some(e) = &mut o.effects.extrude {
-                e.color_mode = m;
-                e.color = c;
-                e.shade = c2;
-            }
-        });
-    }
+    extrude_panel(app, ui, it, "Extrude Color", |_, ui, e| crate::dockers::extrude_pages::color_ui(ui, e, true));
 }
 
 fn extrude_bevel(app: &mut VectorApp, ui: &mut Ui, it: &Item) {
-    let e = first(app, |o| o.effects.extrude.clone()).flatten();
-    let mut out = None;
-    fields::panel(app, ui, lead(it), "", 16.0, e.is_some(), &tip(it), |_, ui| {
-        let Some(e) = &e else { return };
-        let mut on = e.bevel.is_some();
-        let (mut depth, mut angle) = e.bevel.unwrap_or((6.0, 45.0));
-        let mut only = e.bevel_only;
-        let mut ch = ui.checkbox(&mut on, "Use bevel").changed();
-        ui.add_enabled_ui(on, |ui| {
-            ch |= ui.checkbox(&mut only, "Show bevel only").changed();
-            ui.horizontal(|ui| {
-                ui.label("Bevel depth:");
-                ch |= ui.add(egui::DragValue::new(&mut depth).range(0.1..=144.0).suffix(" pt")).changed();
-            });
-            ui.horizontal(|ui| {
-                ui.label("Bevel angle:");
-                ch |= ui.add(egui::DragValue::new(&mut angle).range(1.0..=89.0).suffix("°")).changed();
-            });
-        });
-        if ch {
-            out = Some((on.then_some((depth, angle)), only));
-        }
+    extrude_panel(app, ui, it, "Extrude Bevel", |app, ui, e| {
+        let (un, dpi) = app.doc().map(|d| (d.doc.settings.unit, d.doc.settings.dpi)).unwrap_or((app.settings.default_unit, 300.0));
+        crate::dockers::extrude_pages::bevel_ui(&mut app.icons, ui, e, true, un, dpi)
     });
-    if let Some((b, only)) = out {
-        edit_sel(app, "Extrude Bevel", |o| {
-            if let Some(e) = &mut o.effects.extrude {
-                e.bevel = b;
-                e.bevel_only = only && b.is_some();
-            }
-        });
-    }
 }
 
 fn extrude_lights(app: &mut VectorApp, ui: &mut Ui, it: &Item) {
-    let e = first(app, |o| o.effects.extrude.clone()).flatten();
-    // the lights sit at the corners and middles of a cube in front of the object
-    const SPOTS: [&str; 8] = ["Top left", "Top", "Top right", "Right", "Bottom right", "Bottom", "Bottom left", "Left"];
-    let mut out = None;
-    fields::panel(app, ui, lead(it), "", 16.0, e.is_some(), &tip(it), |_, ui| {
-        let Some(e) = &e else { return };
-        let mut lights = e.lights.clone();
-        let mut ch = false;
-        for n in 0..3 {
-            let cur = lights.get(n).copied();
-            let mut on = cur.is_some();
-            let (mut spot, mut intensity) = cur.unwrap_or((n as u8 * 2, 100.0));
-            ui.horizontal(|ui| {
-                ch |= ui.checkbox(&mut on, format!("Light {}", n + 1)).changed();
-                ui.add_enabled_ui(on, |ui| {
-                    egui::ComboBox::from_id_salt(("extrude_light", n)).selected_text(SPOTS[spot as usize % 8]).show_ui(ui, |ui| {
-                        for (i, s) in SPOTS.iter().enumerate() {
-                            ch |= ui.selectable_value(&mut spot, i as u8, *s).changed();
-                        }
-                    });
-                    ch |= ui.add(egui::Slider::new(&mut intensity, 0.0..=100.0).text("Intensity")).changed();
-                });
-            });
-            if on {
-                if n < lights.len() {
-                    lights[n] = (spot, intensity);
-                } else {
-                    lights.push((spot, intensity));
-                }
-            } else if n < lights.len() {
-                lights.truncate(n);
-            }
-        }
-        if ch {
-            out = Some(lights);
-        }
+    extrude_panel(app, ui, it, "Extrude Lighting", |app, ui, e| {
+        let mut sel = app.dockers.ui.ex_light;
+        let c = crate::dockers::extrude_pages::lighting_ui(ui, e, true, &mut sel);
+        app.dockers.ui.ex_light = sel;
+        c
     });
-    if let Some(l) = out {
-        edit_sel(app, "Extrude Lighting", |o| {
-            if let Some(e) = &mut o.effects.extrude {
-                e.lights = l.clone();
-            }
-        });
-    }
 }
 
 fn vo_sides(app: &mut VectorApp, ui: &mut Ui, it: &Item) {

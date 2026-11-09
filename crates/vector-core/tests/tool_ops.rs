@@ -7,7 +7,7 @@ use vector_core::object::{
 };
 use vector_core::ops::{self, KnifeOpts};
 use vector_core::style::{var_width_at, VarWidth};
-use vector_core::{Document, ObjKind, Object, Style};
+use vector_core::{Color, Document, ObjKind, Object, Style};
 
 fn doc_with_square() -> (Document, u64) {
     let mut doc = Document::new(400.0, 400.0);
@@ -222,4 +222,43 @@ fn join_curves_leaves_far_ends_alone() {
         ObjKind::Path(np) => assert_eq!(np.subpaths.len(), 2),
         k => panic!("{k:?}"),
     }
+}
+
+fn square_obj(fill: Color) -> Object {
+    let pts = [Point::new(0.0, 0.0), Point::new(100.0, 0.0), Point::new(100.0, 100.0), Point::new(0.0, 100.0)];
+    let mut st = Style::default();
+    st.fill = vector_core::Fill::Solid(fill);
+    Object::new(1, ObjKind::Path(vector_core::path::polyline(&pts, true)), Affine::IDENTITY, st)
+}
+
+#[test]
+fn contour_to_center_fills_the_object_and_turns_colors_clockwise() {
+    use vector_core::object::{contour_rings, ContourDir, ContourEffect};
+    let o = square_obj(Color::rgb(255, 0, 0));
+    let c = ContourEffect { dir: ContourDir::ToCenter, steps: 1, offset: 10.0, end_fill: Color::rgb(0, 0, 255), color_dir: 1, ..Default::default() };
+    let rings = contour_rings(&o, &c);
+    assert_eq!(rings.len(), 4, "steps of 10 until the center");
+    let col = |i: usize| match rings[i].1 {
+        vector_core::Fill::Solid(c) => c,
+        ref f => panic!("{f:?}"),
+    };
+    assert_eq!((col(3).r, col(3).g, col(3).b), (0, 0, 255));
+    // halfway from red to blue, clockwise around the wheel, is green
+    let mid = col(1);
+    assert!(mid.g > 200 && mid.r < 40 && mid.b < 40, "{mid:?}");
+}
+
+#[test]
+fn contour_outside_mitered_keeps_square_corners() {
+    use vector_core::object::{contour_rings, ContourDir, ContourEffect};
+    let o = square_obj(Color::WHITE);
+    let mitered = ContourEffect { dir: ContourDir::Outside, steps: 3, offset: 10.0, corner: 0, ..Default::default() };
+    let rings = contour_rings(&o, &mitered);
+    assert_eq!(rings.len(), 3);
+    // the farthest step comes first
+    let a = rings[0].0.area().abs();
+    assert!((a - 160.0 * 160.0).abs() < 50.0, "{a}");
+    let round = ContourEffect { corner: 1, ..mitered };
+    let r = contour_rings(&o, &round)[0].0.area().abs();
+    assert!(r < a - 100.0, "{r} {a}");
 }

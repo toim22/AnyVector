@@ -391,32 +391,17 @@ impl<'a> Flattener<'a> {
     }
 
     fn contour(&mut self, o: &Object, c: &ContourEffect) {
-        let base = o.world_path();
-        let start_fill = o.style.fill.main_color().unwrap_or(Color::WHITE);
-        let start_ol = o.style.outline.color.unwrap_or(Color::BLACK);
-        let steps = c.steps.clamp(1, 64);
-        let mut v = vec![];
-        for k in 1..=steps {
-            let d = match c.dir {
-                ContourDir::Outside => c.offset * k as f64,
-                _ => -c.offset * k as f64,
-            };
-            let p = geom::offset_path(&base, d, kurbo::Join::Round);
-            if p.elements().is_empty() || p.area().abs() < 1e-3 {
-                break;
+        let join = match c.corner {
+            1 => LineJoin::Round,
+            2 => LineJoin::Bevel,
+            _ => LineJoin::Miter,
+        };
+        for (p, f, oc) in contour_rings(o, c) {
+            if let (false, Some(col)) = (o.style.fill.is_none(), f.main_color()) {
+                self.out.push(Prim::Fill { path: p.clone(), paint: Paint::Solid(col), even_odd: true });
             }
-            let t = k as f64 / steps as f64;
-            v.push((p, Color::lerp(start_fill, c.end_fill, t), Color::lerp(start_ol, c.end_outline, t)));
-        }
-        if c.dir == ContourDir::Outside {
-            v.reverse();
-        }
-        for (p, f, oc) in v {
-            if !o.style.fill.is_none() {
-                self.out.push(Prim::Fill { path: p.clone(), paint: Paint::Solid(f), even_odd: true });
-            }
-            if o.style.outline.is_visible() {
-                self.out.push(Prim::Stroke { path: p, color: oc, style: StrokeStyle { width: o.style.outline.width, join: LineJoin::Round, cap: LineCap::Round, dash: vec![], miter: 4.0 } });
+            if let (true, Some(col)) = (o.style.outline.is_visible(), oc) {
+                self.out.push(Prim::Stroke { path: p, color: col, style: StrokeStyle { width: o.style.outline.width, join, cap: LineCap::Round, dash: vec![], miter: 4.0 } });
             }
         }
     }

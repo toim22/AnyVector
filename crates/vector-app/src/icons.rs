@@ -386,6 +386,16 @@ pub fn body(name: &str) -> Option<String> {
         "text_first_baseline" => r##"<text x="12" y="10" font-size="8" font-family="Arial" text-anchor="middle" fill="#c4c4c4" stroke="none">Aa</text><path d="M3 11.5h18" stroke="BLUE" stroke-width="1.2"/><text x="12" y="20" font-size="8" font-family="Arial" text-anchor="middle" fill="#c4c4c4" stroke="none">Bb</text>"##,
         "text_last_baseline" => r##"<text x="12" y="10" font-size="8" font-family="Arial" text-anchor="middle" fill="#c4c4c4" stroke="none">Aa</text><text x="12" y="20" font-size="8" font-family="Arial" text-anchor="middle" fill="#c4c4c4" stroke="none">Bb</text><path d="M3 21.5h18" stroke="BLUE" stroke-width="1.2"/>"##,
         "text_bounding_box" => r##"<rect x="3" y="3" width="18" height="18" stroke="BLUE" stroke-width="1.2"/><text x="12" y="17" font-size="13" font-family="Arial" font-weight="bold" text-anchor="middle" fill="#c4c4c4" stroke="none">A</text>"##,
+        "blend_spacing" => r##"<path d="M3 7v10M21 7v10"/><path d="M5 12h14M8 9.5L5.5 12 8 14.5M16 9.5l2.5 2.5-2.5 2.5"/>"##,
+        "blend_rotate" => r##"<rect x="9" y="9" width="10" height="10" rx="1"/><path d="M5 15V7a2 2 0 0 1 2-2h8" stroke-dasharray="2 1.5"/><path d="M13 3l2 2-2 2"/>"##,
+        "blend_start" => r##"<rect x="3" y="8" width="6" height="8" fill="#c4c4c4"/><path d="M11 12h10M18 9l3 3-3 3" stroke-dasharray="2 1.5"/>"##,
+        "blend_end" => r##"<rect x="15" y="8" width="6" height="8" fill="#c4c4c4"/><path d="M3 12h10M10 9l3 3-3 3" stroke-dasharray="2 1.5"/>"##,
+        "blend_path" => r##"<path d="M3 19C7 5 15 21 21 5"/><circle cx="3" cy="19" r="1.8" fill="#c4c4c4"/><circle cx="21" cy="5" r="1.8" fill="#c4c4c4"/>"##,
+        "ex_camera" => r##"<path d="M4 8l5-3h9v9l-4 3H4z"/><path d="M4 8h10v9M14 8l4-3"/><rect x="13" y="15" width="7" height="5" rx="1" fill="BLUE" stroke="BLUE"/><path d="M20 16.5l2.5-1.5v5L20 18.5" stroke="BLUE"/>"##,
+        "ex_rotation" => r##"<path d="M3 9l5-3h8v8l-4 3H3z"/><path d="M3 9h9v8M12 9l4-3"/><path d="M15.5 21a5 5 0 0 0 5-7.5" stroke="BLUE"/><path d="M21.5 16.5l-1-3-3 1" stroke="BLUE"/>"##,
+        "ex_lighting" => r##"<path d="M3 9l5-3h8v8l-4 3H3z"/><path d="M3 9h9v8M12 9l4-3"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M18.5 14v7a3.5 3.5 0 0 0 0-7z" fill="YELLOW" stroke="YELLOW"/>"##,
+        "ex_color" => r##"<path d="M3 9l5-3h8v8l-4 3H3z"/><path d="M3 9h9v8M12 9l4-3"/><rect x="15" y="13" width="3.5" height="3.5" fill="RED" stroke="none"/><rect x="18.5" y="13" width="3.5" height="3.5" fill="BLUE" stroke="none"/><rect x="15" y="16.5" width="3.5" height="3.5" fill="GREEN" stroke="none"/><rect x="18.5" y="16.5" width="3.5" height="3.5" fill="YELLOW" stroke="none"/>"##,
+        "ex_bevel" => r##"<rect x="3.5" y="3.5" width="17" height="17"/><rect x="7.5" y="7.5" width="9" height="9"/><path d="M3.5 3.5l4 4M20.5 3.5l-4 4M3.5 20.5l4-4M20.5 20.5l-4-4"/>"##,
         "tr_move" => r##"<path d="M12 3v18M3 12h18"/><path d="M9.5 5.5L12 3l2.5 2.5M9.5 18.5L12 21l2.5-2.5M5.5 9.5L3 12l2.5 2.5M18.5 9.5L21 12l-2.5 2.5"/>"##,
         "tr_scale_mirror" => r##"<path d="M8 4h6l-4 8 4 8H8l-4-8z"/><path d="M18 4v9M15.5 10.5L18 13l2.5-2.5"/>"##,
         "tr_size" => r##"<path d="M4 4h16v16H4z" stroke-dasharray="2.5 2"/><path d="M4 12h8v8H4z"/><path d="M8 6.5v3M6.5 8h3M14.5 16h3M16 14.5v3"/>"##,
@@ -561,7 +571,7 @@ pub fn body(name: &str) -> Option<String> {
 fn extra(name: &str) -> Option<&'static str> {
     Some(match name {
         // ---------------------------------------------------------------- blend, contour
-        "blend_steps" => r##"<circle cx="7" cy="17" r="4"/><circle cx="11.5" cy="12.5" r="4" fill="#262626"/><circle cx="16" cy="8" r="4" fill="#262626"/>"##,
+        "blend_steps" => r##"<path d="M4 20h16V4h-4v4h-4v4H8v4H4z"/>"##,
         "blend_loop" => r##"<circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M6 15.5C7 7 17 7 18 15.5" stroke-dasharray="1.6 1.6"/><path d="M15.5 13.5l2.5 2 1.5-2.8"/>"##,
         "blend_direct" => r##"<circle cx="12" cy="12" r="8.5"/><path d="M6 17L18 7" stroke="BLUE"/><path d="M14.5 7H18v3.5" stroke="BLUE"/>"##,
         "blend_cw" => r##"<circle cx="12" cy="12" r="8.5" stroke="#8a8a8a"/><path d="M5 15a7.5 7.5 0 0 1 12-9" stroke="BLUE"/><path d="M13.5 4.5L17 6l-1 3.5" stroke="BLUE"/>"##,
