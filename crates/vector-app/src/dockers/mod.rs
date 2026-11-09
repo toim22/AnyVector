@@ -6,6 +6,11 @@ mod coords;
 mod guides;
 pub use guides::styled_line;
 mod effects;
+mod extrude;
+/// The Extrude docker's pages, also the Extrude tool's drop-down panels.
+pub(crate) mod extrude_pages {
+    pub(crate) use super::extrude::{bevel_ui, color_ui, lighting_ui, rotation_ui};
+}
 mod fx_dockers;
 mod misc;
 mod objects;
@@ -296,14 +301,38 @@ pub struct DockerUi {
     /// Corners ▸ Chamfer distance A and B, and the lock that keeps them equal.
     pub chamfer: [f64; 2],
     pub chamfer_lock: bool,
-    pub contour_steps: u32,
-    pub contour_offset: f64,
-    pub contour_dir: usize,
+    /// Envelope docker: edit mode (0 straight, 1 single arc, 2 double arc, 3 unconstrained),
+    /// mapping mode (0 horizontal, 1 original, 2 putty, 3 vertical), keep lines, the preset
+    /// chosen, and the object they were read from.
+    pub env_mode: u8,
+    pub env_mapping: usize,
+    pub env_keep: bool,
+    pub env_preset: Option<usize>,
+    pub env_for: Option<vector_core::ObjId>,
+    /// Extrude docker: the page shown, the light selected, and the vanishing point measured from
+    /// the object's center (else the page origin).
+    pub ex_tab: usize,
+    pub ex_light: usize,
+    pub ex_from_center: bool,
+    /// Contour docker settings, and the object they were read from.
+    pub contour: vector_core::object::ContourEffect,
+    pub contour_for: Option<vector_core::ObjId>,
     pub blend_steps: u32,
-    pub bevel_depth: f64,
-    pub bevel_angle: f64,
-    pub lens_kind: usize,
-    pub lens_amount: f64,
+    /// Blend docker: rotation, loop, accelerations, link, apply to sizing, color direction
+    /// (0 direct, 1 clockwise, 2 counterclockwise), more options open; the blend they came from.
+    pub blend_rot: f64,
+    pub blend_loop: bool,
+    pub blend_accel: f64,
+    pub blend_caccel: f64,
+    pub blend_link: bool,
+    pub blend_size: bool,
+    pub blend_dir: u8,
+    pub blend_more: bool,
+    pub blend_spacing: f64,
+    pub blend_for: Option<vector_core::ObjId>,
+    /// Bevel docker settings, and the object they were read from.
+    pub bevel: vector_core::object::BevelEffect,
+    pub bevel_for: Option<vector_core::ObjId>,
     pub color_model: usize,
     pub color_edit: Option<vector_core::Color>,
     pub data_name: String,
@@ -388,14 +417,29 @@ impl Default for DockerUi {
             corner_kind: 0,
             chamfer: [36.0, 36.0],
             chamfer_lock: true,
-            contour_steps: 3,
-            contour_offset: 6.0,
-            contour_dir: 2,
+            contour: vector_core::object::ContourEffect { dir: vector_core::object::ContourDir::Inside, steps: 1, offset: 7.2, ..Default::default() },
+            contour_for: None,
+            ex_tab: 0,
+            ex_light: 0,
+            ex_from_center: false,
+            env_mode: 3,
+            env_mapping: 2,
+            env_keep: false,
+            env_preset: None,
+            env_for: None,
             blend_steps: 20,
-            bevel_depth: 6.0,
-            bevel_angle: 135.0,
-            lens_kind: 0,
-            lens_amount: 2.0,
+            blend_rot: 0.0,
+            blend_loop: false,
+            blend_accel: 0.0,
+            blend_caccel: 0.0,
+            blend_link: true,
+            blend_size: false,
+            blend_dir: 0,
+            blend_more: false,
+            blend_spacing: 14.4,
+            blend_for: None,
+            bevel: vector_core::object::BevelEffect::default(),
+            bevel_for: None,
             color_model: 0,
             color_edit: None,
             data_name: String::new(),
@@ -607,7 +651,7 @@ fn docker_content(app: &mut VectorApp, ui: &mut Ui, d: DockerId) {
         Blend => effects::blend(app, ui),
         Contour => effects::contour(app, ui),
         Envelope => effects::envelope(app, ui),
-        Extrude => effects::extrude(app, ui),
+        Extrude => extrude::extrude(app, ui),
         Lens => effects::lens(app, ui),
         PhotoCocktail => fx_dockers::photococktail(app, ui),
         Pointillizer => fx_dockers::pointillizer(app, ui),
@@ -699,6 +743,102 @@ pub(crate) fn fold_header(ui: &mut Ui, title: &str, open: &mut bool) {
     if resp.clicked() {
         *open = !*open;
     }
+}
+
+/// A radio button with its label.
+pub(crate) fn radio(ui: &mut Ui, on: bool, label: &str, enabled: bool) -> bool {
+    let galley_w = ui.fonts_mut(|f| f.layout_no_wrap(label.to_string(), egui::FontId::proportional(12.5), theme::TEXT).size().x);
+    let (r, resp) = ui.allocate_exact_size(vec2(galley_w + 22.0, 22.0), if enabled { Sense::click() } else { Sense::hover() });
+    let c = pos2(r.left() + 7.0, r.center().y);
+    let p = ui.painter();
+    p.circle_stroke(c, 5.5, Stroke::new(1.0, if enabled { theme::TEXT_DIM } else { theme::SEP }));
+    if on {
+        p.circle_filled(c, 3.0, if enabled { theme::TEXT } else { theme::DISABLED });
+    }
+    p.text(pos2(r.left() + 18.0, r.center().y), egui::Align2::LEFT_CENTER, label, egui::FontId::proportional(12.5), if enabled { theme::TEXT } else { theme::DISABLED });
+    resp.clicked() && enabled
+}
+
+/// The slider of the effect dockers: the label above, a track with ticks (blue up to the knob)
+/// and the value with arrows at its right, the ends of the range under it.
+pub(crate) fn tick_slider(ui: &mut Ui, label: &str, v: &mut f64, range: std::ops::RangeInclusive<f64>, enabled: bool) -> bool {
+    let full_w = ui.available_width();
+    let (lo, hi) = (*range.start(), *range.end());
+    let (text, dim) = (if enabled { theme::TEXT } else { theme::DISABLED }, if enabled { theme::TEXT_DIM } else { theme::SEP });
+    let blue = if enabled { Color32::from_rgb(0x1e, 0x88, 0xd8) } else { Color32::from_gray(90) };
+    ui.label(egui::RichText::new(label).color(text));
+    let mut changed = false;
+    let tw = full_w - 64.0;
+    ui.horizontal(|ui| {
+        let (r, resp) = ui.allocate_exact_size(vec2(tw, 22.0), if enabled { Sense::click_and_drag() } else { Sense::hover() });
+        let (x0, x1, y) = (r.left() + 8.0, r.right() - 8.0, r.center().y - 3.0);
+        if let Some(pos) = resp.interact_pointer_pos().filter(|_| resp.dragged() || resp.clicked()) {
+            let t = ((pos.x - x0) / (x1 - x0)).clamp(0.0, 1.0) as f64;
+            *v = (lo + t * (hi - lo)).round();
+            changed = true;
+        }
+        let t = ((*v - lo) / (hi - lo).max(1e-9)).clamp(0.0, 1.0) as f32;
+        let kx = x0 + t * (x1 - x0);
+        let p = ui.painter();
+        p.line_segment([pos2(x0, y), pos2(x1, y)], Stroke::new(3.0, Color32::from_gray(80)));
+        p.line_segment([pos2(x0, y), pos2(kx, y)], Stroke::new(3.0, blue));
+        for k in 0..=10 {
+            let tx = x0 + (x1 - x0) * k as f32 / 10.0;
+            let th = if k % 5 == 0 { 3.5 } else { 2.0 };
+            p.line_segment([pos2(tx, y + 6.0), pos2(tx, y + 6.0 + th)], Stroke::new(1.0, dim));
+        }
+        p.circle_filled(pos2(kx, y), 5.5, theme::BG);
+        p.circle_stroke(pos2(kx, y), 5.5, Stroke::new(1.5, blue));
+        ui.add_space(8.0);
+        ui.add_enabled_ui(enabled, |ui| {
+            if spin(ui, v, range.clone(), 1.0, 0, "", 48.0) {
+                changed = true;
+            }
+        });
+    });
+    let (r, _) = ui.allocate_exact_size(vec2(tw, 12.0), Sense::hover());
+    let font = egui::FontId::proportional(11.0);
+    ui.painter().text(pos2(r.left() + 2.0, r.center().y), egui::Align2::LEFT_CENTER, format!("{lo}"), font.clone(), text);
+    ui.painter().text(pos2(r.right() - 2.0, r.center().y), egui::Align2::RIGHT_CENTER, format!("{hi}"), font, text);
+    changed
+}
+
+/// A color swatch with an arrow that drops a color picker; `None` is no color (white, crossed in red).
+pub(crate) fn color_pick(ui: &mut Ui, id: &str, c: &mut Option<vector_core::Color>, allow_none: bool, enabled: bool) -> bool {
+    color_pick_w(ui, id, c, allow_none, enabled, 44.0)
+}
+
+/// [`color_pick`], `w` points wide (the swatch fills it up to the arrow).
+pub(crate) fn color_pick_w(ui: &mut Ui, id: &str, c: &mut Option<vector_core::Color>, allow_none: bool, enabled: bool, w: f32) -> bool {
+    let (r, resp) = ui.allocate_exact_size(vec2(w, 24.0), if enabled { Sense::click() } else { Sense::hover() });
+    let p = ui.painter();
+    p.rect_filled(r, 2.0, Color32::from_rgb(0x33, 0x33, 0x33));
+    let sw = Rect::from_min_size(r.min + vec2(4.0, 5.0), vec2(w - 22.0, 14.0));
+    match c {
+        Some(col) => {
+            p.rect_filled(sw, 1.0, Color32::from_rgb(col.r, col.g, col.b));
+        }
+        None => {
+            p.rect_filled(sw, 1.0, Color32::WHITE);
+            p.line_segment([sw.left_bottom(), sw.right_top()], Stroke::new(1.2, Color32::from_rgb(220, 40, 40)));
+        }
+    }
+    p.rect_stroke(sw, 1.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Outside);
+    crate::widgets::chevron(p, pos2(r.right() - 9.0, r.center().y), 3.0, if enabled { theme::TEXT } else { theme::DISABLED });
+    let mut changed = false;
+    egui::Popup::menu(&resp).id(egui::Id::unique(("color_pick", id))).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
+        let mut v = c.unwrap_or(vector_core::Color::BLACK);
+        if props::color_edit(ui, &mut v, false) {
+            *c = Some(v);
+            changed = true;
+        }
+        if allow_none && ui.button("No color").clicked() {
+            *c = None;
+            changed = true;
+            ui.close();
+        }
+    });
+    changed
 }
 
 /// A thin horizontal line across the docker.

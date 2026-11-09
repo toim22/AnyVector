@@ -727,12 +727,78 @@ pub struct ContourEffect {
     /// Last Fill Color: the end color of the last step of a fountain-filled object.
     #[serde(default)]
     pub last_fill: Option<Color>,
+    /// The corners of the steps: 0 mitered, 1 round, 2 beveled.
+    #[serde(default)]
+    pub corner: u8,
+    /// Color blend: 0 linear, 1 clockwise, 2 counterclockwise (around the color wheel).
+    #[serde(default)]
+    pub color_dir: u8,
 }
 
 impl Default for ContourEffect {
     fn default() -> Self {
-        ContourEffect { dir: ContourDir::Outside, steps: 3, offset: 6.0, end_fill: Color::WHITE, end_outline: Color::BLACK, accel: 0.0, color_accel: 0.0, link_accel: true, last_fill: None }
+        ContourEffect { dir: ContourDir::Outside, steps: 3, offset: 6.0, end_fill: Color::WHITE, end_outline: Color::BLACK, accel: 0.0, color_accel: 0.0, link_accel: true, last_fill: None, corner: 0, color_dir: 0 }
     }
+}
+
+impl ContourEffect {
+    /// The join of the steps' corners.
+    pub fn join(&self) -> kurbo::Join {
+        match self.corner {
+            1 => kurbo::Join::Round,
+            2 => kurbo::Join::Bevel,
+            _ => kurbo::Join::Miter,
+        }
+    }
+}
+
+/// The steps of a contour in drawing order (the farthest from the object first): each one's
+/// path in document space, fill and outline color. To center adds steps of `offset` until the
+/// object is filled; Inside and Outside spread `steps` steps with the object acceleration.
+pub fn contour_rings(o: &Object, c: &ContourEffect) -> Vec<(BezPath, crate::style::Fill, Option<Color>)> {
+    use crate::style::Fill;
+    let base = o.world_path();
+    let join = c.join();
+    let to_center = c.dir == ContourDir::ToCenter;
+    let n = if to_center { 64 } else { c.steps.clamp(1, 64) };
+    let mut paths = vec![];
+    for k in 1..=n {
+        let lin = k as f64 / n as f64;
+        let d = if to_center { c.offset.max(0.01) * k as f64 } else { c.offset * n as f64 * accel(lin, c.accel) };
+        let p = geom::offset_path(&base, if c.dir == ContourDir::Outside { d } else { -d }, join);
+        if p.elements().is_empty() || p.area().abs() < 1e-3 {
+            break;
+        }
+        paths.push(p);
+    }
+    let count = if to_center { paths.len().max(1) } else { n as usize };
+    let start_fill = o.style.fill.main_color().unwrap_or(Color::WHITE);
+    let start_ol = o.style.outline.color.unwrap_or(Color::BLACK);
+    let mut v: Vec<_> = paths
+        .into_iter()
+        .enumerate()
+        .map(|(i, p)| {
+            let lin = (i + 1) as f64 / count as f64;
+            let t = accel(lin, if c.link_accel { c.accel } else { c.color_accel });
+            // fountain fills blend their first color to the fill color and their last one
+            // to the last fill color
+            let fill = match (&o.style.fill, c.last_fill) {
+                (Fill::Gradient(g), Some(lf)) if g.stops.len() >= 2 => {
+                    let mut g = g.clone();
+                    let m = g.stops.len();
+                    g.stops[0].color = blend_color(g.stops[0].color, c.end_fill, t, c.color_dir);
+                    g.stops[m - 1].color = blend_color(g.stops[m - 1].color, lf, t, c.color_dir);
+                    Fill::Gradient(g)
+                }
+                _ => Fill::Solid(blend_color(start_fill, c.end_fill, t, c.color_dir)),
+            };
+            (p, fill, Some(blend_color(start_ol, c.end_outline, t, c.color_dir)))
+        })
+        .collect();
+    if c.dir == ContourDir::Outside {
+        v.reverse();
+    }
+    v
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -759,10 +825,24 @@ pub struct ExtrudeEffect {
     pub bevel: Option<(f64, f64)>,
     #[serde(default)]
     pub bevel_only: bool,
-    /// Lights: position (0..15 on the light cube grid) and intensity 0..100.
+    /// Lights 1, 2 and 3: position and intensity 0..100. A position is where the lines of the
+    /// 3 × 3 × 3 light cube cross: layer from the front × 9 + row × 3 + column; [`LIGHT_OFF`] is a
+    /// light turned off.
     #[serde(default)]
     pub lights: Vec<(u8, f64)>,
+    /// Drape fills: the object's fill runs over the extrusion (Use object fill).
+    #[serde(default)]
+    pub drape: bool,
+    /// The bevel takes the extrusion's color.
+    #[serde(default)]
+    pub bevel_fill: bool,
+    /// The bevel's color (None: the object's fill).
+    #[serde(default)]
+    pub bevel_color: Option<Color>,
 }
+
+/// The position of an extrusion light that is turned off.
+pub const LIGHT_OFF: u8 = 255;
 
 fn two() -> u8 {
     2
@@ -770,7 +850,7 @@ fn two() -> u8 {
 
 impl Default for ExtrudeEffect {
     fn default() -> Self {
-        ExtrudeEffect { depth: Vec2::new(18.0, -18.0), color: Color::rgb(128, 128, 128), shade: Color::BLACK, steps: 24, kind: 0, vp_page: false, rotation: [0.0; 3], color_mode: 2, bevel: None, bevel_only: false, lights: vec![] }
+        ExtrudeEffect { depth: Vec2::new(18.0, -18.0), color: Color::rgb(128, 128, 128), shade: Color::BLACK, steps: 24, kind: 0, vp_page: false, rotation: [0.0; 3], color_mode: 2, bevel: None, bevel_only: false, lights: vec![], drape: false, bevel_fill: false, bevel_color: None }
     }
 }
 
@@ -842,6 +922,45 @@ pub enum BitmapEffect {
     Invert,
 }
 
+/// Effects ▸ Bevel: a soft edge or an emboss lit from a direction.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BevelEffect {
+    /// Emboss (else Soft edge).
+    pub emboss: bool,
+    /// The bevel goes to the center of the object (else `distance` in from the edges).
+    pub to_center: bool,
+    pub distance: f64,
+    /// The shadow color (None: a darker shade of the object).
+    pub shadow: Option<Color>,
+    pub light: Color,
+    /// 0..100.
+    pub intensity: f64,
+    /// Degrees, counterclockwise from the right.
+    pub direction: f64,
+    /// Degrees above the surface, 0..90.
+    pub altitude: f64,
+}
+
+impl Default for BevelEffect {
+    fn default() -> Self {
+        BevelEffect { emboss: false, to_center: false, distance: 5.7, shadow: None, light: Color::WHITE, intensity: 80.0, direction: 70.0, altitude: 54.0 }
+    }
+}
+
+/// Bevels used to be (depth, light angle).
+fn de_bevel<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<BevelEffect>, D::Error> {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Any {
+        New(BevelEffect),
+        Old((f64, f64)),
+    }
+    Ok(Option::<Any>::deserialize(d)?.map(|a| match a {
+        Any::New(b) => b,
+        Any::Old((distance, direction)) => BevelEffect { distance, direction, ..Default::default() },
+    }))
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct Effects {
     pub drop_shadow: Option<DropShadow>,
@@ -853,11 +972,12 @@ pub struct Effects {
     pub envelope: Option<EnvelopeEffect>,
     #[serde(default)]
     pub bitmap: Vec<BitmapEffect>,
-    /// Bevel: depth (points), light angle (deg).
-    #[serde(default)]
-    pub bevel: Option<(f64, f64)>,
+    /// Bevel (Effects ▸ Bevel).
+    #[serde(default, deserialize_with = "de_bevel")]
+    pub bevel: Option<BevelEffect>,
     /// Lens: magnify factor (1 = none), or color filter.
     #[serde(default)]
+    #[serde(deserialize_with = "de_lens")]
     pub lens: Option<LensEffect>,
     /// Wrap Paragraph Text around this object.
     #[serde(default)]
@@ -891,12 +1011,169 @@ impl Effects {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum LensEffect {
+pub enum OldLens {
     Magnify(f64),
     Brighten(f64),
     Invert,
     ColorAdd(Color),
     Grayscale,
+}
+
+/// The lens types of Effects ▸ Lens, in the order of its list.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LensKind {
+    Brighten,
+    ColorAdd,
+    ColorLimit,
+    CustomColorMap,
+    FishEye,
+    HeatMap,
+    Invert,
+    Magnify,
+    TintedGrayscale,
+    Transparency,
+    Wireframe,
+    BitmapEffect,
+}
+
+impl LensKind {
+    pub const ALL: [LensKind; 12] = [
+        LensKind::Brighten,
+        LensKind::ColorAdd,
+        LensKind::ColorLimit,
+        LensKind::CustomColorMap,
+        LensKind::FishEye,
+        LensKind::HeatMap,
+        LensKind::Invert,
+        LensKind::Magnify,
+        LensKind::TintedGrayscale,
+        LensKind::Transparency,
+        LensKind::Wireframe,
+        LensKind::BitmapEffect,
+    ];
+    pub fn name(self) -> &'static str {
+        match self {
+            LensKind::Brighten => "Brighten",
+            LensKind::ColorAdd => "Color Add",
+            LensKind::ColorLimit => "Color Limit",
+            LensKind::CustomColorMap => "Custom Color Map",
+            LensKind::FishEye => "Fish Eye",
+            LensKind::HeatMap => "Heat Map",
+            LensKind::Invert => "Invert",
+            LensKind::Magnify => "Magnify",
+            LensKind::TintedGrayscale => "Tinted Grayscale",
+            LensKind::Transparency => "Transparency",
+            LensKind::Wireframe => "Wireframe",
+            LensKind::BitmapEffect => "Bitmap Effect",
+        }
+    }
+}
+
+/// Effects ▸ Lens: how the objects under the lens object look through it.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct LensEffect {
+    pub kind: LensKind,
+    /// Rate (%): Brighten -100..100; Color Add, Color Limit, Transparency 0..100; Fish Eye -1000..1000.
+    pub rate: f64,
+    /// Magnify: amount (×).
+    pub amount: f64,
+    /// The color of Color Add, Color Limit, Tinted Grayscale and Transparency; the From color of a
+    /// Custom Color Map.
+    pub color: Color,
+    /// The To color of a Custom Color Map.
+    pub color2: Color,
+    /// Custom Color Map: 0 direct palette, 1 forward rainbow, 2 reverse rainbow.
+    pub palette: u8,
+    /// Heat Map: palette rotation (%).
+    pub rotation: f64,
+    /// Wireframe: the outline and fill the objects take (None: their own).
+    pub outline: Option<Color>,
+    pub fill: Option<Color>,
+    /// Frozen: the lens keeps what it showed when frozen.
+    pub frozen: bool,
+    /// Remove Face: the lens shows only over objects, not over the empty page.
+    pub remove_face: bool,
+    /// Viewpoint: the lens shows what is at this point instead of what is under it.
+    pub viewpoint: Option<Point>,
+}
+
+impl LensEffect {
+    /// A lens of `kind` with its settings at their defaults.
+    pub fn new(kind: LensKind) -> Self {
+        let rate = match kind {
+            LensKind::FishEye => 100.0,
+            _ => 50.0,
+        };
+        LensEffect {
+            kind,
+            rate,
+            amount: 2.0,
+            color: Color::rgb(0x46, 0x82, 0xdc),
+            color2: Color::WHITE,
+            palette: 0,
+            rotation: 0.0,
+            outline: Some(Color::rgb(0x46, 0x82, 0xdc)),
+            fill: Some(Color::WHITE),
+            frozen: false,
+            remove_face: false,
+            viewpoint: None,
+        }
+    }
+}
+
+/// Lenses used to be Magnify(amount), Brighten(rate), Invert, ColorAdd(color) or Grayscale.
+fn de_lens<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<LensEffect>, D::Error> {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Any {
+        New(LensEffect),
+        Old(OldLens),
+    }
+    Ok(Option::<Any>::deserialize(d)?.map(|a| match a {
+        Any::New(l) => l,
+        Any::Old(OldLens::Magnify(f)) => LensEffect { amount: f, ..LensEffect::new(LensKind::Magnify) },
+        Any::Old(OldLens::Brighten(b)) => LensEffect { rate: b, ..LensEffect::new(LensKind::Brighten) },
+        Any::Old(OldLens::Invert) => LensEffect::new(LensKind::Invert),
+        Any::Old(OldLens::ColorAdd(c)) => LensEffect { color: c, ..LensEffect::new(LensKind::ColorAdd) },
+        Any::Old(OldLens::Grayscale) => LensEffect { color: Color::WHITE, ..LensEffect::new(LensKind::TintedGrayscale) },
+    }))
+}
+
+/// The limited palette of the Heat Map lens, from the darkest colors (cool) to the lightest (warm).
+pub fn heat_color(t: f64) -> Color {
+    const P: [(u8, u8, u8); 7] = [(0, 255, 255), (128, 0, 255), (0, 0, 255), (255, 0, 0), (255, 128, 0), (255, 255, 0), (255, 255, 255)];
+    let i = ((t.rem_euclid(1.0) * 7.0) as usize).min(6);
+    Color::rgb(P[i].0, P[i].1, P[i].2)
+}
+
+/// A color seen through a lens that changes colors (0..255 RGB); other lenses leave it alone.
+pub fn lens_color(l: &LensEffect, rgb: [f32; 3]) -> [f32; 3] {
+    let [r, g, b] = rgb;
+    let rate = (l.rate / 100.0) as f32;
+    let c = [l.color.r as f32, l.color.g as f32, l.color.b as f32];
+    let lum = 0.299 * r + 0.587 * g + 0.114 * b;
+    let out = match l.kind {
+        LensKind::Brighten if rate >= 0.0 => rgb.map(|v| v + (255.0 - v) * rate),
+        LensKind::Brighten => rgb.map(|v| v * (1.0 + rate)),
+        LensKind::ColorAdd => [r + c[0] * rate, g + c[1] * rate, b + c[2] * rate],
+        LensKind::ColorLimit => {
+            let k = |v: f32, cv: f32| v * (1.0 - rate + rate * cv / 255.0);
+            [k(r, c[0]), k(g, c[1]), k(b, c[2])]
+        }
+        LensKind::CustomColorMap => {
+            let m = blend_color(l.color, l.color2, (lum / 255.0) as f64, l.palette);
+            [m.r as f32, m.g as f32, m.b as f32]
+        }
+        LensKind::HeatMap => {
+            let m = heat_color(lum as f64 / 255.0 * 0.999 + l.rotation / 100.0);
+            [m.r as f32, m.g as f32, m.b as f32]
+        }
+        LensKind::Invert => rgb.map(|v| 255.0 - v),
+        LensKind::TintedGrayscale => c.map(|cv| cv * lum / 255.0),
+        LensKind::Transparency => [c[0] + (r - c[0]) * rate, c[1] + (g - c[1]) * rate, c[2] + (b - c[2]) * rate],
+        _ => rgb,
+    };
+    out.map(|v| v.clamp(0.0, 255.0))
 }
 
 impl Effects {

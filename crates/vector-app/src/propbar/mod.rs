@@ -9,6 +9,7 @@ mod fields;
 mod text;
 
 pub use extra::{mesh_palette_color, node_align_dialog, painterly_profile};
+pub(crate) use extra::bake_warps_with;
 
 pub use text::text_controls;
 
@@ -1344,8 +1345,8 @@ pub const OPTIONS: &[&str] = &[
     "07d6737c", "52514481", "e305fd14",
     // drop and inner shadow; clear shadow
     "e8ef757d", "08f5977a", "bacce2d7",
-    // contour: to center, inside, outside; clear contour
-    "e9c835fd", "fb15a6d6", "c746acef", "60382072",
+    // contour: to center, inside, outside; clear contour; corners; colors
+    "e9c835fd", "fb15a6d6", "c746acef", "60382072", "f7ab2ae8", "4a1ca155", "bf4b403b", "a363314b", "244ade21", "662a3127",
     // blend: steps, spacing; clear blend
     "5cefe9f1", "46327bd4", "f1eb59d2",
     // distortion: push and pull, zipper, twister; clear distortion
@@ -1442,6 +1443,14 @@ pub fn option_state(app: &VectorApp, key: &str) -> Option<(bool, bool)> {
             (sel, c.is_some_and(|c| c.dir == contour_dir(key)))
         }
         "60382072" => (contour_now(app).is_some(), false),
+        "f7ab2ae8" | "4a1ca155" | "bf4b403b" => {
+            let c = contour_now(app);
+            (c.is_some(), c.is_some_and(|c| c.corner == contour_corner(key)))
+        }
+        "a363314b" | "244ade21" | "662a3127" => {
+            let c = contour_now(app);
+            (c.is_some(), c.is_some_and(|c| c.color_dir == contour_colors(key)))
+        }
         "5cefe9f1" => (doc, true),
         "46327bd4" => (false, false),
         "f1eb59d2" => (selected_kind(app, |k| matches!(k, ObjKind::Blend(_)).then_some(())).is_some(), false),
@@ -1511,6 +1520,24 @@ fn connector_kind(t: ToolId) -> vector_core::object::ConnectorKind {
         ToolId::RightAngleConnector => ConnectorKind::RightAngle,
         ToolId::RoundedConnector => ConnectorKind::RoundedRightAngle,
         _ => ConnectorKind::Straight,
+    }
+}
+
+/// Contour Corners: mitered, round, bevel.
+fn contour_corner(key: &str) -> u8 {
+    match key {
+        "4a1ca155" => 1,
+        "bf4b403b" => 2,
+        _ => 0,
+    }
+}
+
+/// Contour Colors: linear, clockwise, counterclockwise.
+fn contour_colors(key: &str) -> u8 {
+    match key {
+        "244ade21" => 1,
+        "662a3127" => 2,
+        _ => 0,
     }
 }
 
@@ -1630,6 +1657,16 @@ pub fn press(app: &mut VectorApp, key: &str) {
             edit_sel(app, "Contour", |o| o.effects.contour = Some(c.clone()));
         }
         "60382072" => edit_sel(app, "Clear Contour", |o| o.effects.contour = None),
+        "f7ab2ae8" | "4a1ca155" | "bf4b403b" | "a363314b" | "244ade21" | "662a3127" => {
+            if let Some(mut c) = contour_now(app) {
+                if matches!(key, "f7ab2ae8" | "4a1ca155" | "bf4b403b") {
+                    c.corner = contour_corner(key);
+                } else {
+                    c.color_dir = contour_colors(key);
+                }
+                edit_sel(app, "Contour", |o| o.effects.contour = Some(c.clone()));
+            }
+        }
         "f1eb59d2" => clear_blend(app),
         "5cc921c9" | "de74addf" | "7e6c8fad" => {
             let k = distort_of(key);

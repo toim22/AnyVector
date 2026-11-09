@@ -1169,6 +1169,32 @@ fn visual_dockers() {
             DockerId::Shape => &[|a| a.ts.shaping_op = 1, |a| a.ts.shaping_op = 2, |a| a.ts.shaping_op = 3, |a| a.ts.shaping_op = 4, |a| a.ts.shaping_op = 5, |a| a.ts.shaping_op = 6],
             DockerId::Corners => &[|a| a.dockers.ui.corner_kind = 1, |a| a.dockers.ui.corner_kind = 2],
             DockerId::JoinCurves => &[|a| a.dockers.ui.join_mode = 1, |a| a.dockers.ui.join_mode = 2, |a| a.dockers.ui.join_mode = 3],
+            DockerId::Bevel => &[|a| a.dockers.ui.bevel.emboss = true, |a| { a.dockers.ui.bevel.emboss = false; a.dockers.ui.bevel.to_center = true }],
+            DockerId::Blend => &[|a| a.dockers.ui.blend_dir = 1, |a| a.dockers.ui.blend_dir = 2, |a| a.dockers.ui.blend_more = true],
+            DockerId::Contour => &[
+                |a| contour_state(a, vector_core::object::ContourDir::ToCenter, 0, 0),
+                |a| contour_state(a, vector_core::object::ContourDir::Outside, 0, 0),
+                |a| contour_state(a, vector_core::object::ContourDir::Inside, 1, 0),
+                |a| contour_state(a, vector_core::object::ContourDir::Inside, 0, 1),
+                |a| contour_state(a, vector_core::object::ContourDir::Inside, 2, 0),
+                |a| contour_state(a, vector_core::object::ContourDir::Inside, 0, 2),
+            ],
+            DockerId::Envelope => &[|a| a.dockers.ui.env_mode = 0, |a| a.dockers.ui.env_mode = 1, |a| a.dockers.ui.env_mode = 2],
+            DockerId::Extrude => &[|a| a.dockers.ui.ex_tab = 1, |a| a.dockers.ui.ex_tab = 2, |a| a.dockers.ui.ex_tab = 3, |a| a.dockers.ui.ex_tab = 4],
+            DockerId::Lens => &[
+                |a| lens_state(a, 0),
+                |a| lens_state(a, 1),
+                |a| lens_state(a, 2),
+                |a| lens_state(a, 3),
+                |a| lens_state(a, 4),
+                |a| lens_state(a, 5),
+                |a| lens_state(a, 6),
+                |a| lens_state(a, 7),
+                |a| lens_state(a, 8),
+                |a| lens_state(a, 9),
+                |a| lens_state(a, 10),
+                |a| lens_state(a, 11),
+            ],
             DockerId::AlignDistribute => &[|a| a.dockers.ui.align_to = 1, |a| a.dockers.ui.align_to = 2, |a| a.dockers.ui.align_to = 3, |a| a.dockers.ui.align_to = 4, |a| a.dockers.ui.dist_to = 1, |a| a.dockers.ui.dist_to = 2],
             _ => &[],
         };
@@ -1177,4 +1203,20 @@ fn visual_dockers() {
             save(&mut h, &format!("dk_{:03}_{}", i + 1, k + 1));
         }
     }
+}
+
+/// A Contour docker state: the alignment, corners and color blend.
+#[cfg(test)]
+fn contour_state(a: &mut VectorApp, dir: vector_core::object::ContourDir, corner: u8, color_dir: u8) {
+    let c = &mut a.dockers.ui.contour;
+    c.dir = dir;
+    c.corner = corner;
+    c.color_dir = color_dir;
+}
+
+/// A Lens docker state: the selection gets a lens of the `k`th type.
+#[cfg(test)]
+fn lens_state(a: &mut VectorApp, k: usize) {
+    let l = vector_core::object::LensEffect::new(vector_core::object::LensKind::ALL[k]);
+    crate::propbar::edit_sel(a, "Lens", |o| o.effects.lens = Some(l.clone()));
 }

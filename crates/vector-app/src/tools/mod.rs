@@ -8,7 +8,7 @@ pub(crate) mod overlay;
 pub mod shapes;
 
 pub use ids::*;
-pub use interact::{guide_at, handle_input, handle_point, handle_table_keys, handle_text_keys, regen_impacts, table_typing, tick, Input};
+pub use interact::{envelope_from_shape, guide_at, handle_input, handle_point, handle_table_keys, handle_text_keys, regen_impacts, table_typing, tick, Input};
 pub use overlay::draw_overlay;
 
 use crate::app::VectorApp;

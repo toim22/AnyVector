@@ -265,8 +265,17 @@ impl Renderer {
                     BitmapEffect::Invert => fx::invert(&mut layer),
                 }
             }
-            if let Some((depth, angle)) = o.effects.bevel {
-                fx::bevel(&mut layer, (depth * view_scale(ctx.view)) as f32, angle as f32);
+            if let Some(b) = &o.effects.bevel {
+                let depth = if b.to_center { (layer.width().min(layer.height()) as f32) / 2.0 } else { (b.distance * view_scale(ctx.view)) as f32 };
+                let col = |c: vector_core::Color| [c.r as f32, c.g as f32, c.b as f32];
+                fx::bevel_lit(&mut layer, depth, &fx::BevelLight {
+                    emboss: b.emboss,
+                    shadow: b.shadow.map(col),
+                    light: col(b.light),
+                    intensity: (b.intensity / 100.0) as f32,
+                    direction: b.direction as f32,
+                    altitude: b.altitude as f32,
+                });
             }
             let mut opacity = o.style.transparency.uniform_opacity();
             if let Some(d) = dimmed {
@@ -293,6 +302,10 @@ impl Renderer {
     fn render_plain(&mut self, ctx: &Ctx, o: &Object, target: &mut sk::Pixmap) {
         if ctx.opts.wireframe {
             return self.render_wire(ctx, o, target);
+        }
+        if let Some(l) = &o.effects.lens {
+            // a lens shows what is under it, changed; its own fill is not drawn
+            return self.render_lens(ctx, o, l, target);
         }
         // shadows / extrusions behind the object
         if let Some(s) = &o.effects.drop_shadow {
@@ -435,9 +448,6 @@ impl Renderer {
                     self.stroke(ctx, &path, &o.style.outline, o, target, None);
                 }
             }
-        }
-        if let Some(l) = &o.effects.lens {
-            self.render_lens(ctx, o, l, target);
         }
     }
 
@@ -1034,6 +1044,8 @@ impl Renderer {
             bp.close_path();
             let c = match e.color_mode {
                 1 => base,
+                // draped: the fill runs over the sides, lightly shaded
+                0 if e.drape => Color::lerp(Color::lerp(Color::BLACK, base, 0.8), base, shade),
                 0 => Color::lerp(Color::lerp(Color::BLACK, base, 0.45), base, shade),
                 _ => Color::lerp(e.shade, e.color, shade),
             };
@@ -1051,7 +1063,7 @@ impl Renderer {
     fn render_bevel(&mut self, ctx: &Ctx, o: &Object, path: &BezPath, e: &ExtrudeEffect, target: &mut sk::Pixmap) {
         let Some((depth, angle)) = e.bevel else { return };
         let inner = geom::offset_path(path, -depth.max(0.1), kurbo::Join::Miter);
-        let base = o.style.fill.main_color().unwrap_or(e.color);
+        let base = if e.bevel_fill { e.color } else { e.bevel_color.or(o.style.fill.main_color()).unwrap_or(e.color) };
         let light = extrude_light(e);
         let lit = Color::lerp(base, Color::WHITE, (0.35 * light.1).clamp(0.0, 0.8));
         let dark = Color::lerp(base, Color::BLACK, (0.25 + angle.clamp(0.0, 89.0) / 300.0).clamp(0.0, 0.8));
@@ -1088,39 +1100,7 @@ impl Renderer {
         let geo = match geo {
             Some(g) => g,
             None => {
-                let base = o.world_path();
-                let mut v = vec![];
-                let start_fill = o.style.fill.main_color().unwrap_or(Color::WHITE);
-                let start_ol = o.style.outline.color.unwrap_or(Color::BLACK);
-                let steps = c.steps.max(1).min(64);
-                for k in 1..=steps {
-                    let tk = vector_core::object::accel(k as f64 / steps as f64, c.accel);
-                    let d = match c.dir {
-                        ContourDir::Outside => c.offset * steps as f64 * tk,
-                        _ => -c.offset * steps as f64 * tk,
-                    };
-                    let p = geom::offset_path(&base, d, kurbo::Join::Round);
-                    if p.elements().is_empty() || p.area().abs() < 1e-3 {
-                        break;
-                    }
-                    let t = if c.link_accel { tk } else { vector_core::object::accel(k as f64 / steps as f64, c.color_accel) };
-                    // fountain fills blend their first color to the fill color and their last
-                    // one to the last fill color
-                    let fill = match (&o.style.fill, c.last_fill) {
-                        (Fill::Gradient(g), Some(lf)) if g.stops.len() >= 2 => {
-                            let mut g = g.clone();
-                            let n = g.stops.len();
-                            g.stops[0].color = Color::lerp(g.stops[0].color, c.end_fill, t);
-                            g.stops[n - 1].color = Color::lerp(g.stops[n - 1].color, lf, t);
-                            Fill::Gradient(g)
-                        }
-                        _ => Fill::Solid(Color::lerp(start_fill, c.end_fill, t)),
-                    };
-                    v.push((p, fill, Some(Color::lerp(start_ol, c.end_outline, t))));
-                }
-                if c.dir == ContourDir::Outside {
-                    v.reverse();
-                }
+                let v = vector_core::object::contour_rings(o, c);
                 let g = Arc::new(v);
                 self.geo_cache.insert(o.id, (key, g.clone()));
                 g
@@ -1137,6 +1117,11 @@ impl Renderer {
                 if let (Some(col), true) = (oc, o.style.outline.is_visible()) {
                     let mut st = sk::Stroke::default();
                     st.width = o.style.outline.width as f32;
+                    st.line_join = match c.corner {
+                        1 => sk::LineJoin::Round,
+                        2 => sk::LineJoin::Bevel,
+                        _ => sk::LineJoin::Miter,
+                    };
                     target.stroke_path(&sp, &paint_solid(*col, ctx.opts.antialias), &st, to_sk(ctx.view), None);
                 }
             }
@@ -1150,21 +1135,42 @@ impl Renderer {
         let h = target.height();
         let mut mask = sk::Mask::new(w, h).unwrap();
         mask.fill_path(&sp, sk::FillRule::Winding, true, to_sk(ctx.view));
-        let mut copy = target.clone();
-        match l {
-            LensEffect::Magnify(f) => {
-                let c = ctx.view * path.bounding_box().center();
-                let tf = Affine::translate(c.to_vec2()) * Affine::scale(*f) * Affine::translate(-c.to_vec2());
+        let c = ctx.view * path.bounding_box().center();
+        // what the lens sees: what is under it, or what is at its viewpoint
+        let seen = match l.viewpoint {
+            Some(vp) => {
+                let d = c - ctx.view * vp;
+                let mut s = sk::Pixmap::new(w, h).unwrap();
+                s.draw_pixmap(0, 0, target.as_ref(), &sk::PixmapPaint::default(), sk::Transform::from_translate(d.x as f32, d.y as f32), None);
+                s
+            }
+            None => target.clone(),
+        };
+        let mut copy = seen.clone();
+        match l.kind {
+            LensKind::Magnify => {
+                let tf = Affine::translate(c.to_vec2()) * Affine::scale(l.amount.max(0.01)) * Affine::translate(-c.to_vec2());
                 let mut mag = sk::Pixmap::new(w, h).unwrap();
-                mag.draw_pixmap(0, 0, target.as_ref(), &sk::PixmapPaint { quality: sk::FilterQuality::Bicubic, ..Default::default() }, to_sk(tf), None);
+                mag.draw_pixmap(0, 0, seen.as_ref(), &sk::PixmapPaint { quality: sk::FilterQuality::Bicubic, ..Default::default() }, to_sk(tf), None);
                 copy = mag;
             }
-            LensEffect::Brighten(b) => fx::adjust(&mut copy, *b as f32, 0.0, 0.0),
-            LensEffect::Invert => fx::invert(&mut copy),
-            LensEffect::Grayscale => fx::grayscale(&mut copy),
-            LensEffect::ColorAdd(c) => {
-                let (cr, cg, cb) = (c.r as f32, c.g as f32, c.b as f32);
-                fx::map_colors(&mut copy, |r, g, b| (r + cr * 0.5, g + cg * 0.5, b + cb * 0.5));
+            LensKind::FishEye => {
+                let vb = ctx.view.transform_rect_bbox(path.bounding_box());
+                fx::fish_eye(&seen, &mut copy, (c.x as f32, c.y as f32), (vb.width().max(vb.height()) / 2.0) as f32, (l.rate / 100.0) as f32);
+            }
+            LensKind::Wireframe => fx::wireframe(&mut copy, l.outline.map(|c| [c.r, c.g, c.b]), l.fill.map(|c| [c.r, c.g, c.b])),
+            LensKind::BitmapEffect => {}
+            _ => fx::map_colors(&mut copy, |r, g, b| {
+                let [r, g, b] = vector_core::object::lens_color(l, [r, g, b]);
+                (r, g, b)
+            }),
+        }
+        if l.remove_face {
+            // only where there is something under the lens
+            for (m, px) in mask.data_mut().iter_mut().zip(seen.data().chunks_exact(4)) {
+                if px[3] == 0 || (px[0] > 250 && px[1] > 250 && px[2] > 250) {
+                    *m = 0;
+                }
             }
         }
         target.draw_pixmap(0, 0, copy.as_ref(), &sk::PixmapPaint::default(), sk::Transform::identity(), Some(&mask));
@@ -1731,15 +1737,15 @@ pub fn extrude_back(bb: Rect, e: &ExtrudeEffect) -> Affine {
 
 /// The extrusion's light: direction (toward the light) and intensity factor.
 fn extrude_light(e: &ExtrudeEffect) -> (Vec2, f64) {
-    if e.lights.is_empty() {
+    if e.lights.iter().all(|l| l.0 >= 27) {
         return (Vec2::new(-0.6, -0.8), 1.0);
     }
     let mut dir = Vec2::ZERO;
     let mut total = 0.0;
-    for (pos, intensity) in &e.lights {
-        // positions on the front of the light cube, a 4x4 grid read left to right, top to bottom
-        let gx = (*pos % 4) as f64 / 3.0 * 2.0 - 1.0;
-        let gy = (*pos / 4) as f64 / 3.0 * 2.0 - 1.0;
+    for (pos, intensity) in e.lights.iter().filter(|l| l.0 < 27) {
+        // where the lines of the light cube cross: layer × 9 + row × 3 + column
+        let gx = (*pos % 3) as f64 - 1.0;
+        let gy = ((*pos % 9) / 3) as f64 - 1.0;
         let k = intensity / 100.0;
         dir += Vec2::new(gx, gy) * k;
         total += k;
