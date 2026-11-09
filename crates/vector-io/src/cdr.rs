@@ -30,7 +30,7 @@ use zip::write::SimpleFileOptions;
 
 pub const MIMETYPE: &str = "application/vnd.vector.cdr";
 /// Current container format version (Save Drawing ▸ Version).
-pub const FORMAT_VERSION: &str = "1.0 (2026.0)";
+pub const FORMAT_VERSION: &str = "0.1 (2026.0)";
 
 /// A file stored inside the container (font or color profile).
 #[derive(Clone, Debug)]

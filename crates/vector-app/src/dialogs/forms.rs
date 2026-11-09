@@ -100,9 +100,6 @@ pub fn show_all(app: &mut VectorApp, ctx: &egui::Context) {
     if app.dialogs.script_editor.is_some() {
         script_editor(app, ctx);
     }
-    if app.dialogs.about {
-        about(app, ctx);
-    }
     if app.dialogs.palette_editor.is_some() {
         palette_editor(app, ctx);
     }
@@ -615,46 +612,6 @@ fn script_editor(app: &mut VectorApp, ctx: &egui::Context) {
         app.dialogs.script_editor = None;
     } else {
         app.dialogs.script_editor = Some(st);
-    }
-}
-
-// ------------------------------------------------------------------------------------------
-// About
-// ------------------------------------------------------------------------------------------
-
-fn about(app: &mut VectorApp, ctx: &egui::Context) {
-    let tex = match app.ts.texture_cache.get("about_airship") {
-        Some(t) => t.clone(),
-        None => {
-            let img = image::load_from_memory(crate::SPLASH_PNG).map(|i| i.to_rgba8()).unwrap_or_else(|_| image::RgbaImage::new(1, 1));
-            let ci = egui::ColorImage::from_rgba_unmultiplied([img.width() as usize, img.height() as usize], img.as_raw());
-            let t = ctx.load_texture("about_airship", ci, egui::TextureOptions::LINEAR);
-            app.ts.texture_cache.insert("about_airship".into(), t.clone());
-            t
-        }
-    };
-    let mut close = false;
-    let ((), dismissed) = window(ctx, "about", "About Vector", vec2(520.0, 430.0), |ui| {
-        ui.vertical_centered(|ui| {
-            ui.add_space(8.0);
-            let sz = tex.size_vec2();
-            let w = 380.0;
-            ui.add(egui::Image::new(&tex).fit_to_exact_size(vec2(w, w * sz.y / sz.x)));
-            ui.add_space(6.0);
-            ui.label(egui::RichText::new("Vector").font(theme::bold(26.0)).color(Color32::WHITE));
-            ui.label(egui::RichText::new(format!("Version {}", vector_core::APP_VERSION)).color(theme::TEXT_DIM));
-            ui.add_space(8.0);
-            ui.label("A vector graphics editor for Windows, written in Rust.");
-            ui.label(egui::RichText::new("Rendering: tiny-skia · UI: egui · Scripting: Rhai").color(theme::TEXT_DIM).size(11.5));
-        });
-        ui.with_layout(egui::Layout::bottom_up(egui::Align::Max), |ui| {
-            if super::ok_button(ui, "OK", true) {
-                close = true;
-            }
-        });
-    });
-    if close || dismissed {
-        app.dialogs.about = false;
     }
 }
 

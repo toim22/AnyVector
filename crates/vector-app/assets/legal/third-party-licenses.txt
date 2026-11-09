@@ -1,0 +1,870 @@
+Vector is built with the open-source components listed below.
+Each one is used under the license shown next to it. The license texts
+are published with each component at the address given.
+
+278 components. Licenses used:
+  (MIT OR Apache-2.0) AND OFL-1.1 AND Ubuntu-font-1.0: 1
+  (MIT OR Apache-2.0) AND Unicode-3.0: 2
+  0BSD OR MIT OR Apache-2.0: 1
+  Apache-2.0: 9
+  Apache-2.0 AND ISC: 1
+  Apache-2.0 AND MIT: 1
+  Apache-2.0 OR GPL-2.0-only: 1
+  Apache-2.0 OR ISC OR MIT: 1
+  Apache-2.0 OR MIT: 28
+  Apache-2.0/MIT: 2
+  BSD-2-Clause: 1
+  BSD-2-Clause OR Apache-2.0 OR MIT: 2
+  BSD-3-Clause: 3
+  BSD-3-Clause OR Apache-2.0: 2
+  BSL-1.0: 2
+  CC0-1.0: 1
+  CC0-1.0 OR MIT-0 OR Apache-2.0: 1
+  CDLA-Permissive-2.0: 1
+  ISC: 3
+  MIT: 34
+  MIT OR Apache-2.0: 137
+  MIT OR Apache-2.0 OR Zlib: 5
+  MIT OR Zlib OR Apache-2.0: 2
+  MIT/Apache-2.0: 7
+  MPL-2.0: 1
+  MPL-2.0+: 1
+  Unicode-3.0: 18
+  Unlicense OR MIT: 4
+  Zlib: 3
+  Zlib OR Apache-2.0 OR MIT: 3
+
+accesskit 0.25.2
+    License: MIT OR Apache-2.0
+    https://github.com/AccessKit/accesskit
+accesskit_consumer 0.39.2
+    License: MIT OR Apache-2.0
+    https://github.com/AccessKit/accesskit
+accesskit_windows 0.35.2
+    License: MIT OR Apache-2.0
+    https://github.com/AccessKit/accesskit
+accesskit_winit 0.34.2
+    License: Apache-2.0
+    https://github.com/AccessKit/accesskit
+adler2 2.0.1
+    License: 0BSD OR MIT OR Apache-2.0
+    https://github.com/oyvindln/adler2
+ahash 0.8.12
+    License: MIT OR Apache-2.0
+    https://github.com/tkaitchuck/ahash
+allocator-api2 0.2.21
+    License: MIT OR Apache-2.0
+    https://github.com/zakarumych/allocator-api2
+arboard 3.7.0
+    License: MIT OR Apache-2.0
+    https://github.com/1Password/arboard
+arrayref 0.3.9
+    License: BSD-2-Clause
+    https://github.com/droundy/arrayref
+arrayvec 0.7.8
+    License: MIT OR Apache-2.0
+    https://github.com/bluss/arrayvec
+ash 0.38.0+1.3.281
+    License: MIT OR Apache-2.0
+    https://github.com/ash-rs/ash
+base64 0.23.1
+    License: MIT OR Apache-2.0
+    https://github.com/marshallpierce/rust-base64
+bit-set 0.10.0
+    License: Apache-2.0 OR MIT
+    https://github.com/contain-rs/bit-set
+bit-vec 0.9.1
+    License: Apache-2.0 OR MIT
+    https://github.com/contain-rs/bit-vec
+bitflags 2.13.2
+    License: MIT OR Apache-2.0
+    https://github.com/bitflags/bitflags
+bumpalo 3.20.3
+    License: MIT OR Apache-2.0
+    https://github.com/fitzgen/bumpalo
+bytemuck 1.25.2
+    License: Zlib OR Apache-2.0 OR MIT
+    https://github.com/Lokathor/bytemuck
+bytemuck_derive 1.12.1
+    License: Zlib OR Apache-2.0 OR MIT
+    https://github.com/Lokathor/bytemuck
+byteorder-lite 0.1.0
+    License: Unlicense OR MIT
+    https://github.com/image-rs/byteorder-lite
+bytes 1.12.1
+    License: MIT
+    https://github.com/tokio-rs/bytes
+castaway 0.2.4
+    License: MIT
+    https://github.com/sagebind/castaway
+cfg-if 1.0.5
+    License: MIT OR Apache-2.0
+    https://github.com/rust-lang/cfg-if
+clipboard-win 5.4.3
+    License: BSL-1.0
+    https://github.com/DoumanAsh/clipboard-win
+codespan-reporting 0.13.1
+    License: Apache-2.0
+    https://github.com/brendanzab/codespan
+color 0.3.3
+    License: Apache-2.0 OR MIT
+    https://github.com/linebender/color
+color_quant 1.1.0
+    License: MIT
+    https://github.com/image-rs/color_quant.git
+compact_str 0.10.0
+    License: MIT
+    https://github.com/ParkMyCar/compact_str
+const-random 0.1.18
+    License: MIT OR Apache-2.0
+    https://github.com/tkaitchuck/constrandom
+const-random-macro 0.1.16
+    License: MIT OR Apache-2.0
+    https://github.com/tkaitchuck/constrandom
+constant_time_eq 0.6.1
+    License: CC0-1.0 OR MIT-0 OR Apache-2.0
+    https://codeberg.org/cesarb/constant_time_eq
+cookie 0.18.2
+    License: MIT OR Apache-2.0
+    https://github.com/SergioBenitez/cookie-rs
+cookie_store 0.22.1
+    License: MIT OR Apache-2.0
+    https://github.com/pfernie/cookie_store
+core_maths 0.1.1
+    License: MIT
+    https://github.com/robertbastian/core_maths
+crc32fast 1.5.4
+    License: MIT OR Apache-2.0
+    https://github.com/srijs/rust-crc32fast
+crunchy 0.2.4
+    License: MIT
+    https://github.com/eira-fransham/crunchy
+cursor-icon 1.2.0
+    License: MIT OR Apache-2.0 OR Zlib
+    https://github.com/rust-windowing/cursor-icon
+data-url 0.3.2
+    License: MIT OR Apache-2.0
+    https://github.com/servo/rust-url
+deranged 0.5.9
+    License: MIT OR Apache-2.0
+    https://github.com/jhpratt/deranged
+dirs 7.0.0
+    License: MIT OR Apache-2.0
+    https://codeberg.org/dirs/dirs-rs
+dirs-sys 0.5.0
+    License: MIT OR Apache-2.0
+    https://github.com/dirs-dev/dirs-sys-rs
+displaydoc 0.2.7
+    License: MIT OR Apache-2.0
+    https://github.com/yaahc/displaydoc
+document-features 0.2.12
+    License: MIT OR Apache-2.0
+    https://github.com/slint-ui/document-features
+dpi 0.1.2
+    License: Apache-2.0 AND MIT
+    https://github.com/rust-windowing/winit
+ecolor 0.37.0
+    License: MIT OR Apache-2.0
+    https://github.com/emilk/egui
+eframe 0.37.0
+    License: MIT OR Apache-2.0
+    https://github.com/emilk/egui/tree/main/crates/eframe
+egui 0.37.0
+    License: MIT OR Apache-2.0
+    https://github.com/emilk/egui
+egui-wgpu 0.37.0
+    License: MIT OR Apache-2.0
+    https://github.com/emilk/egui/tree/main/crates/egui-wgpu
+egui-winit 0.37.0
+    License: MIT OR Apache-2.0
+    https://github.com/emilk/egui/tree/main/crates/egui-winit
+egui_glow 0.37.0
+    License: MIT OR Apache-2.0
+    https://github.com/emilk/egui/tree/main/crates/egui_glow
+egui_system_font_provider 0.37.0
+    License: MIT OR Apache-2.0
+    https://github.com/emilk/egui/tree/main/crates/egui_system_font_provider
+either 1.19.0
+    License: MIT OR Apache-2.0
+    https://github.com/rayon-rs/either
+emath 0.37.0
+    License: MIT OR Apache-2.0
+    https://github.com/emilk/egui/tree/main/crates/emath
+epaint 0.37.0
+    License: MIT OR Apache-2.0
+    https://github.com/emilk/egui/tree/main/crates/epaint
+epaint_default_fonts 0.37.0
+    License: (MIT OR Apache-2.0) AND OFL-1.1 AND Ubuntu-font-1.0
+    https://github.com/emilk/egui/tree/main/crates/epaint_default_fonts
+equivalent 1.0.3
+    License: Apache-2.0 OR MIT
+    https://github.com/indexmap-rs/equivalent
+error-code 3.4.0
+    License: BSL-1.0
+    https://github.com/DoumanAsh/error-code
+euclid 0.22.14
+    License: MIT OR Apache-2.0
+    https://github.com/servo/euclid
+fax 0.2.7
+    License: MIT
+    https://github.com/pdf-rs/fax
+fdeflate 0.3.7
+    License: MIT OR Apache-2.0
+    https://github.com/image-rs/fdeflate
+fearless_simd 0.4.1
+    License: Apache-2.0 OR MIT
+    https://github.com/linebender/fearless_simd
+flate2 1.1.11
+    License: MIT OR Apache-2.0
+    https://github.com/rust-lang/flate2-rs
+float-cmp 0.9.0
+    License: MIT
+    https://github.com/mikedilger/float-cmp
+foldhash 0.2.0
+    License: Zlib
+    https://github.com/orlp/foldhash
+font-types 0.12.7
+    License: MIT OR Apache-2.0
+    https://github.com/googlefonts/fontations
+fontdb 0.24.0
+    License: MIT
+    https://github.com/RazrFalcon/fontdb
+fontique 0.11.1
+    License: Apache-2.0 OR MIT
+    https://github.com/linebender/parley
+form_urlencoded 1.2.2
+    License: MIT OR Apache-2.0
+    https://github.com/servo/rust-url
+getrandom 0.2.17
+    License: MIT OR Apache-2.0
+    https://github.com/rust-random/getrandom
+getrandom 0.3.4
+    License: MIT OR Apache-2.0
+    https://github.com/rust-random/getrandom
+getrandom 0.4.3
+    License: MIT OR Apache-2.0
+    https://github.com/rust-random/getrandom
+gif 0.14.2
+    License: MIT OR Apache-2.0
+    https://github.com/image-rs/image-gif
+glifo 0.3.0
+    License: Apache-2.0 OR MIT
+    https://github.com/linebender/vello
+glow 0.17.0
+    License: MIT OR Apache-2.0 OR Zlib
+    https://github.com/grovesNL/glow
+glutin 0.32.3
+    License: Apache-2.0
+    https://github.com/rust-windowing/glutin
+glutin-winit 0.5.0
+    License: MIT
+    https://github.com/rust-windowing/glutin
+glutin_egl_sys 0.7.1
+    License: Apache-2.0
+    https://github.com/rust-windowing/glutin
+glutin_wgl_sys 0.6.1
+    License: Apache-2.0
+    https://github.com/rust-windowing/glutin
+gpu-allocator 0.28.0
+    License: MIT OR Apache-2.0
+    https://github.com/Traverse-Research/gpu-allocator
+guillotiere 0.7.0
+    License: MIT/Apache-2.0
+    https://github.com/nical/guillotiere
+half 2.7.1
+    License: MIT OR Apache-2.0
+    https://github.com/VoidStarKat/half-rs
+harfrust 0.12.0
+    License: MIT
+    https://github.com/harfbuzz/harfrust
+hashbrown 0.16.1
+    License: MIT OR Apache-2.0
+    https://github.com/rust-lang/hashbrown
+hashbrown 0.17.1
+    License: MIT OR Apache-2.0
+    https://github.com/rust-lang/hashbrown
+http 1.5.0
+    License: MIT OR Apache-2.0
+    https://github.com/hyperium/http
+httparse 1.10.1
+    License: MIT OR Apache-2.0
+    https://github.com/seanmonstar/httparse
+i_float 5.0.0
+    License: MIT
+    https://github.com/iShape-Rust/iFloat
+i_key_sort 0.12.0
+    License: MIT
+    https://github.com/iShape-Rust/iKeySort
+i_overlay 9.1.0
+    License: MIT OR Apache-2.0
+    https://github.com/iShape-Rust/iOverlay
+i_shape 5.0.0
+    License: MIT
+    https://github.com/iShape-Rust/i_shape
+i_tree 0.20.0
+    License: MIT
+    https://github.com/iShape-Rust/iTree
+icu_collections 2.4.0
+    License: Unicode-3.0
+    https://github.com/unicode-org/icu4x
+icu_locale_core 2.4.0
+    License: Unicode-3.0
+    https://github.com/unicode-org/icu4x
+icu_normalizer 2.4.0
+    License: Unicode-3.0
+    https://github.com/unicode-org/icu4x
+icu_normalizer_data 2.4.0
+    License: Unicode-3.0
+    https://github.com/unicode-org/icu4x
+icu_properties 2.4.0
+    License: Unicode-3.0
+    https://github.com/unicode-org/icu4x
+icu_properties_data 2.4.0
+    License: Unicode-3.0
+    https://github.com/unicode-org/icu4x
+icu_provider 2.4.0
+    License: Unicode-3.0
+    https://github.com/unicode-org/icu4x
+idna 1.1.0
+    License: MIT OR Apache-2.0
+    https://github.com/servo/rust-url/
+idna_adapter 1.2.2
+    License: Apache-2.0 OR MIT
+    https://github.com/hsivonen/idna_adapter
+image 0.25.10
+    License: MIT OR Apache-2.0
+    https://github.com/image-rs/image
+image-webp 0.2.4
+    License: MIT OR Apache-2.0
+    https://github.com/image-rs/image-webp
+imagesize 0.15.0
+    License: MIT
+    https://github.com/Roughsketch/imagesize
+indexmap 2.14.2
+    License: Apache-2.0 OR MIT
+    https://github.com/indexmap-rs/indexmap
+itertools 0.15.0
+    License: MIT OR Apache-2.0
+    https://github.com/rust-itertools/itertools
+itoa 1.0.18
+    License: MIT OR Apache-2.0
+    https://github.com/dtolnay/itoa
+khronos-egl 6.0.0
+    License: MIT/Apache-2.0
+    https://github.com/timothee-haudebourg/khronos-egl
+kurbo 0.13.1
+    License: Apache-2.0 OR MIT
+    https://github.com/linebender/kurbo
+libc 0.2.191
+    License: MIT OR Apache-2.0
+    https://github.com/rust-lang/libc
+libloading 0.8.9
+    License: ISC
+    https://github.com/nagisa/rust_libloading/
+libm 0.2.16
+    License: MIT
+    https://github.com/rust-lang/compiler-builtins
+linebender_resource_handle 0.1.1
+    License: Apache-2.0 OR MIT
+    https://github.com/linebender/raw_resource_handle
+litemap 0.8.3
+    License: Unicode-3.0
+    https://github.com/unicode-org/icu4x
+litrs 1.0.1
+    License: MIT OR Apache-2.0
+    https://github.com/LukasKalbertodt/litrs
+lock_api 0.4.14
+    License: MIT OR Apache-2.0
+    https://github.com/Amanieu/parking_lot
+log 0.4.35
+    License: MIT OR Apache-2.0
+    https://github.com/rust-lang/log
+memchr 2.8.3
+    License: Unlicense OR MIT
+    https://github.com/BurntSushi/memchr
+memmap2 0.9.12
+    License: MIT OR Apache-2.0
+    https://github.com/RazrFalcon/memmap2-rs
+miniz_oxide 0.8.9
+    License: MIT OR Zlib OR Apache-2.0
+    https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide
+miniz_oxide 0.9.1
+    License: MIT OR Zlib OR Apache-2.0
+    https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide
+moxcms 0.8.1
+    License: BSD-3-Clause OR Apache-2.0
+    https://github.com/awxkee/moxcms.git
+naga 30.0.1
+    License: MIT OR Apache-2.0
+    https://github.com/gfx-rs/wgpu
+naga-types 30.0.1
+    License: MIT OR Apache-2.0
+    https://github.com/gfx-rs/wgpu
+no-std-compat 0.4.1
+    License: MIT
+    https://gitlab.com/jD91mZM2/no-std-compat
+nohash-hasher 0.2.0
+    License: Apache-2.0 OR MIT
+    https://github.com/paritytech/nohash-hasher
+num-conv 0.2.2
+    License: MIT OR Apache-2.0
+    https://github.com/jhpratt/num-conv
+num-traits 0.2.19
+    License: MIT OR Apache-2.0
+    https://github.com/rust-num/num-traits
+once_cell 1.21.4
+    License: MIT OR Apache-2.0
+    https://github.com/matklad/once_cell
+option-ext 0.2.0
+    License: MPL-2.0
+    https://github.com/soc/option-ext.git
+ordered-float 5.5.1
+    License: MIT
+    https://github.com/reem/rust-ordered-float
+parking_lot 0.12.5
+    License: MIT OR Apache-2.0
+    https://github.com/Amanieu/parking_lot
+parking_lot_core 0.9.12
+    License: MIT OR Apache-2.0
+    https://github.com/Amanieu/parking_lot
+parlance 0.1.1
+    License: Apache-2.0 OR MIT
+    https://github.com/linebender/parley
+peniko 0.6.1
+    License: Apache-2.0 OR MIT
+    https://github.com/linebender/peniko
+percent-encoding 2.3.2
+    License: MIT OR Apache-2.0
+    https://github.com/servo/rust-url/
+pico-args 0.5.0
+    License: MIT
+    https://github.com/RazrFalcon/pico-args
+pin-project-lite 0.2.17
+    License: Apache-2.0 OR MIT
+    https://github.com/taiki-e/pin-project-lite
+png 0.18.1
+    License: MIT OR Apache-2.0
+    https://github.com/image-rs/image-png
+poll-promise 0.3.0
+    License: MIT OR Apache-2.0
+    https://github.com/EmbarkStudios/poll-promise
+pollster 1.0.1
+    License: Apache-2.0/MIT
+    https://github.com/zesterer/pollster
+polycool 0.4.0
+    License: MIT OR Apache-2.0
+    https://github.com/linebender/kurbo
+portable-atomic 1.15.0
+    License: Apache-2.0 OR MIT
+    https://github.com/taiki-e/portable-atomic
+potential_utf 0.1.6
+    License: Unicode-3.0
+    https://github.com/unicode-org/icu4x
+powerfmt 0.2.1
+    License: MIT OR Apache-2.0
+    https://github.com/jhpratt/powerfmt
+presser 0.3.1
+    License: MIT OR Apache-2.0
+    https://github.com/EmbarkStudios/presser
+proc-macro2 1.0.107
+    License: MIT OR Apache-2.0
+    https://github.com/dtolnay/proc-macro2
+profiling 1.0.18
+    License: MIT OR Apache-2.0
+    https://github.com/aclysma/profiling
+pxfm 0.1.30
+    License: BSD-3-Clause OR Apache-2.0
+    https://github.com/awxkee/pxfm
+quick-error 2.0.1
+    License: MIT/Apache-2.0
+    http://github.com/tailhook/quick-error
+quote 1.0.47
+    License: MIT OR Apache-2.0
+    https://github.com/dtolnay/quote
+range-alloc 0.1.5
+    License: MIT OR Apache-2.0
+    https://github.com/gfx-rs/range-alloc
+raw-window-handle 0.6.2
+    License: MIT OR Apache-2.0 OR Zlib
+    https://github.com/rust-windowing/raw-window-handle
+read-fonts 0.41.0
+    License: MIT OR Apache-2.0
+    https://github.com/googlefonts/fontations
+renderdoc-sys 1.1.0
+    License: MIT OR Apache-2.0
+    https://github.com/ebkalderon/renderdoc-rs
+resvg 0.49.0
+    License: Apache-2.0 OR MIT
+    https://github.com/linebender/resvg
+rfd 0.18.0
+    License: MIT
+    https://github.com/PolyMeilex/rfd
+rgb 0.8.53
+    License: MIT
+    https://github.com/kornelski/rust-rgb
+rhai 1.27.0
+    License: MIT OR Apache-2.0
+    https://github.com/rhaiscript/rhai
+rhai_codegen 3.3.0
+    License: MIT OR Apache-2.0
+    https://github.com/rhaiscript/rhai
+ring 0.17.14
+    License: Apache-2.0 AND ISC
+    https://github.com/briansmith/ring
+roxmltree 0.21.2
+    License: MIT OR Apache-2.0
+    https://github.com/RazrFalcon/roxmltree
+rustc-hash 1.1.0
+    License: Apache-2.0/MIT
+    https://github.com/rust-lang-nursery/rustc-hash
+rustc-hash 2.1.3
+    License: Apache-2.0 OR MIT
+    https://github.com/rust-lang/rustc-hash
+rustls 0.23.46
+    License: Apache-2.0 OR ISC OR MIT
+    https://github.com/rustls/rustls
+rustls-pki-types 1.15.1
+    License: MIT OR Apache-2.0
+    https://github.com/rustls/pki-types
+rustls-webpki 0.103.16
+    License: ISC
+    https://github.com/rustls/webpki
+rustversion 1.0.23
+    License: MIT OR Apache-2.0
+    https://github.com/dtolnay/rustversion
+rustybuzz 0.20.1
+    License: MIT
+    https://github.com/harfbuzz/rustybuzz
+scopeguard 1.2.0
+    License: MIT OR Apache-2.0
+    https://github.com/bluss/scopeguard
+self_cell 1.3.0
+    License: Apache-2.0 OR GPL-2.0-only
+    https://github.com/Voultapher/self_cell
+serde 1.0.229
+    License: MIT OR Apache-2.0
+    https://github.com/serde-rs/serde
+serde_core 1.0.229
+    License: MIT OR Apache-2.0
+    https://github.com/serde-rs/serde
+serde_derive 1.0.229
+    License: MIT OR Apache-2.0
+    https://github.com/serde-rs/serde
+serde_json 1.0.154
+    License: MIT OR Apache-2.0
+    https://github.com/serde-rs/json
+simd-adler32 0.3.10
+    License: MIT
+    https://github.com/mcountryman/simd-adler32
+simplecss 0.2.2
+    License: Apache-2.0 OR MIT
+    https://github.com/linebender/simplecss
+siphasher 1.0.4
+    License: MIT OR Apache-2.0
+    https://github.com/jedisct1/rust-siphash
+skrifa 0.44.0
+    License: MIT OR Apache-2.0
+    https://github.com/googlefonts/fontations
+slotmap 1.1.1
+    License: Zlib
+    https://github.com/orlp/slotmap
+smallvec 1.16.5
+    License: MIT OR Apache-2.0
+    https://github.com/servo/rust-smallvec
+smartstring 1.0.1
+    License: MPL-2.0+
+    https://github.com/bodil/smartstring
+smol_str 0.2.2
+    License: MIT OR Apache-2.0
+    https://github.com/rust-analyzer/smol_str
+spin 0.5.2
+    License: MIT
+    https://github.com/mvdnes/spin-rs.git
+spirv 0.4.0+sdk-1.4.341.0
+    License: Apache-2.0
+    https://github.com/gfx-rs/rspirv
+stable_deref_trait 1.2.1
+    License: MIT OR Apache-2.0
+    https://github.com/storyyeller/stable_deref_trait
+static_assertions 1.1.0
+    License: MIT OR Apache-2.0
+    https://github.com/nvzqz/static-assertions-rs
+strict-num 0.1.1
+    License: MIT
+    https://github.com/RazrFalcon/strict-num
+subtle 2.6.1
+    License: BSD-3-Clause
+    https://github.com/dalek-cryptography/subtle
+svgtypes 0.16.2
+    License: Apache-2.0 OR MIT
+    https://github.com/linebender/svgtypes
+syn 2.0.119
+    License: MIT OR Apache-2.0
+    https://github.com/dtolnay/syn
+syn 3.0.9
+    License: MIT OR Apache-2.0
+    https://github.com/dtolnay/syn
+synstructure 0.14.0
+    License: MIT
+    https://github.com/mystor/synstructure
+sys-locale 0.3.2
+    License: MIT OR Apache-2.0
+    https://github.com/1Password/sys-locale
+termcolor 1.4.1
+    License: Unlicense OR MIT
+    https://github.com/BurntSushi/termcolor
+thin-vec 0.2.21
+    License: MIT OR Apache-2.0
+    https://github.com/mozilla/thin-vec
+thiserror 2.0.21
+    License: MIT OR Apache-2.0
+    https://github.com/dtolnay/thiserror
+thiserror-impl 2.0.21
+    License: MIT OR Apache-2.0
+    https://github.com/dtolnay/thiserror
+tiff 0.11.3
+    License: MIT
+    https://github.com/image-rs/image-tiff
+time 0.3.55
+    License: MIT OR Apache-2.0
+    https://github.com/time-rs/time
+time-core 0.1.9
+    License: MIT OR Apache-2.0
+    https://github.com/time-rs/time
+time-macros 0.2.32
+    License: MIT OR Apache-2.0
+    https://github.com/time-rs/time
+tiny-keccak 2.0.2
+    License: CC0-1.0
+    https://github.com/debris/tiny-keccak
+tiny-skia 0.12.0
+    License: BSD-3-Clause
+    https://github.com/linebender/tiny-skia
+tiny-skia-path 0.12.0
+    License: BSD-3-Clause
+    https://github.com/linebender/tiny-skia/tree/master/path
+tinystr 0.8.5
+    License: Unicode-3.0
+    https://github.com/unicode-org/icu4x
+tinyvec 1.13.3
+    License: Zlib OR Apache-2.0 OR MIT
+    https://github.com/Lokathor/tinyvec
+tracing 0.1.44
+    License: MIT
+    https://github.com/tokio-rs/tracing
+tracing-attributes 0.1.31
+    License: MIT
+    https://github.com/tokio-rs/tracing
+tracing-core 0.1.36
+    License: MIT
+    https://github.com/tokio-rs/tracing
+ttf-parser 0.25.1
+    License: MIT OR Apache-2.0
+    https://github.com/harfbuzz/ttf-parser
+type-map 0.5.1
+    License: MIT/Apache-2.0
+    https://github.com/kardeiz/type-map
+typed-path 0.13.0
+    License: MIT OR Apache-2.0
+    https://github.com/chipsenkbeil/typed-path
+unicode-bidi 0.3.18
+    License: MIT OR Apache-2.0
+    https://github.com/servo/unicode-bidi
+unicode-bidi-mirroring 0.4.0
+    License: MIT/Apache-2.0
+    https://github.com/RazrFalcon/unicode-bidi-mirroring
+unicode-ccc 0.4.0
+    License: MIT/Apache-2.0
+    https://github.com/RazrFalcon/unicode-ccc
+unicode-general-category 1.1.0
+    License: Apache-2.0
+    https://github.com/yeslogic/unicode-general-category
+unicode-ident 1.0.27
+    License: (MIT OR Apache-2.0) AND Unicode-3.0
+    https://github.com/dtolnay/unicode-ident
+unicode-properties 0.1.5
+    License: (MIT OR Apache-2.0) AND Unicode-3.0
+    https://github.com/unicode-rs/unicode-properties
+unicode-script 0.5.9
+    License: MIT OR Apache-2.0
+    https://github.com/unicode-rs/unicode-script
+unicode-segmentation 1.13.3
+    License: MIT OR Apache-2.0
+    https://github.com/unicode-rs/unicode-segmentation
+unicode-vo 0.1.0
+    License: MIT/Apache-2.0
+    https://github.com/RazrFalcon/unicode-vo
+unicode-width 0.2.3
+    License: MIT OR Apache-2.0
+    https://github.com/unicode-rs/unicode-width
+untrusted 0.9.0
+    License: ISC
+    https://github.com/briansmith/untrusted
+ureq 3.5.1
+    License: MIT OR Apache-2.0
+    https://github.com/algesten/ureq
+ureq-proto 0.7.1
+    License: MIT OR Apache-2.0
+    https://github.com/algesten/ureq-proto
+url 2.5.8
+    License: MIT OR Apache-2.0
+    https://github.com/servo/rust-url
+usvg 0.49.0
+    License: Apache-2.0 OR MIT
+    https://github.com/linebender/resvg
+utf8-zero 0.8.1
+    License: MIT OR Apache-2.0
+    https://github.com/algesten/utf8-zero
+utf8_iter 1.1.0
+    License: Apache-2.0 OR MIT
+    https://github.com/hsivonen/utf8_iter
+utf_types 1.0.0
+    License: Apache-2.0 OR MIT
+    https://github.com/hsivonen/utf_types
+uuid 1.29.1
+    License: Apache-2.0 OR MIT
+    https://github.com/uuid-rs/uuid
+vello_common 0.2.0
+    License: Apache-2.0 OR MIT
+    https://github.com/linebender/vello
+vello_cpu 0.2.0
+    License: Apache-2.0 OR MIT
+    https://github.com/linebender/vello
+web-time 1.1.0
+    License: MIT OR Apache-2.0
+    https://github.com/daxpedda/web-time
+webbrowser 1.2.6
+    License: MIT OR Apache-2.0
+    https://github.com/amodm/webbrowser-rs
+webpki-roots 1.0.11
+    License: CDLA-Permissive-2.0
+    https://github.com/rustls/webpki-roots
+weezl 0.1.12
+    License: MIT OR Apache-2.0
+    https://github.com/image-rs/weezl
+wgpu 30.0.1
+    License: MIT OR Apache-2.0
+    https://github.com/gfx-rs/wgpu
+wgpu-core 30.0.1
+    License: MIT OR Apache-2.0
+    https://github.com/gfx-rs/wgpu
+wgpu-core-deps-windows-linux-android 30.0.1
+    License: MIT OR Apache-2.0
+    https://github.com/gfx-rs/wgpu
+wgpu-hal 30.0.1
+    License: MIT OR Apache-2.0
+    https://github.com/gfx-rs/wgpu
+wgpu-naga-bridge 30.0.1
+    License: MIT OR Apache-2.0
+    https://github.com/gfx-rs/wgpu
+wgpu-types 30.0.1
+    License: MIT OR Apache-2.0
+    https://github.com/gfx-rs/wgpu
+winapi-util 0.1.11
+    License: Unlicense OR MIT
+    https://github.com/BurntSushi/winapi-util
+windows 0.62.2
+    License: MIT OR Apache-2.0
+    https://github.com/microsoft/windows-rs
+windows-collections 0.3.2
+    License: MIT OR Apache-2.0
+    https://github.com/microsoft/windows-rs
+windows-core 0.62.2
+    License: MIT OR Apache-2.0
+    https://github.com/microsoft/windows-rs
+windows-future 0.3.2
+    License: MIT OR Apache-2.0
+    https://github.com/microsoft/windows-rs
+windows-implement 0.60.2
+    License: MIT OR Apache-2.0
+    https://github.com/microsoft/windows-rs
+windows-interface 0.59.3
+    License: MIT OR Apache-2.0
+    https://github.com/microsoft/windows-rs
+windows-link 0.2.1
+    License: MIT OR Apache-2.0
+    https://github.com/microsoft/windows-rs
+windows-numerics 0.3.1
+    License: MIT OR Apache-2.0
+    https://github.com/microsoft/windows-rs
+windows-result 0.4.1
+    License: MIT OR Apache-2.0
+    https://github.com/microsoft/windows-rs
+windows-strings 0.5.1
+    License: MIT OR Apache-2.0
+    https://github.com/microsoft/windows-rs
+windows-sys 0.52.0
+    License: MIT OR Apache-2.0
+    https://github.com/microsoft/windows-rs
+windows-sys 0.61.2
+    License: MIT OR Apache-2.0
+    https://github.com/microsoft/windows-rs
+windows-targets 0.52.6
+    License: MIT OR Apache-2.0
+    https://github.com/microsoft/windows-rs
+windows-threading 0.2.1
+    License: MIT OR Apache-2.0
+    https://github.com/microsoft/windows-rs
+windows_x86_64_msvc 0.52.6
+    License: MIT OR Apache-2.0
+    https://github.com/microsoft/windows-rs
+winit 0.30.13
+    License: Apache-2.0
+    https://github.com/rust-windowing/winit
+writeable 0.6.4
+    License: Unicode-3.0
+    https://github.com/unicode-org/icu4x
+xmlwriter 0.1.0
+    License: MIT
+    https://github.com/RazrFalcon/xmlwriter
+yoke 0.8.4
+    License: Unicode-3.0
+    https://github.com/unicode-org/icu4x
+yoke-derive 0.8.4
+    License: Unicode-3.0
+    https://github.com/unicode-org/icu4x
+zerocopy 0.8.63
+    License: BSD-2-Clause OR Apache-2.0 OR MIT
+    https://github.com/google/zerocopy
+zerocopy-derive 0.8.63
+    License: BSD-2-Clause OR Apache-2.0 OR MIT
+    https://github.com/google/zerocopy
+zerofrom 0.1.8
+    License: Unicode-3.0
+    https://github.com/unicode-org/icu4x
+zerofrom-derive 0.1.8
+    License: Unicode-3.0
+    https://github.com/unicode-org/icu4x
+zeroize 1.9.1
+    License: Apache-2.0 OR MIT
+    https://github.com/RustCrypto/utils
+zeroize_derive 1.5.0
+    License: Apache-2.0 OR MIT
+    https://github.com/RustCrypto/utils
+zerotrie 0.2.5
+    License: Unicode-3.0
+    https://github.com/unicode-org/icu4x
+zerovec 0.11.9
+    License: Unicode-3.0
+    https://github.com/unicode-org/icu4x
+zerovec-derive 0.11.7
+    License: Unicode-3.0
+    https://github.com/unicode-org/icu4x
+zip 9.4.2
+    License: MIT
+    https://github.com/zip-rs/zip2
+zlib-rs 0.6.8
+    License: Zlib
+    https://github.com/trifectatechfoundation/zlib-rs
+zmij 1.0.23
+    License: MIT
+    https://github.com/dtolnay/zmij
+zopfli 0.8.4
+    License: Apache-2.0
+    https://github.com/zopfli-rs/zopfli
+zune-core 0.5.3
+    License: MIT OR Apache-2.0 OR Zlib
+    https://github.com/etemesi254/zune-image
+zune-jpeg 0.5.15
+    License: MIT OR Apache-2.0 OR Zlib
+    https://github.com/etemesi254/zune-image/tree/dev/crates/zune-jpeg

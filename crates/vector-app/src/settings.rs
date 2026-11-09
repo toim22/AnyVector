@@ -483,7 +483,7 @@ pub fn format_time(t: std::time::SystemTime) -> String {
 }
 
 /// File-format versions offered in Save Drawing ▸ Version and Options ▸ Save.
-pub const FILE_VERSIONS: &[&str] = &["1.0 (2026.0)"];
+pub const FILE_VERSIONS: &[&str] = &["0.1 (2026.0)"];
 
 pub fn config_dir() -> PathBuf {
     let base = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));

@@ -494,7 +494,7 @@ fn save_dialog_manual() {
         profiles_summary: "sRGB IEC61966-2.1; U.S. Web Coated (SWOP) v2; Dot Gain 20%".into(),
         embed_fonts: true,
         fonts_size: 0,
-        versions: vec!["1.0 (2026.0)".into()],
+        versions: vec!["0.1 (2026.0)".into()],
         version: 0,
         advanced: Advanced { optimize_for_size: false, presentation_attributes: true, bitmap_compression: true, object_compression: true, thumbnail: true },
     });
