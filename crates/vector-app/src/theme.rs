@@ -18,8 +18,6 @@ pub const MENU_BG: Color32 = Color32::from_rgb(0x2b, 0x2b, 0x2b);
 pub const DESKTOP: Color32 = Color32::from_rgb(0x26, 0x26, 0x26);
 pub const RULER: Color32 = Color32::from_rgb(0x2e, 0x2e, 0x2e);
 pub const SELECTION: Color32 = Color32::from_rgb(0x1e, 0x90, 0xff);
-pub const NODE_BLUE: Color32 = Color32::from_rgb(0x00, 0x66, 0xff);
-pub const NODE_RED: Color32 = Color32::from_rgb(0xff, 0x33, 0x33);
 pub const GUIDE: Color32 = Color32::from_rgb(0x00, 0x99, 0xff);
 pub const BG_CANVAS_TAB: Color32 = Color32::from_rgb(0x33, 0x33, 0x33);
 

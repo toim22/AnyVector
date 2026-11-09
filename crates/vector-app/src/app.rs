@@ -2,9 +2,10 @@
 
 use crate::commands::Cmd;
 use crate::dialogs::Dialogs;
-use crate::dockers::{DockerId, DockerState};
+use crate::dockers::DockerState;
 use crate::docview::DocView;
 use crate::icons::Icons;
+use crate::menus::BarSpot;
 use crate::settings::Settings;
 use crate::theme;
 use crate::tools::{ToolId, ToolState};
@@ -66,11 +67,13 @@ pub struct VectorApp {
     pub docs: Vec<DocView>,
     /// Index into `docs`; `None` = the Home (Welcome screen) tab.
     pub active: Option<usize>,
+    /// The page the Welcome Screen shows.
+    pub welcome_page: crate::welcome::Page,
     pub settings: Settings,
     pub icons: Icons,
     pub tool: ToolId,
-    /// Remembered tool per toolbox group (flyout selection).
-    pub group_tool: Vec<ToolId>,
+    /// What each toolbox slot shows and which kind each tool was last used as.
+    pub toolbox: crate::toolbox::ToolboxState,
     pub ts: ToolState,
     pub dockers: DockerState,
     pub dialogs: Dialogs,
@@ -89,7 +92,6 @@ pub struct VectorApp {
     /// The graphics adapter the window renders with (Help > About > System Info).
     pub gpu: String,
     pub splash: Option<crate::splash::Splash>,
-    pub thumbnails: std::collections::HashMap<std::path::PathBuf, Option<egui::TextureHandle>>,
     pub palettes: crate::palette::PaletteState,
     pub status_hover: String,
     pub cursor_doc: Option<kurbo::Point>,
@@ -115,16 +117,16 @@ impl VectorApp {
         cc.egui_ctx.set_zoom_factor((settings.ui_scale / 100.0) as f32);
         // warm the font database in the background (first text layout is otherwise slow)
         std::thread::spawn(vector_core::text::preload_fonts);
-        let group_tool = crate::tools::GROUPS.iter().map(|(_, t)| t[0]).collect();
         let mut app = VectorApp {
             docs: vec![],
             active: None,
+            welcome_page: Default::default(),
             dockers: DockerState::from_settings(&settings),
             palettes: crate::palette::PaletteState::new(&settings),
             settings,
             icons: Icons::default(),
             tool: ToolId::Pick,
-            group_tool,
+            toolbox: Default::default(),
             ts: ToolState::default(),
             dialogs: Dialogs::default(),
             clip: Clip::default(),
@@ -140,7 +142,6 @@ impl VectorApp {
             default_fill: Color::BLACK,
             start_time: std::time::Instant::now(),
             splash: Some(crate::splash::Splash::new()),
-            thumbnails: Default::default(),
             status_hover: String::new(),
             cursor_doc: None,
             ai: Default::default(),
@@ -203,8 +204,7 @@ impl VectorApp {
             self.finish_tool();
         }
         self.tool = t;
-        let g = crate::tools::group_of(t);
-        self.group_tool[g] = t;
+        self.toolbox.remember(t);
         if let Some(d) = self.doc_mut() {
             if t != ToolId::Shape {
                 d.node_sel.clear();
@@ -247,36 +247,42 @@ impl VectorApp {
 
         let bar = Frame::new().fill(theme::BAR).inner_margin(Margin::symmetric(2, 0));
         if self.settings.show_menu_bar {
-            egui::Panel::top("menubar").frame(Frame::new().fill(theme::BAR_DARK).inner_margin(Margin::symmetric(4, 0))).exact_size(26.0).show(ui, |ui| {
+            let r = egui::Panel::top("menubar").frame(Frame::new().fill(theme::BAR_DARK).inner_margin(Margin::symmetric(4, 0))).exact_size(26.0).show(ui, |ui| {
                 crate::menus::menu_bar(self, ui);
             });
+            crate::menus::command_bar_context(self, &r.response, BarSpot::MenuBar);
         }
         if self.settings.show_standard {
-            egui::Panel::top("standard").frame(bar.stroke(egui::Stroke::NONE)).exact_size(34.0).show(ui, |ui| {
+            let r = egui::Panel::top("standard").frame(bar.stroke(egui::Stroke::NONE)).exact_size(34.0).show(ui, |ui| {
                 crate::toolbar::standard(self, ui);
             });
+            crate::menus::command_bar_context(self, &r.response, BarSpot::Toolbar("Standard"));
         }
-        for tb in Toolbar::EXTRA {
-            if self.settings.extra_toolbars.iter().any(|s| s == tb.name()) {
-                egui::Panel::top(format!("tb_{}", tb.name())).frame(bar).exact_size(32.0).show(ui, |ui| {
-                    crate::toolbar::extra(self, ui, tb);
-                });
-            }
+        // the Project Timer docks under the standard toolbar; the other optional toolbars float
+        if self.settings.extra_toolbars.iter().any(|s| s == Toolbar::ProjectTimer.name()) {
+            let r = egui::Panel::top("tb_project_timer").frame(bar).exact_size(32.0).show(ui, |ui| {
+                crate::toolbar::extra(self, ui, Toolbar::ProjectTimer);
+            });
+            crate::menus::command_bar_context(self, &r.response, BarSpot::Toolbar("Project timer"));
         }
+        self.floating_toolbars(ui.ctx());
         if self.settings.show_property_bar {
-            egui::Panel::top("propbar").frame(bar).exact_size(44.0).show(ui, |ui| {
+            let r = egui::Panel::top("propbar").frame(bar).exact_size(44.0).show(ui, |ui| {
                 crate::propbar::property_bar(self, ui);
             });
+            crate::menus::command_bar_context(self, &r.response, BarSpot::Toolbar("Property Bar"));
         }
         if self.settings.show_status_bar {
-            egui::Panel::bottom("status").frame(Frame::new().fill(theme::BAR).inner_margin(Margin::symmetric(4, 0))).exact_size(30.0).show(ui, |ui| {
+            let r = egui::Panel::bottom("status").frame(Frame::new().fill(theme::BAR).inner_margin(Margin::symmetric(4, 0))).exact_size(30.0).show(ui, |ui| {
                 crate::statusbar::status_bar(self, ui);
             });
+            crate::menus::command_bar_context(self, &r.response, BarSpot::StatusBar);
         }
         if self.settings.show_toolbox {
-            egui::Panel::left("toolbox").frame(Frame::new().fill(theme::BAR).inner_margin(Margin { left: 2, right: 0, top: 4, bottom: 4 })).exact_size(33.0).show(ui, |ui| {
+            let r = egui::Panel::left("toolbox").frame(Frame::new().fill(theme::BAR).inner_margin(Margin { left: 2, right: 0, top: 4, bottom: 4 })).exact_size(33.0).show(ui, |ui| {
                 crate::toolbox::toolbox(self, ui);
             });
+            crate::menus::command_bar_context(self, &r.response, BarSpot::Toolbar("Toolbox"));
         }
         if self.settings.default_palette_visible {
             egui::Panel::right("palette").frame(Frame::new().fill(theme::BAR).inner_margin(Margin::symmetric(1, 2))).exact_size(crate::palette::column_width(&self.settings)).show(ui, |ui| {
@@ -413,6 +419,49 @@ impl eframe::App for VectorApp {
 }
 
 /// Whether a docker id is currently open.
-pub fn docker_open(app: &VectorApp, id: DockerId) -> bool {
-    app.dockers.open.contains(&id)
+impl VectorApp {
+    /// The optional toolbars that float (Window ▸ Toolbars): a small window each, with its name
+    /// and a close button. Toolbars opened together start stacked one under the other.
+    fn floating_toolbars(&mut self, ctx: &egui::Context) {
+        let mut next = egui::pos2(300.0, 170.0);
+        for tb in Toolbar::EXTRA.into_iter().filter(|t| *t != Toolbar::ProjectTimer) {
+            if !self.settings.extra_toolbars.iter().any(|s| s == tb.name()) {
+                continue;
+            }
+            let mut open = true;
+            let r = egui::Window::new(tb.name())
+                .id(egui::Id::unique(("floating_toolbar", tb.name())))
+                .title_bar(false)
+                .resizable(false)
+                .default_pos(next)
+                .frame(Frame::window(&ctx.global_style()).fill(theme::BAR).inner_margin(Margin::symmetric(6, 3)).corner_radius(2))
+                .show(ctx, |ui| {
+                    ui.set_max_width(860.0);
+                    // a small title row: the name, and × at the right end once the width is known
+                    let (title, _) = ui.allocate_exact_size(egui::vec2(60.0, 18.0), egui::Sense::hover());
+                    crate::toolbar::extra(self, ui, tb);
+                    let right = ui.min_rect().right();
+                    ui.painter().text(title.left_center(), egui::Align2::LEFT_CENTER, tb.name(), egui::FontId::proportional(12.0), theme::TEXT);
+                    let x = egui::Rect::from_center_size(egui::pos2(right - 7.0, title.center().y), egui::vec2(16.0, 16.0));
+                    let xr = ui.interact(x, ui.scope_id().with("close"), egui::Sense::click());
+                    if xr.hovered() {
+                        ui.painter().rect_filled(x, 2.0, theme::HOVER);
+                    }
+                    let c = x.center();
+                    for d in [egui::vec2(4.0, 4.0), egui::vec2(4.0, -4.0)] {
+                        ui.painter().line_segment([c - d, c + d], egui::Stroke::new(1.2, theme::TEXT));
+                    }
+                    if xr.clicked() {
+                        open = false;
+                    }
+                });
+            if let Some(r) = r {
+                next = egui::pos2(next.x, r.response.rect.bottom() + 6.0);
+                crate::menus::command_bar_context(self, &r.response, BarSpot::Toolbar(tb.name()));
+            }
+            if !open {
+                self.run(Cmd::ToggleToolbar(tb));
+            }
+        }
+    }
 }

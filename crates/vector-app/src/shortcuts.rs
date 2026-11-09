@@ -36,7 +36,8 @@ fn mods(s: &Shortcut) -> Modifiers {
 }
 
 pub fn handle(app: &mut VectorApp, ctx: &egui::Context) {
-    if app.splash.is_some() || app.dialogs.any_modal_open() {
+    // while a menu is open the keyboard belongs to it (Escape closes the menu, nothing else)
+    if app.splash.is_some() || app.dialogs.any_modal_open() || egui::Popup::is_any_open(ctx) {
         return;
     }
     let typing = ctx.egui_wants_keyboard_input();

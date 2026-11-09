@@ -1,6 +1,6 @@
 # Vector — Status
 
-Last updated: 2026-11-08.
+Last updated: 2026-11-09.
 
 ## Version 0.1.0 (in progress)
 
@@ -22,6 +22,32 @@ its status in Vector.
   installs per user or for all users, adds Vector to "Open with" for `.cdr` (default program only if chosen), opens
   `.vct` and optionally SVG, and keeps the folder and choices on updates.
 - Build helpers (`xtask`): brand assets, the coverage report, the comparison page and the Legal Notices list.
+
+**Batch 1 (program frame), done:**
+
+- The whole interface is now drawn from the reference interface definition (`cargo run -p xtask -- ui` writes
+  279 bars and 4006 items to `crates/vector-app/src/ui/data.rs`): captions with access keys, shortcuts, tooltips,
+  separators and order exactly as CorelDRAW 2026 has them.
+- All 12 menus and their submenus, each item enabled for the same 17 selection states as the reference. All 462
+  reference menu screenshots have the same number of rows in Vector. Without a document (or on the Welcome Screen
+  tab) the menu bar shrinks to File, Tools, Window and Help.
+- Right-click menus in the 24 places the reference has them (objects of each kind, text being edited, curve nodes,
+  table cells, page, desktop, rulers, page tab, toolbars, status bar, toolbox), including Customize.
+- The Standard toolbar, the status bar and the 8 optional toolbars of Window ▸ Toolbars.
+- The toolbox with its 15 flyouts and Quick Customize.
+- The property bar of each of the 60 tools and of the Pick tool for 18 kinds of selection, field by field in the
+  reference order and look (one box for X/Y and for width/height, "%" and "°" units, lead icons only where the
+  reference has them, the open padlock while a lock is off). Fields Vector does not have yet are drawn in place,
+  disabled.
+- Icons: all 985 reference icons used by menus, toolbars, flyouts, property bars and dockers have a Vector drawing
+  with the same meaning (`crates/vector-app/src/icons.rs`, mapped in `assets/ui/icon-map.tsv`). Corel's artwork is
+  not copied.
+- The Welcome Screen tab: Get Started (New Document, New from Template, Open Document, recent documents),
+  Workspace (the six workspaces) and What's New, with Ideas and feedback and User Guide below. Help ▸ What's New
+  opens it on What's New, as in the reference. Corel's training, store, trial and support entries are left out.
+- Fixes found on the way: Window ▸ Workspace ▸ Lite applied Default and Page Layout / Adobe Illustrator did nothing
+  (the list now has all six in menu order); the size lock is off by default, as in the reference; Smart Drawing's
+  Shape Recognition Level and Smart Smoothing Level lists now change how strokes are recognized and smoothed.
 
 ## Working (verified by build and tests)
 
@@ -101,3 +127,8 @@ its status in Vector.
 - **Mesh fill:** picking a patch works, but setting a patch's color from the palette is not wired.
 - **Bitmap editor:** the "Double-click opens bitmap editor" option is stored but no external editor is launched.
 - **Computer-use driving:** the desktop window was not driven interactively. Verification used headless egui_kittest renders instead.
+- **Placeholder fields:** some property bar fields are drawn disabled because Vector does not have the feature yet
+  (for example LiveSketch's timer and proximity, the table bar's fill and outline lists, the dimension tool's
+  Dynamic dimensioning, Show units and Show leading zero buttons). They are filled in with their tools in batch 5.
+- **Items with no command yet:** menu and toolbar items the reference has but Vector cannot do yet are shown and
+  say so when chosen; `docs/COVERAGE.md` lists them.

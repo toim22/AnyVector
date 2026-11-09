@@ -113,6 +113,10 @@ pub fn drawing_window(app: &mut VectorApp, ui: &mut Ui) {
         }
         tools::handle_text_keys(app, &ctx);
     }
+    // right-click menu for what is under the pointer (the right-click itself selected it)
+    if let Some(name) = crate::menus::canvas_menu(app) {
+        resp.context_menu(|ui| crate::menus::context_menu(app, ui, name));
+    }
     if !app.active.map(|a| a < app.docs.len()).unwrap_or(false) {
         return;
     }
@@ -359,6 +363,7 @@ fn rulers(app: &mut VectorApp, ui: &mut Ui, ai: usize, area: Rect, canvas: Rect,
     let uid = d.uid;
     for (rect, vertical, name) in [(top, false, "top"), (left, true, "left")] {
         let r = ui.interact(rect, Id::unique(("ruler", name, uid)), Sense::click_and_drag());
+        r.context_menu(|ui| crate::menus::context_menu(app, ui, "Ruler Menu"));
         if r.drag_started_by(egui::PointerButton::Primary) {
             app.ts.cancel();
             app.ts.drag = Drag::Guide { index: None, vertical };
@@ -506,35 +511,10 @@ fn page_navigator(app: &mut VectorApp, ui: &mut Ui, rect: Rect) {
         if resp.double_clicked() {
             app.dialogs.rename_page = Some((i, name.clone()));
         }
-        resp.context_menu(|ui| {
-            if ui.button("Rename Page...").clicked() {
-                app.dialogs.rename_page = Some((i, name.clone()));
-                ui.close();
-            }
-            if ui.button("Insert Page After").clicked() {
-                app.dialogs.insert_page = Some((i, false));
-                ui.close();
-            }
-            if ui.button("Insert Page Before").clicked() {
-                app.dialogs.insert_page = Some((i, true));
-                ui.close();
-            }
-            if ui.button("Duplicate Page...").clicked() {
-                if let Some(d) = app.doc_mut() {
-                    d.page = i;
-                }
-                app.run(Cmd::DuplicatePage);
-                ui.close();
-            }
-            ui.separator();
-            if ui.add_enabled(n > 1, egui::Button::new("Delete Page")).clicked() {
-                if let Some(d) = app.doc_mut() {
-                    d.page = i;
-                }
-                app.run(Cmd::DeletePage);
-                ui.close();
-            }
-        });
+        if resp.secondary_clicked() {
+            goto = Some(i);
+        }
+        resp.context_menu(|ui| crate::menus::context_menu(app, ui, "Page Tab"));
         x += w;
         ui.painter().line_segment([pos2(x, rect.min.y + 5.0), pos2(x, rect.max.y - 5.0)], Stroke::new(1.0, theme::SEP));
     }

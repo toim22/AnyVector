@@ -5200,6 +5200,7 @@ version = "0.1.0"
 dependencies = [
  "image",
  "resvg",
+ "roxmltree 0.21.2",
  "serde_json",
 ]
 

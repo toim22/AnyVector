@@ -64,7 +64,7 @@ pub fn status_bar(app: &mut VectorApp, ui: &mut Ui) {
     icon(app, ui, "fill_icon", Rect::from_center_size(pos2(fx + 10.0, cy), vec2(18.0, 18.0)), 16.0);
     let sw = Rect::from_center_size(pos2(fx + 33.0, cy), vec2(19.0, 19.0));
     swatch(&p, sw, &fill);
-    p.text(pos2(fx + 50.0, cy), egui::Align2::LEFT_CENTER, fill_text(&fill), font.clone(), theme::TEXT);
+    p.text(pos2(fx + 50.0, cy), egui::Align2::LEFT_CENTER, fit(&p, &fill_text(&fill), &font, 136.0), font.clone(), theme::TEXT);
     if fresp.double_clicked() && app.has_doc() {
         app.run(crate::commands::Cmd::Docker(crate::dockers::DockerId::Properties));
     }
@@ -82,9 +82,10 @@ pub fn status_bar(app: &mut VectorApp, ui: &mut Ui) {
     let otext = match outline {
         None => "Outline Color".to_string(),
         Some((None, _)) => "None".to_string(),
-        Some((Some(c), w)) => format!("{}  {}", c.to_hex(), app.doc().map(|d| d.doc.settings.unit.format(w, d.doc.settings.dpi)).unwrap_or_default()),
+        // the outline width in points, as the reference writes it
+        Some((Some(c), w)) => format!("{}  {:.3} pt", color_text(c), w),
     };
-    p.text(pos2(ox + 50.0, cy), egui::Align2::LEFT_CENTER, otext, font, theme::TEXT);
+    p.text(pos2(ox + 50.0, cy), egui::Align2::LEFT_CENTER, fit(&p, &otext, &font, 136.0), font, theme::TEXT);
     if oresp.double_clicked() && app.has_doc() {
         app.run(crate::commands::Cmd::Docker(crate::dockers::DockerId::Properties));
     }
@@ -94,9 +95,27 @@ fn fill_text(f: &Option<Fill>) -> String {
     match f {
         None => "Fill Color".into(),
         Some(Fill::None) => "None".into(),
-        Some(Fill::Solid(c)) => c.to_hex(),
+        Some(Fill::Solid(c)) => color_text(*c),
         Some(other) => other.type_name().into(),
     }
+}
+
+/// A color as the reference status bar writes it: "R:70 G:130 B:200 (#4682C8)".
+fn color_text(c: vector_core::Color) -> String {
+    format!("R:{} G:{} B:{} ({})", c.r, c.g, c.b, c.to_hex())
+}
+
+/// `text` cut to `width` with "..." at the end, as the status bar fields show long values.
+fn fit(p: &egui::Painter, text: &str, font: &egui::FontId, width: f32) -> String {
+    let w = |s: &str| p.layout_no_wrap(s.to_string(), font.clone(), theme::TEXT).size().x;
+    if w(text) <= width {
+        return text.to_string();
+    }
+    let mut chars: Vec<char> = text.chars().collect();
+    while !chars.is_empty() && w(&format!("{}...", chars.iter().collect::<String>())) > width {
+        chars.pop();
+    }
+    format!("{}...", chars.iter().collect::<String>())
 }
 
 fn swatch(p: &egui::Painter, r: Rect, f: &Option<Fill>) {
