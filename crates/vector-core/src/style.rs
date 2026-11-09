@@ -37,6 +37,19 @@ pub struct Gradient {
     /// Number of rendering steps (0 = smooth).
     #[serde(default)]
     pub steps: u32,
+    /// Acceleration of the transition, -100..100 (0 = even).
+    #[serde(default)]
+    pub accel: f64,
+    /// Color blend between the nodes: 0 linear, 1 clockwise, 2 counterclockwise (around the
+    /// color wheel).
+    #[serde(default)]
+    pub blend: u8,
+    /// Smooth transition between the nodes.
+    #[serde(default)]
+    pub smooth: bool,
+    /// Free scale and skew (else scaled proportionally).
+    #[serde(default = "default_true")]
+    pub free_scale: bool,
 }
 
 impl Gradient {
@@ -48,6 +61,10 @@ impl Gradient {
             end: Point::new(1.0, 0.5),
             spread: SpreadMode::Pad,
             steps: 0,
+            accel: 0.0,
+            blend: 0,
+            smooth: false,
+            free_scale: true,
         }
     }
     pub fn radial(a: Color, b: Color) -> Gradient {
@@ -58,6 +75,10 @@ impl Gradient {
             end: Point::new(1.0, 0.5),
             spread: SpreadMode::Pad,
             steps: 0,
+            accel: 0.0,
+            blend: 0,
+            smooth: false,
+            free_scale: true,
         }
     }
     pub fn sorted_stops(&self) -> Vec<GradientStop> {
@@ -70,6 +91,8 @@ impl Gradient {
         s
     }
     pub fn color_at(&self, t: f64) -> Color {
+        // acceleration: the transition hurries toward one end
+        let t = if self.accel.abs() > 1e-9 { t.clamp(0.0, 1.0).powf(2f64.powf(-self.accel / 50.0)) } else { t };
         let s = self.sorted_stops();
         if t <= s[0].pos {
             return s[0].color;
@@ -77,11 +100,32 @@ impl Gradient {
         for w in s.windows(2) {
             if t >= w[0].pos && t <= w[1].pos {
                 let span = (w[1].pos - w[0].pos).max(1e-9);
-                return Color::lerp(w[0].color, w[1].color, (t - w[0].pos) / span);
+                let mut f = (t - w[0].pos) / span;
+                if self.smooth {
+                    f = f * f * (3.0 - 2.0 * f);
+                }
+                return match self.blend {
+                    0 => Color::lerp(w[0].color, w[1].color, f),
+                    k => hue_lerp(w[0].color, w[1].color, f, k == 1),
+                };
             }
         }
         s[s.len() - 1].color
     }
+}
+
+/// A blend of two colors around the color wheel (clockwise: the hue grows).
+fn hue_lerp(a: Color, b: Color, f: f64, clockwise: bool) -> Color {
+    let (ha, hb) = (a.to_hsb(), b.to_hsb());
+    let mut d = hb[0] - ha[0];
+    if clockwise && d < 0.0 {
+        d += 360.0;
+    } else if !clockwise && d > 0.0 {
+        d -= 360.0;
+    }
+    let h = (ha[0] + d * f).rem_euclid(360.0);
+    let c = Color::from_hsb(h, ha[1] + (hb[1] - ha[1]) * f, ha[2] + (hb[2] - ha[2]) * f);
+    c.with_alpha((a.a as f64 + (b.a as f64 - a.a as f64) * f).round() as u8)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -140,6 +184,12 @@ pub struct PatternFill {
     pub image: Option<u64>,
     #[serde(default = "default_true")]
     pub transform_with_object: bool,
+    /// A vector pattern (made from objects) rather than a bitmap one.
+    #[serde(default)]
+    pub vector: bool,
+    /// Mirror alternate tiles: bit 0 horizontally, bit 1 vertically.
+    #[serde(default)]
+    pub mirror: u8,
 }
 
 fn default_true() -> bool {
@@ -440,6 +490,21 @@ pub struct Outline {
     pub end_arrow: Option<ArrowHead>,
     #[serde(default)]
     pub profile: Option<WidthProfile>,
+    /// Dashes: 0 default, 1 aligned to the ends and corners, 2 fixed.
+    #[serde(default)]
+    pub dash_mode: u8,
+    /// Calligraphy: the nib's stretch (percent of its width) and angle (degrees).
+    #[serde(default = "default_stretch")]
+    pub stretch: f64,
+    #[serde(default)]
+    pub nib_angle: f64,
+    /// The arrowheads share their attributes.
+    #[serde(default)]
+    pub share_arrows: bool,
+}
+
+fn default_stretch() -> f64 {
+    100.0
 }
 
 impl Default for Outline {
@@ -450,13 +515,17 @@ impl Default for Outline {
             join: LineJoin::Miter,
             cap: LineCap::Butt,
             dash: vec![],
-            miter_limit: 5.0,
+            miter_limit: 2.6131, // corners sharper than 45° are beveled
             position: OutlinePosition::Center,
             behind_fill: false,
             scale_with_object: false,
             start_arrow: None,
             end_arrow: None,
             profile: None,
+            dash_mode: 0,
+            stretch: 100.0,
+            nib_angle: 0.0,
+            share_arrows: false,
         }
     }
 }
@@ -578,6 +647,9 @@ pub enum Transparency {
     /// Gradient whose stop colors' luminance encodes opacity (black = transparent, white = opaque),
     /// matching the original's transparency ramp convention.
     Gradient(Gradient),
+    /// A vector, bitmap or two-color pattern: the transparency of its foreground and of its
+    /// background (0..100), by the pattern's lightness.
+    Pattern { pattern: PatternFill, front: f64, back: f64 },
 }
 
 impl Transparency {
@@ -605,6 +677,9 @@ pub struct Style {
     /// Even-odd fill rule (combined curves with holes) vs non-zero.
     #[serde(default = "default_true")]
     pub even_odd: bool,
+    /// What the transparency applies to: 0 all, 1 the fill, 2 the outline.
+    #[serde(default)]
+    pub transparency_target: u8,
 }
 
 impl Default for Style {
@@ -618,6 +693,7 @@ impl Default for Style {
             overprint_outline: false,
             overprint_bitmap: false,
             even_odd: true,
+            transparency_target: 0,
         }
     }
 }

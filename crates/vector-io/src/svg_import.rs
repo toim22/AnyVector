@@ -299,13 +299,13 @@ fn paint_to_fill(p: &usvg::Paint, opacity: f32, xf: Affine, to_unit: &dyn Fn(Poi
             let m = xf * gt(lg.transform());
             let a = to_unit(m * Point::new(lg.x1() as f64, lg.y1() as f64));
             let b = to_unit(m * Point::new(lg.x2() as f64, lg.y2() as f64));
-            Fill::Gradient(Gradient { kind: GradientKind::Linear, stops: stops(lg), start: a, end: b, spread: spread(lg.spread_method()), steps: 0 })
+            Fill::Gradient(Gradient { kind: GradientKind::Linear, stops: stops(lg), start: a, end: b, spread: spread(lg.spread_method()), steps: 0, accel: 0.0, blend: 0, smooth: false, free_scale: true })
         }
         usvg::Paint::RadialGradient(rg) => {
             let m = xf * gt(rg.transform());
             let c = to_unit(m * Point::new(rg.cx() as f64, rg.cy() as f64));
             let e = to_unit(m * Point::new(rg.cx() as f64 + rg.r().get() as f64, rg.cy() as f64));
-            Fill::Gradient(Gradient { kind: GradientKind::Elliptical, stops: stops(rg), start: c, end: e, spread: spread(rg.spread_method()), steps: 0 })
+            Fill::Gradient(Gradient { kind: GradientKind::Elliptical, stops: stops(rg), start: c, end: e, spread: spread(rg.spread_method()), steps: 0, accel: 0.0, blend: 0, smooth: false, free_scale: true })
         }
         usvg::Paint::Pattern(_) => Fill::Solid(Color::rgba(128, 128, 128, (opacity * 255.0) as u8)),
     }

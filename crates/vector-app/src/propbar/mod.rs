@@ -5,6 +5,7 @@
 //! disabled.
 
 mod extra;
+pub(crate) use extra::{choose_brush, paint_apply, BRUSHES};
 mod fields;
 mod text;
 
@@ -191,6 +192,9 @@ fn bar_id(app: &VectorApp) -> &'static str {
         Impact => "c783bf62",
     }
 }
+
+/// The transparency type buttons, by `props::transparency_kind`.
+const TRANSPARENCY_KEYS: [&str; 6] = ["3827d44e", "311d886a", "40815553", "b70d6f3d", "ede98884", "79a009ac"];
 
 /// The Pick tool's bar for the selection.
 fn selection_bar(app: &VectorApp) -> &'static str {
@@ -1461,15 +1465,15 @@ pub fn option_state(app: &VectorApp, key: &str) -> Option<(bool, bool)> {
         "53bbc973" => (first(app, |o| o.effects.block_shadow.is_some()).unwrap_or(false), false),
         "1db49c5e" => (first(app, |o| matches!(o.style.fill, Fill::Mesh(_))).unwrap_or(false), false),
         "3827d44e" | "311d886a" | "40815553" => {
-            let t = first(app, |o| match o.style.transparency {
-                Transparency::None => "3827d44e",
-                Transparency::Uniform(_) => "311d886a",
-                Transparency::Gradient(_) => "40815553",
-            });
+            let t = first(app, |o| TRANSPARENCY_KEYS[crate::dockers::props::transparency_kind(&o.style.transparency) as usize]);
             (sel, t == Some(key))
         }
-        // pattern and texture transparencies: not in Vector yet
-        "b70d6f3d" | "ede98884" | "79a009ac" | "ab90096d" => (false, false),
+        "b70d6f3d" | "ede98884" | "79a009ac" => {
+            let t = first(app, |o| TRANSPARENCY_KEYS[crate::dockers::props::transparency_kind(&o.style.transparency) as usize]);
+            (sel, t == Some(key))
+        }
+        // texture transparency: not in Vector yet
+        "ab90096d" => (false, false),
         "9818dc53" | "6eba3892" | "57d25bb7" | "d64625f1" => {
             let f = first(app, |o| match o.style.fill {
                 Fill::None => "9818dc53",
@@ -1686,12 +1690,9 @@ pub fn press(app: &mut VectorApp, key: &str) {
                 o.style.fill = o.style.fill.main_color().map(Fill::Solid).unwrap_or(Fill::None);
             }
         }),
-        "3827d44e" | "311d886a" | "40815553" => {
-            let t = match key {
-                "3827d44e" => Transparency::None,
-                "311d886a" => Transparency::Uniform(50.0),
-                _ => Transparency::Gradient(vector_core::style::Gradient::linear(Color::WHITE, Color::BLACK)),
-            };
+        "3827d44e" | "311d886a" | "40815553" | "b70d6f3d" | "ede98884" | "79a009ac" => {
+            let k = TRANSPARENCY_KEYS.iter().position(|x| *x == key).unwrap_or(0) as u8;
+            let t = crate::dockers::props::new_transparency(app, k);
             edit_sel(app, "Transparency", move |o| o.style.transparency = t.clone());
         }
         "9818dc53" | "6eba3892" | "57d25bb7" | "d64625f1" => {
@@ -1700,7 +1701,7 @@ pub fn press(app: &mut VectorApp, key: &str) {
                 "9818dc53" => Fill::None,
                 "6eba3892" => Fill::Solid(base),
                 "57d25bb7" => Fill::Gradient(vector_core::style::Gradient::linear(base, Color::WHITE)),
-                _ => Fill::Pattern(vector_core::style::PatternFill { kind: vector_core::style::PatternKind::ALL[0], fg: base, bg: Color::WHITE, tile: 18.0, angle: 0.0, image: None, transform_with_object: true }),
+                _ => Fill::Pattern(vector_core::style::PatternFill { kind: vector_core::style::PatternKind::ALL[0], fg: base, bg: Color::WHITE, tile: 18.0, angle: 0.0, image: None, transform_with_object: true, vector: false, mirror: 0 }),
             };
             edit_sel(app, "Fill", move |o| o.style.fill = f.clone());
         }

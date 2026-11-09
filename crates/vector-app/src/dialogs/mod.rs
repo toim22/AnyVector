@@ -3,6 +3,7 @@
 
 pub mod forms;
 pub mod layout;
+pub mod linestyle;
 pub mod clipboard;
 pub mod docprops;
 pub mod export;
@@ -37,6 +38,8 @@ pub enum Choice {
 #[derive(Default)]
 pub struct Dialogs {
     pub confirm_quit: bool,
+    /// Properties ▸ Outline ▸ Edit Line Style.
+    pub line_style: Option<linestyle::LineStyleState>,
     /// Shape tool ▸ Align Nodes: horizontally, vertically, control points.
     pub node_align: Option<[bool; 3]>,
     pub options: OptionsState,
@@ -145,6 +148,7 @@ impl Dialogs {
             || self.border_grommet.is_some()
             || self.table.is_some()
             || self.arrowhead.is_some()
+            || self.line_style.is_some()
             || self.pattern.is_some()
             || self.barcode.is_some()
             || self.tabs.is_some()
@@ -212,6 +216,9 @@ pub fn show(app: &mut VectorApp, ctx: &egui::Context) {
     }
     if app.dialogs.arrowhead.is_some() {
         object::arrowhead(app, ctx);
+    }
+    if app.dialogs.line_style.is_some() {
+        linestyle::show(app, ctx);
     }
     if app.dialogs.pattern.is_some() {
         object::pattern(app, ctx);

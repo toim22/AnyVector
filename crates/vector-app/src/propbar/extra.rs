@@ -233,7 +233,7 @@ pub fn painterly_profile(t: &ToolOpts, seed: u32) -> WidthProfile {
 }
 
 /// The selected strokes take the brush settings (with nothing selected they are the defaults).
-fn paint_apply(app: &mut VectorApp) {
+pub(crate) fn paint_apply(app: &mut VectorApp) {
     if !painterly_now(app) {
         return;
     }
@@ -246,7 +246,7 @@ fn paint_apply(app: &mut VectorApp) {
 }
 
 /// Choose a brush style: it becomes the first of the recent ones and goes to the selection.
-fn choose_brush(app: &mut VectorApp, b: usize) {
+pub(crate) fn choose_brush(app: &mut VectorApp, b: usize) {
     let t = &mut app.settings.topts;
     t.paint_brush = b;
     t.paint_recent.retain(|x| *x != b);

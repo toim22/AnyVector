@@ -1196,6 +1196,49 @@ fn visual_dockers() {
                 |a| lens_state(a, 11),
             ],
             DockerId::Color => &[|a| a.dockers.ui.color_ed.view = 1, |a| a.dockers.ui.color_ed.view = 2],
+            DockerId::Properties => &[
+                |a| a.dockers.ui.pr.tab = 6,
+                |a| a.dockers.ui.pr.tabbed = false,
+                |a| {
+                    a.dockers.ui.pr.tabbed = true;
+                    a.dockers.ui.pr.summary = false;
+                    a.dockers.ui.pr.tab = 4;
+                },
+                |a| {
+                    a.dockers.ui.pr.summary = true;
+                    a.dockers.ui.pr.tab = 0;
+                    a.dockers.ui.pr.open[0] = false;
+                },
+                |a| {
+                    a.dockers.ui.pr.open[0] = true;
+                    a.dockers.ui.pr.tab = 1;
+                    pr_fill(a, 0);
+                },
+                |a| pr_fill(a, 2),
+                |a| pr_fill(a, 3),
+                |a| pr_fill(a, 4),
+                |a| pr_fill(a, 1),
+                |a| a.dockers.ui.pr.fill_ed.view = 1,
+                |a| a.dockers.ui.pr.fill_ed.view = 2,
+                |a| {
+                    a.dockers.ui.pr.fill_ed.view = 0;
+                    a.dockers.ui.pr.open[1] = false;
+                },
+                |a| {
+                    a.dockers.ui.pr.open[1] = true;
+                    a.dockers.ui.pr.tab = 2;
+                    pr_transparency(a, 1);
+                },
+                |a| pr_transparency(a, 2),
+                |a| pr_transparency(a, 3),
+                |a| pr_transparency(a, 4),
+                |a| pr_transparency(a, 5),
+                |a| {
+                    pr_transparency(a, 0);
+                    a.dockers.ui.pr.tab = 3;
+                },
+                |a| a.dockers.ui.pr.tab = 5,
+            ],
             DockerId::Comments => &[comments_state],
             DockerId::Symbols => &[symbols_state, |a| a.dockers.ui.sym_lib = 1, |a| a.dockers.ui.sym_local_open = true],
             DockerId::ObjectData => &[|a| a.dialogs.object_data_manager = true, |a| {
@@ -1256,6 +1299,16 @@ fn contour_state(a: &mut VectorApp, dir: vector_core::object::ContourDir, corner
 
 /// A Lens docker state: the selection gets a lens of the `k`th type.
 #[cfg(test)]
+fn pr_fill(a: &mut VectorApp, k: u8) {
+    let f = crate::dockers::props::new_fill(a, k, Color::rgb(70, 130, 200));
+    crate::propbar::edit_sel(a, "Fill", |o| o.style.fill = f.clone());
+}
+
+fn pr_transparency(a: &mut VectorApp, k: u8) {
+    let t = crate::dockers::props::new_transparency(a, k);
+    crate::propbar::edit_sel(a, "Transparency", |o| o.style.transparency = t.clone());
+}
+
 fn lens_state(a: &mut VectorApp, k: usize) {
     let l = vector_core::object::LensEffect::new(vector_core::object::LensKind::ALL[k]);
     crate::propbar::edit_sel(a, "Lens", |o| o.effects.lens = Some(l.clone()));

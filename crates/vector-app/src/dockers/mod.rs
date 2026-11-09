@@ -341,6 +341,8 @@ pub struct DockerUi {
     pub color_auto_outline: bool,
     /// The color editor whose eyedropper is sampling.
     pub coled_owner: Option<String>,
+    /// Properties docker.
+    pub pr: props::PropsUi,
     /// Comments docker: Show Annotations, Show Resolved, the search text, the selected comment,
     /// the comment being typed (id, text, a new one), the reply being typed.
     pub comment_show: bool,
@@ -476,6 +478,7 @@ impl Default for DockerUi {
             bevel: vector_core::object::BevelEffect::default(),
             bevel_for: None,
             color_ed: coled::ColorEd::default(),
+            pr: props::PropsUi::default(),
             color_edit: None,
             color_auto: false,
             color_auto_outline: false,
@@ -748,12 +751,6 @@ pub(crate) fn heading(ui: &mut Ui, text: &str) {
 
 pub(crate) fn primary(ui: &mut Ui, text: &str, enabled: bool) -> bool {
     ui.add_enabled(enabled, egui::Button::new(egui::RichText::new(text).color(Color32::WHITE)).fill(theme::ACCENT).min_size(vec2(90.0, 24.0))).clicked()
-}
-
-/// Unit-aware length field for dockers (wider than the property bar).
-pub(crate) fn len_field(app: &VectorApp, ui: &mut Ui, id: &str, v: &mut f64) -> bool {
-    let (u, dpi) = app.doc().map(|d| (d.doc.settings.unit, d.doc.settings.dpi)).unwrap_or((app.settings.default_unit, 300.0));
-    crate::widgets::unit_field(ui, egui::Id::unique(("dk", id)), v, u, dpi, 90.0, true)
 }
 
 // ----------------------------------------------------------------------------- docker forms
