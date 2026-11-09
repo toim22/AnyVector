@@ -1,4 +1,4 @@
-//! Tool identifiers, names, icons, shortcuts and toolbox grouping (from the Quick Customize list).
+//! Tool identifiers, names, icons and shortcuts, and the reference toolbox item of each tool.
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, serde::Serialize, serde::Deserialize)]
 pub enum ToolId {
@@ -80,7 +80,7 @@ macro_rules! t {
 }
 
 pub const TOOLS: &[ToolInfo] = &[
-    t!(Pick, "Pick", "pick", "", "Click an object to select it; Shift+click to select multiple objects; Alt+click to select hidden objects; Double-click to toggle rotate/skew handles"),
+    t!(Pick, "Pick", "pick", "", "Click an object twice for rotating/skewing; dbl-clicking tool selects all objects; Shift+click multi-selects; Alt+click digs; Ctrl+click selects in a group"),
     t!(FreehandPick, "Freehand Pick", "freehand_pick", "", "Drag around objects to select them with a freehand marquee"),
     t!(FreeTransform, "Free Transform", "free_transform", "", "Drag to rotate, reflect, scale or skew the selection freely"),
     t!(Shape, "Shape", "shape", "F10", "Click a curve object to select it; drag nodes to reshape; double-click a curve to add a node"),
@@ -121,12 +121,12 @@ pub const TOOLS: &[ToolInfo] = &[
     t!(HvDim, "Horizontal or Vertical Dimension", "hv_dim", "", "Drag to set the start and end points, then click to place the dimension line"),
     t!(AngularDim, "Angular Dimension", "angular_dim", "", "Click the vertex, then the two arms, then place the arc"),
     t!(SegmentDim, "Segment Dimension", "segment_dim", "", "Click a segment to measure it"),
-    t!(Callout, "3-Point Callout", "callout", "", "Drag to draw the leader, then click to set the shoulder and type the text"),
-    t!(StraightConnector, "Straight-Line Connector", "straight_connector", "", "Drag from one object to another to connect them"),
+    t!(Callout, "2-Leg Callout", "callout", "", "Drag to draw the leader, then click to set the shoulder and type the text"),
+    t!(StraightConnector, "Connector", "straight_connector", "", "Drag from one object to another to connect them"),
     t!(RightAngleConnector, "Right-Angle Connector", "right_angle_connector", "", "Drag from one object to another to connect them with a right-angle line"),
     t!(RoundedConnector, "Rounded Right-Angle Connector", "rounded_connector", "", "Drag from one object to another to connect them with a rounded right-angle line"),
-    t!(EditAnchor, "Edit Anchor", "edit_anchor", "", "Click an object to show its anchors; drag anchors to move them"),
-    t!(DropShadow, "Drop Shadow", "drop_shadow", "", "Drag from an object to add a drop shadow"),
+    t!(EditAnchor, "Anchor Editing", "edit_anchor", "", "Click an object to show its anchors; drag anchors to move them"),
+    t!(DropShadow, "Shadow", "drop_shadow", "", "Drag from an object to add a drop shadow"),
     t!(InnerShadow, "Inner Shadow", "inner_shadow", "", "Drag inside an object to add an inner shadow"),
     t!(BlockShadow, "Block Shadow", "block_shadow", "", "Drag from an object to add a block shadow"),
     t!(Contour, "Contour", "contour", "", "Drag from the center to the edge, or from the edge out, to add a contour"),
@@ -147,43 +147,79 @@ pub fn info(id: ToolId) -> &'static ToolInfo {
     TOOLS.iter().find(|t| t.id == id).unwrap()
 }
 
-/// Quick Customize groups: (group title, tools). The toolbox shows one button per group with a flyout.
-pub const GROUPS: &[(&str, &[ToolId])] = &[
-    ("Pick Tools", &[ToolId::Pick, ToolId::FreehandPick, ToolId::FreeTransform]),
-    ("Edit Shape Tools", &[ToolId::Shape, ToolId::Smooth, ToolId::Smear, ToolId::Twirl, ToolId::AttractRepel, ToolId::Smudge, ToolId::Roughen]),
-    ("Crop Tools", &[ToolId::Crop, ToolId::Knife, ToolId::VirtualDelete, ToolId::Eraser]),
-    ("Zoom Tools", &[ToolId::Zoom, ToolId::Pan]),
-    (
-        "Curve Tools",
-        &[ToolId::Freehand, ToolId::TwoPointLine, ToolId::Bezier, ToolId::Pen, ToolId::BSpline, ToolId::Polyline, ToolId::ThreePointCurve, ToolId::LiveSketch, ToolId::SmartDrawing],
-    ),
-    ("Artistic Media Tools", &[ToolId::ArtisticMedia]),
-    ("Rectangle Tools", &[ToolId::Rectangle, ToolId::Rect3]),
-    ("Ellipse Tools", &[ToolId::Ellipse, ToolId::Ellipse3]),
-    ("Object Tools", &[ToolId::Polygon, ToolId::Star, ToolId::Spiral, ToolId::GraphPaper, ToolId::CommonShapes]),
-    ("Text Tools", &[ToolId::Text, ToolId::Table]),
-    ("Dimension Tools", &[ToolId::ParallelDim, ToolId::HvDim, ToolId::AngularDim, ToolId::SegmentDim, ToolId::Callout]),
-    ("Connector Tools", &[ToolId::StraightConnector, ToolId::RightAngleConnector, ToolId::RoundedConnector, ToolId::EditAnchor]),
-    (
-        "Interactive Tools",
-        &[ToolId::DropShadow, ToolId::InnerShadow, ToolId::BlockShadow, ToolId::Contour, ToolId::Blend, ToolId::Distort, ToolId::Envelope, ToolId::Extrude],
-    ),
-    ("Transparency Tools", &[ToolId::Transparency]),
-    ("Eyedropper Tools", &[ToolId::ColorEyedropper, ToolId::AttributesEyedropper]),
-    ("Interactive Fill Tools", &[ToolId::InteractiveFill, ToolId::MeshFill, ToolId::SmartFill]),
-    ("Painterly Brush Tools", &[ToolId::PainterlyBrush]),
+/// The reference toolbox item (first 8 characters of its id) of each Vector tool. Where one
+/// reference tool stands for several Vector tools (the Connector and Shadow tools choose the kind
+/// on their property bar) the first one is the tool the item starts with.
+pub const TOOL_ITEMS: &[(&str, &[ToolId])] = &[
+    ("f1aee54d", &[ToolId::Pick]),
+    ("fb9a380a", &[ToolId::FreehandPick]),
+    ("a7119a39", &[ToolId::FreeTransform]),
+    ("ae9f4ba1", &[ToolId::Shape]),
+    ("6f4dfa2b", &[ToolId::Smooth]),
+    ("3faedeeb", &[ToolId::Smear]),
+    ("c5dce714", &[ToolId::Twirl]),
+    ("98797683", &[ToolId::AttractRepel]),
+    ("3ceaf4f4", &[ToolId::Smudge]),
+    ("0666b943", &[ToolId::Roughen]),
+    ("c3157ceb", &[ToolId::Crop]),
+    ("f2edc14d", &[ToolId::Knife]),
+    ("11e3cea8", &[ToolId::VirtualDelete]),
+    ("3eca6bde", &[ToolId::Eraser]),
+    ("5f1c9019", &[ToolId::Zoom]),
+    ("a34b8f68", &[ToolId::Pan]),
+    ("a4561afd", &[ToolId::Freehand]),
+    ("7c391635", &[ToolId::TwoPointLine]),
+    ("9462a0c7", &[ToolId::Bezier]),
+    ("6a131f1c", &[ToolId::Pen]),
+    ("b0afd160", &[ToolId::BSpline]),
+    ("faf6d5d5", &[ToolId::Polyline]),
+    ("39243caf", &[ToolId::ThreePointCurve]),
+    ("6307aedb", &[ToolId::PainterlyBrush]),
+    ("5d09b650", &[ToolId::ArtisticMedia]),
+    ("c63176a6", &[ToolId::LiveSketch]),
+    ("66816bbe", &[ToolId::SmartDrawing]),
+    ("1a105015", &[ToolId::Rectangle]),
+    ("7593c3e1", &[ToolId::Rect3]),
+    ("1810af9f", &[ToolId::Ellipse]),
+    ("0b4cd8b0", &[ToolId::Ellipse3]),
+    ("8a8221f7", &[ToolId::Polygon]),
+    ("dda23c6e", &[ToolId::Star]),
+    ("98987710", &[ToolId::Spiral]),
+    ("1c4173b2", &[ToolId::CommonShapes]),
+    ("0cedd43c", &[ToolId::GraphPaper]),
+    ("927a2b18", &[ToolId::Text]),
+    ("5507c778", &[ToolId::Table]),
+    ("f1b16e8a", &[ToolId::ParallelDim]),
+    ("f0a49225", &[ToolId::HvDim]),
+    ("7e764ff0", &[ToolId::AngularDim]),
+    ("4618f6d1", &[ToolId::SegmentDim]),
+    ("71ed077c", &[ToolId::Callout]),
+    ("2e3be6a6", &[ToolId::StraightConnector, ToolId::RightAngleConnector, ToolId::RoundedConnector]),
+    ("60f47f20", &[ToolId::EditAnchor]),
+    ("e65d1597", &[ToolId::DropShadow, ToolId::InnerShadow]),
+    ("441d6b88", &[ToolId::Contour]),
+    ("d72c98e8", &[ToolId::Blend]),
+    ("f42edc69", &[ToolId::Distort]),
+    ("1f16cb33", &[ToolId::Envelope]),
+    ("c5555cfc", &[ToolId::Extrude]),
+    ("249b7791", &[ToolId::BlockShadow]),
+    ("b4b2ecec", &[ToolId::Transparency]),
+    ("c109a053", &[ToolId::ColorEyedropper]),
+    ("87bf2821", &[ToolId::AttributesEyedropper]),
+    ("2c6e4e57", &[ToolId::InteractiveFill]),
+    ("af052244", &[ToolId::SmartFill]),
+    ("8f3b40f1", &[ToolId::MeshFill]),
 ];
 
-/// Separators in the toolbox appear after these group indices (as in the screenshot).
-pub const SEPARATOR_AFTER: &[usize] = &[1, 3, 8, 9, 11, 13, 15, 16];
-
-pub fn group_of(id: ToolId) -> usize {
-    GROUPS.iter().position(|(_, t)| t.contains(&id)).unwrap_or(0)
+/// The Vector tools a reference tool item stands for (empty where Vector has no such tool yet).
+pub fn item_tools(id: &str) -> &'static [ToolId] {
+    let k = id.get(..8).unwrap_or(id).to_ascii_lowercase();
+    TOOL_ITEMS.iter().find(|(i, _)| *i == k).map(|(_, t)| *t).unwrap_or(&[])
 }
 
-/// Tools that need a document to be usable.
-pub fn needs_doc(_id: ToolId) -> bool {
-    true
+/// The reference toolbox item (first 8 characters of its id) of a Vector tool.
+pub fn tool_item(t: ToolId) -> &'static str {
+    TOOL_ITEMS.iter().find(|(_, ts)| ts.contains(&t)).map(|(i, _)| *i).unwrap_or("")
 }
 
 impl ToolId {

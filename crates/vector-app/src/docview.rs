@@ -16,28 +16,16 @@ pub enum ViewMode {
 }
 
 impl ViewMode {
-    pub fn name(self) -> &'static str {
-        match self {
-            ViewMode::Wireframe => "Wireframe",
-            ViewMode::Normal => "Normal",
-            ViewMode::Enhanced => "Enhanced",
-            ViewMode::Pixels => "Pixels",
-            ViewMode::SimulateOverprint => "Simulate Overprints",
-        }
-    }
 }
 
 pub struct RenderCache {
     pub key: u64,
     pub tex: Option<egui::TextureHandle>,
-    /// Base layer without the dragged objects (used during interactive transforms).
-    pub base_key: u64,
-    pub base: Option<tiny_skia::Pixmap>,
 }
 
 impl Default for RenderCache {
     fn default() -> Self {
-        RenderCache { key: 0, tex: None, base_key: 0, base: None }
+        RenderCache { key: 0, tex: None }
     }
 }
 
@@ -76,7 +64,6 @@ pub struct DocView {
     pub canvas_rect: ERect,
     pub show_page_sorter: bool,
     pub last_saved_backup: f64,
-    pub recorded: Vec<String>,
 }
 
 pub fn view_affine(zoom: f64, origin: Vec2) -> Affine {
@@ -107,7 +94,6 @@ impl DocView {
             canvas_rect: ERect::NOTHING,
             show_page_sorter: false,
             last_saved_backup: 0.0,
-            recorded: vec![],
         }
     }
 
