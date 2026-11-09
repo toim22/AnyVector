@@ -564,3 +564,92 @@ dialog	Text > Writing Tools > Grammatik	partial	fewer grammar rules than the ref
 dialog	Text > Writing Tools > Language	done	checked against the reference
 dialog	Text > Change Case	done	checked against the reference
 dialog	Text > Encode	done	checked against the reference
+# Batch 6: Dockers
+docker	Properties	partial	matches the reference layout; skew of fills, texture and PostScript fills, bitmap tone adjustments, pattern offsets and Save as new are missing
+docker	Objects	partial	matches the reference; no drag and drop of layers and objects, the Desktop layer is not a real layer
+docker	Pages	partial	matches the reference; the Custom multipage arrangement is horizontal
+docker	Comments	partial	matches the reference; no anonymous mode
+docker	Object Data	partial	matches the reference; no Application Defaults, field formats or Print
+docker	Object Styles	partial	matches the reference; the style editor is simpler, Character/Paragraph/Frame styles are disabled
+docker	Symbols	partial	matches the reference; Network Symbols is empty
+docker	Find and Replace	partial	matches the reference; Pantone queries find nothing, Color model or palette replace is disabled
+docker	Export	partial	matches the reference; the export list cannot be reordered by dragging
+docker	AI Generate	done	terms page, then the create pages; the API key comes from an environment variable
+docker	Transform	partial	matches the reference; Scale portion is measured with two clicks
+docker	Coordinates	done	matches the reference
+docker	Live Guides	partial	matches the reference; the intelligent spacing and dimensioning marks are not drawn
+docker	Guidelines	partial	matches the reference; Show at scale is only stored
+docker	Align and Distribute	partial	matches the reference; Use outline is not shown
+docker	Fit Objects to Path	done	matches the reference
+docker	Step and Repeat	partial	matches the reference; the vertical offset runs down (the ruler is y-down)
+docker	Shape	done	matches the reference
+docker	Corners	done	matches the reference
+docker	Join Curves	done	matches the reference
+docker	Text	partial	matches the reference; some Character, Paragraph and Frame options are disabled
+docker	Font Sampler	partial	matches the reference; samples cannot be dragged into the drawing
+docker	Glyphs	partial	matches the reference; OpenType and Language info are empty, Show all glyph variations is disabled
+docker	Effects > Artistic Media	done	matches the reference
+docker	Effects > Bevel	partial	matches the reference; Emboss is approximate
+docker	Effects > Bitmap Mask	done	matches the reference
+docker	Effects > Blend	partial	matches the reference; fixed spacing, Map nodes, Split and Fuse are disabled
+docker	Effects > Contour	done	matches the reference
+docker	Effects > Envelope	partial	matches the reference; presets are approximated with 8 handles
+docker	Effects > Extrude	partial	matches the reference; Shared vanishing point is disabled, Copy VP From copies the whole extrusion
+docker	Effects > Lens	partial	matches the reference; Frozen is only stored, the Bitmap Effect lens does nothing
+docker	Effects > PhotoCocktail	done	matches the reference
+docker	Effects > Pointillizer	done	matches the reference
+docker	Color	partial	matches the reference; Add to Custom Spot Colors lasts for the session only
+docker	Palettes	partial	matches the reference; licensed palette books (PANTONE, TRUMATCH...) are not included
+docker	Color Styles	partial	matches the reference; styles link to objects by equal color only, the harmony wheel is display-only
+docker	Color Proofing	partial	matches the reference; CMYK output is simulated with a built-in SWOP approximation (no color engine)
+docker	Assets	partial	matches the reference; Cloud and Get More are disabled, categories are subfolders
+docker	Tray	partial	matches the reference; trays last for the session only
+docker	Links and Rollovers	partial	matches the reference; the hotspot is always the bounding box, Target and Alt are only stored
+docker	Sources	partial	matches the reference; only bitmaps can be linked
+docker	Views	partial	matches the reference; views are not listed in the zoom list
+docker	History	partial	matches the reference; no Save as a script
+docker	Scripts	partial	matches the reference; scripts are Rhai
+menu	Window > Dockers > Properties	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Objects	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Pages	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Comments	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Object Data	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Object Styles	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Symbols	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Find and Replace	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Export	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > AI Generate	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Transform	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Coordinates	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Live Guides	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Guidelines	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Align and Distribute	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Fit Objects to Path	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Step and Repeat	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Shape	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Corners	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Join Curves	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Text	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Font Sampler	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Glyphs	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Effects > Artistic Media	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Effects > Bevel	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Effects > Bitmap Mask	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Effects > Blend	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Effects > Contour	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Effects > Envelope	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Effects > Extrude	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Effects > Lens	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Effects > PhotoCocktail	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Effects > Pointillizer	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Color	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Palettes	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Color Styles	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Color Proofing	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Assets	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Tray	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Links and Rollovers	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Sources	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Views	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > History	done	opens the docker (its status is in the Dockers table)
+menu	Window > Dockers > Scripts	done	opens the docker (its status is in the Dockers table)

@@ -135,6 +135,66 @@ pub fn map_colors(p: &mut Pixmap, mut f: impl FnMut(f32, f32, f32) -> (f32, f32,
     }
 }
 
+/// The Fish Eye lens: what is around `c` within `radius` is bulged out (rate > 0) or squeezed in.
+pub fn fish_eye(src: &Pixmap, dst: &mut Pixmap, c: (f32, f32), radius: f32, rate: f32) {
+    let (w, h) = (src.width() as i32, src.height() as i32);
+    if radius < 1.0 {
+        return;
+    }
+    let k = if rate >= 0.0 { 1.0 + rate } else { 1.0 / (1.0 - rate) };
+    let s = src.data();
+    let d = dst.data_mut();
+    let (x0, x1) = (((c.0 - radius).floor() as i32).max(0), ((c.0 + radius).ceil() as i32).min(w - 1));
+    let (y0, y1) = (((c.1 - radius).floor() as i32).max(0), ((c.1 + radius).ceil() as i32).min(h - 1));
+    for y in y0..=y1 {
+        for x in x0..=x1 {
+            let (dx, dy) = (x as f32 - c.0, y as f32 - c.1);
+            let r = (dx * dx + dy * dy).sqrt() / radius;
+            if r >= 1.0 || r <= 0.0 {
+                continue;
+            }
+            let f = r.powf(k) / r;
+            let (sx, sy) = ((c.0 + dx * f).round() as i32, (c.1 + dy * f).round() as i32);
+            if sx < 0 || sy < 0 || sx >= w || sy >= h {
+                continue;
+            }
+            let (i, j) = (((y * w + x) * 4) as usize, ((sy * w + sx) * 4) as usize);
+            d[i..i + 4].copy_from_slice(&s[j..j + 4]);
+        }
+    }
+}
+
+/// The Wireframe lens: the objects lose their fills to `fill` and their edges are drawn in
+/// `outline` (None keeps their own).
+pub fn wireframe(p: &mut Pixmap, outline: Option<[u8; 3]>, fill: Option<[u8; 3]>) {
+    let (w, h) = (p.width() as usize, p.height() as usize);
+    let src = p.data().to_vec();
+    let lum = |i: usize| (src[i] as u32 * 3 + src[i + 1] as u32 * 6 + src[i + 2] as u32) / 10;
+    let d = p.data_mut();
+    for y in 0..h {
+        for x in 0..w {
+            let i = (y * w + x) * 4;
+            if src[i + 3] == 0 {
+                continue;
+            }
+            // an edge: a neighbour of a different shade
+            let edge = [(1i32, 0i32), (0, 1), (-1, 0), (0, -1)].iter().any(|(dx, dy)| {
+                let (nx, ny) = (x as i32 + dx, y as i32 + dy);
+                if nx < 0 || ny < 0 || nx >= w as i32 || ny >= h as i32 {
+                    return false;
+                }
+                let j = (ny as usize * w + nx as usize) * 4;
+                (lum(i) as i32 - lum(j) as i32).abs() > 24 || src[j + 3].abs_diff(src[i + 3]) > 64
+            });
+            let c = if edge { outline } else if lum(i) < 250 { fill } else { None };
+            if let Some(c) = c {
+                let a = src[i + 3] as f32;
+                premul(&mut d[i..i + 4], c[0] as f32, c[1] as f32, c[2] as f32, a);
+            }
+        }
+    }
+}
+
 pub fn grayscale(p: &mut Pixmap) {
     map_colors(p, |r, g, b| {
         let l = 0.299 * r + 0.587 * g + 0.114 * b;
@@ -285,6 +345,68 @@ pub fn bevel(p: &mut Pixmap, depth_px: f32, light_angle_deg: f32) {
             } else {
                 let s = 1.0 + shade.max(-1.0);
                 (r * s, g * s, b * s)
+            };
+            premul(&mut data[i..i + 4], r, g, b, a);
+        }
+    }
+}
+
+/// The light of a bevel: colors as 0..255 RGB, intensity 0..1, angles in degrees.
+pub struct BevelLight {
+    pub emboss: bool,
+    pub shadow: Option<[f32; 3]>,
+    pub light: [f32; 3],
+    pub intensity: f32,
+    pub direction: f32,
+    pub altitude: f32,
+}
+
+/// Effects ▸ Bevel: the edges of the layer's shape rise over `depth_px`; each pixel is lit by a
+/// light from `direction` at `altitude` (Soft edge) or embossed (the light grazing the surface).
+pub fn bevel_lit(p: &mut Pixmap, depth_px: f32, l: &BevelLight) {
+    let w = p.width() as usize;
+    let h = p.height() as usize;
+    if w < 3 || h < 3 {
+        return;
+    }
+    let mut height = Pixmap::new(w as u32, h as u32).unwrap();
+    {
+        let hd = height.data_mut();
+        for (i, px) in p.data().chunks_exact(4).enumerate() {
+            hd[i * 4..i * 4 + 4].fill(px[3]);
+        }
+    }
+    blur(&mut height, depth_px.max(1.0));
+    let hd = height.data().to_vec();
+    let alt = if l.emboss { 25.0f32 } else { l.altitude.clamp(0.0, 90.0) }.to_radians();
+    let dir = l.direction.to_radians();
+    let light = [dir.cos() * alt.cos(), -dir.sin() * alt.cos(), alt.sin()];
+    // the steepness of the rise: an emboss is sharper
+    let k = if l.emboss { 6.0 } else { 3.0 } * (1.0 + depth_px / 8.0).recip().max(0.15);
+    let data = p.data_mut();
+    let hv = |x: usize, y: usize| hd[(y * w + x) * 4 + 3] as f32 / 255.0;
+    for y in 1..h - 1 {
+        for x in 1..w - 1 {
+            let i = (y * w + x) * 4;
+            if data[i + 3] == 0 {
+                continue;
+            }
+            let gx = (hv(x + 1, y) - hv(x - 1, y)) * depth_px * k;
+            let gy = (hv(x, y + 1) - hv(x, y - 1)) * depth_px * k;
+            let n = [-gx, -gy, 1.0];
+            let len = (n[0] * n[0] + n[1] * n[1] + 1.0).sqrt();
+            // the change in lighting from a flat surface
+            let shade = ((n[0] * light[0] + n[1] * light[1] + n[2] * light[2]) / len - light[2]) * l.intensity * 2.0;
+            let (r, g, b, a) = unpremul(&data[i..i + 4]);
+            let (r, g, b) = if shade > 0.0 {
+                let s = shade.min(1.0);
+                (r + (l.light[0] - r) * s, g + (l.light[1] - g) * s, b + (l.light[2] - b) * s)
+            } else {
+                let s = (-shade).min(1.0);
+                match l.shadow {
+                    Some(c) => (r + (c[0] - r) * s, g + (c[1] - g) * s, b + (c[2] - b) * s),
+                    None => (r * (1.0 - s), g * (1.0 - s), b * (1.0 - s)),
+                }
             };
             premul(&mut data[i..i + 4], r, g, b, a);
         }

@@ -15,19 +15,30 @@ const RULER: f32 = 18.0;
 const NAV_H: f32 = 24.0;
 /// View ▸ Scrollbars: the thin bars along the bottom and the right of the drawing window.
 const SB: f32 = 12.0;
-/// Multipage view: the space between pages, in points.
-const PAGE_GAP: f64 = 36.0;
-
-/// Multipage view: where each page sits, as a horizontal offset from the current page.
-pub fn page_offsets(doc: &vector_core::Document, cur: usize) -> Vec<(usize, f64)> {
-    let mut xs = Vec::with_capacity(doc.pages.len());
-    let mut x = 0.0;
-    for p in &doc.pages {
-        xs.push(x);
-        x += p.width + PAGE_GAP;
+/// Multipage view: where each page sits, as an offset from the current page, by the Multipage
+/// view settings (a grid of columns, one column, one row; custom as one row).
+pub fn page_offsets(doc: &vector_core::Document, cur: usize) -> Vec<(usize, kurbo::Vec2)> {
+    let s = &doc.settings;
+    let gap = s.multipage_spacing.max(0.0);
+    let cols = match s.multipage_arrangement {
+        0 => s.multipage_columns.max(1) as usize,
+        1 => 1,
+        _ => usize::MAX,
+    };
+    let mut at = Vec::with_capacity(doc.pages.len());
+    let (mut x, mut y, mut row_h) = (0.0, 0.0, 0.0f64);
+    for (i, p) in doc.pages.iter().enumerate() {
+        if i > 0 && i % cols == 0 {
+            x = 0.0;
+            y += row_h + gap;
+            row_h = 0.0;
+        }
+        at.push(kurbo::Vec2::new(x, y));
+        x += p.width + gap;
+        row_h = row_h.max(p.height);
     }
-    let base = xs.get(cur).copied().unwrap_or(0.0);
-    xs.iter().enumerate().map(|(i, x)| (i, x - base)).collect()
+    let base = at.get(cur).copied().unwrap_or_default();
+    at.iter().enumerate().map(|(i, v)| (i, *v - base)).collect()
 }
 
 pub fn drawing_window(app: &mut VectorApp, ui: &mut Ui) {
@@ -129,13 +140,14 @@ pub fn drawing_window(app: &mut VectorApp, ui: &mut Ui) {
             let d = &mut app.docs[ai];
             let p = d.to_doc(inp.pos);
             if !d.page_ref().rect().contains(p) {
-                let hit = page_offsets(&d.doc, d.page).into_iter().find(|(i, dx)| *i != d.page && d.doc.pages[*i].rect().contains(p - kurbo::Vec2::new(*dx, 0.0)));
-                if let Some((i, dx)) = hit {
+                let hit = page_offsets(&d.doc, d.page).into_iter().find(|(i, dv)| *i != d.page && d.doc.pages[*i].rect().contains(p - *dv));
+                if let Some((i, dv)) = hit {
                     d.page = i;
                     d.selection.clear();
                     d.node_sel.clear();
                     d.text_edit = None;
-                    d.origin.x += (dx * d.zoom) as f32;
+                    d.origin.x += (dv.x * d.zoom) as f32;
+                    d.origin.y += (dv.y * d.zoom) as f32;
                     d.cache.key = 0;
                     d.after_change();
                 }
@@ -181,6 +193,7 @@ pub fn drawing_window(app: &mut VectorApp, ui: &mut Ui) {
         painter.rect_filled(canvas, 0.0, theme::DESKTOP);
     }
     tools::draw_overlay(app, &painter);
+    crate::dockers::draw_hotspots(app, &painter, &app.docs[ai]);
     printable_area(app, &painter, ai);
     if let Some((text, r)) = finish {
         let b = ui.interact(r, Id::unique(("finish_edit", app.docs[ai].uid)), Sense::click());
@@ -224,7 +237,7 @@ fn render_cache(app: &mut VectorApp, ctx: &egui::Context, ai: usize, canvas: Rec
     let ppp = ctx.pixels_per_point();
     let pw = (canvas.width() * ppp).round().max(1.0) as u32;
     let ph = (canvas.height() * ppp).round().max(1.0) as u32;
-    let proof_gray = app.dockers.ui.proof_gray;
+    let gamut = crate::dockers::gamut_overlay(app);
     let settings = &app.settings;
     let ts = &mut app.ts;
     let d = &mut app.docs[ai];
@@ -244,7 +257,7 @@ fn render_cache(app: &mut VectorApp, ctx: &egui::Context, ai: usize, canvas: Rec
     d.doc.settings.show_page_border.hash(&mut h);
     d.doc.settings.multipage_view.hash(&mut h);
     d.simulate_overprint.hash(&mut h);
-    (settings.proof_colors, proof_gray).hash(&mut h);
+    (settings.proof_colors, settings.proof_env_kind, settings.proof_preserve, gamut).hash(&mut h);
     let key = h.finish() | 1;
     if d.cache.key == key && d.cache.tex.is_some() {
         return;
@@ -295,11 +308,11 @@ fn render_cache(app: &mut VectorApp, ctx: &egui::Context, ai: usize, canvas: Rec
     if d.doc.settings.multipage_view && d.doc.pages.len() > 1 && d.view_mode != ViewMode::Pixels {
         // the other pages, side by side with the current one
         let others = vector_render::RenderOptions { draw_page: false, dim_others: None, ..opts.clone() };
-        for (i, dx) in page_offsets(&d.doc, d.page) {
+        for (i, dv) in page_offsets(&d.doc, d.page) {
             if i == d.page {
                 continue;
             }
-            let v = view * Affine::translate((dx, 0.0));
+            let v = view * Affine::translate(dv);
             let pr = v.transform_rect_bbox(d.doc.pages[i].rect());
             if pr.x1 < 0.0 || pr.x0 > pw as f64 || pr.y1 < 0.0 || pr.y0 > ph as f64 {
                 continue;
@@ -316,8 +329,10 @@ fn render_cache(app: &mut VectorApp, ctx: &egui::Context, ai: usize, canvas: Rec
             ts.renderer.render_page(&d.doc, i, v, &mut pm, &others);
         }
     }
-    if settings.proof_colors {
-        proof_pixmap(&mut pm, proof_gray, [dc[0], dc[1], dc[2], 255]);
+    if settings.proof_colors || gamut.is_some() {
+        // without Proof colors the view keeps its colors and shows the gamut warning only
+        let kind = if settings.proof_colors { settings.proof_env_kind } else { 9 };
+        proof_pixmap(&mut pm, kind, gamut, [dc[0], dc[1], dc[2], 255]);
     }
     let img = egui::ColorImage::from_rgba_premultiplied([pw as usize, ph as usize], pm.data());
     match &mut d.cache.tex {
@@ -327,10 +342,11 @@ fn render_cache(app: &mut VectorApp, ctx: &egui::Context, ai: usize, canvas: Rec
     d.cache.key = key;
 }
 
-/// View ▸ Proof Colors: the colors as the default press (U.S. Web Coated (SWOP)) would print
-/// them, or in grayscale when the Color Proofing docker simulates grayscale output.
-/// Pixels of the desktop color are left alone.
-fn proof_pixmap(pm: &mut tiny_skia::Pixmap, gray: bool, skip: [u8; 4]) {
+/// View ▸ Proof Colors: the colors as the proofing environment shows them (`kind` 0: the press,
+/// U.S. Web Coated (SWOP); 1: an RGB device, unchanged; 2: grayscale; else unchanged), and the
+/// colors the press cannot print covered with the `gamut` overlay. Pixels of the desktop color
+/// are left alone.
+pub fn proof_pixmap(pm: &mut tiny_skia::Pixmap, kind: u8, gamut: Option<[u8; 4]>, skip: [u8; 4]) {
     for px in pm.data_mut().chunks_exact_mut(4) {
         if *px == skip || px[3] == 0 {
             continue;
@@ -338,12 +354,26 @@ fn proof_pixmap(pm: &mut tiny_skia::Pixmap, gray: bool, skip: [u8; 4]) {
         let a = px[3] as f32;
         let un = |c: u8| (c as f32 * 255.0 / a).min(255.0);
         let (r, g, b) = (un(px[0]), un(px[1]), un(px[2]));
-        let (r, g, b) = if gray {
-            let l = 0.299 * r + 0.587 * g + 0.114 * b;
-            (l, l, l)
-        } else {
-            press_rgb(r / 255.0, g / 255.0, b / 255.0)
+        let press = press_rgb(r / 255.0, g / 255.0, b / 255.0);
+        let (r0, g0, b0) = (r, g, b);
+        let (mut r, mut g, mut b) = match kind {
+            0 => press,
+            2 => {
+                let l = 0.299 * r + 0.587 * g + 0.114 * b;
+                (l, l, l)
+            }
+            _ => (r, g, b),
         };
+        if let Some([gr, gg, gb, ga]) = gamut {
+            // out of gamut: the press moves the color far from the original
+            let dist = (press.0 - r0).abs() + (press.1 - g0).abs() + (press.2 - b0).abs();
+            if dist > 60.0 {
+                let t = ga as f32 / 255.0;
+                r = r * (1.0 - t) + gr as f32 * t;
+                g = g * (1.0 - t) + gg as f32 * t;
+                b = b * (1.0 - t) + gb as f32 * t;
+            }
+        }
         let pre = |c: f32| (c.clamp(0.0, 255.0) * a / 255.0).round() as u8;
         px[0] = pre(r);
         px[1] = pre(g);
@@ -399,8 +429,8 @@ fn printable_area(app: &mut VectorApp, painter: &egui::Painter, ai: usize) {
 fn scroll_extent(d: &crate::docview::DocView) -> kurbo::Rect {
     let mut r = d.page_ref().rect();
     if d.doc.settings.multipage_view {
-        for (i, dx) in page_offsets(&d.doc, d.page) {
-            r = r.union(d.doc.pages[i].rect() + kurbo::Vec2::new(dx, 0.0));
+        for (i, dv) in page_offsets(&d.doc, d.page) {
+            r = r.union(d.doc.pages[i].rect() + dv);
         }
     }
     let pr = d.page_ref().rect();
@@ -494,9 +524,9 @@ fn scrollbars(app: &mut VectorApp, ui: &mut Ui, ai: usize, canvas: Rect, hbar: R
     p.rect_filled(popup.expand(4.0), 2.0, theme::BAR);
     p.rect_stroke(popup.expand(4.0), 2.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Inside);
     p.rect_filled(popup, 0.0, theme::DESKTOP);
-    let pages: Vec<(usize, f64)> = if d.doc.settings.multipage_view { page_offsets(&d.doc, d.page) } else { vec![(d.page, 0.0)] };
-    for (i, dx) in pages {
-        let pr = d.doc.pages[i].rect() + kurbo::Vec2::new(dx, 0.0);
+    let pages: Vec<(usize, kurbo::Vec2)> = if d.doc.settings.multipage_view { page_offsets(&d.doc, d.page) } else { vec![(d.page, kurbo::Vec2::ZERO)] };
+    for (i, dv) in pages {
+        let pr = d.doc.pages[i].rect() + dv;
         let r = Rect::from_two_pos(to_pop(Point::new(pr.x0, pr.y0)), to_pop(Point::new(pr.x1, pr.y1)));
         p.rect_filled(r, 0.0, Color32::WHITE);
         if i == d.page {
@@ -518,6 +548,9 @@ fn cursor_for(app: &VectorApp, pos: Pos2) -> CursorIcon {
     }
     if app.ts.pick_target.is_some() {
         return CursorIcon::PointingHand;
+    }
+    if app.ts.markup.is_some() {
+        return CursorIcon::Crosshair;
     }
     let Some(d) = app.doc() else { return CursorIcon::Default };
     if app.settings.crosshair_cursor && app.tool != ToolId::Pick {

@@ -155,6 +155,24 @@ pub struct Settings {
     pub extra_toolbars: Vec<String>,
     /// Arrowheads made with Object ▸ Create ▸ Arrowhead, listed in the Arrowhead selectors.
     pub custom_arrowheads: Vec<vector_core::style::CustomArrow>,
+    /// Line styles made with Edit Line Style (dash lengths, in outline widths).
+    pub custom_dashes: Vec<Vec<f64>>,
+    /// Properties ▸ Summary ▸ Wrap Connector Line.
+    pub wrap_connector_lines: bool,
+    /// Object Styles ▸ Set as New Document Defaults.
+    pub default_object_styles: Vec<vector_core::document::ObjectStyle>,
+    /// Color Styles ▸ Set as New Document Defaults: the color styles and harmonies of new documents.
+    pub default_color_styles: Vec<vector_core::NamedColor>,
+    pub default_color_harmonies: Vec<vector_core::document::ColorHarmony>,
+    /// Objects docker ▸ Options.
+    pub edit_across_layers: bool,
+    pub om_expand_to_selection: bool,
+    pub om_keep_desktop: bool,
+    pub om_select_activates_layer: bool,
+    pub om_show_properties: bool,
+    pub om_show_master_on_pages: bool,
+    /// View Layers and Objects (true) or View Pages, Layers, and Objects.
+    pub om_layers_view: bool,
     /// Text ▸ Show Non-Printing Characters.
     pub show_nonprinting: bool,
     /// Text ▸ Insert Formatting Code ▸ Custom Optional Hyphens: (word, hyphenated word) and when they apply.
@@ -266,15 +284,45 @@ pub struct Settings {
     pub usage_stats: bool,
     // Session
     pub recent_files: Vec<PathBuf>,
+    /// Script folders loaded in the Scripts docker.
+    pub script_folders: Vec<PathBuf>,
     pub last_dir: Option<PathBuf>,
     pub workspace: String,
     pub open_dockers: Vec<String>,
+    /// Artistic Media docker: the custom strokes (name, stroke).
+    pub custom_strokes: Vec<(String, vector_core::style::WidthProfile)>,
     pub docker_width: f32,
     pub default_unit: Unit,
     pub show_tool_hints: u8,
     pub sync_folder: Option<PathBuf>,
     pub ai_provider_url: String,
     pub ai_api_key_env: String,
+    /// AI Generate: the Generative AI terms were accepted.
+    pub ai_terms_accepted: bool,
+    /// Links and Rollovers: cross-hatch the Web links' hotspots on the page.
+    pub show_hotspots: bool,
+    /// Assets docker: the folders of local and network assets, the options, the favorite and
+    /// recent assets, the thumbnail size and the view (thumbnails instead of the list).
+    pub asset_folders: Vec<String>,
+    pub asset_single_folder: bool,
+    pub asset_recursive: bool,
+    pub asset_favorites: Vec<String>,
+    pub asset_recent: Vec<String>,
+    pub asset_thumb: f32,
+    pub asset_icon_view: bool,
+    /// Color Proofing: the gamut warning, its color and transparency.
+    pub proof_gamut: bool,
+    pub proof_gamut_color: vector_core::Color,
+    pub proof_gamut_transparency: u32,
+    /// Color Proofing: the simulated environment, its color space (0 CMYK, 1 RGB, 2 Grayscale),
+    /// Preserve numbers, the rendering intent, the presets and the current preset ("" Custom).
+    pub proof_env: String,
+    pub proof_env_kind: u8,
+    pub proof_preserve: bool,
+    pub proof_intent: u8,
+    pub proof_presets: Vec<ProofPreset>,
+    pub proof_preset: String,
+    pub proof_show_desc: bool,
     pub window_maximized: bool,
     pub last_export_dir: Option<PathBuf>,
     // Live guides
@@ -284,6 +332,36 @@ pub struct Settings {
     pub live_guides_page: bool,
     /// View ▸ Dynamic Guides.
     pub dynamic_guides: bool,
+    /// Live Guides ▸ align to the individual objects in a group.
+    pub live_guides_groups: bool,
+    pub intelligent_spacing: bool,
+    pub intelligent_dimensioning: bool,
+    /// Live Guides ▸ line style (0 solid, 1 dashed, 2 dotted, 3 long dashes) and color of the alignment guides.
+    pub align_guide_style: usize,
+    pub align_guide_color: [u8; 3],
+    /// Live Guides ▸ Margins: alignment guides offset or inset from the object edges.
+    pub guide_margins: bool,
+    pub guide_margin_style: usize,
+    pub guide_margin_color: [u8; 3],
+    /// Horizontal and vertical margin, in points.
+    pub guide_margin: [f64; 2],
+    /// 0 Offset, 1 Inset, 2 Offset and inset, 3 No margin.
+    pub guide_margin_mode: [usize; 2],
+    pub guide_margins_locked: bool,
+    pub dyn_guide_style: usize,
+    pub dyn_guide_color: [u8; 3],
+    pub dyn_screen_tips: bool,
+    pub dyn_extend_segment: bool,
+    /// Snap to tick spacing along the dynamic guides.
+    pub dyn_ticks: bool,
+    pub dyn_tick_spacing: f64,
+    /// The dynamic guide angles (degrees) and whether each is on.
+    pub dyn_angles: Vec<(f64, bool)>,
+    /// Guidelines ▸ line style and color of new guidelines.
+    pub guide_line_style: usize,
+    pub guide_color: [u8; 3],
+    /// Guidelines ▸ Options ▸ Show at scale.
+    pub guides_at_scale: bool,
     /// View ▸ Rasterize Complex Effects.
     pub rasterize_complex_effects: bool,
     /// View ▸ Document Navigator and View ▸ Scrollbars.
@@ -425,6 +503,18 @@ impl Default for Settings {
             show_toolbox: true,
             extra_toolbars: vec![],
             custom_arrowheads: vec![],
+            custom_dashes: vec![],
+            wrap_connector_lines: true,
+            default_object_styles: vec![],
+            default_color_styles: vec![],
+            default_color_harmonies: vec![],
+            edit_across_layers: true,
+            om_expand_to_selection: true,
+            om_keep_desktop: true,
+            om_select_activates_layer: true,
+            om_show_properties: false,
+            om_show_master_on_pages: false,
+            om_layers_view: false,
             show_nonprinting: false,
             hyphen_defs: vec![],
             hyphen_when_typing: true,
@@ -519,15 +609,36 @@ impl Default for Settings {
             user_company: String::new(),
             usage_stats: false,
             recent_files: vec![],
+            script_folders: vec![],
             last_dir: None,
             workspace: "Default".into(),
             open_dockers: vec![],
+            custom_strokes: vec![],
             docker_width: 280.0,
             default_unit: Unit::Inches,
             show_tool_hints: 0,
             sync_folder: None,
             ai_provider_url: String::new(),
             ai_api_key_env: "ANTHROPIC_API_KEY".into(),
+            ai_terms_accepted: false,
+            show_hotspots: true,
+            asset_folders: vec![],
+            asset_single_folder: true,
+            asset_recursive: true,
+            asset_favorites: vec![],
+            asset_recent: vec![],
+            asset_thumb: 48.0,
+            asset_icon_view: false,
+            proof_gamut: false,
+            proof_gamut_color: vector_core::Color::rgb(0, 255, 0),
+            proof_gamut_transparency: 0,
+            proof_env: "U.S. Web Coated (SWOP) v2".into(),
+            proof_env_kind: 0,
+            proof_preserve: false,
+            proof_intent: 0,
+            proof_presets: vec![],
+            proof_preset: String::new(),
+            proof_show_desc: true,
             window_maximized: true,
             last_export_dir: None,
             live_guides: true,
@@ -535,6 +646,27 @@ impl Default for Settings {
             live_guides_centers: true,
             live_guides_page: true,
             dynamic_guides: false,
+            live_guides_groups: false,
+            intelligent_spacing: true,
+            intelligent_dimensioning: true,
+            align_guide_style: 1,
+            align_guide_color: [220, 215, 255],
+            guide_margins: false,
+            guide_margin_style: 1,
+            guide_margin_color: [255, 180, 100],
+            guide_margin: [14.4, 14.4],
+            guide_margin_mode: [0, 0],
+            guide_margins_locked: true,
+            dyn_guide_style: 1,
+            dyn_guide_color: [100, 150, 255],
+            dyn_screen_tips: true,
+            dyn_extend_segment: false,
+            dyn_ticks: false,
+            dyn_tick_spacing: 9.0,
+            dyn_angles: vec![(0.0, true), (30.0, false), (45.0, true), (60.0, false), (90.0, true), (120.0, false), (135.0, true), (150.0, false)],
+            guide_line_style: 2,
+            guide_color: [0, 0, 255],
+            guides_at_scale: false,
             rasterize_complex_effects: false,
             show_doc_navigator: true,
             show_scrollbars: true,
@@ -576,6 +708,16 @@ pub fn format_time(t: std::time::SystemTime) -> String {
 
 /// File-format versions offered in Save Drawing ▸ Version and Options ▸ Save.
 pub const FILE_VERSIONS: &[&str] = &["0.1 (2026.0)"];
+
+/// A Color Proofing preset: the environment, its color space, Preserve numbers and the intent.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ProofPreset {
+    pub name: String,
+    pub env: String,
+    pub kind: u8,
+    pub preserve: bool,
+    pub intent: u8,
+}
 
 pub fn config_dir() -> PathBuf {
     let base = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));

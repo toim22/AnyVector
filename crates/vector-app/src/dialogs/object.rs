@@ -274,7 +274,7 @@ pub fn make_pattern(doc: &mut Document, page: usize, area: Rect, kind: u8, resol
     let name = format!("Pattern {n}");
     let img = ImageData { width: pm.width(), height: pm.height(), rgba: Arc::new(rgba), encoded: Arc::new(vec![]), format: "png".into(), name: name.clone() };
     let iid = doc.add_image(img);
-    let fill = PatternFill { kind: PatternKind::Checker, fg: Color::BLACK, bg: Color::WHITE, tile: area.width().max(area.height()), angle: 0.0, image: Some(iid), transform_with_object: true };
+    let fill = PatternFill { kind: PatternKind::Checker, fg: Color::BLACK, bg: Color::WHITE, tile: area.width().max(area.height()), angle: 0.0, image: Some(iid), transform_with_object: true, vector: true, mirror: 0 };
     doc.patterns.push(NamedPattern { name: name.clone(), fill });
     Some(name)
 }
@@ -451,7 +451,7 @@ pub fn edit_master(app: &mut VectorApp) {
     }
     let Some(def) = d.doc.symbols.iter().find(|s| s.id == sid).cloned() else { return };
     let Some(tr) = d.doc.find(inst).map(|o| o.transform) else { return };
-    let (page, layer) = (d.page, d.layer);
+    let (page, layer) = d.active_loc();
     let mut ids = vec![];
     d.modify("Edit Symbol", |doc, sel| {
         if let Some(o) = doc.find_mut(inst) {
@@ -516,12 +516,51 @@ pub fn export_library(app: &mut VectorApp) {
         app.flash("This document has no symbols.");
         return;
     }
-    let Some(path) = rfd::FileDialog::new().set_title("Export Library").add_filter("CSL - Symbol Library (*.csl)", &["csl"]).set_file_name(format!("{}.csl", d.stem())).save_file() else { return };
+    let Some(path) = rfd::FileDialog::new().set_title("Export Library").add_filter("CSL - Symbol Library (*.csl)", &["csl"]).set_directory(symbols_dir()).set_file_name(format!("{}.csl", d.stem())).save_file() else { return };
     let lib = SymbolLibrary { symbols: d.doc.symbols.iter().map(|s| SymbolDef { link: None, ..s.clone() }).collect() };
     match serde_json::to_vec_pretty(&lib).map_err(|e| e.to_string()).and_then(|b| std::fs::write(&path, b).map_err(|e| e.to_string())) {
         Ok(()) => app.flash(&format!("Exported {} symbols to {}.", lib.symbols.len(), path.display())),
         Err(e) => app.dialogs.message_box = Some(("Export Library".into(), format!("Could not write the library: {e}"))),
     }
+}
+
+/// Import Library: the symbols of a library, linked to it.
+pub fn import_library(app: &mut VectorApp) {
+    let Some(path) = rfd::FileDialog::new().set_title("Import Library").add_filter("CSL - Symbol Library (*.csl)", &["csl"]).set_directory(symbols_dir()).pick_file() else { return };
+    let link = path.to_string_lossy().to_string();
+    match read_library(&link) {
+        Ok(syms) => {
+            if let Some(d) = app.doc_mut() {
+                d.modify("Import Library", |doc, _| {
+                    for s in syms {
+                        if doc.symbols.iter().any(|x| x.name == s.name && x.link.as_deref() == Some(link.as_str())) {
+                            continue;
+                        }
+                        add_linked_symbol(doc, &s, &link);
+                    }
+                });
+            }
+        }
+        Err(e) => app.dialogs.message_box = Some(("Import Library".into(), format!("Could not read {link}: {e}"))),
+    }
+}
+
+/// Add a library's symbol to the document, linked to the library; gives its id.
+pub fn add_linked_symbol(doc: &mut vector_core::Document, s: &SymbolDef, link: &str) -> u64 {
+    let mut objs = s.objects.clone();
+    for o in objs.iter_mut() {
+        doc.reassign_ids(o);
+    }
+    let id = doc.new_id();
+    doc.symbols.push(SymbolDef { id, name: s.name.clone(), objects: objs, link: Some(link.to_string()) });
+    id
+}
+
+/// The folder of the local symbol libraries (%APPDATA%\Vector\Symbols).
+pub fn symbols_dir() -> std::path::PathBuf {
+    let d = crate::settings::config_dir().join("Symbols");
+    let _ = std::fs::create_dir_all(&d);
+    d
 }
 
 /// Read a symbol library written by Export Library.

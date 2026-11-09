@@ -18,11 +18,26 @@ pub struct Layer {
     pub locked: bool,
     pub color: Color,
     pub objects: Vec<Object>,
+    /// 0 a local layer; a master layer of the Master Page shown on 1 all pages, 2 odd pages,
+    /// 3 even pages. Master layers are stored with the first page.
+    #[serde(default)]
+    pub master: u8,
 }
 
 impl Layer {
     pub fn new(id: u64, name: &str) -> Layer {
-        Layer { id, name: name.to_string(), visible: true, printable: true, locked: false, color: Color::rgb(0, 102, 204), objects: vec![] }
+        Layer { id, name: name.to_string(), visible: true, printable: true, locked: false, color: Color::rgb(34, 31, 32), objects: vec![], master: 0 }
+    }
+
+    /// Whether this layer is drawn on page `page` (0-based): local layers on their own page,
+    /// master layers on all, odd or even pages.
+    pub fn shows_on(&self, page: usize) -> bool {
+        match self.master {
+            1 => true,
+            2 => page % 2 == 0,
+            3 => page % 2 == 1,
+            _ => false,
+        }
     }
 }
 
@@ -76,6 +91,14 @@ pub enum GridKind {
     Dots,
 }
 
+fn three() -> u32 {
+    3
+}
+
+fn half_inch() -> f64 {
+    36.0
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DocSettings {
     pub unit: Unit,
@@ -113,6 +136,14 @@ pub struct DocSettings {
     /// Page view: false = single page, true = multipage.
     #[serde(default)]
     pub multipage_view: bool,
+    /// Multipage view settings: 0 grid, 1 vertical, 2 horizontal, 3 custom; the grid columns and
+    /// the spacing between pages in points.
+    #[serde(default)]
+    pub multipage_arrangement: u8,
+    #[serde(default = "three")]
+    pub multipage_columns: u32,
+    #[serde(default = "half_inch")]
+    pub multipage_spacing: f64,
     /// View ▸ Grid ▸ Baseline Grid, and the baseline spacing in points.
     #[serde(default)]
     pub show_baseline_grid: bool,
@@ -273,6 +304,9 @@ impl Default for DocSettings {
             facing_pages: false,
             color: ColorSettings::default(),
             multipage_view: false,
+            multipage_arrangement: 0,
+            multipage_columns: 3,
+            multipage_spacing: 36.0,
             show_baseline_grid: false,
             baseline_spacing: default_baseline_spacing(),
             snap_to_baseline: false,
@@ -302,10 +336,26 @@ pub struct NamedPattern {
     pub fill: crate::style::PatternFill,
 }
 
+/// A color harmony (Color Styles docker): its color styles and the harmony rule that relates
+/// their hues (0 Custom, 1 Analogous - Accented, 2 Analogous, 3 Complementary, 4 Monochromatic,
+/// 5 Tetrad, 6 Triad).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct ColorHarmony {
+    pub name: String,
+    #[serde(default)]
+    pub rule: u8,
+    #[serde(default)]
+    pub styles: Vec<NamedColor>,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ObjectStyle {
     pub name: String,
     pub style: Style,
+    /// 0 a style set (outline, fill and transparency); a style of 1 the outline, 2 the fill,
+    /// 3 the transparency.
+    #[serde(default)]
+    pub kind: u8,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -491,6 +541,37 @@ pub struct Comment {
     pub page: u64,
     pub resolved: bool,
     pub replies: Vec<(String, String)>,
+    /// The mark: 0 note, 1 arrow, 2 highlighter, 3 freehand, 4 rectangle, 5 ellipse.
+    #[serde(default)]
+    pub mark: u8,
+    /// The mark's points after `pos`: the arrow's end, the stroke, the opposite corner.
+    #[serde(default)]
+    pub pts: Vec<Point>,
+    #[serde(default = "comment_color")]
+    pub color: Color,
+    #[serde(default = "comment_width")]
+    pub width: f64,
+    /// Fill of a rectangle or ellipse mark.
+    #[serde(default)]
+    pub fill: Option<Color>,
+    #[serde(default)]
+    pub date: String,
+}
+
+fn comment_color() -> Color {
+    Color::rgb(0xe5, 0x2b, 0x2b)
+}
+
+fn comment_width() -> f64 {
+    1.5
+}
+
+impl Comment {
+    /// A comment of `mark` at `pts` (the first point is the position), in the mark's default style.
+    pub fn new(id: u64, page: u64, author: String, mark: u8, pts: &[Point]) -> Comment {
+        let (color, width) = if mark == 2 { (Color::rgb(0xff, 0xe6, 0x00), 12.0) } else { (comment_color(), comment_width()) };
+        Comment { id, author, text: String::new(), pos: pts.first().copied().unwrap_or_default(), page, resolved: false, replies: vec![], mark, pts: pts.iter().skip(1).copied().collect(), color, width, fill: None, date: String::new() }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -510,6 +591,9 @@ pub struct Document {
     /// Document palette (colors stored with the document).
     pub palette: Vec<NamedColor>,
     pub color_styles: Vec<NamedColor>,
+    /// Color harmonies: folders of color styles that change together.
+    #[serde(default)]
+    pub color_harmonies: Vec<ColorHarmony>,
     pub object_styles: Vec<ObjectStyle>,
     pub symbols: Vec<SymbolDef>,
     /// Image store; pixel data is saved separately by the file format.
@@ -528,6 +612,9 @@ pub struct Document {
     /// Patterns made with Object ▸ Create ▸ Pattern Fill.
     #[serde(default)]
     pub patterns: Vec<NamedPattern>,
+    /// Externally linked images: image id → the source file (Sources docker).
+    #[serde(default)]
+    pub links: BTreeMap<u64, String>,
     next_id: u64,
 }
 
@@ -548,6 +635,7 @@ impl Document {
             info: DocInfo::default(),
             palette: vec![],
             color_styles: vec![],
+            color_harmonies: vec![],
             object_styles: vec![],
             symbols: vec![],
             images: BTreeMap::new(),
@@ -558,6 +646,7 @@ impl Document {
             print_merge: None,
             arrowheads: vec![],
             patterns: vec![],
+            links: BTreeMap::new(),
             next_id: 1,
         };
         let pid = d.new_id();
@@ -621,7 +710,7 @@ impl Document {
         let names: Vec<(String, bool, bool, bool)> = self
             .pages
             .first()
-            .map(|pg| pg.layers.iter().map(|l| (l.name.clone(), l.visible, l.printable, l.locked)).collect())
+            .map(|pg| pg.layers.iter().filter(|l| l.master == 0).map(|l| (l.name.clone(), l.visible, l.printable, l.locked)).collect())
             .unwrap_or_else(|| vec![("Layer 1".into(), true, true, false)]);
         for (n, v, pr, lk) in names {
             let lid = self.new_id();
@@ -765,7 +854,105 @@ impl Document {
 
     /// Refresh the page number text objects after pages were added, moved or deleted, or the
     /// Page Number Settings changed. Returns true when a number changed.
+    /// The layers drawn on a page, bottom to top, with where each is stored (page, layer index):
+    /// the page's own layers, then the master layers that show on it (master-page content sits on
+    /// top).
+    pub fn layers_on_page(&self, page: usize) -> Vec<(usize, usize, &Layer)> {
+        let mut v: Vec<(usize, usize, &Layer)> = vec![];
+        if let Some(pg) = self.pages.get(page) {
+            v.extend(pg.layers.iter().enumerate().filter(|(_, l)| l.master == 0).map(|(i, l)| (page, i, l)));
+        }
+        if let Some(first) = self.pages.first() {
+            v.extend(first.layers.iter().enumerate().filter(|(_, l)| l.shows_on(page)).map(|(i, l)| (0, i, l)));
+        }
+        v
+    }
+
+    /// The master layers (stored with the first page): (layer index, layer).
+    pub fn master_layers(&self) -> Vec<(usize, &Layer)> {
+        self.pages.first().map(|p| p.layers.iter().enumerate().filter(|(_, l)| l.master != 0).collect()).unwrap_or_default()
+    }
+
+    /// Remove the master layers from every page (before pages are deleted); put them back with
+    /// [`Document::restore_master_layers`].
+    pub fn take_master_layers(&mut self) -> Vec<Layer> {
+        let mut v = vec![];
+        for p in self.pages.iter_mut() {
+            let (m, local): (Vec<Layer>, Vec<Layer>) = std::mem::take(&mut p.layers).into_iter().partition(|l| l.master != 0);
+            p.layers = local;
+            v.extend(m);
+        }
+        v
+    }
+
+    pub fn restore_master_layers(&mut self, layers: Vec<Layer>) {
+        if let Some(p) = self.pages.first_mut() {
+            p.layers.extend(layers);
+        }
+    }
+
+    /// Keep the master layers with the first page after pages were reordered.
+    pub fn fix_master_layers(&mut self) {
+        if self.pages.iter().skip(1).any(|p| p.layers.iter().any(|l| l.master != 0)) {
+            let m = self.take_master_layers();
+            self.restore_master_layers(m);
+        }
+    }
+
+    /// Add a master layer shown on 1 all, 2 odd or 3 even pages; returns its index on the first
+    /// page.
+    pub fn new_master_layer(&mut self, kind: u8) -> usize {
+        let id = self.new_id();
+        let n = self.pages.first().map(|p| p.layers.len()).unwrap_or(0) + 1;
+        let which = match kind {
+            2 => "odd pages",
+            3 => "even pages",
+            _ => "all pages",
+        };
+        let mut l = Layer::new(id, &format!("Layer {n} ({which})"));
+        l.master = kind.clamp(1, 3);
+        l.color = Color::rgb(0, 0, 255);
+        let p = &mut self.pages[0];
+        p.layers.push(l);
+        p.layers.len() - 1
+    }
+
+    /// The page number text of page `page` (Layout ▸ Page Number Settings).
+    pub fn page_number_text(&self, page: usize) -> String {
+        page_number_label(page, self.settings.page_number_start, self.settings.page_number_from, self.settings.page_number_style)
+    }
+
+    /// A master-layer object as drawn on page `page`: page numbers show that page's number.
+    pub fn object_on_page<'a>(&self, o: &'a Object, page: usize) -> std::borrow::Cow<'a, Object> {
+        let mut has = false;
+        o.walk(&mut |x| {
+            if let crate::object::ObjKind::Text(t) = &x.kind {
+                has |= t.page_number;
+            }
+        });
+        if !has || page == 0 {
+            return std::borrow::Cow::Borrowed(o);
+        }
+        let label = self.page_number_text(page);
+        let mut c = o.clone();
+        c.walk_mut(&mut |x| {
+            if let crate::object::ObjKind::Text(t) = &mut x.kind {
+                if t.page_number {
+                    t.content = label.clone();
+                    let n = t.content.chars().count();
+                    for sp in &mut t.spans {
+                        sp.start = sp.start.min(n);
+                        sp.end = sp.end.min(n);
+                    }
+                    t.spans.retain(|sp| sp.start < sp.end);
+                }
+            }
+        });
+        std::borrow::Cow::Owned(c)
+    }
+
     pub fn update_page_numbers(&mut self) -> bool {
+        self.fix_master_layers();
         let (start, from, style) = (self.settings.page_number_start, self.settings.page_number_from, self.settings.page_number_style);
         let mut changed = false;
         for (i, pg) in self.pages.iter_mut().enumerate() {
@@ -999,8 +1186,7 @@ impl Document {
 
     /// Hit-test the topmost object at a point on a page. Returns the top-level object id.
     pub fn hit_test(&self, page: usize, p: Point, tolerance: f64, treat_as_filled: bool) -> Option<ObjId> {
-        let pg = self.pages.get(page)?;
-        for l in pg.layers.iter().rev() {
+        for (_, _, l) in self.layers_on_page(page).into_iter().rev() {
             if !l.visible || l.locked {
                 continue;
             }
@@ -1068,8 +1254,8 @@ impl Document {
     /// All top-level object ids on a page (visible, unlocked layers) whose bounds fall inside `r`.
     pub fn objects_in_rect(&self, page: usize, r: Rect, touching: bool) -> Vec<ObjId> {
         let mut v = vec![];
-        if let Some(pg) = self.pages.get(page) {
-            for l in &pg.layers {
+        {
+            for (_, _, l) in self.layers_on_page(page) {
                 if !l.visible || l.locked {
                     continue;
                 }

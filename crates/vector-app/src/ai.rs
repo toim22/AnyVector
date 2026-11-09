@@ -306,8 +306,40 @@ pub fn quick_dialog(app: &mut VectorApp, ctx: &egui::Context) {
 }
 
 /// Shared UI used by the AI Generate docker and the quick dialog.
+/// The Generative AI terms, shown until they are accepted: what the AI features need and send,
+/// the policy, and I agree / I do not agree.
+fn terms(app: &mut VectorApp, ui: &mut egui::Ui) {
+    ui.add_space(10.0);
+    ui.label(egui::RichText::new("Generative AI Terms").font(crate::theme::bold(13.0)));
+    ui.add_space(10.0);
+    ui.label("To use the AI features of Vector, you must be at least 18 years old and accept the Generative AI Policy. If you are under 18 or do not accept it, do not use these features.");
+    ui.add_space(10.0);
+    ui.label("The AI features send your description, and any artwork you choose as a reference, to a third-party AI model (Claude, by Anthropic) to generate the result.");
+    ui.add_space(14.0);
+    ui.vertical_centered(|ui| {
+        if ui.add(egui::Button::new("Generative AI Policy...").min_size(egui::vec2(150.0, 24.0))).clicked() {
+            crate::bugreport::open_in_browser("https://www.anthropic.com/legal/aup");
+        }
+    });
+    ui.add_space(14.0);
+    ui.label("By clicking 'I agree', you accept the Generative AI Policy and confirm that you are at least 18 years old.");
+    ui.add_space(14.0);
+    ui.allocate_ui_with_layout(egui::vec2(ui.available_width(), 26.0), egui::Layout::right_to_left(egui::Align::Center), |ui| {
+        if ui.add(egui::Button::new("I do not agree").min_size(egui::vec2(90.0, 24.0))).clicked() {
+            app.dockers.close(crate::dockers::DockerId::AiGenerate);
+        }
+        if ui.add(egui::Button::new("I agree").min_size(egui::vec2(60.0, 24.0))).clicked() {
+            app.settings.ai_terms_accepted = true;
+            app.settings.save();
+        }
+    });
+}
+
 pub fn panel(app: &mut VectorApp, ui: &mut egui::Ui) {
-    ui.horizontal(|ui| {
+    if !app.settings.ai_terms_accepted {
+        return terms(app, ui);
+    }
+    ui.horizontal_wrapped(|ui| {
         for (i, m) in MODES.iter().enumerate() {
             ui.selectable_value(&mut app.ai.mode, i as u8, *m);
         }

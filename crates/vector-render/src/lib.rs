@@ -144,12 +144,17 @@ impl Renderer {
             }
         }
         let ctx = Ctx { doc, view, opts };
-        for layer in &pg.layers {
+        for (_, _, layer) in doc.layers_on_page(page) {
             if !layer.visible || (opts.printing && !layer.printable) {
                 continue;
             }
             for o in &layer.objects {
-                self.render_object(&ctx, o, target);
+                if layer.master != 0 {
+                    let o = doc.object_on_page(o, page);
+                    self.render_object(&ctx, &o, target);
+                } else {
+                    self.render_object(&ctx, o, target);
+                }
             }
         }
     }
@@ -224,6 +229,37 @@ impl Renderer {
                 return self.render_object(&sub, &plain, target);
             }
         }
+        if o.style.transparency_target != 0 && !matches!(o.style.transparency, Transparency::None) && !ctx.opts.wireframe && o.style.outline.is_visible() && !o.style.fill.is_none() {
+            // the transparency applies to the fill or to the outline only: draw them apart
+            let mut fill = o.clone();
+            fill.style.outline = Outline::none();
+            fill.style.transparency_target = 0;
+            let mut line = o.clone();
+            line.style.fill = Fill::None;
+            line.style.transparency_target = 0;
+            line.effects.drop_shadow = None;
+            line.effects.inner_shadow = None;
+            line.effects.block_shadow = None;
+            line.effects.extrude = None;
+            if o.style.transparency_target == 1 {
+                line.style.transparency = Transparency::None;
+            } else {
+                fill.style.transparency = Transparency::None;
+            }
+            if o.style.outline.behind_fill {
+                fill.effects.drop_shadow = None;
+                fill.effects.inner_shadow = None;
+                fill.effects.block_shadow = None;
+                fill.effects.extrude = None;
+                line.effects = o.effects.clone();
+                self.render_object(ctx, &line, target);
+                self.render_object(ctx, &fill, target);
+            } else {
+                self.render_object(ctx, &fill, target);
+                self.render_object(ctx, &line, target);
+            }
+            return;
+        }
         let needs_layer = !ctx.opts.wireframe
             && (overprints
                 || !matches!(o.style.transparency, Transparency::None)
@@ -265,8 +301,17 @@ impl Renderer {
                     BitmapEffect::Invert => fx::invert(&mut layer),
                 }
             }
-            if let Some((depth, angle)) = o.effects.bevel {
-                fx::bevel(&mut layer, (depth * view_scale(ctx.view)) as f32, angle as f32);
+            if let Some(b) = &o.effects.bevel {
+                let depth = if b.to_center { (layer.width().min(layer.height()) as f32) / 2.0 } else { (b.distance * view_scale(ctx.view)) as f32 };
+                let col = |c: vector_core::Color| [c.r as f32, c.g as f32, c.b as f32];
+                fx::bevel_lit(&mut layer, depth, &fx::BevelLight {
+                    emboss: b.emboss,
+                    shadow: b.shadow.map(col),
+                    light: col(b.light),
+                    intensity: (b.intensity / 100.0) as f32,
+                    direction: b.direction as f32,
+                    altitude: b.altitude as f32,
+                });
             }
             let mut opacity = o.style.transparency.uniform_opacity();
             if let Some(d) = dimmed {
@@ -275,6 +320,9 @@ impl Renderer {
             let mut mask = None;
             if let Transparency::Gradient(g) = &o.style.transparency {
                 mask = gradient_mask(o, g, &sub.view, w, h);
+            }
+            if let Transparency::Pattern { pattern, front, back } = &o.style.transparency {
+                mask = self.pattern_mask(&sub, o, pattern, *front, *back, w, h);
             }
             let mut pp = sk::PixmapPaint::default();
             pp.opacity = opacity;
@@ -293,6 +341,10 @@ impl Renderer {
     fn render_plain(&mut self, ctx: &Ctx, o: &Object, target: &mut sk::Pixmap) {
         if ctx.opts.wireframe {
             return self.render_wire(ctx, o, target);
+        }
+        if let Some(l) = &o.effects.lens {
+            // a lens shows what is under it, changed; its own fill is not drawn
+            return self.render_lens(ctx, o, l, target);
         }
         // shadows / extrusions behind the object
         if let Some(s) = &o.effects.drop_shadow {
@@ -436,9 +488,6 @@ impl Renderer {
                 }
             }
         }
-        if let Some(l) = &o.effects.lens {
-            self.render_lens(ctx, o, l, target);
-        }
     }
 
     fn render_wire(&mut self, ctx: &Ctx, o: &Object, target: &mut sk::Pixmap) {
@@ -511,7 +560,7 @@ impl Renderer {
             Fill::Solid(c) => target.fill_path(&sp, &paint_solid(*c, aa), rule, view, None),
             Fill::Gradient(g) => {
                 let space = Self::fill_space(o, path);
-                if g.steps > 0 || g.kind == GradientKind::Rectangular {
+                if g.steps > 0 || g.kind == GradientKind::Rectangular || g.accel != 0.0 || g.blend != 0 || g.smooth {
                     let g2 = g.clone();
                     self.fill_per_pixel(ctx, &sp, rule, space, target, move |u, v| gradient_color(&g2, u, v));
                     return;
@@ -524,25 +573,9 @@ impl Renderer {
                 }
             }
             Fill::Pattern(pf) => {
-                let zoom = view_scale(ctx.view);
-                let tile_px = (pf.tile * zoom).clamp(2.0, 1024.0);
-                let img_pm = pf.image.and_then(|id| self.image_pixmap(ctx.doc, id, &ImageAdjust::default()));
-                let tile = match img_pm {
-                    Some(p) => p,
-                    None => self.pattern_tile(pf, 64),
-                };
-                let tw = tile.width() as f64;
-                let scale = tile_px / tw / zoom;
-                let space = if pf.transform_with_object {
-                    let s = Self::fill_space(o, path);
-                    let origin = s * Point::ZERO;
-                    Affine::translate(origin.to_vec2()) * Affine::rotate(-pf.angle.to_radians())
-                } else {
-                    Affine::rotate(-pf.angle.to_radians())
-                };
-                let shader_tf = to_sk(space * Affine::scale(scale));
+                let (tile, tf) = self.pattern_paint(ctx, o, path, pf);
                 let mut p = sk::Paint::default();
-                p.shader = sk::Pattern::new(tile.as_ref().as_ref(), sk::SpreadMode::Repeat, sk::FilterQuality::Bilinear, 1.0, shader_tf);
+                p.shader = sk::Pattern::new(tile.as_ref().as_ref(), sk::SpreadMode::Repeat, sk::FilterQuality::Bilinear, 1.0, to_sk(tf));
                 p.anti_alias = aa;
                 target.fill_path(&sp, &p, rule, view, None);
             }
@@ -587,6 +620,51 @@ impl Renderer {
         let mut mask = sk::Mask::new(w, h).unwrap();
         mask.fill_path(sp, rule, ctx.opts.antialias, sk::Transform::from_translate(-x0 as f32, -y0 as f32).pre_concat(view));
         target.draw_pixmap(x0, y0, layer.as_ref(), &sk::PixmapPaint::default(), sk::Transform::identity(), Some(&mask_offset(&mask, target, x0, y0)));
+    }
+
+    /// The tile of a pattern fill and its transform (object space).
+    fn pattern_paint(&mut self, ctx: &Ctx, o: &Object, path: &BezPath, pf: &PatternFill) -> (Arc<sk::Pixmap>, Affine) {
+        let zoom = view_scale(ctx.view);
+        let tile_px = (pf.tile * zoom).clamp(2.0, 1024.0);
+        let img_pm = pf.image.and_then(|id| self.image_pixmap(ctx.doc, id, &ImageAdjust::default()));
+        let tile = match img_pm {
+            Some(p) => p,
+            None => self.pattern_tile(pf, 64),
+        };
+        let tw = tile.width() as f64;
+        let tile = if pf.mirror != 0 { mirror_tile(&tile, pf.mirror) } else { tile };
+        let scale = tile_px / tw / zoom;
+        let space = if pf.transform_with_object {
+            let s = Self::fill_space(o, path);
+            let origin = s * Point::ZERO;
+            Affine::translate(origin.to_vec2()) * Affine::rotate(-pf.angle.to_radians())
+        } else {
+            Affine::rotate(-pf.angle.to_radians())
+        };
+        (tile, space * Affine::scale(scale))
+    }
+
+    /// The opacity of a pattern transparency: the pattern's dark parts (its foreground) get the
+    /// foreground transparency, its light parts the background one.
+    #[allow(clippy::too_many_arguments)]
+    fn pattern_mask(&mut self, ctx: &Ctx, o: &Object, pf: &PatternFill, front: f64, back: f64, w: u32, h: u32) -> Option<sk::Mask> {
+        let mut pm = sk::Pixmap::new(w, h)?;
+        let path = o.world_path();
+        let bw = PatternFill { fg: Color::BLACK, bg: Color::WHITE, ..pf.clone() };
+        let (tile, tf) = self.pattern_paint(ctx, o, &path, &bw);
+        let mut p = sk::Paint::default();
+        p.shader = sk::Pattern::new(tile.as_ref().as_ref(), sk::SpreadMode::Repeat, sk::FilterQuality::Bilinear, 1.0, to_sk(ctx.view * tf));
+        pm.fill_rect(sk::Rect::from_xywh(0.0, 0.0, w as f32, h as f32)?, &p, sk::Transform::identity(), None);
+        let mut m = sk::Mask::new(w, h)?;
+        let data = m.data_mut();
+        let (fo, bo) = (1.0 - front / 100.0, 1.0 - back / 100.0);
+        for (i, p) in pm.pixels().iter().enumerate() {
+            let c = p.demultiply();
+            let lum = (0.299 * c.red() as f64 + 0.587 * c.green() as f64 + 0.114 * c.blue() as f64) / 255.0;
+            let a = fo + (bo - fo) * lum;
+            data[i] = (a * 255.0).round().clamp(0.0, 255.0) as u8;
+        }
+        Some(m)
     }
 
     fn pattern_tile(&mut self, pf: &PatternFill, size: u32) -> Arc<sk::Pixmap> {
@@ -695,6 +773,20 @@ impl Renderer {
             }
             return;
         }
+        // calligraphy: a stretched, turned nib is a round pen in a stretched space
+        let nib = if (ol.stretch - 100.0).abs() > 0.01 && ol.stretch > 0.0 { Some(Affine::rotate(-ol.nib_angle.to_radians()) * Affine::scale_non_uniform(1.0, ol.stretch / 100.0)) } else { None };
+        let view = match nib {
+            Some(t) => to_sk(ctx.view * t),
+            None => view,
+        };
+        let nib_path;
+        let path = match nib {
+            Some(t) => {
+                nib_path = t.inverse() * path.clone();
+                &nib_path
+            }
+            None => path,
+        };
         let Some(sp) = to_sk_path(path) else { return };
         let mut st = sk::Stroke::default();
         st.width = ol.width as f32;
@@ -714,6 +806,18 @@ impl Renderer {
             let mut arr: Vec<f32> = ol.dash.iter().map(|d| (*d as f32 * w).max(0.1)).collect();
             if arr.len() % 2 == 1 {
                 arr.extend(arr.clone());
+            }
+            if ol.dash_mode == 1 {
+                // aligned dashes: stretch the pattern so a whole dash ends the path
+                let len: f64 = path.segments().map(|s| kurbo::ParamCurveArclen::arclen(&s, 0.05)).sum();
+                let period: f32 = arr.iter().sum();
+                if len > 0.0 && period > 0.0 {
+                    let n = ((len as f32 - arr[0]) / period).round().max(1.0);
+                    let k = len as f32 / (n * period + arr[0]);
+                    for a in arr.iter_mut() {
+                        *a *= k;
+                    }
+                }
             }
             st.dash = sk::StrokeDash::new(arr, 0.0);
         }
@@ -1034,6 +1138,8 @@ impl Renderer {
             bp.close_path();
             let c = match e.color_mode {
                 1 => base,
+                // draped: the fill runs over the sides, lightly shaded
+                0 if e.drape => Color::lerp(Color::lerp(Color::BLACK, base, 0.8), base, shade),
                 0 => Color::lerp(Color::lerp(Color::BLACK, base, 0.45), base, shade),
                 _ => Color::lerp(e.shade, e.color, shade),
             };
@@ -1051,7 +1157,7 @@ impl Renderer {
     fn render_bevel(&mut self, ctx: &Ctx, o: &Object, path: &BezPath, e: &ExtrudeEffect, target: &mut sk::Pixmap) {
         let Some((depth, angle)) = e.bevel else { return };
         let inner = geom::offset_path(path, -depth.max(0.1), kurbo::Join::Miter);
-        let base = o.style.fill.main_color().unwrap_or(e.color);
+        let base = if e.bevel_fill { e.color } else { e.bevel_color.or(o.style.fill.main_color()).unwrap_or(e.color) };
         let light = extrude_light(e);
         let lit = Color::lerp(base, Color::WHITE, (0.35 * light.1).clamp(0.0, 0.8));
         let dark = Color::lerp(base, Color::BLACK, (0.25 + angle.clamp(0.0, 89.0) / 300.0).clamp(0.0, 0.8));
@@ -1088,39 +1194,7 @@ impl Renderer {
         let geo = match geo {
             Some(g) => g,
             None => {
-                let base = o.world_path();
-                let mut v = vec![];
-                let start_fill = o.style.fill.main_color().unwrap_or(Color::WHITE);
-                let start_ol = o.style.outline.color.unwrap_or(Color::BLACK);
-                let steps = c.steps.max(1).min(64);
-                for k in 1..=steps {
-                    let tk = vector_core::object::accel(k as f64 / steps as f64, c.accel);
-                    let d = match c.dir {
-                        ContourDir::Outside => c.offset * steps as f64 * tk,
-                        _ => -c.offset * steps as f64 * tk,
-                    };
-                    let p = geom::offset_path(&base, d, kurbo::Join::Round);
-                    if p.elements().is_empty() || p.area().abs() < 1e-3 {
-                        break;
-                    }
-                    let t = if c.link_accel { tk } else { vector_core::object::accel(k as f64 / steps as f64, c.color_accel) };
-                    // fountain fills blend their first color to the fill color and their last
-                    // one to the last fill color
-                    let fill = match (&o.style.fill, c.last_fill) {
-                        (Fill::Gradient(g), Some(lf)) if g.stops.len() >= 2 => {
-                            let mut g = g.clone();
-                            let n = g.stops.len();
-                            g.stops[0].color = Color::lerp(g.stops[0].color, c.end_fill, t);
-                            g.stops[n - 1].color = Color::lerp(g.stops[n - 1].color, lf, t);
-                            Fill::Gradient(g)
-                        }
-                        _ => Fill::Solid(Color::lerp(start_fill, c.end_fill, t)),
-                    };
-                    v.push((p, fill, Some(Color::lerp(start_ol, c.end_outline, t))));
-                }
-                if c.dir == ContourDir::Outside {
-                    v.reverse();
-                }
+                let v = vector_core::object::contour_rings(o, c);
                 let g = Arc::new(v);
                 self.geo_cache.insert(o.id, (key, g.clone()));
                 g
@@ -1137,6 +1211,11 @@ impl Renderer {
                 if let (Some(col), true) = (oc, o.style.outline.is_visible()) {
                     let mut st = sk::Stroke::default();
                     st.width = o.style.outline.width as f32;
+                    st.line_join = match c.corner {
+                        1 => sk::LineJoin::Round,
+                        2 => sk::LineJoin::Bevel,
+                        _ => sk::LineJoin::Miter,
+                    };
                     target.stroke_path(&sp, &paint_solid(*col, ctx.opts.antialias), &st, to_sk(ctx.view), None);
                 }
             }
@@ -1150,21 +1229,42 @@ impl Renderer {
         let h = target.height();
         let mut mask = sk::Mask::new(w, h).unwrap();
         mask.fill_path(&sp, sk::FillRule::Winding, true, to_sk(ctx.view));
-        let mut copy = target.clone();
-        match l {
-            LensEffect::Magnify(f) => {
-                let c = ctx.view * path.bounding_box().center();
-                let tf = Affine::translate(c.to_vec2()) * Affine::scale(*f) * Affine::translate(-c.to_vec2());
+        let c = ctx.view * path.bounding_box().center();
+        // what the lens sees: what is under it, or what is at its viewpoint
+        let seen = match l.viewpoint {
+            Some(vp) => {
+                let d = c - ctx.view * vp;
+                let mut s = sk::Pixmap::new(w, h).unwrap();
+                s.draw_pixmap(0, 0, target.as_ref(), &sk::PixmapPaint::default(), sk::Transform::from_translate(d.x as f32, d.y as f32), None);
+                s
+            }
+            None => target.clone(),
+        };
+        let mut copy = seen.clone();
+        match l.kind {
+            LensKind::Magnify => {
+                let tf = Affine::translate(c.to_vec2()) * Affine::scale(l.amount.max(0.01)) * Affine::translate(-c.to_vec2());
                 let mut mag = sk::Pixmap::new(w, h).unwrap();
-                mag.draw_pixmap(0, 0, target.as_ref(), &sk::PixmapPaint { quality: sk::FilterQuality::Bicubic, ..Default::default() }, to_sk(tf), None);
+                mag.draw_pixmap(0, 0, seen.as_ref(), &sk::PixmapPaint { quality: sk::FilterQuality::Bicubic, ..Default::default() }, to_sk(tf), None);
                 copy = mag;
             }
-            LensEffect::Brighten(b) => fx::adjust(&mut copy, *b as f32, 0.0, 0.0),
-            LensEffect::Invert => fx::invert(&mut copy),
-            LensEffect::Grayscale => fx::grayscale(&mut copy),
-            LensEffect::ColorAdd(c) => {
-                let (cr, cg, cb) = (c.r as f32, c.g as f32, c.b as f32);
-                fx::map_colors(&mut copy, |r, g, b| (r + cr * 0.5, g + cg * 0.5, b + cb * 0.5));
+            LensKind::FishEye => {
+                let vb = ctx.view.transform_rect_bbox(path.bounding_box());
+                fx::fish_eye(&seen, &mut copy, (c.x as f32, c.y as f32), (vb.width().max(vb.height()) / 2.0) as f32, (l.rate / 100.0) as f32);
+            }
+            LensKind::Wireframe => fx::wireframe(&mut copy, l.outline.map(|c| [c.r, c.g, c.b]), l.fill.map(|c| [c.r, c.g, c.b])),
+            LensKind::BitmapEffect => {}
+            _ => fx::map_colors(&mut copy, |r, g, b| {
+                let [r, g, b] = vector_core::object::lens_color(l, [r, g, b]);
+                (r, g, b)
+            }),
+        }
+        if l.remove_face {
+            // only where there is something under the lens
+            for (m, px) in mask.data_mut().iter_mut().zip(seen.data().chunks_exact(4)) {
+                if px[3] == 0 || (px[0] > 250 && px[1] > 250 && px[2] > 250) {
+                    *m = 0;
+                }
             }
         }
         target.draw_pixmap(0, 0, copy.as_ref(), &sk::PixmapPaint::default(), sk::Transform::identity(), Some(&mask));
@@ -1343,6 +1443,23 @@ pub fn gradient_color(g: &Gradient, u: f64, v: f64) -> Color {
         t = t.clamp(0.0, 1.0);
     }
     g.color_at(t)
+}
+
+/// A tile twice as wide (and/or high) holding the tile and its mirror images, for patterns whose
+/// alternate tiles are mirrored.
+fn mirror_tile(tile: &sk::Pixmap, mirror: u8) -> Arc<sk::Pixmap> {
+    let (w, h) = (tile.width(), tile.height());
+    let (nx, ny) = (if mirror & 1 != 0 { 2 } else { 1 }, if mirror & 2 != 0 { 2 } else { 1 });
+    let Some(mut out) = sk::Pixmap::new(w * nx, h * ny) else { return Arc::new(tile.clone()) };
+    for j in 0..ny {
+        for i in 0..nx {
+            let (fx, fy) = (if i == 1 { -1.0 } else { 1.0 }, if j == 1 { -1.0 } else { 1.0 });
+            let tx = if i == 1 { (2 * w) as f32 } else { 0.0 };
+            let ty = if j == 1 { (2 * h) as f32 } else { 0.0 };
+            out.draw_pixmap(0, 0, tile.as_ref(), &sk::PixmapPaint::default(), sk::Transform::from_row(fx, 0.0, 0.0, fy, tx, ty), None);
+        }
+    }
+    Arc::new(out)
 }
 
 fn gradient_mask(o: &Object, g: &Gradient, view: &Affine, w: u32, h: u32) -> Option<sk::Mask> {
@@ -1731,15 +1848,15 @@ pub fn extrude_back(bb: Rect, e: &ExtrudeEffect) -> Affine {
 
 /// The extrusion's light: direction (toward the light) and intensity factor.
 fn extrude_light(e: &ExtrudeEffect) -> (Vec2, f64) {
-    if e.lights.is_empty() {
+    if e.lights.iter().all(|l| l.0 >= 27) {
         return (Vec2::new(-0.6, -0.8), 1.0);
     }
     let mut dir = Vec2::ZERO;
     let mut total = 0.0;
-    for (pos, intensity) in &e.lights {
-        // positions on the front of the light cube, a 4x4 grid read left to right, top to bottom
-        let gx = (*pos % 4) as f64 / 3.0 * 2.0 - 1.0;
-        let gy = (*pos / 4) as f64 / 3.0 * 2.0 - 1.0;
+    for (pos, intensity) in e.lights.iter().filter(|l| l.0 < 27) {
+        // where the lines of the light cube cross: layer × 9 + row × 3 + column
+        let gx = (*pos % 3) as f64 - 1.0;
+        let gy = ((*pos % 9) / 3) as f64 - 1.0;
         let k = intensity / 100.0;
         dir += Vec2::new(gx, gy) * k;
         total += k;

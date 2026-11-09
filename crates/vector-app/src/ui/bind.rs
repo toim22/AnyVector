@@ -45,6 +45,10 @@ pub fn docker(id: &str) -> Option<DockerId> {
         "9d4d5201" => Text,
         "035e2905" => FontSampler,
         "00c72ae6" => Glyphs,
+        "5fc0becf" => ArtisticMedia,
+        "6268eac5" => BitmapMask,
+        "03687a21" => PhotoCocktail,
+        "d509273d" => Pointillizer,
         "91062f47" => Bevel,
         "bda9bd40" => Blend,
         "0a57d894" => Contour,
@@ -400,6 +404,7 @@ pub fn cmd(id: &str) -> Option<Cmd> {
         "9377c70c" => RolloverLivePreview,
         "83501505" => RolloverDuplicateState,
         "217155e9" => RolloverDeleteState,
+        "7f2204b5" => ShowHotspots,
         // Tools
         "e72e265e" => Options(OptionsPage::App),
         "ab216fdb" => Options(OptionsPage::Customization),
@@ -459,6 +464,11 @@ pub fn cmd(id: &str) -> Option<Cmd> {
         "08fa5bc1" => MessageSettings,
         "fafd28e8" => Feedback,
         "1eaa019d" => About,
+        // Object ▸ Object Styles
+        "13ac75cb" => NewStyleSetFrom,
+        "9d6638c8" => ApplyToStyle,
+        "d0987a09" => RevertToStyle,
+        "61d08529" => BreakStyleLink,
         _ => return None,
     })
 }
@@ -541,6 +551,7 @@ pub fn checked(app: &VectorApp, id: &str) -> Option<bool> {
         Cmd::LockToolbars => Some(app.settings.lock_toolbars),
         Cmd::PauseRecording => Some(app.recording.as_ref().map(|r| r.paused).unwrap_or(false)),
         Cmd::RolloverLivePreview => Some(app.rollover_live),
+        Cmd::ShowHotspots => Some(app.settings.show_hotspots),
         Cmd::ToggleNonPrinting => Some(app.settings.show_nonprinting),
         Cmd::ToggleTextFrames => Some(app.settings.show_text_frames),
         Cmd::ToggleHyphenation => Some(app.doc().is_some() && crate::dialogs::text::first_text(app).hyphenate),
@@ -567,6 +578,9 @@ pub fn enabled(app: &VectorApp, id: &str) -> Option<bool> {
     }
     // items that are no command of their own, or whose state is not the command's
     match key(id).as_str() {
+        // Object ▸ Object Styles
+        "13ac75cb" => return Some(sel > 0),
+        "9d6638c8" | "d0987a09" | "61d08529" => return Some(crate::dockers::ostyles::linked_style(app).is_some()),
         // PowerClip ▸ Fit Contents, Lock Contents to PowerClip, Extract Contents, Edit PowerClip
         "78030281" | "6ea9b15a" | "6ad732d1" | "cd3ae51f" | "273d95de" | "a369e3ae" | "56a4aae7" | "8ab3326a" => return Some(one_is(|k| matches!(k, ObjKind::PowerClip { .. }))),
         // Hide ▸ Show: hidden objects in the selection
