@@ -1,4 +1,4 @@
-//! Start-up splash screen (the airship), shown in the undecorated start window.
+//! Start-up splash screen (the logo), shown in the undecorated start window.
 
 use crate::app::VectorApp;
 use egui::{pos2, vec2, Color32, Rect, Ui};
@@ -51,7 +51,7 @@ pub fn show(app: &mut VectorApp, ui: &mut Ui) -> bool {
     let tex = sp
         .tex
         .get_or_insert_with(|| {
-            let img = image::load_from_memory(crate::SPLASH_PNG).map(|i| i.to_rgba8()).unwrap_or_else(|_| image::RgbaImage::new(1, 1));
+            let img = image::load_from_memory(crate::LOGO_PNG).map(|i| i.to_rgba8()).unwrap_or_else(|_| image::RgbaImage::new(1, 1));
             let ci = egui::ColorImage::from_rgba_unmultiplied([img.width() as usize, img.height() as usize], img.as_raw());
             ctx.load_texture("splash", ci, egui::TextureOptions::LINEAR)
         })
@@ -74,7 +74,7 @@ pub fn show(app: &mut VectorApp, ui: &mut Ui) -> bool {
     // airship (fade + gentle float)
     let fade = (t / 0.35).clamp(0.0, 1.0) as f32;
     let bob = ((t * 2.2).sin() * 3.0) as f32;
-    let tw = card.width() * 0.62;
+    let tw = card.width() * 0.56;
     let size = tex.size_vec2();
     let th = tw * size.y / size.x;
     let r = Rect::from_center_size(c + vec2(0.0, bob), vec2(tw, th));

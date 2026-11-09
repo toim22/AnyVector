@@ -4265,7 +4265,7 @@ dependencies = [
 
 [[package]]
 name = "vector-app"
-version = "1.0.0"
+version = "0.1.0"
 dependencies = [
  "arboard",
  "dirs",
@@ -4293,7 +4293,7 @@ dependencies = [
 
 [[package]]
 name = "vector-core"
-version = "1.0.0"
+version = "0.1.0"
 dependencies = [
  "fontdb",
  "i_overlay",
@@ -4307,7 +4307,7 @@ dependencies = [
 
 [[package]]
 name = "vector-io"
-version = "1.0.0"
+version = "0.1.0"
 dependencies = [
  "flate2",
  "image",
@@ -4323,7 +4323,7 @@ dependencies = [
 
 [[package]]
 name = "vector-render"
-version = "1.0.0"
+version = "0.1.0"
 dependencies = [
  "kurbo",
  "tiny-skia 0.12.0",
@@ -5193,6 +5193,15 @@ name = "xmlwriter"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec7a2a501ed189703dba8b08142f057e887dfc4b2cc4db2d343ac6376ba3e0b9"
+
+[[package]]
+name = "xtask"
+version = "0.1.0"
+dependencies = [
+ "image",
+ "resvg",
+ "serde_json",
+]
 
 [[package]]
 name = "yeslogic-fontconfig-sys"

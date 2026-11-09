@@ -48,6 +48,10 @@ pub struct Dialogs {
     /// Docs still waiting for a decision while closing all / quitting.
     pub close_queue: Vec<usize>,
     pub bug_report: Option<crate::bugreport::BugReportState>,
+    /// Help > About > System Info...
+    pub system_info: Option<crate::about::SystemInfoState>,
+    /// Help > About > Legal Notices...
+    pub legal_notices: bool,
 }
 
 impl Dialogs {
@@ -69,6 +73,8 @@ impl Dialogs {
             || self.resample.is_some()
             || self.insert_page.is_some()
             || self.bug_report.is_some()
+            || self.system_info.is_some()
+            || self.legal_notices
     }
 }
 
@@ -81,6 +87,15 @@ pub fn show(app: &mut VectorApp, ctx: &egui::Context) {
     forms::show_all(app, ctx);
     if app.dialogs.bug_report.is_some() {
         crate::bugreport::dialog(app, ctx);
+    }
+    if app.dialogs.about {
+        crate::about::about(app, ctx);
+    }
+    if app.dialogs.system_info.is_some() {
+        crate::about::system_info(app, ctx);
+    }
+    if app.dialogs.legal_notices {
+        crate::about::legal_notices(app, ctx);
     }
 }
 

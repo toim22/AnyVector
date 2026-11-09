@@ -288,7 +288,7 @@ mod tests {
     fn encodes_and_builds_url() {
         assert_eq!(url_encode("a b&c/ç"), "a%20b%26c%2F%C3%A7");
         let st = BugReportState { title: "T".into(), what_happened: "Crash".into(), steps: "1. Open".into(), ..BugReportState::new() };
-        let body = issue_body(&st, Some("- Vector: 1.0.0"));
+        let body = issue_body(&st, Some("- Vector: 0.1.0"));
         assert!(body.contains("### What happened\n\nCrash"));
         assert!(body.contains("### Steps to reproduce"));
         assert!(!body.contains("### Expected behavior"));
