@@ -308,10 +308,20 @@ impl VectorApp {
         }
         if self.dockers.visible() {
             let w = self.settings.docker_width;
-            let resp = egui::Panel::right("dockers").frame(Frame::new().fill(theme::BAR).inner_margin(Margin::same(0))).resizable(true).default_size(w).size_range(220.0..=600.0).show(ui, |ui| {
-                crate::dockers::dockers_panel(self, ui);
-            });
-            self.settings.docker_width = resp.response.rect.width();
+            if self.dockers.collapsed {
+                egui::Panel::right("dockers_folded").frame(Frame::new().fill(theme::BG).inner_margin(Margin::same(0))).exact_size(crate::dockers::TAB_STRIP + 2.0).show(ui, |ui| {
+                    crate::dockers::dockers_panel(self, ui);
+                });
+            } else {
+                let mut panel = egui::Panel::right("dockers").frame(Frame::new().fill(theme::BG).inner_margin(Margin::same(0))).resizable(true).default_size(w).size_range(220.0..=600.0);
+                if let Some(w) = self.dockers.set_width.take() {
+                    panel = panel.exact_size(w);
+                }
+                let resp = panel.show(ui, |ui| {
+                    crate::dockers::dockers_panel(self, ui);
+                });
+                self.settings.docker_width = resp.response.rect.width();
+            }
         }
         if self.settings.doc_palette_visible {
             egui::Panel::bottom("docpalette").frame(Frame::new().fill(theme::BG).inner_margin(Margin::symmetric(2, 0))).exact_size(24.0).show(ui, |ui| {

@@ -2,7 +2,11 @@
 
 mod arrange;
 mod color;
+mod coords;
+mod guides;
+pub use guides::styled_line;
 mod effects;
+mod fx_dockers;
 mod misc;
 mod objects;
 pub mod props;
@@ -13,6 +17,7 @@ use crate::icons::Tone;
 use crate::settings::Settings;
 use crate::theme;
 use egui::{pos2, vec2, Color32, Rect, Sense, Stroke, Ui};
+pub use fx_dockers::fit_profile;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, serde::Serialize, serde::Deserialize)]
 pub enum DockerId {
@@ -39,15 +44,16 @@ pub enum DockerId {
     Text,
     FontSampler,
     Glyphs,
-    Contour,
-    Blend,
-    Extrude,
+    ArtisticMedia,
     Bevel,
-    Lens,
+    BitmapMask,
+    Blend,
+    Contour,
     Envelope,
-    Distort,
-    Shadow,
-    BitmapEffects,
+    Extrude,
+    Lens,
+    PhotoCocktail,
+    Pointillizer,
     Color,
     Palettes,
     ColorStyles,
@@ -65,8 +71,8 @@ pub enum DockerId {
 use DockerId::*;
 
 pub const ALL: &[DockerId] = &[
-    Properties, Objects, Pages, Comments, ObjectData, ObjectStyles, Symbols, FindReplace, Export, AiGenerate, Transform, Coordinates, LiveGuides, Guidelines, AlignDistribute, FitObjectsToPath, StepRepeat, Shape, Corners, JoinCurves, Text, FontSampler, Glyphs, Contour, Blend, Extrude, Bevel,
-    Lens, Envelope, Distort, Shadow, BitmapEffects, Color, Palettes, ColorStyles, ColorProofing, Assets, Tray, LinksRollovers, Sources, Views, History, Scripts, Learn,
+    Properties, Objects, Pages, Comments, ObjectData, ObjectStyles, Symbols, FindReplace, Export, AiGenerate, Transform, Coordinates, LiveGuides, Guidelines, AlignDistribute, FitObjectsToPath, StepRepeat, Shape, Corners, JoinCurves, Text, FontSampler, Glyphs, ArtisticMedia, Bevel,
+    BitmapMask, Blend, Contour, Envelope, Extrude, Lens, PhotoCocktail, Pointillizer, Color, Palettes, ColorStyles, ColorProofing, Assets, Tray, LinksRollovers, Sources, Views, History, Scripts, Learn,
 ];
 
 pub fn shortcut(d: DockerId) -> Option<&'static str> {
@@ -113,15 +119,16 @@ pub fn menu_label(d: DockerId) -> &'static str {
         Text => "Te&xt",
         FontSampler => "Font Sa&mpler",
         Glyphs => "&Glyphs",
-        Contour => "&Contour",
-        Blend => "&Blend",
-        Extrude => "E&xtrude",
+        ArtisticMedia => "Artistic Me&dia",
         Bevel => "Be&vel",
-        Lens => "&Lens",
+        BitmapMask => "Bitmap &Mask",
+        Blend => "&Blend",
+        Contour => "&Contour",
         Envelope => "&Envelope",
-        Distort => "&Distort",
-        Shadow => "&Shadow",
-        BitmapEffects => "Bitmap E&ffects",
+        Extrude => "E&xtrude",
+        Lens => "&Lens",
+        PhotoCocktail => "PhotoCocktail",
+        Pointillizer => "Pointillizer",
         Color => "&Color",
         Palettes => "&Palettes",
         ColorStyles => "Color St&yles",
@@ -166,15 +173,16 @@ pub fn icon(d: DockerId) -> &'static str {
         Text => "text_docker",
         FontSampler => "font_sampler",
         Glyphs => "glyphs",
-        Contour => "contour",
-        Blend => "blend",
-        Extrude => "extrude",
+        ArtisticMedia => "artistic_media",
         Bevel => "bevel",
-        Lens => "lens",
+        BitmapMask => "bitmap_mask",
+        Blend => "blend",
+        Contour => "contour",
         Envelope => "envelope",
-        Distort => "distort",
-        Shadow => "drop_shadow",
-        BitmapEffects => "bitmap",
+        Extrude => "extrude",
+        Lens => "lens",
+        PhotoCocktail => "photococktail",
+        Pointillizer => "pointillizer",
         Color => "color",
         Palettes => "palettes",
         ColorStyles => "color_styles",
@@ -194,6 +202,10 @@ pub struct DockerState {
     /// Open dockers in tab order.
     pub open: Vec<DockerId>,
     pub active: Option<DockerId>,
+    /// Only the tabs show (the docker area is folded to the right edge).
+    pub collapsed: bool,
+    /// A width the docker area takes on the next frame (then the user can resize it again).
+    pub set_width: Option<f32>,
     /// Per-docker transient UI state.
     pub ui: DockerUi,
 }
@@ -225,11 +237,37 @@ pub struct DockerUi {
     pub t_size: [f64; 2],
     pub t_skew: [f64; 2],
     pub t_anchor: usize,
+    pub t_center: [f64; 2],
+    pub t_rel_center: bool,
+    pub t_mirror: [bool; 2],
+    pub t_size_portion: bool,
+    pub t_portion: f64,
+    pub t_use_anchor: bool,
+    /// What the Transform fields were last filled from (selection, origin, relative settings).
+    pub t_key: u64,
     pub t_copies: u32,
+    /// Align to: 0 Active objects, 1 Page edge, 2 Page center, 3 Grid, 4 Specified point.
     pub align_to: usize,
     pub use_outline: bool,
+    /// The specified point (from the ruler origin).
+    pub align_xy: [f64; 2],
+    /// Distribute to: 0 Selection extent, 1 Page extent, 2 Spacing; the spacing H and V.
+    pub dist_to: usize,
+    pub dist_gap: [f64; 2],
+    /// Text: 0 First line baseline, 1 Last line baseline, 2 Bounding box.
+    pub text_source: usize,
     pub step_copies: u32,
     pub step_offset: [f64; 2],
+    /// Step and Repeat, horizontal and vertical: 0 No offset, 1 Offset, 2 Spacing between objects.
+    pub step_mode: [usize; 2],
+    /// Direction of the spacing: horizontal 0 Left / 1 Right, vertical 0 Up / 1 Down.
+    pub step_dir: [usize; 2],
+    pub step_open: [bool; 2],
+    /// Shape: leave the original source / target objects, for Weld, Trim and Intersect.
+    pub shape_leave: [[bool; 2]; 3],
+    /// Shape ▸ Boundary: place behind the selected objects; leave the original objects.
+    pub boundary_behind: bool,
+    pub boundary_leave: bool,
     pub find_text: String,
     pub replace_text: String,
     pub find_case: bool,
@@ -237,11 +275,27 @@ pub struct DockerUi {
     pub glyph_filter: String,
     pub sampler_text: String,
     pub sampler_size: f32,
-    pub guide_pos: f64,
-    pub guide_vertical: bool,
+    /// Live Guides: the section picked by the top buttons, one section at a time, open sections, Margins open.
+    pub lg_section: usize,
+    pub lg_collapse: bool,
+    pub lg_open: [bool; 2],
+    pub lg_margins_open: bool,
+    pub lg_angle_sel: usize,
+    pub lg_add_angle: f64,
+    /// Guidelines: 0 Horizontal, 1 Vertical, 2 Angled; x/y; angle; the selected guideline.
+    pub guide_type: usize,
+    pub guide_xy: [f64; 2],
+    pub guide_angle: f64,
+    pub guide_sel: Option<usize>,
     pub join_tolerance: f64,
+    /// Join Curves: 0 Extend, 1 Chamfer, 2 Fillet, 3 Bézier curve; the fillet radius.
+    pub join_mode: usize,
+    pub join_radius: f64,
     pub corner_radius: f64,
     pub corner_kind: usize,
+    /// Corners ▸ Chamfer distance A and B, and the lock that keeps them equal.
+    pub chamfer: [f64; 2],
+    pub chamfer_lock: bool,
     pub contour_steps: u32,
     pub contour_offset: f64,
     pub contour_dir: usize,
@@ -250,8 +304,6 @@ pub struct DockerUi {
     pub bevel_angle: f64,
     pub lens_kind: usize,
     pub lens_amount: f64,
-    pub bitmap_effect: usize,
-    pub bitmap_amount: f64,
     pub color_model: usize,
     pub color_edit: Option<vector_core::Color>,
     pub data_name: String,
@@ -264,14 +316,18 @@ pub struct DockerUi {
     pub export_items: Vec<ExportItem>,
     pub script_error: Option<String>,
     pub link_url: String,
-    pub fit_offset: f64,
-    pub fit_rotate: bool,
+    /// Fit Objects to Path options.
+    pub fit: vector_core::ops::FitPathOptions,
     pub objects_filter: String,
     pub rename: Option<(vector_core::ObjId, String)>,
     pub layer_rename: Option<(usize, String)>,
     pub tray: Vec<vector_core::Object>,
     pub proof_gray: bool,
     pub sym_name: String,
+    pub fx: fx_dockers::FxUi,
+    pub co: coords::CoUi,
+    /// Which docker field a point or length picked on the canvas goes to (1 = Transform ▸ Scale portion).
+    pub pick_slot: u8,
 }
 
 impl Default for DockerUi {
@@ -286,11 +342,28 @@ impl Default for DockerUi {
             t_size: [72.0, 72.0],
             t_skew: [0.0, 0.0],
             t_anchor: 4,
+            t_center: [0.0, 0.0],
+            t_rel_center: false,
+            t_mirror: [false, false],
+            t_size_portion: false,
+            t_portion: 72.0,
+            t_use_anchor: false,
+            t_key: 0,
             t_copies: 0,
             align_to: 0,
             use_outline: false,
-            step_copies: 3,
+            align_xy: [306.0, 396.0],
+            dist_to: 0,
+            dist_gap: [14.4, 14.4],
+            text_source: 2,
+            step_copies: 2,
             step_offset: [18.0, 18.0],
+            step_mode: [1, 1],
+            step_dir: [1, 0],
+            step_open: [true, true],
+            shape_leave: [[false, false], [true, false], [true, true]],
+            boundary_behind: false,
+            boundary_leave: true,
             find_text: String::new(),
             replace_text: String::new(),
             find_case: false,
@@ -298,11 +371,23 @@ impl Default for DockerUi {
             glyph_filter: String::new(),
             sampler_text: "The quick brown fox jumps over the lazy dog".into(),
             sampler_size: 20.0,
-            guide_pos: 72.0,
-            guide_vertical: false,
-            join_tolerance: 3.6,
-            corner_radius: 9.0,
+            lg_section: 0,
+            lg_collapse: false,
+            lg_open: [true, true],
+            lg_margins_open: true,
+            lg_angle_sel: 0,
+            lg_add_angle: 10.0,
+            guide_type: 0,
+            guide_xy: [0.0, 0.0],
+            guide_angle: 0.0,
+            guide_sel: None,
+            join_tolerance: 7.2,
+            join_mode: 0,
+            join_radius: 36.0,
+            corner_radius: 36.0,
             corner_kind: 0,
+            chamfer: [36.0, 36.0],
+            chamfer_lock: true,
             contour_steps: 3,
             contour_offset: 6.0,
             contour_dir: 2,
@@ -311,8 +396,6 @@ impl Default for DockerUi {
             bevel_angle: 135.0,
             lens_kind: 0,
             lens_amount: 2.0,
-            bitmap_effect: 0,
-            bitmap_amount: 4.0,
             color_model: 0,
             color_edit: None,
             data_name: String::new(),
@@ -324,14 +407,16 @@ impl Default for DockerUi {
             export_items: vec![],
             script_error: None,
             link_url: String::new(),
-            fit_offset: 0.0,
-            fit_rotate: true,
+            fit: vector_core::ops::FitPathOptions::default(),
             objects_filter: String::new(),
             rename: None,
             layer_rename: None,
             tray: vec![],
             proof_gray: false,
             sym_name: String::new(),
+            fx: fx_dockers::FxUi::default(),
+            co: coords::CoUi::default(),
+            pick_slot: 0,
         }
     }
 }
@@ -339,7 +424,7 @@ impl Default for DockerUi {
 impl DockerState {
     pub fn from_settings(s: &Settings) -> DockerState {
         let open: Vec<DockerId> = s.open_dockers.iter().filter_map(|n| ALL.iter().copied().find(|d| format!("{d:?}") == *n)).collect();
-        DockerState { active: open.last().copied(), open, ui: DockerUi::default() }
+        DockerState { active: open.last().copied(), open, collapsed: false, set_width: None, ui: DockerUi::default() }
     }
     pub fn visible(&self) -> bool {
         !self.open.is_empty()
@@ -368,62 +453,123 @@ impl DockerState {
     }
 }
 
+/// Width of the strip of docker tabs at the right of the docker area.
+pub const TAB_STRIP: f32 = 28.0;
+const TAB_BLUE: Color32 = Color32::from_rgb(29, 68, 112);
+
+/// A docker tab: its icon at the top and its name written downward.
+fn docker_tab(app: &mut VectorApp, ui: &mut Ui, p: &egui::Painter, x: f32, y: f32, d: DockerId, active: bool) -> (egui::Response, f32) {
+    let galley = ui.painter().layout_no_wrap(title(d), egui::FontId::proportional(12.0), theme::TEXT);
+    let h = 26.0 + galley.size().x + 8.0;
+    let r = Rect::from_min_size(pos2(x, y), vec2(TAB_STRIP - 4.0, h));
+    let resp = ui.interact(r, ui.scope_id().with(("dk_tab", d)), Sense::click()).on_hover_text(title(d));
+    let fill = if active {
+        TAB_BLUE
+    } else if resp.hovered() {
+        theme::HOVER
+    } else {
+        theme::BAR
+    };
+    p.rect_filled(r, egui::CornerRadius { nw: 0, sw: 0, ne: 4, se: 4 }, fill);
+    if let Some(t) = app.icons.get(ui.ctx(), icon(d), 16.0, if active { Tone::Bright } else { Tone::Normal }) {
+        p.image(t.id, Rect::from_center_size(pos2(r.center().x, r.top() + 13.0), vec2(16.0, 16.0)), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
+    }
+    // written downward: the text turns a quarter clockwise about its top-left corner
+    let gh = galley.size().y;
+    let at = pos2(r.center().x + gh / 2.0, r.top() + 26.0);
+    p.add(egui::epaint::TextShape::new(at, galley, if active { Color32::WHITE } else { theme::TEXT }).with_angle(std::f32::consts::FRAC_PI_2));
+    (resp, h)
+}
+
 pub fn dockers_panel(app: &mut VectorApp, ui: &mut Ui) {
     let full = ui.max_rect();
+    // the panel keeps the width it is given (a panel shrinks to what its contents use)
+    ui.expand_to_include_rect(full);
     let p = ui.painter().clone();
+    p.rect_filled(full, 0.0, theme::BG);
     // left border
     p.line_segment([full.left_top(), full.left_bottom()], Stroke::new(1.0, theme::SEP));
     let Some(active) = app.dockers.active.or(app.dockers.open.first().copied()) else { return };
-    // header: title + close
-    let header = Rect::from_min_size(full.min, vec2(full.width(), 30.0));
-    p.rect_filled(header, 0.0, theme::BAR_DARK);
-    p.text(pos2(header.left() + 10.0, header.center().y), egui::Align2::LEFT_CENTER, title(active), theme::bold(13.0), theme::TEXT);
-    let close = Rect::from_center_size(pos2(header.right() - 14.0, header.center().y), vec2(18.0, 18.0));
-    let cr = ui.interact(close, ui.scope_id().with("dk_close"), Sense::click()).on_hover_text("Close");
-    if cr.hovered() {
-        p.rect_filled(close, 2.0, theme::HOVER);
+    let collapsed = app.dockers.collapsed;
+    // header: title, then expand/collapse and close
+    let header = Rect::from_min_size(full.min, vec2(full.width(), 28.0));
+    let close = Rect::from_center_size(pos2(header.right() - 14.0, header.center().y), vec2(20.0, 20.0));
+    let fold = Rect::from_center_size(pos2(header.right() - 38.0, header.center().y), vec2(20.0, 20.0));
+    if !collapsed {
+        let clip = Rect::from_min_max(header.min, pos2(fold.left() - 4.0, header.bottom()));
+        p.with_clip_rect(clip).text(pos2(header.left() + 8.0, header.center().y), egui::Align2::LEFT_CENTER, title(active), theme::bold(13.0), theme::TEXT);
+        let cr = ui.interact(close, ui.scope_id().with("dk_close"), Sense::click()).on_hover_text("Close");
+        if cr.hovered() {
+            p.rect_filled(close, 2.0, theme::HOVER);
+        }
+        let s = 4.5;
+        p.line_segment([close.center() + vec2(-s, -s), close.center() + vec2(s, s)], Stroke::new(1.3, theme::TEXT));
+        p.line_segment([close.center() + vec2(s, -s), close.center() + vec2(-s, s)], Stroke::new(1.3, theme::TEXT));
+        if cr.clicked() {
+            app.dockers.close(active);
+            return;
+        }
     }
-    let s = 4.0;
-    p.line_segment([close.center() + vec2(-s, -s), close.center() + vec2(s, s)], Stroke::new(1.2, theme::TEXT));
-    p.line_segment([close.center() + vec2(s, -s), close.center() + vec2(-s, s)], Stroke::new(1.2, theme::TEXT));
-    if cr.clicked() {
-        app.dockers.close(active);
+    let fold = if collapsed { Rect::from_center_size(pos2(full.right() - TAB_STRIP / 2.0, header.center().y), vec2(20.0, 20.0)) } else { fold };
+    let fr = ui.interact(fold, ui.scope_id().with("dk_fold"), Sense::click()).on_hover_text(if collapsed { "Expand Dockers" } else { "Collapse Dockers" });
+    if fr.hovered() {
+        p.rect_filled(fold, 2.0, theme::HOVER);
+    }
+    // two arrowheads, pointing right to collapse and left to expand
+    for dx in [-3.5f32, 2.5] {
+        let c = fold.center() + vec2(dx, 0.0);
+        let pts = if collapsed { vec![c + vec2(2.5, -4.0), c + vec2(-2.5, 0.0), c + vec2(2.5, 4.0)] } else { vec![c + vec2(-2.5, -4.0), c + vec2(2.5, 0.0), c + vec2(-2.5, 4.0)] };
+        p.add(egui::Shape::convex_polygon(pts, theme::TEXT, Stroke::NONE));
+    }
+    if fr.clicked() {
+        app.dockers.collapsed = !collapsed;
+    }
+    // the tabs of the open dockers, down the right edge, apart from the docker
+    let strip_left = full.right() - TAB_STRIP;
+    if !collapsed {
+        p.line_segment([pos2(strip_left - 2.5, header.bottom()), pos2(strip_left - 2.5, full.bottom())], Stroke::new(1.0, theme::SEP));
+    }
+    let mut y = header.bottom() + 4.0;
+    let open = app.dockers.open.clone();
+    for d in open {
+        let (resp, h) = docker_tab(app, ui, &p, strip_left, y, d, d == active && !collapsed);
+        if resp.clicked() {
+            if d == active && !collapsed {
+                app.dockers.collapsed = true;
+            } else {
+                app.dockers.active = Some(d);
+                app.dockers.collapsed = false;
+            }
+        }
+        if resp.middle_clicked() {
+            app.dockers.close(d);
+        }
+        y += h + 2.0;
+    }
+    // + : open another docker
+    let plus = Rect::from_center_size(pos2(strip_left + (TAB_STRIP - 4.0) / 2.0, y + 14.0), vec2(22.0, 22.0));
+    let pr = ui.interact(plus, ui.scope_id().with("dk_plus"), Sense::click()).on_hover_text("Add Docker");
+    if pr.hovered() {
+        p.rect_filled(plus, 2.0, theme::HOVER);
+    }
+    p.line_segment([plus.center() - vec2(6.0, 0.0), plus.center() + vec2(6.0, 0.0)], Stroke::new(1.6, theme::TEXT));
+    p.line_segment([plus.center() - vec2(0.0, 6.0), plus.center() + vec2(0.0, 6.0)], Stroke::new(1.6, theme::TEXT));
+    egui::Popup::menu(&pr).show(|ui| {
+        ui.set_min_width(200.0);
+        for &d in ALL.iter().filter(|d| **d != Learn) {
+            let on = app.dockers.open.contains(&d);
+            if ui.add(egui::Button::new(title(d)).selected(on)).clicked() {
+                app.dockers.show(d);
+                app.dockers.collapsed = false;
+                ui.close();
+            }
+        }
+    });
+    if collapsed {
         return;
     }
-    // tab strip of open dockers (icons)
-    let mut y = header.bottom();
-    if app.dockers.open.len() > 1 {
-        let tabs = Rect::from_min_size(pos2(full.left(), y), vec2(full.width(), 28.0));
-        p.rect_filled(tabs, 0.0, theme::BAR);
-        let mut x = tabs.left() + 4.0;
-        let open = app.dockers.open.clone();
-        for d in open {
-            let r = Rect::from_min_size(pos2(x, tabs.top() + 2.0), vec2(26.0, 24.0));
-            if r.right() > tabs.right() {
-                break;
-            }
-            let resp = ui.interact(r, ui.scope_id().with(("dk_tab", d)), Sense::click()).on_hover_text(title(d));
-            if d == active {
-                p.rect_filled(r, 2.0, theme::PRESSED);
-            } else if resp.hovered() {
-                p.rect_filled(r, 2.0, theme::HOVER);
-            }
-            if let Some(t) = app.icons.get(ui.ctx(), icon(d), 16.0, if d == active { Tone::Bright } else { Tone::Normal }) {
-                p.image(t.id, Rect::from_center_size(r.center(), vec2(16.0, 16.0)), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
-            }
-            if resp.clicked() {
-                app.dockers.active = Some(d);
-            }
-            if resp.middle_clicked() {
-                app.dockers.close(d);
-            }
-            x += 28.0;
-        }
-        y = tabs.bottom();
-    }
-    p.line_segment([pos2(full.left(), y), pos2(full.right(), y)], Stroke::new(1.0, theme::SEP));
-    let content = Rect::from_min_max(pos2(full.left() + 1.0, y + 1.0), full.max);
-    let mut cui = ui.new_child(egui::UiBuilder::new().max_rect(content.shrink2(vec2(8.0, 6.0))).layout(egui::Layout::top_down(egui::Align::Min)));
+    let content = Rect::from_min_max(pos2(full.left() + 1.0, header.bottom()), pos2(strip_left - 2.0, full.bottom()));
+    let mut cui = ui.new_child(egui::UiBuilder::new().max_rect(content.shrink2(vec2(6.0, 4.0))).layout(egui::Layout::top_down(egui::Align::Min)));
     egui::ScrollArea::vertical().id_salt(("dk_scroll", active)).auto_shrink([false, false]).show(&mut cui, |ui| {
         ui.spacing_mut().item_spacing.y = 5.0;
         docker_content(app, ui, active);
@@ -443,9 +589,9 @@ fn docker_content(app: &mut VectorApp, ui: &mut Ui, d: DockerId) {
         Export => misc::export(app, ui),
         AiGenerate => crate::ai::panel(app, ui),
         Transform => arrange::transform(app, ui),
-        Coordinates => arrange::coordinates(app, ui),
-        LiveGuides => arrange::live_guides(app, ui),
-        Guidelines => arrange::guidelines(app, ui),
+        Coordinates => coords::coordinates(app, ui),
+        LiveGuides => guides::live_guides(app, ui),
+        Guidelines => guides::guidelines(app, ui),
         AlignDistribute => arrange::align(app, ui),
         FitObjectsToPath => arrange::fit_to_path(app, ui),
         StepRepeat => arrange::step_repeat(app, ui),
@@ -455,15 +601,16 @@ fn docker_content(app: &mut VectorApp, ui: &mut Ui, d: DockerId) {
         Text => text::text(app, ui),
         FontSampler => text::font_sampler(app, ui),
         Glyphs => text::glyphs(app, ui),
-        Contour => effects::contour(app, ui),
-        Blend => effects::blend(app, ui),
-        Extrude => effects::extrude(app, ui),
+        ArtisticMedia => fx_dockers::artistic_media(app, ui),
         Bevel => effects::bevel(app, ui),
-        Lens => effects::lens(app, ui),
+        BitmapMask => fx_dockers::bitmap_mask(app, ui),
+        Blend => effects::blend(app, ui),
+        Contour => effects::contour(app, ui),
         Envelope => effects::envelope(app, ui),
-        Distort => effects::distort(app, ui),
-        Shadow => effects::shadow(app, ui),
-        BitmapEffects => effects::bitmap_effects(app, ui),
+        Extrude => effects::extrude(app, ui),
+        Lens => effects::lens(app, ui),
+        PhotoCocktail => fx_dockers::photococktail(app, ui),
+        Pointillizer => fx_dockers::pointillizer(app, ui),
         Color => color::color(app, ui),
         Palettes => color::palettes(app, ui),
         ColorStyles => color::color_styles(app, ui),
@@ -506,4 +653,119 @@ pub(crate) fn primary(ui: &mut Ui, text: &str, enabled: bool) -> bool {
 pub(crate) fn len_field(app: &VectorApp, ui: &mut Ui, id: &str, v: &mut f64) -> bool {
     let (u, dpi) = app.doc().map(|d| (d.doc.settings.unit, d.doc.settings.dpi)).unwrap_or((app.settings.default_unit, 300.0));
     crate::widgets::unit_field(ui, egui::Id::unique(("dk", id)), v, u, dpi, 90.0, true)
+}
+
+// ----------------------------------------------------------------------------- docker forms
+// The reference dockers lay their controls out as labelled rows (the label right-aligned in a
+// column), sections with a bold title under a separator, and a full-width Apply bar.
+
+/// A labelled row: `label` right-aligned in a column `lw` points wide, then the controls.
+pub(crate) fn form_row<R>(ui: &mut Ui, lw: f32, label: &str, enabled: bool, f: impl FnOnce(&mut Ui) -> R) -> R {
+    ui.horizontal(|ui| {
+        let (r, _) = ui.allocate_exact_size(vec2(lw, 22.0), Sense::hover());
+        ui.painter().text(pos2(r.right() - 6.0, r.center().y), egui::Align2::RIGHT_CENTER, label, egui::FontId::proportional(13.0), if enabled { theme::TEXT } else { theme::DISABLED });
+        ui.add_enabled_ui(enabled, f).inner
+    })
+    .inner
+}
+
+/// A section: a separator line, then its bold title.
+pub(crate) fn section(ui: &mut Ui, title: &str) {
+    ui.add_space(6.0);
+    separator(ui);
+    if !title.is_empty() {
+        ui.add_space(6.0);
+        bold_title(ui, title);
+        ui.add_space(4.0);
+    }
+}
+
+/// A bold title in a docker.
+pub(crate) fn bold_title(ui: &mut Ui, title: &str) {
+    ui.label(egui::RichText::new(title).font(theme::bold(13.0)).color(theme::TEXT));
+}
+
+/// A section title that folds its section: an arrow (up when open), then the bold title.
+pub(crate) fn fold_header(ui: &mut Ui, title: &str, open: &mut bool) {
+    let w = ui.available_width();
+    let (r, resp) = ui.allocate_exact_size(vec2(w, 22.0), Sense::click());
+    let a = pos2(r.left() + 6.0, r.center().y);
+    if *open {
+        crate::widgets::chevron_up(ui.painter(), a, 3.5, theme::TEXT);
+    } else {
+        crate::widgets::chevron(ui.painter(), a, 3.5, theme::TEXT);
+    }
+    ui.painter().text(pos2(r.left() + 16.0, r.center().y), egui::Align2::LEFT_CENTER, title, theme::bold(12.5), theme::TEXT);
+    if resp.clicked() {
+        *open = !*open;
+    }
+}
+
+/// A thin horizontal line across the docker.
+pub(crate) fn separator(ui: &mut Ui) {
+    let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), 1.0), Sense::hover());
+    ui.painter().line_segment([r.left_center(), r.right_center()], Stroke::new(1.0, theme::SEP));
+}
+
+/// The full-width Apply bar at the bottom of an effect docker.
+pub(crate) fn apply_bar(ui: &mut Ui, text: &str, enabled: bool) -> bool {
+    ui.add_space(4.0);
+    let w = ui.available_width();
+    ui.add_enabled_ui(enabled, |ui| ui.add_sized(vec2(w, 24.0), egui::Button::new(text).fill(Color32::from_rgb(0x33, 0x33, 0x33)))).inner.clicked()
+}
+
+/// A number field with up/down arrows that change it by `step`, `w` points wide.
+pub(crate) fn spin<N: egui::emath::Numeric>(ui: &mut Ui, v: &mut N, range: std::ops::RangeInclusive<N>, step: f64, decimals: usize, suffix: &str, w: f32) -> bool {
+    let enabled = ui.is_enabled();
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = 0.0;
+        let (lo, hi) = (range.start().to_f64(), range.end().to_f64());
+        let mut changed = ui.add_sized(vec2(w - 14.0, 22.0), egui::DragValue::new(v).range(range).speed(step * 0.5).max_decimals(decimals).min_decimals(decimals).suffix(suffix)).changed();
+        let (rect, _) = ui.allocate_exact_size(vec2(14.0, 20.0), Sense::hover());
+        let up = Rect::from_min_max(rect.min, pos2(rect.max.x, rect.center().y));
+        let down = Rect::from_min_max(pos2(rect.min.x, rect.center().y), rect.max);
+        let id = ui.next_auto_id();
+        let ru = ui.interact(up, id.with("up"), if enabled { Sense::click() } else { Sense::hover() });
+        let rd = ui.interact(down, id.with("dn"), if enabled { Sense::click() } else { Sense::hover() });
+        let col = |r: &egui::Response| if !enabled { theme::DISABLED } else if r.hovered() { Color32::WHITE } else { theme::TEXT_DIM };
+        crate::widgets::chevron_up(ui.painter(), up.center(), 3.0, col(&ru));
+        crate::widgets::chevron(ui.painter(), down.center(), 3.0, col(&rd));
+        for (r, d) in [(ru, step), (rd, -step)] {
+            if r.clicked() {
+                *v = N::from_f64((v.to_f64() + d).clamp(lo, hi));
+                changed = true;
+            }
+        }
+        changed
+    })
+    .inner
+}
+
+/// A drop-down list of `items`, `w` points wide; true when the choice changed.
+pub(crate) fn choice(ui: &mut Ui, id: &str, cur: &mut usize, items: &[&str], w: f32) -> bool {
+    let before = *cur;
+    egui::ComboBox::from_id_salt(("dkc", id)).width(w).selected_text(items.get(*cur).copied().unwrap_or("")).show_ui(ui, |ui| {
+        for (i, n) in items.iter().enumerate() {
+            ui.selectable_value(cur, i, *n);
+        }
+    });
+    before != *cur
+}
+
+/// A small icon button of the docker toolbars.
+pub(crate) fn icon_button(app: &mut VectorApp, ui: &mut Ui, icon: &str, tip: &str, enabled: bool) -> bool {
+    icon_button_resp(app, ui, icon, tip, enabled).clicked() && enabled
+}
+
+/// [`icon_button`], giving its response (for a menu that drops from it).
+pub(crate) fn icon_button_resp(app: &mut VectorApp, ui: &mut Ui, icon: &str, tip: &str, enabled: bool) -> egui::Response {
+    let (r, resp) = ui.allocate_exact_size(vec2(24.0, 24.0), if enabled { Sense::click() } else { Sense::hover() });
+    let resp = resp.on_hover_text(tip);
+    if enabled && resp.hovered() {
+        ui.painter().rect_filled(r, 2.0, theme::HOVER);
+    }
+    if let Some(t) = app.icons.get(ui.ctx(), icon, 16.0, if enabled { Tone::Normal } else { Tone::Disabled }) {
+        ui.painter().image(t.id, Rect::from_center_size(r.center(), vec2(16.0, 16.0)), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
+    }
+    resp
 }

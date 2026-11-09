@@ -1126,3 +1126,55 @@ fn visual_symmetry_perspective() {
     h.state_mut().run(Cmd::InsertObject);
     save(&mut h, "s5_insert_object");
 }
+
+/// Every docker, one at a time, with a rectangle selected (as in the reference captures):
+/// `target/visual/dk_NNN.png`, numbered like `04-dockers/retangulo`.
+#[test]
+#[ignore]
+fn visual_dockers() {
+    use crate::dockers::{DockerId, ALL};
+    let mut h = harness();
+    h.state_mut().new_default_document();
+    h.state_mut().dockers.set_width = Some(320.0);
+    {
+        let d = h.state_mut().doc_mut().unwrap();
+        let mut st = Style::default();
+        st.fill = Fill::Solid(Color::rgb(70, 130, 200));
+        let r = RectShape { w: 216.0, h: 144.0, radii: [0.0; 4], corner: CornerType::default() };
+        let id = d.doc.new_id();
+        d.add_objects("Rectangle", vec![Object::new(id, ObjKind::Rect(r), Affine::translate((144.0, 288.0)), st)]);
+        d.selection = vec![id];
+    }
+    let only: Option<String> = std::env::var("VECTOR_DOCKER").ok();
+    for (i, d) in ALL.iter().copied().enumerate() {
+        if d == DockerId::Learn || only.as_ref().is_some_and(|o| format!("{d:?}") != *o) {
+            continue;
+        }
+        {
+            let app = h.state_mut();
+            app.dockers.open.clear();
+            app.dockers.show(d);
+            app.dockers.collapsed = false;
+            app.dockers.set_width = Some(320.0);
+        }
+        save(&mut h, &format!("dk_{:03}", i + 1));
+        // the inner states: tabs and modes
+        let states: &[fn(&mut VectorApp)] = match d {
+            DockerId::Transform => &[|a| a.dockers.ui.transform_tab = 1, |a| a.dockers.ui.transform_tab = 2, |a| a.dockers.ui.transform_tab = 3, |a| a.dockers.ui.transform_tab = 4],
+            DockerId::Coordinates => &[|a| a.dockers.ui.co.tab = 1, |a| a.dockers.ui.co.tab = 2, |a| a.dockers.ui.co.tab = 3, |a| a.dockers.ui.co.tab = 4, |a| a.dockers.ui.co.tab = 5, |a| a.dockers.ui.co.tab = 6],
+            DockerId::LiveGuides => &[|a| a.dockers.ui.lg_margins_open = true, |a| a.dockers.ui.lg_open = [false, true]],
+            DockerId::Guidelines => &[|a| a.dockers.ui.guide_type = 2],
+            DockerId::FitObjectsToPath => &[|a| a.dockers.ui.fit.style = 2, |a| a.dockers.ui.fit.style = 4],
+            DockerId::StepRepeat => &[|a| a.dockers.ui.step_mode = [2, 2], |a| a.dockers.ui.step_open = [false, true], |a| a.dockers.ui.step_open = [true, false]],
+            DockerId::Shape => &[|a| a.ts.shaping_op = 1, |a| a.ts.shaping_op = 2, |a| a.ts.shaping_op = 3, |a| a.ts.shaping_op = 4, |a| a.ts.shaping_op = 5, |a| a.ts.shaping_op = 6],
+            DockerId::Corners => &[|a| a.dockers.ui.corner_kind = 1, |a| a.dockers.ui.corner_kind = 2],
+            DockerId::JoinCurves => &[|a| a.dockers.ui.join_mode = 1, |a| a.dockers.ui.join_mode = 2, |a| a.dockers.ui.join_mode = 3],
+            DockerId::AlignDistribute => &[|a| a.dockers.ui.align_to = 1, |a| a.dockers.ui.align_to = 2, |a| a.dockers.ui.align_to = 3, |a| a.dockers.ui.align_to = 4, |a| a.dockers.ui.dist_to = 1, |a| a.dockers.ui.dist_to = 2],
+            _ => &[],
+        };
+        for (k, f) in states.iter().enumerate() {
+            f(h.state_mut());
+            save(&mut h, &format!("dk_{:03}_{}", i + 1, k + 1));
+        }
+    }
+}

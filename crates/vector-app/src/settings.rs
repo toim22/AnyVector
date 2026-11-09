@@ -269,6 +269,8 @@ pub struct Settings {
     pub last_dir: Option<PathBuf>,
     pub workspace: String,
     pub open_dockers: Vec<String>,
+    /// Artistic Media docker: the custom strokes (name, stroke).
+    pub custom_strokes: Vec<(String, vector_core::style::WidthProfile)>,
     pub docker_width: f32,
     pub default_unit: Unit,
     pub show_tool_hints: u8,
@@ -284,6 +286,36 @@ pub struct Settings {
     pub live_guides_page: bool,
     /// View ▸ Dynamic Guides.
     pub dynamic_guides: bool,
+    /// Live Guides ▸ align to the individual objects in a group.
+    pub live_guides_groups: bool,
+    pub intelligent_spacing: bool,
+    pub intelligent_dimensioning: bool,
+    /// Live Guides ▸ line style (0 solid, 1 dashed, 2 dotted, 3 long dashes) and color of the alignment guides.
+    pub align_guide_style: usize,
+    pub align_guide_color: [u8; 3],
+    /// Live Guides ▸ Margins: alignment guides offset or inset from the object edges.
+    pub guide_margins: bool,
+    pub guide_margin_style: usize,
+    pub guide_margin_color: [u8; 3],
+    /// Horizontal and vertical margin, in points.
+    pub guide_margin: [f64; 2],
+    /// 0 Offset, 1 Inset, 2 Offset and inset, 3 No margin.
+    pub guide_margin_mode: [usize; 2],
+    pub guide_margins_locked: bool,
+    pub dyn_guide_style: usize,
+    pub dyn_guide_color: [u8; 3],
+    pub dyn_screen_tips: bool,
+    pub dyn_extend_segment: bool,
+    /// Snap to tick spacing along the dynamic guides.
+    pub dyn_ticks: bool,
+    pub dyn_tick_spacing: f64,
+    /// The dynamic guide angles (degrees) and whether each is on.
+    pub dyn_angles: Vec<(f64, bool)>,
+    /// Guidelines ▸ line style and color of new guidelines.
+    pub guide_line_style: usize,
+    pub guide_color: [u8; 3],
+    /// Guidelines ▸ Options ▸ Show at scale.
+    pub guides_at_scale: bool,
     /// View ▸ Rasterize Complex Effects.
     pub rasterize_complex_effects: bool,
     /// View ▸ Document Navigator and View ▸ Scrollbars.
@@ -522,6 +554,7 @@ impl Default for Settings {
             last_dir: None,
             workspace: "Default".into(),
             open_dockers: vec![],
+            custom_strokes: vec![],
             docker_width: 280.0,
             default_unit: Unit::Inches,
             show_tool_hints: 0,
@@ -535,6 +568,27 @@ impl Default for Settings {
             live_guides_centers: true,
             live_guides_page: true,
             dynamic_guides: false,
+            live_guides_groups: false,
+            intelligent_spacing: true,
+            intelligent_dimensioning: true,
+            align_guide_style: 1,
+            align_guide_color: [220, 215, 255],
+            guide_margins: false,
+            guide_margin_style: 1,
+            guide_margin_color: [255, 180, 100],
+            guide_margin: [14.4, 14.4],
+            guide_margin_mode: [0, 0],
+            guide_margins_locked: true,
+            dyn_guide_style: 1,
+            dyn_guide_color: [100, 150, 255],
+            dyn_screen_tips: true,
+            dyn_extend_segment: false,
+            dyn_ticks: false,
+            dyn_tick_spacing: 9.0,
+            dyn_angles: vec![(0.0, true), (30.0, false), (45.0, true), (60.0, false), (90.0, true), (120.0, false), (135.0, true), (150.0, false)],
+            guide_line_style: 2,
+            guide_color: [0, 0, 255],
+            guides_at_scale: false,
             rasterize_complex_effects: false,
             show_doc_navigator: true,
             show_scrollbars: true,
