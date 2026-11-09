@@ -61,7 +61,7 @@ pub fn contour(app: &mut VectorApp, ui: &mut Ui) {
     ui.horizontal(|ui| {
         if primary(ui, "Apply", app.has_selection()) {
             let dir = [ContourDir::ToCenter, ContourDir::Inside, ContourDir::Outside][app.dockers.ui.contour_dir];
-            let c = ContourEffect { dir, steps: app.dockers.ui.contour_steps, offset: app.dockers.ui.contour_offset, end_fill, end_outline: end_ol };
+            let c = ContourEffect { dir, steps: app.dockers.ui.contour_steps, offset: app.dockers.ui.contour_offset, end_fill, end_outline: end_ol, ..Default::default() };
             edit_sel(app, "Contour", |o| o.effects.contour = Some(c.clone()));
         }
         if ui.add_enabled(cur.is_some(), egui::Button::new("Clear")).clicked() {
@@ -107,7 +107,7 @@ pub fn extrude(app: &mut VectorApp, ui: &mut Ui) {
         return;
     }
     let cur = first(app).and_then(|o| o.effects.extrude);
-    let mut e = cur.clone().unwrap_or(ExtrudeEffect { depth: kurbo::Vec2::new(18.0, -18.0), color: Color::from_hex("#808080").unwrap(), shade: Color::BLACK, steps: 24 });
+    let mut e = cur.clone().unwrap_or(ExtrudeEffect { depth: kurbo::Vec2::new(18.0, -18.0), color: Color::from_hex("#808080").unwrap(), shade: Color::BLACK, steps: 24, ..Default::default() });
     ui.horizontal(|ui| {
         ui.label("Depth X:");
         len_field(app, ui, "ex_dx", &mut e.depth.x);
@@ -217,11 +217,11 @@ pub fn envelope(app: &mut VectorApp, ui: &mut Ui) {
     ];
     ui.horizontal_wrapped(|ui| {
         if ui.button("Add New").clicked() {
-            edit_sel(app, "Envelope", |o| o.effects.envelope = Some(EnvelopeEffect { handles: [kurbo::Vec2::ZERO; 8] }));
+            edit_sel(app, "Envelope", |o| o.effects.envelope = Some(EnvelopeEffect { handles: [kurbo::Vec2::ZERO; 8], ..Default::default() }));
         }
         for (n, h) in presets {
             if ui.button(n).clicked() {
-                edit_sel(app, "Envelope", |o| o.effects.envelope = Some(EnvelopeEffect { handles: h }));
+                edit_sel(app, "Envelope", |o| o.effects.envelope = Some(EnvelopeEffect { handles: h, ..Default::default() }));
             }
         }
     });
@@ -300,7 +300,7 @@ pub fn shadow(app: &mut VectorApp, ui: &mut Ui) {
     }
     super::heading(ui, "Block shadow");
     let cur = o.as_ref().and_then(|o| o.effects.block_shadow.clone());
-    let mut b = cur.clone().unwrap_or(vector_core::object::BlockShadow { offset: kurbo::Vec2::new(9.0, 9.0), color: Color::BLACK });
+    let mut b = cur.clone().unwrap_or(vector_core::object::BlockShadow { offset: kurbo::Vec2::new(9.0, 9.0), color: Color::BLACK, ..Default::default() });
     ui.horizontal(|ui| {
         ui.label("X:");
         len_field(app, ui, "bs_dx", &mut b.offset.x);

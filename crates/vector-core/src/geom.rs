@@ -272,3 +272,29 @@ pub fn rotation_deg(a: Affine) -> f64 {
 pub fn path_area(path: &BezPath) -> f64 {
     path.area().abs()
 }
+
+/// The subpaths of a path, each as its own path.
+pub fn subpaths(path: &BezPath) -> Vec<BezPath> {
+    let mut out: Vec<BezPath> = vec![];
+    for el in path.elements() {
+        if matches!(el, kurbo::PathEl::MoveTo(_)) || out.is_empty() {
+            out.push(BezPath::new());
+        }
+        out.last_mut().unwrap().push(*el);
+    }
+    out.retain(|p| p.elements().len() > 1);
+    out
+}
+
+/// Fewer nodes: each subpath flattened and refitted with smooth curves within `tol`.
+pub fn simplify_path(path: &BezPath, tol: f64) -> BezPath {
+    let mut out = BezPath::new();
+    for (pts, closed) in flatten_polylines(path, tol.max(0.05)) {
+        if pts.len() < 3 {
+            continue;
+        }
+        let np = crate::path::fit_freehand(&pts, 50.0, closed);
+        out.extend(np.to_bez().elements().iter().copied());
+    }
+    out
+}

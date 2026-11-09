@@ -796,6 +796,65 @@ impl Document {
     /// before it cannot hold. Also places the baseline grid in frames aligned to it (Text ▸ Align to
     /// Baseline Grid).
     pub fn update_text_flow(&mut self) {
+        self.update_text_wrap();
+        self.update_text_flow_links();
+    }
+
+    /// Wrap Paragraph Text: give every paragraph text the outlines of the objects on its page that
+    /// it flows around.
+    pub fn update_text_wrap(&mut self) {
+        use crate::text::TextKind;
+        for pg in self.pages.iter_mut() {
+            let mut walls: Vec<(ObjId, u8, kurbo::BezPath, Rect)> = vec![];
+            for o in pg.all_objects() {
+                let Some(w) = o.effects.wrap else { continue };
+                if !o.visible {
+                    continue;
+                }
+                let path = if w.style <= 2 {
+                    let p = o.world_path();
+                    if w.offset.abs() > 1e-6 {
+                        crate::geom::offset_path(&p, w.offset, kurbo::Join::Round)
+                    } else {
+                        p
+                    }
+                } else {
+                    crate::geom::rect_path(o.bounds().inflate(w.offset, w.offset))
+                };
+                let bb = path.bounding_box();
+                walls.push((o.id, w.style, path, bb));
+            }
+            for l in pg.layers.iter_mut() {
+                for o in l.objects.iter_mut() {
+                    o.walk_mut(&mut |x| {
+                        let id = x.id;
+                        let tr = x.transform;
+                        let ObjKind::Text(t) = &mut x.kind else { return };
+                        let mut obs = vec![];
+                        if let TextKind::Paragraph { width, height } = t.kind {
+                            let frame = tr.transform_rect_bbox(Rect::new(0.0, 0.0, width, height));
+                            let inv = tr.inverse();
+                            for (wid, style, path, bb) in &walls {
+                                if *wid == id || bb.intersect(frame).area() <= 0.0 {
+                                    continue;
+                                }
+                                for (pts, _) in crate::geom::flatten_polylines(&(inv * path.clone()), 0.5) {
+                                    if pts.len() >= 3 {
+                                        obs.push((*style, pts));
+                                    }
+                                }
+                            }
+                        }
+                        if t.wrap_obstacles != obs {
+                            t.wrap_obstacles = obs;
+                        }
+                    });
+                }
+            }
+        }
+    }
+
+    fn update_text_flow_links(&mut self) {
         use crate::text::{is_para_end, layout, Flow, Span, TextKind};
         let sp = self.settings.baseline_spacing.max(0.1);
         // links: (id, next, prev) of every text, to drop the ones whose other end is gone
@@ -1042,6 +1101,8 @@ impl Document {
     /// Recompute connector endpoints attached to objects.
     pub fn update_connectors(&mut self) {
         let mut updates: Vec<(ObjId, Option<Point>, Option<Point>)> = vec![];
+        let mut dirs: Vec<(ObjId, Option<f64>, Option<f64>)> = vec![];
+        let dir_of = |t: &crate::object::Object, anchor: Point| t.effects.anchors.iter().find(|a| (a.pos - anchor).hypot() < 1e-6).and_then(|a| a.dir);
         for p in &self.pages {
             for o in p.all_objects() {
                 o.walk(&mut |x| {
@@ -1063,8 +1124,21 @@ impl Document {
                         if sp.is_some() || ep.is_some() {
                             updates.push((x.id, sp, ep));
                         }
+                        let sd = c.start.attached.and_then(|(oid, a)| self.find(oid).and_then(|t| dir_of(t, a)));
+                        let ed = c.end.attached.and_then(|(oid, a)| self.find(oid).and_then(|t| dir_of(t, a)));
+                        if sd != c.start.dir || ed != c.end.dir {
+                            dirs.push((x.id, sd, ed));
+                        }
                     }
                 });
+            }
+        }
+        for (id, sd, ed) in dirs {
+            if let Some(o) = self.find_mut(id) {
+                if let ObjKind::Connector(c) = &mut o.kind {
+                    c.start.dir = sd;
+                    c.end.dir = ed;
+                }
             }
         }
         for (id, sp, ep) in updates {

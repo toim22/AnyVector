@@ -4,8 +4,11 @@
 //! state and run through [`option_state`] and [`press`]; the other items keep the reference look,
 //! disabled.
 
+mod extra;
 mod fields;
 mod text;
+
+pub use extra::{mesh_palette_color, node_align_dialog, painterly_profile};
 
 pub use text::text_controls;
 
@@ -183,6 +186,8 @@ fn bar_id(app: &VectorApp) -> &'static str {
         },
         SmartFill => "b07326e8",
         MeshFill => "211be451",
+        VariableOutline => "c440ff51",
+        Impact => "c783bf62",
     }
 }
 
@@ -464,7 +469,7 @@ pub fn control(app: &mut VectorApp, ui: &mut Ui, it: &'static Item) -> bool {
                 app.settings.mesh_rows = v.clamp(1.0, 20.0) as u32;
             }
         }
-        _ => return false,
+        _ => return extra::control(app, ui, it, &k),
     }
     true
 }
@@ -1161,7 +1166,7 @@ fn contour(app: &mut VectorApp, ui: &mut Ui, it: &Item, k: &str) {
 }
 
 fn default_contour() -> vector_core::object::ContourEffect {
-    vector_core::object::ContourEffect { dir: ContourDir::Outside, steps: 3, offset: 6.0, end_fill: Color::WHITE, end_outline: Color::BLACK }
+    vector_core::object::ContourEffect { dir: ContourDir::Outside, steps: 3, offset: 6.0, end_fill: Color::WHITE, end_outline: Color::BLACK, ..Default::default() }
 }
 
 fn blend(app: &mut VectorApp, ui: &mut Ui, it: &Item, k: &str) {
@@ -1241,7 +1246,7 @@ fn block_shadow(app: &mut VectorApp, ui: &mut Ui, it: &Item, k: &str) {
     let cur = first(app, |o| o.effects.block_shadow.clone()).flatten();
     let on = cur.is_some();
     let id = pid(ui, k);
-    let mut s = cur.clone().unwrap_or(vector_core::object::BlockShadow { offset: Vec2::new(8.0, 8.0), color: Color::BLACK });
+    let mut s = cur.clone().unwrap_or(vector_core::object::BlockShadow { offset: Vec2::new(8.0, 8.0), color: Color::BLACK, ..Default::default() });
     let mut ch = false;
     match k {
         "8fb33834" => {
@@ -1359,7 +1364,7 @@ pub const OPTIONS: &[&str] = &[
 
 /// Whether this id is one of [`OPTIONS`].
 pub fn handles(key: &str) -> bool {
-    OPTIONS.contains(&key)
+    OPTIONS.contains(&key) || extra::OPTIONS.contains(&key)
 }
 
 fn tool_or_sel<T: PartialEq>(cur: T, want: T) -> (bool, bool) {
@@ -1477,7 +1482,7 @@ pub fn option_state(app: &VectorApp, key: &str) -> Option<(bool, bool)> {
         "e8aed305" => (doc, app.ts.media_kind == 4),
         // brush and sprayer strokes: not in Vector yet
         "f7db3861" | "caf8cf4f" => (false, false),
-        _ => return None,
+        _ => return extra::option_state(app, key),
     })
 }
 
@@ -1673,7 +1678,7 @@ pub fn press(app: &mut VectorApp, key: &str) {
         "aebd9625" => app.ts.media_kind = 0,
         "6a38bf24" => app.ts.media_kind = 3,
         "e8aed305" => app.ts.media_kind = 4,
-        _ => {}
+        _ => extra::press(app, key),
     }
 }
 

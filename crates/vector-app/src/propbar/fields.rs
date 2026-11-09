@@ -439,3 +439,23 @@ pub fn empty(app: &mut VectorApp, ui: &mut Ui, it: &crate::ui::Item) {
         _ => {}
     }
 }
+
+/// A drop-down whose panel stays open while it is used (check boxes, sliders, values); a click
+/// outside closes it.
+pub fn panel(app: &mut VectorApp, ui: &mut Ui, lead: Lead, text: &str, w: f32, enabled: bool, tip: &str, body: impl FnOnce(&mut VectorApp, &mut Ui)) -> Response {
+    let lw = lead.width();
+    let (rect, r) = ui.allocate_exact_size(vec2(lw + w, ROW), if enabled { Sense::click() } else { Sense::hover() });
+    lead.paint(app, ui, rect.left_center(), enabled);
+    let fr = Rect::from_min_max(rect.min + vec2(lw, 0.0), rect.max);
+    ui.painter().rect_filled(fr, 2.0, if enabled && r.hovered() { theme::HOVER } else { Color32::from_rgb(0x33, 0x33, 0x33) });
+    let clip = Rect::from_min_max(fr.min, pos2(fr.right() - 16.0, fr.bottom()));
+    ui.painter().with_clip_rect(clip).text(pos2(fr.left() + 6.0, fr.center().y), egui::Align2::LEFT_CENTER, text, font(), ink(enabled));
+    chevron(ui.painter(), pos2(fr.right() - 9.0, fr.center().y), 3.5, ink(enabled));
+    let r = if tip.is_empty() { r } else { r.on_hover_text(tip) };
+    Popup::menu(&r).close_behavior(PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
+        crate::menus::menu_style(ui);
+        ui.set_min_width(w.max(160.0));
+        body(app, ui);
+    });
+    r
+}

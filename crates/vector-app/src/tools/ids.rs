@@ -63,6 +63,8 @@ pub enum ToolId {
     MeshFill,
     SmartFill,
     PainterlyBrush,
+    VariableOutline,
+    Impact,
 }
 
 pub struct ToolInfo {
@@ -141,6 +143,8 @@ pub const TOOLS: &[ToolInfo] = &[
     t!(MeshFill, "Mesh Fill", "mesh_fill", "M", "Click an object to create a mesh; click a patch and choose a color from the palette"),
     t!(SmartFill, "Smart Fill", "smart_fill", "", "Click inside an enclosed area to create a filled object"),
     t!(PainterlyBrush, "Painterly Brush", "painterly", "", "Drag to paint with realistic brush strokes"),
+    t!(VariableOutline, "Variable Outline", "variable_outline", "V", "Click an outline to add a width node; drag a node away from the path to widen that side"),
+    t!(Impact, "Impact", "impact", "", "Drag to create an impact effect of radial or parallel lines"),
 ];
 
 pub fn info(id: ToolId) -> &'static ToolInfo {
@@ -209,6 +213,8 @@ pub const TOOL_ITEMS: &[(&str, &[ToolId])] = &[
     ("2c6e4e57", &[ToolId::InteractiveFill]),
     ("af052244", &[ToolId::SmartFill]),
     ("8f3b40f1", &[ToolId::MeshFill]),
+    ("f69c2a02", &[ToolId::VariableOutline]),
+    ("874d2621", &[ToolId::Impact]),
 ];
 
 /// The Vector tools a reference tool item stands for (empty where Vector has no such tool yet).

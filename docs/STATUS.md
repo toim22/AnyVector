@@ -174,6 +174,65 @@ its status in Vector.
     with the text; Vector has no HTML export yet.
 - Tables: with the Table tool, typing goes into the chosen cell. Tab and Shift+Tab move between cells.
 
+**Batch 5 (Tools), done:**
+
+- Every tool works with every option of its property bar. The only property bar items left are four Bitmap
+  buttons (Bitmap Mask, Crop Bitmap, Edit Bitmap, Remove Background), which come with the Bitmaps menu in batch 7.
+- Pick and Free Transform:
+  - Free Transform rotates, reflects, scales and skews about the point you click, and can apply to a duplicate.
+  - Crop with a rotation angle crops along the rotated frame.
+- Shape and node editing:
+  - Shape tool stretch and rotate modes work on the selected nodes, and so does reflecting nodes horizontally or
+    vertically.
+  - Pen: auto add/delete nodes and the rubber-band preview.
+  - Polyline closes itself when it ends on its first node.
+- Curves:
+  - LiveSketch: timer, proximity, single curve, smoothing and Include curve.
+  - Painterly Brush: brush, size, opacity, smoothing and color variation.
+  - Artistic Media: scale with object.
+- Cutting and erasing:
+  - Knife: 2-point, freehand and Bézier cuts, with gap or overlap width, auto-close and outline handling.
+  - Eraser: round or square nib.
+- Shapes:
+  - Impact tool: radial and parallel lines, line widths and spacings (fixed, series or random), inner and outer
+    boundaries. It stays editable: change it on the property bar and it redraws.
+  - 2-Point Line: perpendicular and tangent lines.
+- Dimensions: units, leading zero, dynamic or frozen text, extension line gap and length, arrows, successive
+  dimensions, and callout shapes and gaps.
+- Effects and fills:
+  - Envelope: straight, single-arc, double-arc and unconstrained modes, mapping modes, keep lines, and envelope from
+    a shape.
+  - Interactive Fill and Transparency: gradient handles can be dragged after the gradient is made.
+  - Mesh Fill: patches take palette colors and sampled colors.
+  - Smart Fill: fill and outline from the default or a chosen color.
+  - Copy Effect: fill, transparency, variable outline and mesh as well.
+- Eyedroppers:
+  - Color Eyedropper samples 1×1, 2×2 or 5×5 pixels, and can sample anywhere on the desktop.
+  - Attributes Eyedropper copies the properties, transformations and effects chosen on its property bar.
+- Variable Outline: add width nodes and drag them, one side or both locked; the width runs smoothly between nodes.
+- Anchor Editing: add, move and delete anchors, with automatic placement; connectors follow their anchors.
+- Brushes: Attract/Repel and Twirl reverse with Ctrl, Smear has a pointed falloff, Roughen keeps a fixed
+  direction.
+- Tables: rows grow to fit their text, and separated cells have spacing and margins.
+- Object ▸ Symmetry:
+  - Create New Symmetry, Edit, Finish, Remove and Break Symmetry Link.
+  - The floating toolbar has mirror lines (1 to 12), angle of rotation, the center X/Y, Show symmetry lines,
+    Finish and Remove.
+  - The mirror copies follow the objects while you draw. Snap to symmetry lines is on while editing.
+  - Double-click a symmetry to edit it.
+- Object ▸ Perspective:
+  - Draw in Perspective and Edit Perspective Group.
+  - One-point, two-point and three-point (worm's-eye and bird's-eye) fields.
+  - Orthographic, Top, Left, Right and Side planes, and the horizon height.
+  - Right-click ▸ Move to Plane.
+  - Objects drawn flat are projected onto their plane on Finish. Edit brings back the flat objects.
+  - Snap to perspective lines is on while drawing in perspective.
+- Object ▸ Insert ▸ Object follows the reference dialog:
+  - Create New lists the document types Windows can create.
+  - Create from File has Link and Display As Icon.
+  - Double-click opens the object in its program. When the file is saved there, the object updates.
+  - Embedded objects are stored in the drawing; linked ones point to their file.
+
 ## Working (verified by build and tests)
 
 - Full workspace compiles. Unit tests pass for:
@@ -248,12 +307,13 @@ its status in Vector.
 - **Multipage view** is stored per document but the canvas still shows one page at a time.
 - **Top print presets inferred.** The first rows of print presets in New Document (US sizes, Arch, ISO, envelopes, and so on) are not visible in the reference photos, so their order was inferred. The rest follows the photos exactly.
 
-- **Gradient handles:** the handles of interactive fills and transparencies show but cannot be dragged after creation. Drag again to redefine them.
-- **Mesh fill:** picking a patch works, but setting a patch's color from the palette is not wired.
 - **Bitmap editor:** the "Double-click opens bitmap editor" option is stored but no external editor is launched.
 - **Computer-use driving:** the desktop window was not driven interactively. Verification used headless egui_kittest renders instead.
-- **Placeholder fields:** some property bar fields are drawn disabled because Vector does not have the feature yet
-  (for example LiveSketch's timer and proximity, the table bar's fill and outline lists, the dimension tool's
-  Dynamic dimensioning, Show units and Show leading zero buttons). They are filled in with their tools in batch 5.
+- **Bitmap property bar:** Bitmap Mask, Crop Bitmap, Edit Bitmap and Remove Background on the Bitmap property bar
+  come with the Bitmaps menu in batch 7.
+- **Perspective field handles:** the field covers the page (Fill page), and the horizon is set on the floating
+  toolbar. Vanishing points cannot be dragged on the canvas, and there are no camera lines.
+- **Symmetry preview:** the mirror copies show as outlines while you edit. Show full preview and Fuse open curves
+  are not available.
 - **Items with no command yet:** menu and toolbar items the reference has but Vector cannot do yet are shown and
   say so when chosen; `docs/COVERAGE.md` lists them.

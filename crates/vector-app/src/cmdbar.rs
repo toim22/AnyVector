@@ -165,10 +165,25 @@ fn arrow_enabled(app: &VectorApp, it: &Item, on: bool) -> bool {
     }
 }
 
+/// Tests: the bar items Vector does not have yet, recorded while bars are drawn (bar, item, kind).
+pub static MISSING: std::sync::Mutex<Option<std::collections::BTreeSet<(String, String, String)>>> = std::sync::Mutex::new(None);
+thread_local! {
+    static CURRENT_BAR: std::cell::Cell<&'static str> = const { std::cell::Cell::new("") };
+}
+
+pub fn note_missing(it: &Item, what: &str) {
+    if let Ok(mut m) = MISSING.lock() {
+        if let Some(set) = m.as_mut() {
+            set.insert((CURRENT_BAR.with(|c| c.get()).to_string(), format!("{} [{}]", ui::plain(ui::label(it)).trim(), key8(it.id)), what.to_string()));
+        }
+    }
+}
+
 /// Draw the items of a bar side by side.
 pub fn strip(app: &mut VectorApp, ui: &mut Ui, bar: u16) {
     let Some(b) = ui::bar(bar) else { return };
     let ctx = ui::context_bit(app);
+    CURRENT_BAR.with(|c| c.set(b.name));
     for it in b.items {
         item(app, ui, it, ctx);
     }
@@ -179,6 +194,9 @@ fn item(app: &mut VectorApp, ui: &mut Ui, it: &'static Item, ctx: u32) {
         Kind::Separator => vsep(ui),
         Kind::GroupBegin | Kind::GroupEnd | Kind::Spacer | Kind::Placeholder => {}
         Kind::Button | Kind::Check | Kind::Radio => {
+            if bind::cmd(it.id).is_none() {
+                note_missing(it, "button");
+            }
             let on = enabled(app, it, ctx);
             let checked = it.kind != Kind::Button && bind::checked(app, it.id).unwrap_or(false);
             if button(app, ui, it, on, checked).clicked() {
@@ -246,6 +264,9 @@ fn control(app: &mut VectorApp, ui: &mut Ui, it: &'static Item, ctx: u32) {
                 popup_rows(app, ui, it);
             });
         }
-        _ => crate::propbar::placeholder(app, ui, it),
+        _ => {
+            note_missing(it, "field");
+            crate::propbar::placeholder(app, ui, it)
+        }
     }
 }
