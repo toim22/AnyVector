@@ -14,21 +14,26 @@ pub fn tab_strip(app: &mut VectorApp, ui: &mut Ui) {
     p.line_segment([pos2(strip.left(), strip.bottom() - 0.5), pos2(strip.right(), strip.bottom() - 0.5)], Stroke::new(1.0, theme::SEP));
     let mut x = strip.left() + 4.0;
     let cy = strip.center().y;
-    // Home
-    let hr = Rect::from_center_size(pos2(x + 12.0, cy), vec2(24.0, 22.0));
-    let h = ui.interact(hr, ui.scope_id().with("tab_home"), Sense::click()).on_hover_text("Welcome Screen");
-    if app.active.is_none() {
-        p.rect_filled(hr, 2.0, theme::HOVER);
+    // the Welcome Screen: a house and its name, blue while it is the active tab
+    let hr = Rect::from_min_size(pos2(x, strip.top() + 3.0), vec2(140.0, HEIGHT - 3.0));
+    let h = ui.interact(hr, ui.scope_id().with("tab_home"), Sense::click());
+    let home = app.active.is_none();
+    let bg = if home {
+        theme::ACCENT
     } else if h.hovered() {
-        p.rect_filled(hr, 2.0, theme::HOVER);
+        theme::HOVER
+    } else {
+        Color32::TRANSPARENT
+    };
+    p.rect_filled(hr, egui::CornerRadius { nw: 3, ne: 3, sw: 0, se: 0 }, bg);
+    if let Some(t) = app.icons.get(ui.ctx(), "home", 16.0, if home { Tone::Bright } else { Tone::Normal }) {
+        p.image(t.id, Rect::from_center_size(pos2(hr.left() + 16.0, hr.center().y), vec2(16.0, 16.0)), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
     }
-    if let Some(t) = app.icons.get(ui.ctx(), "home", 16.0, Tone::Normal) {
-        p.image(t.id, Rect::from_center_size(hr.center(), vec2(16.0, 16.0)), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
-    }
+    p.text(pos2(hr.left() + 32.0, hr.center().y), egui::Align2::LEFT_CENTER, "Welcome Screen", theme::body(12.5), if home { Color32::WHITE } else { theme::TEXT });
     if h.clicked() {
         app.active = None;
     }
-    x += 28.0;
+    x += hr.width() + 4.0;
     // documents
     let mut close: Option<usize> = None;
     let mut activate: Option<usize> = None;

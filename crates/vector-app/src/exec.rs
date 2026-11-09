@@ -134,10 +134,6 @@ fn rotate_about(c: Point, deg: f64) -> Affine {
     Affine::translate(c.to_vec2()) * Affine::rotate(-deg.to_radians()) * Affine::translate(-c.to_vec2())
 }
 
-fn scale_about(c: Point, sx: f64, sy: f64) -> Affine {
-    Affine::translate(c.to_vec2()) * Affine::scale_non_uniform(sx, sy) * Affine::translate(-c.to_vec2())
-}
-
 /// A document containing only the given objects on one page sized to their bounds.
 pub fn selection_document(doc: &Document, ids: &[ObjId]) -> Option<Document> {
     let bb = doc.selection_bounds(ids)?;
@@ -968,8 +964,12 @@ impl VectorApp {
                 self.settings.button_size = crate::settings::ButtonSize::Large;
                 self.settings.show_property_bar = true;
             }
-            "Illustration" => {
+            "Illustration" | "Adobe Illustrator" => {
                 self.dockers.show(DockerId::Objects);
+                self.dockers.show(DockerId::Properties);
+            }
+            "Page Layout" => {
+                self.dockers.show(DockerId::Pages);
                 self.dockers.show(DockerId::Properties);
             }
             _ => {}
@@ -1412,6 +1412,24 @@ impl VectorApp {
                     self.dialogs.insert_page = Some((1, false));
                 }
             }
+            Cmd::InsertPageAfter | Cmd::InsertPageBefore => {
+                let before = cmd == Cmd::InsertPageBefore;
+                if let Some(d) = self.doc_mut() {
+                    let (w, h) = (d.page_ref().width, d.page_ref().height);
+                    let at = if before { d.page } else { d.page + 1 };
+                    d.modify("Insert Page", |doc, sel| {
+                        doc.add_page(at, w, h);
+                        sel.clear();
+                    });
+                    d.page = at;
+                    d.needs_fit = true;
+                }
+            }
+            Cmd::GridSetup => self.open_options(OptionsPage::Document, Some("Grid")),
+            Cmd::CommandBarsSetup => self.open_options(OptionsPage::Customization, Some("Command Bars")),
+            Cmd::CommandsSetup => self.open_options(OptionsPage::Customization, Some("Commands")),
+            Cmd::RulerSetup => self.open_options(OptionsPage::Document, Some("Rulers")),
+            Cmd::GuidelinesSetup => self.open_options(OptionsPage::Document, Some("Guidelines")),
             Cmd::DuplicatePage => {
                 if let Some(d) = self.doc_mut() {
                     let cur = d.page;
@@ -1465,6 +1483,7 @@ impl VectorApp {
                     }
                 }
             }
+            Cmd::BarOption(k) => crate::propbar::press(self, &format!("{k:08x}")),
             Cmd::SwitchOrientation | Cmd::Landscape(_) => {
                 if let Some(d) = self.doc_mut() {
                     let cur = d.page;
@@ -1544,6 +1563,7 @@ impl VectorApp {
                     }
                 });
             }
+            Cmd::Node(op) => crate::tools::node_op(self, op),
             Cmd::ConvertToCurves => self.modify_sel("Convert to Curves", |doc, sel| {
                 let ids = sel.clone();
                 *sel = ops::convert_to_curves(doc, &ids);
@@ -1942,7 +1962,11 @@ impl VectorApp {
                 self.active = None;
             }
             Cmd::VideoTutorials => self.dockers.show(DockerId::Learn),
-            Cmd::WhatsNew => self.info_box("What's New?", &format!("Vector {}\n\n• Native Windows vector editor written in Rust\n• CDR drawing format (.cdr); the older .vct format still opens\n• PDF, SVG and bitmap export\n• PowerTRACE bitmap tracing\n• Scripting with recording\n• AI Generate", vector_core::APP_VERSION)),
+            Cmd::WhatsNew => {
+                self.finish_tool();
+                self.active = None;
+                self.welcome_page = crate::welcome::Page::WhatsNew;
+            }
             Cmd::Updates => self.info_box("Updates", &format!("You are running Vector {}.", vector_core::APP_VERSION)),
             Cmd::MessageSettings | Cmd::RefreshAccount | Cmd::AccountSettings => self.info_box("Account", "Vector does not require an account. All your work stays on this computer."),
             Cmd::Community | Cmd::Support | Cmd::Feedback => self.info_box("Vector Community", "Share ideas and report problems to your Vector administrator or team."),
@@ -1954,6 +1978,8 @@ impl VectorApp {
 
             // ------------------------------------------------------------------ Misc
             Cmd::Tool(t) => {
+                // a reference tool that stands for several Vector tools starts as the kind last used
+                let t = self.toolbox.kind_of(t);
                 if t == self.tool && t != ToolId::Pick {
                     return;
                 }

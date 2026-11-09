@@ -13,31 +13,31 @@ The *Reference* column is a path inside the reference folder.
 
 | Area | Done | Partial | Todo | Omitted | Total |
 |---|---:|---:|---:|---:|---:|
-| [Menus](#menus) | 1 | 310 | 318 | 158 | 787 |
-| [Dialogs and screens](#dialogs-and-screens) | 1 | 55 | 36 | 0 | 92 |
-| [Bitmap effects (Properties docker)](#bitmap-effects-properties-docker) | 0 | 9 | 111 | 0 | 120 |
-| [Dockers](#dockers) | 0 | 41 | 3 | 1 | 45 |
-| [Tools](#tools) | 0 | 56 | 38 | 0 | 94 |
-| [Toolbars](#toolbars) | 0 | 4 | 8 | 0 | 12 |
-| [Right-click menus](#right-click-menus) | 0 | 0 | 24 | 3 | 27 |
-| **All** | **2** | **475** | **538** | **162** | **1177** |
+| [Menus](#menus) | 79 | 542 | 8 | 158 | 787 |
+| [Dialogs and screens](#dialogs-and-screens) | 2 | 89 | 1 | 0 | 92 |
+| [Bitmap effects (Properties docker)](#bitmap-effects-properties-docker) | 0 | 120 | 0 | 0 | 120 |
+| [Dockers](#dockers) | 0 | 44 | 0 | 1 | 45 |
+| [Tools](#tools) | 34 | 60 | 0 | 0 | 94 |
+| [Toolbars](#toolbars) | 12 | 0 | 0 | 0 | 12 |
+| [Right-click menus](#right-click-menus) | 24 | 0 | 0 | 3 | 27 |
+| **All** | **151** | **855** | **9** | **162** | **1177** |
 
 ## Menus
 
 ### File
 
-0 done · 31 partial · 12 todo · 2 omitted
+7 done · 35 partial · 1 todo · 2 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
-| File | menu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\01 File\001 File.png` |
+| File | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\01 File\001 File.png` |
 | File > New... | opens a window | 20 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\01 File\001 File ▸ New.png` |
 | File > New from Template... | opens a window | 28 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\01 File\002 File ▸ New from Template.png` |
 | File > Quick AI Generate... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\01 File\003 File ▸ Quick AI Generate.png` |
 | File > Open... | opens a window | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\01 File\004 File ▸ Open.png` |
 | File > Open from Cloud... | opens a window |  | ➖ omitted | Corel Cloud |  |
-| File > Open Recent | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\01 File\002 File ▸ Open Recent.png` |
-| File > Open Recent > Recent Files | command |  | ⬜ todo |  |  |
+| File > Open Recent | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\01 File\002 File ▸ Open Recent.png` |
+| File > Open Recent > Recent Files | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | File > Document Management | submenu |  | ⬜ todo |  |  |
 | File > Document Management > Open | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | File > Document Management > Save | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
@@ -48,29 +48,29 @@ The *Reference* column is a path inside the reference folder.
 | File > Save to Cloud... | opens a window |  | ➖ omitted | Corel Cloud |  |
 | File > Save as Template... | opens a window | 4 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\01 File\009 File ▸ Save as Template.png` |
 | File > Revert | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Acquire Image | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\01 File\003 File ▸ Acquire Image.png` |
+| File > Acquire Image | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\01 File\003 File ▸ Acquire Image.png` |
 | File > Acquire Image > Select TWAIN Source... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | File > Acquire Image > Select WIA Source... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | File > Acquire Image > Acquire... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | File > Import... | opens a window | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\01 File\013 File ▸ Import.png` |
 | File > Export... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Export For | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\01 File\004 File ▸ Export For.png` |
+| File > Export For | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\01 File\004 File ▸ Export For.png` |
 | File > Export For > Office... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | File > Export For > Web... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Export For > WordPress... | opens a window |  | ⬜ todo |  |  |
-| File > Export Docker | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\01 File\005 File ▸ Export Docker.png` |
-| File > Export Docker > Add Selection | command |  | ⬜ todo |  |  |
-| File > Export Docker > Add Current Page | command |  | ⬜ todo |  |  |
-| File > Export Docker > Add All Pages | command |  | ⬜ todo |  |  |
-| File > Send To | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\01 File\006 File ▸ Send To.png` |
-| File > Send To > Send To Links | command |  | ⬜ todo |  |  |
-| File > Send To > Mail... | opens a window |  | ⬜ todo |  |  |
+| File > Export For > WordPress... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| File > Export Docker | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\01 File\005 File ▸ Export Docker.png` |
+| File > Export Docker > Add Selection | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| File > Export Docker > Add Current Page | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| File > Export Docker > Add All Pages | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| File > Send To | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\01 File\006 File ▸ Send To.png` |
+| File > Send To > Send To Links | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| File > Send To > Mail... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | File > Publish to PDF | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Print Merge | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\01 File\007 File ▸ Print Merge.png` |
-| File > Print Merge > Create/load Print Merge | command |  | ⬜ todo |  |  |
-| File > Print Merge > Edit Print Merge | command |  | ⬜ todo |  |  |
-| File > Print Merge > Print Merged Document... | opens a window |  | ⬜ todo |  |  |
-| File > Print Merge > Create Merged Document | command |  | ⬜ todo |  |  |
+| File > Print Merge | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\01 File\007 File ▸ Print Merge.png` |
+| File > Print Merge > Create/load Print Merge | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| File > Print Merge > Edit Print Merge | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| File > Print Merge > Print Merged Document... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| File > Print Merge > Create Merged Document | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | File > Print... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | File > Print Preview... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | File > Document Properties... | opens a window | 5 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\01 File\022 File ▸ Document Properties.png` |
@@ -78,26 +78,26 @@ The *Reference* column is a path inside the reference folder.
 
 ### Edit
 
-0 done · 17 partial · 5 todo · 0 omitted
+2 done · 20 partial · 0 todo · 0 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
-| Edit | menu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\02 Edit\001 Edit.png` |
-| Edit > Undo Apply Preset Guidelines | command |  | ⬜ todo |  |  |
+| Edit | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\02 Edit\001 Edit.png` |
+| Edit > Undo Apply Preset Guidelines | command |  | 🟡 partial | Undo names the last action |  |
 | Edit > Redo | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Edit > Repeat Apply Preset Guidelines | command |  | ⬜ todo |  |  |
-| Edit > Bring into Focus | command |  | ⬜ todo |  |  |
-| Edit > Exit Focus Mode | command |  | ⬜ todo |  |  |
+| Edit > Repeat Apply Preset Guidelines | command |  | 🟡 partial | Repeat names the last action |  |
+| Edit > Bring into Focus | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Edit > Exit Focus Mode | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Edit > Cut | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Edit > Copy | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Edit > Copy Properties From... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\selecao-multipla\02 Edit\001 Edit ▸ Copy Properties From.png` |
 | Edit > Paste | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Edit > Paste in View | command |  | ⬜ todo |  |  |
+| Edit > Paste in View | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Edit > Paste Special... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\02 Edit\002 Edit ▸ Paste Special.png` |
 | Edit > Delete | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Edit > Duplicate | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Edit > Clone | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Edit > Select All | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\02 Edit\002 Edit ▸ Select All.png` |
+| Edit > Select All | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\02 Edit\002 Edit ▸ Select All.png` |
 | Edit > Select All > Objects | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Edit > Select All > Text | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Edit > Select All > Guidelines | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
@@ -107,149 +107,149 @@ The *Reference* column is a path inside the reference folder.
 
 ### View
 
-0 done · 26 partial · 15 todo · 0 omitted
+4 done · 34 partial · 3 todo · 0 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
-| View | menu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\03 View\001 View.png` |
+| View | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\03 View\001 View.png` |
 | View > Wireframe | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | View > Normal | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | View > Enhanced | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | View > Pixels | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | View > Pattern Preview | command |  | ⬜ todo |  |  |
 | View > Full-screen Preview | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Preview Selected Only | command |  | ⬜ todo |  |  |
-| View > <placeHolder > | command |  | ⬜ todo |  |  |
+| View > Preview Selected Only | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| View > <placeHolder > | command |  | 🟡 partial | list filled at run time |  |
 | View > Multipage View | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | View > Zoom In | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | View > Zoom Out | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Zoom To Fit | command |  | ⬜ todo |  |  |
+| View > Zoom To Fit | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | View > Proof Colors | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | View > Simulate Overprints | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Rasterize Complex Effects | command |  | ⬜ todo |  |  |
-| View > <placeHolder > | command |  | ⬜ todo |  |  |
-| View > Page | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\03 View\002 View ▸ Page.png` |
+| View > Rasterize Complex Effects | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| View > <placeHolder > | command |  | 🟡 partial | list filled at run time |  |
+| View > Page | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\03 View\002 View ▸ Page.png` |
 | View > Page > Page Border | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | View > Page > Bleed | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Page > Printable Area | command |  | ⬜ todo |  |  |
-| View > Grid | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\03 View\003 View ▸ Grid.png` |
+| View > Page > Printable Area | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| View > Grid | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\03 View\003 View ▸ Grid.png` |
 | View > Grid > Document Grid | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | View > Grid > Pixel Grid | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Grid > Baseline Grid | command |  | ⬜ todo |  |  |
+| View > Grid > Baseline Grid | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | View > Rulers | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | View > Guidelines | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Alignment Guides | command |  | ⬜ todo |  |  |
-| View > Dynamic Guides | command |  | ⬜ todo |  |  |
-| View > Snap To | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\03 View\004 View ▸ Snap To.png` |
+| View > Alignment Guides | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| View > Dynamic Guides | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| View > Snap To | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\03 View\004 View ▸ Snap To.png` |
 | View > Snap To > Pixels | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | View > Snap To > Document Grid | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Snap To > Baseline Grid | command |  | ⬜ todo |  |  |
+| View > Snap To > Baseline Grid | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | View > Snap To > Guidelines | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | View > Snap To > Perspective Lines | command |  | ⬜ todo |  |  |
 | View > Snap To > Symmetry Lines | command |  | ⬜ todo |  |  |
 | View > Snap To > Objects | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | View > Snap To > Page | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | View > Snap Off | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Document Navigator | command |  | ⬜ todo |  |  |
-| View > Scrollbars | command |  | ⬜ todo |  |  |
+| View > Document Navigator | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| View > Scrollbars | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 
 ### Layout
 
-0 done · 11 partial · 7 todo · 0 omitted
+2 done · 16 partial · 0 todo · 0 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
-| Layout | menu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\04 Layout\001 Layout.png` |
+| Layout | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\04 Layout\001 Layout.png` |
 | Layout > Insert Page... | opens a window | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\001 Layout ▸ Insert Page.png` |
 | Layout > Duplicate Page... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\002 Layout ▸ Duplicate Page.png` |
 | Layout > Rename Page... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\003 Layout ▸ Rename Page.png` |
 | Layout > Delete Page... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\varias-paginas\04 Layout\004 Layout ▸ Delete Page.png` |
 | Layout > Go to Page... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\varias-paginas\04 Layout\005 Layout ▸ Go to Page.png` |
-| Layout > Insert Page Number | submenu |  | ⬜ todo |  | `02-menus\doc-vazio\04 Layout\002 Layout ▸ Insert Page Number.png` |
-| Layout > Insert Page Number > On Active Layer | command |  | ⬜ todo |  |  |
-| Layout > Insert Page Number > On All Pages | command |  | ⬜ todo |  |  |
-| Layout > Insert Page Number > On All Odd Pages | command |  | ⬜ todo |  |  |
-| Layout > Insert Page Number > On All Even Pages | command |  | ⬜ todo |  |  |
-| Layout > Page Number Settings... | opens a window | 2 | ⬜ todo |  | `03-telas\doc-vazio\04 Layout\006 Layout ▸ Page Number Settings.png` |
+| Layout > Insert Page Number | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\04 Layout\002 Layout ▸ Insert Page Number.png` |
+| Layout > Insert Page Number > On Active Layer | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Layout > Insert Page Number > On All Pages | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Layout > Insert Page Number > On All Odd Pages | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Layout > Insert Page Number > On All Even Pages | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Layout > Page Number Settings... | opens a window | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\006 Layout ▸ Page Number Settings.png` |
 | Layout > Switch Page Orientation | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Layout > Document Options... | opens a window | 22 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\007 Layout ▸ Document Options.png` |
 | Layout > Page Size... | opens a window | 22 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\008 Layout ▸ Page Size.png` |
 | Layout > Page Layout... | opens a window | 22 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\009 Layout ▸ Page Layout.png` |
 | Layout > Page Background... | opens a window | 22 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\010 Layout ▸ Page Background.png` |
-| Layout > Border and Grommet... | opens a window | 1 | ⬜ todo |  | `03-telas\doc-vazio\04 Layout\011 Layout ▸ Border and Grommet.png` |
+| Layout > Border and Grommet... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\011 Layout ▸ Border and Grommet.png` |
 
 ### Object
 
-0 done · 63 partial · 63 todo · 0 omitted
+17 done · 106 partial · 3 todo · 0 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
-| Object | menu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\05 Object\001 Object.png` |
-| Object > Create | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\05 Object\002 Object ▸ Create.png` |
+| Object | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\001 Object.png` |
+| Object > Create | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\002 Object ▸ Create.png` |
 | Object > Create > Arrowhead... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\05 Object\001 Object ▸ Create ▸ Arrowhead.png` |
 | Object > Create > Pattern Fill... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\05 Object\002 Object ▸ Create ▸ Pattern Fill.png` |
-| Object > Insert | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\05 Object\003 Object ▸ Insert.png` |
-| Object > Insert > QR Code | command |  | ⬜ todo |  |  |
-| Object > Insert > Barcode | command |  | ⬜ todo |  |  |
-| Object > Insert > Validate Barcode | command |  | ⬜ todo |  |  |
+| Object > Insert | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\003 Object ▸ Insert.png` |
+| Object > Insert > QR Code | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Insert > Barcode | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Insert > Validate Barcode | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Insert > Object... | opens a window | 4 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\05 Object\003 Object ▸ Insert ▸ Object.png` |
-| Object > AI Generate | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\05 Object\004 Object ▸ AI Generate.png` |
+| Object > AI Generate | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\004 Object ▸ AI Generate.png` |
 | Object > AI Generate > Create vector graphic | command |  | ⬜ todo |  |  |
-| Object > AI Generate > Create Vector Graphic Guided by Selection | command |  | ⬜ todo |  |  |
+| Object > AI Generate > Create Vector Graphic Guided by Selection | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > AI Generate > Create image | command |  | ⬜ todo |  |  |
-| Object > AI Generate > Create Image Guided by Selection | command |  | ⬜ todo |  |  |
+| Object > AI Generate > Create Image Guided by Selection | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > AI Generate > Remix image | command |  | ⬜ todo |  |  |
-| Object > AI Generate > Remix Selection | command |  | ⬜ todo |  |  |
-| Object > PowerClip | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\05 Object\005 Object ▸ PowerClip.png` |
+| Object > AI Generate > Remix Selection | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > PowerClip | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\005 Object ▸ PowerClip.png` |
 | Object > PowerClip > Place Inside Frame... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\linha-de-cota\05 Object\004 Object ▸ PowerClip ▸ Place Inside Frame (sem janela, tela principal).png` |
 | Object > PowerClip > Extract Contents | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > PowerClip > Edit PowerClip... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\powerclip\05 Object\005 Object ▸ PowerClip ▸ Edit PowerClip (sem janela, tela principal).png` |
 | Object > PowerClip > Finish Editing PowerClip | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > PowerClip > Create Empty PowerClip Frame | command |  | ⬜ todo |  |  |
-| Object > PowerClip > Lock Contents to PowerClip | command |  | ⬜ todo |  |  |
+| Object > PowerClip > Create Empty PowerClip Frame | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > PowerClip > Lock Contents to PowerClip | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > PowerClip > Center | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > PowerClip > Fit Proportionally | command |  | ⬜ todo |  |  |
-| Object > PowerClip > Fill Proportionally | command |  | ⬜ todo |  |  |
-| Object > PowerClip > Stretch to Fill | command |  | ⬜ todo |  |  |
-| Object > PowerClip > Copy PowerClip From... | opens a window |  | ⬜ todo |  | `03-telas\powerclip\05 Object\006 Object ▸ PowerClip ▸ Copy PowerClip From (sem janela, tela principal).png` |
-| Object > Symmetry | submenu |  | ⬜ todo |  | `02-menus\doc-vazio\05 Object\006 Object ▸ Symmetry.png` |
-| Object > Symmetry > Create New Symmetry | command |  | ⬜ todo |  |  |
-| Object > Symmetry > Edit Symmetry | command |  | ⬜ todo |  |  |
-| Object > Symmetry > Finish Editing Symmetry | command |  | ⬜ todo |  |  |
-| Object > Symmetry > Remove Symmetry | command |  | ⬜ todo |  |  |
-| Object > Symmetry > Break Symmetry Link | command |  | ⬜ todo |  |  |
-| Object > Symbol | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\05 Object\007 Object ▸ Symbol.png` |
-| Object > Symbol > Create New Symbol | command |  | ⬜ todo |  |  |
-| Object > Symbol > Edit Master... | opens a window |  | ⬜ todo |  | `03-telas\simbolo\05 Object\007 Object ▸ Symbol ▸ Edit Master (sem janela, tela principal).png` |
-| Object > Symbol > Finish Editing Symbol | command |  | ⬜ todo |  |  |
+| Object > PowerClip > Fit Proportionally | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > PowerClip > Fill Proportionally | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > PowerClip > Stretch to Fill | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > PowerClip > Copy PowerClip From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\powerclip\05 Object\006 Object ▸ PowerClip ▸ Copy PowerClip From (sem janela, tela principal).png` |
+| Object > Symmetry | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\006 Object ▸ Symmetry.png` |
+| Object > Symmetry > Create New Symmetry | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Symmetry > Edit Symmetry | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Symmetry > Finish Editing Symmetry | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Symmetry > Remove Symmetry | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Symmetry > Break Symmetry Link | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Symbol | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\007 Object ▸ Symbol.png` |
+| Object > Symbol > Create New Symbol | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Symbol > Edit Master... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\simbolo\05 Object\007 Object ▸ Symbol ▸ Edit Master (sem janela, tela principal).png` |
+| Object > Symbol > Finish Editing Symbol | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Symbol > Revert to Objects | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Symbol > Break Link | command |  | ⬜ todo |  |  |
-| Object > Symbol > Update from Link | command |  | ⬜ todo |  |  |
-| Object > Symbol > Export Library... | opens a window |  | ⬜ todo |  |  |
+| Object > Symbol > Break Link | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Symbol > Update from Link | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Symbol > Export Library... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Symbol > Symbols | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Rollover | submenu |  | ⬜ todo |  | `02-menus\doc-vazio\05 Object\008 Object ▸ Rollover.png` |
-| Object > Rollover > Create Rollover | command |  | ⬜ todo |  |  |
-| Object > Rollover > Extract Rollover Objects | command |  | ⬜ todo |  |  |
-| Object > Rollover > Edit Rollover... | opens a window |  | ⬜ todo |  | `03-telas\rollover\05 Object\009 Object ▸ Rollover ▸ Edit Rollover.png` |
-| Object > Rollover > Finish Editing rollover | command |  | ⬜ todo |  |  |
-| Object > Rollover > Rollover Live Preview | command |  | ⬜ todo |  |  |
+| Object > Rollover | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\008 Object ▸ Rollover.png` |
+| Object > Rollover > Create Rollover | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Rollover > Extract Rollover Objects | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Rollover > Edit Rollover... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\rollover\05 Object\009 Object ▸ Rollover ▸ Edit Rollover.png` |
+| Object > Rollover > Finish Editing rollover | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Rollover > Rollover Live Preview | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Clear Transformations | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Copy Effect | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\05 Object\009 Object ▸ Copy Effect.png` |
-| Object > Copy Effect > Perspective From... | opens a window |  | ⬜ todo |  | `03-telas\com-efeitos\05 Object\010 Object ▸ Copy Effect ▸ Perspective From (sem janela, tela principal).png` |
-| Object > Copy Effect > Envelope From... | opens a window |  | ⬜ todo |  | `03-telas\com-efeitos\05 Object\011 Object ▸ Copy Effect ▸ Envelope From (sem janela, tela principal).png` |
-| Object > Copy Effect > Blend From... | opens a window |  | ⬜ todo |  |  |
-| Object > Copy Effect > Extrude From... | opens a window |  | ⬜ todo |  |  |
-| Object > Copy Effect > Contour From... | opens a window |  | ⬜ todo |  |  |
-| Object > Copy Effect > Lens From... | opens a window |  | ⬜ todo |  |  |
-| Object > Copy Effect > Shadow From... | opens a window |  | ⬜ todo |  |  |
-| Object > Copy Effect > Distortion From... | opens a window |  | ⬜ todo |  | `03-telas\com-efeitos\05 Object\017 Object ▸ Copy Effect ▸ Distortion From (sem janela, tela principal).png` |
-| Object > Clone Effect | submenu |  | ⬜ todo |  | `02-menus\doc-vazio\05 Object\010 Object ▸ Clone Effect.png` |
-| Object > Clone Effect > Blend From... | opens a window |  | ⬜ todo |  |  |
-| Object > Clone Effect > Extrude From... | opens a window |  | ⬜ todo |  |  |
-| Object > Clone Effect > Contour From... | opens a window |  | ⬜ todo |  |  |
-| Object > Clone Effect > Shadow From... | opens a window |  | ⬜ todo |  |  |
+| Object > Copy Effect | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\009 Object ▸ Copy Effect.png` |
+| Object > Copy Effect > Perspective From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\com-efeitos\05 Object\010 Object ▸ Copy Effect ▸ Perspective From (sem janela, tela principal).png` |
+| Object > Copy Effect > Envelope From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\com-efeitos\05 Object\011 Object ▸ Copy Effect ▸ Envelope From (sem janela, tela principal).png` |
+| Object > Copy Effect > Blend From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Copy Effect > Extrude From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Copy Effect > Contour From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Copy Effect > Lens From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Copy Effect > Shadow From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Copy Effect > Distortion From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\com-efeitos\05 Object\017 Object ▸ Copy Effect ▸ Distortion From (sem janela, tela principal).png` |
+| Object > Clone Effect | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\010 Object ▸ Clone Effect.png` |
+| Object > Clone Effect > Blend From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Clone Effect > Extrude From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Clone Effect > Contour From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Clone Effect > Shadow From... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Clear Effect | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Align and Distribute | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\05 Object\011 Object ▸ Align and Distribute.png` |
+| Object > Align and Distribute | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\011 Object ▸ Align and Distribute.png` |
 | Object > Align and Distribute > Align Left | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Align and Distribute > Align Right | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Align and Distribute > Align Top | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
@@ -257,34 +257,34 @@ The *Reference* column is a path inside the reference folder.
 | Object > Align and Distribute > Align Centers Horizontally | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Align and Distribute > Align Centers Vertically | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Align and Distribute > Center to Page | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Align and Distribute > Center to Page Horizontally | command |  | ⬜ todo |  |  |
-| Object > Align and Distribute > Center to Page Vertically | command |  | ⬜ todo |  |  |
-| Object > Align and Distribute > Align with Pixel Grid | command |  | ⬜ todo |  |  |
+| Object > Align and Distribute > Center to Page Horizontally | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Align and Distribute > Center to Page Vertically | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Align and Distribute > Align with Pixel Grid | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Align and Distribute > Align and Distribute | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Fit Objects to Path | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Order | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\05 Object\012 Object ▸ Order.png` |
+| Object > Order | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\012 Object ▸ Order.png` |
 | Object > Order > To Front of Page | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Order > To Back of Page | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Order > To Front of Layer | command |  | ⬜ todo |  |  |
-| Object > Order > To Back of Layer | command |  | ⬜ todo |  |  |
+| Object > Order > To Front of Layer | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Order > To Back of Layer | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Order > Forward One | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Order > Back One | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Order > In Front Of... | opens a window |  | ⬜ todo |  | `03-telas\linha-de-cota\05 Object\022 Object ▸ Order ▸ In Front Of (sem janela, tela principal).png` |
-| Object > Order > Behind... | opens a window |  | ⬜ todo |  | `03-telas\linha-de-cota\05 Object\023 Object ▸ Order ▸ Behind (sem janela, tela principal).png` |
+| Object > Order > In Front Of... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\linha-de-cota\05 Object\022 Object ▸ Order ▸ In Front Of (sem janela, tela principal).png` |
+| Object > Order > Behind... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\linha-de-cota\05 Object\023 Object ▸ Order ▸ Behind (sem janela, tela principal).png` |
 | Object > Order > Reverse Order | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Group | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\05 Object\013 Object ▸ Group.png` |
+| Object > Group | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\013 Object ▸ Group.png` |
 | Object > Group > Group | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Group > Ungroup | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Group > Ungroup All | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Hide | submenu |  | ⬜ todo |  | `02-menus\doc-vazio\05 Object\014 Object ▸ Hide.png` |
-| Object > Hide > Hide | command |  | ⬜ todo |  |  |
-| Object > Hide > Show | command |  | ⬜ todo |  |  |
-| Object > Hide > Show All | command |  | ⬜ todo |  |  |
-| Object > Lock | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\05 Object\015 Object ▸ Lock.png` |
+| Object > Hide | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\014 Object ▸ Hide.png` |
+| Object > Hide > Hide | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Hide > Show | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Hide > Show All | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Lock | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\015 Object ▸ Lock.png` |
 | Object > Lock > Lock | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Lock > Unlock | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Lock > Unlock All | command |  | ⬜ todo |  |  |
-| Object > Shaping | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\05 Object\016 Object ▸ Shaping.png` |
+| Object > Lock > Unlock All | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Shaping | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\016 Object ▸ Shaping.png` |
 | Object > Shaping > Weld | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Shaping > Trim | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Shaping > Intersect | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
@@ -295,328 +295,328 @@ The *Reference* column is a path inside the reference folder.
 | Object > Shaping > Shape | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Combine | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Break Apart | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Perspective | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\05 Object\017 Object ▸ Perspective.png` |
+| Object > Perspective | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\017 Object ▸ Perspective.png` |
 | Object > Perspective > Add Perspective... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\05 Object\024 Object ▸ Perspective ▸ Add Perspective (sem janela, tela principal).png` |
-| Object > Perspective > Draw in Perspective... | opens a window |  | ⬜ todo |  |  |
-| Object > Perspective > Edit Perspective Group... | opens a window |  | ⬜ todo |  |  |
+| Object > Perspective > Draw in Perspective... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Perspective > Edit Perspective Group... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Convert to Curves | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Convert to Bitmap... | opens a window | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\05 Object\027 Object ▸ Convert to Bitmap.png` |
 | Object > Convert Outline to Object | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Join Curves | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Overprint Fill | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Object > Overprint Outline | command |  | ⬜ todo |  |  |
-| Object > Overprint Bitmap | command |  | ⬜ todo |  |  |
-| Object > Object Hinting | command |  | ⬜ todo |  |  |
+| Object > Overprint Outline | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Overprint Bitmap | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Object > Object Hinting | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Properties | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Objects | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Object > Pages | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 
 ### Effects
 
-0 done · 22 partial · 129 todo · 0 omitted
+17 done · 134 partial · 0 todo · 0 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
-| Effects | menu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\06 Effects\001 Effects.png` |
-| Effects > Flatten Effects | command |  | ⬜ todo |  |  |
-| Effects > 3D Effects | submenu |  | ⬜ todo |  | `02-menus\doc-vazio\06 Effects\002 Effects ▸ 3D Effects.png` |
-| Effects > 3D Effects > 3D Rotate... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\001 Effects ▸ 3D Effects ▸ 3D Rotate (abre no docker Properties).png` |
-| Effects > 3D Effects > Cylinder... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\002 Effects ▸ 3D Effects ▸ Cylinder (abre no docker Properties).png` |
+| Effects | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\001 Effects.png` |
+| Effects > Flatten Effects | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Effects > 3D Effects | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\002 Effects ▸ 3D Effects.png` |
+| Effects > 3D Effects > 3D Rotate... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\001 Effects ▸ 3D Effects ▸ 3D Rotate (abre no docker Properties).png` |
+| Effects > 3D Effects > Cylinder... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\002 Effects ▸ 3D Effects ▸ Cylinder (abre no docker Properties).png` |
 | Effects > 3D Effects > Emboss... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\003 Effects ▸ 3D Effects ▸ Emboss (abre no docker Properties).png` |
-| Effects > 3D Effects > Page Curl... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\004 Effects ▸ 3D Effects ▸ Page Curl (abre no docker Properties).png` |
-| Effects > 3D Effects > Pinch/Punch... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\005 Effects ▸ 3D Effects ▸ Pinch_Punch (abre no docker Properties).png` |
-| Effects > 3D Effects > Sphere... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\006 Effects ▸ 3D Effects ▸ Sphere (abre no docker Properties).png` |
-| Effects > 3D Effects > Zig Zag... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\007 Effects ▸ 3D Effects ▸ Zig Zag (abre no docker Properties).png` |
-| Effects > Adjust | submenu |  | ⬜ todo |  | `02-menus\doc-vazio\06 Effects\003 Effects ▸ Adjust.png` |
+| Effects > 3D Effects > Page Curl... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\004 Effects ▸ 3D Effects ▸ Page Curl (abre no docker Properties).png` |
+| Effects > 3D Effects > Pinch/Punch... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\005 Effects ▸ 3D Effects ▸ Pinch_Punch (abre no docker Properties).png` |
+| Effects > 3D Effects > Sphere... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\006 Effects ▸ 3D Effects ▸ Sphere (abre no docker Properties).png` |
+| Effects > 3D Effects > Zig Zag... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\007 Effects ▸ 3D Effects ▸ Zig Zag (abre no docker Properties).png` |
+| Effects > Adjust | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\003 Effects ▸ Adjust.png` |
 | Effects > Adjust > Auto Adjust | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Effects > Adjust > Levels... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\008 Effects ▸ Adjust ▸ Levels (abre no docker Properties).png` |
-| Effects > Adjust > Equalize... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\009 Effects ▸ Adjust ▸ Equalize (abre no docker Properties).png` |
-| Effects > Adjust > Sample & Target... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\010 Effects ▸ Adjust ▸ Sample & Target (abre no docker Properties).png` |
-| Effects > Adjust > Tone Curve... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\011 Effects ▸ Adjust ▸ Tone Curve (abre no docker Properties).png` |
+| Effects > Adjust > Levels... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\008 Effects ▸ Adjust ▸ Levels (abre no docker Properties).png` |
+| Effects > Adjust > Equalize... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\009 Effects ▸ Adjust ▸ Equalize (abre no docker Properties).png` |
+| Effects > Adjust > Sample & Target... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\010 Effects ▸ Adjust ▸ Sample & Target (abre no docker Properties).png` |
+| Effects > Adjust > Tone Curve... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\011 Effects ▸ Adjust ▸ Tone Curve (abre no docker Properties).png` |
 | Effects > Adjust > Light... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\012 Effects ▸ Adjust ▸ Light (abre no docker Properties).png` |
-| Effects > Adjust > <placeHolder > | command |  | ⬜ todo |  |  |
-| Effects > Adjust > Color Balance... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\013 Effects ▸ Adjust ▸ Color Balance (abre no docker Properties).png` |
-| Effects > Adjust > Gamma... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\014 Effects ▸ Adjust ▸ Gamma (abre no docker Properties).png` |
-| Effects > Adjust > White Balance... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\015 Effects ▸ Adjust ▸ White Balance (abre no docker Properties).png` |
-| Effects > Adjust > Hue/Saturation/Lightness... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\016 Effects ▸ Adjust ▸ Hue_Saturation_Lightness (abre no docker Properties).png` |
-| Effects > Adjust > Black & White... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\017 Effects ▸ Adjust ▸ Black & White (abre no docker Properties).png` |
-| Effects > Adjust > Vibrance... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\018 Effects ▸ Adjust ▸ Vibrance (abre no docker Properties).png` |
-| Effects > Adjust > Selective Color... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\019 Effects ▸ Adjust ▸ Selective Color (abre no docker Properties).png` |
-| Effects > Adjust > <placeHolder > | command |  | ⬜ todo |  |  |
-| Effects > Adjust > Replace Colors... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\020 Effects ▸ Adjust ▸ Replace Colors (abre no docker Properties).png` |
-| Effects > Adjust > Desaturate | command |  | ⬜ todo |  |  |
-| Effects > Adjust > Channel Mixer... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\021 Effects ▸ Adjust ▸ Channel Mixer (abre no docker Properties).png` |
-| Effects > Art Strokes | submenu |  | ⬜ todo |  | `02-menus\doc-vazio\06 Effects\004 Effects ▸ Art Strokes.png` |
-| Effects > Art Strokes > Charcoal... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\022 Effects ▸ Art Strokes ▸ Charcoal (abre no docker Properties).png` |
-| Effects > Art Strokes > Conté Crayon... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\023 Effects ▸ Art Strokes ▸ Conté Crayon (abre no docker Properties).png` |
-| Effects > Art Strokes > Crayon... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\024 Effects ▸ Art Strokes ▸ Crayon (abre no docker Properties).png` |
-| Effects > Art Strokes > Cubist... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\025 Effects ▸ Art Strokes ▸ Cubist (abre no docker Properties).png` |
-| Effects > Art Strokes > Dabble... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\026 Effects ▸ Art Strokes ▸ Dabble (abre no docker Properties).png` |
-| Effects > Art Strokes > Impressionist... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\027 Effects ▸ Art Strokes ▸ Impressionist (abre no docker Properties).png` |
-| Effects > Art Strokes > Palette Knife... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\028 Effects ▸ Art Strokes ▸ Palette Knife (abre no docker Properties).png` |
-| Effects > Art Strokes > Pastels... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\029 Effects ▸ Art Strokes ▸ Pastels (abre no docker Properties).png` |
-| Effects > Art Strokes > Pen & Ink... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\030 Effects ▸ Art Strokes ▸ Pen & Ink (abre no docker Properties).png` |
-| Effects > Art Strokes > Pointillist... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\031 Effects ▸ Art Strokes ▸ Pointillist (abre no docker Properties).png` |
-| Effects > Art Strokes > Scraperboard... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\032 Effects ▸ Art Strokes ▸ Scraperboard (abre no docker Properties).png` |
-| Effects > Art Strokes > Sketch Pad... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\033 Effects ▸ Art Strokes ▸ Sketch Pad (abre no docker Properties).png` |
-| Effects > Art Strokes > Watercolor... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\034 Effects ▸ Art Strokes ▸ Watercolor (abre no docker Properties).png` |
-| Effects > Art Strokes > Water Marker... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\035 Effects ▸ Art Strokes ▸ Water Marker (abre no docker Properties).png` |
-| Effects > Art Strokes > Wave Paper... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\036 Effects ▸ Art Strokes ▸ Wave Paper (abre no docker Properties).png` |
-| Effects > Blur | submenu |  | ⬜ todo |  | `02-menus\doc-vazio\06 Effects\005 Effects ▸ Blur.png` |
-| Effects > Blur > Tune Blur... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\037 Effects ▸ Blur ▸ Tune Blur (abre no docker Properties).png` |
-| Effects > Blur > Directional Smooth... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\038 Effects ▸ Blur ▸ Directional Smooth (abre no docker Properties).png` |
-| Effects > Blur > Feather... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\039 Effects ▸ Blur ▸ Feather (abre no docker Properties).png` |
+| Effects > Adjust > <placeHolder > | command |  | 🟡 partial | list filled at run time |  |
+| Effects > Adjust > Color Balance... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\013 Effects ▸ Adjust ▸ Color Balance (abre no docker Properties).png` |
+| Effects > Adjust > Gamma... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\014 Effects ▸ Adjust ▸ Gamma (abre no docker Properties).png` |
+| Effects > Adjust > White Balance... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\015 Effects ▸ Adjust ▸ White Balance (abre no docker Properties).png` |
+| Effects > Adjust > Hue/Saturation/Lightness... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\016 Effects ▸ Adjust ▸ Hue_Saturation_Lightness (abre no docker Properties).png` |
+| Effects > Adjust > Black & White... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\017 Effects ▸ Adjust ▸ Black & White (abre no docker Properties).png` |
+| Effects > Adjust > Vibrance... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\018 Effects ▸ Adjust ▸ Vibrance (abre no docker Properties).png` |
+| Effects > Adjust > Selective Color... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\019 Effects ▸ Adjust ▸ Selective Color (abre no docker Properties).png` |
+| Effects > Adjust > <placeHolder > | command |  | 🟡 partial | list filled at run time |  |
+| Effects > Adjust > Replace Colors... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\020 Effects ▸ Adjust ▸ Replace Colors (abre no docker Properties).png` |
+| Effects > Adjust > Desaturate | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Effects > Adjust > Channel Mixer... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\021 Effects ▸ Adjust ▸ Channel Mixer (abre no docker Properties).png` |
+| Effects > Art Strokes | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\004 Effects ▸ Art Strokes.png` |
+| Effects > Art Strokes > Charcoal... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\022 Effects ▸ Art Strokes ▸ Charcoal (abre no docker Properties).png` |
+| Effects > Art Strokes > Conté Crayon... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\023 Effects ▸ Art Strokes ▸ Conté Crayon (abre no docker Properties).png` |
+| Effects > Art Strokes > Crayon... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\024 Effects ▸ Art Strokes ▸ Crayon (abre no docker Properties).png` |
+| Effects > Art Strokes > Cubist... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\025 Effects ▸ Art Strokes ▸ Cubist (abre no docker Properties).png` |
+| Effects > Art Strokes > Dabble... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\026 Effects ▸ Art Strokes ▸ Dabble (abre no docker Properties).png` |
+| Effects > Art Strokes > Impressionist... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\027 Effects ▸ Art Strokes ▸ Impressionist (abre no docker Properties).png` |
+| Effects > Art Strokes > Palette Knife... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\028 Effects ▸ Art Strokes ▸ Palette Knife (abre no docker Properties).png` |
+| Effects > Art Strokes > Pastels... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\029 Effects ▸ Art Strokes ▸ Pastels (abre no docker Properties).png` |
+| Effects > Art Strokes > Pen & Ink... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\030 Effects ▸ Art Strokes ▸ Pen & Ink (abre no docker Properties).png` |
+| Effects > Art Strokes > Pointillist... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\031 Effects ▸ Art Strokes ▸ Pointillist (abre no docker Properties).png` |
+| Effects > Art Strokes > Scraperboard... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\032 Effects ▸ Art Strokes ▸ Scraperboard (abre no docker Properties).png` |
+| Effects > Art Strokes > Sketch Pad... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\033 Effects ▸ Art Strokes ▸ Sketch Pad (abre no docker Properties).png` |
+| Effects > Art Strokes > Watercolor... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\034 Effects ▸ Art Strokes ▸ Watercolor (abre no docker Properties).png` |
+| Effects > Art Strokes > Water Marker... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\035 Effects ▸ Art Strokes ▸ Water Marker (abre no docker Properties).png` |
+| Effects > Art Strokes > Wave Paper... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\036 Effects ▸ Art Strokes ▸ Wave Paper (abre no docker Properties).png` |
+| Effects > Blur | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\005 Effects ▸ Blur.png` |
+| Effects > Blur > Tune Blur... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\037 Effects ▸ Blur ▸ Tune Blur (abre no docker Properties).png` |
+| Effects > Blur > Directional Smooth... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\038 Effects ▸ Blur ▸ Directional Smooth (abre no docker Properties).png` |
+| Effects > Blur > Feather... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\039 Effects ▸ Blur ▸ Feather (abre no docker Properties).png` |
 | Effects > Blur > Gaussian Blur... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\040 Effects ▸ Blur ▸ Gaussian Blur (abre no docker Properties).png` |
-| Effects > Blur > Jaggy Despeckle... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\041 Effects ▸ Blur ▸ Jaggy Despeckle (abre no docker Properties).png` |
-| Effects > Blur > Low Pass... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\042 Effects ▸ Blur ▸ Low Pass (abre no docker Properties).png` |
-| Effects > Blur > Motion Blur... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\043 Effects ▸ Blur ▸ Motion Blur (abre no docker Properties).png` |
-| Effects > Blur > Radial Blur... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\044 Effects ▸ Blur ▸ Radial Blur (abre no docker Properties).png` |
-| Effects > Blur > Smart Blur... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\045 Effects ▸ Blur ▸ Smart Blur (abre no docker Properties).png` |
+| Effects > Blur > Jaggy Despeckle... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\041 Effects ▸ Blur ▸ Jaggy Despeckle (abre no docker Properties).png` |
+| Effects > Blur > Low Pass... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\042 Effects ▸ Blur ▸ Low Pass (abre no docker Properties).png` |
+| Effects > Blur > Motion Blur... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\043 Effects ▸ Blur ▸ Motion Blur (abre no docker Properties).png` |
+| Effects > Blur > Radial Blur... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\044 Effects ▸ Blur ▸ Radial Blur (abre no docker Properties).png` |
+| Effects > Blur > Smart Blur... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\045 Effects ▸ Blur ▸ Smart Blur (abre no docker Properties).png` |
 | Effects > Blur > Smooth... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\046 Effects ▸ Blur ▸ Smooth (abre no docker Properties).png` |
-| Effects > Blur > Soften... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\047 Effects ▸ Blur ▸ Soften (abre no docker Properties).png` |
+| Effects > Blur > Soften... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\047 Effects ▸ Blur ▸ Soften (abre no docker Properties).png` |
 | Effects > Blur > Zoom... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\048 Effects ▸ Blur ▸ Zoom (abre no docker Properties).png` |
-| Effects > Camera | submenu |  | ⬜ todo |  | `02-menus\doc-vazio\06 Effects\006 Effects ▸ Camera.png` |
-| Effects > Camera > Colorize... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\049 Effects ▸ Camera ▸ Colorize (abre no docker Properties).png` |
-| Effects > Camera > Diffuse... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\050 Effects ▸ Camera ▸ Diffuse (abre no docker Properties).png` |
-| Effects > Camera > Photo Filter... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\051 Effects ▸ Camera ▸ Photo Filter (abre no docker Properties).png` |
-| Effects > Camera > Lens Flare... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\052 Effects ▸ Camera ▸ Lens Flare (abre no docker Properties).png` |
-| Effects > Camera > Lighting Effects... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\053 Effects ▸ Camera ▸ Lighting Effects (abre no docker Properties).png` |
-| Effects > Camera > Sepia Toning... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\054 Effects ▸ Camera ▸ Sepia Toning (abre no docker Properties).png` |
-| Effects > Camera > Spot Filter... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\055 Effects ▸ Camera ▸ Spot Filter (abre no docker Properties).png` |
-| Effects > Camera > Time Machine... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\056 Effects ▸ Camera ▸ Time Machine (abre no docker Properties).png` |
-| Effects > Color Transform | submenu |  | ⬜ todo |  | `02-menus\doc-vazio\06 Effects\007 Effects ▸ Color Transform.png` |
-| Effects > Color Transform > Bit Planes... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\057 Effects ▸ Color Transform ▸ Bit Planes (abre no docker Properties).png` |
-| Effects > Color Transform > Halftone... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\058 Effects ▸ Color Transform ▸ Halftone (abre no docker Properties).png` |
-| Effects > Color Transform > Psychedelic... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\059 Effects ▸ Color Transform ▸ Psychedelic (abre no docker Properties).png` |
-| Effects > Color Transform > Solarize... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\060 Effects ▸ Color Transform ▸ Solarize (abre no docker Properties).png` |
-| Effects > Contour | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\06 Effects\008 Effects ▸ Contour.png` |
-| Effects > Contour > Edge Detect... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\061 Effects ▸ Contour ▸ Edge Detect (abre no docker Properties).png` |
-| Effects > Contour > Find Edges... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\062 Effects ▸ Contour ▸ Find Edges (abre no docker Properties).png` |
-| Effects > Contour > Trace Contour... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\063 Effects ▸ Contour ▸ Trace Contour (abre no docker Properties).png` |
-| Effects > Contour > Local Equalization... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\064 Effects ▸ Contour ▸ Local Equalization (abre no docker Properties).png` |
-| Effects > Correction | submenu |  | ⬜ todo |  | `02-menus\doc-vazio\06 Effects\009 Effects ▸ Correction.png` |
-| Effects > Correction > Dust and Scratch... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\065 Effects ▸ Correction ▸ Dust and Scratch (abre no docker Properties).png` |
-| Effects > Correction > Tune Sharpen... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\066 Effects ▸ Correction ▸ Tune Sharpen (abre no docker Properties).png` |
-| Effects > Creative | submenu |  | ⬜ todo |  | `02-menus\doc-vazio\06 Effects\010 Effects ▸ Creative.png` |
-| Effects > Creative > Art Style... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\067 Effects ▸ Creative ▸ Art Style (abre no docker Properties).png` |
-| Effects > Creative > Crystalize... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\068 Effects ▸ Creative ▸ Crystalize (abre no docker Properties).png` |
-| Effects > Creative > Fabric... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\069 Effects ▸ Creative ▸ Fabric (abre no docker Properties).png` |
+| Effects > Camera | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\006 Effects ▸ Camera.png` |
+| Effects > Camera > Colorize... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\049 Effects ▸ Camera ▸ Colorize (abre no docker Properties).png` |
+| Effects > Camera > Diffuse... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\050 Effects ▸ Camera ▸ Diffuse (abre no docker Properties).png` |
+| Effects > Camera > Photo Filter... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\051 Effects ▸ Camera ▸ Photo Filter (abre no docker Properties).png` |
+| Effects > Camera > Lens Flare... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\052 Effects ▸ Camera ▸ Lens Flare (abre no docker Properties).png` |
+| Effects > Camera > Lighting Effects... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\053 Effects ▸ Camera ▸ Lighting Effects (abre no docker Properties).png` |
+| Effects > Camera > Sepia Toning... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\054 Effects ▸ Camera ▸ Sepia Toning (abre no docker Properties).png` |
+| Effects > Camera > Spot Filter... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\055 Effects ▸ Camera ▸ Spot Filter (abre no docker Properties).png` |
+| Effects > Camera > Time Machine... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\056 Effects ▸ Camera ▸ Time Machine (abre no docker Properties).png` |
+| Effects > Color Transform | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\007 Effects ▸ Color Transform.png` |
+| Effects > Color Transform > Bit Planes... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\057 Effects ▸ Color Transform ▸ Bit Planes (abre no docker Properties).png` |
+| Effects > Color Transform > Halftone... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\058 Effects ▸ Color Transform ▸ Halftone (abre no docker Properties).png` |
+| Effects > Color Transform > Psychedelic... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\059 Effects ▸ Color Transform ▸ Psychedelic (abre no docker Properties).png` |
+| Effects > Color Transform > Solarize... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\060 Effects ▸ Color Transform ▸ Solarize (abre no docker Properties).png` |
+| Effects > Contour | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\008 Effects ▸ Contour.png` |
+| Effects > Contour > Edge Detect... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\061 Effects ▸ Contour ▸ Edge Detect (abre no docker Properties).png` |
+| Effects > Contour > Find Edges... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\062 Effects ▸ Contour ▸ Find Edges (abre no docker Properties).png` |
+| Effects > Contour > Trace Contour... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\063 Effects ▸ Contour ▸ Trace Contour (abre no docker Properties).png` |
+| Effects > Contour > Local Equalization... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\064 Effects ▸ Contour ▸ Local Equalization (abre no docker Properties).png` |
+| Effects > Correction | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\009 Effects ▸ Correction.png` |
+| Effects > Correction > Dust and Scratch... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\065 Effects ▸ Correction ▸ Dust and Scratch (abre no docker Properties).png` |
+| Effects > Correction > Tune Sharpen... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\066 Effects ▸ Correction ▸ Tune Sharpen (abre no docker Properties).png` |
+| Effects > Creative | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\010 Effects ▸ Creative.png` |
+| Effects > Creative > Art Style... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\067 Effects ▸ Creative ▸ Art Style (abre no docker Properties).png` |
+| Effects > Creative > Crystalize... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\068 Effects ▸ Creative ▸ Crystalize (abre no docker Properties).png` |
+| Effects > Creative > Fabric... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\069 Effects ▸ Creative ▸ Fabric (abre no docker Properties).png` |
 | Effects > Creative > Frame... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\070 Effects ▸ Creative ▸ Frame (abre no docker Properties).png` |
-| Effects > Creative > Glass Block... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\071 Effects ▸ Creative ▸ Glass Block (abre no docker Properties).png` |
-| Effects > Creative > Mosaic... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\072 Effects ▸ Creative ▸ Mosaic (abre no docker Properties).png` |
-| Effects > Creative > Scatter... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\073 Effects ▸ Creative ▸ Scatter (abre no docker Properties).png` |
-| Effects > Creative > Smoked Glass... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\074 Effects ▸ Creative ▸ Smoked Glass (abre no docker Properties).png` |
-| Effects > Creative > Stained Glass... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\075 Effects ▸ Creative ▸ Stained Glass (abre no docker Properties).png` |
-| Effects > Creative > Vignette... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\076 Effects ▸ Creative ▸ Vignette (abre no docker Properties).png` |
-| Effects > Creative > Vortex... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\077 Effects ▸ Creative ▸ Vortex (abre no docker Properties).png` |
-| Effects > Custom | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\06 Effects\011 Effects ▸ Custom.png` |
-| Effects > Custom > Band Pass... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\078 Effects ▸ Custom ▸ Band Pass (abre no docker Properties).png` |
-| Effects > Custom > Bump Map... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\079 Effects ▸ Custom ▸ Bump Map (abre no docker Properties).png` |
-| Effects > Custom > User Defined... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\080 Effects ▸ Custom ▸ User Defined (abre no docker Properties).png` |
-| Effects > Distort | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\06 Effects\012 Effects ▸ Distort.png` |
-| Effects > Distort > Blocks... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\081 Effects ▸ Distort ▸ Blocks (abre no docker Properties).png` |
-| Effects > Distort > Displace... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\082 Effects ▸ Distort ▸ Displace (abre no docker Properties).png` |
-| Effects > Distort > Mesh Warp... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\083 Effects ▸ Distort ▸ Mesh Warp (abre no docker Properties).png` |
-| Effects > Distort > Offset... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\084 Effects ▸ Distort ▸ Offset (abre no docker Properties).png` |
+| Effects > Creative > Glass Block... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\071 Effects ▸ Creative ▸ Glass Block (abre no docker Properties).png` |
+| Effects > Creative > Mosaic... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\072 Effects ▸ Creative ▸ Mosaic (abre no docker Properties).png` |
+| Effects > Creative > Scatter... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\073 Effects ▸ Creative ▸ Scatter (abre no docker Properties).png` |
+| Effects > Creative > Smoked Glass... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\074 Effects ▸ Creative ▸ Smoked Glass (abre no docker Properties).png` |
+| Effects > Creative > Stained Glass... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\075 Effects ▸ Creative ▸ Stained Glass (abre no docker Properties).png` |
+| Effects > Creative > Vignette... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\076 Effects ▸ Creative ▸ Vignette (abre no docker Properties).png` |
+| Effects > Creative > Vortex... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\077 Effects ▸ Creative ▸ Vortex (abre no docker Properties).png` |
+| Effects > Custom | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\011 Effects ▸ Custom.png` |
+| Effects > Custom > Band Pass... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\078 Effects ▸ Custom ▸ Band Pass (abre no docker Properties).png` |
+| Effects > Custom > Bump Map... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\079 Effects ▸ Custom ▸ Bump Map (abre no docker Properties).png` |
+| Effects > Custom > User Defined... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\080 Effects ▸ Custom ▸ User Defined (abre no docker Properties).png` |
+| Effects > Distort | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\012 Effects ▸ Distort.png` |
+| Effects > Distort > Blocks... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\081 Effects ▸ Distort ▸ Blocks (abre no docker Properties).png` |
+| Effects > Distort > Displace... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\082 Effects ▸ Distort ▸ Displace (abre no docker Properties).png` |
+| Effects > Distort > Mesh Warp... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\083 Effects ▸ Distort ▸ Mesh Warp (abre no docker Properties).png` |
+| Effects > Distort > Offset... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\084 Effects ▸ Distort ▸ Offset (abre no docker Properties).png` |
 | Effects > Distort > Pixelate... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\085 Effects ▸ Distort ▸ Pixelate (abre no docker Properties).png` |
-| Effects > Distort > Ripple... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\086 Effects ▸ Distort ▸ Ripple (abre no docker Properties).png` |
-| Effects > Distort > Shear... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\087 Effects ▸ Distort ▸ Shear (abre no docker Properties).png` |
-| Effects > Distort > Swirl... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\088 Effects ▸ Distort ▸ Swirl (abre no docker Properties).png` |
-| Effects > Distort > Tile... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\089 Effects ▸ Distort ▸ Tile (abre no docker Properties).png` |
-| Effects > Distort > Wet Paint... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\090 Effects ▸ Distort ▸ Wet Paint (abre no docker Properties).png` |
-| Effects > Distort > Whirlpool... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\091 Effects ▸ Distort ▸ Whirlpool (abre no docker Properties).png` |
-| Effects > Distort > Wind... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\092 Effects ▸ Distort ▸ Wind (abre no docker Properties).png` |
-| Effects > Noise | submenu |  | ⬜ todo |  | `02-menus\doc-vazio\06 Effects\013 Effects ▸ Noise.png` |
-| Effects > Noise > Tune Noise... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\093 Effects ▸ Noise ▸ Tune Noise (abre no docker Properties).png` |
+| Effects > Distort > Ripple... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\086 Effects ▸ Distort ▸ Ripple (abre no docker Properties).png` |
+| Effects > Distort > Shear... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\087 Effects ▸ Distort ▸ Shear (abre no docker Properties).png` |
+| Effects > Distort > Swirl... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\088 Effects ▸ Distort ▸ Swirl (abre no docker Properties).png` |
+| Effects > Distort > Tile... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\089 Effects ▸ Distort ▸ Tile (abre no docker Properties).png` |
+| Effects > Distort > Wet Paint... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\090 Effects ▸ Distort ▸ Wet Paint (abre no docker Properties).png` |
+| Effects > Distort > Whirlpool... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\091 Effects ▸ Distort ▸ Whirlpool (abre no docker Properties).png` |
+| Effects > Distort > Wind... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\092 Effects ▸ Distort ▸ Wind (abre no docker Properties).png` |
+| Effects > Noise | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\013 Effects ▸ Noise.png` |
+| Effects > Noise > Tune Noise... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\093 Effects ▸ Noise ▸ Tune Noise (abre no docker Properties).png` |
 | Effects > Noise > Add Noise... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\094 Effects ▸ Noise ▸ Add Noise (abre no docker Properties).png` |
-| Effects > Noise > 3-D Stereo Noise... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\095 Effects ▸ Noise ▸ 3-D Stereo Noise (abre no docker Properties).png` |
-| Effects > Noise > Maximum... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\096 Effects ▸ Noise ▸ Maximum (abre no docker Properties).png` |
-| Effects > Noise > Median... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\097 Effects ▸ Noise ▸ Median (abre no docker Properties).png` |
-| Effects > Noise > Minimum... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\098 Effects ▸ Noise ▸ Minimum (abre no docker Properties).png` |
-| Effects > Noise > Remove Moiré... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\099 Effects ▸ Noise ▸ Remove Moiré (abre no docker Properties).png` |
-| Effects > Noise > Remove Noise... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\100 Effects ▸ Noise ▸ Remove Noise (abre no docker Properties).png` |
-| Effects > Sharpen | submenu |  | ⬜ todo |  | `02-menus\doc-vazio\06 Effects\014 Effects ▸ Sharpen.png` |
-| Effects > Sharpen > Adaptive Unsharp... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\101 Effects ▸ Sharpen ▸ Adaptive Unsharp (abre no docker Properties).png` |
-| Effects > Sharpen > Directional Sharpen... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\102 Effects ▸ Sharpen ▸ Directional Sharpen (abre no docker Properties).png` |
-| Effects > Sharpen > High Pass... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\103 Effects ▸ Sharpen ▸ High Pass (abre no docker Properties).png` |
-| Effects > Sharpen > Sharpen... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\104 Effects ▸ Sharpen ▸ Sharpen (abre no docker Properties).png` |
-| Effects > Sharpen > Unsharp Mask... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\105 Effects ▸ Sharpen ▸ Unsharp Mask (abre no docker Properties).png` |
-| Effects > Texture | submenu |  | ⬜ todo |  | `02-menus\doc-vazio\06 Effects\015 Effects ▸ Texture.png` |
-| Effects > Texture > Brick Wall... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\106 Effects ▸ Texture ▸ Brick Wall (abre no docker Properties).png` |
-| Effects > Texture > Bubbles... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\107 Effects ▸ Texture ▸ Bubbles (abre no docker Properties).png` |
+| Effects > Noise > 3-D Stereo Noise... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\095 Effects ▸ Noise ▸ 3-D Stereo Noise (abre no docker Properties).png` |
+| Effects > Noise > Maximum... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\096 Effects ▸ Noise ▸ Maximum (abre no docker Properties).png` |
+| Effects > Noise > Median... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\097 Effects ▸ Noise ▸ Median (abre no docker Properties).png` |
+| Effects > Noise > Minimum... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\098 Effects ▸ Noise ▸ Minimum (abre no docker Properties).png` |
+| Effects > Noise > Remove Moiré... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\099 Effects ▸ Noise ▸ Remove Moiré (abre no docker Properties).png` |
+| Effects > Noise > Remove Noise... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\100 Effects ▸ Noise ▸ Remove Noise (abre no docker Properties).png` |
+| Effects > Sharpen | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\014 Effects ▸ Sharpen.png` |
+| Effects > Sharpen > Adaptive Unsharp... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\101 Effects ▸ Sharpen ▸ Adaptive Unsharp (abre no docker Properties).png` |
+| Effects > Sharpen > Directional Sharpen... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\102 Effects ▸ Sharpen ▸ Directional Sharpen (abre no docker Properties).png` |
+| Effects > Sharpen > High Pass... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\103 Effects ▸ Sharpen ▸ High Pass (abre no docker Properties).png` |
+| Effects > Sharpen > Sharpen... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\104 Effects ▸ Sharpen ▸ Sharpen (abre no docker Properties).png` |
+| Effects > Sharpen > Unsharp Mask... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\105 Effects ▸ Sharpen ▸ Unsharp Mask (abre no docker Properties).png` |
+| Effects > Texture | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\015 Effects ▸ Texture.png` |
+| Effects > Texture > Brick Wall... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\106 Effects ▸ Texture ▸ Brick Wall (abre no docker Properties).png` |
+| Effects > Texture > Bubbles... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\107 Effects ▸ Texture ▸ Bubbles (abre no docker Properties).png` |
 | Effects > Texture > Canvas... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\108 Effects ▸ Texture ▸ Canvas (abre no docker Properties).png` |
-| Effects > Texture > Cobblestone... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\109 Effects ▸ Texture ▸ Cobblestone (abre no docker Properties).png` |
-| Effects > Texture > Elephant Skin... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\110 Effects ▸ Texture ▸ Elephant Skin (abre no docker Properties).png` |
-| Effects > Texture > Etching... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\111 Effects ▸ Texture ▸ Etching (abre no docker Properties).png` |
-| Effects > Texture > Plastic... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\112 Effects ▸ Texture ▸ Plastic (abre no docker Properties).png` |
-| Effects > Texture > Plaster Wall... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\113 Effects ▸ Texture ▸ Plaster Wall (abre no docker Properties).png` |
-| Effects > Texture > Relief Sculpture... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\114 Effects ▸ Texture ▸ Relief Sculpture (abre no docker Properties).png` |
-| Effects > Texture > Screen Door... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\115 Effects ▸ Texture ▸ Screen Door (abre no docker Properties).png` |
-| Effects > Texture > Stone... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\116 Effects ▸ Texture ▸ Stone (abre no docker Properties).png` |
-| Effects > Texture > Underpainting... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\117 Effects ▸ Texture ▸ Underpainting (abre no docker Properties).png` |
-| Effects > Transform | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\06 Effects\016 Effects ▸ Transform.png` |
-| Effects > Transform > DeInterlace... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\118 Effects ▸ Transform ▸ DeInterlace (abre no docker Properties).png` |
-| Effects > Transform > Invert Colors | command |  | ⬜ todo |  |  |
-| Effects > Transform > Posterize... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\119 Effects ▸ Transform ▸ Posterize (abre no docker Properties).png` |
-| Effects > Transform > Threshold... | opens a window |  | ⬜ todo |  | `03-telas\bitmap\06 Effects\120 Effects ▸ Transform ▸ Threshold (abre no docker Properties).png` |
+| Effects > Texture > Cobblestone... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\109 Effects ▸ Texture ▸ Cobblestone (abre no docker Properties).png` |
+| Effects > Texture > Elephant Skin... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\110 Effects ▸ Texture ▸ Elephant Skin (abre no docker Properties).png` |
+| Effects > Texture > Etching... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\111 Effects ▸ Texture ▸ Etching (abre no docker Properties).png` |
+| Effects > Texture > Plastic... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\112 Effects ▸ Texture ▸ Plastic (abre no docker Properties).png` |
+| Effects > Texture > Plaster Wall... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\113 Effects ▸ Texture ▸ Plaster Wall (abre no docker Properties).png` |
+| Effects > Texture > Relief Sculpture... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\114 Effects ▸ Texture ▸ Relief Sculpture (abre no docker Properties).png` |
+| Effects > Texture > Screen Door... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\115 Effects ▸ Texture ▸ Screen Door (abre no docker Properties).png` |
+| Effects > Texture > Stone... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\116 Effects ▸ Texture ▸ Stone (abre no docker Properties).png` |
+| Effects > Texture > Underpainting... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\117 Effects ▸ Texture ▸ Underpainting (abre no docker Properties).png` |
+| Effects > Transform | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\016 Effects ▸ Transform.png` |
+| Effects > Transform > DeInterlace... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\118 Effects ▸ Transform ▸ DeInterlace (abre no docker Properties).png` |
+| Effects > Transform > Invert Colors | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Effects > Transform > Posterize... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\119 Effects ▸ Transform ▸ Posterize (abre no docker Properties).png` |
+| Effects > Transform > Threshold... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\120 Effects ▸ Transform ▸ Threshold (abre no docker Properties).png` |
 | Effects > Artistic Media | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Effects > Bevel | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Effects > Blend | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Effects > Contour | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Effects > Contour | command |  | ✅ done | items, order and enabled states from the reference |  |
 | Effects > Envelope | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Effects > Extrude | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Effects > Lens | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Effects > PhotoCocktail | command |  | ⬜ todo |  |  |
-| Effects > Pointillizer | command |  | ⬜ todo |  |  |
+| Effects > PhotoCocktail | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Effects > Pointillizer | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 
 ### Bitmaps
 
-0 done · 12 partial · 26 todo · 0 omitted
+6 done · 32 partial · 0 todo · 0 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
-| Bitmaps | menu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\07 Bitmaps\001 Bitmaps.png` |
+| Bitmaps | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\07 Bitmaps\001 Bitmaps.png` |
 | Bitmaps > Convert to Bitmap... | opens a window | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\001 Bitmaps ▸ Convert to Bitmap.png` |
-| Bitmaps > Straighten Image... | opens a window | 2 | ⬜ todo |  | `03-telas\bitmap\07 Bitmaps\002 Bitmaps ▸ Straighten Image.png` |
-| Bitmaps > Image Adjustment Lab... | opens a window | 1 | ⬜ todo |  | `03-telas\bitmap\07 Bitmaps\003 Bitmaps ▸ Image Adjustment Lab.png` |
-| Bitmaps > Remove JPEG Artifacts | command |  | ⬜ todo |  |  |
-| Bitmaps > Edit Bitmap... | opens a window |  | ⬜ todo |  |  |
+| Bitmaps > Straighten Image... | opens a window | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\002 Bitmaps ▸ Straighten Image.png` |
+| Bitmaps > Image Adjustment Lab... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\003 Bitmaps ▸ Image Adjustment Lab.png` |
+| Bitmaps > Remove JPEG Artifacts | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Bitmaps > Edit Bitmap... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Bitmaps > Remove Background | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Bitmaps > Crop Bitmap | command |  | ⬜ todo |  |  |
+| Bitmaps > Crop Bitmap | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Bitmaps > Resample... | opens a window | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\005 Bitmaps ▸ Resample.png` |
-| Bitmaps > Mode | submenu |  | ⬜ todo |  | `02-menus\doc-vazio\07 Bitmaps\002 Bitmaps ▸ Mode.png` |
-| Bitmaps > Mode > Black and White (1-bit)... | opens a window | 4 | ⬜ todo |  | `03-telas\bitmap\07 Bitmaps\006 Bitmaps ▸ Mode ▸ Black and White (1-bit).png` |
-| Bitmaps > Mode > Grayscale (8-bit) | command |  | ⬜ todo |  |  |
-| Bitmaps > Mode > Duotone (8-bit)... | opens a window | 2 | ⬜ todo |  | `03-telas\bitmap\07 Bitmaps\007 Bitmaps ▸ Mode ▸ Duotone (8-bit).png` |
-| Bitmaps > Mode > Paletted (8-bit)... | opens a window | 4 | ⬜ todo |  | `03-telas\bitmap\07 Bitmaps\008 Bitmaps ▸ Mode ▸ Paletted (8-bit).png` |
-| Bitmaps > Mode > RGB Color (24-bit) | command |  | ⬜ todo |  |  |
-| Bitmaps > Mode > Lab Color (24-bit) | command |  | ⬜ todo |  |  |
-| Bitmaps > Mode > CMYK Color (32-bit) | command |  | ⬜ todo |  |  |
-| Bitmaps > Inflate Bitmap | submenu |  | ⬜ todo |  | `02-menus\doc-vazio\07 Bitmaps\003 Bitmaps ▸ Inflate Bitmap.png` |
-| Bitmaps > Inflate Bitmap > Auto Inflate Bitmap | command |  | ⬜ todo |  |  |
-| Bitmaps > Inflate Bitmap > Manually Inflate Bitmap... | opens a window | 1 | ⬜ todo |  | `03-telas\bitmap\07 Bitmaps\009 Bitmaps ▸ Inflate Bitmap ▸ Manually Inflate Bitmap.png` |
-| Bitmaps > Break Link | command |  | ⬜ todo |  |  |
-| Bitmaps > Update from Link | command |  | ⬜ todo |  |  |
+| Bitmaps > Mode | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\07 Bitmaps\002 Bitmaps ▸ Mode.png` |
+| Bitmaps > Mode > Black and White (1-bit)... | opens a window | 4 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\006 Bitmaps ▸ Mode ▸ Black and White (1-bit).png` |
+| Bitmaps > Mode > Grayscale (8-bit) | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Bitmaps > Mode > Duotone (8-bit)... | opens a window | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\007 Bitmaps ▸ Mode ▸ Duotone (8-bit).png` |
+| Bitmaps > Mode > Paletted (8-bit)... | opens a window | 4 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\008 Bitmaps ▸ Mode ▸ Paletted (8-bit).png` |
+| Bitmaps > Mode > RGB Color (24-bit) | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Bitmaps > Mode > Lab Color (24-bit) | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Bitmaps > Mode > CMYK Color (32-bit) | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Bitmaps > Inflate Bitmap | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\07 Bitmaps\003 Bitmaps ▸ Inflate Bitmap.png` |
+| Bitmaps > Inflate Bitmap > Auto Inflate Bitmap | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Bitmaps > Inflate Bitmap > Manually Inflate Bitmap... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\009 Bitmaps ▸ Inflate Bitmap ▸ Manually Inflate Bitmap.png` |
+| Bitmaps > Break Link | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Bitmaps > Update from Link | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Bitmaps > Quick Trace | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Bitmaps > Repeat Last Trace | command |  | ⬜ todo |  |  |
-| Bitmaps > Open Last Trace Settings... | opens a window |  | ⬜ todo |  |  |
-| Bitmaps > Centerline Trace | submenu |  | ⬜ todo |  | `02-menus\bitmap\07 Bitmaps\004 Bitmaps ▸ Centerline Trace.png` |
-| Bitmaps > Centerline Trace > Technical Illustration... | opens a window | 9 | ⬜ todo |  | `03-telas\bitmap\07 Bitmaps\011 Bitmaps ▸ Centerline Trace ▸ Technical Illustration.png` |
-| Bitmaps > Centerline Trace > Line Drawing... | opens a window | 9 | ⬜ todo |  | `03-telas\bitmap\07 Bitmaps\012 Bitmaps ▸ Centerline Trace ▸ Line Drawing.png` |
-| Bitmaps > Outline Trace | submenu |  | ⬜ todo |  | `02-menus\bitmap\07 Bitmaps\005 Bitmaps ▸ Outline Trace.png` |
+| Bitmaps > Repeat Last Trace | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Bitmaps > Open Last Trace Settings... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Bitmaps > Centerline Trace | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\bitmap\07 Bitmaps\004 Bitmaps ▸ Centerline Trace.png` |
+| Bitmaps > Centerline Trace > Technical Illustration... | opens a window | 9 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\011 Bitmaps ▸ Centerline Trace ▸ Technical Illustration.png` |
+| Bitmaps > Centerline Trace > Line Drawing... | opens a window | 9 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\012 Bitmaps ▸ Centerline Trace ▸ Line Drawing.png` |
+| Bitmaps > Outline Trace | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\bitmap\07 Bitmaps\005 Bitmaps ▸ Outline Trace.png` |
 | Bitmaps > Outline Trace > Line Art... | opens a window | 10 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\013 Bitmaps ▸ Outline Trace ▸ Line Art.png` |
 | Bitmaps > Outline Trace > Logo... | opens a window | 10 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\014 Bitmaps ▸ Outline Trace ▸ Logo.png` |
 | Bitmaps > Outline Trace > Detailed Logo... | opens a window | 10 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\015 Bitmaps ▸ Outline Trace ▸ Detailed Logo.png` |
 | Bitmaps > Outline Trace > Clipart... | opens a window | 10 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\016 Bitmaps ▸ Outline Trace ▸ Clipart.png` |
 | Bitmaps > Outline Trace > Low Quality Image... | opens a window | 10 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\017 Bitmaps ▸ Outline Trace ▸ Low Quality Image.png` |
 | Bitmaps > Outline Trace > High Quality Image... | opens a window | 10 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\018 Bitmaps ▸ Outline Trace ▸ High Quality Image.png` |
-| Bitmaps > Plug-ins | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\07 Bitmaps\004 Bitmaps ▸ Plug-ins.png` |
-| Bitmaps > Plug-ins > Not Installed | command |  | ⬜ todo |  |  |
-| Bitmaps > Bitmap Mask | command |  | ⬜ todo |  |  |
+| Bitmaps > Plug-ins | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\07 Bitmaps\004 Bitmaps ▸ Plug-ins.png` |
+| Bitmaps > Plug-ins > Not Installed | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Bitmaps > Bitmap Mask | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 
 ### Text
 
-0 done · 15 partial · 31 todo · 0 omitted
+4 done · 41 partial · 1 todo · 0 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
-| Text | menu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\08 Text\001 Text.png` |
-| Text > Tabs... | opens a window | 2 | ⬜ todo |  | `03-telas\doc-vazio\08 Text\001 Text ▸ Tabs.png` |
+| Text | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\08 Text\001 Text.png` |
+| Text > Tabs... | opens a window | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\001 Text ▸ Tabs.png` |
 | Text > Columns... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\002 Text ▸ Columns.png` |
-| Text > Bullets and Numbering... | opens a window | 1 | ⬜ todo |  | `03-telas\doc-vazio\08 Text\003 Text ▸ Bullets and Numbering.png` |
-| Text > Drop Cap... | opens a window | 1 | ⬜ todo |  | `03-telas\doc-vazio\08 Text\004 Text ▸ Drop Cap.png` |
+| Text > Bullets and Numbering... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\003 Text ▸ Bullets and Numbering.png` |
+| Text > Drop Cap... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\004 Text ▸ Drop Cap.png` |
 | Text > Line-Breaking Rules... | opens a window | 1 | ⬜ todo |  | `03-telas\doc-vazio\08 Text\005 Text ▸ Line-Breaking Rules.png` |
-| Text > Text Statistics... | opens a window | 1 | ⬜ todo |  | `03-telas\doc-vazio\08 Text\006 Text ▸ Text Statistics.png` |
+| Text > Text Statistics... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\006 Text ▸ Text Statistics.png` |
 | Text > Edit Text... | opens a window | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\007 Text ▸ Edit Text.png` |
-| Text > Insert Formatting Code | submenu |  | ⬜ todo |  | `02-menus\doc-vazio\08 Text\002 Text ▸ Insert Formatting Code.png` |
-| Text > Insert Formatting Code > Em Space | command |  | ⬜ todo |  |  |
-| Text > Insert Formatting Code > En Space | command |  | ⬜ todo |  |  |
-| Text > Insert Formatting Code > ¼ Em Space | command |  | ⬜ todo |  |  |
-| Text > Insert Formatting Code > Non-breaking Space | command |  | ⬜ todo |  |  |
+| Text > Insert Formatting Code | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\08 Text\002 Text ▸ Insert Formatting Code.png` |
+| Text > Insert Formatting Code > Em Space | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Text > Insert Formatting Code > En Space | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Text > Insert Formatting Code > ¼ Em Space | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Text > Insert Formatting Code > Non-breaking Space | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Text > Insert Formatting Code > Tab | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Insert Formatting Code > Column/Frame Break | command |  | ⬜ todo |  |  |
-| Text > Insert Formatting Code > Em Dash | command |  | ⬜ todo |  |  |
-| Text > Insert Formatting Code > En Dash | command |  | ⬜ todo |  |  |
-| Text > Insert Formatting Code > Non-breaking Hyphen | command |  | ⬜ todo |  |  |
-| Text > Insert Formatting Code > Optional Hyphen | command |  | ⬜ todo |  |  |
-| Text > Insert Formatting Code > Custom Optional Hyphens... | opens a window | 2 | ⬜ todo |  | `03-telas\doc-vazio\08 Text\008 Text ▸ Insert Formatting Code ▸ Custom Optional Hyphens.png` |
+| Text > Insert Formatting Code > Column/Frame Break | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Text > Insert Formatting Code > Em Dash | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Text > Insert Formatting Code > En Dash | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Text > Insert Formatting Code > Non-breaking Hyphen | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Text > Insert Formatting Code > Optional Hyphen | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Text > Insert Formatting Code > Custom Optional Hyphens... | opens a window | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\008 Text ▸ Insert Formatting Code ▸ Custom Optional Hyphens.png` |
 | Text > Convert | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Show Non-Printing Characters | command |  | ⬜ todo |  |  |
-| Text > Paragraph Text Frame | submenu |  | ⬜ todo |  | `02-menus\doc-vazio\08 Text\003 Text ▸ Paragraph Text Frame.png` |
+| Text > Show Non-Printing Characters | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Text > Paragraph Text Frame | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\08 Text\003 Text ▸ Paragraph Text Frame.png` |
 | Text > Paragraph Text Frame > Show Text Frames | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Paragraph Text Frame > Fit Text To Frame | command |  | ⬜ todo |  |  |
-| Text > Paragraph Text Frame > Insert Placeholder Text | command |  | ⬜ todo |  |  |
-| Text > Paragraph Text Frame > Create Empty Text Frame | command |  | ⬜ todo |  |  |
-| Text > Paragraph Text Frame > Link | command |  | ⬜ todo |  |  |
-| Text > Paragraph Text Frame > Unlink | command |  | ⬜ todo |  |  |
+| Text > Paragraph Text Frame > Fit Text To Frame | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Text > Paragraph Text Frame > Insert Placeholder Text | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Text > Paragraph Text Frame > Create Empty Text Frame | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Text > Paragraph Text Frame > Link | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Text > Paragraph Text Frame > Unlink | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Text > Fit Text to Path | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Text > Straighten Text | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Align to Baseline | command |  | ⬜ todo |  |  |
-| Text > Align to Baseline Grid | command |  | ⬜ todo |  |  |
-| Text > Use Hyphenation | command |  | ⬜ todo |  |  |
-| Text > Writing Tools | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\08 Text\004 Text ▸ Writing Tools.png` |
+| Text > Align to Baseline | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Text > Align to Baseline Grid | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Text > Use Hyphenation | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Text > Writing Tools | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\08 Text\004 Text ▸ Writing Tools.png` |
 | Text > Writing Tools > Spell Check... | opens a window | 7 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\009 Text ▸ Writing Tools ▸ Spell Check.png` |
-| Text > Writing Tools > Grammatik... | opens a window | 9 | ⬜ todo |  | `03-telas\texto-artistico\08 Text\010 Text ▸ Writing Tools ▸ Grammatik.png` |
-| Text > Writing Tools > Thesaurus... | opens a window | 2 | ⬜ todo |  | `03-telas\doc-vazio\08 Text\011 Text ▸ Writing Tools ▸ Thesaurus.png` |
+| Text > Writing Tools > Grammatik... | opens a window | 9 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\010 Text ▸ Writing Tools ▸ Grammatik.png` |
+| Text > Writing Tools > Thesaurus... | opens a window | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\011 Text ▸ Writing Tools ▸ Thesaurus.png` |
 | Text > Writing Tools > QuickCorrect... | opens a window | 32 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\012 Text ▸ Writing Tools ▸ QuickCorrect.png` |
-| Text > Writing Tools > Language... | opens a window | 25 | ⬜ todo |  | `03-telas\texto-artistico\08 Text\013 Text ▸ Writing Tools ▸ Language.png` |
+| Text > Writing Tools > Language... | opens a window | 25 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\013 Text ▸ Writing Tools ▸ Language.png` |
 | Text > Writing Tools > Settings... | opens a window | 38 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\014 Text ▸ Writing Tools ▸ Settings.png` |
 | Text > Change Case... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\015 Text ▸ Change Case.png` |
-| Text > Make Text Web-compatible | command |  | ⬜ todo |  |  |
-| Text > Encode... | opens a window | 1 | ⬜ todo |  | `03-telas\texto-artistico\08 Text\016 Text ▸ Encode.png` |
+| Text > Make Text Web-compatible | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Text > Encode... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\016 Text ▸ Encode.png` |
 | Text > Text | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Text > Glyphs | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 
 ### Table
 
-0 done · 7 partial · 20 todo · 0 omitted
+5 done · 22 partial · 0 todo · 0 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
-| Table | menu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\09 Table\001 Table.png` |
+| Table | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\09 Table\001 Table.png` |
 | Table > Create New Table... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\09 Table\001 Table ▸ Create New Table.png` |
-| Table > Convert Text to Table... | opens a window | 1 | ⬜ todo |  | `03-telas\texto-artistico\09 Table\002 Table ▸ Convert Text to Table.png` |
-| Table > Convert Table to Text... | opens a window | 1 | ⬜ todo |  | `03-telas\tabela\09 Table\003 Table ▸ Convert Table to Text.png` |
-| Table > Insert | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\09 Table\002 Table ▸ Insert.png` |
-| Table > Insert > Row Above | command |  | ⬜ todo |  |  |
-| Table > Insert > Row Below | command |  | ⬜ todo |  |  |
-| Table > Insert > Column Left | command |  | ⬜ todo |  |  |
-| Table > Insert > Column Right | command |  | ⬜ todo |  |  |
-| Table > Insert > Insert Rows... | opens a window | 1 | ⬜ todo |  | `03-telas\tabela-celulas\09 Table\004 Table ▸ Insert ▸ Insert Rows.png` |
-| Table > Insert > Insert Columns... | opens a window | 1 | ⬜ todo |  | `03-telas\tabela-celulas\09 Table\005 Table ▸ Insert ▸ Insert Columns.png` |
-| Table > Select | submenu |  | ⬜ todo |  | `02-menus\doc-vazio\09 Table\003 Table ▸ Select.png` |
-| Table > Select > Cell | command |  | ⬜ todo |  |  |
-| Table > Select > Row | command |  | ⬜ todo |  |  |
-| Table > Select > Column | command |  | ⬜ todo |  |  |
+| Table > Convert Text to Table... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\09 Table\002 Table ▸ Convert Text to Table.png` |
+| Table > Convert Table to Text... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\tabela\09 Table\003 Table ▸ Convert Table to Text.png` |
+| Table > Insert | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\09 Table\002 Table ▸ Insert.png` |
+| Table > Insert > Row Above | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Table > Insert > Row Below | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Table > Insert > Column Left | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Table > Insert > Column Right | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Table > Insert > Insert Rows... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\tabela-celulas\09 Table\004 Table ▸ Insert ▸ Insert Rows.png` |
+| Table > Insert > Insert Columns... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\tabela-celulas\09 Table\005 Table ▸ Insert ▸ Insert Columns.png` |
+| Table > Select | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\09 Table\003 Table ▸ Select.png` |
+| Table > Select > Cell | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Table > Select > Row | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Table > Select > Column | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Table > Select > Table | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Table > Delete | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\09 Table\004 Table ▸ Delete.png` |
-| Table > Delete > Row | command |  | ⬜ todo |  |  |
-| Table > Delete > Column | command |  | ⬜ todo |  |  |
+| Table > Delete | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\09 Table\004 Table ▸ Delete.png` |
+| Table > Delete > Row | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Table > Delete > Column | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Table > Delete > Table | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Table > Distribute | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\09 Table\005 Table ▸ Distribute.png` |
-| Table > Distribute > Rows Evenly | command |  | ⬜ todo |  |  |
-| Table > Distribute > Columns Evenly | command |  | ⬜ todo |  |  |
-| Table > Merge Cells | command |  | ⬜ todo |  |  |
-| Table > Unmerge Cells | command |  | ⬜ todo |  |  |
-| Table > Split into Rows... | opens a window | 1 | ⬜ todo |  | `03-telas\tabela-celulas\09 Table\006 Table ▸ Split into Rows.png` |
-| Table > Split into Columns... | opens a window | 1 | ⬜ todo |  | `03-telas\tabela-celulas\09 Table\007 Table ▸ Split into Columns.png` |
+| Table > Distribute | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\09 Table\005 Table ▸ Distribute.png` |
+| Table > Distribute > Rows Evenly | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Table > Distribute > Columns Evenly | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Table > Merge Cells | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Table > Unmerge Cells | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Table > Split into Rows... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\tabela-celulas\09 Table\006 Table ▸ Split into Rows.png` |
+| Table > Split into Columns... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\tabela-celulas\09 Table\007 Table ▸ Split into Columns.png` |
 
 ### Tools
 
-0 done · 19 partial · 1 todo · 0 omitted
+3 done · 17 partial · 0 todo · 0 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
-| Tools | menu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\10 Tools\001 Tools.png` |
-| Tools > Options | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\10 Tools\002 Tools ▸ Options.png` |
-| Tools > Options > CorelDRAW... | opens a window | 39 | ⬜ todo |  | `03-telas\doc-vazio\10 Tools\001 Tools ▸ Options ▸ CorelDRAW.png` |
+| Tools | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\10 Tools\001 Tools.png` |
+| Tools > Options | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\10 Tools\002 Tools ▸ Options.png` |
+| Tools > Options > CorelDRAW... | opens a window | 39 | 🟡 partial | Tools > Options > Vector... | `03-telas\doc-vazio\10 Tools\001 Tools ▸ Options ▸ CorelDRAW.png` |
 | Tools > Options > Customization... | opens a window | 15 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\10 Tools\002 Tools ▸ Options ▸ Customization.png` |
 | Tools > Options > Tools... | opens a window | 21 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\10 Tools\003 Tools ▸ Options ▸ Tools.png` |
 | Tools > Options > Global... | opens a window | 38 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\10 Tools\004 Tools ▸ Options ▸ Global.png` |
 | Tools > Options > Workspaces... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\10 Tools\005 Tools ▸ Options ▸ Workspaces.png` |
 | Tools > Save Settings as Default... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Tools > Color Management... | opens a window | 7 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\10 Tools\007 Tools ▸ Color Management.png` |
-| Tools > Scripts | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\10 Tools\003 Tools ▸ Scripts.png` |
+| Tools > Scripts | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\10 Tools\003 Tools ▸ Scripts.png` |
 | Tools > Scripts > Script Editor... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\10 Tools\008 Tools ▸ Scripts ▸ Script Editor.png` |
 | Tools > Scripts > Run Script... | opens a window | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\10 Tools\009 Tools ▸ Scripts ▸ Run Script.png` |
 | Tools > Scripts > Visual Studio Editor... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
@@ -630,11 +630,11 @@ The *Reference* column is a path inside the reference folder.
 
 ### Window
 
-0 done · 78 partial · 9 todo · 1 omitted
+8 done · 79 partial · 0 todo · 1 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
-| Window | menu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\11 Window\001 Window.png` |
+| Window | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\11 Window\001 Window.png` |
 | Window > New Window | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Refresh Window | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Close Window | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
@@ -644,13 +644,13 @@ The *Reference* column is a path inside the reference folder.
 | Window > Tile Vertically | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Combine Windows | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Dock Window | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Workspace | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\11 Window\002 Window ▸ Workspace.png` |
-| Window > Workspace > <placeHolder a124f904> | command |  | ⬜ todo |  |  |
+| Window > Workspace | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\11 Window\002 Window ▸ Workspace.png` |
+| Window > Workspace > <placeHolder a124f904> | command |  | 🟡 partial | list filled at run time |  |
 | Window > Workspace > New... | opens a window | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\11 Window\001 Window ▸ Workspace ▸ New.png` |
 | Window > Workspace > Delete | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Workspace > Import... | opens a window | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\11 Window\002 Window ▸ Workspace ▸ Import.png` |
 | Window > Workspace > Export... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\11 Window\005 Window ▸ Dockers.png` |
+| Window > Dockers | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\11 Window\005 Window ▸ Dockers.png` |
 | Window > Dockers > Properties | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Dockers > Objects | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Dockers > Pages | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
@@ -674,17 +674,17 @@ The *Reference* column is a path inside the reference folder.
 | Window > Dockers > Text | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Dockers > Font Sampler | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Dockers > Glyphs | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Effects | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\11 Window\006 Window ▸ Dockers ▸ Effects.png` |
+| Window > Dockers > Effects | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\11 Window\006 Window ▸ Dockers ▸ Effects.png` |
 | Window > Dockers > Effects > Artistic Media | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Dockers > Effects > Bevel | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Effects > Bitmap Mask | command |  | ⬜ todo |  |  |
+| Window > Dockers > Effects > Bitmap Mask | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Dockers > Effects > Blend | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Dockers > Effects > Contour | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Dockers > Effects > Envelope | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Dockers > Effects > Extrude | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Dockers > Effects > Lens | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Effects > PhotoCocktail | command |  | ⬜ todo |  |  |
-| Window > Dockers > Effects > Pointillizer | command |  | ⬜ todo |  |  |
+| Window > Dockers > Effects > PhotoCocktail | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Window > Dockers > Effects > Pointillizer | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Dockers > Color | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Dockers > Palettes | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Dockers > Color Styles | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
@@ -697,17 +697,17 @@ The *Reference* column is a path inside the reference folder.
 | Window > Dockers > History | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Dockers > Scripts | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Dockers > Learn | command |  | ➖ omitted | Corel Learn content |  |
-| Window > Toolbars | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\11 Window\007 Window ▸ Toolbars.png` |
-| Window > Toolbars > Default Button Size | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\11 Window\008 Window ▸ Toolbars ▸ Default Button Size.png` |
+| Window > Toolbars | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\11 Window\007 Window ▸ Toolbars.png` |
+| Window > Toolbars > Default Button Size | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\11 Window\008 Window ▸ Toolbars ▸ Default Button Size.png` |
 | Window > Toolbars > Default Button Size > Small | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Toolbars > Default Button Size > Medium | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Toolbars > Default Button Size > Large | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Toolbars > Default Button Size > Custom | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Toolbars > Menu bar | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Toolbars > Status bar | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Toolbars > Toolbar List | command |  | ⬜ todo |  |  |
+| Window > Toolbars > Toolbar List | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Toolbars > Lock Toolbars | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Color Palettes | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\11 Window\009 Window ▸ Color Palettes.png` |
+| Window > Color Palettes | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\11 Window\009 Window ▸ Color Palettes.png` |
 | Window > Color Palettes > Add Colors from Selection... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\11 Window\004 Window ▸ Color Palettes ▸ Add Colors from Selection (sem janela, tela principal).png` |
 | Window > Color Palettes > Add Colors from Document... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\11 Window\005 Window ▸ Color Palettes ▸ Add Colors from Document (sem janela, tela principal).png` |
 | Window > Color Palettes > Create Palette from Selection... | opens a window | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\11 Window\006 Window ▸ Color Palettes ▸ Create Palette from Selection.png` |
@@ -716,27 +716,27 @@ The *Reference* column is a path inside the reference folder.
 | Window > Color Palettes > Close All Palettes | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Color Palettes > Palette Editor... | opens a window | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\11 Window\009 Window ▸ Color Palettes ▸ Palette Editor.png` |
 | Window > Color Palettes > Palettes | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Color Palettes > Recent | submenu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\11 Window\010 Window ▸ Color Palettes ▸ Recent.png` |
-| Window > Color Palettes > Recent > <placeHolder cad5a5c3> | command |  | ⬜ todo |  |  |
-| Window > Color Palettes > <placeHolder 60be24a7> | command |  | ⬜ todo |  |  |
-| Window > Color Palettes > <placeHolder 866d09b5> | command |  | ⬜ todo |  |  |
-| Window > Color Palettes > <placeHolder 78f112b4> | command |  | ⬜ todo |  |  |
+| Window > Color Palettes > Recent | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\11 Window\010 Window ▸ Color Palettes ▸ Recent.png` |
+| Window > Color Palettes > Recent > <placeHolder cad5a5c3> | command |  | 🟡 partial | list filled at run time |  |
+| Window > Color Palettes > <placeHolder 60be24a7> | command |  | 🟡 partial | list filled at run time |  |
+| Window > Color Palettes > <placeHolder 866d09b5> | command |  | 🟡 partial | list filled at run time |  |
+| Window > Color Palettes > <placeHolder 78f112b4> | command |  | 🟡 partial | list filled at run time |  |
 | Window > Window List | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 
 ### Help
 
-1 done · 9 partial · 0 todo · 11 omitted
+4 done · 6 partial · 0 todo · 11 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
-| Help | menu |  | 🟡 partial | exists in Vector; not yet checked against the reference | `02-menus\doc-vazio\12 Help\001 Help.png` |
+| Help | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\12 Help\001 Help.png` |
 | Help > Product Help... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Help > Welcome Screen | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Help > Welcome Screen | command |  | ✅ done | opens the Welcome Screen tab |  |
 | Help > Video Tutorials... | opens a window |  | ➖ omitted | Corel Learn content |  |
 | Help > Learn | command |  | ➖ omitted | Corel Learn content |  |
 | Help > Quick Start Guide... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Help > User Guide... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Help > What's New?... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\12 Help\005 Help ▸ What's New (aba Welcome Screen).png` |
+| Help > What's New?... | opens a window |  | ✅ done | opens the Welcome Screen tab on What's New, as in the reference | `03-telas\doc-vazio\12 Help\005 Help ▸ What's New (aba Welcome Screen).png` |
 | Help > Updates... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Help > Message Settings | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Help > CorelDRAW Community | command |  | ➖ omitted | Corel online community |  |
@@ -936,60 +936,60 @@ The *Reference* column is a path inside the reference folder.
 
 ### Layout
 
-0 done · 9 partial · 2 todo · 0 omitted
+0 done · 11 partial · 0 todo · 0 omitted
 
 | Opened from | Kind | Context | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|---|
 | Layout > Insert Page | dialog | doc-vazio | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\001 Layout ▸ Insert Page.png` |
 | Layout > Duplicate Page | dialog | doc-vazio | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\002 Layout ▸ Duplicate Page.png` |
 | Layout > Rename Page | dialog | doc-vazio | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\003 Layout ▸ Rename Page.png` |
-| Layout > Page Number Settings | dialog | doc-vazio | 2 | ⬜ todo |  | `03-telas\doc-vazio\04 Layout\006 Layout ▸ Page Number Settings.png` |
+| Layout > Page Number Settings | dialog | doc-vazio | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\006 Layout ▸ Page Number Settings.png` |
 | Layout > Document Options | dialog | doc-vazio | 39 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\007 Layout ▸ Document Options.png` |
 | Layout > Page Size | dialog | doc-vazio | 22 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\008 Layout ▸ Page Size.png` |
 | Layout > Page Layout | dialog | doc-vazio | 22 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\009 Layout ▸ Page Layout.png` |
 | Layout > Page Background | dialog | doc-vazio | 22 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\010 Layout ▸ Page Background.png` |
-| Layout > Border and Grommet | dialog | doc-vazio | 5 | ⬜ todo |  | `03-telas\doc-vazio\04 Layout\011 Layout ▸ Border and Grommet.png` |
+| Layout > Border and Grommet | dialog | doc-vazio | 5 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\04 Layout\011 Layout ▸ Border and Grommet.png` |
 | Layout > Delete Page | dialog | varias-paginas | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\varias-paginas\04 Layout\004 Layout ▸ Delete Page.png` |
 | Layout > Go to Page | dialog | varias-paginas | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\varias-paginas\04 Layout\005 Layout ▸ Go to Page.png` |
 
 ### Object
 
-0 done · 7 partial · 8 todo · 0 omitted
+0 done · 15 partial · 0 todo · 0 omitted
 
 | Opened from | Kind | Context | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|---|
-| Object > Copy Effect > Perspective From | mode (no window) | com-efeitos | 0 | ⬜ todo |  | `03-telas\com-efeitos\05 Object\010 Object ▸ Copy Effect ▸ Perspective From (sem janela, tela principal).png` |
-| Object > Copy Effect > Envelope From | mode (no window) | com-efeitos | 0 | ⬜ todo |  | `03-telas\com-efeitos\05 Object\011 Object ▸ Copy Effect ▸ Envelope From (sem janela, tela principal).png` |
-| Object > Copy Effect > Distortion From | mode (no window) | com-efeitos | 0 | ⬜ todo |  | `03-telas\com-efeitos\05 Object\017 Object ▸ Copy Effect ▸ Distortion From (sem janela, tela principal).png` |
+| Object > Copy Effect > Perspective From | mode (no window) | com-efeitos | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\com-efeitos\05 Object\010 Object ▸ Copy Effect ▸ Perspective From (sem janela, tela principal).png` |
+| Object > Copy Effect > Envelope From | mode (no window) | com-efeitos | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\com-efeitos\05 Object\011 Object ▸ Copy Effect ▸ Envelope From (sem janela, tela principal).png` |
+| Object > Copy Effect > Distortion From | mode (no window) | com-efeitos | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\com-efeitos\05 Object\017 Object ▸ Copy Effect ▸ Distortion From (sem janela, tela principal).png` |
 | Object > Insert > Object | dialog | doc-vazio | 4 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\05 Object\003 Object ▸ Insert ▸ Object.png` |
 | Object > PowerClip > Place Inside Frame | mode (no window) | linha-de-cota | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\linha-de-cota\05 Object\004 Object ▸ PowerClip ▸ Place Inside Frame (sem janela, tela principal).png` |
-| Object > Order > In Front Of | mode (no window) | linha-de-cota | 0 | ⬜ todo |  | `03-telas\linha-de-cota\05 Object\022 Object ▸ Order ▸ In Front Of (sem janela, tela principal).png` |
-| Object > Order > Behind | mode (no window) | linha-de-cota | 0 | ⬜ todo |  | `03-telas\linha-de-cota\05 Object\023 Object ▸ Order ▸ Behind (sem janela, tela principal).png` |
+| Object > Order > In Front Of | mode (no window) | linha-de-cota | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\linha-de-cota\05 Object\022 Object ▸ Order ▸ In Front Of (sem janela, tela principal).png` |
+| Object > Order > Behind | mode (no window) | linha-de-cota | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\linha-de-cota\05 Object\023 Object ▸ Order ▸ Behind (sem janela, tela principal).png` |
 | Object > PowerClip > Edit PowerClip | mode (no window) | powerclip | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\powerclip\05 Object\005 Object ▸ PowerClip ▸ Edit PowerClip (sem janela, tela principal).png` |
-| Object > PowerClip > Copy PowerClip From | mode (no window) | powerclip | 0 | ⬜ todo |  | `03-telas\powerclip\05 Object\006 Object ▸ PowerClip ▸ Copy PowerClip From (sem janela, tela principal).png` |
+| Object > PowerClip > Copy PowerClip From | mode (no window) | powerclip | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\powerclip\05 Object\006 Object ▸ PowerClip ▸ Copy PowerClip From (sem janela, tela principal).png` |
 | Object > Create > Arrowhead | dialog | retangulo | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\05 Object\001 Object ▸ Create ▸ Arrowhead.png` |
 | Object > Create > Pattern Fill | dialog | retangulo | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\05 Object\002 Object ▸ Create ▸ Pattern Fill.png` |
 | Object > Perspective > Add Perspective | mode (no window) | retangulo | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\05 Object\024 Object ▸ Perspective ▸ Add Perspective (sem janela, tela principal).png` |
 | Object > Convert to Bitmap | dialog | retangulo | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\05 Object\027 Object ▸ Convert to Bitmap.png` |
-| Object > Rollover > Edit Rollover | dialog | rollover | 0 | ⬜ todo |  | `03-telas\rollover\05 Object\009 Object ▸ Rollover ▸ Edit Rollover.png` |
-| Object > Symbol > Edit Master | mode (no window) | simbolo | 0 | ⬜ todo |  | `03-telas\simbolo\05 Object\007 Object ▸ Symbol ▸ Edit Master (sem janela, tela principal).png` |
+| Object > Rollover > Edit Rollover | dialog | rollover | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\rollover\05 Object\009 Object ▸ Rollover ▸ Edit Rollover.png` |
+| Object > Symbol > Edit Master | mode (no window) | simbolo | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\simbolo\05 Object\007 Object ▸ Symbol ▸ Edit Master (sem janela, tela principal).png` |
 
 ### Bitmaps
 
-0 done · 8 partial · 8 todo · 0 omitted
+0 done · 16 partial · 0 todo · 0 omitted
 
 | Opened from | Kind | Context | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|---|
 | Bitmaps > Convert to Bitmap | dialog | bitmap | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\001 Bitmaps ▸ Convert to Bitmap.png` |
-| Bitmaps > Straighten Image | dialog | bitmap | 2 | ⬜ todo |  | `03-telas\bitmap\07 Bitmaps\002 Bitmaps ▸ Straighten Image.png` |
-| Bitmaps > Image Adjustment Lab | dialog | bitmap | 1 | ⬜ todo |  | `03-telas\bitmap\07 Bitmaps\003 Bitmaps ▸ Image Adjustment Lab.png` |
+| Bitmaps > Straighten Image | dialog | bitmap | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\002 Bitmaps ▸ Straighten Image.png` |
+| Bitmaps > Image Adjustment Lab | dialog | bitmap | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\003 Bitmaps ▸ Image Adjustment Lab.png` |
 | Bitmaps > Resample | dialog | bitmap | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\005 Bitmaps ▸ Resample.png` |
-| Bitmaps > Mode > Black and White (1-bit) | dialog | bitmap | 4 | ⬜ todo |  | `03-telas\bitmap\07 Bitmaps\006 Bitmaps ▸ Mode ▸ Black and White (1-bit).png` |
-| Bitmaps > Mode > Duotone (8-bit) | dialog | bitmap | 2 | ⬜ todo |  | `03-telas\bitmap\07 Bitmaps\007 Bitmaps ▸ Mode ▸ Duotone (8-bit).png` |
-| Bitmaps > Mode > Paletted (8-bit) | dialog | bitmap | 4 | ⬜ todo |  | `03-telas\bitmap\07 Bitmaps\008 Bitmaps ▸ Mode ▸ Paletted (8-bit).png` |
-| Bitmaps > Inflate Bitmap > Manually Inflate Bitmap | dialog | bitmap | 1 | ⬜ todo |  | `03-telas\bitmap\07 Bitmaps\009 Bitmaps ▸ Inflate Bitmap ▸ Manually Inflate Bitmap.png` |
-| Bitmaps > Centerline Trace > Technical Illustration | dialog | bitmap | 9 | ⬜ todo |  | `03-telas\bitmap\07 Bitmaps\011 Bitmaps ▸ Centerline Trace ▸ Technical Illustration.png` |
-| Bitmaps > Centerline Trace > Line Drawing | dialog | bitmap | 9 | ⬜ todo |  | `03-telas\bitmap\07 Bitmaps\012 Bitmaps ▸ Centerline Trace ▸ Line Drawing.png` |
+| Bitmaps > Mode > Black and White (1-bit) | dialog | bitmap | 4 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\006 Bitmaps ▸ Mode ▸ Black and White (1-bit).png` |
+| Bitmaps > Mode > Duotone (8-bit) | dialog | bitmap | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\007 Bitmaps ▸ Mode ▸ Duotone (8-bit).png` |
+| Bitmaps > Mode > Paletted (8-bit) | dialog | bitmap | 4 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\008 Bitmaps ▸ Mode ▸ Paletted (8-bit).png` |
+| Bitmaps > Inflate Bitmap > Manually Inflate Bitmap | dialog | bitmap | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\009 Bitmaps ▸ Inflate Bitmap ▸ Manually Inflate Bitmap.png` |
+| Bitmaps > Centerline Trace > Technical Illustration | dialog | bitmap | 9 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\011 Bitmaps ▸ Centerline Trace ▸ Technical Illustration.png` |
+| Bitmaps > Centerline Trace > Line Drawing | dialog | bitmap | 9 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\012 Bitmaps ▸ Centerline Trace ▸ Line Drawing.png` |
 | Bitmaps > Outline Trace > Line Art | dialog | bitmap | 10 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\013 Bitmaps ▸ Outline Trace ▸ Line Art.png` |
 | Bitmaps > Outline Trace > Logo | dialog | bitmap | 10 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\014 Bitmaps ▸ Outline Trace ▸ Logo.png` |
 | Bitmaps > Outline Trace > Detailed Logo | dialog | bitmap | 10 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\015 Bitmaps ▸ Outline Trace ▸ Detailed Logo.png` |
@@ -999,48 +999,48 @@ The *Reference* column is a path inside the reference folder.
 
 ### Text
 
-0 done · 6 partial · 10 todo · 0 omitted
+0 done · 15 partial · 1 todo · 0 omitted
 
 | Opened from | Kind | Context | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|---|
-| Text > Tabs | dialog | doc-vazio | 3 | ⬜ todo |  | `03-telas\doc-vazio\08 Text\001 Text ▸ Tabs.png` |
+| Text > Tabs | dialog | doc-vazio | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\001 Text ▸ Tabs.png` |
 | Text > Columns | dialog | doc-vazio | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\002 Text ▸ Columns.png` |
-| Text > Bullets and Numbering | dialog | doc-vazio | 7 | ⬜ todo |  | `03-telas\doc-vazio\08 Text\003 Text ▸ Bullets and Numbering.png` |
-| Text > Drop Cap | dialog | doc-vazio | 2 | ⬜ todo |  | `03-telas\doc-vazio\08 Text\004 Text ▸ Drop Cap.png` |
+| Text > Bullets and Numbering | dialog | doc-vazio | 7 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\003 Text ▸ Bullets and Numbering.png` |
+| Text > Drop Cap | dialog | doc-vazio | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\004 Text ▸ Drop Cap.png` |
 | Text > Line-Breaking Rules | dialog | doc-vazio | 1 | ⬜ todo |  | `03-telas\doc-vazio\08 Text\005 Text ▸ Line-Breaking Rules.png` |
-| Text > Text Statistics | dialog | doc-vazio | 2 | ⬜ todo |  | `03-telas\doc-vazio\08 Text\006 Text ▸ Text Statistics.png` |
-| Text > Insert Formatting Code > Custom Optional Hyphens | dialog | doc-vazio | 2 | ⬜ todo |  | `03-telas\doc-vazio\08 Text\008 Text ▸ Insert Formatting Code ▸ Custom Optional Hyphens.png` |
-| Text > Writing Tools > Thesaurus | dialog | doc-vazio | 6 | ⬜ todo |  | `03-telas\doc-vazio\08 Text\011 Text ▸ Writing Tools ▸ Thesaurus.png` |
+| Text > Text Statistics | dialog | doc-vazio | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\006 Text ▸ Text Statistics.png` |
+| Text > Insert Formatting Code > Custom Optional Hyphens | dialog | doc-vazio | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\008 Text ▸ Insert Formatting Code ▸ Custom Optional Hyphens.png` |
+| Text > Writing Tools > Thesaurus | dialog | doc-vazio | 6 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\011 Text ▸ Writing Tools ▸ Thesaurus.png` |
 | Text > Writing Tools > QuickCorrect | dialog | doc-vazio | 32 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\012 Text ▸ Writing Tools ▸ QuickCorrect.png` |
 | Text > Writing Tools > Settings | dialog | doc-vazio | 38 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\014 Text ▸ Writing Tools ▸ Settings.png` |
 | Text > Edit Text | dialog | texto-artistico | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\007 Text ▸ Edit Text.png` |
 | Text > Writing Tools > Spell Check | dialog | texto-artistico | 7 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\009 Text ▸ Writing Tools ▸ Spell Check.png` |
-| Text > Writing Tools > Grammatik | dialog | texto-artistico | 9 | ⬜ todo |  | `03-telas\texto-artistico\08 Text\010 Text ▸ Writing Tools ▸ Grammatik.png` |
-| Text > Writing Tools > Language | dialog | texto-artistico | 25 | ⬜ todo |  | `03-telas\texto-artistico\08 Text\013 Text ▸ Writing Tools ▸ Language.png` |
+| Text > Writing Tools > Grammatik | dialog | texto-artistico | 9 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\010 Text ▸ Writing Tools ▸ Grammatik.png` |
+| Text > Writing Tools > Language | dialog | texto-artistico | 25 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\013 Text ▸ Writing Tools ▸ Language.png` |
 | Text > Change Case | dialog | texto-artistico | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\015 Text ▸ Change Case.png` |
-| Text > Encode | dialog | texto-artistico | 1 | ⬜ todo |  | `03-telas\texto-artistico\08 Text\016 Text ▸ Encode.png` |
+| Text > Encode | dialog | texto-artistico | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\016 Text ▸ Encode.png` |
 
 ### Table
 
-0 done · 1 partial · 6 todo · 0 omitted
+0 done · 7 partial · 0 todo · 0 omitted
 
 | Opened from | Kind | Context | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|---|
 | Table > Create New Table | dialog | doc-vazio | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\09 Table\001 Table ▸ Create New Table.png` |
-| Table > Convert Table to Text | dialog | tabela | 1 | ⬜ todo |  | `03-telas\tabela\09 Table\003 Table ▸ Convert Table to Text.png` |
-| Table > Insert > Insert Rows | dialog | tabela-celulas | 1 | ⬜ todo |  | `03-telas\tabela-celulas\09 Table\004 Table ▸ Insert ▸ Insert Rows.png` |
-| Table > Insert > Insert Columns | dialog | tabela-celulas | 1 | ⬜ todo |  | `03-telas\tabela-celulas\09 Table\005 Table ▸ Insert ▸ Insert Columns.png` |
-| Table > Split into Rows | dialog | tabela-celulas | 1 | ⬜ todo |  | `03-telas\tabela-celulas\09 Table\006 Table ▸ Split into Rows.png` |
-| Table > Split into Columns | dialog | tabela-celulas | 1 | ⬜ todo |  | `03-telas\tabela-celulas\09 Table\007 Table ▸ Split into Columns.png` |
-| Table > Convert Text to Table | dialog | texto-artistico | 1 | ⬜ todo |  | `03-telas\texto-artistico\09 Table\002 Table ▸ Convert Text to Table.png` |
+| Table > Convert Table to Text | dialog | tabela | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\tabela\09 Table\003 Table ▸ Convert Table to Text.png` |
+| Table > Insert > Insert Rows | dialog | tabela-celulas | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\tabela-celulas\09 Table\004 Table ▸ Insert ▸ Insert Rows.png` |
+| Table > Insert > Insert Columns | dialog | tabela-celulas | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\tabela-celulas\09 Table\005 Table ▸ Insert ▸ Insert Columns.png` |
+| Table > Split into Rows | dialog | tabela-celulas | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\tabela-celulas\09 Table\006 Table ▸ Split into Rows.png` |
+| Table > Split into Columns | dialog | tabela-celulas | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\tabela-celulas\09 Table\007 Table ▸ Split into Columns.png` |
+| Table > Convert Text to Table | dialog | texto-artistico | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\09 Table\002 Table ▸ Convert Text to Table.png` |
 
 ### Tools
 
-0 done · 7 partial · 1 todo · 0 omitted
+0 done · 8 partial · 0 todo · 0 omitted
 
 | Opened from | Kind | Context | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|---|
-| Tools > Options > CorelDRAW | dialog | doc-vazio | 82 | ⬜ todo |  | `03-telas\doc-vazio\10 Tools\001 Tools ▸ Options ▸ CorelDRAW.png` |
+| Tools > Options > CorelDRAW | dialog | doc-vazio | 82 | 🟡 partial | Options > Vector | `03-telas\doc-vazio\10 Tools\001 Tools ▸ Options ▸ CorelDRAW.png` |
 | Tools > Options > Customization | dialog | doc-vazio | 23 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\10 Tools\002 Tools ▸ Options ▸ Customization.png` |
 | Tools > Options > Tools | dialog | doc-vazio | 22 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\10 Tools\003 Tools ▸ Options ▸ Tools.png` |
 | Tools > Options > Global | dialog | doc-vazio | 40 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\10 Tools\004 Tools ▸ Options ▸ Global.png` |
@@ -1066,239 +1066,239 @@ The *Reference* column is a path inside the reference folder.
 
 ### Help
 
-1 done · 0 partial · 1 todo · 0 omitted
+2 done · 0 partial · 0 todo · 0 omitted
 
 | Opened from | Kind | Context | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|---|
-| Help > What's New (aba Welcome Screen) | dialog | doc-vazio | 0 | ⬜ todo |  | `03-telas\doc-vazio\12 Help\005 Help ▸ What's New (aba Welcome Screen).png` |
+| Help > What's New (aba Welcome Screen) | dialog | doc-vazio | 0 | ✅ done | Welcome Screen: Get Started, Workspace and What's New; Corel's training, store, trial and support entries left out | `03-telas\doc-vazio\12 Help\005 Help ▸ What's New (aba Welcome Screen).png` |
 | Help > About CorelDRAW | dialog | doc-vazio | 4 | ✅ done | About Vector, with System Info (5 categories, Save) and Legal Notices | `03-telas\doc-vazio\12 Help\012 Help ▸ About CorelDRAW.png` |
 
 ## Bitmap effects (Properties docker)
 
 ### Effects > 3D Effects
 
-0 done · 1 partial · 6 todo · 0 omitted
+0 done · 7 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > 3D Effects > 3D Rotate | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\001 Effects ▸ 3D Effects ▸ 3D Rotate (abre no docker Properties).png` |
-| Effects > 3D Effects > Cylinder | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\002 Effects ▸ 3D Effects ▸ Cylinder (abre no docker Properties).png` |
+| Effects > 3D Effects > 3D Rotate | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\001 Effects ▸ 3D Effects ▸ 3D Rotate (abre no docker Properties).png` |
+| Effects > 3D Effects > Cylinder | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\002 Effects ▸ 3D Effects ▸ Cylinder (abre no docker Properties).png` |
 | Effects > 3D Effects > Emboss | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\003 Effects ▸ 3D Effects ▸ Emboss (abre no docker Properties).png` |
-| Effects > 3D Effects > Page Curl | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\004 Effects ▸ 3D Effects ▸ Page Curl (abre no docker Properties).png` |
-| Effects > 3D Effects > Pinch_Punch | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\005 Effects ▸ 3D Effects ▸ Pinch_Punch (abre no docker Properties).png` |
-| Effects > 3D Effects > Sphere | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\006 Effects ▸ 3D Effects ▸ Sphere (abre no docker Properties).png` |
-| Effects > 3D Effects > Zig Zag | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\007 Effects ▸ 3D Effects ▸ Zig Zag (abre no docker Properties).png` |
+| Effects > 3D Effects > Page Curl | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\004 Effects ▸ 3D Effects ▸ Page Curl (abre no docker Properties).png` |
+| Effects > 3D Effects > Pinch_Punch | bitmap | 🟡 partial | Pinch/Punch | `03-telas\bitmap\06 Effects\005 Effects ▸ 3D Effects ▸ Pinch_Punch (abre no docker Properties).png` |
+| Effects > 3D Effects > Sphere | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\006 Effects ▸ 3D Effects ▸ Sphere (abre no docker Properties).png` |
+| Effects > 3D Effects > Zig Zag | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\007 Effects ▸ 3D Effects ▸ Zig Zag (abre no docker Properties).png` |
 
 ### Effects > Adjust
 
-0 done · 1 partial · 13 todo · 0 omitted
+0 done · 14 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Adjust > Levels | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\008 Effects ▸ Adjust ▸ Levels (abre no docker Properties).png` |
-| Effects > Adjust > Equalize | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\009 Effects ▸ Adjust ▸ Equalize (abre no docker Properties).png` |
-| Effects > Adjust > Sample & Target | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\010 Effects ▸ Adjust ▸ Sample & Target (abre no docker Properties).png` |
-| Effects > Adjust > Tone Curve | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\011 Effects ▸ Adjust ▸ Tone Curve (abre no docker Properties).png` |
+| Effects > Adjust > Levels | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\008 Effects ▸ Adjust ▸ Levels (abre no docker Properties).png` |
+| Effects > Adjust > Equalize | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\009 Effects ▸ Adjust ▸ Equalize (abre no docker Properties).png` |
+| Effects > Adjust > Sample & Target | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\010 Effects ▸ Adjust ▸ Sample & Target (abre no docker Properties).png` |
+| Effects > Adjust > Tone Curve | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\011 Effects ▸ Adjust ▸ Tone Curve (abre no docker Properties).png` |
 | Effects > Adjust > Light | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\012 Effects ▸ Adjust ▸ Light (abre no docker Properties).png` |
-| Effects > Adjust > Color Balance | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\013 Effects ▸ Adjust ▸ Color Balance (abre no docker Properties).png` |
-| Effects > Adjust > Gamma | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\014 Effects ▸ Adjust ▸ Gamma (abre no docker Properties).png` |
-| Effects > Adjust > White Balance | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\015 Effects ▸ Adjust ▸ White Balance (abre no docker Properties).png` |
-| Effects > Adjust > Hue_Saturation_Lightness | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\016 Effects ▸ Adjust ▸ Hue_Saturation_Lightness (abre no docker Properties).png` |
-| Effects > Adjust > Black & White | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\017 Effects ▸ Adjust ▸ Black & White (abre no docker Properties).png` |
-| Effects > Adjust > Vibrance | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\018 Effects ▸ Adjust ▸ Vibrance (abre no docker Properties).png` |
-| Effects > Adjust > Selective Color | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\019 Effects ▸ Adjust ▸ Selective Color (abre no docker Properties).png` |
-| Effects > Adjust > Replace Colors | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\020 Effects ▸ Adjust ▸ Replace Colors (abre no docker Properties).png` |
-| Effects > Adjust > Channel Mixer | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\021 Effects ▸ Adjust ▸ Channel Mixer (abre no docker Properties).png` |
+| Effects > Adjust > Color Balance | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\013 Effects ▸ Adjust ▸ Color Balance (abre no docker Properties).png` |
+| Effects > Adjust > Gamma | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\014 Effects ▸ Adjust ▸ Gamma (abre no docker Properties).png` |
+| Effects > Adjust > White Balance | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\015 Effects ▸ Adjust ▸ White Balance (abre no docker Properties).png` |
+| Effects > Adjust > Hue_Saturation_Lightness | bitmap | 🟡 partial | Hue/Saturation/Lightness | `03-telas\bitmap\06 Effects\016 Effects ▸ Adjust ▸ Hue_Saturation_Lightness (abre no docker Properties).png` |
+| Effects > Adjust > Black & White | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\017 Effects ▸ Adjust ▸ Black & White (abre no docker Properties).png` |
+| Effects > Adjust > Vibrance | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\018 Effects ▸ Adjust ▸ Vibrance (abre no docker Properties).png` |
+| Effects > Adjust > Selective Color | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\019 Effects ▸ Adjust ▸ Selective Color (abre no docker Properties).png` |
+| Effects > Adjust > Replace Colors | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\020 Effects ▸ Adjust ▸ Replace Colors (abre no docker Properties).png` |
+| Effects > Adjust > Channel Mixer | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\021 Effects ▸ Adjust ▸ Channel Mixer (abre no docker Properties).png` |
 
 ### Effects > Art Strokes
 
-0 done · 0 partial · 15 todo · 0 omitted
+0 done · 15 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Art Strokes > Charcoal | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\022 Effects ▸ Art Strokes ▸ Charcoal (abre no docker Properties).png` |
-| Effects > Art Strokes > Conté Crayon | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\023 Effects ▸ Art Strokes ▸ Conté Crayon (abre no docker Properties).png` |
-| Effects > Art Strokes > Crayon | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\024 Effects ▸ Art Strokes ▸ Crayon (abre no docker Properties).png` |
-| Effects > Art Strokes > Cubist | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\025 Effects ▸ Art Strokes ▸ Cubist (abre no docker Properties).png` |
-| Effects > Art Strokes > Dabble | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\026 Effects ▸ Art Strokes ▸ Dabble (abre no docker Properties).png` |
-| Effects > Art Strokes > Impressionist | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\027 Effects ▸ Art Strokes ▸ Impressionist (abre no docker Properties).png` |
-| Effects > Art Strokes > Palette Knife | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\028 Effects ▸ Art Strokes ▸ Palette Knife (abre no docker Properties).png` |
-| Effects > Art Strokes > Pastels | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\029 Effects ▸ Art Strokes ▸ Pastels (abre no docker Properties).png` |
-| Effects > Art Strokes > Pen & Ink | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\030 Effects ▸ Art Strokes ▸ Pen & Ink (abre no docker Properties).png` |
-| Effects > Art Strokes > Pointillist | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\031 Effects ▸ Art Strokes ▸ Pointillist (abre no docker Properties).png` |
-| Effects > Art Strokes > Scraperboard | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\032 Effects ▸ Art Strokes ▸ Scraperboard (abre no docker Properties).png` |
-| Effects > Art Strokes > Sketch Pad | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\033 Effects ▸ Art Strokes ▸ Sketch Pad (abre no docker Properties).png` |
-| Effects > Art Strokes > Watercolor | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\034 Effects ▸ Art Strokes ▸ Watercolor (abre no docker Properties).png` |
-| Effects > Art Strokes > Water Marker | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\035 Effects ▸ Art Strokes ▸ Water Marker (abre no docker Properties).png` |
-| Effects > Art Strokes > Wave Paper | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\036 Effects ▸ Art Strokes ▸ Wave Paper (abre no docker Properties).png` |
+| Effects > Art Strokes > Charcoal | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\022 Effects ▸ Art Strokes ▸ Charcoal (abre no docker Properties).png` |
+| Effects > Art Strokes > Conté Crayon | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\023 Effects ▸ Art Strokes ▸ Conté Crayon (abre no docker Properties).png` |
+| Effects > Art Strokes > Crayon | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\024 Effects ▸ Art Strokes ▸ Crayon (abre no docker Properties).png` |
+| Effects > Art Strokes > Cubist | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\025 Effects ▸ Art Strokes ▸ Cubist (abre no docker Properties).png` |
+| Effects > Art Strokes > Dabble | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\026 Effects ▸ Art Strokes ▸ Dabble (abre no docker Properties).png` |
+| Effects > Art Strokes > Impressionist | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\027 Effects ▸ Art Strokes ▸ Impressionist (abre no docker Properties).png` |
+| Effects > Art Strokes > Palette Knife | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\028 Effects ▸ Art Strokes ▸ Palette Knife (abre no docker Properties).png` |
+| Effects > Art Strokes > Pastels | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\029 Effects ▸ Art Strokes ▸ Pastels (abre no docker Properties).png` |
+| Effects > Art Strokes > Pen & Ink | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\030 Effects ▸ Art Strokes ▸ Pen & Ink (abre no docker Properties).png` |
+| Effects > Art Strokes > Pointillist | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\031 Effects ▸ Art Strokes ▸ Pointillist (abre no docker Properties).png` |
+| Effects > Art Strokes > Scraperboard | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\032 Effects ▸ Art Strokes ▸ Scraperboard (abre no docker Properties).png` |
+| Effects > Art Strokes > Sketch Pad | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\033 Effects ▸ Art Strokes ▸ Sketch Pad (abre no docker Properties).png` |
+| Effects > Art Strokes > Watercolor | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\034 Effects ▸ Art Strokes ▸ Watercolor (abre no docker Properties).png` |
+| Effects > Art Strokes > Water Marker | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\035 Effects ▸ Art Strokes ▸ Water Marker (abre no docker Properties).png` |
+| Effects > Art Strokes > Wave Paper | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\036 Effects ▸ Art Strokes ▸ Wave Paper (abre no docker Properties).png` |
 
 ### Effects > Blur
 
-0 done · 3 partial · 9 todo · 0 omitted
+0 done · 12 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Blur > Tune Blur | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\037 Effects ▸ Blur ▸ Tune Blur (abre no docker Properties).png` |
-| Effects > Blur > Directional Smooth | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\038 Effects ▸ Blur ▸ Directional Smooth (abre no docker Properties).png` |
-| Effects > Blur > Feather | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\039 Effects ▸ Blur ▸ Feather (abre no docker Properties).png` |
+| Effects > Blur > Tune Blur | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\037 Effects ▸ Blur ▸ Tune Blur (abre no docker Properties).png` |
+| Effects > Blur > Directional Smooth | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\038 Effects ▸ Blur ▸ Directional Smooth (abre no docker Properties).png` |
+| Effects > Blur > Feather | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\039 Effects ▸ Blur ▸ Feather (abre no docker Properties).png` |
 | Effects > Blur > Gaussian Blur | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\040 Effects ▸ Blur ▸ Gaussian Blur (abre no docker Properties).png` |
-| Effects > Blur > Jaggy Despeckle | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\041 Effects ▸ Blur ▸ Jaggy Despeckle (abre no docker Properties).png` |
-| Effects > Blur > Low Pass | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\042 Effects ▸ Blur ▸ Low Pass (abre no docker Properties).png` |
-| Effects > Blur > Motion Blur | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\043 Effects ▸ Blur ▸ Motion Blur (abre no docker Properties).png` |
-| Effects > Blur > Radial Blur | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\044 Effects ▸ Blur ▸ Radial Blur (abre no docker Properties).png` |
-| Effects > Blur > Smart Blur | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\045 Effects ▸ Blur ▸ Smart Blur (abre no docker Properties).png` |
+| Effects > Blur > Jaggy Despeckle | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\041 Effects ▸ Blur ▸ Jaggy Despeckle (abre no docker Properties).png` |
+| Effects > Blur > Low Pass | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\042 Effects ▸ Blur ▸ Low Pass (abre no docker Properties).png` |
+| Effects > Blur > Motion Blur | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\043 Effects ▸ Blur ▸ Motion Blur (abre no docker Properties).png` |
+| Effects > Blur > Radial Blur | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\044 Effects ▸ Blur ▸ Radial Blur (abre no docker Properties).png` |
+| Effects > Blur > Smart Blur | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\045 Effects ▸ Blur ▸ Smart Blur (abre no docker Properties).png` |
 | Effects > Blur > Smooth | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\046 Effects ▸ Blur ▸ Smooth (abre no docker Properties).png` |
-| Effects > Blur > Soften | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\047 Effects ▸ Blur ▸ Soften (abre no docker Properties).png` |
+| Effects > Blur > Soften | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\047 Effects ▸ Blur ▸ Soften (abre no docker Properties).png` |
 | Effects > Blur > Zoom | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\048 Effects ▸ Blur ▸ Zoom (abre no docker Properties).png` |
 
 ### Effects > Camera
 
-0 done · 0 partial · 8 todo · 0 omitted
+0 done · 8 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Camera > Colorize | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\049 Effects ▸ Camera ▸ Colorize (abre no docker Properties).png` |
-| Effects > Camera > Diffuse | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\050 Effects ▸ Camera ▸ Diffuse (abre no docker Properties).png` |
-| Effects > Camera > Photo Filter | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\051 Effects ▸ Camera ▸ Photo Filter (abre no docker Properties).png` |
-| Effects > Camera > Lens Flare | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\052 Effects ▸ Camera ▸ Lens Flare (abre no docker Properties).png` |
-| Effects > Camera > Lighting Effects | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\053 Effects ▸ Camera ▸ Lighting Effects (abre no docker Properties).png` |
-| Effects > Camera > Sepia Toning | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\054 Effects ▸ Camera ▸ Sepia Toning (abre no docker Properties).png` |
-| Effects > Camera > Spot Filter | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\055 Effects ▸ Camera ▸ Spot Filter (abre no docker Properties).png` |
-| Effects > Camera > Time Machine | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\056 Effects ▸ Camera ▸ Time Machine (abre no docker Properties).png` |
+| Effects > Camera > Colorize | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\049 Effects ▸ Camera ▸ Colorize (abre no docker Properties).png` |
+| Effects > Camera > Diffuse | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\050 Effects ▸ Camera ▸ Diffuse (abre no docker Properties).png` |
+| Effects > Camera > Photo Filter | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\051 Effects ▸ Camera ▸ Photo Filter (abre no docker Properties).png` |
+| Effects > Camera > Lens Flare | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\052 Effects ▸ Camera ▸ Lens Flare (abre no docker Properties).png` |
+| Effects > Camera > Lighting Effects | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\053 Effects ▸ Camera ▸ Lighting Effects (abre no docker Properties).png` |
+| Effects > Camera > Sepia Toning | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\054 Effects ▸ Camera ▸ Sepia Toning (abre no docker Properties).png` |
+| Effects > Camera > Spot Filter | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\055 Effects ▸ Camera ▸ Spot Filter (abre no docker Properties).png` |
+| Effects > Camera > Time Machine | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\056 Effects ▸ Camera ▸ Time Machine (abre no docker Properties).png` |
 
 ### Effects > Color Transform
 
-0 done · 0 partial · 4 todo · 0 omitted
+0 done · 4 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Color Transform > Bit Planes | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\057 Effects ▸ Color Transform ▸ Bit Planes (abre no docker Properties).png` |
-| Effects > Color Transform > Halftone | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\058 Effects ▸ Color Transform ▸ Halftone (abre no docker Properties).png` |
-| Effects > Color Transform > Psychedelic | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\059 Effects ▸ Color Transform ▸ Psychedelic (abre no docker Properties).png` |
-| Effects > Color Transform > Solarize | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\060 Effects ▸ Color Transform ▸ Solarize (abre no docker Properties).png` |
+| Effects > Color Transform > Bit Planes | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\057 Effects ▸ Color Transform ▸ Bit Planes (abre no docker Properties).png` |
+| Effects > Color Transform > Halftone | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\058 Effects ▸ Color Transform ▸ Halftone (abre no docker Properties).png` |
+| Effects > Color Transform > Psychedelic | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\059 Effects ▸ Color Transform ▸ Psychedelic (abre no docker Properties).png` |
+| Effects > Color Transform > Solarize | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\060 Effects ▸ Color Transform ▸ Solarize (abre no docker Properties).png` |
 
 ### Effects > Contour
 
-0 done · 0 partial · 4 todo · 0 omitted
+0 done · 4 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Contour > Edge Detect | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\061 Effects ▸ Contour ▸ Edge Detect (abre no docker Properties).png` |
-| Effects > Contour > Find Edges | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\062 Effects ▸ Contour ▸ Find Edges (abre no docker Properties).png` |
-| Effects > Contour > Trace Contour | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\063 Effects ▸ Contour ▸ Trace Contour (abre no docker Properties).png` |
-| Effects > Contour > Local Equalization | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\064 Effects ▸ Contour ▸ Local Equalization (abre no docker Properties).png` |
+| Effects > Contour > Edge Detect | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\061 Effects ▸ Contour ▸ Edge Detect (abre no docker Properties).png` |
+| Effects > Contour > Find Edges | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\062 Effects ▸ Contour ▸ Find Edges (abre no docker Properties).png` |
+| Effects > Contour > Trace Contour | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\063 Effects ▸ Contour ▸ Trace Contour (abre no docker Properties).png` |
+| Effects > Contour > Local Equalization | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\064 Effects ▸ Contour ▸ Local Equalization (abre no docker Properties).png` |
 
 ### Effects > Correction
 
-0 done · 0 partial · 2 todo · 0 omitted
+0 done · 2 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Correction > Dust and Scratch | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\065 Effects ▸ Correction ▸ Dust and Scratch (abre no docker Properties).png` |
-| Effects > Correction > Tune Sharpen | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\066 Effects ▸ Correction ▸ Tune Sharpen (abre no docker Properties).png` |
+| Effects > Correction > Dust and Scratch | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\065 Effects ▸ Correction ▸ Dust and Scratch (abre no docker Properties).png` |
+| Effects > Correction > Tune Sharpen | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\066 Effects ▸ Correction ▸ Tune Sharpen (abre no docker Properties).png` |
 
 ### Effects > Creative
 
-0 done · 1 partial · 10 todo · 0 omitted
+0 done · 11 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Creative > Art Style | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\067 Effects ▸ Creative ▸ Art Style (abre no docker Properties).png` |
-| Effects > Creative > Crystalize | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\068 Effects ▸ Creative ▸ Crystalize (abre no docker Properties).png` |
-| Effects > Creative > Fabric | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\069 Effects ▸ Creative ▸ Fabric (abre no docker Properties).png` |
+| Effects > Creative > Art Style | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\067 Effects ▸ Creative ▸ Art Style (abre no docker Properties).png` |
+| Effects > Creative > Crystalize | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\068 Effects ▸ Creative ▸ Crystalize (abre no docker Properties).png` |
+| Effects > Creative > Fabric | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\069 Effects ▸ Creative ▸ Fabric (abre no docker Properties).png` |
 | Effects > Creative > Frame | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\070 Effects ▸ Creative ▸ Frame (abre no docker Properties).png` |
-| Effects > Creative > Glass Block | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\071 Effects ▸ Creative ▸ Glass Block (abre no docker Properties).png` |
-| Effects > Creative > Mosaic | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\072 Effects ▸ Creative ▸ Mosaic (abre no docker Properties).png` |
-| Effects > Creative > Scatter | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\073 Effects ▸ Creative ▸ Scatter (abre no docker Properties).png` |
-| Effects > Creative > Smoked Glass | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\074 Effects ▸ Creative ▸ Smoked Glass (abre no docker Properties).png` |
-| Effects > Creative > Stained Glass | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\075 Effects ▸ Creative ▸ Stained Glass (abre no docker Properties).png` |
-| Effects > Creative > Vignette | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\076 Effects ▸ Creative ▸ Vignette (abre no docker Properties).png` |
-| Effects > Creative > Vortex | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\077 Effects ▸ Creative ▸ Vortex (abre no docker Properties).png` |
+| Effects > Creative > Glass Block | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\071 Effects ▸ Creative ▸ Glass Block (abre no docker Properties).png` |
+| Effects > Creative > Mosaic | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\072 Effects ▸ Creative ▸ Mosaic (abre no docker Properties).png` |
+| Effects > Creative > Scatter | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\073 Effects ▸ Creative ▸ Scatter (abre no docker Properties).png` |
+| Effects > Creative > Smoked Glass | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\074 Effects ▸ Creative ▸ Smoked Glass (abre no docker Properties).png` |
+| Effects > Creative > Stained Glass | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\075 Effects ▸ Creative ▸ Stained Glass (abre no docker Properties).png` |
+| Effects > Creative > Vignette | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\076 Effects ▸ Creative ▸ Vignette (abre no docker Properties).png` |
+| Effects > Creative > Vortex | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\077 Effects ▸ Creative ▸ Vortex (abre no docker Properties).png` |
 
 ### Effects > Custom
 
-0 done · 0 partial · 3 todo · 0 omitted
+0 done · 3 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Custom > Band Pass | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\078 Effects ▸ Custom ▸ Band Pass (abre no docker Properties).png` |
-| Effects > Custom > Bump Map | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\079 Effects ▸ Custom ▸ Bump Map (abre no docker Properties).png` |
-| Effects > Custom > User Defined | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\080 Effects ▸ Custom ▸ User Defined (abre no docker Properties).png` |
+| Effects > Custom > Band Pass | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\078 Effects ▸ Custom ▸ Band Pass (abre no docker Properties).png` |
+| Effects > Custom > Bump Map | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\079 Effects ▸ Custom ▸ Bump Map (abre no docker Properties).png` |
+| Effects > Custom > User Defined | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\080 Effects ▸ Custom ▸ User Defined (abre no docker Properties).png` |
 
 ### Effects > Distort
 
-0 done · 1 partial · 11 todo · 0 omitted
+0 done · 12 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Distort > Blocks | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\081 Effects ▸ Distort ▸ Blocks (abre no docker Properties).png` |
-| Effects > Distort > Displace | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\082 Effects ▸ Distort ▸ Displace (abre no docker Properties).png` |
-| Effects > Distort > Mesh Warp | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\083 Effects ▸ Distort ▸ Mesh Warp (abre no docker Properties).png` |
-| Effects > Distort > Offset | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\084 Effects ▸ Distort ▸ Offset (abre no docker Properties).png` |
+| Effects > Distort > Blocks | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\081 Effects ▸ Distort ▸ Blocks (abre no docker Properties).png` |
+| Effects > Distort > Displace | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\082 Effects ▸ Distort ▸ Displace (abre no docker Properties).png` |
+| Effects > Distort > Mesh Warp | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\083 Effects ▸ Distort ▸ Mesh Warp (abre no docker Properties).png` |
+| Effects > Distort > Offset | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\084 Effects ▸ Distort ▸ Offset (abre no docker Properties).png` |
 | Effects > Distort > Pixelate | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\085 Effects ▸ Distort ▸ Pixelate (abre no docker Properties).png` |
-| Effects > Distort > Ripple | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\086 Effects ▸ Distort ▸ Ripple (abre no docker Properties).png` |
-| Effects > Distort > Shear | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\087 Effects ▸ Distort ▸ Shear (abre no docker Properties).png` |
-| Effects > Distort > Swirl | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\088 Effects ▸ Distort ▸ Swirl (abre no docker Properties).png` |
-| Effects > Distort > Tile | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\089 Effects ▸ Distort ▸ Tile (abre no docker Properties).png` |
-| Effects > Distort > Wet Paint | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\090 Effects ▸ Distort ▸ Wet Paint (abre no docker Properties).png` |
-| Effects > Distort > Whirlpool | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\091 Effects ▸ Distort ▸ Whirlpool (abre no docker Properties).png` |
-| Effects > Distort > Wind | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\092 Effects ▸ Distort ▸ Wind (abre no docker Properties).png` |
+| Effects > Distort > Ripple | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\086 Effects ▸ Distort ▸ Ripple (abre no docker Properties).png` |
+| Effects > Distort > Shear | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\087 Effects ▸ Distort ▸ Shear (abre no docker Properties).png` |
+| Effects > Distort > Swirl | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\088 Effects ▸ Distort ▸ Swirl (abre no docker Properties).png` |
+| Effects > Distort > Tile | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\089 Effects ▸ Distort ▸ Tile (abre no docker Properties).png` |
+| Effects > Distort > Wet Paint | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\090 Effects ▸ Distort ▸ Wet Paint (abre no docker Properties).png` |
+| Effects > Distort > Whirlpool | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\091 Effects ▸ Distort ▸ Whirlpool (abre no docker Properties).png` |
+| Effects > Distort > Wind | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\092 Effects ▸ Distort ▸ Wind (abre no docker Properties).png` |
 
 ### Effects > Noise
 
-0 done · 1 partial · 7 todo · 0 omitted
+0 done · 8 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Noise > Tune Noise | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\093 Effects ▸ Noise ▸ Tune Noise (abre no docker Properties).png` |
+| Effects > Noise > Tune Noise | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\093 Effects ▸ Noise ▸ Tune Noise (abre no docker Properties).png` |
 | Effects > Noise > Add Noise | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\094 Effects ▸ Noise ▸ Add Noise (abre no docker Properties).png` |
-| Effects > Noise > 3-D Stereo Noise | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\095 Effects ▸ Noise ▸ 3-D Stereo Noise (abre no docker Properties).png` |
-| Effects > Noise > Maximum | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\096 Effects ▸ Noise ▸ Maximum (abre no docker Properties).png` |
-| Effects > Noise > Median | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\097 Effects ▸ Noise ▸ Median (abre no docker Properties).png` |
-| Effects > Noise > Minimum | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\098 Effects ▸ Noise ▸ Minimum (abre no docker Properties).png` |
-| Effects > Noise > Remove Moiré | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\099 Effects ▸ Noise ▸ Remove Moiré (abre no docker Properties).png` |
-| Effects > Noise > Remove Noise | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\100 Effects ▸ Noise ▸ Remove Noise (abre no docker Properties).png` |
+| Effects > Noise > 3-D Stereo Noise | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\095 Effects ▸ Noise ▸ 3-D Stereo Noise (abre no docker Properties).png` |
+| Effects > Noise > Maximum | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\096 Effects ▸ Noise ▸ Maximum (abre no docker Properties).png` |
+| Effects > Noise > Median | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\097 Effects ▸ Noise ▸ Median (abre no docker Properties).png` |
+| Effects > Noise > Minimum | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\098 Effects ▸ Noise ▸ Minimum (abre no docker Properties).png` |
+| Effects > Noise > Remove Moiré | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\099 Effects ▸ Noise ▸ Remove Moiré (abre no docker Properties).png` |
+| Effects > Noise > Remove Noise | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\100 Effects ▸ Noise ▸ Remove Noise (abre no docker Properties).png` |
 
 ### Effects > Sharpen
 
-0 done · 0 partial · 5 todo · 0 omitted
+0 done · 5 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Sharpen > Adaptive Unsharp | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\101 Effects ▸ Sharpen ▸ Adaptive Unsharp (abre no docker Properties).png` |
-| Effects > Sharpen > Directional Sharpen | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\102 Effects ▸ Sharpen ▸ Directional Sharpen (abre no docker Properties).png` |
-| Effects > Sharpen > High Pass | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\103 Effects ▸ Sharpen ▸ High Pass (abre no docker Properties).png` |
-| Effects > Sharpen > Sharpen | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\104 Effects ▸ Sharpen ▸ Sharpen (abre no docker Properties).png` |
-| Effects > Sharpen > Unsharp Mask | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\105 Effects ▸ Sharpen ▸ Unsharp Mask (abre no docker Properties).png` |
+| Effects > Sharpen > Adaptive Unsharp | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\101 Effects ▸ Sharpen ▸ Adaptive Unsharp (abre no docker Properties).png` |
+| Effects > Sharpen > Directional Sharpen | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\102 Effects ▸ Sharpen ▸ Directional Sharpen (abre no docker Properties).png` |
+| Effects > Sharpen > High Pass | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\103 Effects ▸ Sharpen ▸ High Pass (abre no docker Properties).png` |
+| Effects > Sharpen > Sharpen | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\104 Effects ▸ Sharpen ▸ Sharpen (abre no docker Properties).png` |
+| Effects > Sharpen > Unsharp Mask | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\105 Effects ▸ Sharpen ▸ Unsharp Mask (abre no docker Properties).png` |
 
 ### Effects > Texture
 
-0 done · 1 partial · 11 todo · 0 omitted
+0 done · 12 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Texture > Brick Wall | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\106 Effects ▸ Texture ▸ Brick Wall (abre no docker Properties).png` |
-| Effects > Texture > Bubbles | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\107 Effects ▸ Texture ▸ Bubbles (abre no docker Properties).png` |
+| Effects > Texture > Brick Wall | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\106 Effects ▸ Texture ▸ Brick Wall (abre no docker Properties).png` |
+| Effects > Texture > Bubbles | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\107 Effects ▸ Texture ▸ Bubbles (abre no docker Properties).png` |
 | Effects > Texture > Canvas | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\108 Effects ▸ Texture ▸ Canvas (abre no docker Properties).png` |
-| Effects > Texture > Cobblestone | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\109 Effects ▸ Texture ▸ Cobblestone (abre no docker Properties).png` |
-| Effects > Texture > Elephant Skin | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\110 Effects ▸ Texture ▸ Elephant Skin (abre no docker Properties).png` |
-| Effects > Texture > Etching | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\111 Effects ▸ Texture ▸ Etching (abre no docker Properties).png` |
-| Effects > Texture > Plastic | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\112 Effects ▸ Texture ▸ Plastic (abre no docker Properties).png` |
-| Effects > Texture > Plaster Wall | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\113 Effects ▸ Texture ▸ Plaster Wall (abre no docker Properties).png` |
-| Effects > Texture > Relief Sculpture | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\114 Effects ▸ Texture ▸ Relief Sculpture (abre no docker Properties).png` |
-| Effects > Texture > Screen Door | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\115 Effects ▸ Texture ▸ Screen Door (abre no docker Properties).png` |
-| Effects > Texture > Stone | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\116 Effects ▸ Texture ▸ Stone (abre no docker Properties).png` |
-| Effects > Texture > Underpainting | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\117 Effects ▸ Texture ▸ Underpainting (abre no docker Properties).png` |
+| Effects > Texture > Cobblestone | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\109 Effects ▸ Texture ▸ Cobblestone (abre no docker Properties).png` |
+| Effects > Texture > Elephant Skin | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\110 Effects ▸ Texture ▸ Elephant Skin (abre no docker Properties).png` |
+| Effects > Texture > Etching | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\111 Effects ▸ Texture ▸ Etching (abre no docker Properties).png` |
+| Effects > Texture > Plastic | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\112 Effects ▸ Texture ▸ Plastic (abre no docker Properties).png` |
+| Effects > Texture > Plaster Wall | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\113 Effects ▸ Texture ▸ Plaster Wall (abre no docker Properties).png` |
+| Effects > Texture > Relief Sculpture | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\114 Effects ▸ Texture ▸ Relief Sculpture (abre no docker Properties).png` |
+| Effects > Texture > Screen Door | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\115 Effects ▸ Texture ▸ Screen Door (abre no docker Properties).png` |
+| Effects > Texture > Stone | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\116 Effects ▸ Texture ▸ Stone (abre no docker Properties).png` |
+| Effects > Texture > Underpainting | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\117 Effects ▸ Texture ▸ Underpainting (abre no docker Properties).png` |
 
 ### Effects > Transform
 
-0 done · 0 partial · 3 todo · 0 omitted
+0 done · 3 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Transform > DeInterlace | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\118 Effects ▸ Transform ▸ DeInterlace (abre no docker Properties).png` |
-| Effects > Transform > Posterize | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\119 Effects ▸ Transform ▸ Posterize (abre no docker Properties).png` |
-| Effects > Transform > Threshold | bitmap | ⬜ todo |  | `03-telas\bitmap\06 Effects\120 Effects ▸ Transform ▸ Threshold (abre no docker Properties).png` |
+| Effects > Transform > DeInterlace | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\118 Effects ▸ Transform ▸ DeInterlace (abre no docker Properties).png` |
+| Effects > Transform > Posterize | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\119 Effects ▸ Transform ▸ Posterize (abre no docker Properties).png` |
+| Effects > Transform > Threshold | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\120 Effects ▸ Transform ▸ Threshold (abre no docker Properties).png` |
 
 ## Dockers
 
@@ -1329,14 +1329,14 @@ The *Reference* column is a path inside the reference folder.
 | Glyphs | 11 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\023 Glyphs.png` |
 | Effects > Artistic Media | 11 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\024 Effects ▸ Artistic Media.png` |
 | Effects > Bevel | 5 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\025 Effects ▸ Bevel.png` |
-| Effects > Bitmap Mask | 2 | ⬜ todo |  | `04-dockers\retangulo\026 Effects ▸ Bitmap Mask.png` |
+| Effects > Bitmap Mask | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\026 Effects ▸ Bitmap Mask.png` |
 | Effects > Blend | 5 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\027 Effects ▸ Blend.png` |
 | Effects > Contour | 9 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\028 Effects ▸ Contour.png` |
 | Effects > Envelope | 5 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\029 Effects ▸ Envelope.png` |
 | Effects > Extrude | 5 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\030 Effects ▸ Extrude.png` |
 | Effects > Lens | 14 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\031 Effects ▸ Lens.png` |
-| Effects > PhotoCocktail | 2 | ⬜ todo |  | `04-dockers\retangulo\032 Effects ▸ PhotoCocktail.png` |
-| Effects > Pointillizer | 3 | ⬜ todo |  | `04-dockers\retangulo\033 Effects ▸ Pointillizer.png` |
+| Effects > PhotoCocktail | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\032 Effects ▸ PhotoCocktail.png` |
+| Effects > Pointillizer | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\033 Effects ▸ Pointillizer.png` |
 | Color | 6 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\034 Color.png` |
 | Palettes | 7 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\035 Palettes.png` |
 | Color Styles | 6 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\036 Color Styles.png` |
@@ -1354,165 +1354,165 @@ The *Reference* column is a path inside the reference folder.
 
 ### Property bar of each tool
 
-0 done · 56 partial · 4 todo · 0 omitted
+0 done · 60 partial · 0 todo · 0 omitted
 
 | Tool | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Pick | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\001 Pick (retangulo).png` |
-| Freehand Pick | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\002 Freehand Pick (retangulo).png` |
-| Free Transform | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\003 Free Transform (retangulo).png` |
-| Shape | curva | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\004 Shape (curva).png` |
-| Smooth | curva | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\005 Smooth (curva).png` |
-| Smear | curva | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\006 Smear (curva).png` |
-| Twirl | curva | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\007 Twirl (curva).png` |
-| Attract and Repel | curva | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\008 Attract and Repel (curva).png` |
-| Smudge | curva | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\009 Smudge (curva).png` |
-| Roughen | curva | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\010 Roughen (curva).png` |
-| Crop | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\011 Crop (bitmap).png` |
-| Knife | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\012 Knife (retangulo).png` |
-| Virtual Segment Delete | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\013 Virtual Segment Delete (retangulo).png` |
-| Eraser | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\014 Eraser (retangulo).png` |
-| Zoom | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\015 Zoom (retangulo).png` |
-| Pan | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\016 Pan (retangulo).png` |
-| Freehand | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\017 Freehand (retangulo).png` |
-| 2-Point Line | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\018 2-Point Line (retangulo).png` |
-| Bézier | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\019 Bézier (retangulo).png` |
-| Pen | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\020 Pen (retangulo).png` |
-| B-Spline | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\021 B-Spline (retangulo).png` |
-| Polyline | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\022 Polyline (retangulo).png` |
-| 3-Point Curve | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\023 3-Point Curve (retangulo).png` |
-| Painterly Brush | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\024 Painterly Brush (retangulo).png` |
-| Artistic Media | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\025 Artistic Media (retangulo).png` |
-| LiveSketch | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\026 LiveSketch (retangulo).png` |
-| Smart Drawing | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\027 Smart Drawing (retangulo).png` |
-| Rectangle | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\028 Rectangle (retangulo).png` |
-| 3-Point Rectangle | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\029 3-Point Rectangle (retangulo).png` |
-| Ellipse | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\030 Ellipse (retangulo).png` |
-| 3-Point Ellipse | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\031 3-Point Ellipse (retangulo).png` |
-| Polygon | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\032 Polygon (retangulo).png` |
-| Star | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\033 Star (retangulo).png` |
-| Spiral | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\034 Spiral (retangulo).png` |
-| Common Shapes | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\035 Common Shapes (retangulo).png` |
-| Impact tool | retangulo | ⬜ todo |  | `05-ferramentas\barra-de-propriedades\036 Impact tool (retangulo).png` |
-| Graph Paper | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\037 Graph Paper (retangulo).png` |
-| Text | texto-artistico | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\038 Text (texto-artistico).png` |
-| Table | tabela | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\039 Table (tabela).png` |
-| Parallel Dimension | linha-de-cota | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\040 Parallel Dimension (linha-de-cota).png` |
-| Horizontal or Vertical Dimension | linha-de-cota | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\041 Horizontal or Vertical Dimension (linha-de-cota).png` |
-| Angular Dimension | linha-de-cota | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\042 Angular Dimension (linha-de-cota).png` |
-| Segment Dimension | linha-de-cota | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\043 Segment Dimension (linha-de-cota).png` |
-| 2-Leg Callout | linha-de-cota | ⬜ todo |  | `05-ferramentas\barra-de-propriedades\044 2-Leg Callout (linha-de-cota).png` |
-| Connector | conector | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\045 Connector (conector).png` |
-| Anchor Editing | conector | ⬜ todo |  | `05-ferramentas\barra-de-propriedades\046 Anchor Editing (conector).png` |
-| Shadow | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\047 Shadow (retangulo).png` |
-| Contour | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\048 Contour (retangulo).png` |
-| Blend | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\049 Blend (retangulo).png` |
-| Distort | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\050 Distort (retangulo).png` |
-| Envelope | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\051 Envelope (retangulo).png` |
-| Extrude | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\052 Extrude (retangulo).png` |
-| Block Shadow | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\053 Block Shadow (retangulo).png` |
-| Transparency | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\054 Transparency (retangulo).png` |
-| Color Eyedropper | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\055 Color Eyedropper (retangulo).png` |
-| Attributes Eyedropper | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\056 Attributes Eyedropper (retangulo).png` |
-| Interactive Fill | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\057 Interactive Fill (retangulo).png` |
-| Smart Fill | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\058 Smart Fill (retangulo).png` |
-| Mesh Fill | retangulo | 🟡 partial | exists in Vector; not yet checked against the reference | `05-ferramentas\barra-de-propriedades\059 Mesh Fill (retangulo).png` |
-| Variable Outline | retangulo | ⬜ todo |  | `05-ferramentas\barra-de-propriedades\060 Variable Outline (retangulo).png` |
+| Pick | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\001 Pick (retangulo).png` |
+| Freehand Pick | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\002 Freehand Pick (retangulo).png` |
+| Free Transform | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\003 Free Transform (retangulo).png` |
+| Shape | curva | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\004 Shape (curva).png` |
+| Smooth | curva | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\005 Smooth (curva).png` |
+| Smear | curva | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\006 Smear (curva).png` |
+| Twirl | curva | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\007 Twirl (curva).png` |
+| Attract and Repel | curva | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\008 Attract and Repel (curva).png` |
+| Smudge | curva | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\009 Smudge (curva).png` |
+| Roughen | curva | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\010 Roughen (curva).png` |
+| Crop | bitmap | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\011 Crop (bitmap).png` |
+| Knife | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\012 Knife (retangulo).png` |
+| Virtual Segment Delete | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\013 Virtual Segment Delete (retangulo).png` |
+| Eraser | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\014 Eraser (retangulo).png` |
+| Zoom | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\015 Zoom (retangulo).png` |
+| Pan | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\016 Pan (retangulo).png` |
+| Freehand | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\017 Freehand (retangulo).png` |
+| 2-Point Line | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\018 2-Point Line (retangulo).png` |
+| Bézier | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\019 Bézier (retangulo).png` |
+| Pen | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\020 Pen (retangulo).png` |
+| B-Spline | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\021 B-Spline (retangulo).png` |
+| Polyline | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\022 Polyline (retangulo).png` |
+| 3-Point Curve | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\023 3-Point Curve (retangulo).png` |
+| Painterly Brush | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\024 Painterly Brush (retangulo).png` |
+| Artistic Media | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\025 Artistic Media (retangulo).png` |
+| LiveSketch | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\026 LiveSketch (retangulo).png` |
+| Smart Drawing | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\027 Smart Drawing (retangulo).png` |
+| Rectangle | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\028 Rectangle (retangulo).png` |
+| 3-Point Rectangle | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\029 3-Point Rectangle (retangulo).png` |
+| Ellipse | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\030 Ellipse (retangulo).png` |
+| 3-Point Ellipse | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\031 3-Point Ellipse (retangulo).png` |
+| Polygon | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\032 Polygon (retangulo).png` |
+| Star | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\033 Star (retangulo).png` |
+| Spiral | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\034 Spiral (retangulo).png` |
+| Common Shapes | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\035 Common Shapes (retangulo).png` |
+| Impact tool | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\036 Impact tool (retangulo).png` |
+| Graph Paper | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\037 Graph Paper (retangulo).png` |
+| Text | texto-artistico | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\038 Text (texto-artistico).png` |
+| Table | tabela | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\039 Table (tabela).png` |
+| Parallel Dimension | linha-de-cota | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\040 Parallel Dimension (linha-de-cota).png` |
+| Horizontal or Vertical Dimension | linha-de-cota | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\041 Horizontal or Vertical Dimension (linha-de-cota).png` |
+| Angular Dimension | linha-de-cota | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\042 Angular Dimension (linha-de-cota).png` |
+| Segment Dimension | linha-de-cota | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\043 Segment Dimension (linha-de-cota).png` |
+| 2-Leg Callout | linha-de-cota | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\044 2-Leg Callout (linha-de-cota).png` |
+| Connector | conector | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\045 Connector (conector).png` |
+| Anchor Editing | conector | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\046 Anchor Editing (conector).png` |
+| Shadow | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\047 Shadow (retangulo).png` |
+| Contour | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\048 Contour (retangulo).png` |
+| Blend | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\049 Blend (retangulo).png` |
+| Distort | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\050 Distort (retangulo).png` |
+| Envelope | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\051 Envelope (retangulo).png` |
+| Extrude | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\052 Extrude (retangulo).png` |
+| Block Shadow | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\053 Block Shadow (retangulo).png` |
+| Transparency | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\054 Transparency (retangulo).png` |
+| Color Eyedropper | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\055 Color Eyedropper (retangulo).png` |
+| Attributes Eyedropper | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\056 Attributes Eyedropper (retangulo).png` |
+| Interactive Fill | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\057 Interactive Fill (retangulo).png` |
+| Smart Fill | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\058 Smart Fill (retangulo).png` |
+| Mesh Fill | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\059 Mesh Fill (retangulo).png` |
+| Variable Outline | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\060 Variable Outline (retangulo).png` |
 
 ### Toolbox and flyouts
 
-0 done · 0 partial · 16 todo · 0 omitted
+16 done · 0 partial · 0 todo · 0 omitted
 
 | Tool | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| caixa de ferramentas |  | ⬜ todo |  | `05-ferramentas\flyouts\000 caixa de ferramentas.png` |
-| flyout Pick (3 itens) |  | ⬜ todo |  | `05-ferramentas\flyouts\01 flyout Pick (3 itens).png` |
-| flyout Shape (7 itens) |  | ⬜ todo |  | `05-ferramentas\flyouts\02 flyout Shape (7 itens).png` |
-| flyout Crop (4 itens) |  | ⬜ todo |  | `05-ferramentas\flyouts\04 flyout Crop (4 itens).png` |
-| flyout Zoom (2 itens) |  | ⬜ todo |  | `05-ferramentas\flyouts\05 flyout Zoom (2 itens).png` |
-| flyout Freehand (7 itens) |  | ⬜ todo |  | `05-ferramentas\flyouts\07 flyout Freehand (7 itens).png` |
-| flyout Painterly Brush (4 itens) |  | ⬜ todo |  | `05-ferramentas\flyouts\08 flyout Painterly Brush (4 itens).png` |
-| flyout Rectangle (2 itens) |  | ⬜ todo |  | `05-ferramentas\flyouts\09 flyout Rectangle (2 itens).png` |
-| flyout Ellipse (2 itens) |  | ⬜ todo |  | `05-ferramentas\flyouts\10 flyout Ellipse (2 itens).png` |
-| flyout Polygon (6 itens) |  | ⬜ todo |  | `05-ferramentas\flyouts\11 flyout Polygon (6 itens).png` |
-| flyout Text (2 itens) |  | ⬜ todo |  | `05-ferramentas\flyouts\13 flyout Text (2 itens).png` |
-| flyout Parallel Dimension (5 itens) |  | ⬜ todo |  | `05-ferramentas\flyouts\15 flyout Parallel Dimension (5 itens).png` |
-| flyout Connector (2 itens) |  | ⬜ todo |  | `05-ferramentas\flyouts\16 flyout Connector (2 itens).png` |
-| flyout Shadow (7 itens) |  | ⬜ todo |  | `05-ferramentas\flyouts\18 flyout Shadow (7 itens).png` |
-| flyout Color Eyedropper (2 itens) |  | ⬜ todo |  | `05-ferramentas\flyouts\21 flyout Color Eyedropper (2 itens).png` |
-| flyout Interactive Fill (3 itens) |  | ⬜ todo |  | `05-ferramentas\flyouts\22 flyout Interactive Fill (3 itens).png` |
+| caixa de ferramentas |  | ✅ done | toolbox and flyout as the reference | `05-ferramentas\flyouts\000 caixa de ferramentas.png` |
+| flyout Pick (3 itens) |  | ✅ done | toolbox and flyout as the reference | `05-ferramentas\flyouts\01 flyout Pick (3 itens).png` |
+| flyout Shape (7 itens) |  | ✅ done | toolbox and flyout as the reference | `05-ferramentas\flyouts\02 flyout Shape (7 itens).png` |
+| flyout Crop (4 itens) |  | ✅ done | toolbox and flyout as the reference | `05-ferramentas\flyouts\04 flyout Crop (4 itens).png` |
+| flyout Zoom (2 itens) |  | ✅ done | toolbox and flyout as the reference | `05-ferramentas\flyouts\05 flyout Zoom (2 itens).png` |
+| flyout Freehand (7 itens) |  | ✅ done | toolbox and flyout as the reference | `05-ferramentas\flyouts\07 flyout Freehand (7 itens).png` |
+| flyout Painterly Brush (4 itens) |  | ✅ done | toolbox and flyout as the reference | `05-ferramentas\flyouts\08 flyout Painterly Brush (4 itens).png` |
+| flyout Rectangle (2 itens) |  | ✅ done | toolbox and flyout as the reference | `05-ferramentas\flyouts\09 flyout Rectangle (2 itens).png` |
+| flyout Ellipse (2 itens) |  | ✅ done | toolbox and flyout as the reference | `05-ferramentas\flyouts\10 flyout Ellipse (2 itens).png` |
+| flyout Polygon (6 itens) |  | ✅ done | toolbox and flyout as the reference | `05-ferramentas\flyouts\11 flyout Polygon (6 itens).png` |
+| flyout Text (2 itens) |  | ✅ done | toolbox and flyout as the reference | `05-ferramentas\flyouts\13 flyout Text (2 itens).png` |
+| flyout Parallel Dimension (5 itens) |  | ✅ done | toolbox and flyout as the reference | `05-ferramentas\flyouts\15 flyout Parallel Dimension (5 itens).png` |
+| flyout Connector (2 itens) |  | ✅ done | toolbox and flyout as the reference | `05-ferramentas\flyouts\16 flyout Connector (2 itens).png` |
+| flyout Shadow (7 itens) |  | ✅ done | toolbox and flyout as the reference | `05-ferramentas\flyouts\18 flyout Shadow (7 itens).png` |
+| flyout Color Eyedropper (2 itens) |  | ✅ done | toolbox and flyout as the reference | `05-ferramentas\flyouts\21 flyout Color Eyedropper (2 itens).png` |
+| flyout Interactive Fill (3 itens) |  | ✅ done | toolbox and flyout as the reference | `05-ferramentas\flyouts\22 flyout Interactive Fill (3 itens).png` |
 
 ### Pick tool property bar by selection
 
-0 done · 0 partial · 18 todo · 0 omitted
+18 done · 0 partial · 0 todo · 0 omitted
 
 | Tool | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Pick | Pick com doc-vazio | ⬜ todo |  | `05-ferramentas\barra-pick-por-contexto\01 Pick com doc-vazio.png` |
-| Pick | Pick com retangulo | ⬜ todo |  | `05-ferramentas\barra-pick-por-contexto\02 Pick com retangulo.png` |
-| Pick | Pick com elipse | ⬜ todo |  | `05-ferramentas\barra-pick-por-contexto\03 Pick com elipse.png` |
-| Pick | Pick com curva | ⬜ todo |  | `05-ferramentas\barra-pick-por-contexto\04 Pick com curva.png` |
-| Pick | Pick com texto-artistico | ⬜ todo |  | `05-ferramentas\barra-pick-por-contexto\05 Pick com texto-artistico.png` |
-| Pick | Pick com texto-paragrafo | ⬜ todo |  | `05-ferramentas\barra-pick-por-contexto\06 Pick com texto-paragrafo.png` |
-| Pick | Pick com bitmap | ⬜ todo |  | `05-ferramentas\barra-pick-por-contexto\07 Pick com bitmap.png` |
-| Pick | Pick com grupo | ⬜ todo |  | `05-ferramentas\barra-pick-por-contexto\08 Pick com grupo.png` |
-| Pick | Pick com selecao-multipla | ⬜ todo |  | `05-ferramentas\barra-pick-por-contexto\09 Pick com selecao-multipla.png` |
-| Pick | Pick com tabela | ⬜ todo |  | `05-ferramentas\barra-pick-por-contexto\10 Pick com tabela.png` |
-| Pick | Pick com tabela-celulas | ⬜ todo |  | `05-ferramentas\barra-pick-por-contexto\11 Pick com tabela-celulas.png` |
-| Pick | Pick com simbolo | ⬜ todo |  | `05-ferramentas\barra-pick-por-contexto\12 Pick com simbolo.png` |
-| Pick | Pick com powerclip | ⬜ todo |  | `05-ferramentas\barra-pick-por-contexto\13 Pick com powerclip.png` |
-| Pick | Pick com linha-de-cota | ⬜ todo |  | `05-ferramentas\barra-pick-por-contexto\14 Pick com linha-de-cota.png` |
-| Pick | Pick com conector | ⬜ todo |  | `05-ferramentas\barra-pick-por-contexto\15 Pick com conector.png` |
-| Pick | Pick com varias-paginas | ⬜ todo |  | `05-ferramentas\barra-pick-por-contexto\16 Pick com varias-paginas.png` |
-| Pick | Pick com rollover | ⬜ todo |  | `05-ferramentas\barra-pick-por-contexto\17 Pick com rollover.png` |
-| Pick | Pick com com-efeitos | ⬜ todo |  | `05-ferramentas\barra-pick-por-contexto\18 Pick com com-efeitos.png` |
+| Pick | Pick com doc-vazio | ✅ done | property bar as the reference for this selection | `05-ferramentas\barra-pick-por-contexto\01 Pick com doc-vazio.png` |
+| Pick | Pick com retangulo | ✅ done | property bar as the reference for this selection | `05-ferramentas\barra-pick-por-contexto\02 Pick com retangulo.png` |
+| Pick | Pick com elipse | ✅ done | property bar as the reference for this selection | `05-ferramentas\barra-pick-por-contexto\03 Pick com elipse.png` |
+| Pick | Pick com curva | ✅ done | property bar as the reference for this selection | `05-ferramentas\barra-pick-por-contexto\04 Pick com curva.png` |
+| Pick | Pick com texto-artistico | ✅ done | property bar as the reference for this selection | `05-ferramentas\barra-pick-por-contexto\05 Pick com texto-artistico.png` |
+| Pick | Pick com texto-paragrafo | ✅ done | property bar as the reference for this selection | `05-ferramentas\barra-pick-por-contexto\06 Pick com texto-paragrafo.png` |
+| Pick | Pick com bitmap | ✅ done | property bar as the reference for this selection | `05-ferramentas\barra-pick-por-contexto\07 Pick com bitmap.png` |
+| Pick | Pick com grupo | ✅ done | property bar as the reference for this selection | `05-ferramentas\barra-pick-por-contexto\08 Pick com grupo.png` |
+| Pick | Pick com selecao-multipla | ✅ done | property bar as the reference for this selection | `05-ferramentas\barra-pick-por-contexto\09 Pick com selecao-multipla.png` |
+| Pick | Pick com tabela | ✅ done | property bar as the reference for this selection | `05-ferramentas\barra-pick-por-contexto\10 Pick com tabela.png` |
+| Pick | Pick com tabela-celulas | ✅ done | property bar as the reference for this selection | `05-ferramentas\barra-pick-por-contexto\11 Pick com tabela-celulas.png` |
+| Pick | Pick com simbolo | ✅ done | property bar as the reference for this selection | `05-ferramentas\barra-pick-por-contexto\12 Pick com simbolo.png` |
+| Pick | Pick com powerclip | ✅ done | property bar as the reference for this selection | `05-ferramentas\barra-pick-por-contexto\13 Pick com powerclip.png` |
+| Pick | Pick com linha-de-cota | ✅ done | property bar as the reference for this selection | `05-ferramentas\barra-pick-por-contexto\14 Pick com linha-de-cota.png` |
+| Pick | Pick com conector | ✅ done | property bar as the reference for this selection | `05-ferramentas\barra-pick-por-contexto\15 Pick com conector.png` |
+| Pick | Pick com varias-paginas | ✅ done | property bar as the reference for this selection | `05-ferramentas\barra-pick-por-contexto\16 Pick com varias-paginas.png` |
+| Pick | Pick com rollover | ✅ done | property bar as the reference for this selection | `05-ferramentas\barra-pick-por-contexto\17 Pick com rollover.png` |
+| Pick | Pick com com-efeitos | ✅ done | property bar as the reference for this selection | `05-ferramentas\barra-pick-por-contexto\18 Pick com com-efeitos.png` |
 
 ## Toolbars
 
 | Toolbar | Status | Note | Reference |
 |---|---|---|---|
-| Status Bar | 🟡 partial | exists; to be checked against the reference in batch 1 | `06-barras\00 Barra de status.png` |
-| Color palette | 🟡 partial | exists; to be checked against the reference in batch 1 | `06-barras\00 Paleta de cores (lateral).png` |
-| Document palette | 🟡 partial | exists; to be checked against the reference in batch 1 | `06-barras\00 Paleta do documento.png` |
-| Standard | 🟡 partial | exists; to be checked against the reference in batch 1 | `06-barras\00 Standard (barra padrao).png` |
-| Project Timer | ⬜ todo |  | `06-barras\03 ProjectTimer.png` |
-| Layout | ⬜ todo |  | `06-barras\04 Layout.png` |
-| Zoom | ⬜ todo |  | `06-barras\05 ZoomPanTool.png` |
-| Internet | ⬜ todo |  | `06-barras\06 InternetToolbar.png` |
-| Macros | ⬜ todo |  | `06-barras\09 Macros.png` |
-| Parallel Lines | ⬜ todo |  | `06-barras\11 ParallelLines.png` |
-| Text | ⬜ todo |  | `06-barras\12 Text.png` |
-| Transform | ⬜ todo |  | `06-barras\13 Transform.png` |
+| Status Bar | ✅ done | items and order from the reference | `06-barras\00 Barra de status.png` |
+| Color palette | ✅ done | items and order from the reference | `06-barras\00 Paleta de cores (lateral).png` |
+| Document palette | ✅ done | items and order from the reference | `06-barras\00 Paleta do documento.png` |
+| Standard | ✅ done | items and order from the reference | `06-barras\00 Standard (barra padrao).png` |
+| Project Timer | ✅ done | items and order from the reference | `06-barras\03 ProjectTimer.png` |
+| Layout | ✅ done | items and order from the reference | `06-barras\04 Layout.png` |
+| Zoom | ✅ done | items and order from the reference | `06-barras\05 ZoomPanTool.png` |
+| Internet | ✅ done | items and order from the reference | `06-barras\06 InternetToolbar.png` |
+| Macros | ✅ done | items and order from the reference | `06-barras\09 Macros.png` |
+| Parallel Lines | ✅ done | items and order from the reference | `06-barras\11 ParallelLines.png` |
+| Text | ✅ done | items and order from the reference | `06-barras\12 Text.png` |
+| Transform | ✅ done | items and order from the reference | `06-barras\13 Transform.png` |
 
 ## Right-click menus
 
 | Right-click on | Prints | Status | Note | Reference |
 |---|---|---|---|---|
-| Rectangle | 8 | ⬜ todo |  | `07-menus-de-contexto\01 retangulo\001 retangulo.png` |
-| Ellipse | 8 | ⬜ todo |  | `07-menus-de-contexto\02 elipse\001 elipse.png` |
-| Curve | 8 | ⬜ todo |  | `07-menus-de-contexto\03 curva\001 curva.png` |
-| Artistic text | 8 | ⬜ todo |  | `07-menus-de-contexto\04 texto-artistico\001 texto-artistico.png` |
-| Paragraph text | 6 | ⬜ todo |  | `07-menus-de-contexto\05 texto-paragrafo\001 texto-paragrafo.png` |
-| Bitmap | 9 | ⬜ todo |  | `07-menus-de-contexto\06 bitmap\001 bitmap.png` |
-| Group | 9 | ⬜ todo |  | `07-menus-de-contexto\07 grupo\001 grupo.png` |
-| Multiple selection | 9 | ⬜ todo |  | `07-menus-de-contexto\08 selecao-multipla\001 selecao-multipla.png` |
-| Table | 9 | ⬜ todo |  | `07-menus-de-contexto\09 tabela\001 tabela.png` |
-| Symbol | 3 | ⬜ todo |  | `07-menus-de-contexto\10 simbolo\001 simbolo.png` |
-| PowerClip | 9 | ⬜ todo |  | `07-menus-de-contexto\11 powerclip\001 powerclip.png` |
-| Dimension line | 8 | ⬜ todo |  | `07-menus-de-contexto\12 linha-de-cota\001 linha-de-cota.png` |
-| Connector | 7 | ⬜ todo |  | `07-menus-de-contexto\13 conector\001 conector.png` |
-| Rollover | 8 | ⬜ todo |  | `07-menus-de-contexto\14 rollover\001 rollover.png` |
-| Table cells | 5 | ⬜ todo |  | `07-menus-de-contexto\15 tabela-celulas\001 tabela-celulas.png` |
-| Text being edited | 1 | ⬜ todo |  | `07-menus-de-contexto\16 texto-em-edicao\001 texto-em-edicao.png` |
-| Curve nodes (Shape tool) | 1 | ⬜ todo |  | `07-menus-de-contexto\17 nos-da-curva\001 nos-da-curva.png` |
-| Page | 7 | ⬜ todo |  | `07-menus-de-contexto\18 pagina\001 pagina.png` |
-| Desktop (outside the page) | 7 | ⬜ todo |  | `07-menus-de-contexto\19 area-de-trabalho\001 area-de-trabalho.png` |
-| Ruler | 1 | ⬜ todo |  | `07-menus-de-contexto\20 regua\001 regua.png` |
+| Rectangle | 8 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\01 retangulo\001 retangulo.png` |
+| Ellipse | 8 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\02 elipse\001 elipse.png` |
+| Curve | 8 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\03 curva\001 curva.png` |
+| Artistic text | 8 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\04 texto-artistico\001 texto-artistico.png` |
+| Paragraph text | 6 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\05 texto-paragrafo\001 texto-paragrafo.png` |
+| Bitmap | 9 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\06 bitmap\001 bitmap.png` |
+| Group | 9 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\07 grupo\001 grupo.png` |
+| Multiple selection | 9 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\08 selecao-multipla\001 selecao-multipla.png` |
+| Table | 9 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\09 tabela\001 tabela.png` |
+| Symbol | 3 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\10 simbolo\001 simbolo.png` |
+| PowerClip | 9 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\11 powerclip\001 powerclip.png` |
+| Dimension line | 8 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\12 linha-de-cota\001 linha-de-cota.png` |
+| Connector | 7 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\13 conector\001 conector.png` |
+| Rollover | 8 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\14 rollover\001 rollover.png` |
+| Table cells | 5 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\15 tabela-celulas\001 tabela-celulas.png` |
+| Text being edited | 1 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\16 texto-em-edicao\001 texto-em-edicao.png` |
+| Curve nodes (Shape tool) | 1 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\17 nos-da-curva\001 nos-da-curva.png` |
+| Page | 7 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\18 pagina\001 pagina.png` |
+| Desktop (outside the page) | 7 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\19 area-de-trabalho\001 area-de-trabalho.png` |
+| Ruler | 1 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\20 regua\001 regua.png` |
 | Color palette | 0 | ➖ omitted | no menu in the reference |  |
 | Document palette | 0 | ➖ omitted | no menu in the reference |  |
-| Page tab | 1 | ⬜ todo |  | `07-menus-de-contexto\23 aba-da-pagina\001 aba-da-pagina.png` |
+| Page tab | 1 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\23 aba-da-pagina\001 aba-da-pagina.png` |
 | Document tab | 0 | ➖ omitted | no menu in the reference |  |
-| Toolbar | 5 | ⬜ todo |  | `07-menus-de-contexto\25 barra-de-ferramentas\001 barra-de-ferramentas.png` |
-| Status bar | 7 | ⬜ todo |  | `07-menus-de-contexto\26 barra-de-status\001 barra-de-status.png` |
-| Toolbox | 6 | ⬜ todo |  | `07-menus-de-contexto\27 caixa-de-ferramentas\001 caixa-de-ferramentas.png` |
+| Toolbar | 5 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\25 barra-de-ferramentas\001 barra-de-ferramentas.png` |
+| Status bar | 7 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\26 barra-de-status\001 barra-de-status.png` |
+| Toolbox | 6 | ✅ done | items, order and enabled states from the reference | `07-menus-de-contexto\27 caixa-de-ferramentas\001 caixa-de-ferramentas.png` |
 

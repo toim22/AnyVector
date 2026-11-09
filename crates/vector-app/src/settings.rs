@@ -153,7 +153,8 @@ pub struct Settings {
     pub show_property_bar: bool,
     pub show_toolbox: bool,
     pub extra_toolbars: Vec<String>,
-    pub hidden_tools: Vec<crate::tools::ToolId>,
+    /// Toolbox items shown or hidden with Quick Customize: (first 8 characters of the item id, shown).
+    pub toolbox_items: Vec<(String, bool)>,
     pub auto_update_doc_palette: bool,
     pub palette_rows: u32,
     pub wide_borders: bool,
@@ -179,6 +180,10 @@ pub struct Settings {
     pub straight_threshold: f64,
     pub auto_join: f64,
     pub smart_draw_delay: f64,
+    /// Smart Drawing: how readily strokes become shapes, 0 (None) to 5 (Highest).
+    pub smart_recognition: u8,
+    /// Smart Drawing: how much a stroke that stays a curve is smoothed, 0 (None) to 5 (Highest).
+    pub smart_smoothing: u8,
     pub rect_corner: u8,
     pub rect_radii: [f64; 4],
     pub rect_scale_corners: bool,
@@ -369,7 +374,7 @@ impl Default for Settings {
             show_property_bar: true,
             show_toolbox: true,
             extra_toolbars: vec![],
-            hidden_tools: vec![],
+            toolbox_items: vec![],
             auto_update_doc_palette: true,
             palette_rows: 1,
             wide_borders: false,
@@ -394,6 +399,8 @@ impl Default for Settings {
             straight_threshold: 5.0,
             auto_join: 5.0,
             smart_draw_delay: 0.0,
+            smart_recognition: 3,
+            smart_smoothing: 3,
             rect_corner: 0,
             rect_radii: [0.0; 4],
             rect_scale_corners: false,

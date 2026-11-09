@@ -6,6 +6,7 @@ mod ai;
 mod app;
 mod bugreport;
 mod canvas;
+mod cmdbar;
 mod color_profiles;
 mod commands;
 mod dialogs;
@@ -29,6 +30,7 @@ mod toolbar;
 mod toolbox;
 mod tools;
 mod trace;
+mod ui;
 mod welcome;
 mod widgets;
 

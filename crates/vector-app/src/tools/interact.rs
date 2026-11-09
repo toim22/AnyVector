@@ -1422,8 +1422,10 @@ impl<'a> Cx<'a> {
                     }
                     SmartDrawing => {
                         let id = self.d.doc.new_id();
-                        let o = recognize_shape(self.ts, &points, closed_by_proximity, self.d.doc_len(6.0), id).unwrap_or_else(|| {
-                            let np = fit(&points, 60.0, closed_by_proximity);
+                        let level = [0.0, 0.4, 0.7, 1.0, 1.5, 2.0][self.s.smart_recognition.min(5) as usize];
+                        let shape = if level > 0.0 { recognize_shape(self.ts, &points, closed_by_proximity, self.d.doc_len(6.0 * level), id) } else { None };
+                        let o = shape.unwrap_or_else(|| {
+                            let np = fit(&points, self.s.smart_smoothing.min(5) as f64 * 20.0, closed_by_proximity);
                             let mut st = self.ts.new_style();
                             if !closed_by_proximity {
                                 st.fill = Fill::None;
@@ -1532,6 +1534,12 @@ impl<'a> Cx<'a> {
             Zoom => self.d.zoom_at(self.inp.pos, 0.5),
             Bezier | Pen | Polyline | BSpline if !self.ts.curve.is_empty() => super::finish(self.ts, self.d, self.s),
             ColorEyedropper => self.color_eyedropper(true),
+            // right-clicking an object selects it before its right-click menu opens
+            Pick | FreehandPick | FreeTransform => match self.hit(self.raw) {
+                Some(t) if !self.d.selection.contains(&t) => self.d.selection = vec![t],
+                Some(_) => {}
+                None => self.d.selection.clear(),
+            },
             _ => {}
         }
     }

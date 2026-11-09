@@ -36,8 +36,8 @@ and a pull request.
 
 | # | Batch | Contents |
 |---|---|---|
-| 0 | Foundation and branding | Version 0.1.0; icon, logo and installer pictures from the SVGs; the installer; Help ▸ About with System Info and Legal Notices; the coverage report and the comparison page. |
-| 1 | Program frame | All 12 menus and submenus in order, enabled per selection state (17 states) and the reduced menu bar without a document; right-click menus in 23 places; Standard toolbar, status bar and the 8 hidden toolbars; toolbox and flyouts; property bar of each of the 60 tools and of the Pick tool for each selection; Welcome Screen. |
+| 0 | Foundation and branding (done) | Version 0.1.0; icon, logo and installer pictures from the SVGs; the installer; Help ▸ About with System Info and Legal Notices; the coverage report and the comparison page. |
+| 1 | Program frame (done) | All 12 menus and submenus in order, enabled per selection state (17 states) and the reduced menu bar without a document; right-click menus in 23 places; Standard toolbar, status bar and the 8 hidden toolbars; toolbox and flyouts; property bar of each of the 60 tools and of the Pick tool for each selection; Welcome Screen. |
 | 2 | File, Edit and View | The File menu dialogs (Document Properties, Print with all tabs, PDF settings, Export, Acquire Image, Send To, Export For), the Edit and View dialogs and modes. |
 | 3 | Layout, Object and Table | The Layout dialogs; Object (PowerClip, Symbols, Rollover, Align, Order and the rest); Table dialogs. |
 | 4 | Text | The Text dialogs; Text, Font Sampler, Glyphs and Find and Replace dockers; writing tools. |

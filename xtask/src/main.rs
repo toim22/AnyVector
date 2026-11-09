@@ -5,6 +5,7 @@
 //! cargo run -p xtask -- coverage   # docs/COVERAGE.md from the CorelDRAW reference (MAPEAMENTO)
 //! cargo run -p xtask -- compare    # target/visual/compare.html: Vector renders next to the reference
 //! cargo run -p xtask -- licenses   # the Legal Notices text (open-source components and licenses)
+//! cargo run -p xtask -- ui         # menus, toolbars and property bars from the reference definition
 //! ```
 //!
 //! The reference folder defaults to `C:\Users\anton\Documents\Claude\corel-screenshots\MAPEAMENTO`
@@ -14,6 +15,7 @@ mod brand;
 mod compare;
 mod coverage;
 mod licenses;
+mod ui;
 
 use std::path::PathBuf;
 
@@ -36,8 +38,9 @@ fn main() {
         "coverage" => coverage::run(),
         "compare" => compare::run(),
         "licenses" => licenses::run(),
+        "ui" => ui::run(),
         _ => {
-            eprintln!("usage: cargo run -p xtask -- <brand|coverage|compare|licenses>");
+            eprintln!("usage: cargo run -p xtask -- <brand|coverage|compare|licenses|ui>");
             std::process::exit(2);
         }
     };
