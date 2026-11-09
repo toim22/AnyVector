@@ -2,7 +2,7 @@ Vector is built with the open-source components listed below.
 Each one is used under the license shown next to it. The license texts
 are published with each component at the address given.
 
-278 components. Licenses used:
+279 components. Licenses used:
   (MIT OR Apache-2.0) AND OFL-1.1 AND Ubuntu-font-1.0: 1
   (MIT OR Apache-2.0) AND Unicode-3.0: 2
   0BSD OR MIT OR Apache-2.0: 1
@@ -23,7 +23,7 @@ are published with each component at the address given.
   CDLA-Permissive-2.0: 1
   ISC: 3
   MIT: 34
-  MIT OR Apache-2.0: 137
+  MIT OR Apache-2.0: 138
   MIT OR Apache-2.0 OR Zlib: 5
   MIT OR Zlib OR Apache-2.0: 2
   MIT/Apache-2.0: 7
@@ -475,6 +475,9 @@ profiling 1.0.18
 pxfm 0.1.30
     License: BSD-3-Clause OR Apache-2.0
     https://github.com/awxkee/pxfm
+qrcode 0.14.1
+    License: MIT OR Apache-2.0
+    https://github.com/kennytm/qrcode-rust
 quick-error 2.0.1
     License: MIT/Apache-2.0
     http://github.com/tailhook/quick-error

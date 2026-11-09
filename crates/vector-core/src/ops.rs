@@ -81,18 +81,6 @@ pub fn reverse_order(doc: &mut Document, ids: &[ObjId]) {
     }
 }
 
-/// Place `ids` directly in front of / behind `target`.
-pub fn place_relative(doc: &mut Document, ids: &[ObjId], target: ObjId, in_front: bool) {
-    let objs: Vec<Object> = ids.iter().filter(|i| **i != target).filter_map(|i| doc.remove(*i)).collect();
-    if let Some((p, l, i)) = doc.locate(target) {
-        let at = if in_front { i + 1 } else { i };
-        let layer = &mut doc.pages[p].layers[l];
-        for (k, o) in objs.into_iter().enumerate() {
-            layer.objects.insert(at + k, o);
-        }
-    }
-}
-
 pub fn group(doc: &mut Document, ids: &[ObjId]) -> Option<ObjId> {
     let ls = locs(doc, ids);
     if ls.len() < 1 {
@@ -1100,5 +1088,74 @@ pub fn mirror(doc: &mut Document, ids: &[ObjId], horizontal: bool) {
         let c = b.center();
         let a = Affine::translate(c.to_vec2()) * if horizontal { Affine::scale_non_uniform(-1.0, 1.0) } else { Affine::scale_non_uniform(1.0, -1.0) } * Affine::translate(-c.to_vec2());
         doc.transform_objects(ids, a);
+    }
+}
+
+/// Order ▸ In Front Of / Behind: move the objects just above or below `target`, in its layer,
+/// keeping their own stacking order.
+pub fn place_relative(doc: &mut Document, ids: &[ObjId], target: ObjId, in_front: bool) {
+    let mut found: Vec<((usize, usize, usize), ObjId)> = ids.iter().filter(|id| **id != target).filter_map(|id| doc.locate(*id).map(|l| (l, *id))).collect();
+    found.sort_by_key(|(l, _)| *l);
+    let mut moved = vec![];
+    for (_, id) in &found {
+        if let Some(o) = doc.remove(*id) {
+            moved.push(o);
+        }
+    }
+    let Some((p, l, i)) = doc.locate(target) else {
+        // the target is gone (should not happen): put the objects back on top
+        if let Some(layer) = doc.pages.first_mut().and_then(|pg| pg.layers.first_mut()) {
+            layer.objects.extend(moved);
+        }
+        return;
+    };
+    let at = if in_front { i + 1 } else { i };
+    let objs = &mut doc.pages[p].layers[l].objects;
+    for (k, o) in moved.into_iter().enumerate() {
+        objs.insert(at + k, o);
+    }
+}
+
+/// PowerClip ▸ Center, Fit Proportionally, Fill Proportionally, Stretch to Fill (mode 0..3):
+/// place the contents in the frame.
+pub fn powerclip_place(doc: &mut Document, id: ObjId, mode: u8) {
+    let Some(o) = doc.find_mut(id) else { return };
+    let ObjKind::PowerClip { frame, contents } = &mut o.kind else { return };
+    if contents.is_empty() {
+        return;
+    }
+    let fb = frame.bounds();
+    let cb = crate::object::union_bounds(contents.iter().map(|c| c.bounds()));
+    if cb.width() <= 0.0 && cb.height() <= 0.0 {
+        return;
+    }
+    let (sx, sy) = (fb.width() / cb.width().max(1e-9), fb.height() / cb.height().max(1e-9));
+    let (sx, sy) = match mode {
+        0 => (1.0, 1.0),
+        1 => (sx.min(sy), sx.min(sy)),
+        2 => (sx.max(sy), sx.max(sy)),
+        _ => (sx, sy),
+    };
+    let a = Affine::translate(fb.center().to_vec2()) * Affine::scale_non_uniform(sx, sy) * Affine::translate(-cb.center().to_vec2());
+    for c in contents.iter_mut() {
+        c.apply_transform(a);
+    }
+}
+
+/// Align and Distribute ▸ Align with Pixel Grid: move and size the objects so their edges fall
+/// on whole pixels (`px` = the size of a pixel in points).
+pub fn align_pixel_grid(doc: &mut Document, ids: &[ObjId], px: f64) {
+    let px = px.max(1e-6);
+    for id in ids {
+        let Some(o) = doc.find_mut(*id) else { continue };
+        let b = o.bounds();
+        let snap = |v: f64| (v / px).round() * px;
+        let (x0, y0) = (snap(b.x0), snap(b.y0));
+        let x1 = if b.width() > 0.0 { snap(b.x1).max(x0 + px) } else { x0 };
+        let y1 = if b.height() > 0.0 { snap(b.y1).max(y0 + px) } else { y0 };
+        let sx = if b.width() > 0.0 { (x1 - x0) / b.width() } else { 1.0 };
+        let sy = if b.height() > 0.0 { (y1 - y0) / b.height() } else { 1.0 };
+        let a = Affine::translate((x0, y0)) * Affine::scale_non_uniform(sx, sy) * Affine::translate((-b.x0, -b.y0));
+        o.apply_transform(a);
     }
 }

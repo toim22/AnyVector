@@ -768,3 +768,179 @@ fn visual_file_edit_dialogs() {
     h.state_mut().dialogs.paste_special = Some(clipboard::PasteSpecialState { source: "Unknown Source".into(), kinds: vec![clipboard::PasteKind::Text, clipboard::PasteKind::Bitmap], chosen: 0 });
     save(&mut h, "56_paste_special");
 }
+
+/// Layout dialogs: Insert, Duplicate, Rename, Delete and Go to Page, Page Number Settings and
+/// Border and Grommet.
+#[test]
+#[ignore]
+fn visual_layout_dialogs() {
+    let mut h = harness();
+    h.state_mut().new_default_document();
+    h.state_mut().run(Cmd::InsertPage);
+    save(&mut h, "60_insert_page");
+    h.state_mut().dialogs.insert_page = None;
+    h.state_mut().run(Cmd::DuplicatePage);
+    save(&mut h, "61_duplicate_page");
+    h.state_mut().dialogs.duplicate_page = None;
+    h.state_mut().run(Cmd::RenamePage);
+    save(&mut h, "62_rename_page");
+    h.state_mut().dialogs.rename_page = None;
+    h.state_mut().run(Cmd::InsertPageAfter);
+    h.state_mut().run(Cmd::DeletePage);
+    save(&mut h, "63_delete_page");
+    h.state_mut().dialogs.delete_page = None;
+    h.state_mut().run(Cmd::GoToPage);
+    save(&mut h, "64_go_to_page");
+    h.state_mut().dialogs.goto_page = None;
+    h.state_mut().run(Cmd::PageNumberSettings);
+    save(&mut h, "65_page_number_settings");
+    h.state_mut().dialogs.page_numbers = None;
+    h.state_mut().run(Cmd::BorderGrommet);
+    save(&mut h, "66_border_grommet");
+    if let Some(st) = h.state_mut().dialogs.border_grommet.as_mut() {
+        st.opts.border = true;
+        st.opts.grommets = true;
+        st.opts.placement = [true, true, true, false, false];
+    }
+    save(&mut h, "67_border_grommet_on");
+    h.state_mut().dialogs.border_grommet = None;
+    h.state_mut().run(Cmd::InsertPageNumber(1));
+    save(&mut h, "68_page_numbers");
+}
+
+/// Table dialogs and merged cells: Create New Table, a block of cells, Merge Cells, Insert
+/// Rows, Split Cells, Convert Table to Text and Convert Text to Table.
+#[test]
+#[ignore]
+fn visual_table_dialogs() {
+    use crate::tools::ToolId;
+    let mut h = harness();
+    h.state_mut().new_default_document();
+    h.state_mut().run(Cmd::CreateTable);
+    save(&mut h, "70_create_table");
+    // create it through the dialog's OK path
+    {
+        let a = h.state_mut();
+        let st = a.dialogs.table.take().unwrap();
+        crate::dialogs::table::apply_for_test(a, &st);
+    }
+    h.state_mut().set_tool(ToolId::Table);
+    h.state_mut().ts.table_cell = Some((0, 0));
+    h.state_mut().ts.table_cell_to = Some((1, 1));
+    save(&mut h, "71_table_cells");
+    h.state_mut().run(Cmd::TableMerge);
+    save(&mut h, "72_table_merged");
+    h.state_mut().run(Cmd::TableInsertMany(false));
+    save(&mut h, "73_insert_rows");
+    h.state_mut().dialogs.table = None;
+    h.state_mut().run(Cmd::TableInsertMany(true));
+    save(&mut h, "74_insert_columns");
+    h.state_mut().dialogs.table = None;
+    h.state_mut().run(Cmd::TableSplit(false));
+    save(&mut h, "75_split_cells");
+    if let Some(st) = h.state_mut().dialogs.table.take() {
+        crate::dialogs::table::apply_for_test(h.state_mut(), &st);
+    }
+    save(&mut h, "76_table_split");
+    h.state_mut().run(Cmd::TableToText);
+    save(&mut h, "77_table_to_text");
+    if let Some(st) = h.state_mut().dialogs.table.take() {
+        crate::dialogs::table::apply_for_test(h.state_mut(), &st);
+    }
+    h.state_mut().run(Cmd::TextToTable);
+    save(&mut h, "78_text_to_table");
+}
+
+/// Object menu: Create Arrowhead, Create Pattern, Barcode Wizard, QR Code, Edit Rollover and
+/// Edit Master.
+#[test]
+#[ignore]
+fn visual_object_dialogs() {
+    use kurbo::{Affine, BezPath, Point, Rect, Shape};
+    use vector_core::style::ArrowHead;
+    use vector_core::{Color, Fill, ObjKind, Object, Style};
+    let mut h = harness();
+    h.state_mut().new_default_document();
+    // a triangle pointing right, to become an arrowhead
+    {
+        let d = h.state_mut().doc_mut().unwrap();
+        let mut bp = BezPath::new();
+        bp.move_to((200.0, 200.0));
+        bp.line_to((260.0, 225.0));
+        bp.line_to((200.0, 250.0));
+        bp.close_path();
+        let mut st = Style::default();
+        st.fill = Fill::Solid(Color::BLACK);
+        let o = Object::new(d.doc.new_id(), ObjKind::Path(vector_core::path::NodePath::from_bez(&bp)), Affine::IDENTITY, st);
+        d.add_objects("Triangle", vec![o]);
+    }
+    h.state_mut().run(Cmd::CreateArrowhead);
+    save(&mut h, "80_create_arrowhead");
+    {
+        let a = h.state_mut();
+        let st = a.dialogs.arrowhead.take().unwrap();
+        let ca = st.arrow();
+        a.settings.custom_arrowheads.push(ca.clone());
+        let d = a.doc_mut().unwrap();
+        d.doc.arrowheads.push(ca.clone());
+        let mut bp = BezPath::new();
+        bp.move_to((150.0, 400.0));
+        bp.line_to((450.0, 400.0));
+        let mut stl = Style::default();
+        stl.outline.width = 2.0;
+        stl.outline.end_arrow = Some(ArrowHead::Custom(ca.id));
+        let o = Object::new(d.doc.new_id(), ObjKind::Path(vector_core::path::NodePath::from_bez(&bp)), Affine::IDENTITY, stl);
+        d.add_objects("Line", vec![o]);
+    }
+    save(&mut h, "81_custom_arrowhead");
+    h.state_mut().run(Cmd::CreatePattern);
+    save(&mut h, "82_create_pattern");
+    h.state_mut().dialogs.pattern = None;
+    {
+        let d = h.state_mut().doc_mut().unwrap();
+        let page = d.page;
+        let name = crate::dialogs::object::make_pattern(&mut d.doc, page, Rect::new(190.0, 190.0, 270.0, 260.0), 0, 1).unwrap();
+        let fill = d.doc.patterns.iter().find(|p| p.name == name).unwrap().fill.clone();
+        let mut st = Style::default();
+        st.fill = Fill::Pattern(vector_core::style::PatternFill { tile: 30.0, ..fill });
+        let r = Rect::new(300.0, 450.0, 520.0, 620.0).to_path(0.1);
+        let o = Object::new(d.doc.new_id(), ObjKind::Path(vector_core::path::NodePath::from_bez(&r)), Affine::IDENTITY, st);
+        d.add_objects("Patterned", vec![o]);
+    }
+    save(&mut h, "83_pattern_fill");
+    h.state_mut().run(Cmd::InsertBarcode);
+    h.step();
+    if let Some(b) = h.state_mut().dialogs.barcode.as_mut() {
+        b.kind = 2;
+        b.data = "400638133393".into();
+    }
+    save(&mut h, "84_barcode_wizard");
+    {
+        let a = h.state_mut();
+        let st = a.dialogs.barcode.take().unwrap();
+        let d = a.doc_mut().unwrap();
+        let o = crate::dialogs::object::barcode_object(&mut d.doc, &st, Point::new(450.0, 250.0)).unwrap();
+        d.add_objects("Insert Barcode", vec![o]);
+    }
+    h.state_mut().run(Cmd::InsertQrCode);
+    save(&mut h, "85_qr_code");
+    // a rollover of the QR code, in Edit Rollover
+    h.state_mut().run(Cmd::RolloverCreate);
+    h.state_mut().run(Cmd::RolloverEdit);
+    save(&mut h, "86_edit_rollover");
+    h.state_mut().run(Cmd::RolloverFinish);
+    h.step();
+    // a symbol of the barcode, in Edit Master
+    {
+        let a = h.state_mut();
+        let d = a.doc_mut().unwrap();
+        let id = d.doc.pages[0].layers.iter().flat_map(|l| l.objects.iter()).find(|o| matches!(o.special, Some(vector_core::codes::Special::Barcode { .. }))).map(|o| o.id).unwrap();
+        d.selection = vec![id];
+    }
+    h.state_mut().run(Cmd::NewSymbol);
+    h.step();
+    h.state_mut().run(Cmd::SymbolEditMaster);
+    save(&mut h, "87_edit_master");
+    h.state_mut().run(Cmd::SymbolFinish);
+    save(&mut h, "88_symbol_finished");
+}

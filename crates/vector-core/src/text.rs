@@ -105,6 +105,9 @@ pub struct TextObj {
     /// Text on a path: the path in object-local coordinates, plus offsets.
     #[serde(default)]
     pub on_path: Option<TextOnPath>,
+    /// Layout ▸ Insert Page Number: the content is the page's number, kept up to date.
+    #[serde(default)]
+    pub page_number: bool,
 }
 
 fn hundred() -> f64 {
@@ -137,6 +140,7 @@ impl TextObj {
             columns: 1,
             column_gap: 12.0,
             on_path: None,
+            page_number: false,
         }
     }
     pub fn paragraph(s: &str, w: f64, h: f64, format: CharFormat) -> TextObj {
@@ -564,7 +568,14 @@ pub fn layout_with(db: &mut FontDb, t: &TextObj) -> TextLayout {
                 adv *= t.word_spacing / 100.0;
             }
             adv += fmt.tracking / 100.0 * space_w;
-            shaped.push(ShapedChar { ci, ch: chars[ci], glyphs: per_char[k].clone(), advance: adv, face_id: fid, face: face.clone(), fmt: fmt.clone() });
+            // a tab is blank space (the font has no glyph for it), half an inch wide
+            let glyphs = if chars[ci] == '\t' {
+                adv = 36.0;
+                vec![]
+            } else {
+                per_char[k].clone()
+            };
+            shaped.push(ShapedChar { ci, ch: chars[ci], glyphs, advance: adv, face_id: fid, face: face.clone(), fmt: fmt.clone() });
         }
         i = j;
     }

@@ -138,3 +138,21 @@ pb/pick 18 com-efeitos.png	05-ferramentas/barra-pick-por-contexto/18 Pick com co
 54_document_properties.png	03-telas/doc-vazio/01 File/022 File ▸ Document Properties.png	File > Document Properties
 55_copy_properties.png	03-telas/selecao-multipla/02 Edit/001 Edit ▸ Copy Properties From.png	Edit > Copy Properties From
 56_paste_special.png	03-telas/doc-vazio/02 Edit/002 Edit ▸ Paste Special.png	Edit > Paste Special
+60_insert_page.png	03-telas/doc-vazio/04 Layout/001 Layout ▸ Insert Page.png	Layout > Insert Page
+61_duplicate_page.png	03-telas/doc-vazio/04 Layout/002 Layout ▸ Duplicate Page.png	Layout > Duplicate Page
+62_rename_page.png	03-telas/doc-vazio/04 Layout/003 Layout ▸ Rename Page.png	Layout > Rename Page
+63_delete_page.png	03-telas/varias-paginas/04 Layout/004 Layout ▸ Delete Page.png	Layout > Delete Page
+64_go_to_page.png	03-telas/varias-paginas/04 Layout/005 Layout ▸ Go to Page.png	Layout > Go to Page
+65_page_number_settings.png	03-telas/doc-vazio/04 Layout/006 Layout ▸ Page Number Settings.png	Layout > Page Number Settings
+66_border_grommet.png	03-telas/doc-vazio/04 Layout/011 Layout ▸ Border and Grommet.png	Layout > Border and Grommet
+67_border_grommet_on.png	03-telas/doc-vazio/04 Layout/011 Layout ▸ Border and Grommet.png	Layout > Border and Grommet (border and grommets on)
+70_create_table.png	03-telas/doc-vazio/09 Table/001 Table ▸ Create New Table.png	Table > Create New Table
+73_insert_rows.png	03-telas/tabela-celulas/09 Table/004 Table ▸ Insert ▸ Insert Rows.png	Table > Insert > Insert Rows
+74_insert_columns.png	03-telas/tabela-celulas/09 Table/005 Table ▸ Insert ▸ Insert Columns.png	Table > Insert > Insert Columns
+75_split_cells.png	03-telas/tabela-celulas/09 Table/006 Table ▸ Split into Rows.png	Table > Split into Rows
+77_table_to_text.png	03-telas/tabela/09 Table/003 Table ▸ Convert Table to Text.png	Table > Convert Table to Text
+78_text_to_table.png	03-telas/texto-artistico/09 Table/002 Table ▸ Convert Text to Table.png	Table > Convert Text to Table
+80_create_arrowhead.png	03-telas/retangulo/05 Object/001 Object ▸ Create ▸ Arrowhead.png	Object > Create > Arrowhead
+82_create_pattern.png	03-telas/retangulo/05 Object/002 Object ▸ Create ▸ Pattern Fill.png	Object > Create > Pattern Fill
+86_edit_rollover.png	03-telas/rollover/05 Object/009 Object ▸ Rollover ▸ Edit Rollover.png	Object > Rollover > Edit Rollover (Internet toolbar)
+87_edit_master.png	03-telas/simbolo/05 Object/007 Object ▸ Symbol ▸ Edit Master (sem janela, tela principal).png	Object > Symbol > Edit Master

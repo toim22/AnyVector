@@ -12,6 +12,21 @@ use std::time::Duration;
 pub const MODEL: &str = "claude-opus-5-5";
 pub const DEFAULT_URL: &str = "https://api.anthropic.com/v1/messages";
 
+/// What AI Generate makes (Object ▸ AI Generate): an editable vector graphic, an image, or a
+/// remix of a source image. Images and remixes are placed as bitmaps.
+pub const MODES: [&str; 3] = ["Create vector graphic", "Create image", "Remix image"];
+
+/// The selection loaded as reference (Create … Guided by Selection) or as the source of a
+/// remix (Remix Selection).
+pub struct Reference {
+    /// The selection rendered as PNG.
+    pub png: Vec<u8>,
+    /// The selection as SVG (sent with a remix).
+    pub svg: String,
+    pub bounds: kurbo::Rect,
+    pub count: usize,
+}
+
 pub const STYLES: [&str; 8] = ["Flat illustration", "Line art", "Logo / icon", "Isometric", "Geometric pattern", "Cartoon", "Infographic", "Silhouette"];
 
 pub struct AiState {
@@ -24,13 +39,18 @@ pub struct AiState {
     /// Quick AI Generate dialog visible.
     pub quick_open: bool,
     pub history: Vec<String>,
+    /// 0 vector graphic, 1 image, 2 remix.
+    pub mode: u8,
+    pub reference: Option<Reference>,
     rx: Option<Receiver<Result<String, String>>>,
     started: f64,
+    /// The request's mode and where its reference was.
+    pending: (u8, Option<kurbo::Rect>),
 }
 
 impl Default for AiState {
     fn default() -> Self {
-        AiState { prompt: String::new(), style: 0, colors: 6, busy: false, status: String::new(), error: None, quick_open: false, history: vec![], rx: None, started: 0.0 }
+        AiState { prompt: String::new(), style: 0, colors: 6, busy: false, status: String::new(), error: None, quick_open: false, history: vec![], mode: 0, reference: None, rx: None, started: 0.0, pending: (0, None) }
     }
 }
 
@@ -59,12 +79,33 @@ pub fn start(app: &mut VectorApp) {
         return;
     };
     let url = if app.settings.ai_provider_url.trim().is_empty() { DEFAULT_URL.to_string() } else { app.settings.ai_provider_url.trim().to_string() };
-    let user = format!(
+    let mut user = format!(
         "Create: {}\nStyle: {}\nUse a palette of about {} harmonious colors.",
         app.ai.prompt.trim(),
         STYLES[app.ai.style.min(STYLES.len() - 1)],
         app.ai.colors
     );
+    if app.ai.mode == 1 {
+        user.push_str("\nThis becomes a bitmap image: make it rich and detailed, with gradients, shading and a full background.");
+    }
+    let content = match &app.ai.reference {
+        None => serde_json::json!(user),
+        Some(r) => {
+            let text = if app.ai.mode == 2 {
+                format!(
+                    "Remix the attached artwork: keep its key elements and composition, and change it as described.\n{user}\nThe artwork's SVG source:\n{}",
+                    r.svg.chars().take(60_000).collect::<String>()
+                )
+            } else {
+                format!("Use the attached artwork as the reference for the composition, proportions and content.\n{user}")
+            };
+            serde_json::json!([
+                { "type": "image", "source": { "type": "base64", "media_type": "image/png", "data": base64(&r.png) } },
+                { "type": "text", "text": text },
+            ])
+        }
+    };
+    app.ai.pending = (app.ai.mode, app.ai.reference.as_ref().map(|r| r.bounds));
     let (tx, rx) = channel();
     app.ai.rx = Some(rx);
     app.ai.busy = true;
@@ -76,11 +117,11 @@ pub fn start(app: &mut VectorApp) {
         app.ai.history.truncate(12);
     }
     std::thread::spawn(move || {
-        let _ = tx.send(request(&url, &key, &user));
+        let _ = tx.send(request(&url, &key, content));
     });
 }
 
-fn request(url: &str, key: &str, user: &str) -> Result<String, String> {
+fn request(url: &str, key: &str, user: serde_json::Value) -> Result<String, String> {
     let body = serde_json::json!({
         "model": MODEL,
         "max_tokens": 16000,
@@ -116,6 +157,49 @@ fn request(url: &str, key: &str, user: &str) -> Result<String, String> {
     extract_svg(&text).ok_or_else(|| "The AI did not return a drawing. Try rephrasing the prompt.".into())
 }
 
+/// Standard base64 (for the reference image).
+pub fn base64(data: &[u8]) -> String {
+    const T: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(data.len().div_ceil(3) * 4);
+    for c in data.chunks(3) {
+        let n = (c[0] as u32) << 16 | (*c.get(1).unwrap_or(&0) as u32) << 8 | *c.get(2).unwrap_or(&0) as u32;
+        out.push(T[(n >> 18) as usize & 63] as char);
+        out.push(T[(n >> 12) as usize & 63] as char);
+        out.push(if c.len() > 1 { T[(n >> 6) as usize & 63] as char } else { '=' });
+        out.push(if c.len() > 2 { T[n as usize & 63] as char } else { '=' });
+    }
+    out
+}
+
+/// Object ▸ AI Generate ▸ Create Vector Graphic / Create Image Guided by Selection and Remix
+/// Selection: load the selection into the AI Generate docker.
+pub fn guided(app: &mut VectorApp, mode: u8) {
+    let Some(d) = app.doc() else { return };
+    let objs: Vec<vector_core::Object> = d.selection.iter().filter_map(|id| d.doc.find(*id).cloned()).collect();
+    if objs.is_empty() {
+        return;
+    }
+    let bounds = vector_core::object::union_bounds(objs.iter().map(|o| d.doc.bounds_of(o)));
+    // render the selection alone, at most 1024 pixels across
+    let mut tmp = d.doc.clone();
+    for p in tmp.pages.iter_mut() {
+        for l in p.layers.iter_mut() {
+            l.objects.clear();
+        }
+    }
+    let page = d.page;
+    if let Some(l) = tmp.pages[page].layers.first_mut() {
+        l.objects = objs.clone();
+    }
+    let dpi = (1024.0 * 72.0 / bounds.width().max(bounds.height()).max(1.0)).min(300.0);
+    let png = vector_render::render_page_image(&tmp, page, dpi, Some(vector_core::Color::WHITE), Some(bounds), true).and_then(|pm| pm.encode_png().ok()).unwrap_or_default();
+    let svg = vector_io::svg_export::objects_to_svg(&d.doc, &objs);
+    app.ai.reference = Some(Reference { png, svg, bounds, count: objs.len() });
+    app.ai.mode = mode;
+    app.ai.error = None;
+    app.dockers.show(crate::dockers::DockerId::AiGenerate);
+}
+
 fn extract_svg(text: &str) -> Option<String> {
     let start = text.find("<svg")?;
     let end = text.rfind("</svg>")? + "</svg>".len();
@@ -132,6 +216,7 @@ pub fn poll(app: &mut VectorApp) {
     };
     app.ai.rx = None;
     app.ai.busy = false;
+    let (mode, target) = std::mem::take(&mut app.ai.pending);
     match res {
         Err(e) => {
             app.ai.status.clear();
@@ -141,22 +226,41 @@ pub fn poll(app: &mut VectorApp) {
             if !app.has_doc() {
                 app.new_default_document();
             }
+            let name = format!("AI: {}", app.ai.prompt.chars().take(40).collect::<String>());
             let Some(d) = app.doc_mut() else { return };
             match vector_io::svg_import::objects_from_svg(&mut d.doc, svg.as_bytes()) {
                 Ok(mut objs) if !objs.is_empty() => {
-                    // fit into the page at 80% and centre
+                    // fit into the page at 80% and centre; a guided result goes beside its
+                    // reference, the same size
                     let page = d.doc.pages[d.page].rect();
+                    let area = match target {
+                        Some(t) => t + kurbo::Vec2::new(t.width() + 18.0, 0.0),
+                        None => page.scale_from_origin(0.8) + (page.center() - page.scale_from_origin(0.8).center()),
+                    };
                     let bb = vector_core::object::union_bounds(objs.iter().map(|o| o.bounds()));
                     if bb.width() > 0.0 && bb.height() > 0.0 {
-                        let s = (page.width() * 0.8 / bb.width()).min(page.height() * 0.8 / bb.height());
-                        let a = kurbo::Affine::translate(page.center().to_vec2()) * kurbo::Affine::scale(s) * kurbo::Affine::translate(-bb.center().to_vec2());
+                        let s = (area.width() / bb.width()).min(area.height() / bb.height());
+                        let a = kurbo::Affine::translate(area.center().to_vec2()) * kurbo::Affine::scale(s) * kurbo::Affine::translate(-bb.center().to_vec2());
                         for o in objs.iter_mut() {
                             o.apply_transform(a);
                         }
                     }
-                    let g = d.doc.new_id();
-                    let mut group = vector_core::Object::new(g, vector_core::ObjKind::Group(objs), kurbo::Affine::IDENTITY, Default::default());
-                    group.name = format!("AI: {}", app.ai.prompt.chars().take(40).collect::<String>());
+                    let group = if mode == 0 {
+                        let g = d.doc.new_id();
+                        let mut group = vector_core::Object::new(g, vector_core::ObjKind::Group(objs), kurbo::Affine::IDENTITY, Default::default());
+                        group.name = name;
+                        group
+                    } else {
+                        // images and remixes are bitmaps
+                        let fit = vector_core::object::union_bounds(objs.iter().map(|o| o.bounds()));
+                        match bitmap_of(&mut d.doc, &svg, fit, &name) {
+                            Some(o) => o,
+                            None => {
+                                app.ai.error = Some("Could not render the generated image.".into());
+                                return;
+                            }
+                        }
+                    };
                     let label = "AI Generate";
                     if let Some(d) = app.doc_mut() {
                         d.add_objects(label, vec![group]);
@@ -168,6 +272,23 @@ pub fn poll(app: &mut VectorApp) {
             }
         }
     }
+}
+
+/// The generated SVG as a bitmap object filling `at` (300 dpi, at most 2048 pixels).
+fn bitmap_of(doc: &mut vector_core::Document, svg: &str, at: kurbo::Rect, name: &str) -> Option<vector_core::Object> {
+    let k = (300.0 / 72.0f64).min(2048.0 / at.width().max(at.height()).max(1.0));
+    let (w, h) = ((at.width() * k).round().max(1.0) as u32, (at.height() * k).round().max(1.0) as u32);
+    let img = crate::icons::rasterize_svg(svg, w, h)?;
+    let rgba: Vec<u8> = img.pixels.iter().flat_map(|c| c.to_srgba_unmultiplied()).collect();
+    let data = vector_core::document::ImageData { width: w, height: h, rgba: std::sync::Arc::new(rgba), encoded: std::sync::Arc::new(vec![]), format: "png".into(), name: name.to_string() };
+    let iid = doc.add_image(data);
+    let mut st = vector_core::Style::default();
+    st.fill = vector_core::Fill::None;
+    st.outline = vector_core::Outline::none();
+    let io = vector_core::object::ImageObj { image: iid, w: at.width(), h: at.height(), crop: [0.0, 0.0, 1.0, 1.0], adjust: Default::default() };
+    let mut o = vector_core::Object::new(doc.new_id(), vector_core::ObjKind::Image(io), kurbo::Affine::translate(at.origin().to_vec2()), st);
+    o.name = name.to_string();
+    Some(o)
 }
 
 /// Quick AI Generate dialog (File > Quick AI Generate...).
@@ -186,6 +307,24 @@ pub fn quick_dialog(app: &mut VectorApp, ctx: &egui::Context) {
 
 /// Shared UI used by the AI Generate docker and the quick dialog.
 pub fn panel(app: &mut VectorApp, ui: &mut egui::Ui) {
+    ui.horizontal(|ui| {
+        for (i, m) in MODES.iter().enumerate() {
+            ui.selectable_value(&mut app.ai.mode, i as u8, *m);
+        }
+    });
+    let mut clear = false;
+    if let Some(r) = &app.ai.reference {
+        ui.horizontal(|ui| {
+            let what = if app.ai.mode == 2 { "Source image" } else { "Reference image" };
+            ui.label(egui::RichText::new(format!("{what}: the selection ({} objects)", r.count)).color(crate::theme::TEXT_DIM));
+            clear = ui.small_button("Clear reference content").clicked();
+        });
+    } else if app.ai.mode == 2 {
+        ui.label(egui::RichText::new("Select the artwork to remix, then choose Object ▸ AI Generate ▸ Remix Selection.").color(crate::theme::TEXT_DIM));
+    }
+    if clear {
+        app.ai.reference = None;
+    }
     ui.label("Describe what you want to create:");
     ui.add(egui::TextEdit::multiline(&mut app.ai.prompt).desired_rows(4).desired_width(f32::INFINITY).hint_text("e.g. a hot-air balloon over rolling hills"));
     ui.horizontal(|ui| {
@@ -202,7 +341,7 @@ pub fn panel(app: &mut VectorApp, ui: &mut egui::Ui) {
     });
     ui.add_space(6.0);
     ui.horizontal(|ui| {
-        let can = !app.ai.busy && !app.ai.prompt.trim().is_empty();
+        let can = !app.ai.busy && app.ai.prompt.trim().chars().count() >= 3 && (app.ai.mode != 2 || app.ai.reference.is_some());
         let b = egui::Button::new(egui::RichText::new("✦ Generate").color(egui::Color32::WHITE)).fill(crate::theme::PRESSED).min_size(egui::vec2(100.0, 26.0));
         if ui.add_enabled(can, b).clicked() {
             start(app);

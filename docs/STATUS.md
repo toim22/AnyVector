@@ -92,6 +92,55 @@ its status in Vector.
   - Rulers, Snap Off, Snap To ▸ Document Grid and Snap To ▸ Objects got their reference shortcuts (Alt+Shift+R,
     Alt+Q, Alt+Y, Alt+Z).
 
+**Batch 3 (Layout, Object and Table menus), done:**
+
+- Every Layout and Table item runs. In Object only Insert ▸ Object (OLE embedding, a Windows COM feature) is left
+  out, and Symmetry and Perspective ▸ Draw in Perspective / Edit Perspective Group come with the drawing modes in
+  batch 5.
+- Layout:
+  - Insert Page, Duplicate Page, Rename Page, Delete Page and Go to Page have the reference dialogs. Insert Page
+    takes a count, before or after, the page size and orientation; Duplicate Page puts the copy before or after the
+    page or in a new document, with the layers only or with their contents; Delete Page takes one page or a range.
+  - Insert Page Number puts a page number on the active layer, on all pages, or on the odd or even pages; the
+    number follows the page when pages move. Page Number Settings sets the first number, the page it starts on and
+    the style (1, I, i, A, a). On All Pages puts one on each existing page; the master layer that also covers pages
+    added later comes with the Layers docker (batch 6).
+  - Border and Grommet makes a banner document from the page or the selection: a border (stretched or
+    mirrored edges, the page itself, or a color) and grommets placed by count or spacing, with a preview.
+- Table:
+  - Create New Table, Convert Text to Table and Convert Table to Text have the reference dialogs (commas, tabs,
+    paragraphs or a character of your own).
+  - With the Table tool you click a cell, Shift+click or drag to select a block; Select ▸ Cell, Row, Column and
+    Table do the same from the menu.
+  - Insert Rows / Columns (one, or a number with the dialog), Delete Row / Column / Table, Distribute Rows /
+    Columns Evenly (all, or the selected ones), Merge Cells, Unmerge Cells and Split into Rows / Columns all work.
+    Merged cells keep their text and draw and export as one cell. Typing in a cell comes with the Text menu
+    (batch 4).
+- Object:
+  - Create ▸ Arrowhead turns the selected object into an arrowhead (name, length, width, proportional, preview).
+    It is added to the Arrowhead selectors of the property bar and the Properties docker, and travels with the
+    documents that use it.
+  - Create ▸ Pattern Fill: choose Vector, Bitmap or Two color (with Low, Medium or High resolution), then drag a
+    marquee. The pattern is added to the Properties docker's pattern list. Vector patterns are kept as 600 dpi
+    tiles; View ▸ Pattern Preview is not there yet.
+  - Insert ▸ QR Code makes an editable QR code (change its text in the Properties docker). Insert ▸ Barcode opens
+    the Barcode Wizard (Code 128, Code 39, EAN-13 and UPC-A, check digits added for you). Validate Barcode checks
+    the selected barcode.
+  - AI Generate: with nothing selected the submenu opens the AI Generate docker on Create vector graphic, Create
+    image or Remix image; with a selection it shows Create Vector Graphic / Create Image Guided by Selection and
+    Remix Selection, and the selection is sent as the reference. Images and remixes are placed as bitmaps next to
+    the reference.
+  - Symbol ▸ Edit Master edits the symbol in place with a Finish button at the top left, as in the reference.
+    Break Link, Update from Link and Export Library (a `.csl` library) work for symbols linked to a library.
+  - Rollover: Create Rollover (Normal, Over and Down states), Extract Rollover Objects, Edit Rollover (opens the
+    Internet toolbar with Active Rollover State, Duplicate State and Delete State), Finish Editing Rollover and
+    Rollover Live Preview (the states follow the pointer).
+  - Clone Effect copies the effect; the clone does not stay linked to its master yet.
+- Fixes found on the way: the object being edited in focus mode (PowerClip contents, a rollover) is no longer
+  dimmed with everything else; the interface generator read `*Not(...)` around the wrong binding and hid the three
+  AI Generate items the reference shows with nothing selected. All 462 reference menus again have the same number
+  of rows in Vector.
+
 ## Working (verified by build and tests)
 
 - Full workspace compiles. Unit tests pass for:

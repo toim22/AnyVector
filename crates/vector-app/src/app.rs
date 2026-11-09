@@ -89,6 +89,10 @@ pub struct VectorApp {
     pub quit_requested: bool,
     pub allow_close: bool,
     pub last_cmd: Option<Cmd>,
+    /// Object ▸ Rollover ▸ Rollover Live Preview.
+    pub rollover_live: bool,
+    /// The rollover under the pointer during the live preview, and the state it shows.
+    pub rollover_hot: Option<(vector_core::ObjId, u8)>,
     pub recording: Option<crate::scripting::Recorder>,
     pub temp_script: String,
     pub default_fill: Color,
@@ -146,6 +150,8 @@ impl VectorApp {
             quit_requested: false,
             allow_close: false,
             last_cmd: None,
+            rollover_live: false,
+            rollover_hot: None,
             recording: None,
             temp_script: String::new(),
             default_fill: Color::BLACK,

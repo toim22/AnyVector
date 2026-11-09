@@ -5,7 +5,7 @@ use crate::app::VectorApp;
 use crate::propbar::edit_sel;
 use crate::theme;
 use egui::Ui;
-use vector_core::style::{dash_presets, ArrowHead, Gradient, GradientKind, GradientStop, LineCap, LineJoin, MergeMode, OutlinePosition, PatternFill, PatternKind, SpreadMode};
+use vector_core::style::{dash_presets, Gradient, GradientKind, GradientStop, LineCap, LineJoin, MergeMode, OutlinePosition, PatternFill, PatternKind, SpreadMode};
 use vector_core::{Color, Fill, Object, Transparency};
 
 fn first(app: &VectorApp) -> Option<Object> {
@@ -43,6 +43,9 @@ pub fn properties(app: &mut VectorApp, ui: &mut Ui) {
             }
         });
     }
+    if n == 1 {
+        special_section(app, ui, &o);
+    }
     fill_section(app, ui, &o);
     outline_section(app, ui, &o);
     transparency_section(app, ui, &o);
@@ -67,6 +70,40 @@ pub fn properties(app: &mut VectorApp, ui: &mut Ui) {
             edit_sel(app, "Lock", |x| x.locked = lock);
         }
     });
+}
+
+/// QR codes: the text they hold; barcodes: their format and data.
+fn special_section(app: &mut VectorApp, ui: &mut Ui, o: &Object) {
+    use vector_core::codes::Special;
+    match &o.special {
+        Some(Special::QrCode { text }) => {
+            heading(ui, "QR Code");
+            let id = egui::Id::unique(("qr_text", o.id));
+            let mut t = ui.data_mut(|d| d.get_temp::<String>(id)).unwrap_or_else(|| text.clone());
+            let r = ui.add(egui::TextEdit::multiline(&mut t).desired_rows(2).desired_width(f32::INFINITY).hint_text("Text or web address"));
+            if r.changed() {
+                ui.data_mut(|d| d.insert_temp(id, t.clone()));
+            }
+            if r.lost_focus() {
+                ui.data_mut(|d| d.remove::<String>(id));
+                if t != *text && !t.is_empty() {
+                    let oid = o.id;
+                    if let Some(d) = app.doc_mut() {
+                        d.modify("QR Code Text", |doc, _| crate::dialogs::object::set_qr_text(doc, oid, &t));
+                    }
+                }
+            }
+        }
+        Some(Special::Barcode { kind, data }) => {
+            heading(ui, "Barcode");
+            hint(ui, &format!("{}: {data}", kind.name()));
+        }
+        Some(Special::Rollover { state }) => {
+            heading(ui, "Rollover");
+            hint(ui, &format!("Showing the {} state", crate::dialogs::object::ROLLOVER_STATES[*state as usize % 3]));
+        }
+        None => {}
+    }
 }
 
 fn doc_summary(app: &VectorApp, ui: &mut Ui) {
@@ -117,9 +154,25 @@ fn fill_section(app: &mut VectorApp, ui: &mut Ui, o: &Object) {
         }
         Fill::Pattern(mut p) => {
             let mut ch = false;
-            egui::ComboBox::from_id_salt("dk_pat").selected_text(p.kind.name()).show_ui(ui, |ui| {
+            // the built-in patterns, then those made with Object ▸ Create ▸ Pattern Fill
+            let named = app.doc().map(|d| d.doc.patterns.clone()).unwrap_or_default();
+            let shown = match p.image {
+                Some(_) => named.iter().find(|n| n.fill.image == p.image).map(|n| n.name.clone()).unwrap_or_else(|| "Bitmap pattern".into()),
+                None => p.kind.name().to_string(),
+            };
+            egui::ComboBox::from_id_salt("dk_pat").selected_text(shown).show_ui(ui, |ui| {
                 for k in PatternKind::ALL {
-                    ch |= ui.selectable_value(&mut p.kind, k, k.name()).changed();
+                    if ui.selectable_label(p.image.is_none() && p.kind == k, k.name()).clicked() {
+                        p.kind = k;
+                        p.image = None;
+                        ch = true;
+                    }
+                }
+                for n in &named {
+                    if ui.selectable_label(p.image.is_some() && p.image == n.fill.image, &n.name).clicked() {
+                        p = n.fill.clone();
+                        ch = true;
+                    }
                 }
             });
             ui.horizontal(|ui| {
@@ -353,16 +406,23 @@ fn outline_section(app: &mut VectorApp, ui: &mut Ui, o: &Object) {
     ui.horizontal(|ui| {
         for (label, start) in [("Start arrow", true), ("End arrow", false)] {
             let cur = if start { ol.start_arrow } else { ol.end_arrow };
-            egui::ComboBox::from_id_salt(("arrow", start)).selected_text(cur.map(|a| a.name()).unwrap_or(label)).width(100.0).show_ui(ui, |ui| {
+            let choices = crate::dialogs::object::arrow_choices(app);
+            let shown = cur.map(|a| crate::dialogs::object::arrow_name(app, a)).unwrap_or_else(|| label.to_string());
+            let mut pick = None;
+            egui::ComboBox::from_id_salt(("arrow", start)).selected_text(shown).width(100.0).show_ui(ui, |ui| {
                 if ui.selectable_label(cur.is_none(), "None").clicked() {
-                    edit_sel(app, "Arrowhead", |x| if start { x.style.outline.start_arrow = None } else { x.style.outline.end_arrow = None });
+                    pick = Some(None);
                 }
-                for a in ArrowHead::ALL {
-                    if ui.selectable_label(cur == Some(a), a.name()).clicked() {
-                        edit_sel(app, "Arrowhead", |x| if start { x.style.outline.start_arrow = Some(a) } else { x.style.outline.end_arrow = Some(a) });
+                for (a, name) in &choices {
+                    if ui.selectable_label(cur == Some(*a), name).clicked() {
+                        pick = Some(Some(*a));
                     }
                 }
             });
+            if let Some(a) = pick {
+                crate::dialogs::object::ensure_arrow(app, a);
+                edit_sel(app, "Arrowhead", |x| if start { x.style.outline.start_arrow = a } else { x.style.outline.end_arrow = a });
+            }
         }
     });
     let mut behind = ol.behind_fill;
