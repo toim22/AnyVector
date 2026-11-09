@@ -13,14 +13,14 @@ The *Reference* column is a path inside the reference folder.
 
 | Area | Done | Partial | Todo | Omitted | Total |
 |---|---:|---:|---:|---:|---:|
-| [Menus](#menus) | 378 | 246 | 1 | 162 | 787 |
-| [Dialogs and screens](#dialogs-and-screens) | 50 | 41 | 0 | 1 | 92 |
-| [Bitmap effects (Properties docker)](#bitmap-effects-properties-docker) | 0 | 120 | 0 | 0 | 120 |
+| [Menus](#menus) | 519 | 105 | 1 | 162 | 787 |
+| [Dialogs and screens](#dialogs-and-screens) | 58 | 33 | 0 | 1 | 92 |
+| [Bitmap effects (Properties docker)](#bitmap-effects-properties-docker) | 109 | 11 | 0 | 0 | 120 |
 | [Dockers](#dockers) | 11 | 33 | 0 | 1 | 45 |
 | [Tools](#tools) | 94 | 0 | 0 | 0 | 94 |
 | [Toolbars](#toolbars) | 12 | 0 | 0 | 0 | 12 |
 | [Right-click menus](#right-click-menus) | 24 | 0 | 0 | 3 | 27 |
-| **All** | **569** | **440** | **1** | **167** | **1177** |
+| **All** | **827** | **182** | **1** | **167** | **1177** |
 
 ## Menus
 
@@ -313,206 +313,206 @@ The *Reference* column is a path inside the reference folder.
 
 ### Effects
 
-17 done · 134 partial · 0 todo · 0 omitted
+138 done · 13 partial · 0 todo · 0 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
 | Effects | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\001 Effects.png` |
-| Effects > Flatten Effects | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Effects > Flatten Effects | command |  | ✅ done | each object with bitmap effects becomes a bitmap of how it looks |  |
 | Effects > 3D Effects | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\002 Effects ▸ 3D Effects.png` |
-| Effects > 3D Effects > 3D Rotate... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\001 Effects ▸ 3D Effects ▸ 3D Rotate (abre no docker Properties).png` |
-| Effects > 3D Effects > Cylinder... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\002 Effects ▸ 3D Effects ▸ Cylinder (abre no docker Properties).png` |
-| Effects > 3D Effects > Emboss... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\003 Effects ▸ 3D Effects ▸ Emboss (abre no docker Properties).png` |
-| Effects > 3D Effects > Page Curl... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\004 Effects ▸ 3D Effects ▸ Page Curl (abre no docker Properties).png` |
-| Effects > 3D Effects > Pinch/Punch... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\005 Effects ▸ 3D Effects ▸ Pinch_Punch (abre no docker Properties).png` |
-| Effects > 3D Effects > Sphere... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\006 Effects ▸ 3D Effects ▸ Sphere (abre no docker Properties).png` |
-| Effects > 3D Effects > Zig Zag... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\007 Effects ▸ 3D Effects ▸ Zig Zag (abre no docker Properties).png` |
+| Effects > 3D Effects > 3D Rotate... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\001 Effects ▸ 3D Effects ▸ 3D Rotate (abre no docker Properties).png` |
+| Effects > 3D Effects > Cylinder... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\002 Effects ▸ 3D Effects ▸ Cylinder (abre no docker Properties).png` |
+| Effects > 3D Effects > Emboss... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\003 Effects ▸ 3D Effects ▸ Emboss (abre no docker Properties).png` |
+| Effects > 3D Effects > Page Curl... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\004 Effects ▸ 3D Effects ▸ Page Curl (abre no docker Properties).png` |
+| Effects > 3D Effects > Pinch/Punch... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\005 Effects ▸ 3D Effects ▸ Pinch_Punch (abre no docker Properties).png` |
+| Effects > 3D Effects > Sphere... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\006 Effects ▸ 3D Effects ▸ Sphere (abre no docker Properties).png` |
+| Effects > 3D Effects > Zig Zag... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\007 Effects ▸ 3D Effects ▸ Zig Zag (abre no docker Properties).png` |
 | Effects > Adjust | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\003 Effects ▸ Adjust.png` |
-| Effects > Adjust > Auto Adjust | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Effects > Adjust > Levels... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\008 Effects ▸ Adjust ▸ Levels (abre no docker Properties).png` |
-| Effects > Adjust > Equalize... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\009 Effects ▸ Adjust ▸ Equalize (abre no docker Properties).png` |
-| Effects > Adjust > Sample & Target... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\010 Effects ▸ Adjust ▸ Sample & Target (abre no docker Properties).png` |
-| Effects > Adjust > Tone Curve... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\011 Effects ▸ Adjust ▸ Tone Curve (abre no docker Properties).png` |
-| Effects > Adjust > Light... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\012 Effects ▸ Adjust ▸ Light (abre no docker Properties).png` |
+| Effects > Adjust > Auto Adjust | command |  | ✅ done | the automatic correction of the Image Adjustment Lab |  |
+| Effects > Adjust > Levels... | opens a window |  | 🟡 partial | page as the reference; the eyedroppers are missing | `03-telas\bitmap\06 Effects\008 Effects ▸ Adjust ▸ Levels (abre no docker Properties).png` |
+| Effects > Adjust > Equalize... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\009 Effects ▸ Adjust ▸ Equalize (abre no docker Properties).png` |
+| Effects > Adjust > Sample & Target... | opens a window |  | 🟡 partial | page as the reference; the default targets are approximated | `03-telas\bitmap\06 Effects\010 Effects ▸ Adjust ▸ Sample & Target (abre no docker Properties).png` |
+| Effects > Adjust > Tone Curve... | opens a window |  | 🟡 partial | page as the reference; the eyedroppers are missing | `03-telas\bitmap\06 Effects\011 Effects ▸ Adjust ▸ Tone Curve (abre no docker Properties).png` |
+| Effects > Adjust > Light... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\012 Effects ▸ Adjust ▸ Light (abre no docker Properties).png` |
 | Effects > Adjust > <placeHolder > | command |  | 🟡 partial | list filled at run time |  |
-| Effects > Adjust > Color Balance... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\013 Effects ▸ Adjust ▸ Color Balance (abre no docker Properties).png` |
-| Effects > Adjust > Gamma... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\014 Effects ▸ Adjust ▸ Gamma (abre no docker Properties).png` |
-| Effects > Adjust > White Balance... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\015 Effects ▸ Adjust ▸ White Balance (abre no docker Properties).png` |
-| Effects > Adjust > Hue/Saturation/Lightness... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\016 Effects ▸ Adjust ▸ Hue_Saturation_Lightness (abre no docker Properties).png` |
-| Effects > Adjust > Black & White... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\017 Effects ▸ Adjust ▸ Black & White (abre no docker Properties).png` |
-| Effects > Adjust > Vibrance... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\018 Effects ▸ Adjust ▸ Vibrance (abre no docker Properties).png` |
-| Effects > Adjust > Selective Color... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\019 Effects ▸ Adjust ▸ Selective Color (abre no docker Properties).png` |
+| Effects > Adjust > Color Balance... | opens a window |  | 🟡 partial | page as the reference; the eyedroppers are missing | `03-telas\bitmap\06 Effects\013 Effects ▸ Adjust ▸ Color Balance (abre no docker Properties).png` |
+| Effects > Adjust > Gamma... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\014 Effects ▸ Adjust ▸ Gamma (abre no docker Properties).png` |
+| Effects > Adjust > White Balance... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\015 Effects ▸ Adjust ▸ White Balance (abre no docker Properties).png` |
+| Effects > Adjust > Hue/Saturation/Lightness... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\016 Effects ▸ Adjust ▸ Hue_Saturation_Lightness (abre no docker Properties).png` |
+| Effects > Adjust > Black & White... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\017 Effects ▸ Adjust ▸ Black & White (abre no docker Properties).png` |
+| Effects > Adjust > Vibrance... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\018 Effects ▸ Adjust ▸ Vibrance (abre no docker Properties).png` |
+| Effects > Adjust > Selective Color... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\019 Effects ▸ Adjust ▸ Selective Color (abre no docker Properties).png` |
 | Effects > Adjust > <placeHolder > | command |  | 🟡 partial | list filled at run time |  |
-| Effects > Adjust > Replace Colors... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\020 Effects ▸ Adjust ▸ Replace Colors (abre no docker Properties).png` |
-| Effects > Adjust > Desaturate | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Effects > Adjust > Channel Mixer... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\021 Effects ▸ Adjust ▸ Channel Mixer (abre no docker Properties).png` |
+| Effects > Adjust > Replace Colors... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\020 Effects ▸ Adjust ▸ Replace Colors (abre no docker Properties).png` |
+| Effects > Adjust > Desaturate | command |  | ✅ done | as the reference |  |
+| Effects > Adjust > Channel Mixer... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\021 Effects ▸ Adjust ▸ Channel Mixer (abre no docker Properties).png` |
 | Effects > Art Strokes | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\004 Effects ▸ Art Strokes.png` |
-| Effects > Art Strokes > Charcoal... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\022 Effects ▸ Art Strokes ▸ Charcoal (abre no docker Properties).png` |
-| Effects > Art Strokes > Conté Crayon... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\023 Effects ▸ Art Strokes ▸ Conté Crayon (abre no docker Properties).png` |
-| Effects > Art Strokes > Crayon... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\024 Effects ▸ Art Strokes ▸ Crayon (abre no docker Properties).png` |
-| Effects > Art Strokes > Cubist... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\025 Effects ▸ Art Strokes ▸ Cubist (abre no docker Properties).png` |
-| Effects > Art Strokes > Dabble... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\026 Effects ▸ Art Strokes ▸ Dabble (abre no docker Properties).png` |
-| Effects > Art Strokes > Impressionist... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\027 Effects ▸ Art Strokes ▸ Impressionist (abre no docker Properties).png` |
-| Effects > Art Strokes > Palette Knife... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\028 Effects ▸ Art Strokes ▸ Palette Knife (abre no docker Properties).png` |
-| Effects > Art Strokes > Pastels... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\029 Effects ▸ Art Strokes ▸ Pastels (abre no docker Properties).png` |
-| Effects > Art Strokes > Pen & Ink... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\030 Effects ▸ Art Strokes ▸ Pen & Ink (abre no docker Properties).png` |
-| Effects > Art Strokes > Pointillist... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\031 Effects ▸ Art Strokes ▸ Pointillist (abre no docker Properties).png` |
-| Effects > Art Strokes > Scraperboard... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\032 Effects ▸ Art Strokes ▸ Scraperboard (abre no docker Properties).png` |
-| Effects > Art Strokes > Sketch Pad... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\033 Effects ▸ Art Strokes ▸ Sketch Pad (abre no docker Properties).png` |
-| Effects > Art Strokes > Watercolor... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\034 Effects ▸ Art Strokes ▸ Watercolor (abre no docker Properties).png` |
-| Effects > Art Strokes > Water Marker... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\035 Effects ▸ Art Strokes ▸ Water Marker (abre no docker Properties).png` |
-| Effects > Art Strokes > Wave Paper... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\036 Effects ▸ Art Strokes ▸ Wave Paper (abre no docker Properties).png` |
+| Effects > Art Strokes > Charcoal... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\022 Effects ▸ Art Strokes ▸ Charcoal (abre no docker Properties).png` |
+| Effects > Art Strokes > Conté Crayon... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\023 Effects ▸ Art Strokes ▸ Conté Crayon (abre no docker Properties).png` |
+| Effects > Art Strokes > Crayon... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\024 Effects ▸ Art Strokes ▸ Crayon (abre no docker Properties).png` |
+| Effects > Art Strokes > Cubist... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\025 Effects ▸ Art Strokes ▸ Cubist (abre no docker Properties).png` |
+| Effects > Art Strokes > Dabble... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\026 Effects ▸ Art Strokes ▸ Dabble (abre no docker Properties).png` |
+| Effects > Art Strokes > Impressionist... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\027 Effects ▸ Art Strokes ▸ Impressionist (abre no docker Properties).png` |
+| Effects > Art Strokes > Palette Knife... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\028 Effects ▸ Art Strokes ▸ Palette Knife (abre no docker Properties).png` |
+| Effects > Art Strokes > Pastels... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\029 Effects ▸ Art Strokes ▸ Pastels (abre no docker Properties).png` |
+| Effects > Art Strokes > Pen & Ink... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\030 Effects ▸ Art Strokes ▸ Pen & Ink (abre no docker Properties).png` |
+| Effects > Art Strokes > Pointillist... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\031 Effects ▸ Art Strokes ▸ Pointillist (abre no docker Properties).png` |
+| Effects > Art Strokes > Scraperboard... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\032 Effects ▸ Art Strokes ▸ Scraperboard (abre no docker Properties).png` |
+| Effects > Art Strokes > Sketch Pad... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\033 Effects ▸ Art Strokes ▸ Sketch Pad (abre no docker Properties).png` |
+| Effects > Art Strokes > Watercolor... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\034 Effects ▸ Art Strokes ▸ Watercolor (abre no docker Properties).png` |
+| Effects > Art Strokes > Water Marker... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\035 Effects ▸ Art Strokes ▸ Water Marker (abre no docker Properties).png` |
+| Effects > Art Strokes > Wave Paper... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\036 Effects ▸ Art Strokes ▸ Wave Paper (abre no docker Properties).png` |
 | Effects > Blur | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\005 Effects ▸ Blur.png` |
-| Effects > Blur > Tune Blur... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\037 Effects ▸ Blur ▸ Tune Blur (abre no docker Properties).png` |
-| Effects > Blur > Directional Smooth... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\038 Effects ▸ Blur ▸ Directional Smooth (abre no docker Properties).png` |
-| Effects > Blur > Feather... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\039 Effects ▸ Blur ▸ Feather (abre no docker Properties).png` |
-| Effects > Blur > Gaussian Blur... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\040 Effects ▸ Blur ▸ Gaussian Blur (abre no docker Properties).png` |
-| Effects > Blur > Jaggy Despeckle... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\041 Effects ▸ Blur ▸ Jaggy Despeckle (abre no docker Properties).png` |
-| Effects > Blur > Low Pass... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\042 Effects ▸ Blur ▸ Low Pass (abre no docker Properties).png` |
-| Effects > Blur > Motion Blur... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\043 Effects ▸ Blur ▸ Motion Blur (abre no docker Properties).png` |
-| Effects > Blur > Radial Blur... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\044 Effects ▸ Blur ▸ Radial Blur (abre no docker Properties).png` |
-| Effects > Blur > Smart Blur... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\045 Effects ▸ Blur ▸ Smart Blur (abre no docker Properties).png` |
-| Effects > Blur > Smooth... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\046 Effects ▸ Blur ▸ Smooth (abre no docker Properties).png` |
-| Effects > Blur > Soften... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\047 Effects ▸ Blur ▸ Soften (abre no docker Properties).png` |
-| Effects > Blur > Zoom... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\048 Effects ▸ Blur ▸ Zoom (abre no docker Properties).png` |
+| Effects > Blur > Tune Blur... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\037 Effects ▸ Blur ▸ Tune Blur (abre no docker Properties).png` |
+| Effects > Blur > Directional Smooth... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\038 Effects ▸ Blur ▸ Directional Smooth (abre no docker Properties).png` |
+| Effects > Blur > Feather... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\039 Effects ▸ Blur ▸ Feather (abre no docker Properties).png` |
+| Effects > Blur > Gaussian Blur... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\040 Effects ▸ Blur ▸ Gaussian Blur (abre no docker Properties).png` |
+| Effects > Blur > Jaggy Despeckle... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\041 Effects ▸ Blur ▸ Jaggy Despeckle (abre no docker Properties).png` |
+| Effects > Blur > Low Pass... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\042 Effects ▸ Blur ▸ Low Pass (abre no docker Properties).png` |
+| Effects > Blur > Motion Blur... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\043 Effects ▸ Blur ▸ Motion Blur (abre no docker Properties).png` |
+| Effects > Blur > Radial Blur... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\044 Effects ▸ Blur ▸ Radial Blur (abre no docker Properties).png` |
+| Effects > Blur > Smart Blur... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\045 Effects ▸ Blur ▸ Smart Blur (abre no docker Properties).png` |
+| Effects > Blur > Smooth... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\046 Effects ▸ Blur ▸ Smooth (abre no docker Properties).png` |
+| Effects > Blur > Soften... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\047 Effects ▸ Blur ▸ Soften (abre no docker Properties).png` |
+| Effects > Blur > Zoom... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\048 Effects ▸ Blur ▸ Zoom (abre no docker Properties).png` |
 | Effects > Camera | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\006 Effects ▸ Camera.png` |
-| Effects > Camera > Colorize... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\049 Effects ▸ Camera ▸ Colorize (abre no docker Properties).png` |
-| Effects > Camera > Diffuse... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\050 Effects ▸ Camera ▸ Diffuse (abre no docker Properties).png` |
-| Effects > Camera > Photo Filter... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\051 Effects ▸ Camera ▸ Photo Filter (abre no docker Properties).png` |
-| Effects > Camera > Lens Flare... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\052 Effects ▸ Camera ▸ Lens Flare (abre no docker Properties).png` |
-| Effects > Camera > Lighting Effects... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\053 Effects ▸ Camera ▸ Lighting Effects (abre no docker Properties).png` |
-| Effects > Camera > Sepia Toning... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\054 Effects ▸ Camera ▸ Sepia Toning (abre no docker Properties).png` |
-| Effects > Camera > Spot Filter... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\055 Effects ▸ Camera ▸ Spot Filter (abre no docker Properties).png` |
-| Effects > Camera > Time Machine... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\056 Effects ▸ Camera ▸ Time Machine (abre no docker Properties).png` |
+| Effects > Camera > Colorize... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\049 Effects ▸ Camera ▸ Colorize (abre no docker Properties).png` |
+| Effects > Camera > Diffuse... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\050 Effects ▸ Camera ▸ Diffuse (abre no docker Properties).png` |
+| Effects > Camera > Photo Filter... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\051 Effects ▸ Camera ▸ Photo Filter (abre no docker Properties).png` |
+| Effects > Camera > Lens Flare... | opens a window |  | 🟡 partial | page as the reference; the flare center is picked on a simplified preview | `03-telas\bitmap\06 Effects\052 Effects ▸ Camera ▸ Lens Flare (abre no docker Properties).png` |
+| Effects > Camera > Lighting Effects... | opens a window |  | 🟡 partial | page as the reference; the light cone preview is simplified | `03-telas\bitmap\06 Effects\053 Effects ▸ Camera ▸ Lighting Effects (abre no docker Properties).png` |
+| Effects > Camera > Sepia Toning... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\054 Effects ▸ Camera ▸ Sepia Toning (abre no docker Properties).png` |
+| Effects > Camera > Spot Filter... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\055 Effects ▸ Camera ▸ Spot Filter (abre no docker Properties).png` |
+| Effects > Camera > Time Machine... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\056 Effects ▸ Camera ▸ Time Machine (abre no docker Properties).png` |
 | Effects > Color Transform | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\007 Effects ▸ Color Transform.png` |
-| Effects > Color Transform > Bit Planes... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\057 Effects ▸ Color Transform ▸ Bit Planes (abre no docker Properties).png` |
-| Effects > Color Transform > Halftone... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\058 Effects ▸ Color Transform ▸ Halftone (abre no docker Properties).png` |
-| Effects > Color Transform > Psychedelic... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\059 Effects ▸ Color Transform ▸ Psychedelic (abre no docker Properties).png` |
-| Effects > Color Transform > Solarize... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\060 Effects ▸ Color Transform ▸ Solarize (abre no docker Properties).png` |
+| Effects > Color Transform > Bit Planes... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\057 Effects ▸ Color Transform ▸ Bit Planes (abre no docker Properties).png` |
+| Effects > Color Transform > Halftone... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\058 Effects ▸ Color Transform ▸ Halftone (abre no docker Properties).png` |
+| Effects > Color Transform > Psychedelic... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\059 Effects ▸ Color Transform ▸ Psychedelic (abre no docker Properties).png` |
+| Effects > Color Transform > Solarize... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\060 Effects ▸ Color Transform ▸ Solarize (abre no docker Properties).png` |
 | Effects > Contour | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\008 Effects ▸ Contour.png` |
-| Effects > Contour > Edge Detect... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\061 Effects ▸ Contour ▸ Edge Detect (abre no docker Properties).png` |
-| Effects > Contour > Find Edges... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\062 Effects ▸ Contour ▸ Find Edges (abre no docker Properties).png` |
-| Effects > Contour > Trace Contour... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\063 Effects ▸ Contour ▸ Trace Contour (abre no docker Properties).png` |
-| Effects > Contour > Local Equalization... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\064 Effects ▸ Contour ▸ Local Equalization (abre no docker Properties).png` |
+| Effects > Contour > Edge Detect... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\061 Effects ▸ Contour ▸ Edge Detect (abre no docker Properties).png` |
+| Effects > Contour > Find Edges... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\062 Effects ▸ Contour ▸ Find Edges (abre no docker Properties).png` |
+| Effects > Contour > Trace Contour... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\063 Effects ▸ Contour ▸ Trace Contour (abre no docker Properties).png` |
+| Effects > Contour > Local Equalization... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\064 Effects ▸ Contour ▸ Local Equalization (abre no docker Properties).png` |
 | Effects > Correction | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\009 Effects ▸ Correction.png` |
-| Effects > Correction > Dust and Scratch... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\065 Effects ▸ Correction ▸ Dust and Scratch (abre no docker Properties).png` |
-| Effects > Correction > Tune Sharpen... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\066 Effects ▸ Correction ▸ Tune Sharpen (abre no docker Properties).png` |
+| Effects > Correction > Dust and Scratch... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\065 Effects ▸ Correction ▸ Dust and Scratch (abre no docker Properties).png` |
+| Effects > Correction > Tune Sharpen... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\066 Effects ▸ Correction ▸ Tune Sharpen (abre no docker Properties).png` |
 | Effects > Creative | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\010 Effects ▸ Creative.png` |
-| Effects > Creative > Art Style... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\067 Effects ▸ Creative ▸ Art Style (abre no docker Properties).png` |
-| Effects > Creative > Crystalize... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\068 Effects ▸ Creative ▸ Crystalize (abre no docker Properties).png` |
-| Effects > Creative > Fabric... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\069 Effects ▸ Creative ▸ Fabric (abre no docker Properties).png` |
-| Effects > Creative > Frame... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\070 Effects ▸ Creative ▸ Frame (abre no docker Properties).png` |
-| Effects > Creative > Glass Block... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\071 Effects ▸ Creative ▸ Glass Block (abre no docker Properties).png` |
-| Effects > Creative > Mosaic... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\072 Effects ▸ Creative ▸ Mosaic (abre no docker Properties).png` |
-| Effects > Creative > Scatter... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\073 Effects ▸ Creative ▸ Scatter (abre no docker Properties).png` |
-| Effects > Creative > Smoked Glass... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\074 Effects ▸ Creative ▸ Smoked Glass (abre no docker Properties).png` |
-| Effects > Creative > Stained Glass... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\075 Effects ▸ Creative ▸ Stained Glass (abre no docker Properties).png` |
-| Effects > Creative > Vignette... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\076 Effects ▸ Creative ▸ Vignette (abre no docker Properties).png` |
-| Effects > Creative > Vortex... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\077 Effects ▸ Creative ▸ Vortex (abre no docker Properties).png` |
+| Effects > Creative > Art Style... | opens a window |  | 🟡 partial | page as the reference; the styles are local filters, not AI | `03-telas\bitmap\06 Effects\067 Effects ▸ Creative ▸ Art Style (abre no docker Properties).png` |
+| Effects > Creative > Crystalize... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\068 Effects ▸ Creative ▸ Crystalize (abre no docker Properties).png` |
+| Effects > Creative > Fabric... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\069 Effects ▸ Creative ▸ Fabric (abre no docker Properties).png` |
+| Effects > Creative > Frame... | opens a window |  | 🟡 partial | page as the reference; the frames are drawn by Vector (no CorelDRAW frame files) | `03-telas\bitmap\06 Effects\070 Effects ▸ Creative ▸ Frame (abre no docker Properties).png` |
+| Effects > Creative > Glass Block... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\071 Effects ▸ Creative ▸ Glass Block (abre no docker Properties).png` |
+| Effects > Creative > Mosaic... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\072 Effects ▸ Creative ▸ Mosaic (abre no docker Properties).png` |
+| Effects > Creative > Scatter... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\073 Effects ▸ Creative ▸ Scatter (abre no docker Properties).png` |
+| Effects > Creative > Smoked Glass... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\074 Effects ▸ Creative ▸ Smoked Glass (abre no docker Properties).png` |
+| Effects > Creative > Stained Glass... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\075 Effects ▸ Creative ▸ Stained Glass (abre no docker Properties).png` |
+| Effects > Creative > Vignette... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\076 Effects ▸ Creative ▸ Vignette (abre no docker Properties).png` |
+| Effects > Creative > Vortex... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\077 Effects ▸ Creative ▸ Vortex (abre no docker Properties).png` |
 | Effects > Custom | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\011 Effects ▸ Custom.png` |
-| Effects > Custom > Band Pass... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\078 Effects ▸ Custom ▸ Band Pass (abre no docker Properties).png` |
-| Effects > Custom > Bump Map... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\079 Effects ▸ Custom ▸ Bump Map (abre no docker Properties).png` |
-| Effects > Custom > User Defined... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\080 Effects ▸ Custom ▸ User Defined (abre no docker Properties).png` |
+| Effects > Custom > Band Pass... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\078 Effects ▸ Custom ▸ Band Pass (abre no docker Properties).png` |
+| Effects > Custom > Bump Map... | opens a window |  | 🟡 partial | page as the reference; the maps are drawn by Vector | `03-telas\bitmap\06 Effects\079 Effects ▸ Custom ▸ Bump Map (abre no docker Properties).png` |
+| Effects > Custom > User Defined... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\080 Effects ▸ Custom ▸ User Defined (abre no docker Properties).png` |
 | Effects > Distort | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\012 Effects ▸ Distort.png` |
-| Effects > Distort > Blocks... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\081 Effects ▸ Distort ▸ Blocks (abre no docker Properties).png` |
-| Effects > Distort > Displace... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\082 Effects ▸ Distort ▸ Displace (abre no docker Properties).png` |
-| Effects > Distort > Mesh Warp... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\083 Effects ▸ Distort ▸ Mesh Warp (abre no docker Properties).png` |
-| Effects > Distort > Offset... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\084 Effects ▸ Distort ▸ Offset (abre no docker Properties).png` |
-| Effects > Distort > Pixelate... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\085 Effects ▸ Distort ▸ Pixelate (abre no docker Properties).png` |
-| Effects > Distort > Ripple... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\086 Effects ▸ Distort ▸ Ripple (abre no docker Properties).png` |
-| Effects > Distort > Shear... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\087 Effects ▸ Distort ▸ Shear (abre no docker Properties).png` |
-| Effects > Distort > Swirl... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\088 Effects ▸ Distort ▸ Swirl (abre no docker Properties).png` |
-| Effects > Distort > Tile... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\089 Effects ▸ Distort ▸ Tile (abre no docker Properties).png` |
-| Effects > Distort > Wet Paint... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\090 Effects ▸ Distort ▸ Wet Paint (abre no docker Properties).png` |
-| Effects > Distort > Whirlpool... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\091 Effects ▸ Distort ▸ Whirlpool (abre no docker Properties).png` |
-| Effects > Distort > Wind... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\092 Effects ▸ Distort ▸ Wind (abre no docker Properties).png` |
+| Effects > Distort > Blocks... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\081 Effects ▸ Distort ▸ Blocks (abre no docker Properties).png` |
+| Effects > Distort > Displace... | opens a window |  | 🟡 partial | page as the reference; the displacement maps are drawn by Vector | `03-telas\bitmap\06 Effects\082 Effects ▸ Distort ▸ Displace (abre no docker Properties).png` |
+| Effects > Distort > Mesh Warp... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\083 Effects ▸ Distort ▸ Mesh Warp (abre no docker Properties).png` |
+| Effects > Distort > Offset... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\084 Effects ▸ Distort ▸ Offset (abre no docker Properties).png` |
+| Effects > Distort > Pixelate... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\085 Effects ▸ Distort ▸ Pixelate (abre no docker Properties).png` |
+| Effects > Distort > Ripple... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\086 Effects ▸ Distort ▸ Ripple (abre no docker Properties).png` |
+| Effects > Distort > Shear... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\087 Effects ▸ Distort ▸ Shear (abre no docker Properties).png` |
+| Effects > Distort > Swirl... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\088 Effects ▸ Distort ▸ Swirl (abre no docker Properties).png` |
+| Effects > Distort > Tile... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\089 Effects ▸ Distort ▸ Tile (abre no docker Properties).png` |
+| Effects > Distort > Wet Paint... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\090 Effects ▸ Distort ▸ Wet Paint (abre no docker Properties).png` |
+| Effects > Distort > Whirlpool... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\091 Effects ▸ Distort ▸ Whirlpool (abre no docker Properties).png` |
+| Effects > Distort > Wind... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\092 Effects ▸ Distort ▸ Wind (abre no docker Properties).png` |
 | Effects > Noise | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\013 Effects ▸ Noise.png` |
-| Effects > Noise > Tune Noise... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\093 Effects ▸ Noise ▸ Tune Noise (abre no docker Properties).png` |
-| Effects > Noise > Add Noise... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\094 Effects ▸ Noise ▸ Add Noise (abre no docker Properties).png` |
-| Effects > Noise > 3-D Stereo Noise... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\095 Effects ▸ Noise ▸ 3-D Stereo Noise (abre no docker Properties).png` |
-| Effects > Noise > Maximum... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\096 Effects ▸ Noise ▸ Maximum (abre no docker Properties).png` |
-| Effects > Noise > Median... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\097 Effects ▸ Noise ▸ Median (abre no docker Properties).png` |
-| Effects > Noise > Minimum... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\098 Effects ▸ Noise ▸ Minimum (abre no docker Properties).png` |
-| Effects > Noise > Remove Moiré... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\099 Effects ▸ Noise ▸ Remove Moiré (abre no docker Properties).png` |
-| Effects > Noise > Remove Noise... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\100 Effects ▸ Noise ▸ Remove Noise (abre no docker Properties).png` |
+| Effects > Noise > Tune Noise... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\093 Effects ▸ Noise ▸ Tune Noise (abre no docker Properties).png` |
+| Effects > Noise > Add Noise... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\094 Effects ▸ Noise ▸ Add Noise (abre no docker Properties).png` |
+| Effects > Noise > 3-D Stereo Noise... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\095 Effects ▸ Noise ▸ 3-D Stereo Noise (abre no docker Properties).png` |
+| Effects > Noise > Maximum... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\096 Effects ▸ Noise ▸ Maximum (abre no docker Properties).png` |
+| Effects > Noise > Median... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\097 Effects ▸ Noise ▸ Median (abre no docker Properties).png` |
+| Effects > Noise > Minimum... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\098 Effects ▸ Noise ▸ Minimum (abre no docker Properties).png` |
+| Effects > Noise > Remove Moiré... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\099 Effects ▸ Noise ▸ Remove Moiré (abre no docker Properties).png` |
+| Effects > Noise > Remove Noise... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\100 Effects ▸ Noise ▸ Remove Noise (abre no docker Properties).png` |
 | Effects > Sharpen | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\014 Effects ▸ Sharpen.png` |
-| Effects > Sharpen > Adaptive Unsharp... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\101 Effects ▸ Sharpen ▸ Adaptive Unsharp (abre no docker Properties).png` |
-| Effects > Sharpen > Directional Sharpen... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\102 Effects ▸ Sharpen ▸ Directional Sharpen (abre no docker Properties).png` |
-| Effects > Sharpen > High Pass... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\103 Effects ▸ Sharpen ▸ High Pass (abre no docker Properties).png` |
-| Effects > Sharpen > Sharpen... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\104 Effects ▸ Sharpen ▸ Sharpen (abre no docker Properties).png` |
-| Effects > Sharpen > Unsharp Mask... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\105 Effects ▸ Sharpen ▸ Unsharp Mask (abre no docker Properties).png` |
+| Effects > Sharpen > Adaptive Unsharp... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\101 Effects ▸ Sharpen ▸ Adaptive Unsharp (abre no docker Properties).png` |
+| Effects > Sharpen > Directional Sharpen... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\102 Effects ▸ Sharpen ▸ Directional Sharpen (abre no docker Properties).png` |
+| Effects > Sharpen > High Pass... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\103 Effects ▸ Sharpen ▸ High Pass (abre no docker Properties).png` |
+| Effects > Sharpen > Sharpen... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\104 Effects ▸ Sharpen ▸ Sharpen (abre no docker Properties).png` |
+| Effects > Sharpen > Unsharp Mask... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\105 Effects ▸ Sharpen ▸ Unsharp Mask (abre no docker Properties).png` |
 | Effects > Texture | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\015 Effects ▸ Texture.png` |
-| Effects > Texture > Brick Wall... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\106 Effects ▸ Texture ▸ Brick Wall (abre no docker Properties).png` |
-| Effects > Texture > Bubbles... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\107 Effects ▸ Texture ▸ Bubbles (abre no docker Properties).png` |
-| Effects > Texture > Canvas... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\108 Effects ▸ Texture ▸ Canvas (abre no docker Properties).png` |
-| Effects > Texture > Cobblestone... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\109 Effects ▸ Texture ▸ Cobblestone (abre no docker Properties).png` |
-| Effects > Texture > Elephant Skin... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\110 Effects ▸ Texture ▸ Elephant Skin (abre no docker Properties).png` |
-| Effects > Texture > Etching... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\111 Effects ▸ Texture ▸ Etching (abre no docker Properties).png` |
-| Effects > Texture > Plastic... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\112 Effects ▸ Texture ▸ Plastic (abre no docker Properties).png` |
-| Effects > Texture > Plaster Wall... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\113 Effects ▸ Texture ▸ Plaster Wall (abre no docker Properties).png` |
-| Effects > Texture > Relief Sculpture... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\114 Effects ▸ Texture ▸ Relief Sculpture (abre no docker Properties).png` |
-| Effects > Texture > Screen Door... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\115 Effects ▸ Texture ▸ Screen Door (abre no docker Properties).png` |
-| Effects > Texture > Stone... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\116 Effects ▸ Texture ▸ Stone (abre no docker Properties).png` |
-| Effects > Texture > Underpainting... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\117 Effects ▸ Texture ▸ Underpainting (abre no docker Properties).png` |
+| Effects > Texture > Brick Wall... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\106 Effects ▸ Texture ▸ Brick Wall (abre no docker Properties).png` |
+| Effects > Texture > Bubbles... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\107 Effects ▸ Texture ▸ Bubbles (abre no docker Properties).png` |
+| Effects > Texture > Canvas... | opens a window |  | 🟡 partial | page as the reference; the canvas textures are drawn by Vector | `03-telas\bitmap\06 Effects\108 Effects ▸ Texture ▸ Canvas (abre no docker Properties).png` |
+| Effects > Texture > Cobblestone... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\109 Effects ▸ Texture ▸ Cobblestone (abre no docker Properties).png` |
+| Effects > Texture > Elephant Skin... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\110 Effects ▸ Texture ▸ Elephant Skin (abre no docker Properties).png` |
+| Effects > Texture > Etching... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\111 Effects ▸ Texture ▸ Etching (abre no docker Properties).png` |
+| Effects > Texture > Plastic... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\112 Effects ▸ Texture ▸ Plastic (abre no docker Properties).png` |
+| Effects > Texture > Plaster Wall... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\113 Effects ▸ Texture ▸ Plaster Wall (abre no docker Properties).png` |
+| Effects > Texture > Relief Sculpture... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\114 Effects ▸ Texture ▸ Relief Sculpture (abre no docker Properties).png` |
+| Effects > Texture > Screen Door... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\115 Effects ▸ Texture ▸ Screen Door (abre no docker Properties).png` |
+| Effects > Texture > Stone... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\116 Effects ▸ Texture ▸ Stone (abre no docker Properties).png` |
+| Effects > Texture > Underpainting... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\117 Effects ▸ Texture ▸ Underpainting (abre no docker Properties).png` |
 | Effects > Transform | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\06 Effects\016 Effects ▸ Transform.png` |
-| Effects > Transform > DeInterlace... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\118 Effects ▸ Transform ▸ DeInterlace (abre no docker Properties).png` |
-| Effects > Transform > Invert Colors | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Effects > Transform > Posterize... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\119 Effects ▸ Transform ▸ Posterize (abre no docker Properties).png` |
-| Effects > Transform > Threshold... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\120 Effects ▸ Transform ▸ Threshold (abre no docker Properties).png` |
-| Effects > Artistic Media | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Effects > Bevel | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Effects > Blend | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Effects > Transform > DeInterlace... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\118 Effects ▸ Transform ▸ DeInterlace (abre no docker Properties).png` |
+| Effects > Transform > Invert Colors | command |  | ✅ done | as the reference |  |
+| Effects > Transform > Posterize... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\119 Effects ▸ Transform ▸ Posterize (abre no docker Properties).png` |
+| Effects > Transform > Threshold... | opens a window |  | ✅ done | opens the effect page in the Properties docker, as the reference | `03-telas\bitmap\06 Effects\120 Effects ▸ Transform ▸ Threshold (abre no docker Properties).png` |
+| Effects > Artistic Media | command |  | ✅ done | as the reference |  |
+| Effects > Bevel | command |  | ✅ done | as the reference |  |
+| Effects > Blend | command |  | ✅ done | as the reference |  |
 | Effects > Contour | command |  | ✅ done | items, order and enabled states from the reference |  |
-| Effects > Envelope | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Effects > Extrude | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Effects > Lens | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Effects > PhotoCocktail | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Effects > Pointillizer | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Effects > Envelope | command |  | ✅ done | as the reference |  |
+| Effects > Extrude | command |  | ✅ done | as the reference |  |
+| Effects > Lens | command |  | ✅ done | as the reference |  |
+| Effects > PhotoCocktail | command |  | ✅ done | as the reference |  |
+| Effects > Pointillizer | command |  | ✅ done | as the reference |  |
 
 ### Bitmaps
 
-6 done · 32 partial · 0 todo · 0 omitted
+26 done · 12 partial · 0 todo · 0 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
 | Bitmaps | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\07 Bitmaps\001 Bitmaps.png` |
-| Bitmaps > Convert to Bitmap... | opens a window | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\001 Bitmaps ▸ Convert to Bitmap.png` |
-| Bitmaps > Straighten Image... | opens a window | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\002 Bitmaps ▸ Straighten Image.png` |
-| Bitmaps > Image Adjustment Lab... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\003 Bitmaps ▸ Image Adjustment Lab.png` |
-| Bitmaps > Remove JPEG Artifacts | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Bitmaps > Edit Bitmap... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Bitmaps > Remove Background | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Bitmaps > Crop Bitmap | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Bitmaps > Resample... | opens a window | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\005 Bitmaps ▸ Resample.png` |
+| Bitmaps > Convert to Bitmap... | opens a window | 3 | ✅ done | Convert To Bitmap dialog: resolution, color mode, dithering, overprint black, anti-aliasing, transparent background | `03-telas\bitmap\07 Bitmaps\001 Bitmaps ▸ Convert to Bitmap.png` |
+| Bitmaps > Straighten Image... | opens a window | 2 | ✅ done | lens distortion, rotation, vertical and horizontal perspective, grid, crop | `03-telas\bitmap\07 Bitmaps\002 Bitmaps ▸ Straighten Image.png` |
+| Bitmaps > Image Adjustment Lab... | opens a window | 1 | ✅ done | temperature, tint, saturation, brightness, contrast, highlights, shadows, midtones, auto adjust, white and black points, rotation, snapshots, undo | `03-telas\bitmap\07 Bitmaps\003 Bitmaps ▸ Image Adjustment Lab.png` |
+| Bitmaps > Remove JPEG Artifacts | command |  | ✅ done | smooths the 8×8 block edges |  |
+| Bitmaps > Edit Bitmap... | opens a window |  | ✅ done | opens the bitmap in the default image editor; saving it there updates it in Vector |  |
+| Bitmaps > Remove Background | command |  | 🟡 partial | removes the background color found at the borders; no AI |  |
+| Bitmaps > Crop Bitmap | command |  | ✅ done | drops the pixels outside the crop |  |
+| Bitmaps > Resample... | opens a window | 2 | ✅ done | size, resolution, units, bicubic or nearest neighbor; the AI modes are disabled as in the reference | `03-telas\bitmap\07 Bitmaps\005 Bitmaps ▸ Resample.png` |
 | Bitmaps > Mode | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\07 Bitmaps\002 Bitmaps ▸ Mode.png` |
-| Bitmaps > Mode > Black and White (1-bit)... | opens a window | 4 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\006 Bitmaps ▸ Mode ▸ Black and White (1-bit).png` |
-| Bitmaps > Mode > Grayscale (8-bit) | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Bitmaps > Mode > Duotone (8-bit)... | opens a window | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\007 Bitmaps ▸ Mode ▸ Duotone (8-bit).png` |
-| Bitmaps > Mode > Paletted (8-bit)... | opens a window | 4 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\008 Bitmaps ▸ Mode ▸ Paletted (8-bit).png` |
-| Bitmaps > Mode > RGB Color (24-bit) | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Bitmaps > Mode > Lab Color (24-bit) | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Bitmaps > Mode > CMYK Color (32-bit) | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Bitmaps > Mode > Black and White (1-bit)... | opens a window | 4 | ✅ done | Convert to 1 bit: the seven methods, halftone screens | `03-telas\bitmap\07 Bitmaps\006 Bitmaps ▸ Mode ▸ Black and White (1-bit).png` |
+| Bitmaps > Mode > Grayscale (8-bit) | command |  | ✅ done |  |  |
+| Bitmaps > Mode > Duotone (8-bit)... | opens a window | 2 | 🟡 partial | monotone to quadtone with curves; no PANTONE library, the inks are approximate colors | `03-telas\bitmap\07 Bitmaps\007 Bitmaps ▸ Mode ▸ Duotone (8-bit).png` |
+| Bitmaps > Mode > Paletted (8-bit)... | opens a window | 4 | ✅ done | palettes, dithering, colors, range sensitivity, presets | `03-telas\bitmap\07 Bitmaps\008 Bitmaps ▸ Mode ▸ Paletted (8-bit).png` |
+| Bitmaps > Mode > RGB Color (24-bit) | command |  | ✅ done |  |  |
+| Bitmaps > Mode > Lab Color (24-bit) | command |  | 🟡 partial | records the color mode; the pixels stay RGB |  |
+| Bitmaps > Mode > CMYK Color (32-bit) | command |  | 🟡 partial | records the color mode; the pixels stay RGB |  |
 | Bitmaps > Inflate Bitmap | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\07 Bitmaps\003 Bitmaps ▸ Inflate Bitmap.png` |
-| Bitmaps > Inflate Bitmap > Auto Inflate Bitmap | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Bitmaps > Inflate Bitmap > Manually Inflate Bitmap... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\009 Bitmaps ▸ Inflate Bitmap ▸ Manually Inflate Bitmap.png` |
-| Bitmaps > Break Link | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Bitmaps > Update from Link | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Bitmaps > Quick Trace | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Bitmaps > Repeat Last Trace | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Bitmaps > Open Last Trace Settings... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Bitmaps > Inflate Bitmap > Auto Inflate Bitmap | command |  | ✅ done | room around bitmaps for effects; off keeps effects inside the bitmap |  |
+| Bitmaps > Inflate Bitmap > Manually Inflate Bitmap... | opens a window | 1 | ✅ done |  | `03-telas\bitmap\07 Bitmaps\009 Bitmaps ▸ Inflate Bitmap ▸ Manually Inflate Bitmap.png` |
+| Bitmaps > Break Link | command |  | ✅ done | the linked bitmap becomes embedded |  |
+| Bitmaps > Update from Link | command |  | ✅ done | reloads the linked file |  |
+| Bitmaps > Quick Trace | command |  | ✅ done | traces with the method of Options ▸ PowerTRACE |  |
+| Bitmaps > Repeat Last Trace | command |  | ✅ done |  |  |
+| Bitmaps > Open Last Trace Settings... | opens a window |  | ✅ done |  |  |
 | Bitmaps > Centerline Trace | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\bitmap\07 Bitmaps\004 Bitmaps ▸ Centerline Trace.png` |
-| Bitmaps > Centerline Trace > Technical Illustration... | opens a window | 9 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\011 Bitmaps ▸ Centerline Trace ▸ Technical Illustration.png` |
-| Bitmaps > Centerline Trace > Line Drawing... | opens a window | 9 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\012 Bitmaps ▸ Centerline Trace ▸ Line Drawing.png` |
+| Bitmaps > Centerline Trace > Technical Illustration... | opens a window | 9 | 🟡 partial | PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample | `03-telas\bitmap\07 Bitmaps\011 Bitmaps ▸ Centerline Trace ▸ Technical Illustration.png` |
+| Bitmaps > Centerline Trace > Line Drawing... | opens a window | 9 | 🟡 partial | PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample | `03-telas\bitmap\07 Bitmaps\012 Bitmaps ▸ Centerline Trace ▸ Line Drawing.png` |
 | Bitmaps > Outline Trace | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\bitmap\07 Bitmaps\005 Bitmaps ▸ Outline Trace.png` |
-| Bitmaps > Outline Trace > Line Art... | opens a window | 10 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\013 Bitmaps ▸ Outline Trace ▸ Line Art.png` |
-| Bitmaps > Outline Trace > Logo... | opens a window | 10 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\014 Bitmaps ▸ Outline Trace ▸ Logo.png` |
-| Bitmaps > Outline Trace > Detailed Logo... | opens a window | 10 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\015 Bitmaps ▸ Outline Trace ▸ Detailed Logo.png` |
-| Bitmaps > Outline Trace > Clipart... | opens a window | 10 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\016 Bitmaps ▸ Outline Trace ▸ Clipart.png` |
-| Bitmaps > Outline Trace > Low Quality Image... | opens a window | 10 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\017 Bitmaps ▸ Outline Trace ▸ Low Quality Image.png` |
-| Bitmaps > Outline Trace > High Quality Image... | opens a window | 10 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\018 Bitmaps ▸ Outline Trace ▸ High Quality Image.png` |
+| Bitmaps > Outline Trace > Line Art... | opens a window | 10 | 🟡 partial | PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample | `03-telas\bitmap\07 Bitmaps\013 Bitmaps ▸ Outline Trace ▸ Line Art.png` |
+| Bitmaps > Outline Trace > Logo... | opens a window | 10 | 🟡 partial | PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample | `03-telas\bitmap\07 Bitmaps\014 Bitmaps ▸ Outline Trace ▸ Logo.png` |
+| Bitmaps > Outline Trace > Detailed Logo... | opens a window | 10 | 🟡 partial | PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample | `03-telas\bitmap\07 Bitmaps\015 Bitmaps ▸ Outline Trace ▸ Detailed Logo.png` |
+| Bitmaps > Outline Trace > Clipart... | opens a window | 10 | 🟡 partial | PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample | `03-telas\bitmap\07 Bitmaps\016 Bitmaps ▸ Outline Trace ▸ Clipart.png` |
+| Bitmaps > Outline Trace > Low Quality Image... | opens a window | 10 | 🟡 partial | PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample | `03-telas\bitmap\07 Bitmaps\017 Bitmaps ▸ Outline Trace ▸ Low Quality Image.png` |
+| Bitmaps > Outline Trace > High Quality Image... | opens a window | 10 | 🟡 partial | PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample | `03-telas\bitmap\07 Bitmaps\018 Bitmaps ▸ Outline Trace ▸ High Quality Image.png` |
 | Bitmaps > Plug-ins | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\07 Bitmaps\004 Bitmaps ▸ Plug-ins.png` |
-| Bitmaps > Plug-ins > Not Installed | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Bitmaps > Bitmap Mask | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Bitmaps > Plug-ins > Not Installed | command |  | ✅ done | placeholder, as the reference when no plug-ins are installed |  |
+| Bitmaps > Bitmap Mask | command |  | ✅ done | opens the Bitmap Mask docker |  |
 
 ### Text
 
@@ -954,7 +954,7 @@ The *Reference* column is a path inside the reference folder.
 
 ### Object
 
-13 done · 2 partial · 0 todo · 0 omitted
+14 done · 1 partial · 0 todo · 0 omitted
 
 | Opened from | Kind | Context | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|---|
@@ -970,32 +970,32 @@ The *Reference* column is a path inside the reference folder.
 | Object > Create > Arrowhead | dialog | retangulo | 1 | ✅ done | checked against the reference | `03-telas\retangulo\05 Object\001 Object ▸ Create ▸ Arrowhead.png` |
 | Object > Create > Pattern Fill | dialog | retangulo | 1 | ✅ done | checked against the reference | `03-telas\retangulo\05 Object\002 Object ▸ Create ▸ Pattern Fill.png` |
 | Object > Perspective > Add Perspective | mode (no window) | retangulo | 0 | 🟡 partial | envelope-style perspective (four corner handles) | `03-telas\retangulo\05 Object\024 Object ▸ Perspective ▸ Add Perspective (sem janela, tela principal).png` |
-| Object > Convert to Bitmap | dialog | retangulo | 3 | 🟡 partial | Convert to Bitmap dialog; checked again with the Bitmaps menu (batch 7) | `03-telas\retangulo\05 Object\027 Object ▸ Convert to Bitmap.png` |
+| Object > Convert to Bitmap | dialog | retangulo | 3 | ✅ done | as the reference (the Bitmaps menu dialog) | `03-telas\retangulo\05 Object\027 Object ▸ Convert to Bitmap.png` |
 | Object > Rollover > Edit Rollover | dialog | rollover | 0 | ✅ done | Internet toolbar and Finish button | `03-telas\rollover\05 Object\009 Object ▸ Rollover ▸ Edit Rollover.png` |
 | Object > Symbol > Edit Master | mode (no window) | simbolo | 0 | ✅ done | edit in place with a Finish button | `03-telas\simbolo\05 Object\007 Object ▸ Symbol ▸ Edit Master (sem janela, tela principal).png` |
 
 ### Bitmaps
 
-0 done · 16 partial · 0 todo · 0 omitted
+7 done · 9 partial · 0 todo · 0 omitted
 
 | Opened from | Kind | Context | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|---|
-| Bitmaps > Convert to Bitmap | dialog | bitmap | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\001 Bitmaps ▸ Convert to Bitmap.png` |
-| Bitmaps > Straighten Image | dialog | bitmap | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\002 Bitmaps ▸ Straighten Image.png` |
-| Bitmaps > Image Adjustment Lab | dialog | bitmap | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\003 Bitmaps ▸ Image Adjustment Lab.png` |
-| Bitmaps > Resample | dialog | bitmap | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\005 Bitmaps ▸ Resample.png` |
-| Bitmaps > Mode > Black and White (1-bit) | dialog | bitmap | 4 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\006 Bitmaps ▸ Mode ▸ Black and White (1-bit).png` |
-| Bitmaps > Mode > Duotone (8-bit) | dialog | bitmap | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\007 Bitmaps ▸ Mode ▸ Duotone (8-bit).png` |
-| Bitmaps > Mode > Paletted (8-bit) | dialog | bitmap | 4 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\008 Bitmaps ▸ Mode ▸ Paletted (8-bit).png` |
-| Bitmaps > Inflate Bitmap > Manually Inflate Bitmap | dialog | bitmap | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\009 Bitmaps ▸ Inflate Bitmap ▸ Manually Inflate Bitmap.png` |
-| Bitmaps > Centerline Trace > Technical Illustration | dialog | bitmap | 9 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\011 Bitmaps ▸ Centerline Trace ▸ Technical Illustration.png` |
-| Bitmaps > Centerline Trace > Line Drawing | dialog | bitmap | 9 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\012 Bitmaps ▸ Centerline Trace ▸ Line Drawing.png` |
-| Bitmaps > Outline Trace > Line Art | dialog | bitmap | 10 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\013 Bitmaps ▸ Outline Trace ▸ Line Art.png` |
-| Bitmaps > Outline Trace > Logo | dialog | bitmap | 10 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\014 Bitmaps ▸ Outline Trace ▸ Logo.png` |
-| Bitmaps > Outline Trace > Detailed Logo | dialog | bitmap | 10 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\015 Bitmaps ▸ Outline Trace ▸ Detailed Logo.png` |
-| Bitmaps > Outline Trace > Clipart | dialog | bitmap | 10 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\016 Bitmaps ▸ Outline Trace ▸ Clipart.png` |
-| Bitmaps > Outline Trace > Low Quality Image | dialog | bitmap | 10 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\017 Bitmaps ▸ Outline Trace ▸ Low Quality Image.png` |
-| Bitmaps > Outline Trace > High Quality Image | dialog | bitmap | 10 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\07 Bitmaps\018 Bitmaps ▸ Outline Trace ▸ High Quality Image.png` |
+| Bitmaps > Convert to Bitmap | dialog | bitmap | 3 | ✅ done | as the reference | `03-telas\bitmap\07 Bitmaps\001 Bitmaps ▸ Convert to Bitmap.png` |
+| Bitmaps > Straighten Image | dialog | bitmap | 2 | ✅ done | as the reference | `03-telas\bitmap\07 Bitmaps\002 Bitmaps ▸ Straighten Image.png` |
+| Bitmaps > Image Adjustment Lab | dialog | bitmap | 1 | ✅ done | as the reference | `03-telas\bitmap\07 Bitmaps\003 Bitmaps ▸ Image Adjustment Lab.png` |
+| Bitmaps > Resample | dialog | bitmap | 2 | ✅ done | as the reference | `03-telas\bitmap\07 Bitmaps\005 Bitmaps ▸ Resample.png` |
+| Bitmaps > Mode > Black and White (1-bit) | dialog | bitmap | 4 | ✅ done | as the reference | `03-telas\bitmap\07 Bitmaps\006 Bitmaps ▸ Mode ▸ Black and White (1-bit).png` |
+| Bitmaps > Mode > Duotone (8-bit) | dialog | bitmap | 2 | 🟡 partial | as the reference; no PANTONE library | `03-telas\bitmap\07 Bitmaps\007 Bitmaps ▸ Mode ▸ Duotone (8-bit).png` |
+| Bitmaps > Mode > Paletted (8-bit) | dialog | bitmap | 4 | ✅ done | as the reference | `03-telas\bitmap\07 Bitmaps\008 Bitmaps ▸ Mode ▸ Paletted (8-bit).png` |
+| Bitmaps > Inflate Bitmap > Manually Inflate Bitmap | dialog | bitmap | 1 | ✅ done | as the reference | `03-telas\bitmap\07 Bitmaps\009 Bitmaps ▸ Inflate Bitmap ▸ Manually Inflate Bitmap.png` |
+| Bitmaps > Centerline Trace > Technical Illustration | dialog | bitmap | 9 | 🟡 partial | PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample | `03-telas\bitmap\07 Bitmaps\011 Bitmaps ▸ Centerline Trace ▸ Technical Illustration.png` |
+| Bitmaps > Centerline Trace > Line Drawing | dialog | bitmap | 9 | 🟡 partial | PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample | `03-telas\bitmap\07 Bitmaps\012 Bitmaps ▸ Centerline Trace ▸ Line Drawing.png` |
+| Bitmaps > Outline Trace > Line Art | dialog | bitmap | 10 | 🟡 partial | PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample | `03-telas\bitmap\07 Bitmaps\013 Bitmaps ▸ Outline Trace ▸ Line Art.png` |
+| Bitmaps > Outline Trace > Logo | dialog | bitmap | 10 | 🟡 partial | PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample | `03-telas\bitmap\07 Bitmaps\014 Bitmaps ▸ Outline Trace ▸ Logo.png` |
+| Bitmaps > Outline Trace > Detailed Logo | dialog | bitmap | 10 | 🟡 partial | PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample | `03-telas\bitmap\07 Bitmaps\015 Bitmaps ▸ Outline Trace ▸ Detailed Logo.png` |
+| Bitmaps > Outline Trace > Clipart | dialog | bitmap | 10 | 🟡 partial | PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample | `03-telas\bitmap\07 Bitmaps\016 Bitmaps ▸ Outline Trace ▸ Clipart.png` |
+| Bitmaps > Outline Trace > Low Quality Image | dialog | bitmap | 10 | 🟡 partial | PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample | `03-telas\bitmap\07 Bitmaps\017 Bitmaps ▸ Outline Trace ▸ Low Quality Image.png` |
+| Bitmaps > Outline Trace > High Quality Image | dialog | bitmap | 10 | 🟡 partial | PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample | `03-telas\bitmap\07 Bitmaps\018 Bitmaps ▸ Outline Trace ▸ High Quality Image.png` |
 
 ### Text
 
@@ -1077,228 +1077,228 @@ The *Reference* column is a path inside the reference folder.
 
 ### Effects > 3D Effects
 
-0 done · 7 partial · 0 todo · 0 omitted
+7 done · 0 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > 3D Effects > 3D Rotate | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\001 Effects ▸ 3D Effects ▸ 3D Rotate (abre no docker Properties).png` |
-| Effects > 3D Effects > Cylinder | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\002 Effects ▸ 3D Effects ▸ Cylinder (abre no docker Properties).png` |
-| Effects > 3D Effects > Emboss | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\003 Effects ▸ 3D Effects ▸ Emboss (abre no docker Properties).png` |
-| Effects > 3D Effects > Page Curl | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\004 Effects ▸ 3D Effects ▸ Page Curl (abre no docker Properties).png` |
-| Effects > 3D Effects > Pinch_Punch | bitmap | 🟡 partial | Pinch/Punch | `03-telas\bitmap\06 Effects\005 Effects ▸ 3D Effects ▸ Pinch_Punch (abre no docker Properties).png` |
-| Effects > 3D Effects > Sphere | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\006 Effects ▸ 3D Effects ▸ Sphere (abre no docker Properties).png` |
-| Effects > 3D Effects > Zig Zag | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\007 Effects ▸ 3D Effects ▸ Zig Zag (abre no docker Properties).png` |
+| Effects > 3D Effects > 3D Rotate | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\001 Effects ▸ 3D Effects ▸ 3D Rotate (abre no docker Properties).png` |
+| Effects > 3D Effects > Cylinder | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\002 Effects ▸ 3D Effects ▸ Cylinder (abre no docker Properties).png` |
+| Effects > 3D Effects > Emboss | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\003 Effects ▸ 3D Effects ▸ Emboss (abre no docker Properties).png` |
+| Effects > 3D Effects > Page Curl | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\004 Effects ▸ 3D Effects ▸ Page Curl (abre no docker Properties).png` |
+| Effects > 3D Effects > Pinch_Punch | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\005 Effects ▸ 3D Effects ▸ Pinch_Punch (abre no docker Properties).png` |
+| Effects > 3D Effects > Sphere | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\006 Effects ▸ 3D Effects ▸ Sphere (abre no docker Properties).png` |
+| Effects > 3D Effects > Zig Zag | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\007 Effects ▸ 3D Effects ▸ Zig Zag (abre no docker Properties).png` |
 
 ### Effects > Adjust
 
-0 done · 14 partial · 0 todo · 0 omitted
+10 done · 4 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Adjust > Levels | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\008 Effects ▸ Adjust ▸ Levels (abre no docker Properties).png` |
-| Effects > Adjust > Equalize | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\009 Effects ▸ Adjust ▸ Equalize (abre no docker Properties).png` |
-| Effects > Adjust > Sample & Target | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\010 Effects ▸ Adjust ▸ Sample & Target (abre no docker Properties).png` |
-| Effects > Adjust > Tone Curve | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\011 Effects ▸ Adjust ▸ Tone Curve (abre no docker Properties).png` |
-| Effects > Adjust > Light | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\012 Effects ▸ Adjust ▸ Light (abre no docker Properties).png` |
-| Effects > Adjust > Color Balance | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\013 Effects ▸ Adjust ▸ Color Balance (abre no docker Properties).png` |
-| Effects > Adjust > Gamma | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\014 Effects ▸ Adjust ▸ Gamma (abre no docker Properties).png` |
-| Effects > Adjust > White Balance | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\015 Effects ▸ Adjust ▸ White Balance (abre no docker Properties).png` |
-| Effects > Adjust > Hue_Saturation_Lightness | bitmap | 🟡 partial | Hue/Saturation/Lightness | `03-telas\bitmap\06 Effects\016 Effects ▸ Adjust ▸ Hue_Saturation_Lightness (abre no docker Properties).png` |
-| Effects > Adjust > Black & White | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\017 Effects ▸ Adjust ▸ Black & White (abre no docker Properties).png` |
-| Effects > Adjust > Vibrance | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\018 Effects ▸ Adjust ▸ Vibrance (abre no docker Properties).png` |
-| Effects > Adjust > Selective Color | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\019 Effects ▸ Adjust ▸ Selective Color (abre no docker Properties).png` |
-| Effects > Adjust > Replace Colors | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\020 Effects ▸ Adjust ▸ Replace Colors (abre no docker Properties).png` |
-| Effects > Adjust > Channel Mixer | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\021 Effects ▸ Adjust ▸ Channel Mixer (abre no docker Properties).png` |
+| Effects > Adjust > Levels | bitmap | 🟡 partial | page as the reference; the eyedroppers are missing | `03-telas\bitmap\06 Effects\008 Effects ▸ Adjust ▸ Levels (abre no docker Properties).png` |
+| Effects > Adjust > Equalize | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\009 Effects ▸ Adjust ▸ Equalize (abre no docker Properties).png` |
+| Effects > Adjust > Sample & Target | bitmap | 🟡 partial | page as the reference; the default targets are approximated | `03-telas\bitmap\06 Effects\010 Effects ▸ Adjust ▸ Sample & Target (abre no docker Properties).png` |
+| Effects > Adjust > Tone Curve | bitmap | 🟡 partial | page as the reference; the eyedroppers are missing | `03-telas\bitmap\06 Effects\011 Effects ▸ Adjust ▸ Tone Curve (abre no docker Properties).png` |
+| Effects > Adjust > Light | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\012 Effects ▸ Adjust ▸ Light (abre no docker Properties).png` |
+| Effects > Adjust > Color Balance | bitmap | 🟡 partial | page as the reference; the eyedroppers are missing | `03-telas\bitmap\06 Effects\013 Effects ▸ Adjust ▸ Color Balance (abre no docker Properties).png` |
+| Effects > Adjust > Gamma | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\014 Effects ▸ Adjust ▸ Gamma (abre no docker Properties).png` |
+| Effects > Adjust > White Balance | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\015 Effects ▸ Adjust ▸ White Balance (abre no docker Properties).png` |
+| Effects > Adjust > Hue_Saturation_Lightness | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\016 Effects ▸ Adjust ▸ Hue_Saturation_Lightness (abre no docker Properties).png` |
+| Effects > Adjust > Black & White | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\017 Effects ▸ Adjust ▸ Black & White (abre no docker Properties).png` |
+| Effects > Adjust > Vibrance | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\018 Effects ▸ Adjust ▸ Vibrance (abre no docker Properties).png` |
+| Effects > Adjust > Selective Color | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\019 Effects ▸ Adjust ▸ Selective Color (abre no docker Properties).png` |
+| Effects > Adjust > Replace Colors | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\020 Effects ▸ Adjust ▸ Replace Colors (abre no docker Properties).png` |
+| Effects > Adjust > Channel Mixer | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\021 Effects ▸ Adjust ▸ Channel Mixer (abre no docker Properties).png` |
 
 ### Effects > Art Strokes
 
-0 done · 15 partial · 0 todo · 0 omitted
+15 done · 0 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Art Strokes > Charcoal | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\022 Effects ▸ Art Strokes ▸ Charcoal (abre no docker Properties).png` |
-| Effects > Art Strokes > Conté Crayon | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\023 Effects ▸ Art Strokes ▸ Conté Crayon (abre no docker Properties).png` |
-| Effects > Art Strokes > Crayon | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\024 Effects ▸ Art Strokes ▸ Crayon (abre no docker Properties).png` |
-| Effects > Art Strokes > Cubist | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\025 Effects ▸ Art Strokes ▸ Cubist (abre no docker Properties).png` |
-| Effects > Art Strokes > Dabble | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\026 Effects ▸ Art Strokes ▸ Dabble (abre no docker Properties).png` |
-| Effects > Art Strokes > Impressionist | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\027 Effects ▸ Art Strokes ▸ Impressionist (abre no docker Properties).png` |
-| Effects > Art Strokes > Palette Knife | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\028 Effects ▸ Art Strokes ▸ Palette Knife (abre no docker Properties).png` |
-| Effects > Art Strokes > Pastels | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\029 Effects ▸ Art Strokes ▸ Pastels (abre no docker Properties).png` |
-| Effects > Art Strokes > Pen & Ink | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\030 Effects ▸ Art Strokes ▸ Pen & Ink (abre no docker Properties).png` |
-| Effects > Art Strokes > Pointillist | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\031 Effects ▸ Art Strokes ▸ Pointillist (abre no docker Properties).png` |
-| Effects > Art Strokes > Scraperboard | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\032 Effects ▸ Art Strokes ▸ Scraperboard (abre no docker Properties).png` |
-| Effects > Art Strokes > Sketch Pad | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\033 Effects ▸ Art Strokes ▸ Sketch Pad (abre no docker Properties).png` |
-| Effects > Art Strokes > Watercolor | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\034 Effects ▸ Art Strokes ▸ Watercolor (abre no docker Properties).png` |
-| Effects > Art Strokes > Water Marker | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\035 Effects ▸ Art Strokes ▸ Water Marker (abre no docker Properties).png` |
-| Effects > Art Strokes > Wave Paper | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\036 Effects ▸ Art Strokes ▸ Wave Paper (abre no docker Properties).png` |
+| Effects > Art Strokes > Charcoal | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\022 Effects ▸ Art Strokes ▸ Charcoal (abre no docker Properties).png` |
+| Effects > Art Strokes > Conté Crayon | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\023 Effects ▸ Art Strokes ▸ Conté Crayon (abre no docker Properties).png` |
+| Effects > Art Strokes > Crayon | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\024 Effects ▸ Art Strokes ▸ Crayon (abre no docker Properties).png` |
+| Effects > Art Strokes > Cubist | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\025 Effects ▸ Art Strokes ▸ Cubist (abre no docker Properties).png` |
+| Effects > Art Strokes > Dabble | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\026 Effects ▸ Art Strokes ▸ Dabble (abre no docker Properties).png` |
+| Effects > Art Strokes > Impressionist | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\027 Effects ▸ Art Strokes ▸ Impressionist (abre no docker Properties).png` |
+| Effects > Art Strokes > Palette Knife | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\028 Effects ▸ Art Strokes ▸ Palette Knife (abre no docker Properties).png` |
+| Effects > Art Strokes > Pastels | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\029 Effects ▸ Art Strokes ▸ Pastels (abre no docker Properties).png` |
+| Effects > Art Strokes > Pen & Ink | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\030 Effects ▸ Art Strokes ▸ Pen & Ink (abre no docker Properties).png` |
+| Effects > Art Strokes > Pointillist | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\031 Effects ▸ Art Strokes ▸ Pointillist (abre no docker Properties).png` |
+| Effects > Art Strokes > Scraperboard | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\032 Effects ▸ Art Strokes ▸ Scraperboard (abre no docker Properties).png` |
+| Effects > Art Strokes > Sketch Pad | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\033 Effects ▸ Art Strokes ▸ Sketch Pad (abre no docker Properties).png` |
+| Effects > Art Strokes > Watercolor | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\034 Effects ▸ Art Strokes ▸ Watercolor (abre no docker Properties).png` |
+| Effects > Art Strokes > Water Marker | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\035 Effects ▸ Art Strokes ▸ Water Marker (abre no docker Properties).png` |
+| Effects > Art Strokes > Wave Paper | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\036 Effects ▸ Art Strokes ▸ Wave Paper (abre no docker Properties).png` |
 
 ### Effects > Blur
 
-0 done · 12 partial · 0 todo · 0 omitted
+12 done · 0 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Blur > Tune Blur | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\037 Effects ▸ Blur ▸ Tune Blur (abre no docker Properties).png` |
-| Effects > Blur > Directional Smooth | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\038 Effects ▸ Blur ▸ Directional Smooth (abre no docker Properties).png` |
-| Effects > Blur > Feather | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\039 Effects ▸ Blur ▸ Feather (abre no docker Properties).png` |
-| Effects > Blur > Gaussian Blur | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\040 Effects ▸ Blur ▸ Gaussian Blur (abre no docker Properties).png` |
-| Effects > Blur > Jaggy Despeckle | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\041 Effects ▸ Blur ▸ Jaggy Despeckle (abre no docker Properties).png` |
-| Effects > Blur > Low Pass | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\042 Effects ▸ Blur ▸ Low Pass (abre no docker Properties).png` |
-| Effects > Blur > Motion Blur | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\043 Effects ▸ Blur ▸ Motion Blur (abre no docker Properties).png` |
-| Effects > Blur > Radial Blur | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\044 Effects ▸ Blur ▸ Radial Blur (abre no docker Properties).png` |
-| Effects > Blur > Smart Blur | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\045 Effects ▸ Blur ▸ Smart Blur (abre no docker Properties).png` |
-| Effects > Blur > Smooth | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\046 Effects ▸ Blur ▸ Smooth (abre no docker Properties).png` |
-| Effects > Blur > Soften | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\047 Effects ▸ Blur ▸ Soften (abre no docker Properties).png` |
-| Effects > Blur > Zoom | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\048 Effects ▸ Blur ▸ Zoom (abre no docker Properties).png` |
+| Effects > Blur > Tune Blur | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\037 Effects ▸ Blur ▸ Tune Blur (abre no docker Properties).png` |
+| Effects > Blur > Directional Smooth | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\038 Effects ▸ Blur ▸ Directional Smooth (abre no docker Properties).png` |
+| Effects > Blur > Feather | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\039 Effects ▸ Blur ▸ Feather (abre no docker Properties).png` |
+| Effects > Blur > Gaussian Blur | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\040 Effects ▸ Blur ▸ Gaussian Blur (abre no docker Properties).png` |
+| Effects > Blur > Jaggy Despeckle | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\041 Effects ▸ Blur ▸ Jaggy Despeckle (abre no docker Properties).png` |
+| Effects > Blur > Low Pass | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\042 Effects ▸ Blur ▸ Low Pass (abre no docker Properties).png` |
+| Effects > Blur > Motion Blur | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\043 Effects ▸ Blur ▸ Motion Blur (abre no docker Properties).png` |
+| Effects > Blur > Radial Blur | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\044 Effects ▸ Blur ▸ Radial Blur (abre no docker Properties).png` |
+| Effects > Blur > Smart Blur | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\045 Effects ▸ Blur ▸ Smart Blur (abre no docker Properties).png` |
+| Effects > Blur > Smooth | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\046 Effects ▸ Blur ▸ Smooth (abre no docker Properties).png` |
+| Effects > Blur > Soften | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\047 Effects ▸ Blur ▸ Soften (abre no docker Properties).png` |
+| Effects > Blur > Zoom | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\048 Effects ▸ Blur ▸ Zoom (abre no docker Properties).png` |
 
 ### Effects > Camera
 
-0 done · 8 partial · 0 todo · 0 omitted
+6 done · 2 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Camera > Colorize | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\049 Effects ▸ Camera ▸ Colorize (abre no docker Properties).png` |
-| Effects > Camera > Diffuse | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\050 Effects ▸ Camera ▸ Diffuse (abre no docker Properties).png` |
-| Effects > Camera > Photo Filter | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\051 Effects ▸ Camera ▸ Photo Filter (abre no docker Properties).png` |
-| Effects > Camera > Lens Flare | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\052 Effects ▸ Camera ▸ Lens Flare (abre no docker Properties).png` |
-| Effects > Camera > Lighting Effects | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\053 Effects ▸ Camera ▸ Lighting Effects (abre no docker Properties).png` |
-| Effects > Camera > Sepia Toning | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\054 Effects ▸ Camera ▸ Sepia Toning (abre no docker Properties).png` |
-| Effects > Camera > Spot Filter | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\055 Effects ▸ Camera ▸ Spot Filter (abre no docker Properties).png` |
-| Effects > Camera > Time Machine | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\056 Effects ▸ Camera ▸ Time Machine (abre no docker Properties).png` |
+| Effects > Camera > Colorize | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\049 Effects ▸ Camera ▸ Colorize (abre no docker Properties).png` |
+| Effects > Camera > Diffuse | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\050 Effects ▸ Camera ▸ Diffuse (abre no docker Properties).png` |
+| Effects > Camera > Photo Filter | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\051 Effects ▸ Camera ▸ Photo Filter (abre no docker Properties).png` |
+| Effects > Camera > Lens Flare | bitmap | 🟡 partial | page as the reference; the flare center is picked on a simplified preview | `03-telas\bitmap\06 Effects\052 Effects ▸ Camera ▸ Lens Flare (abre no docker Properties).png` |
+| Effects > Camera > Lighting Effects | bitmap | 🟡 partial | page as the reference; the light cone preview is simplified | `03-telas\bitmap\06 Effects\053 Effects ▸ Camera ▸ Lighting Effects (abre no docker Properties).png` |
+| Effects > Camera > Sepia Toning | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\054 Effects ▸ Camera ▸ Sepia Toning (abre no docker Properties).png` |
+| Effects > Camera > Spot Filter | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\055 Effects ▸ Camera ▸ Spot Filter (abre no docker Properties).png` |
+| Effects > Camera > Time Machine | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\056 Effects ▸ Camera ▸ Time Machine (abre no docker Properties).png` |
 
 ### Effects > Color Transform
 
-0 done · 4 partial · 0 todo · 0 omitted
+4 done · 0 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Color Transform > Bit Planes | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\057 Effects ▸ Color Transform ▸ Bit Planes (abre no docker Properties).png` |
-| Effects > Color Transform > Halftone | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\058 Effects ▸ Color Transform ▸ Halftone (abre no docker Properties).png` |
-| Effects > Color Transform > Psychedelic | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\059 Effects ▸ Color Transform ▸ Psychedelic (abre no docker Properties).png` |
-| Effects > Color Transform > Solarize | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\060 Effects ▸ Color Transform ▸ Solarize (abre no docker Properties).png` |
+| Effects > Color Transform > Bit Planes | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\057 Effects ▸ Color Transform ▸ Bit Planes (abre no docker Properties).png` |
+| Effects > Color Transform > Halftone | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\058 Effects ▸ Color Transform ▸ Halftone (abre no docker Properties).png` |
+| Effects > Color Transform > Psychedelic | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\059 Effects ▸ Color Transform ▸ Psychedelic (abre no docker Properties).png` |
+| Effects > Color Transform > Solarize | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\060 Effects ▸ Color Transform ▸ Solarize (abre no docker Properties).png` |
 
 ### Effects > Contour
 
-0 done · 4 partial · 0 todo · 0 omitted
+4 done · 0 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Contour > Edge Detect | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\061 Effects ▸ Contour ▸ Edge Detect (abre no docker Properties).png` |
-| Effects > Contour > Find Edges | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\062 Effects ▸ Contour ▸ Find Edges (abre no docker Properties).png` |
-| Effects > Contour > Trace Contour | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\063 Effects ▸ Contour ▸ Trace Contour (abre no docker Properties).png` |
-| Effects > Contour > Local Equalization | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\064 Effects ▸ Contour ▸ Local Equalization (abre no docker Properties).png` |
+| Effects > Contour > Edge Detect | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\061 Effects ▸ Contour ▸ Edge Detect (abre no docker Properties).png` |
+| Effects > Contour > Find Edges | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\062 Effects ▸ Contour ▸ Find Edges (abre no docker Properties).png` |
+| Effects > Contour > Trace Contour | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\063 Effects ▸ Contour ▸ Trace Contour (abre no docker Properties).png` |
+| Effects > Contour > Local Equalization | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\064 Effects ▸ Contour ▸ Local Equalization (abre no docker Properties).png` |
 
 ### Effects > Correction
 
-0 done · 2 partial · 0 todo · 0 omitted
+2 done · 0 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Correction > Dust and Scratch | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\065 Effects ▸ Correction ▸ Dust and Scratch (abre no docker Properties).png` |
-| Effects > Correction > Tune Sharpen | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\066 Effects ▸ Correction ▸ Tune Sharpen (abre no docker Properties).png` |
+| Effects > Correction > Dust and Scratch | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\065 Effects ▸ Correction ▸ Dust and Scratch (abre no docker Properties).png` |
+| Effects > Correction > Tune Sharpen | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\066 Effects ▸ Correction ▸ Tune Sharpen (abre no docker Properties).png` |
 
 ### Effects > Creative
 
-0 done · 11 partial · 0 todo · 0 omitted
+9 done · 2 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Creative > Art Style | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\067 Effects ▸ Creative ▸ Art Style (abre no docker Properties).png` |
-| Effects > Creative > Crystalize | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\068 Effects ▸ Creative ▸ Crystalize (abre no docker Properties).png` |
-| Effects > Creative > Fabric | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\069 Effects ▸ Creative ▸ Fabric (abre no docker Properties).png` |
-| Effects > Creative > Frame | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\070 Effects ▸ Creative ▸ Frame (abre no docker Properties).png` |
-| Effects > Creative > Glass Block | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\071 Effects ▸ Creative ▸ Glass Block (abre no docker Properties).png` |
-| Effects > Creative > Mosaic | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\072 Effects ▸ Creative ▸ Mosaic (abre no docker Properties).png` |
-| Effects > Creative > Scatter | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\073 Effects ▸ Creative ▸ Scatter (abre no docker Properties).png` |
-| Effects > Creative > Smoked Glass | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\074 Effects ▸ Creative ▸ Smoked Glass (abre no docker Properties).png` |
-| Effects > Creative > Stained Glass | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\075 Effects ▸ Creative ▸ Stained Glass (abre no docker Properties).png` |
-| Effects > Creative > Vignette | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\076 Effects ▸ Creative ▸ Vignette (abre no docker Properties).png` |
-| Effects > Creative > Vortex | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\077 Effects ▸ Creative ▸ Vortex (abre no docker Properties).png` |
+| Effects > Creative > Art Style | bitmap | 🟡 partial | page as the reference; the styles are local filters, not AI | `03-telas\bitmap\06 Effects\067 Effects ▸ Creative ▸ Art Style (abre no docker Properties).png` |
+| Effects > Creative > Crystalize | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\068 Effects ▸ Creative ▸ Crystalize (abre no docker Properties).png` |
+| Effects > Creative > Fabric | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\069 Effects ▸ Creative ▸ Fabric (abre no docker Properties).png` |
+| Effects > Creative > Frame | bitmap | 🟡 partial | page as the reference; the frames are drawn by Vector (no CorelDRAW frame files) | `03-telas\bitmap\06 Effects\070 Effects ▸ Creative ▸ Frame (abre no docker Properties).png` |
+| Effects > Creative > Glass Block | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\071 Effects ▸ Creative ▸ Glass Block (abre no docker Properties).png` |
+| Effects > Creative > Mosaic | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\072 Effects ▸ Creative ▸ Mosaic (abre no docker Properties).png` |
+| Effects > Creative > Scatter | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\073 Effects ▸ Creative ▸ Scatter (abre no docker Properties).png` |
+| Effects > Creative > Smoked Glass | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\074 Effects ▸ Creative ▸ Smoked Glass (abre no docker Properties).png` |
+| Effects > Creative > Stained Glass | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\075 Effects ▸ Creative ▸ Stained Glass (abre no docker Properties).png` |
+| Effects > Creative > Vignette | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\076 Effects ▸ Creative ▸ Vignette (abre no docker Properties).png` |
+| Effects > Creative > Vortex | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\077 Effects ▸ Creative ▸ Vortex (abre no docker Properties).png` |
 
 ### Effects > Custom
 
-0 done · 3 partial · 0 todo · 0 omitted
+2 done · 1 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Custom > Band Pass | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\078 Effects ▸ Custom ▸ Band Pass (abre no docker Properties).png` |
-| Effects > Custom > Bump Map | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\079 Effects ▸ Custom ▸ Bump Map (abre no docker Properties).png` |
-| Effects > Custom > User Defined | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\080 Effects ▸ Custom ▸ User Defined (abre no docker Properties).png` |
+| Effects > Custom > Band Pass | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\078 Effects ▸ Custom ▸ Band Pass (abre no docker Properties).png` |
+| Effects > Custom > Bump Map | bitmap | 🟡 partial | page as the reference; the maps are drawn by Vector | `03-telas\bitmap\06 Effects\079 Effects ▸ Custom ▸ Bump Map (abre no docker Properties).png` |
+| Effects > Custom > User Defined | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\080 Effects ▸ Custom ▸ User Defined (abre no docker Properties).png` |
 
 ### Effects > Distort
 
-0 done · 12 partial · 0 todo · 0 omitted
+11 done · 1 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Distort > Blocks | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\081 Effects ▸ Distort ▸ Blocks (abre no docker Properties).png` |
-| Effects > Distort > Displace | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\082 Effects ▸ Distort ▸ Displace (abre no docker Properties).png` |
-| Effects > Distort > Mesh Warp | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\083 Effects ▸ Distort ▸ Mesh Warp (abre no docker Properties).png` |
-| Effects > Distort > Offset | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\084 Effects ▸ Distort ▸ Offset (abre no docker Properties).png` |
-| Effects > Distort > Pixelate | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\085 Effects ▸ Distort ▸ Pixelate (abre no docker Properties).png` |
-| Effects > Distort > Ripple | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\086 Effects ▸ Distort ▸ Ripple (abre no docker Properties).png` |
-| Effects > Distort > Shear | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\087 Effects ▸ Distort ▸ Shear (abre no docker Properties).png` |
-| Effects > Distort > Swirl | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\088 Effects ▸ Distort ▸ Swirl (abre no docker Properties).png` |
-| Effects > Distort > Tile | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\089 Effects ▸ Distort ▸ Tile (abre no docker Properties).png` |
-| Effects > Distort > Wet Paint | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\090 Effects ▸ Distort ▸ Wet Paint (abre no docker Properties).png` |
-| Effects > Distort > Whirlpool | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\091 Effects ▸ Distort ▸ Whirlpool (abre no docker Properties).png` |
-| Effects > Distort > Wind | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\092 Effects ▸ Distort ▸ Wind (abre no docker Properties).png` |
+| Effects > Distort > Blocks | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\081 Effects ▸ Distort ▸ Blocks (abre no docker Properties).png` |
+| Effects > Distort > Displace | bitmap | 🟡 partial | page as the reference; the displacement maps are drawn by Vector | `03-telas\bitmap\06 Effects\082 Effects ▸ Distort ▸ Displace (abre no docker Properties).png` |
+| Effects > Distort > Mesh Warp | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\083 Effects ▸ Distort ▸ Mesh Warp (abre no docker Properties).png` |
+| Effects > Distort > Offset | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\084 Effects ▸ Distort ▸ Offset (abre no docker Properties).png` |
+| Effects > Distort > Pixelate | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\085 Effects ▸ Distort ▸ Pixelate (abre no docker Properties).png` |
+| Effects > Distort > Ripple | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\086 Effects ▸ Distort ▸ Ripple (abre no docker Properties).png` |
+| Effects > Distort > Shear | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\087 Effects ▸ Distort ▸ Shear (abre no docker Properties).png` |
+| Effects > Distort > Swirl | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\088 Effects ▸ Distort ▸ Swirl (abre no docker Properties).png` |
+| Effects > Distort > Tile | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\089 Effects ▸ Distort ▸ Tile (abre no docker Properties).png` |
+| Effects > Distort > Wet Paint | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\090 Effects ▸ Distort ▸ Wet Paint (abre no docker Properties).png` |
+| Effects > Distort > Whirlpool | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\091 Effects ▸ Distort ▸ Whirlpool (abre no docker Properties).png` |
+| Effects > Distort > Wind | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\092 Effects ▸ Distort ▸ Wind (abre no docker Properties).png` |
 
 ### Effects > Noise
 
-0 done · 8 partial · 0 todo · 0 omitted
+8 done · 0 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Noise > Tune Noise | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\093 Effects ▸ Noise ▸ Tune Noise (abre no docker Properties).png` |
-| Effects > Noise > Add Noise | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\094 Effects ▸ Noise ▸ Add Noise (abre no docker Properties).png` |
-| Effects > Noise > 3-D Stereo Noise | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\095 Effects ▸ Noise ▸ 3-D Stereo Noise (abre no docker Properties).png` |
-| Effects > Noise > Maximum | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\096 Effects ▸ Noise ▸ Maximum (abre no docker Properties).png` |
-| Effects > Noise > Median | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\097 Effects ▸ Noise ▸ Median (abre no docker Properties).png` |
-| Effects > Noise > Minimum | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\098 Effects ▸ Noise ▸ Minimum (abre no docker Properties).png` |
-| Effects > Noise > Remove Moiré | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\099 Effects ▸ Noise ▸ Remove Moiré (abre no docker Properties).png` |
-| Effects > Noise > Remove Noise | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\100 Effects ▸ Noise ▸ Remove Noise (abre no docker Properties).png` |
+| Effects > Noise > Tune Noise | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\093 Effects ▸ Noise ▸ Tune Noise (abre no docker Properties).png` |
+| Effects > Noise > Add Noise | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\094 Effects ▸ Noise ▸ Add Noise (abre no docker Properties).png` |
+| Effects > Noise > 3-D Stereo Noise | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\095 Effects ▸ Noise ▸ 3-D Stereo Noise (abre no docker Properties).png` |
+| Effects > Noise > Maximum | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\096 Effects ▸ Noise ▸ Maximum (abre no docker Properties).png` |
+| Effects > Noise > Median | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\097 Effects ▸ Noise ▸ Median (abre no docker Properties).png` |
+| Effects > Noise > Minimum | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\098 Effects ▸ Noise ▸ Minimum (abre no docker Properties).png` |
+| Effects > Noise > Remove Moiré | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\099 Effects ▸ Noise ▸ Remove Moiré (abre no docker Properties).png` |
+| Effects > Noise > Remove Noise | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\100 Effects ▸ Noise ▸ Remove Noise (abre no docker Properties).png` |
 
 ### Effects > Sharpen
 
-0 done · 5 partial · 0 todo · 0 omitted
+5 done · 0 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Sharpen > Adaptive Unsharp | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\101 Effects ▸ Sharpen ▸ Adaptive Unsharp (abre no docker Properties).png` |
-| Effects > Sharpen > Directional Sharpen | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\102 Effects ▸ Sharpen ▸ Directional Sharpen (abre no docker Properties).png` |
-| Effects > Sharpen > High Pass | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\103 Effects ▸ Sharpen ▸ High Pass (abre no docker Properties).png` |
-| Effects > Sharpen > Sharpen | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\104 Effects ▸ Sharpen ▸ Sharpen (abre no docker Properties).png` |
-| Effects > Sharpen > Unsharp Mask | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\105 Effects ▸ Sharpen ▸ Unsharp Mask (abre no docker Properties).png` |
+| Effects > Sharpen > Adaptive Unsharp | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\101 Effects ▸ Sharpen ▸ Adaptive Unsharp (abre no docker Properties).png` |
+| Effects > Sharpen > Directional Sharpen | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\102 Effects ▸ Sharpen ▸ Directional Sharpen (abre no docker Properties).png` |
+| Effects > Sharpen > High Pass | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\103 Effects ▸ Sharpen ▸ High Pass (abre no docker Properties).png` |
+| Effects > Sharpen > Sharpen | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\104 Effects ▸ Sharpen ▸ Sharpen (abre no docker Properties).png` |
+| Effects > Sharpen > Unsharp Mask | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\105 Effects ▸ Sharpen ▸ Unsharp Mask (abre no docker Properties).png` |
 
 ### Effects > Texture
 
-0 done · 12 partial · 0 todo · 0 omitted
+11 done · 1 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Texture > Brick Wall | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\106 Effects ▸ Texture ▸ Brick Wall (abre no docker Properties).png` |
-| Effects > Texture > Bubbles | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\107 Effects ▸ Texture ▸ Bubbles (abre no docker Properties).png` |
-| Effects > Texture > Canvas | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\108 Effects ▸ Texture ▸ Canvas (abre no docker Properties).png` |
-| Effects > Texture > Cobblestone | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\109 Effects ▸ Texture ▸ Cobblestone (abre no docker Properties).png` |
-| Effects > Texture > Elephant Skin | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\110 Effects ▸ Texture ▸ Elephant Skin (abre no docker Properties).png` |
-| Effects > Texture > Etching | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\111 Effects ▸ Texture ▸ Etching (abre no docker Properties).png` |
-| Effects > Texture > Plastic | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\112 Effects ▸ Texture ▸ Plastic (abre no docker Properties).png` |
-| Effects > Texture > Plaster Wall | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\113 Effects ▸ Texture ▸ Plaster Wall (abre no docker Properties).png` |
-| Effects > Texture > Relief Sculpture | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\114 Effects ▸ Texture ▸ Relief Sculpture (abre no docker Properties).png` |
-| Effects > Texture > Screen Door | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\115 Effects ▸ Texture ▸ Screen Door (abre no docker Properties).png` |
-| Effects > Texture > Stone | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\116 Effects ▸ Texture ▸ Stone (abre no docker Properties).png` |
-| Effects > Texture > Underpainting | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\117 Effects ▸ Texture ▸ Underpainting (abre no docker Properties).png` |
+| Effects > Texture > Brick Wall | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\106 Effects ▸ Texture ▸ Brick Wall (abre no docker Properties).png` |
+| Effects > Texture > Bubbles | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\107 Effects ▸ Texture ▸ Bubbles (abre no docker Properties).png` |
+| Effects > Texture > Canvas | bitmap | 🟡 partial | page as the reference; the canvas textures are drawn by Vector | `03-telas\bitmap\06 Effects\108 Effects ▸ Texture ▸ Canvas (abre no docker Properties).png` |
+| Effects > Texture > Cobblestone | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\109 Effects ▸ Texture ▸ Cobblestone (abre no docker Properties).png` |
+| Effects > Texture > Elephant Skin | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\110 Effects ▸ Texture ▸ Elephant Skin (abre no docker Properties).png` |
+| Effects > Texture > Etching | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\111 Effects ▸ Texture ▸ Etching (abre no docker Properties).png` |
+| Effects > Texture > Plastic | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\112 Effects ▸ Texture ▸ Plastic (abre no docker Properties).png` |
+| Effects > Texture > Plaster Wall | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\113 Effects ▸ Texture ▸ Plaster Wall (abre no docker Properties).png` |
+| Effects > Texture > Relief Sculpture | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\114 Effects ▸ Texture ▸ Relief Sculpture (abre no docker Properties).png` |
+| Effects > Texture > Screen Door | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\115 Effects ▸ Texture ▸ Screen Door (abre no docker Properties).png` |
+| Effects > Texture > Stone | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\116 Effects ▸ Texture ▸ Stone (abre no docker Properties).png` |
+| Effects > Texture > Underpainting | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\117 Effects ▸ Texture ▸ Underpainting (abre no docker Properties).png` |
 
 ### Effects > Transform
 
-0 done · 3 partial · 0 todo · 0 omitted
+3 done · 0 partial · 0 todo · 0 omitted
 
 | Effect | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Effects > Transform > DeInterlace | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\118 Effects ▸ Transform ▸ DeInterlace (abre no docker Properties).png` |
-| Effects > Transform > Posterize | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\119 Effects ▸ Transform ▸ Posterize (abre no docker Properties).png` |
-| Effects > Transform > Threshold | bitmap | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\bitmap\06 Effects\120 Effects ▸ Transform ▸ Threshold (abre no docker Properties).png` |
+| Effects > Transform > DeInterlace | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\118 Effects ▸ Transform ▸ DeInterlace (abre no docker Properties).png` |
+| Effects > Transform > Posterize | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\119 Effects ▸ Transform ▸ Posterize (abre no docker Properties).png` |
+| Effects > Transform > Threshold | bitmap | ✅ done | page as the reference: fields, order, ranges and lists | `03-telas\bitmap\06 Effects\120 Effects ▸ Transform ▸ Threshold (abre no docker Properties).png` |
 
 ## Dockers
 

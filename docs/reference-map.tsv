@@ -218,3 +218,134 @@ dk_041.png	04-dockers/retangulo/041 Sources.png	Docker: Sources
 dk_042.png	04-dockers/retangulo/042 Views.png	Docker: Views
 dk_043.png	04-dockers/retangulo/043 History.png	Docker: History
 dk_044.png	04-dockers/retangulo/044 Scripts.png	Docker: Scripts
+fx_001_ThreeDRotate.png	03-telas/bitmap/06 Effects/001 Effects ▸ 3D Effects ▸ 3D Rotate (abre no docker Properties).png	Effect page: Effects > 3D Effects > 3D Rotate
+fx_002_Cylinder.png	03-telas/bitmap/06 Effects/002 Effects ▸ 3D Effects ▸ Cylinder (abre no docker Properties).png	Effect page: Effects > 3D Effects > Cylinder
+fx_003_Emboss.png	03-telas/bitmap/06 Effects/003 Effects ▸ 3D Effects ▸ Emboss (abre no docker Properties).png	Effect page: Effects > 3D Effects > Emboss
+fx_004_PageCurl.png	03-telas/bitmap/06 Effects/004 Effects ▸ 3D Effects ▸ Page Curl (abre no docker Properties).png	Effect page: Effects > 3D Effects > Page Curl
+fx_005_PinchPunch.png	03-telas/bitmap/06 Effects/005 Effects ▸ 3D Effects ▸ Pinch_Punch (abre no docker Properties).png	Effect page: Effects > 3D Effects > Pinch_Punch
+fx_006_Sphere.png	03-telas/bitmap/06 Effects/006 Effects ▸ 3D Effects ▸ Sphere (abre no docker Properties).png	Effect page: Effects > 3D Effects > Sphere
+fx_007_Zigzag.png	03-telas/bitmap/06 Effects/007 Effects ▸ 3D Effects ▸ Zig Zag (abre no docker Properties).png	Effect page: Effects > 3D Effects > Zig Zag
+fx_008_Equalize.png	03-telas/bitmap/06 Effects/008 Effects ▸ Adjust ▸ Levels (abre no docker Properties).png	Effect page: Effects > Adjust > Levels
+fx_009_HistogramEqualize.png	03-telas/bitmap/06 Effects/009 Effects ▸ Adjust ▸ Equalize (abre no docker Properties).png	Effect page: Effects > Adjust > Equalize
+fx_010_SampleTargetBalance.png	03-telas/bitmap/06 Effects/010 Effects ▸ Adjust ▸ Sample & Target (abre no docker Properties).png	Effect page: Effects > Adjust > Sample & Target
+fx_011_ToneCurve.png	03-telas/bitmap/06 Effects/011 Effects ▸ Adjust ▸ Tone Curve (abre no docker Properties).png	Effect page: Effects > Adjust > Tone Curve
+fx_012_SMH.png	03-telas/bitmap/06 Effects/012 Effects ▸ Adjust ▸ Light (abre no docker Properties).png	Effect page: Effects > Adjust > Light
+fx_013_ColorBalance.png	03-telas/bitmap/06 Effects/013 Effects ▸ Adjust ▸ Color Balance (abre no docker Properties).png	Effect page: Effects > Adjust > Color Balance
+fx_014_Gamma.png	03-telas/bitmap/06 Effects/014 Effects ▸ Adjust ▸ Gamma (abre no docker Properties).png	Effect page: Effects > Adjust > Gamma
+fx_015_TintTemp.png	03-telas/bitmap/06 Effects/015 Effects ▸ Adjust ▸ White Balance (abre no docker Properties).png	Effect page: Effects > Adjust > White Balance
+fx_016_HueSaturationLightness.png	03-telas/bitmap/06 Effects/016 Effects ▸ Adjust ▸ Hue_Saturation_Lightness (abre no docker Properties).png	Effect page: Effects > Adjust > Hue_Saturation_Lightness
+fx_017_Grayscale.png	03-telas/bitmap/06 Effects/017 Effects ▸ Adjust ▸ Black & White (abre no docker Properties).png	Effect page: Effects > Adjust > Black & White
+fx_018_Vibrance.png	03-telas/bitmap/06 Effects/018 Effects ▸ Adjust ▸ Vibrance (abre no docker Properties).png	Effect page: Effects > Adjust > Vibrance
+fx_019_SelectiveClr.png	03-telas/bitmap/06 Effects/019 Effects ▸ Adjust ▸ Selective Color (abre no docker Properties).png	Effect page: Effects > Adjust > Selective Color
+fx_020_ReplaceColorsV2.png	03-telas/bitmap/06 Effects/020 Effects ▸ Adjust ▸ Replace Colors (abre no docker Properties).png	Effect page: Effects > Adjust > Replace Colors
+fx_021_Desaturate.png	03-telas/bitmap/06 Effects/021 Effects ▸ Adjust ▸ Channel Mixer (abre no docker Properties).png	Effect page: Effects > Adjust > Channel Mixer
+fx_022_ChannelMixer.png	03-telas/bitmap/06 Effects/022 Effects ▸ Art Strokes ▸ Charcoal (abre no docker Properties).png	Effect page: Effects > Art Strokes > Charcoal
+fx_023_Charcoal.png	03-telas/bitmap/06 Effects/023 Effects ▸ Art Strokes ▸ Conté Crayon (abre no docker Properties).png	Effect page: Effects > Art Strokes > Conté Crayon
+fx_024_ConteCrayon.png	03-telas/bitmap/06 Effects/024 Effects ▸ Art Strokes ▸ Crayon (abre no docker Properties).png	Effect page: Effects > Art Strokes > Crayon
+fx_025_Crayon.png	03-telas/bitmap/06 Effects/025 Effects ▸ Art Strokes ▸ Cubist (abre no docker Properties).png	Effect page: Effects > Art Strokes > Cubist
+fx_026_Cubist.png	03-telas/bitmap/06 Effects/026 Effects ▸ Art Strokes ▸ Dabble (abre no docker Properties).png	Effect page: Effects > Art Strokes > Dabble
+fx_027_Dabble.png	03-telas/bitmap/06 Effects/027 Effects ▸ Art Strokes ▸ Impressionist (abre no docker Properties).png	Effect page: Effects > Art Strokes > Impressionist
+fx_028_Impressionist.png	03-telas/bitmap/06 Effects/028 Effects ▸ Art Strokes ▸ Palette Knife (abre no docker Properties).png	Effect page: Effects > Art Strokes > Palette Knife
+fx_029_PaletteKnife.png	03-telas/bitmap/06 Effects/029 Effects ▸ Art Strokes ▸ Pastels (abre no docker Properties).png	Effect page: Effects > Art Strokes > Pastels
+fx_030_Pastels.png	03-telas/bitmap/06 Effects/030 Effects ▸ Art Strokes ▸ Pen & Ink (abre no docker Properties).png	Effect page: Effects > Art Strokes > Pen & Ink
+fx_031_PenInk.png	03-telas/bitmap/06 Effects/031 Effects ▸ Art Strokes ▸ Pointillist (abre no docker Properties).png	Effect page: Effects > Art Strokes > Pointillist
+fx_032_Pointillist.png	03-telas/bitmap/06 Effects/032 Effects ▸ Art Strokes ▸ Scraperboard (abre no docker Properties).png	Effect page: Effects > Art Strokes > Scraperboard
+fx_033_ScraperBoard.png	03-telas/bitmap/06 Effects/033 Effects ▸ Art Strokes ▸ Sketch Pad (abre no docker Properties).png	Effect page: Effects > Art Strokes > Sketch Pad
+fx_034_SketchPad.png	03-telas/bitmap/06 Effects/034 Effects ▸ Art Strokes ▸ Watercolor (abre no docker Properties).png	Effect page: Effects > Art Strokes > Watercolor
+fx_035_Watercolor.png	03-telas/bitmap/06 Effects/035 Effects ▸ Art Strokes ▸ Water Marker (abre no docker Properties).png	Effect page: Effects > Art Strokes > Water Marker
+fx_036_WaterMarker.png	03-telas/bitmap/06 Effects/036 Effects ▸ Art Strokes ▸ Wave Paper (abre no docker Properties).png	Effect page: Effects > Art Strokes > Wave Paper
+fx_037_WavePaper.png	03-telas/bitmap/06 Effects/037 Effects ▸ Blur ▸ Tune Blur (abre no docker Properties).png	Effect page: Effects > Blur > Tune Blur
+fx_038_TuneBlur.png	03-telas/bitmap/06 Effects/038 Effects ▸ Blur ▸ Directional Smooth (abre no docker Properties).png	Effect page: Effects > Blur > Directional Smooth
+fx_039_DirectionalSmooth.png	03-telas/bitmap/06 Effects/039 Effects ▸ Blur ▸ Feather (abre no docker Properties).png	Effect page: Effects > Blur > Feather
+fx_040_Feather.png	03-telas/bitmap/06 Effects/040 Effects ▸ Blur ▸ Gaussian Blur (abre no docker Properties).png	Effect page: Effects > Blur > Gaussian Blur
+fx_041_GaussianBlur.png	03-telas/bitmap/06 Effects/041 Effects ▸ Blur ▸ Jaggy Despeckle (abre no docker Properties).png	Effect page: Effects > Blur > Jaggy Despeckle
+fx_042_JaggyDespeckle.png	03-telas/bitmap/06 Effects/042 Effects ▸ Blur ▸ Low Pass (abre no docker Properties).png	Effect page: Effects > Blur > Low Pass
+fx_043_LowPass.png	03-telas/bitmap/06 Effects/043 Effects ▸ Blur ▸ Motion Blur (abre no docker Properties).png	Effect page: Effects > Blur > Motion Blur
+fx_044_MotionBlur.png	03-telas/bitmap/06 Effects/044 Effects ▸ Blur ▸ Radial Blur (abre no docker Properties).png	Effect page: Effects > Blur > Radial Blur
+fx_045_RadialBlur.png	03-telas/bitmap/06 Effects/045 Effects ▸ Blur ▸ Smart Blur (abre no docker Properties).png	Effect page: Effects > Blur > Smart Blur
+fx_046_SmartBlur.png	03-telas/bitmap/06 Effects/046 Effects ▸ Blur ▸ Smooth (abre no docker Properties).png	Effect page: Effects > Blur > Smooth
+fx_047_Smooth.png	03-telas/bitmap/06 Effects/047 Effects ▸ Blur ▸ Soften (abre no docker Properties).png	Effect page: Effects > Blur > Soften
+fx_048_Soften.png	03-telas/bitmap/06 Effects/048 Effects ▸ Blur ▸ Zoom (abre no docker Properties).png	Effect page: Effects > Blur > Zoom
+fx_049_Zoom.png	03-telas/bitmap/06 Effects/049 Effects ▸ Camera ▸ Colorize (abre no docker Properties).png	Effect page: Effects > Camera > Colorize
+fx_050_Colorize.png	03-telas/bitmap/06 Effects/050 Effects ▸ Camera ▸ Diffuse (abre no docker Properties).png	Effect page: Effects > Camera > Diffuse
+fx_051_Diffuse.png	03-telas/bitmap/06 Effects/051 Effects ▸ Camera ▸ Photo Filter (abre no docker Properties).png	Effect page: Effects > Camera > Photo Filter
+fx_052_PhotoFilter.png	03-telas/bitmap/06 Effects/052 Effects ▸ Camera ▸ Lens Flare (abre no docker Properties).png	Effect page: Effects > Camera > Lens Flare
+fx_053_LensFlare.png	03-telas/bitmap/06 Effects/053 Effects ▸ Camera ▸ Lighting Effects (abre no docker Properties).png	Effect page: Effects > Camera > Lighting Effects
+fx_054_Lighting.png	03-telas/bitmap/06 Effects/054 Effects ▸ Camera ▸ Sepia Toning (abre no docker Properties).png	Effect page: Effects > Camera > Sepia Toning
+fx_055_Sepia.png	03-telas/bitmap/06 Effects/055 Effects ▸ Camera ▸ Spot Filter (abre no docker Properties).png	Effect page: Effects > Camera > Spot Filter
+fx_056_SpotFilter.png	03-telas/bitmap/06 Effects/056 Effects ▸ Camera ▸ Time Machine (abre no docker Properties).png	Effect page: Effects > Camera > Time Machine
+fx_057_TimeMachine.png	03-telas/bitmap/06 Effects/057 Effects ▸ Color Transform ▸ Bit Planes (abre no docker Properties).png	Effect page: Effects > Color Transform > Bit Planes
+fx_058_BitPlanes.png	03-telas/bitmap/06 Effects/058 Effects ▸ Color Transform ▸ Halftone (abre no docker Properties).png	Effect page: Effects > Color Transform > Halftone
+fx_059_Halftone.png	03-telas/bitmap/06 Effects/059 Effects ▸ Color Transform ▸ Psychedelic (abre no docker Properties).png	Effect page: Effects > Color Transform > Psychedelic
+fx_060_Psychedelic.png	03-telas/bitmap/06 Effects/060 Effects ▸ Color Transform ▸ Solarize (abre no docker Properties).png	Effect page: Effects > Color Transform > Solarize
+fx_061_Solarize.png	03-telas/bitmap/06 Effects/061 Effects ▸ Contour ▸ Edge Detect (abre no docker Properties).png	Effect page: Effects > Contour > Edge Detect
+fx_062_EdgeDetect.png	03-telas/bitmap/06 Effects/062 Effects ▸ Contour ▸ Find Edges (abre no docker Properties).png	Effect page: Effects > Contour > Find Edges
+fx_063_FindEdges.png	03-telas/bitmap/06 Effects/063 Effects ▸ Contour ▸ Trace Contour (abre no docker Properties).png	Effect page: Effects > Contour > Trace Contour
+fx_064_TraceContour.png	03-telas/bitmap/06 Effects/064 Effects ▸ Contour ▸ Local Equalization (abre no docker Properties).png	Effect page: Effects > Contour > Local Equalization
+fx_065_LocalEqualize.png	03-telas/bitmap/06 Effects/065 Effects ▸ Correction ▸ Dust and Scratch (abre no docker Properties).png	Effect page: Effects > Correction > Dust and Scratch
+fx_066_DustScratch.png	03-telas/bitmap/06 Effects/066 Effects ▸ Correction ▸ Tune Sharpen (abre no docker Properties).png	Effect page: Effects > Correction > Tune Sharpen
+fx_067_TuneSharpness.png	03-telas/bitmap/06 Effects/067 Effects ▸ Creative ▸ Art Style (abre no docker Properties).png	Effect page: Effects > Creative > Art Style
+fx_068_NNArtStyle.png	03-telas/bitmap/06 Effects/068 Effects ▸ Creative ▸ Crystalize (abre no docker Properties).png	Effect page: Effects > Creative > Crystalize
+fx_069_Crystallize.png	03-telas/bitmap/06 Effects/069 Effects ▸ Creative ▸ Fabric (abre no docker Properties).png	Effect page: Effects > Creative > Fabric
+fx_070_Fabric.png	03-telas/bitmap/06 Effects/070 Effects ▸ Creative ▸ Frame (abre no docker Properties).png	Effect page: Effects > Creative > Frame
+fx_071_Frame.png	03-telas/bitmap/06 Effects/071 Effects ▸ Creative ▸ Glass Block (abre no docker Properties).png	Effect page: Effects > Creative > Glass Block
+fx_072_GlassBlock.png	03-telas/bitmap/06 Effects/072 Effects ▸ Creative ▸ Mosaic (abre no docker Properties).png	Effect page: Effects > Creative > Mosaic
+fx_073_Mosaic.png	03-telas/bitmap/06 Effects/073 Effects ▸ Creative ▸ Scatter (abre no docker Properties).png	Effect page: Effects > Creative > Scatter
+fx_074_Scatter.png	03-telas/bitmap/06 Effects/074 Effects ▸ Creative ▸ Smoked Glass (abre no docker Properties).png	Effect page: Effects > Creative > Smoked Glass
+fx_075_SmokedGlass.png	03-telas/bitmap/06 Effects/075 Effects ▸ Creative ▸ Stained Glass (abre no docker Properties).png	Effect page: Effects > Creative > Stained Glass
+fx_076_StainedGlass.png	03-telas/bitmap/06 Effects/076 Effects ▸ Creative ▸ Vignette (abre no docker Properties).png	Effect page: Effects > Creative > Vignette
+fx_077_Vignette.png	03-telas/bitmap/06 Effects/077 Effects ▸ Creative ▸ Vortex (abre no docker Properties).png	Effect page: Effects > Creative > Vortex
+fx_078_Vortex.png	03-telas/bitmap/06 Effects/078 Effects ▸ Custom ▸ Band Pass (abre no docker Properties).png	Effect page: Effects > Custom > Band Pass
+fx_079_BandPass.png	03-telas/bitmap/06 Effects/079 Effects ▸ Custom ▸ Bump Map (abre no docker Properties).png	Effect page: Effects > Custom > Bump Map
+fx_080_BumpMap.png	03-telas/bitmap/06 Effects/080 Effects ▸ Custom ▸ User Defined (abre no docker Properties).png	Effect page: Effects > Custom > User Defined
+fx_081_UserDefined.png	03-telas/bitmap/06 Effects/081 Effects ▸ Distort ▸ Blocks (abre no docker Properties).png	Effect page: Effects > Distort > Blocks
+fx_082_Blocks.png	03-telas/bitmap/06 Effects/082 Effects ▸ Distort ▸ Displace (abre no docker Properties).png	Effect page: Effects > Distort > Displace
+fx_083_Displace.png	03-telas/bitmap/06 Effects/083 Effects ▸ Distort ▸ Mesh Warp (abre no docker Properties).png	Effect page: Effects > Distort > Mesh Warp
+fx_084_MeshWarp.png	03-telas/bitmap/06 Effects/084 Effects ▸ Distort ▸ Offset (abre no docker Properties).png	Effect page: Effects > Distort > Offset
+fx_085_Offset.png	03-telas/bitmap/06 Effects/085 Effects ▸ Distort ▸ Pixelate (abre no docker Properties).png	Effect page: Effects > Distort > Pixelate
+fx_086_Pixelate.png	03-telas/bitmap/06 Effects/086 Effects ▸ Distort ▸ Ripple (abre no docker Properties).png	Effect page: Effects > Distort > Ripple
+fx_087_Ripple.png	03-telas/bitmap/06 Effects/087 Effects ▸ Distort ▸ Shear (abre no docker Properties).png	Effect page: Effects > Distort > Shear
+fx_088_Shear.png	03-telas/bitmap/06 Effects/088 Effects ▸ Distort ▸ Swirl (abre no docker Properties).png	Effect page: Effects > Distort > Swirl
+fx_089_Swirl.png	03-telas/bitmap/06 Effects/089 Effects ▸ Distort ▸ Tile (abre no docker Properties).png	Effect page: Effects > Distort > Tile
+fx_090_Tile.png	03-telas/bitmap/06 Effects/090 Effects ▸ Distort ▸ Wet Paint (abre no docker Properties).png	Effect page: Effects > Distort > Wet Paint
+fx_091_WetPaint.png	03-telas/bitmap/06 Effects/091 Effects ▸ Distort ▸ Whirlpool (abre no docker Properties).png	Effect page: Effects > Distort > Whirlpool
+fx_092_Whirlpool.png	03-telas/bitmap/06 Effects/092 Effects ▸ Distort ▸ Wind (abre no docker Properties).png	Effect page: Effects > Distort > Wind
+fx_093_Wind.png	03-telas/bitmap/06 Effects/093 Effects ▸ Noise ▸ Tune Noise (abre no docker Properties).png	Effect page: Effects > Noise > Tune Noise
+fx_094_TuneNoise.png	03-telas/bitmap/06 Effects/094 Effects ▸ Noise ▸ Add Noise (abre no docker Properties).png	Effect page: Effects > Noise > Add Noise
+fx_095_AddNoise.png	03-telas/bitmap/06 Effects/095 Effects ▸ Noise ▸ 3-D Stereo Noise (abre no docker Properties).png	Effect page: Effects > Noise > 3-D Stereo Noise
+fx_096_ThreeDStereoNoise.png	03-telas/bitmap/06 Effects/096 Effects ▸ Noise ▸ Maximum (abre no docker Properties).png	Effect page: Effects > Noise > Maximum
+fx_097_Maximum.png	03-telas/bitmap/06 Effects/097 Effects ▸ Noise ▸ Median (abre no docker Properties).png	Effect page: Effects > Noise > Median
+fx_098_Median.png	03-telas/bitmap/06 Effects/098 Effects ▸ Noise ▸ Minimum (abre no docker Properties).png	Effect page: Effects > Noise > Minimum
+fx_099_Minimum.png	03-telas/bitmap/06 Effects/099 Effects ▸ Noise ▸ Remove Moiré (abre no docker Properties).png	Effect page: Effects > Noise > Remove Moiré
+fx_100_RemoveMoire.png	03-telas/bitmap/06 Effects/100 Effects ▸ Noise ▸ Remove Noise (abre no docker Properties).png	Effect page: Effects > Noise > Remove Noise
+fx_101_RemoveNoise.png	03-telas/bitmap/06 Effects/101 Effects ▸ Sharpen ▸ Adaptive Unsharp (abre no docker Properties).png	Effect page: Effects > Sharpen > Adaptive Unsharp
+fx_102_AdaptiveUnsharp.png	03-telas/bitmap/06 Effects/102 Effects ▸ Sharpen ▸ Directional Sharpen (abre no docker Properties).png	Effect page: Effects > Sharpen > Directional Sharpen
+fx_103_DirectionalSharpen.png	03-telas/bitmap/06 Effects/103 Effects ▸ Sharpen ▸ High Pass (abre no docker Properties).png	Effect page: Effects > Sharpen > High Pass
+fx_104_HighPass.png	03-telas/bitmap/06 Effects/104 Effects ▸ Sharpen ▸ Sharpen (abre no docker Properties).png	Effect page: Effects > Sharpen > Sharpen
+fx_105_Sharpen.png	03-telas/bitmap/06 Effects/105 Effects ▸ Sharpen ▸ Unsharp Mask (abre no docker Properties).png	Effect page: Effects > Sharpen > Unsharp Mask
+fx_106_UnsharpMask.png	03-telas/bitmap/06 Effects/106 Effects ▸ Texture ▸ Brick Wall (abre no docker Properties).png	Effect page: Effects > Texture > Brick Wall
+fx_107_BrickWall.png	03-telas/bitmap/06 Effects/107 Effects ▸ Texture ▸ Bubbles (abre no docker Properties).png	Effect page: Effects > Texture > Bubbles
+fx_108_Bubbles.png	03-telas/bitmap/06 Effects/108 Effects ▸ Texture ▸ Canvas (abre no docker Properties).png	Effect page: Effects > Texture > Canvas
+fx_109_Canvas.png	03-telas/bitmap/06 Effects/109 Effects ▸ Texture ▸ Cobblestone (abre no docker Properties).png	Effect page: Effects > Texture > Cobblestone
+fx_110_CobbleStone.png	03-telas/bitmap/06 Effects/110 Effects ▸ Texture ▸ Elephant Skin (abre no docker Properties).png	Effect page: Effects > Texture > Elephant Skin
+fx_111_ElephantSkin.png	03-telas/bitmap/06 Effects/111 Effects ▸ Texture ▸ Etching (abre no docker Properties).png	Effect page: Effects > Texture > Etching
+fx_112_Etching.png	03-telas/bitmap/06 Effects/112 Effects ▸ Texture ▸ Plastic (abre no docker Properties).png	Effect page: Effects > Texture > Plastic
+fx_113_Plastic.png	03-telas/bitmap/06 Effects/113 Effects ▸ Texture ▸ Plaster Wall (abre no docker Properties).png	Effect page: Effects > Texture > Plaster Wall
+fx_114_PlasterWall.png	03-telas/bitmap/06 Effects/114 Effects ▸ Texture ▸ Relief Sculpture (abre no docker Properties).png	Effect page: Effects > Texture > Relief Sculpture
+fx_115_ReliefSculpture.png	03-telas/bitmap/06 Effects/115 Effects ▸ Texture ▸ Screen Door (abre no docker Properties).png	Effect page: Effects > Texture > Screen Door
+fx_116_ScreenDoor.png	03-telas/bitmap/06 Effects/116 Effects ▸ Texture ▸ Stone (abre no docker Properties).png	Effect page: Effects > Texture > Stone
+fx_117_Stone.png	03-telas/bitmap/06 Effects/117 Effects ▸ Texture ▸ Underpainting (abre no docker Properties).png	Effect page: Effects > Texture > Underpainting
+fx_118_Underpainting.png	03-telas/bitmap/06 Effects/118 Effects ▸ Transform ▸ DeInterlace (abre no docker Properties).png	Effect page: Effects > Transform > DeInterlace
+fx_119_DeInterlace.png	03-telas/bitmap/06 Effects/119 Effects ▸ Transform ▸ Posterize (abre no docker Properties).png	Effect page: Effects > Transform > Posterize
+fx_120_Invert.png	03-telas/bitmap/06 Effects/120 Effects ▸ Transform ▸ Threshold (abre no docker Properties).png	Effect page: Effects > Transform > Threshold
+bm_01_convert_to_bitmap.png	03-telas/bitmap/07 Bitmaps/001 Bitmaps ▸ Convert to Bitmap.png	Bitmaps > Convert to Bitmap
+bm_02_straighten_image.png	03-telas/bitmap/07 Bitmaps/002 Bitmaps ▸ Straighten Image.png	Bitmaps > Straighten Image
+bm_03_image_adjustment_lab.png	03-telas/bitmap/07 Bitmaps/003 Bitmaps ▸ Image Adjustment Lab.png	Bitmaps > Image Adjustment Lab
+bm_05_resample.png	03-telas/bitmap/07 Bitmaps/005 Bitmaps ▸ Resample.png	Bitmaps > Resample
+bm_06_convert_to_1_bit.png	03-telas/bitmap/07 Bitmaps/006 Bitmaps ▸ Mode ▸ Black and White (1-bit).png	Bitmaps > Mode > Black and White (1-bit)
+bm_07_duotone.png	03-telas/bitmap/07 Bitmaps/007 Bitmaps ▸ Mode ▸ Duotone (8-bit).png	Bitmaps > Mode > Duotone (8-bit)
+bm_08_convert_to_paletted.png	03-telas/bitmap/07 Bitmaps/008 Bitmaps ▸ Mode ▸ Paletted (8-bit).png	Bitmaps > Mode > Paletted (8-bit)
+bm_09_inflate_bitmap.png	03-telas/bitmap/07 Bitmaps/009 Bitmaps ▸ Inflate Bitmap ▸ Manually Inflate Bitmap.png	Bitmaps > Inflate Bitmap > Manually Inflate Bitmap
+bm_11_centerline_technical.png	03-telas/bitmap/07 Bitmaps/011 Bitmaps ▸ Centerline Trace ▸ Technical Illustration.png	Bitmaps > Centerline Trace > Technical Illustration
+bm_13_outline_line_art.png	03-telas/bitmap/07 Bitmaps/013 Bitmaps ▸ Outline Trace ▸ Line Art.png	Bitmaps > Outline Trace > Line Art
+bm_16_outline_clipart.png	03-telas/bitmap/07 Bitmaps/016 Bitmaps ▸ Outline Trace ▸ Clipart.png	Bitmaps > Outline Trace > Clipart

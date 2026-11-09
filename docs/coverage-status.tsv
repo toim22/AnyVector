@@ -216,8 +216,8 @@ menu	Help > What's New?...	done	opens the Welcome Screen tab on What's New, as i
 dialog	Help > What's New (aba Welcome Screen)	done	Welcome Screen: Get Started, Workspace and What's New; Corel's training, store, trial and support entries left out
 menu	Tools > Options > CorelDRAW...	partial	Tools > Options > Vector...
 dialog	Tools > Options > CorelDRAW	partial	Options > Vector
-effect	Effects > 3D Effects > Pinch_Punch	partial	Pinch/Punch
-effect	Effects > Adjust > Hue_Saturation_Lightness	partial	Hue/Saturation/Lightness
+effect	Effects > 3D Effects > Pinch_Punch	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Adjust > Hue_Saturation_Lightness	done	page as the reference: fields, order, ranges and lists
 menu	Edit > Undo Apply Preset Guidelines	done	Undo names the last action
 menu	Edit > Repeat Apply Preset Guidelines	done	Repeat names the last action
 menu	View > <placeHolder >	partial	list filled at run time
@@ -496,7 +496,7 @@ dialog	Object > PowerClip > Copy PowerClip From	done	pick-target mode, as in the
 dialog	Object > Create > Arrowhead	done	checked against the reference
 dialog	Object > Create > Pattern Fill	done	checked against the reference
 dialog	Object > Perspective > Add Perspective	partial	envelope-style perspective (four corner handles)
-dialog	Object > Convert to Bitmap	partial	Convert to Bitmap dialog; checked again with the Bitmaps menu (batch 7)
+dialog	Object > Convert to Bitmap	done	as the reference (the Bitmaps menu dialog)
 dialog	Object > Rollover > Edit Rollover	done	Internet toolbar and Finish button
 dialog	Object > Symbol > Edit Master	done	edit in place with a Finish button
 dialog	Table > Create New Table	done	checked against the reference
@@ -653,3 +653,301 @@ menu	Window > Dockers > Sources	done	opens the docker (its status is in the Dock
 menu	Window > Dockers > Views	done	opens the docker (its status is in the Dockers table)
 menu	Window > Dockers > History	done	opens the docker (its status is in the Dockers table)
 menu	Window > Dockers > Scripts	done	opens the docker (its status is in the Dockers table)
+menu	Effects > Flatten Effects	done	each object with bitmap effects becomes a bitmap of how it looks
+menu	Effects > 3D Effects > 3D Rotate...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > 3D Effects > Cylinder...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > 3D Effects > Emboss...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > 3D Effects > Page Curl...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > 3D Effects > Pinch/Punch...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > 3D Effects > Sphere...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > 3D Effects > Zig Zag...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Adjust > Auto Adjust	done	the automatic correction of the Image Adjustment Lab
+menu	Effects > Adjust > Levels...	partial	page as the reference; the eyedroppers are missing
+menu	Effects > Adjust > Equalize...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Adjust > Sample & Target...	partial	page as the reference; the default targets are approximated
+menu	Effects > Adjust > Tone Curve...	partial	page as the reference; the eyedroppers are missing
+menu	Effects > Adjust > Light...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Adjust > Color Balance...	partial	page as the reference; the eyedroppers are missing
+menu	Effects > Adjust > Gamma...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Adjust > White Balance...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Adjust > Hue/Saturation/Lightness...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Adjust > Black & White...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Adjust > Vibrance...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Adjust > Selective Color...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Adjust > Replace Colors...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Adjust > Desaturate	done	as the reference
+menu	Effects > Adjust > Channel Mixer...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Art Strokes > Charcoal...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Art Strokes > Conté Crayon...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Art Strokes > Crayon...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Art Strokes > Cubist...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Art Strokes > Dabble...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Art Strokes > Impressionist...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Art Strokes > Palette Knife...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Art Strokes > Pastels...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Art Strokes > Pen & Ink...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Art Strokes > Pointillist...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Art Strokes > Scraperboard...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Art Strokes > Sketch Pad...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Art Strokes > Watercolor...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Art Strokes > Water Marker...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Art Strokes > Wave Paper...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Blur > Tune Blur...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Blur > Directional Smooth...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Blur > Feather...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Blur > Gaussian Blur...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Blur > Jaggy Despeckle...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Blur > Low Pass...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Blur > Motion Blur...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Blur > Radial Blur...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Blur > Smart Blur...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Blur > Smooth...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Blur > Soften...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Blur > Zoom...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Camera > Colorize...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Camera > Diffuse...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Camera > Photo Filter...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Camera > Lens Flare...	partial	page as the reference; the flare center is picked on a simplified preview
+menu	Effects > Camera > Lighting Effects...	partial	page as the reference; the light cone preview is simplified
+menu	Effects > Camera > Sepia Toning...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Camera > Spot Filter...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Camera > Time Machine...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Color Transform > Bit Planes...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Color Transform > Halftone...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Color Transform > Psychedelic...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Color Transform > Solarize...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Contour > Edge Detect...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Contour > Find Edges...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Contour > Trace Contour...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Contour > Local Equalization...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Correction > Dust and Scratch...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Correction > Tune Sharpen...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Creative > Art Style...	partial	page as the reference; the styles are local filters, not AI
+menu	Effects > Creative > Crystalize...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Creative > Fabric...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Creative > Frame...	partial	page as the reference; the frames are drawn by Vector (no CorelDRAW frame files)
+menu	Effects > Creative > Glass Block...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Creative > Mosaic...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Creative > Scatter...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Creative > Smoked Glass...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Creative > Stained Glass...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Creative > Vignette...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Creative > Vortex...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Custom > Band Pass...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Custom > Bump Map...	partial	page as the reference; the maps are drawn by Vector
+menu	Effects > Custom > User Defined...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Distort > Blocks...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Distort > Displace...	partial	page as the reference; the displacement maps are drawn by Vector
+menu	Effects > Distort > Mesh Warp...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Distort > Offset...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Distort > Pixelate...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Distort > Ripple...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Distort > Shear...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Distort > Swirl...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Distort > Tile...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Distort > Wet Paint...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Distort > Whirlpool...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Distort > Wind...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Noise > Tune Noise...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Noise > Add Noise...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Noise > 3-D Stereo Noise...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Noise > Maximum...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Noise > Median...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Noise > Minimum...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Noise > Remove Moiré...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Noise > Remove Noise...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Sharpen > Adaptive Unsharp...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Sharpen > Directional Sharpen...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Sharpen > High Pass...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Sharpen > Sharpen...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Sharpen > Unsharp Mask...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Texture > Brick Wall...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Texture > Bubbles...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Texture > Canvas...	partial	page as the reference; the canvas textures are drawn by Vector
+menu	Effects > Texture > Cobblestone...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Texture > Elephant Skin...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Texture > Etching...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Texture > Plastic...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Texture > Plaster Wall...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Texture > Relief Sculpture...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Texture > Screen Door...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Texture > Stone...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Texture > Underpainting...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Transform > DeInterlace...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Transform > Invert Colors	done	as the reference
+menu	Effects > Transform > Posterize...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Transform > Threshold...	done	opens the effect page in the Properties docker, as the reference
+menu	Effects > Artistic Media	done	as the reference
+menu	Effects > Bevel	done	as the reference
+menu	Effects > Blend	done	as the reference
+menu	Effects > Envelope	done	as the reference
+menu	Effects > Extrude	done	as the reference
+menu	Effects > Lens	done	as the reference
+menu	Effects > PhotoCocktail	done	as the reference
+menu	Effects > Pointillizer	done	as the reference
+menu	Bitmaps > Convert to Bitmap...	done	Convert To Bitmap dialog: resolution, color mode, dithering, overprint black, anti-aliasing, transparent background
+menu	Bitmaps > Straighten Image...	done	lens distortion, rotation, vertical and horizontal perspective, grid, crop
+menu	Bitmaps > Image Adjustment Lab...	done	temperature, tint, saturation, brightness, contrast, highlights, shadows, midtones, auto adjust, white and black points, rotation, snapshots, undo
+menu	Bitmaps > Remove JPEG Artifacts	done	smooths the 8×8 block edges
+menu	Bitmaps > Edit Bitmap...	done	opens the bitmap in the default image editor; saving it there updates it in Vector
+menu	Bitmaps > Remove Background	partial	removes the background color found at the borders; no AI
+menu	Bitmaps > Crop Bitmap	done	drops the pixels outside the crop
+menu	Bitmaps > Resample...	done	size, resolution, units, bicubic or nearest neighbor; the AI modes are disabled as in the reference
+menu	Bitmaps > Mode > Black and White (1-bit)...	done	Convert to 1 bit: the seven methods, halftone screens
+menu	Bitmaps > Mode > Grayscale (8-bit)	done	
+menu	Bitmaps > Mode > Duotone (8-bit)...	partial	monotone to quadtone with curves; no PANTONE library, the inks are approximate colors
+menu	Bitmaps > Mode > Paletted (8-bit)...	done	palettes, dithering, colors, range sensitivity, presets
+menu	Bitmaps > Mode > RGB Color (24-bit)	done	
+menu	Bitmaps > Mode > Lab Color (24-bit)	partial	records the color mode; the pixels stay RGB
+menu	Bitmaps > Mode > CMYK Color (32-bit)	partial	records the color mode; the pixels stay RGB
+menu	Bitmaps > Inflate Bitmap > Auto Inflate Bitmap	done	room around bitmaps for effects; off keeps effects inside the bitmap
+menu	Bitmaps > Inflate Bitmap > Manually Inflate Bitmap...	done	
+menu	Bitmaps > Break Link	done	the linked bitmap becomes embedded
+menu	Bitmaps > Update from Link	done	reloads the linked file
+menu	Bitmaps > Quick Trace	done	traces with the method of Options ▸ PowerTRACE
+menu	Bitmaps > Repeat Last Trace	done	
+menu	Bitmaps > Open Last Trace Settings...	done	
+menu	Bitmaps > Centerline Trace > Technical Illustration...	partial	PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample
+menu	Bitmaps > Centerline Trace > Line Drawing...	partial	PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample
+menu	Bitmaps > Outline Trace > Line Art...	partial	PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample
+menu	Bitmaps > Outline Trace > Logo...	partial	PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample
+menu	Bitmaps > Outline Trace > Detailed Logo...	partial	PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample
+menu	Bitmaps > Outline Trace > Clipart...	partial	PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample
+menu	Bitmaps > Outline Trace > Low Quality Image...	partial	PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample
+menu	Bitmaps > Outline Trace > High Quality Image...	partial	PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample
+menu	Bitmaps > Plug-ins > Not Installed	done	placeholder, as the reference when no plug-ins are installed
+menu	Bitmaps > Bitmap Mask	done	opens the Bitmap Mask docker
+dialog	Bitmaps > Convert to Bitmap	done	as the reference
+dialog	Bitmaps > Straighten Image	done	as the reference
+dialog	Bitmaps > Image Adjustment Lab	done	as the reference
+dialog	Bitmaps > Resample	done	as the reference
+dialog	Bitmaps > Mode > Black and White (1-bit)	done	as the reference
+dialog	Bitmaps > Mode > Duotone (8-bit)	partial	as the reference; no PANTONE library
+dialog	Bitmaps > Mode > Paletted (8-bit)	done	as the reference
+dialog	Bitmaps > Inflate Bitmap > Manually Inflate Bitmap	done	as the reference
+dialog	Bitmaps > Centerline Trace > Technical Illustration	partial	PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample
+dialog	Bitmaps > Centerline Trace > Line Drawing	partial	PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample
+dialog	Bitmaps > Outline Trace > Line Art	partial	PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample
+dialog	Bitmaps > Outline Trace > Logo	partial	PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample
+dialog	Bitmaps > Outline Trace > Detailed Logo	partial	PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample
+dialog	Bitmaps > Outline Trace > Clipart	partial	PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample
+dialog	Bitmaps > Outline Trace > Low Quality Image	partial	PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample
+dialog	Bitmaps > Outline Trace > High Quality Image	partial	PowerTRACE as the reference; Remove image background is not AI and the Upsample modes are a plain resample
+effect	Effects > 3D Effects > 3D Rotate	done	page as the reference: fields, order, ranges and lists
+effect	Effects > 3D Effects > Cylinder	done	page as the reference: fields, order, ranges and lists
+effect	Effects > 3D Effects > Emboss	done	page as the reference: fields, order, ranges and lists
+effect	Effects > 3D Effects > Page Curl	done	page as the reference: fields, order, ranges and lists
+effect	Effects > 3D Effects > Sphere	done	page as the reference: fields, order, ranges and lists
+effect	Effects > 3D Effects > Zig Zag	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Adjust > Levels	partial	page as the reference; the eyedroppers are missing
+effect	Effects > Adjust > Equalize	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Adjust > Sample & Target	partial	page as the reference; the default targets are approximated
+effect	Effects > Adjust > Tone Curve	partial	page as the reference; the eyedroppers are missing
+effect	Effects > Adjust > Light	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Adjust > Color Balance	partial	page as the reference; the eyedroppers are missing
+effect	Effects > Adjust > Gamma	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Adjust > White Balance	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Adjust > Black & White	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Adjust > Vibrance	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Adjust > Selective Color	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Adjust > Replace Colors	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Adjust > Channel Mixer	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Art Strokes > Charcoal	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Art Strokes > Conté Crayon	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Art Strokes > Crayon	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Art Strokes > Cubist	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Art Strokes > Dabble	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Art Strokes > Impressionist	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Art Strokes > Palette Knife	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Art Strokes > Pastels	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Art Strokes > Pen & Ink	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Art Strokes > Pointillist	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Art Strokes > Scraperboard	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Art Strokes > Sketch Pad	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Art Strokes > Watercolor	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Art Strokes > Water Marker	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Art Strokes > Wave Paper	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Blur > Tune Blur	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Blur > Directional Smooth	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Blur > Feather	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Blur > Gaussian Blur	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Blur > Jaggy Despeckle	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Blur > Low Pass	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Blur > Motion Blur	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Blur > Radial Blur	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Blur > Smart Blur	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Blur > Smooth	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Blur > Soften	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Blur > Zoom	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Camera > Colorize	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Camera > Diffuse	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Camera > Photo Filter	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Camera > Lens Flare	partial	page as the reference; the flare center is picked on a simplified preview
+effect	Effects > Camera > Lighting Effects	partial	page as the reference; the light cone preview is simplified
+effect	Effects > Camera > Sepia Toning	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Camera > Spot Filter	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Camera > Time Machine	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Color Transform > Bit Planes	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Color Transform > Halftone	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Color Transform > Psychedelic	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Color Transform > Solarize	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Contour > Edge Detect	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Contour > Find Edges	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Contour > Trace Contour	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Contour > Local Equalization	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Correction > Dust and Scratch	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Correction > Tune Sharpen	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Creative > Art Style	partial	page as the reference; the styles are local filters, not AI
+effect	Effects > Creative > Crystalize	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Creative > Fabric	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Creative > Frame	partial	page as the reference; the frames are drawn by Vector (no CorelDRAW frame files)
+effect	Effects > Creative > Glass Block	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Creative > Mosaic	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Creative > Scatter	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Creative > Smoked Glass	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Creative > Stained Glass	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Creative > Vignette	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Creative > Vortex	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Custom > Band Pass	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Custom > Bump Map	partial	page as the reference; the maps are drawn by Vector
+effect	Effects > Custom > User Defined	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Distort > Blocks	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Distort > Displace	partial	page as the reference; the displacement maps are drawn by Vector
+effect	Effects > Distort > Mesh Warp	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Distort > Offset	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Distort > Pixelate	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Distort > Ripple	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Distort > Shear	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Distort > Swirl	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Distort > Tile	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Distort > Wet Paint	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Distort > Whirlpool	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Distort > Wind	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Noise > Tune Noise	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Noise > Add Noise	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Noise > 3-D Stereo Noise	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Noise > Maximum	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Noise > Median	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Noise > Minimum	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Noise > Remove Moiré	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Noise > Remove Noise	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Sharpen > Adaptive Unsharp	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Sharpen > Directional Sharpen	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Sharpen > High Pass	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Sharpen > Sharpen	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Sharpen > Unsharp Mask	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Texture > Brick Wall	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Texture > Bubbles	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Texture > Canvas	partial	page as the reference; the canvas textures are drawn by Vector
+effect	Effects > Texture > Cobblestone	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Texture > Elephant Skin	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Texture > Etching	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Texture > Plastic	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Texture > Plaster Wall	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Texture > Relief Sculpture	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Texture > Screen Door	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Texture > Stone	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Texture > Underpainting	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Transform > DeInterlace	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Transform > Posterize	done	page as the reference: fields, order, ranges and lists
+effect	Effects > Transform > Threshold	done	page as the reference: fields, order, ranges and lists

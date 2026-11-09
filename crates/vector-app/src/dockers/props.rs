@@ -33,6 +33,10 @@ pub struct PropsUi {
     /// The selected bitmap effect.
     pub fx_sel: Option<usize>,
     pub fx_search: String,
+    /// The canvas is picking for effect `.0`: its center (`.1` empty) or the color setting `.1`.
+    pub fx_pick: Option<(usize, String)>,
+    /// The preset chosen on each effect's page (by effect id).
+    pub fx_preset: std::collections::HashMap<String, usize>,
     /// All sections in a column: the folded ones, and the section to scroll to.
     pub folded: [bool; 7],
     pub jump: bool,
@@ -51,6 +55,8 @@ impl Default for PropsUi {
             vo_node: None,
             fx_sel: None,
             fx_search: String::new(),
+            fx_pick: None,
+            fx_preset: Default::default(),
             folded: [false; 7],
             jump: false,
         }
@@ -207,7 +213,7 @@ pub fn color_edit(ui: &mut Ui, c: &mut Color, alpha: bool) -> bool {
 }
 
 /// Continuous edits (dragging a slider, a color viewer) make one undo step a second.
-fn edit_live(app: &mut VectorApp, label: &str, mut f: impl FnMut(&mut Object)) {
+pub(crate) fn edit_live(app: &mut VectorApp, label: &str, mut f: impl FnMut(&mut Object)) {
     let now = app.time();
     let merge = now - app.ts.last_coalesce < 1.0;
     app.ts.last_coalesce = now;
@@ -1964,21 +1970,8 @@ fn transparency(app: &mut VectorApp, ui: &mut Ui, o: &Object, st: &mut PropsUi) 
 /// The bitmap effect categories of the Add effect menu (those of the Effects menu).
 const FX_CATEGORIES: [&str; 14] = ["Adjust", "Art Strokes", "Blur", "Camera", "Color Transform", "Contour", "Correction", "Creative", "Custom", "Distort", "Noise", "Sharpen", "Texture", "Transform"];
 
-fn effect_name(e: &vector_core::object::BitmapEffect) -> &'static str {
-    use vector_core::object::BitmapEffect as B;
-    match e {
-        B::GaussianBlur { .. } => "Gaussian Blur",
-        B::Glow { .. } => "Glow",
-        B::Emboss { .. } => "Emboss",
-        B::Noise { .. } => "Add Noise",
-        B::Pixelate { .. } => "Pixelate",
-        B::Grayscale => "Grayscale",
-        B::Sepia => "Sepia",
-        B::Invert => "Invert",
-    }
-}
-
 fn effects(app: &mut VectorApp, ui: &mut Ui, o: &Object, st: &mut PropsUi) {
+    super::fxpage::take_pick(app, o, st);
     title(ui, "Bitmap Effects");
     ui.add_space(4.0);
     // presets
@@ -2006,10 +1999,13 @@ fn effects(app: &mut VectorApp, ui: &mut Ui, o: &Object, st: &mut PropsUi) {
                         continue;
                     }
                     ui.vertical(|ui| {
-                        let (tr, _) = ui.allocate_exact_size(vec2(58.0, 48.0), Sense::hover());
+                        let (tr, resp) = ui.allocate_exact_size(vec2(58.0, 48.0), Sense::click());
                         ui.painter().rect_filled(tr, 0.0, c);
                         ui.painter().rect_stroke(tr, 0.0, Stroke::new(1.0, Color32::from_gray(110)), egui::StrokeKind::Outside);
-                        ui.label(egui::RichText::new(name).size(11.0).color(theme::DISABLED));
+                        ui.label(egui::RichText::new(name).size(11.0).color(theme::TEXT));
+                        if resp.clicked() {
+                            st.fx_sel = apply_preset(app, name);
+                        }
                     });
                     k += 1;
                     if k % 2 == 0 {
@@ -2020,31 +2016,76 @@ fn effects(app: &mut VectorApp, ui: &mut Ui, o: &Object, st: &mut PropsUi) {
         });
     });
     ui.add_space(6.0);
-    // the effects of the object
+    // the effects of the object, in the order they are applied
     let list = o.effects.bitmap.clone();
-    let (lr, _) = ui.allocate_exact_size(vec2(w, 100.0), Sense::hover());
-    ui.painter().rect_filled(lr, 0.0, Color32::from_rgb(0x26, 0x26, 0x26));
-    ui.painter().rect_stroke(lr, 0.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Inside);
-    for (i, e) in list.iter().enumerate() {
-        let rr = Rect::from_min_size(lr.min + vec2(1.0, 1.0 + i as f32 * 22.0), vec2(lr.width() - 2.0, 22.0));
-        if rr.bottom() > lr.bottom() {
-            break;
-        }
-        let resp = ui.interact(rr, ui.scope_id().with(("pr_fx_row", i)), Sense::click());
-        if st.fx_sel == Some(i) {
-            ui.painter().rect_filled(rr, 0.0, theme::ACCENT);
-        } else if resp.hovered() {
-            ui.painter().rect_filled(rr, 0.0, theme::HOVER);
-        }
-        ui.painter().text(pos2(rr.left() + 8.0, rr.center().y), egui::Align2::LEFT_CENTER, effect_name(e), egui::FontId::proportional(12.5), theme::TEXT);
-        if resp.clicked() {
-            st.fx_sel = Some(i);
+    if st.fx_sel.is_some_and(|i| i >= list.len()) {
+        st.fx_sel = None;
+    }
+    let shown = st.fx_sel.or(list.len().checked_sub(1));
+    let drag_id = ui.scope_id().with("pr_fx_drag");
+    let mut drag: Option<usize> = ui.ctx().data(|d| d.get_temp(drag_id)).flatten();
+    let mut drop: Option<(usize, usize)> = None;
+    egui::Frame::new().fill(Color32::from_rgb(0x26, 0x26, 0x26)).stroke(Stroke::new(1.0, Color32::from_gray(0x5a))).inner_margin(1.0).show(ui, |ui| {
+        ui.set_width(w - 2.0);
+        ui.set_min_height(158.0);
+        egui::ScrollArea::vertical().id_salt("pr_fx_list").max_height(158.0).auto_shrink([false, true]).show(ui, |ui| {
+            ui.spacing_mut().item_spacing.y = 0.0;
+            let mut rows = vec![];
+            for (i, e) in list.iter().enumerate() {
+                let (rr, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 22.0), Sense::click_and_drag());
+                if st.fx_sel == Some(i) {
+                    ui.painter().rect_filled(rr, 0.0, theme::ACCENT);
+                } else if resp.hovered() {
+                    ui.painter().rect_filled(rr, 0.0, theme::HOVER);
+                }
+                let c = if e.enabled { theme::TEXT } else { theme::TEXT_DIM };
+                ui.painter().text(pos2(rr.left() + 6.0, rr.center().y), egui::Align2::LEFT_CENTER, crate::fx::name(e), egui::FontId::proportional(12.5), c);
+                if resp.clicked() {
+                    st.fx_sel = Some(i);
+                }
+                if resp.drag_started() {
+                    drag = Some(i);
+                }
+                rows.push(rr);
+            }
+            // dragging an effect up or down the list changes the order
+            if let Some(from) = drag {
+                match ui.ctx().pointer_interact_pos() {
+                    Some(p) => {
+                        let to = rows.iter().position(|r| p.y < r.center().y).unwrap_or(rows.len());
+                        if let Some(r) = rows.get(to.min(rows.len().saturating_sub(1))) {
+                            let y = if to < rows.len() { r.top() } else { r.bottom() };
+                            ui.painter().line_segment([pos2(r.left(), y), pos2(r.right(), y)], Stroke::new(2.0, theme::ACCENT));
+                        }
+                        if ui.ctx().input(|i| i.pointer.any_released()) {
+                            drop = Some((from, to));
+                            drag = None;
+                        }
+                    }
+                    None => drag = None,
+                }
+            }
+        });
+    });
+    ui.ctx().data_mut(|d| d.insert_temp(drag_id, drag));
+    if let Some((from, to)) = drop {
+        let to = if to > from { to - 1 } else { to };
+        if to != from && from < list.len() {
+            edit_sel(app, "Effect Order", |x| {
+                if from < x.effects.bitmap.len() {
+                    let e = x.effects.bitmap.remove(from);
+                    let t = to.min(x.effects.bitmap.len());
+                    x.effects.bitmap.insert(t, e);
+                }
+            });
+            st.fx_sel = Some(to);
+            st.fx_pick = None;
         }
     }
     ui.add_space(4.0);
     ui.horizontal(|ui| {
         ui.set_width(w);
-        let add = super::icon_button_resp(app, ui, "add_circle", "Add effect", true);
+        let add = super::icon_button_resp(app, ui, "plus", "Add effect", true);
         egui::Popup::menu(&add).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
             ui.set_min_width(160.0);
             if let Some((_, b)) = crate::ui::bar_named("21cd018a-87c1-476c-9a98-a8e36b9c479e") {
@@ -2057,7 +2098,7 @@ fn effects(app: &mut VectorApp, ui: &mut Ui, o: &Object, st: &mut PropsUi) {
             }
         });
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            let sel = st.fx_sel.filter(|i| *i < list.len());
+            let sel = shown.filter(|i| *i < list.len());
             if super::icon_button(app, ui, "delete", "Delete effect", sel.is_some()) {
                 if let Some(i) = sel {
                     edit_sel(app, "Delete Effect", |x| {
@@ -2066,10 +2107,35 @@ fn effects(app: &mut VectorApp, ui: &mut Ui, o: &Object, st: &mut PropsUi) {
                         }
                     });
                     st.fx_sel = None;
+                    st.fx_pick = None;
                 }
             }
         });
     });
+    // the page of the effect selected in the list (else the last one)
+    if let Some(i) = shown.filter(|i| *i < list.len()) {
+        ui.add_space(6.0);
+        ui.push_id(("pr_fx_page", i, list[i].id.as_str()), |ui| super::fxpage::effect_page(app, ui, o, i, st));
+    }
+}
+
+/// The adjustment presets of the Presets list, added as a Tone Curve; gives the new effect's place.
+fn apply_preset(app: &mut VectorApp, name: &str) -> Option<usize> {
+    let pts: &[f64] = match name {
+        "Bright Midtones" => &[0.0, 0.0, 128.0, 168.0, 255.0, 255.0],
+        "Dark Midtones" => &[0.0, 0.0, 128.0, 88.0, 255.0, 255.0],
+        "High Contrast" => &[0.0, 0.0, 64.0, 40.0, 192.0, 216.0, 255.0, 255.0],
+        _ => &[0.0, 32.0, 255.0, 223.0],
+    };
+    let def = crate::fx::by_id("ToneCurve")?;
+    let mut e = def.create();
+    e.set("Curve0", vector_core::object::FxValue::List(pts.to_vec()));
+    let mut at = None;
+    edit_sel(app, name, |x| {
+        x.effects.bitmap.push(e.clone());
+        at = Some(x.effects.bitmap.len() - 1);
+    });
+    at
 }
 
 // ------------------------------------------------------------------------------ object

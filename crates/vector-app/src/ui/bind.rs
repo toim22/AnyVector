@@ -233,6 +233,7 @@ pub fn cmd(id: &str) -> Option<Cmd> {
         "29579c22" => Node(No::Elastic),
         "9388e24a" => ClearTransformations,
         "655a2e5f" => ClearEffect,
+        "6dda0e64" => FlattenEffects,
         "2660e67c" => Align(Al::Left),
         "ef51f807" => Align(Al::Right),
         "d31c41f7" => Align(Al::Top),
@@ -303,7 +304,33 @@ pub fn cmd(id: &str) -> Option<Cmd> {
         "f9d61ad8" => AutoAdjust,
         "f85cb8c1" => ResampleBitmap,
         "d207991b" => QuickTrace,
-        "465261a5" | "f7b939cd" | "21129fee" | "af57ed80" | "55a3ae58" | "3298c91b" => OutlineTrace,
+        "465261a5" => OutlineTrace(0),
+        "f7b939cd" => OutlineTrace(1),
+        "21129fee" => OutlineTrace(2),
+        "af57ed80" => OutlineTrace(3),
+        "55a3ae58" => OutlineTrace(4),
+        "3298c91b" => OutlineTrace(5),
+        "1044c10b" => CenterlineTrace(0),
+        "5b036050" => CenterlineTrace(1),
+        "0258983a" => RepeatLastTrace,
+        "726c629a" => OpenLastTraceSettings,
+        "632996de" => StraightenImage,
+        "1aaa4018" => ImageAdjustmentLab,
+        "18ae168e" => RemoveJpegArtifacts,
+        "8c5788af" => EditBitmap,
+        "dd03eeb6" => RemoveBackground,
+        "b2f431a3" => CropBitmap,
+        "256c8079" => BitmapMode(0),
+        "e27f34c1" => BitmapMode(1),
+        "fa741d10" => BitmapMode(2),
+        "1c3e5c32" => BitmapMode(3),
+        "b2394c63" => BitmapMode(4),
+        "e540b312" => BitmapMode(5),
+        "6ec34929" => BitmapMode(6),
+        "aae3b767" => AutoInflateBitmap,
+        "0a2d0181" => ManualInflateBitmap,
+        "4917fa89" => BitmapBreakLink,
+        "118cd7c2" => BitmapUpdateLink,
         // Text
         "d14b05d4" => EditText,
         "7f650d0c" => ConvertText,
@@ -469,7 +496,8 @@ pub fn cmd(id: &str) -> Option<Cmd> {
         "9d6638c8" => ApplyToStyle,
         "d0987a09" => RevertToStyle,
         "61d08529" => BreakStyleLink,
-        _ => return None,
+        // Effects ▸ the bitmap effects (their table names the menu items)
+        _ => return crate::fx::by_guid(&k).map(|(i, _)| BitmapEffect(i as u8)),
     })
 }
 
@@ -557,6 +585,9 @@ pub fn checked(app: &VectorApp, id: &str) -> Option<bool> {
         Cmd::ToggleHyphenation => Some(app.doc().is_some() && crate::dialogs::text::first_text(app).hyphenate),
         Cmd::AlignToBaselineGrid => Some(app.doc().is_some() && crate::dialogs::text::first_text(app).align_grid),
         Cmd::MakeWebCompatible => Some(app.doc().is_some() && crate::dialogs::text::first_text(app).web),
+        // Bitmaps ▸ Mode: the mode of the selected bitmap; Inflate Bitmap ▸ Auto Inflate
+        Cmd::BitmapMode(m) => Some(crate::dialogs::bitmaps::selected_mode(app) == Some(m)),
+        Cmd::AutoInflateBitmap => Some(app.doc().is_some_and(|d| !d.doc.bitmap_no_inflate)),
         _ => None,
     }
 }
@@ -668,6 +699,12 @@ pub fn enabled(app: &VectorApp, id: &str) -> Option<bool> {
         Cmd::WelcomeScreen | Cmd::About | Cmd::Feedback => true,
         Cmd::Node(op) => node_enabled(app, op),
         Cmd::PrintMergeEdit => d.is_some_and(|d| d.doc.print_merge.is_some()),
+        // Bitmaps
+        Cmd::RepeatLastTrace | Cmd::OpenLastTraceSettings => one_is(|k| matches!(k, ObjKind::Image(_))) && app.dialogs.bm.last_trace.is_some(),
+        Cmd::CropBitmap => sel == 1 && crate::dialogs::bitmaps::is_cropped(app),
+        Cmd::BitmapBreakLink | Cmd::BitmapUpdateLink => sel == 1 && crate::dialogs::bitmaps::link_of(app).is_some(),
+        Cmd::BitmapMode(m) => sel == 1 && crate::dialogs::bitmaps::selected_mode(app).is_some_and(|c| c != m),
+        Cmd::AutoInflateBitmap => d.is_some(),
         Cmd::PrintMergePerform | Cmd::PrintMergeNewDoc => d.is_some_and(|d| d.doc.print_merge.as_ref().is_some_and(|m| m.records.iter().any(|r| r.selected))),
         _ => return None,
     })
