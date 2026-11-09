@@ -1970,10 +1970,47 @@ impl VectorApp {
             }
 
             // ------------------------------------------------------------------ Text
-            Cmd::EditText => {
-                self.set_tool(ToolId::Text);
-                self.dockers.show(DockerId::Text);
+            Cmd::EditText => match crate::dialogs::text::EditTextState::new(self) {
+                Some(st) => self.dialogs.edit_text = Some(st),
+                None => {
+                    self.set_tool(ToolId::Text);
+                    self.dockers.show(DockerId::Text);
+                }
+            },
+            Cmd::TextTabs => self.dialogs.tabs = Some(crate::dialogs::text::TabsState::new(self)),
+            Cmd::TextColumns => self.dialogs.columns = Some(crate::dialogs::text::ColumnsState::new(self)),
+            Cmd::TextBullets => self.dialogs.bullets = Some(crate::dialogs::text::BulletsState::new(self)),
+            Cmd::TextDropCap => self.dialogs.drop_cap = Some(crate::dialogs::text::DropCapState::new(self)),
+            Cmd::TextStatistics => self.dialogs.text_stats = Some(crate::dialogs::text::StatsState { styles: true }),
+            Cmd::CustomHyphens => self.dialogs.hyphens = Some(crate::dialogs::text::HyphensState::new(self)),
+            Cmd::InsertFormatCode(k) => {
+                if self.doc().is_some_and(|d| d.text_edit.is_some()) {
+                    crate::tools::insert_text(self, &crate::dialogs::text::format_code(k).to_string(), None);
+                }
             }
+            Cmd::ToggleNonPrinting => self.settings.show_nonprinting = !self.settings.show_nonprinting,
+            Cmd::ToggleTextFrames => self.settings.show_text_frames = !self.settings.show_text_frames,
+            Cmd::FitTextToFrame => crate::dialogs::text::fit_text_to_frame(self),
+            Cmd::InsertPlaceholder => crate::dialogs::text::insert_placeholder(self),
+            Cmd::CreateEmptyFrame => crate::dialogs::text::create_empty_frame(self),
+            Cmd::LinkFrames => crate::dialogs::text::link_frames(self),
+            Cmd::UnlinkFrames => crate::dialogs::text::unlink_frames(self),
+            Cmd::AlignToBaseline => crate::dialogs::text::align_to_baseline(self),
+            Cmd::AlignToBaselineGrid => crate::dialogs::text::toggle_para(self, "Align to Baseline Grid", |t| t.align_grid, |t, v| t.align_grid = v),
+            Cmd::ToggleHyphenation => crate::dialogs::text::toggle_para(self, "Hyphenation", |t| t.hyphenate, |t, v| t.hyphenate = v),
+            Cmd::MakeWebCompatible => crate::dialogs::text::toggle_para(self, "Make Text Web Compatible", |t| t.web, |t, v| t.web = v),
+            Cmd::WritingTools(k) => self.dialogs.writing = Some(crate::dialogs::text::WritingState::new(self, k as usize)),
+            Cmd::QuickCorrect => {
+                self.open_options(OptionsPage::App, Some("Text"));
+                self.dialogs.options.tab = 4;
+            }
+            Cmd::WritingToolsSettings => {
+                self.open_options(OptionsPage::App, Some("Text"));
+                self.dialogs.options.tab = 3;
+            }
+            Cmd::TextLanguage => self.dialogs.text_lang = Some(crate::dialogs::text::LanguageState::new(self)),
+            Cmd::ChangeCaseDialog => self.dialogs.change_case = Some(0),
+            Cmd::EncodeText => self.dialogs.encode = Some(crate::dialogs::text::EncodeState::new(self)),
             Cmd::FitTextToPath => {
                 let sel = self.sel();
                 let pair = self.doc().and_then(|d| {
@@ -2020,29 +2057,7 @@ impl VectorApp {
             }),
             Cmd::InsertGlyph => self.dockers.show(DockerId::Glyphs),
             Cmd::ChangeCase(m) => self.change_case(m),
-            Cmd::SpellCheck => {
-                let mut words = 0;
-                let mut repeated = vec![];
-                if let Some(d) = self.doc() {
-                    for p in &d.doc.pages {
-                        for o in p.all_objects() {
-                            o.walk(&mut |x| {
-                                if let ObjKind::Text(t) = &x.kind {
-                                    let ws: Vec<String> = t.content.split_whitespace().map(|w| w.trim_matches(|c: char| !c.is_alphanumeric()).to_lowercase()).collect();
-                                    words += ws.len();
-                                    for w in ws.windows(2) {
-                                        if w[0] == w[1] && !w[0].is_empty() {
-                                            repeated.push(w[0].clone());
-                                        }
-                                    }
-                                }
-                            });
-                        }
-                    }
-                }
-                let msg = if repeated.is_empty() { format!("Spell check complete. {words} words checked, no repeated words found.") } else { format!("Spell check complete. {words} words checked.\nRepeated words: {}", repeated.join(", ")) };
-                self.info_box("Spell Check", &msg);
-            }
+            Cmd::SpellCheck => self.dialogs.writing = Some(crate::dialogs::text::WritingState::new(self, 0)),
 
             // ------------------------------------------------------------------ Table
             Cmd::CreateTable => {

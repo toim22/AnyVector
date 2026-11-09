@@ -141,6 +141,39 @@ its status in Vector.
   AI Generate items the reference shows with nothing selected. All 462 reference menus again have the same number
   of rows in Vector.
 
+**Batch 4 (Text menu), done:**
+
+- Every Text item runs except Line-Breaking Rules (East Asian rules; the reference hides it outside East Asian
+  languages). Text and Glyphs open their dockers, which are checked in batch 6.
+- Paragraph layout was rewritten:
+  - Tabs: left, right, center and decimal stops with dot leaders (Tab Settings and Leader Settings dialogs).
+  - Columns: equal or custom widths and gutters (Column Settings).
+  - Bullets and Numbering: any glyph of a font, 16 numbering styles and nine levels.
+  - Drop Cap: plain or with a hanging indent.
+  - Automatic hyphenation (US English patterns, with hot zone and capitals rules), Optional Hyphens and Custom
+    Optional Hyphens.
+  - Align to Baseline Grid, and frames in the shape of an object (Create Empty Text Frame).
+  - Text that does not fit no longer draws below the frame. The frame turns red, as in the reference.
+- Linked frames: Link makes the text flow from one frame into the next. Unlink leaves each frame with the text it
+  shows. Typing in any frame of a chain edits the shared text. Column/Frame Break sends the rest to the next column
+  or frame.
+- Writing Tools use the spell checker built into Windows:
+  - Spell Check: Replace, Auto Replace, Skip Once, Skip All, Add, Undo, Options and the language.
+  - Grammatik: spelling, repeated words, capitals, a/an, spacing and punctuation.
+  - Thesaurus: synonyms from WordNet. Antonyms and the other relations are not available, so Thesaurus stays
+    partial.
+  - Language: the reference's 125 languages; tags the selected characters.
+  - Words the dictionary does not know get a red zigzag on the page (Options ▸ Text ▸ Spelling).
+- QuickCorrect works as you type: replacement list, capitals, day names, two initial capitals, and typographic
+  quotes in the styles chosen in Options.
+- Other Text items:
+  - Edit Text: font, size, B/I/U, alignment, non-printing characters, zoom, Import and Change Case.
+  - Change Case, Text Statistics, Encode (every Windows code page, with preview), Fit Text to Frame (paragraph
+    text and tables), Insert Placeholder Text (frames and table cells) and Align to Baseline.
+  - Show Non-Printing Characters, Show Text Frames and Make Text Web-compatible. Make Text Web-compatible is kept
+    with the text; Vector has no HTML export yet.
+- Tables: with the Table tool, typing goes into the chosen cell. Tab and Shift+Tab move between cells.
+
 ## Working (verified by build and tests)
 
 - Full workspace compiles. Unit tests pass for:

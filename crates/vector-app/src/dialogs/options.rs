@@ -1165,11 +1165,9 @@ fn text(app: &mut VectorApp, ui: &mut Ui) {
             });
             ui.horizontal(|ui| {
                 label_w(ui, "Spelling suggestions:", 150.0);
-                let mut n = 0u32;
-                spin_u32(ui, &mut n, 0..=10);
+                spin_u32(ui, &mut s.spell_suggestions, 0..=10);
             });
-            let mut a = false;
-            ui.checkbox(&mut a, "Add corrections to QuickCorrect");
+            ui.checkbox(&mut s.spell_add_to_quickcorrect, "Add corrections to QuickCorrect");
             let mut b = false;
             ui.checkbox(&mut b, "Show errors which have been ignored");
         }
@@ -1190,25 +1188,26 @@ fn quickcorrect(app: &mut VectorApp, ui: &mut Ui) {
         combo(ui, "qc_lang", &mut i, &["English (United States)"], 200.0);
     });
     ui.checkbox(&mut s.typographic_quotes, "Change straight quotes to typographic quotes");
-    let mut after_num = false;
-    ui.checkbox(&mut after_num, "Use straight quotation marks after numbers (e.g. 6')");
+    ui.checkbox(&mut s.straight_after_numbers, "Use straight quotation marks after numbers (e.g. 6')");
+    let quote = |ui: &mut Ui, id: &str, cur: &mut String, opts: &[&str]| {
+        let mut i = opts.iter().position(|o| *o == cur.as_str()).unwrap_or(0);
+        if combo(ui, id, &mut i, opts, 30.0) {
+            *cur = opts[i].to_string();
+        }
+    };
     ui.label("Single Quotes:");
     ui.horizontal(|ui| {
         ui.label("Open:");
-        let mut a = 0;
-        combo(ui, "sq_o", &mut a, &["‘", "'", "‚", "‹", "›"], 30.0);
+        quote(ui, "sq_o", &mut s.quote_single.0, &["‘", "'", "‚", "‹", "›"]);
         ui.label("Close:");
-        let mut b = 0;
-        combo(ui, "sq_c", &mut b, &["’", "'", "‘", "›", "‹"], 30.0);
+        quote(ui, "sq_c", &mut s.quote_single.1, &["’", "'", "‘", "›", "‹"]);
     });
     ui.label("Double Quotes:");
     ui.horizontal(|ui| {
         ui.label("Open:");
-        let mut a = 0;
-        combo(ui, "dq_o", &mut a, &["“", "\"", "„", "«", "»"], 30.0);
+        quote(ui, "dq_o", &mut s.quote_double.0, &["“", "\"", "„", "«", "»"]);
         ui.label("Close:");
-        let mut b = 0;
-        combo(ui, "dq_c", &mut b, &["”", "\"", "“", "»", "«"], 30.0);
+        quote(ui, "dq_c", &mut s.quote_double.1, &["”", "\"", "“", "»", "«"]);
     });
     separator(ui);
     heading(ui, "Replacement text");

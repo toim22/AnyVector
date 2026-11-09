@@ -2,7 +2,7 @@ Vector is built with the open-source components listed below.
 Each one is used under the license shown next to it. The license texts
 are published with each component at the address given.
 
-279 components. Licenses used:
+288 components. Licenses used:
   (MIT OR Apache-2.0) AND OFL-1.1 AND Ubuntu-font-1.0: 1
   (MIT OR Apache-2.0) AND Unicode-3.0: 2
   0BSD OR MIT OR Apache-2.0: 1
@@ -12,7 +12,7 @@ are published with each component at the address given.
   Apache-2.0 OR GPL-2.0-only: 1
   Apache-2.0 OR ISC OR MIT: 1
   Apache-2.0 OR MIT: 28
-  Apache-2.0/MIT: 2
+  Apache-2.0/MIT: 4
   BSD-2-Clause: 1
   BSD-2-Clause OR Apache-2.0 OR MIT: 2
   BSD-3-Clause: 3
@@ -22,8 +22,8 @@ are published with each component at the address given.
   CC0-1.0 OR MIT-0 OR Apache-2.0: 1
   CDLA-Permissive-2.0: 1
   ISC: 3
-  MIT: 34
-  MIT OR Apache-2.0: 138
+  MIT: 38
+  MIT OR Apache-2.0: 139
   MIT OR Apache-2.0 OR Zlib: 5
   MIT OR Zlib OR Apache-2.0: 2
   MIT/Apache-2.0: 7
@@ -31,7 +31,8 @@ are published with each component at the address given.
   MPL-2.0+: 1
   Unicode-3.0: 18
   Unlicense OR MIT: 4
-  Zlib: 3
+  Unlicense/MIT: 1
+  Zlib: 4
   Zlib OR Apache-2.0 OR MIT: 3
 
 accesskit 0.25.2
@@ -49,6 +50,9 @@ accesskit_winit 0.34.2
 adler2 2.0.1
     License: 0BSD OR MIT OR Apache-2.0
     https://github.com/oyvindln/adler2
+adler32 1.2.0
+    License: Zlib
+    https://github.com/remram44/adler32-rs
 ahash 0.8.12
     License: MIT OR Apache-2.0
     https://github.com/tkaitchuck/ahash
@@ -70,6 +74,9 @@ ash 0.38.0+1.3.281
 base64 0.23.1
     License: MIT OR Apache-2.0
     https://github.com/marshallpierce/rust-base64
+bincode 1.3.3
+    License: MIT
+    https://github.com/servo/bincode
 bit-set 0.10.0
     License: Apache-2.0 OR MIT
     https://github.com/contain-rs/bit-set
@@ -235,6 +242,9 @@ fontique 0.11.1
 form_urlencoded 1.2.2
     License: MIT OR Apache-2.0
     https://github.com/servo/rust-url
+fst 0.4.7
+    License: Unlicense/MIT
+    https://github.com/BurntSushi/fst
 getrandom 0.2.17
     License: MIT OR Apache-2.0
     https://github.com/rust-random/getrandom
@@ -289,6 +299,12 @@ http 1.5.0
 httparse 1.10.1
     License: MIT OR Apache-2.0
     https://github.com/seanmonstar/httparse
+hyphenation 0.8.4
+    License: Apache-2.0/MIT
+    https://github.com/tapeinosyne/hyphenation
+hyphenation_commons 0.8.4
+    License: Apache-2.0/MIT
+    https://github.com/tapeinosyne/hyphenation
 i_float 5.0.0
     License: MIT
     https://github.com/iShape-Rust/iFloat
@@ -358,6 +374,12 @@ kurbo 0.13.1
 libc 0.2.191
     License: MIT OR Apache-2.0
     https://github.com/rust-lang/libc
+libflate 1.4.0
+    License: MIT
+    https://github.com/sile/libflate
+libflate_lz77 1.2.0
+    License: MIT
+    https://github.com/sile/libflate
 libloading 0.8.9
     License: ISC
     https://github.com/nagisa/rust_libloading/
@@ -514,6 +536,9 @@ rhai_codegen 3.3.0
 ring 0.17.14
     License: Apache-2.0 AND ISC
     https://github.com/briansmith/ring
+rle-decode-fast 1.0.3
+    License: MIT OR Apache-2.0
+    https://github.com/WanzenBug/rle-decode-helper
 roxmltree 0.21.2
     License: MIT OR Apache-2.0
     https://github.com/RazrFalcon/roxmltree
@@ -616,6 +641,9 @@ sys-locale 0.3.2
 termcolor 1.4.1
     License: Unlicense OR MIT
     https://github.com/BurntSushi/termcolor
+thesaurus-wordnet 0.2.0
+    License: MIT
+    https://github.com/grantshandy/thesaurus-rs
 thin-vec 0.2.21
     License: MIT OR Apache-2.0
     https://github.com/mozilla/thin-vec

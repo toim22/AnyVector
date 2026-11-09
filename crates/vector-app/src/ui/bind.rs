@@ -305,7 +305,41 @@ pub fn cmd(id: &str) -> Option<Cmd> {
         "7f650d0c" => ConvertText,
         "8c2ac89e" => FitTextToPath,
         "0ce0b6c1" => StraightenText,
-        "067b5be7" => SpellCheck,
+        "067b5be7" => WritingTools(0),
+        "e80117b8" => WritingTools(1),
+        "72106e09" => WritingTools(2),
+        "2edc8b8b" => QuickCorrect,
+        "947e5baa" => TextLanguage,
+        "f33ec567" => WritingToolsSettings,
+        "9f68d8b2" => TextTabs,
+        "11acb7c1" => TextColumns,
+        "ed641ec9" => TextBullets,
+        "4349fb4c" => TextDropCap,
+        "bf3bd8fe" => TextStatistics,
+        "ddb00511" => InsertFormatCode(0),
+        "25874021" => InsertFormatCode(1),
+        "c56686e2" => InsertFormatCode(2),
+        "c548b8e9" => InsertFormatCode(3),
+        "8ba7e63d" => InsertFormatCode(4),
+        "cef94dde" => InsertFormatCode(5),
+        "6b13bb31" => InsertFormatCode(6),
+        "2539b9fc" => InsertFormatCode(7),
+        "9445e179" => InsertFormatCode(8),
+        "f70cbc29" => InsertFormatCode(9),
+        "217e7e25" => CustomHyphens,
+        "964c2574" => ToggleNonPrinting,
+        "2c6d197a" => ToggleTextFrames,
+        "e1b67386" => FitTextToFrame,
+        "4aa2e1ed" => InsertPlaceholder,
+        "886e12c9" => CreateEmptyFrame,
+        "14753345" => LinkFrames,
+        "a2286835" => UnlinkFrames,
+        "01f7dc01" => AlignToBaseline,
+        "38f80f45" => AlignToBaselineGrid,
+        "ecda8c51" => ToggleHyphenation,
+        "0e3eb2f9" => ChangeCaseDialog,
+        "e4f6d170" => MakeWebCompatible,
+        "63992d01" => EncodeText,
         // Table
         "ff44aa22" => CreateTable,
         "60122522" => TableInsertRow(true),
@@ -494,6 +528,11 @@ pub fn checked(app: &VectorApp, id: &str) -> Option<bool> {
         Cmd::LockToolbars => Some(app.settings.lock_toolbars),
         Cmd::PauseRecording => Some(app.recording.as_ref().map(|r| r.paused).unwrap_or(false)),
         Cmd::RolloverLivePreview => Some(app.rollover_live),
+        Cmd::ToggleNonPrinting => Some(app.settings.show_nonprinting),
+        Cmd::ToggleTextFrames => Some(app.settings.show_text_frames),
+        Cmd::ToggleHyphenation => Some(app.doc().is_some() && crate::dialogs::text::first_text(app).hyphenate),
+        Cmd::AlignToBaselineGrid => Some(app.doc().is_some() && crate::dialogs::text::first_text(app).align_grid),
+        Cmd::MakeWebCompatible => Some(app.doc().is_some() && crate::dialogs::text::first_text(app).web),
         _ => None,
     }
 }
@@ -524,7 +563,7 @@ pub fn enabled(app: &VectorApp, id: &str) -> Option<bool> {
         // Pixel Grid and Snap To ▸ Pixels work in Pixels view only
         "64c626a4" | "e0c557dc" => return Some(d.is_some_and(|d| d.view_mode == Vm::Pixels)),
         // Align to Baseline Grid: paragraph text and tables
-        "38f80f45" => return Some(one_is(|k| matches!(k, ObjKind::Table(_)) || matches!(k, ObjKind::Text(t) if matches!(t.kind, vector_core::text::TextKind::Paragraph { .. })))),
+        "38f80f45" => return Some(d.is_some() && sel == 0 || one_is(|k| matches!(k, ObjKind::Table(_)) || matches!(k, ObjKind::Text(t) if matches!(t.kind, vector_core::text::TextKind::Paragraph { .. })))),
         // Insert Placeholder Text: tables and empty paragraph frames
         "4aa2e1ed" => return Some(one_is(|k| matches!(k, ObjKind::Table(_)) || matches!(k, ObjKind::Text(t) if matches!(t.kind, vector_core::text::TextKind::Paragraph { .. }) && t.char_count() == 0))),
         // Wrap Paragraph Text, Wrap Connector Line: not for dimension lines
@@ -558,6 +597,21 @@ pub fn enabled(app: &VectorApp, id: &str) -> Option<bool> {
         Cmd::CreatePattern | Cmd::InsertQrCode | Cmd::InsertBarcode => d.is_some(),
         Cmd::ValidateBarcode => d.is_some_and(|d| d.selection.iter().filter_map(|id| d.doc.find(*id)).any(|o| matches!(o.special, Some(vector_core::codes::Special::Barcode { .. })))),
         Cmd::AiGuided(_) => sel > 0,
+        // Text
+        Cmd::TextTabs | Cmd::TextColumns | Cmd::TextBullets | Cmd::TextDropCap | Cmd::ToggleHyphenation => d.is_some() && !one_is(is_artistic),
+        Cmd::TextStatistics | Cmd::CustomHyphens | Cmd::ToggleNonPrinting | Cmd::ToggleTextFrames | Cmd::WritingTools(2) | Cmd::QuickCorrect | Cmd::WritingToolsSettings => d.is_some(),
+        Cmd::InsertFormatCode(_) => d.is_some_and(|d| d.text_edit.is_some()),
+        Cmd::EditText | Cmd::TextLanguage | Cmd::ChangeCaseDialog | Cmd::EncodeText => text_or_table(app),
+        Cmd::WritingTools(_) => text_or_table(app) || one_is(|k| matches!(k, ObjKind::Dimension(_))),
+        Cmd::FitTextToFrame => one_is(|k| matches!(k, ObjKind::Table(_)) || is_paragraph(k)),
+        Cmd::MakeWebCompatible => one_is(is_paragraph) || d.is_some_and(|d| d.text_edit.as_ref().is_some_and(|te| d.doc.find(te.obj).is_some_and(|o| is_paragraph(&o.kind)))),
+        Cmd::CreateEmptyFrame => one_is(|k| matches!(k, ObjKind::Rect(_) | ObjKind::Ellipse(_) | ObjKind::Polygon(_) | ObjKind::Path(_) | ObjKind::PowerClip { .. })),
+        Cmd::LinkFrames => d.is_some_and(|d| {
+            let objs: Vec<_> = d.selection.iter().filter_map(|id| d.doc.find(*id)).collect();
+            objs.len() >= 2 && objs.iter().all(|o| is_paragraph(&o.kind)) && objs.iter().skip(1).all(|o| matches!(&o.kind, ObjKind::Text(t) if t.link_prev.is_none()))
+        }),
+        Cmd::UnlinkFrames => d.is_some_and(|d| d.selection.iter().filter_map(|id| d.doc.find(*id)).any(|o| matches!(&o.kind, ObjKind::Text(t) if t.link_next.is_some() || t.link_prev.is_some()))),
+        Cmd::AlignToBaseline => one_is(|k| matches!(k, ObjKind::Text(_))),
         Cmd::SymbolEditMaster => d.is_some_and(|d| d.symbol_edit.is_none()) && crate::dialogs::object::selected_symbol(app).is_some(),
         Cmd::SymbolFinish => d.is_some_and(|d| d.symbol_edit.is_some()),
         Cmd::SymbolBreakLink | Cmd::SymbolUpdateLink => crate::dialogs::object::symbol_linked(app),
@@ -579,6 +633,25 @@ pub fn enabled(app: &VectorApp, id: &str) -> Option<bool> {
         Cmd::PrintMergeEdit => d.is_some_and(|d| d.doc.print_merge.is_some()),
         Cmd::PrintMergePerform | Cmd::PrintMergeNewDoc => d.is_some_and(|d| d.doc.print_merge.as_ref().is_some_and(|m| m.records.iter().any(|r| r.selected))),
         _ => return None,
+    })
+}
+
+fn is_artistic(k: &ObjKind) -> bool {
+    matches!(k, ObjKind::Text(t) if t.kind == vector_core::text::TextKind::Artistic)
+}
+
+fn is_paragraph(k: &ObjKind) -> bool {
+    matches!(k, ObjKind::Text(t) if matches!(t.kind, vector_core::text::TextKind::Paragraph { .. }))
+}
+
+/// One text or table selected, or text being edited.
+fn text_or_table(app: &VectorApp) -> bool {
+    app.doc().is_some_and(|d| {
+        d.text_edit.is_some()
+            || match d.selection.as_slice() {
+                [o] => d.doc.find(*o).is_some_and(|o| matches!(o.kind, ObjKind::Text(_) | ObjKind::Table(_))),
+                _ => false,
+            }
     })
 }
 
