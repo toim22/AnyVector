@@ -521,7 +521,7 @@ pub fn editor(ui: &mut Ui, ed: &mut ColorEd, c: &mut Color, tabs: bool) -> bool 
 }
 
 /// The color viewer: a field and a strip for the chosen HSB viewer.
-fn viewer(ui: &mut Ui, kind: u8, c: &mut Color, w: f32) -> bool {
+pub(crate) fn viewer(ui: &mut Ui, kind: u8, c: &mut Color, w: f32) -> bool {
     let [h, s, b] = c.to_hsb();
     let mut changed = false;
     let (r, resp) = ui.allocate_exact_size(vec2(w, w), Sense::click_and_drag());

@@ -66,6 +66,7 @@ const OMIT_CAPTIONS: &[&str] = &[
     "Video Tutorials",
     "CorelDRAW Community",
     "Share Your Experience",
+    "Message Settings",
     "Open from Cloud",
     "Save to Cloud",
     "Purchase",
@@ -75,13 +76,24 @@ const OMIT_CAPTIONS: &[&str] = &[
 /// `visible` bindings and the value they have in the reference (hidden when false).
 const VISIBILITY: &[(&str, bool)] = &[
     ("IsSupportSharePoint", false),
-    ("IsPatternDocument", false),
     ("IsCloudFeaturesVisible", true),
     ("IsDesktopApp", true),
     ("IsGenAIAllowed", true),
     // Asian text layout support, off in the reference install
     ("FarEastRulesGeneralUIEnabled", false),
 ];
+
+/// `visible` bindings Vector decides at run time: the item is kept with flag 16 and shows only
+/// when Vector's state says so (the reference captures show it hidden).
+const RUNTIME_VISIBILITY: &[&str] = &[
+    // View ▸ Pattern Preview: only while a pattern is open as its own document
+    "IsPatternDocument",
+];
+
+fn runtime_visible(d: &Defs, r: &ItemRef) -> bool {
+    let vis = r.attrs.get("visible").map(|s| s.as_str()).or_else(|| d.attr(&r.guid, "visible")).unwrap_or("");
+    RUNTIME_VISIBILITY.iter().any(|n| vis.contains(n))
+}
 
 /// Items the reference shows although the definition says otherwise, or hides with no rule in
 /// the definition (found with the menu-height check of `target/ui-report.txt`).
@@ -412,6 +424,9 @@ fn hidden(d: &Defs, r: &ItemRef) -> bool {
     if vis == "false" {
         return true;
     }
+    if runtime_visible(d, r) {
+        return false;
+    }
     for (name, value) in VISIBILITY {
         if vis.contains(name) {
             // a `*Not(...)` around the binding flips it
@@ -650,7 +665,9 @@ impl Gen<'_> {
                 // 1 = hide the disabled items it brings in, 2 = a separator before them,
                 // 4 = no reference capture shows when the item is enabled
                 flags: (self.d.attr(&r.guid, "hideDisabledPrefillItems") == Some("true")) as u8 | (((self.d.attr(&r.guid, "addSeparator") == Some("true")) as u8) << 1) | ((known.is_none() as u8) << 2)
-                    | (((r.attrs.get("excluded").map(|s| s.as_str()) == Some("true")) as u8) << 3),
+                    | (((r.attrs.get("excluded").map(|s| s.as_str()) == Some("true")) as u8) << 3)
+                    // 16 = shown only when Vector's state says so (hidden in the reference captures)
+                    | ((runtime_visible(self.d, r) as u8) << 4),
             });
             if let Some((_, id, text, subs)) = EXTRAS.iter().find(|(after, ..)| after.eq_ignore_ascii_case(&r.guid)) {
                 let sub_id = format!("{id}:menu");
@@ -863,7 +880,7 @@ fn visible_counts(items: &[OutItem]) -> (i64, i64) {
     let mut n = 0;
     let mut s = 0;
     let mut pending = false;
-    for it in items.iter().filter(|i| !i.id.starts_with("vector:")) {
+    for it in items.iter().filter(|i| !i.id.starts_with("vector:") && i.flags & 16 == 0) {
         if it.kind == "Separator" {
             pending = n > 0;
             continue;

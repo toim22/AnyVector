@@ -1545,3 +1545,234 @@ fn visual_bitmap_dialogs() {
     let d = a.doc().unwrap();
     assert!(d.doc.pages[0].layers.iter().map(|l| l.objects.len()).sum::<usize>() >= 2, "Quick Trace added the traced group");
 }
+
+/// Window ▸ Tile Horizontally, Tile Vertically, Cascade and New Window, and the workspace
+/// dialogs: New, Duplicate, Options ▸ Workspaces, Export, Import and Delete.
+#[test]
+#[ignore]
+fn visual_window_workspaces() {
+    use crate::workspaces as ws;
+    let mut h = harness();
+    for c in [Color::rgb(0x1e, 0x90, 0xff), Color::rgb(0xe5, 0x39, 0x35), Color::rgb(0x43, 0xa0, 0x47)] {
+        h.state_mut().new_default_document();
+        let d = h.state_mut().doc_mut().unwrap();
+        let id = d.doc.new_id();
+        let mut st = Style::default();
+        st.fill = Fill::Solid(c);
+        d.add_objects("test", vec![Object::new(id, ObjKind::Rect(RectShape { w: 300.0, h: 200.0, radii: [0.0; 4], corner: CornerType::Round }), Affine::translate((150.0, 200.0)), st)]);
+    }
+    for (cmd, name) in [(Cmd::TileH, "win_01_tile_horizontally"), (Cmd::TileV, "win_02_tile_vertically"), (Cmd::Cascade, "win_03_cascade")] {
+        h.state_mut().run(cmd);
+        for _ in 0..4 {
+            h.step();
+        }
+        save(&mut h, name);
+    }
+    // a second window on the active document
+    h.state_mut().run(Cmd::NewWindow);
+    h.step();
+    h.state_mut().run(Cmd::TileV);
+    for _ in 0..4 {
+        h.step();
+    }
+    save(&mut h, "win_04_new_window_tiled");
+    {
+        let a = h.state_mut();
+        assert_eq!(a.docs.len(), 4);
+        let names: Vec<String> = a.docs.iter().map(|d| d.display_name()).collect();
+        assert!(names.iter().any(|n| n.contains(".cdr:2")) && names.iter().any(|n| n.contains(".cdr:1")), "{names:?}");
+        // a change in one window shows in the other
+        let d = a.doc_mut().unwrap();
+        let id = d.doc.new_id();
+        d.add_objects("test", vec![Object::new(id, ObjKind::Rect(RectShape { w: 80.0, h: 80.0, radii: [0.0; 4], corner: CornerType::Round }), Affine::translate((500.0, 500.0)), Style::default())]);
+    }
+    h.step();
+    {
+        let a = h.state_mut();
+        let act = a.active.unwrap();
+        let g = a.docs[act].group;
+        let counts: Vec<usize> = a.docs.iter().filter(|d| d.group == g).map(|d| d.doc.pages[0].layers.iter().map(|l| l.objects.len()).sum()).collect();
+        assert_eq!(counts.len(), 2);
+        assert_eq!(counts[0], counts[1], "both windows show the same drawing");
+    }
+    h.state_mut().run(Cmd::CombineWindows);
+    for _ in 0..3 {
+        h.step();
+    }
+    save(&mut h, "win_05_combined");
+
+    // Window ▸ Workspace ▸ New
+    h.state_mut().run(Cmd::WorkspaceNew);
+    h.step();
+    save(&mut h, "ws_01_new_workspace");
+    {
+        let st = h.state_mut().dialogs.ws.new.as_mut().unwrap();
+        st.name = "My Layout".into();
+        st.base = "Page Layout".into();
+        st.description = "Pages and object properties at hand.".into();
+    }
+    save(&mut h, "ws_01b_new_workspace_filled");
+    {
+        let a = h.state_mut();
+        let st = a.dialogs.ws.new.take().unwrap();
+        ws::create(a, &st.name, &st.base, &st.description, st.set_current);
+        assert_eq!(a.settings.workspace, "My Layout");
+        assert!(a.dockers.open.contains(&crate::dockers::DockerId::Pages));
+        a.open_options(crate::commands::OptionsPage::Workspaces, None);
+    }
+    h.step();
+    save(&mut h, "ws_02_options_workspaces");
+    crate::dialogs::workspace::open_duplicate(h.state_mut(), "Default");
+    h.step();
+    save(&mut h, "ws_03_duplicate_workspace");
+    h.state_mut().dialogs.ws.new = None;
+    crate::dialogs::workspace::open_export(h.state_mut(), "My Layout");
+    h.state_mut().dialogs.ws.export.as_mut().unwrap().tree.expanded = [0, 1, 2].into_iter().collect();
+    h.step();
+    save(&mut h, "ws_04_export_workspace");
+    let file = std::env::temp_dir().join("vector_visual_ws.cdws");
+    {
+        let a = h.state_mut();
+        let st = a.dialogs.ws.export.take().unwrap();
+        let f = ws::WorkspaceFile { name: st.name.clone(), description: st.description.clone(), elements: ws::all_keys(&ws::elements(&st.layout)).into_iter().collect(), layout: st.layout.clone() };
+        ws::write_file(&file, &f).unwrap();
+        a.dialogs.options = Default::default();
+        crate::dialogs::workspace::open_import(a, &file);
+        a.dialogs.ws.import.as_mut().unwrap().name = "My Layout 2".into();
+        a.dialogs.ws.import.as_mut().unwrap().tree.expanded = [0, 1].into_iter().collect();
+    }
+    h.step();
+    save(&mut h, "ws_05_import_workspace");
+    h.state_mut().dialogs.ws.import = None;
+    let _ = std::fs::remove_file(&file);
+    h.state_mut().run(Cmd::WorkspaceDelete);
+    h.step();
+    save(&mut h, "ws_06_delete_workspace");
+    {
+        let a = h.state_mut();
+        assert_eq!(a.dialogs.ws.delete.as_deref(), Some("My Layout"));
+        a.dialogs.ws.delete = None;
+        ws::delete(a, "My Layout");
+        assert_eq!(a.settings.workspace, "Default");
+        assert!(a.settings.custom_workspaces.is_empty());
+    }
+}
+
+/// Window ▸ Color Palettes ▸ Palette Editor, and its Select Color (Edit Color / Add Color).
+#[test]
+#[ignore]
+fn visual_palette_editor() {
+    use crate::dialogs::palette::{new_select, Purpose, Source};
+    let mut h = harness();
+    h.state_mut().new_default_document();
+    h.state_mut().run(Cmd::PaletteEditor);
+    h.step();
+    {
+        let st = h.state_mut().dialogs.palette_editor.as_mut().unwrap();
+        assert!(st.edits[0].source == Source::Default);
+        st.sel = Some(13);
+    }
+    save(&mut h, "pal_01_palette_editor");
+    // Edit Color: the color in the CMYK palette
+    {
+        let a = h.state_mut();
+        let mut st = a.dialogs.palette_editor.take().unwrap();
+        let nc = st.edits[0].palette.colors[13].clone();
+        st.select = Some(new_select(a, Purpose::Edit(13), nc.color, &nc.name));
+        a.dialogs.palette_editor = Some(st);
+    }
+    save(&mut h, "pal_02_edit_color");
+    {
+        let sc = h.state_mut().dialogs.palette_editor.as_mut().unwrap().select.as_mut().unwrap();
+        sc.palettes_mode = false;
+        sc.color = Color::rgb(0x2e, 0x7d, 0x32);
+    }
+    save(&mut h, "pal_03_edit_color_viewers");
+    // Add Color
+    {
+        let a = h.state_mut();
+        let mut st = a.dialogs.palette_editor.take().unwrap();
+        st.select = Some(new_select(a, Purpose::Add, Color::BLACK, "Black"));
+        a.dialogs.palette_editor = Some(st);
+    }
+    save(&mut h, "pal_04_add_color");
+    {
+        let a = h.state_mut();
+        a.dialogs.palette_editor.as_mut().unwrap().select = None;
+        // a deleted color is gone only from the edit until OK
+        let st = a.dialogs.palette_editor.as_mut().unwrap();
+        let n = st.edits[0].palette.colors.len();
+        st.edits[0].palette.colors.remove(0);
+        assert_eq!(st.edits[0].original.colors.len(), n);
+        a.dialogs.palette_editor = None;
+    }
+}
+
+/// Properties ▸ Vector Pattern ▸ Edit fill opens the pattern as its own document in View ▸
+/// Pattern Preview; closing it puts the changes into the pattern.
+#[test]
+#[ignore]
+fn visual_pattern_preview() {
+    use kurbo::Shape;
+    let mut h = harness();
+    h.state_mut().new_default_document();
+    let image = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let mut objs = vec![];
+        for (c, r) in [(Color::rgb(0xe5, 0x39, 0x35), kurbo::Rect::new(200.0, 200.0, 240.0, 240.0)), (Color::rgb(0x1e, 0x88, 0xe5), kurbo::Rect::new(230.0, 225.0, 270.0, 255.0))] {
+            let mut st = Style::default();
+            st.fill = Fill::Solid(c);
+            let bp = kurbo::Ellipse::from_rect(r).to_path(0.1);
+            objs.push(Object::new(d.doc.new_id(), ObjKind::Path(vector_core::path::NodePath::from_bez(&bp)), Affine::IDENTITY, st));
+        }
+        d.add_objects("Shapes", objs);
+        let page = d.page;
+        let name = crate::dialogs::object::make_pattern(&mut d.doc, page, kurbo::Rect::new(190.0, 190.0, 280.0, 265.0), 0, 1).unwrap();
+        let np = d.doc.patterns.iter().find(|p| p.name == name).unwrap().clone();
+        assert_eq!(np.source.len(), 2, "the pattern keeps the objects it was made from");
+        let mut st = Style::default();
+        st.fill = Fill::Pattern(vector_core::style::PatternFill { tile: 30.0, ..np.fill.clone() });
+        let r = kurbo::Rect::new(300.0, 450.0, 520.0, 620.0).to_path(0.1);
+        let o = Object::new(d.doc.new_id(), ObjKind::Path(vector_core::path::NodePath::from_bez(&r)), Affine::IDENTITY, st);
+        d.add_objects("Patterned", vec![o]);
+        np.fill.image.unwrap()
+    };
+    let src_view = h.state_mut().active.unwrap();
+    assert!(!crate::ui::bind::visible(h.state_mut(), "141c5d5e-1b88-9cac-4187-9ca1d4f7b9a9"), "Pattern Preview shows only in pattern documents");
+    crate::dialogs::object::edit_pattern(h.state_mut(), image);
+    for _ in 0..3 {
+        h.step();
+    }
+    {
+        let a = h.state_mut();
+        let d = a.doc().unwrap();
+        assert!(d.pattern.is_some() && d.view_mode == crate::docview::ViewMode::PatternPreview);
+        assert_eq!(d.doc.pages[0].layers[0].objects.len(), 2);
+        assert!(crate::ui::bind::visible(a, "141c5d5e-1b88-9cac-4187-9ca1d4f7b9a9"));
+    }
+    save(&mut h, "pat_01_pattern_preview");
+    // a change, then closing the pattern document
+    let old_ptr = {
+        let a = h.state_mut();
+        let ptr = std::sync::Arc::as_ptr(&a.docs[src_view].doc.images[&image].rgba) as usize;
+        let d = a.doc_mut().unwrap();
+        let mut st = Style::default();
+        st.fill = Fill::Solid(Color::rgb(0x43, 0xa0, 0x47));
+        let r = kurbo::Rect::new(5.0, 50.0, 85.0, 70.0).to_path(0.1);
+        let o = Object::new(d.doc.new_id(), ObjKind::Path(vector_core::path::NodePath::from_bez(&r)), Affine::IDENTITY, st);
+        d.add_objects("Bar", vec![o]);
+        ptr
+    };
+    save(&mut h, "pat_02_pattern_edited");
+    {
+        let a = h.state_mut();
+        let i = a.active.unwrap();
+        a.request_close_doc(i);
+        assert_eq!(a.docs.len(), 1);
+        let d = &a.docs[0];
+        assert_ne!(std::sync::Arc::as_ptr(&d.doc.images[&image].rgba) as usize, old_ptr, "the tile was made again");
+        assert_eq!(d.doc.patterns.iter().find(|p| p.fill.image == Some(image)).unwrap().source.len(), 3);
+        assert!(d.history.is_modified());
+    }
+    save(&mut h, "pat_03_pattern_applied");
+}

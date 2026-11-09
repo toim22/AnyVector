@@ -275,8 +275,102 @@ pub fn make_pattern(doc: &mut Document, page: usize, area: Rect, kind: u8, resol
     let img = ImageData { width: pm.width(), height: pm.height(), rgba: Arc::new(rgba), encoded: Arc::new(vec![]), format: "png".into(), name: name.clone() };
     let iid = doc.add_image(img);
     let fill = PatternFill { kind: PatternKind::Checker, fg: Color::BLACK, bg: Color::WHITE, tile: area.width().max(area.height()), angle: 0.0, image: Some(iid), transform_with_object: true, vector: true, mirror: 0 };
-    doc.patterns.push(NamedPattern { name: name.clone(), fill });
+    // the objects in the area, kept to edit the pattern later
+    let mut source = vec![];
+    if kind == 0 {
+        for layer in &doc.pages[page].layers {
+            for o in &layer.objects {
+                if doc.bounds_of(o).intersect(area).area() > 0.0 {
+                    let mut c = o.clone();
+                    c.apply_transform(Affine::translate((-area.x0, -area.y0)));
+                    source.push(c);
+                }
+            }
+        }
+    }
+    doc.patterns.push(NamedPattern { name: name.clone(), fill, source });
     Some(name)
+}
+
+/// Properties ▸ Vector Pattern ▸ Edit fill: the pattern opens as its own document, one tile on
+/// the page, in View ▸ Pattern Preview. Closing it puts the changes into the pattern.
+pub fn edit_pattern(app: &mut VectorApp, image: u64) {
+    let Some(a) = app.active.filter(|a| *a < app.docs.len()) else { return };
+    let group = app.docs[a].group;
+    // already open: show it
+    if let Some(i) = app.docs.iter().position(|d| d.pattern.as_ref().is_some_and(|l| l.image == image && l.group == group)) {
+        app.active = Some(i);
+        return;
+    }
+    let src = &app.docs[a];
+    let Some(np) = src.doc.patterns.iter().find(|n| n.fill.image == Some(image)).cloned() else { return };
+    let Some(img) = src.doc.images.get(&image).cloned() else { return };
+    let big = img.width.max(img.height).max(1) as f64;
+    let (w, h) = (np.fill.tile * img.width as f64 / big, np.fill.tile * img.height as f64 / big);
+    let mut doc = Document::new(w.max(1.0), h.max(1.0));
+    doc.settings.unit = src.doc.settings.unit;
+    // the bitmaps of the source document, so the pattern's objects find theirs; new ids stay
+    // clear of the ids the source document gives out meanwhile
+    doc.images = src.doc.images.clone();
+    doc.reserve_ids_below(src.doc.next_id_value() + 1_000_000);
+    let objs = if np.source.is_empty() {
+        // a pattern without its objects: the tile itself
+        let mut st = Style::default();
+        st.fill = Fill::None;
+        st.outline = Outline::none();
+        let id = doc.new_id();
+        let mut o = Object::new(id, ObjKind::Image(vector_core::object::ImageObj { image, w, h, crop: [0.0, 0.0, 1.0, 1.0], adjust: Default::default() }), Affine::IDENTITY, st);
+        o.name = np.name.clone();
+        vec![o]
+    } else {
+        np.source.clone()
+    };
+    if let Some(l) = doc.pages[0].layers.first_mut() {
+        l.objects = objs;
+    }
+    let mut dv = crate::docview::DocView::new(doc, np.name.clone(), app.settings.undo_levels);
+    dv.pattern = Some(crate::docview::PatternLink { group, image });
+    dv.view_mode = crate::docview::ViewMode::PatternPreview;
+    app.push_doc(dv);
+}
+
+/// A pattern document closes: its page becomes the pattern tile (one undo step in the document
+/// the pattern belongs to).
+pub fn apply_pattern_doc(app: &mut VectorApp, i: usize) {
+    let Some(link) = app.docs.get(i).and_then(|d| d.pattern.clone()) else { return };
+    if !app.docs[i].history.is_modified() {
+        return;
+    }
+    let pd = &app.docs[i].doc;
+    let area = pd.pages[0].rect();
+    let Some(pm) = vector_render::render_page_image(pd, 0, 600.0, None, Some(area), true) else { return };
+    let mut rgba: Vec<u8> = Vec::with_capacity((pm.width() * pm.height() * 4) as usize);
+    for p in pm.pixels() {
+        let c = p.demultiply();
+        rgba.extend_from_slice(&[c.red(), c.green(), c.blue(), c.alpha()]);
+    }
+    let source: Vec<Object> = pd.pages[0].layers.iter().flat_map(|l| l.objects.iter().cloned()).collect();
+    let images = pd.images.clone();
+    let (pw, ph) = (pm.width(), pm.height());
+    let Some(s) = app.docs.iter().position(|d| d.group == link.group && d.pattern.is_none()) else { return };
+    let prev = app.active;
+    app.active = Some(s);
+    if let Some(d) = app.doc_mut() {
+        d.modify("Edit Pattern", |doc, _| {
+            for (id, im) in images {
+                doc.images.entry(id).or_insert(im);
+            }
+            if let Some(old) = doc.images.get(&link.image).cloned() {
+                doc.images.insert(link.image, ImageData { width: pw, height: ph, rgba: Arc::new(rgba), encoded: Arc::new(vec![]), ..old });
+            }
+            if let Some(np) = doc.patterns.iter_mut().find(|n| n.fill.image == Some(link.image)) {
+                np.source = source;
+            }
+        });
+        d.cache.key = 0;
+    }
+    app.sync_windows();
+    app.active = prev;
 }
 
 // ------------------------------------------------------------------------------------------

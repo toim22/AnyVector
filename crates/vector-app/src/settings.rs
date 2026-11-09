@@ -290,6 +290,10 @@ pub struct Settings {
     pub script_folders: Vec<PathBuf>,
     pub last_dir: Option<PathBuf>,
     pub workspace: String,
+    /// The user's own workspaces, listed after the built-in ones (Window ▸ Workspace).
+    pub custom_workspaces: Vec<crate::workspaces::Custom>,
+    /// The layout each workspace had when the user left it, by name.
+    pub workspace_layouts: std::collections::BTreeMap<String, crate::workspaces::Layout>,
     pub open_dockers: Vec<String>,
     /// Artistic Media docker: the custom strokes (name, stroke).
     pub custom_strokes: Vec<(String, vector_core::style::WidthProfile)>,
@@ -615,6 +619,8 @@ impl Default for Settings {
             script_folders: vec![],
             last_dir: None,
             workspace: "Default".into(),
+            custom_workspaces: vec![],
+            workspace_layouts: Default::default(),
             open_dockers: vec![],
             custom_strokes: vec![],
             docker_width: 280.0,
@@ -743,6 +749,10 @@ impl Settings {
     }
 
     pub fn save(&self) {
+        // tests never write over the user's settings
+        if cfg!(test) {
+            return;
+        }
         if let Ok(b) = serde_json::to_vec_pretty(self) {
             let _ = std::fs::write(Self::path(), b);
         }

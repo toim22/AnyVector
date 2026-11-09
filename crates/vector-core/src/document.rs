@@ -334,6 +334,10 @@ pub struct SymbolDef {
 pub struct NamedPattern {
     pub name: String,
     pub fill: crate::style::PatternFill,
+    /// The objects a vector pattern was made from, with the tile's top-left corner at (0, 0):
+    /// what the pattern document shows when the pattern is edited.
+    #[serde(default)]
+    pub source: Vec<crate::object::Object>,
 }
 
 /// A color harmony (Color Styles docker): its color styles and the harmony rule that relates
@@ -663,6 +667,16 @@ impl Document {
         let lid = d.new_id();
         d.pages.push(Page::new(pid, lid, w, h));
         d
+    }
+
+    /// The id the next new object gets.
+    pub fn next_id_value(&self) -> u64 {
+        self.next_id
+    }
+
+    /// New ids start at `n` or later (ids taken over from another document stay unique).
+    pub fn reserve_ids_below(&mut self, n: u64) {
+        self.next_id = self.next_id.max(n);
     }
 
     pub fn new_id(&mut self) -> u64 {

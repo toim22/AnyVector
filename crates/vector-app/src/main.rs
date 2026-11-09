@@ -16,6 +16,7 @@ mod bitmaps;
 mod exec;
 mod fx;
 mod fxdata;
+mod help;
 mod icons;
 mod menus;
 mod palette;
@@ -38,6 +39,7 @@ mod trace;
 mod ui;
 mod welcome;
 mod widgets;
+mod workspaces;
 
 pub const ICON_PNG: &[u8] = include_bytes!("../assets/icon-256.png");
 /// The logo (the airship alone), drawn from `assets/brand/vector-logo.svg` by `cargo run -p xtask -- brand`.

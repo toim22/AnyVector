@@ -2,7 +2,7 @@
 
 Last updated: 2026-11-09.
 
-## Version 0.1.0 (in progress)
+## Version 0.1.0 (release candidate)
 
 Vector 0.1.0 is being built to match the CorelDRAW 2026 reference, in batches (see `docs/PLAN-0.1.0.md`).
 `docs/COVERAGE.md` lists every menu item, dialog, docker, tool, toolbar and right-click menu of the reference with
@@ -291,6 +291,49 @@ its status in Vector.
     Open Last Trace Settings use the last trace's settings.
 - The Bitmap property bar buttons (Bitmap Mask, Crop Bitmap, Edit Bitmap, Remove Background) work.
 
+**Batch 8 (Window, Help and release), done:**
+
+- Every Window and Help item runs; `docs/COVERAGE.md` has no item left to do.
+- Window arrangements:
+  - New Window opens a second window on the same drawing, named `name.cdr:1`, `name.cdr:2`; a change in one
+    window shows in the others, and only the last window of a document asks to save.
+  - Cascade, Tile Horizontally and Tile Vertically arrange the document windows, each showing its whole page;
+    Combine Windows (and Dock Window) bring back the tabs. Refresh Window redraws every window.
+- Workspaces, as in the reference:
+  - Each workspace keeps its own toolbars, dockers, docker width, menu bar and shortcut keys; switching saves the
+    layout of the workspace you leave.
+  - Window ▸ Workspace ▸ New (and Duplicate in Options) has the New Workspace dialog: name, Base on, description,
+    Set as Current. Your workspaces follow the built-in ones in Window ▸ Workspace.
+  - Delete asks with the reference warning, then Default becomes current.
+  - Export Workspace picks dockers, toolbars, menus and shortcut keys in a tree and writes a `.cdws` file; Import
+    Workspace reads it into a new or the current workspace.
+  - Tools ▸ Options ▸ Workspaces lists them with Set as Current, Duplicate, Delete, Export and Import, and the
+    description. Cancel keeps workspace changes, as in the reference.
+- Color palettes:
+  - The Palette Editor has the reference layout: palette list (Document, Color Styles, My Palettes), New, Open,
+    Save and Save As, the 16-point swatches, Edit Color, Add Color, Delete Color, Sort Colors (Reverse, Hue,
+    Brightness, Saturation, RGB value, HSB value, Name), Reset Palette and Selected color (name, Process or Spot,
+    components). Changes to several palettes are kept until OK.
+  - Edit Color and Add Color open Select Color: Color viewers or Color palettes, the palette list with its headings,
+    Show color names, old and new swatches, the eyedropper, and RGB, hex, CMYK, Lab and HSB values.
+  - Palettes are custom palette files (`*.xml`), the format CorelDRAW reads and writes, with spot colors as named
+    color spaces; the edited default palette is kept in My Palettes. Open Palette, Create Palette from Selection or
+    Document and the Palettes docker use the same files. Close All Palettes closes the opened, default, document and
+    color styles palettes.
+- View ▸ Pattern Preview: Properties ▸ Vector Pattern ▸ Edit fill opens the pattern as its own document (one tile on
+  the page). There View ▸ Pattern Preview appears, as in the reference, and shows the tile repeated across the
+  window. Closing the document makes the pattern again from the page, as one undo step of the drawing. Patterns now
+  keep the objects they were made from.
+- Help:
+  - Product Help, Quick Start Guide, User Guide and Keyboard Shortcuts are HTML pages that open in the browser and
+    need no internet connection. The User Guide and the shortcut list are built from the program's own menus,
+    tools and dockers, so they always match it.
+  - Updates shows the release notes of this version (`docs/RELEASE-NOTES-0.1.0.md`).
+  - Submit Ideas and Feedback opens a new idea in the Vector issue tracker; Report a Bug is unchanged.
+  - Message Settings is left out with Corel's other online services (it sets Corel's in-product messages).
+- The 0.1.0 installer is rebuilt (`dist/Vector-0.1.0-setup.exe`) and the release notes are in
+  `docs/RELEASE-NOTES-0.1.0.md`. Nothing is tagged or published.
+
 ## Working (verified by build and tests)
 
 - Full workspace compiles. Unit tests pass for:
@@ -425,5 +468,13 @@ its status in Vector.
     be linked. History: no Save as a script. Scripts are Rhai. Comments: no anonymous mode. Object Data: no
     Application Defaults, field formats or Print. Symbols: Network Symbols is empty. Views are not listed in the
     zoom list.
+- **Window, workspaces and palettes (batch 8):**
+  - Document windows never float, so Dock Window does what Combine Windows does. Inactive tiled windows show no
+    ruler ticks.
+  - Workspace files: Vector reads and writes its own `.cdws` content (`content/workspace.json`); workspace files saved
+    by CorelDRAW cannot be imported.
+  - Help ▸ Updates shows this version's release notes; there is no online update check.
+  - Pattern documents edit vector patterns made in Vector 0.1.0 or later as objects; older patterns and bitmap
+    patterns open as their tile image.
 - **Items with no command yet:** menu and toolbar items the reference has but Vector cannot do yet are shown and
   say so when chosen; `docs/COVERAGE.md` lists them.

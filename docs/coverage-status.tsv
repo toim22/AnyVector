@@ -285,7 +285,7 @@ menu	View > Wireframe	done
 menu	View > Normal	done	
 menu	View > Enhanced	done	
 menu	View > Pixels	done	renders at the document resolution
-menu	View > Pattern Preview	todo	shown while editing a pattern: comes with Object > Create > Pattern Fill (batch 3)
+menu	View > Pattern Preview	done	shown in pattern documents (Properties > Vector Pattern > Edit fill): the page repeats as tiles; closing the document updates the pattern
 menu	View > Full-screen Preview	done	F9; Page Up/Down change pages
 menu	View > Preview Selected Only	done	full-screen preview of the selection only
 menu	View > Multipage View	done	pages side by side; click a page to make it current
@@ -951,3 +951,46 @@ effect	Effects > Texture > Underpainting	done	page as the reference: fields, ord
 effect	Effects > Transform > DeInterlace	done	page as the reference: fields, order, ranges and lists
 effect	Effects > Transform > Posterize	done	page as the reference: fields, order, ranges and lists
 effect	Effects > Transform > Threshold	done	page as the reference: fields, order, ranges and lists
+# Batch 8: Window, Help and release
+menu	Window > New Window	done	a second window on the same drawing (name.cdr:1, :2); every change shows in all its windows
+menu	Window > Refresh Window	done	redraws every window
+menu	Window > Close Window	done	closes the active window; asks to save only when it is the document's last window
+menu	Window > Close All	done	closes every window, asking to save each changed document
+menu	Window > Cascade	done	the document windows overlap, each showing its whole page
+menu	Window > Tile Horizontally	done	the document windows stacked top to bottom
+menu	Window > Tile Vertically	done	the document windows side by side
+menu	Window > Combine Windows	done	back to one window with tabs
+menu	Window > Dock Window	partial	Vector's document windows never float, so Dock Window does what Combine Windows does
+menu	Window > Workspace > New...	done	New Workspace dialog: name, base on, description, set as current
+menu	Window > Workspace > Delete	done	Delete Workspace confirmation; enabled for your own workspaces only, then Default is current
+menu	Window > Workspace > Import...	partial	Vector workspace files (*.cdws); workspace files saved by CorelDRAW cannot be read
+menu	Window > Workspace > Export...	done	Export Workspace: choose dockers, toolbars, menus and shortcut keys, saved as *.cdws
+menu	Window > Toolbars > Default Button Size > Small	done	toolbar buttons at the small size
+menu	Window > Toolbars > Default Button Size > Medium	done	toolbar buttons at the medium size
+menu	Window > Toolbars > Default Button Size > Large	done	toolbar buttons at the large size
+menu	Window > Toolbars > Menu bar	done	shows or hides the menu bar
+menu	Window > Toolbars > Status bar	done	shows or hides the status bar
+menu	Window > Toolbars > Toolbar List	done	the toolbars, each with its check mark
+menu	Window > Toolbars > Lock Toolbars	done	toolbars can no longer be moved
+menu	Window > Color Palettes > Add Colors from Selection...	done	the selection's fill and outline colors go into the document palette
+menu	Window > Color Palettes > Add Colors from Document...	done	every color of the drawing goes into the document palette
+menu	Window > Color Palettes > Create Palette from Selection...	done	saves the selection's colors as a new custom palette (*.xml) and opens it
+menu	Window > Color Palettes > Create Palette from Document...	done	saves the drawing's colors as a new custom palette (*.xml) and opens it
+menu	Window > Color Palettes > Open Palette...	done	opens a custom palette (*.xml) at the window edge
+menu	Window > Color Palettes > Close All Palettes	done	closes the default, document, color styles and opened palettes
+menu	Window > Color Palettes > Palette Editor...	done	Palette Editor with Select Color; palettes saved as custom palettes (*.xml)
+menu	Window > Color Palettes > Palettes	done	opens the Palettes docker
+menu	Window > Window List	done	the open windows, the active one checked
+menu	Help > Product Help...	done	Vector Help in the browser (pages built into the program, no internet needed)
+menu	Help > Quick Start Guide...	done	the Quick Start Guide page of Vector Help
+menu	Help > User Guide...	done	the User Guide page, built from the program's own tools, menus and dockers
+menu	Help > Updates...	partial	shows this version's release notes; Vector has no online update service
+menu	Help > Submit Ideas and Feedback...	done	a new idea in the Vector issue tracker (GitHub)
+dialog	Window > Workspace > New	done	same layout and wording; Duplicate shares it
+dialog	Window > Workspace > Import	partial	file dialog (Workspace File (*.cdws)), then Import Workspace with the element tree, New or Current workspace; CorelDRAW workspace files cannot be read
+dialog	Window > Color Palettes > Open Palette	done	file dialog with Custom palette (*.xml)
+dialog	Window > Color Palettes > Palette Editor	done	same layout: palette list, New/Open/Save/Save As, swatches, Edit/Add/Delete Color, Sort Colors, Reset Palette, Selected color; Select Color with viewers and palettes
+dialog	Window > Color Palettes > Add Colors from Selection	done	the colors go into the document palette (no window, as in the reference)
+dialog	Window > Color Palettes > Add Colors from Document	done	the colors go into the document palette (no window, as in the reference)
+dialog	Window > Color Palettes > Create Palette from Selection	done	save dialog with Custom palette (*.xml)
+dialog	Window > Color Palettes > Create Palette from Document	done	save dialog with Custom palette (*.xml)

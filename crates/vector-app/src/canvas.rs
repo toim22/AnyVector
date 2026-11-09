@@ -305,6 +305,37 @@ fn render_cache(app: &mut VectorApp, ctx: &egui::Context, ai: usize, canvas: Rec
     } else {
         ts.renderer.render_page(&d.doc, d.page, view, &mut pm, &opts);
     }
+    if d.view_mode == ViewMode::PatternPreview {
+        // View ▸ Pattern Preview: the page is one tile, repeated over the whole window
+        let pr = view.transform_rect_bbox(d.doc.pages[d.page].rect());
+        let (tw, th) = (pr.width().ceil() as u32, pr.height().ceil() as u32);
+        if (2..8192).contains(&tw) && (2..8192).contains(&th) {
+            if let Some(mut tile) = tiny_skia::Pixmap::new(tw, th) {
+                tile.fill(tiny_skia::Color::WHITE);
+                let tv = Affine::translate((-pr.x0, -pr.y0)) * view;
+                let inner = vector_render::RenderOptions { draw_page: false, ..opts.clone() };
+                ts.renderer.render_page(&d.doc, d.page, tv, &mut tile, &inner);
+                let (w, h) = (pr.width(), pr.height());
+                let kx0 = (-pr.x0 / w).floor() as i64 - 1;
+                let kx1 = ((pw as f64 - pr.x0) / w).ceil() as i64;
+                let ky0 = (-pr.y0 / h).floor() as i64 - 1;
+                let ky1 = ((ph as f64 - pr.y0) / h).ceil() as i64;
+                for ky in ky0.max(-60)..=ky1.min(60) {
+                    for kx in kx0.max(-60)..=kx1.min(60) {
+                        let (x, y) = (pr.x0 + kx as f64 * w, pr.y0 + ky as f64 * h);
+                        pm.draw_pixmap(0, 0, tile.as_ref(), &tiny_skia::PixmapPaint::default(), tiny_skia::Transform::from_translate(x as f32, y as f32), None);
+                    }
+                }
+                // the tile being edited keeps its border
+                if let Some(r) = tiny_skia::Rect::from_ltrb(pr.x0 as f32, pr.y0 as f32, pr.x1 as f32, pr.y1 as f32) {
+                    let mut paint = tiny_skia::Paint::default();
+                    paint.set_color(tiny_skia::Color::from_rgba8(0x40, 0x40, 0x40, 255));
+                    let stroke = tiny_skia::Stroke { width: 1.0, ..Default::default() };
+                    pm.stroke_path(&tiny_skia::PathBuilder::from_rect(r), &paint, &stroke, tiny_skia::Transform::identity(), None);
+                }
+            }
+        }
+    }
     if d.doc.settings.multipage_view && d.doc.pages.len() > 1 && d.view_mode != ViewMode::Pixels {
         // the other pages, side by side with the current one
         let others = vector_render::RenderOptions { draw_page: false, dim_others: None, ..opts.clone() };
@@ -996,4 +1027,137 @@ pub fn fullscreen_preview(app: &mut VectorApp, ui: &mut Ui) {
         app.preview_selected = false;
         ctx.send_viewport_cmd(egui::ViewportCommand::Fullscreen(false));
     }
+}
+
+/// Window ▸ Cascade, Tile Horizontally and Tile Vertically: every document in its own window
+/// with a title bar (its name, Maximize and Close). The active window takes the input; a click
+/// on another one makes it active.
+pub fn arranged_windows(app: &mut VectorApp, ui: &mut Ui) {
+    let area = ui.available_rect_before_wrap();
+    ui.allocate_rect(area, Sense::hover());
+    ui.painter().rect_filled(area, 0.0, theme::BG);
+    let n = app.docs.len();
+    let ai = app.active.unwrap_or(0).min(n - 1);
+    let area = area.shrink(2.0);
+    let rects: Vec<Rect> = match app.doc_layout {
+        // one above another (a grid past three windows)
+        1 | 2 if n > 3 => {
+            let cols = (n as f32).sqrt().ceil() as usize;
+            let rows = n.div_ceil(cols);
+            let (w, h) = (area.width() / cols as f32, area.height() / rows as f32);
+            (0..n).map(|i| Rect::from_min_size(area.min + vec2((i % cols) as f32 * w, (i / cols) as f32 * h), vec2(w, h)).shrink(1.0)).collect()
+        }
+        1 => {
+            let h = area.height() / n as f32;
+            (0..n).map(|i| Rect::from_min_size(area.min + vec2(0.0, i as f32 * h), vec2(area.width(), h)).shrink(1.0)).collect()
+        }
+        2 => {
+            let w = area.width() / n as f32;
+            (0..n).map(|i| Rect::from_min_size(area.min + vec2(i as f32 * w, 0.0), vec2(w, area.height())).shrink(1.0)).collect()
+        }
+        // cascade: each window down and to the right of the one before
+        _ => {
+            let step = 28.0;
+            let size = vec2((area.width() - step * (n - 1) as f32).max(area.width() * 0.5), (area.height() - step * (n - 1) as f32).max(area.height() * 0.5));
+            (0..n).map(|i| Rect::from_min_size(area.min + vec2(step, step) * (i as f32 % 12.0), size)).collect()
+        }
+    };
+    // the active window last, on top
+    let mut order: Vec<usize> = (0..n).filter(|i| *i != ai).collect();
+    order.push(ai);
+    let (mut activate, mut close, mut maximize) = (None, None, None);
+    for i in order {
+        let r = rects[i];
+        let active = i == ai;
+        let title = Rect::from_min_size(r.min, vec2(r.width(), 26.0));
+        let body = Rect::from_min_max(pos2(r.min.x + 1.0, title.max.y), pos2(r.max.x - 1.0, r.max.y - 1.0));
+        let p = ui.painter().clone();
+        p.rect_filled(r, 0.0, theme::BAR);
+        p.rect_stroke(r, 0.0, Stroke::new(1.0, if active { theme::FOCUS } else { theme::SEP }), egui::StrokeKind::Inside);
+        let t = ui.interact(title, Id::unique(("doc_win_title", app.docs[i].uid)), Sense::click());
+        if t.clicked() || t.double_clicked() {
+            activate = Some(i);
+        }
+        if t.double_clicked() {
+            maximize = Some(i);
+        }
+        let name = app.docs[i].display_name();
+        p.text(pos2(title.left() + 10.0, title.center().y), egui::Align2::LEFT_CENTER, name, theme::body(12.0), if active { theme::TEXT } else { theme::TEXT_DIM });
+        // Maximize (back to the tabs with this document) and Close
+        for (k, tip) in [(0, "Close"), (1, "Maximize")] {
+            let b = Rect::from_center_size(pos2(title.right() - 16.0 - k as f32 * 30.0, title.center().y), vec2(28.0, 22.0));
+            let resp = ui.interact(b, Id::unique(("doc_win_btn", app.docs[i].uid, k)), Sense::click()).on_hover_text(tip);
+            if resp.hovered() {
+                p.rect_filled(b, 2.0, if k == 0 { Color32::from_rgb(0xc4, 0x2b, 0x1c) } else { theme::HOVER });
+            }
+            let c = b.center();
+            let st = Stroke::new(1.1, theme::TEXT);
+            if k == 0 {
+                p.line_segment([c + vec2(-5.0, -5.0), c + vec2(5.0, 5.0)], st);
+                p.line_segment([c + vec2(-5.0, 5.0), c + vec2(5.0, -5.0)], st);
+            } else {
+                p.rect_stroke(Rect::from_center_size(c, vec2(10.0, 10.0)), 0.0, st, egui::StrokeKind::Inside);
+            }
+            if resp.clicked() {
+                if k == 0 {
+                    close = Some(i);
+                } else {
+                    maximize = Some(i);
+                }
+            }
+        }
+        if active {
+            ui.scope_builder(egui::UiBuilder::new().max_rect(body), |ui| {
+                ui.set_clip_rect(body);
+                drawing_window(app, ui);
+            });
+        } else if passive_window(app, ui, i, body) {
+            activate = Some(i);
+        }
+    }
+    if let Some(i) = activate {
+        if app.active != Some(i) {
+            app.finish_tool();
+            app.active = Some(i);
+        }
+    }
+    if let Some(i) = maximize {
+        app.active = Some(i);
+        app.doc_layout = 0;
+    }
+    if let Some(i) = close {
+        app.request_close_doc(i);
+    }
+}
+
+/// A window that is not the active one: its drawing, laid out as the drawing window would be
+/// (rulers, scrollbars, page navigator), without its controls. True when clicked.
+fn passive_window(app: &mut VectorApp, ui: &mut Ui, i: usize, full: Rect) -> bool {
+    let sb = if app.settings.show_scrollbars { SB } else { 0.0 };
+    let nav_h = if app.settings.show_doc_navigator { NAV_H } else { 0.0 };
+    let area = Rect::from_min_max(full.min, pos2(full.max.x - sb, full.max.y - nav_h - sb));
+    let r = if app.docs[i].doc.settings.show_rulers { RULER } else { 0.0 };
+    let canvas = Rect::from_min_max(area.min + vec2(r, r), area.max);
+    let p = ui.painter_at(full);
+    p.rect_filled(full, 0.0, theme::BG);
+    if r > 0.0 {
+        p.rect_filled(Rect::from_min_max(area.min, pos2(area.max.x, area.min.y + r)), 0.0, theme::RULER);
+        p.rect_filled(Rect::from_min_max(area.min, pos2(area.min.x + r, area.max.y)), 0.0, theme::RULER);
+    }
+    if canvas.width() < 8.0 || canvas.height() < 8.0 {
+        return false;
+    }
+    {
+        let d = &mut app.docs[i];
+        d.canvas_rect = canvas;
+        if d.needs_fit {
+            d.zoom_page();
+            d.needs_fit = false;
+        }
+    }
+    render_cache(app, ui.ctx(), i, canvas);
+    if let Some(tex) = &app.docs[i].cache.tex {
+        p.image(tex.id(), canvas, Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
+    }
+    ui.interact(full, Id::unique(("doc_win_body", app.docs[i].uid)), Sense::click()).clicked()
 }
