@@ -1,52 +1,15 @@
-//! The smaller dialogs: New Document, Export, Print / Print Preview, Document Properties,
+//! The smaller dialogs: Document Properties,
 //! Script Editor, About, Palette Editor, page dialogs, confirmations, Resample and PowerTRACE.
 
 use super::{heading, note, ok_cancel_row, separator, window};
 use crate::app::VectorApp;
 use crate::theme;
-use egui::{vec2, Color32, Ui};
+use egui::{vec2, Color32};
 use vector_core::{Color, NamedColor, Palette};
 
 // ------------------------------------------------------------------------------------------
 // state
 // ------------------------------------------------------------------------------------------
-
-#[derive(Clone)]
-pub struct ExportState {
-    pub format: usize,
-    /// 0 = current page, 1 = all pages, 2 = selected only.
-    pub range: usize,
-    pub dpi: f64,
-    pub transparent: bool,
-    pub antialias: bool,
-    pub quality: u8,
-    /// Pre-chosen destination (from Save As style flows).
-    pub path: Option<std::path::PathBuf>,
-}
-
-impl Default for ExportState {
-    fn default() -> Self {
-        ExportState { format: 2, range: 0, dpi: 300.0, transparent: true, antialias: true, quality: 85, path: None }
-    }
-}
-
-#[derive(Clone)]
-pub struct PrintState {
-    pub preview: bool,
-    pub copies: u32,
-    /// 0 = current page, 1 = all pages, 2 = page range.
-    pub range: usize,
-    pub pages: String,
-    pub preview_page: usize,
-    pub tex: Option<(usize, egui::TextureHandle)>,
-    pub fit_to_page: bool,
-}
-
-impl PrintState {
-    pub fn new(preview: bool, page: usize) -> PrintState {
-        PrintState { preview, copies: 1, range: 1, pages: String::new(), preview_page: page, tex: None, fit_to_page: false }
-    }
-}
 
 #[derive(Clone, Default)]
 pub struct ScriptEditorState {
@@ -87,14 +50,11 @@ pub fn show_all(app: &mut VectorApp, ctx: &egui::Context) {
     if app.dialogs.new_doc.is_some() {
         super::new_doc::show(app, ctx);
     }
-    if app.dialogs.export.is_some() {
-        export(app, ctx);
-    }
     if app.dialogs.print.is_some() {
-        print(app, ctx);
+        super::print::show(app, ctx);
     }
     if app.dialogs.doc_props {
-        doc_props(app, ctx);
+        super::docprops::show(app, ctx);
     }
     if app.dialogs.script_editor.is_some() {
         script_editor(app, ctx);
@@ -122,9 +82,6 @@ pub fn show_all(app: &mut VectorApp, ctx: &egui::Context) {
     }
 }
 
-fn label_w(ui: &mut Ui, text: &str, w: f32) {
-    ui.add_sized(vec2(w, 22.0), egui::Label::new(text).halign(egui::Align::Min));
-}
 
 
 // ------------------------------------------------------------------------------------------
@@ -256,82 +213,6 @@ fn message_box(app: &mut VectorApp, ctx: &egui::Context) {
 // Export
 // ------------------------------------------------------------------------------------------
 
-fn export(app: &mut VectorApp, ctx: &egui::Context) {
-    let Some(mut st) = app.dialogs.export.clone() else { return };
-    if !app.has_doc() {
-        app.dialogs.export = None;
-        return;
-    }
-    let has_sel = app.has_selection();
-    let types = vector_io::EXPORT_TYPES;
-    let mut result = (false, false);
-    let ((), dismissed) = window(ctx, "export", "Export", vec2(520.0, 400.0), |ui| {
-        ui.add_space(10.0);
-        ui.spacing_mut().item_spacing.y = 8.0;
-        ui.horizontal(|ui| {
-            label_w(ui, "Save as type:", 120.0);
-            egui::ComboBox::from_id_salt("ex_type").selected_text(types[st.format.min(types.len() - 1)].name).width(330.0).show_ui(ui, |ui| {
-                for (i, t) in types.iter().enumerate() {
-                    ui.selectable_value(&mut st.format, i, t.name);
-                }
-            });
-        });
-        ui.horizontal(|ui| {
-            label_w(ui, "Export range:", 120.0);
-            ui.radio_value(&mut st.range, 0, "Current page");
-            ui.radio_value(&mut st.range, 1, "All pages");
-            ui.add_enabled_ui(has_sel, |ui| {
-                ui.radio_value(&mut st.range, 2, "Selected only");
-            });
-        });
-        let t = &types[st.format.min(types.len() - 1)];
-        separator(ui);
-        if t.vector {
-            heading(ui, if t.extensions[0] == "pdf" { "PDF" } else { "SVG" });
-            ui.horizontal(|ui| {
-                label_w(ui, "Bitmap resolution:", 120.0);
-                ui.add(egui::DragValue::new(&mut st.dpi).range(72.0..=1200.0).suffix(" dpi"));
-            });
-            note(ui, "Text, curves, gradients and transparency are exported as vectors; bitmap effects are embedded as images.");
-        } else {
-            heading(ui, "Bitmap");
-            ui.horizontal(|ui| {
-                label_w(ui, "Resolution:", 120.0);
-                egui::ComboBox::from_id_salt("ex_dpi").selected_text(format!("{} dpi", st.dpi)).width(100.0).show_ui(ui, |ui| {
-                    for d in [72.0, 96.0, 150.0, 200.0, 300.0, 600.0] {
-                        ui.selectable_value(&mut st.dpi, d, format!("{d} dpi"));
-                    }
-                });
-                ui.add(egui::DragValue::new(&mut st.dpi).range(10.0..=2400.0).suffix(" dpi"));
-            });
-            if let Some(d) = app.doc() {
-                let p = d.page_ref();
-                let (w, h) = ((p.width * st.dpi / 72.0).round(), (p.height * st.dpi / 72.0).round());
-                note(ui, &format!("Page image size: {w} × {h} pixels"));
-            }
-            let alpha = matches!(t.extensions[0], "png" | "webp" | "tif" | "gif");
-            ui.add_enabled(alpha, egui::Checkbox::new(&mut st.transparent, "Transparent background"));
-            ui.checkbox(&mut st.antialias, "Anti-aliasing");
-            if matches!(t.extensions[0], "jpg" | "webp") {
-                ui.horizontal(|ui| {
-                    label_w(ui, "Quality:", 120.0);
-                    ui.add(egui::Slider::new(&mut st.quality, 10..=100));
-                });
-            }
-        }
-        result = ok_cancel_row(ui, "Export...", true);
-    });
-    let (ok, cancel) = result;
-    if ok {
-        app.dialogs.export = None;
-        app.export_with(&st);
-    } else if cancel || dismissed {
-        app.dialogs.export = None;
-    } else {
-        app.dialogs.export = Some(st);
-    }
-}
-
 // ------------------------------------------------------------------------------------------
 // Print / Print Preview
 // ------------------------------------------------------------------------------------------
@@ -360,173 +241,9 @@ pub fn parse_page_range(s: &str, n: usize) -> Vec<usize> {
     v
 }
 
-fn print(app: &mut VectorApp, ctx: &egui::Context) {
-    let Some(mut st) = app.dialogs.print.take() else { return };
-    let Some(d) = app.doc() else { return };
-    let n = d.doc.pages.len();
-    let cur = d.page;
-    st.preview_page = st.preview_page.min(n - 1);
-    // preview texture
-    if st.tex.as_ref().map(|(p, _)| *p) != Some(st.preview_page) {
-        if let Some(pm) = vector_render::render_page_image(&d.doc, st.preview_page, 60.0, Some(Color::WHITE), None, true) {
-            let ci = egui::ColorImage::from_rgba_premultiplied([pm.width() as usize, pm.height() as usize], pm.data());
-            st.tex = Some((st.preview_page, ctx.load_texture("print_preview", ci, egui::TextureOptions::LINEAR)));
-        }
-    }
-    let title = if st.preview { "Print Preview" } else { "Print" };
-    let mut result = (false, false);
-    let mut to_pdf = false;
-    let ((), dismissed) = window(ctx, "print", title, vec2(760.0, 560.0), |ui| {
-        ui.add_space(8.0);
-        ui.horizontal_top(|ui| {
-            ui.vertical(|ui| {
-                ui.set_width(300.0);
-                ui.spacing_mut().item_spacing.y = 8.0;
-                heading(ui, "Printer");
-                note(ui, "Pages are sent to the Windows printer you choose in the system print dialog.");
-                separator(ui);
-                heading(ui, "Print range");
-                ui.radio_value(&mut st.range, 1, "All pages");
-                ui.radio_value(&mut st.range, 0, format!("Current page ({})", cur + 1));
-                ui.horizontal(|ui| {
-                    ui.radio_value(&mut st.range, 2, "Pages:");
-                    ui.add_enabled(st.range == 2, egui::TextEdit::singleline(&mut st.pages).hint_text("e.g. 1-3, 5").desired_width(120.0));
-                });
-                ui.horizontal(|ui| {
-                    ui.label("Number of copies:");
-                    ui.add(egui::DragValue::new(&mut st.copies).range(1..=999));
-                });
-                ui.checkbox(&mut st.fit_to_page, "Fit to printer page");
-                ui.checkbox(&mut app.settings.print_only_current, "Print only current page by default");
-                separator(ui);
-                if ui.button("Print to PDF...").clicked() {
-                    to_pdf = true;
-                }
-            });
-            ui.separator();
-            ui.vertical(|ui| {
-                let avail = vec2(ui.available_width(), 430.0);
-                let (r, _) = ui.allocate_exact_size(avail, egui::Sense::hover());
-                ui.painter().rect_filled(r, 0.0, Color32::from_rgb(0x1c, 0x1c, 0x1c));
-                if let Some((_, tex)) = &st.tex {
-                    let sz = tex.size_vec2();
-                    let s = ((r.width() - 30.0) / sz.x).min((r.height() - 30.0) / sz.y);
-                    let ir = egui::Rect::from_center_size(r.center(), sz * s);
-                    ui.painter().rect_filled(ir.translate(vec2(3.0, 3.0)), 0.0, Color32::from_black_alpha(120));
-                    ui.painter().image(tex.id(), ir, egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)), Color32::WHITE);
-                }
-                ui.horizontal(|ui| {
-                    if ui.add_enabled(st.preview_page > 0, egui::Button::new("◀")).clicked() {
-                        st.preview_page -= 1;
-                    }
-                    ui.label(format!("Page {} of {}", st.preview_page + 1, n));
-                    if ui.add_enabled(st.preview_page + 1 < n, egui::Button::new("▶")).clicked() {
-                        st.preview_page += 1;
-                    }
-                });
-            });
-        });
-        result = ok_cancel_row(ui, "Print", true);
-    });
-    let pages: Vec<usize> = match st.range {
-        0 => vec![cur],
-        2 => parse_page_range(&st.pages, n),
-        _ => (0..n).collect(),
-    };
-    let (ok, cancel) = result;
-    if to_pdf {
-        app.publish_pdf(Some(pages.clone()));
-        app.dialogs.print = Some(st);
-    } else if ok {
-        app.print_pages(&pages, st.copies);
-    } else if cancel || dismissed {
-    } else {
-        app.dialogs.print = Some(st);
-    }
-}
-
 // ------------------------------------------------------------------------------------------
 // Document Properties
 // ------------------------------------------------------------------------------------------
-
-fn doc_props(app: &mut VectorApp, ctx: &egui::Context) {
-    let Some(d) = app.doc() else {
-        app.dialogs.doc_props = false;
-        return;
-    };
-    let mut info = d.doc.info.clone();
-    let stats = {
-        let mut objs = 0;
-        let mut curves = 0;
-        let mut texts = 0;
-        let mut images = 0;
-        for p in &d.doc.pages {
-            for o in p.all_objects() {
-                o.walk(&mut |x| {
-                    objs += 1;
-                    match x.kind {
-                        vector_core::ObjKind::Path(_) => curves += 1,
-                        vector_core::ObjKind::Text(_) => texts += 1,
-                        vector_core::ObjKind::Image(_) => images += 1,
-                        _ => {}
-                    }
-                });
-            }
-        }
-        (d.doc.pages.len(), d.doc.pages.iter().map(|p| p.layers.len()).sum::<usize>(), objs, curves, texts, images)
-    };
-    let file = d.path.as_ref().map(|p| p.display().to_string()).unwrap_or_else(|| "(not saved)".into());
-    let mut result = (false, false);
-    let ((), dismissed) = window(ctx, "doc_props", "Document Properties", vec2(520.0, 520.0), |ui| {
-        ui.add_space(10.0);
-        ui.spacing_mut().item_spacing.y = 6.0;
-        for (label, field) in [("Title:", &mut info.title), ("Subject:", &mut info.subject), ("Author:", &mut info.author), ("Copyright:", &mut info.copyright), ("Keywords:", &mut info.keywords)] {
-            ui.horizontal(|ui| {
-                label_w(ui, label, 90.0);
-                ui.add(egui::TextEdit::singleline(field).desired_width(390.0));
-            });
-        }
-        ui.horizontal(|ui| {
-            label_w(ui, "Notes:", 90.0);
-            ui.add(egui::TextEdit::multiline(&mut info.notes).desired_width(390.0).desired_rows(3));
-        });
-        ui.horizontal(|ui| {
-            label_w(ui, "Rating:", 90.0);
-            for s in 1..=5u8 {
-                let on = info.rating >= s;
-                if ui.add(egui::Button::new(egui::RichText::new(if on { "★" } else { "☆" }).size(16.0)).frame(false)).clicked() {
-                    info.rating = if info.rating == s { 0 } else { s };
-                }
-            }
-        });
-        separator(ui);
-        heading(ui, "File");
-        note(ui, &file);
-        heading(ui, "Document");
-        egui::Grid::new("dp_stats").num_columns(2).spacing(vec2(30.0, 3.0)).show(ui, |ui| {
-            for (k, v) in [("Pages", stats.0), ("Layers", stats.1), ("Objects", stats.2), ("Curves", stats.3), ("Text objects", stats.4), ("Bitmaps", stats.5)] {
-                ui.label(k);
-                ui.label(v.to_string());
-                ui.end_row();
-            }
-        });
-        result = ok_cancel_row(ui, "OK", true);
-    });
-    let (ok, cancel) = result;
-    if ok {
-        if let Some(d) = app.doc_mut() {
-            if d.doc.info != info {
-                d.modify("Document Properties", |doc, _| doc.info = info.clone());
-            }
-        }
-        app.dialogs.doc_props = false;
-    } else if cancel || dismissed {
-        app.dialogs.doc_props = false;
-    } else if let Some(d) = app.doc_mut() {
-        // keep edits between frames without an undo step
-        d.doc.info = info;
-    }
-}
 
 // ------------------------------------------------------------------------------------------
 // Script Editor

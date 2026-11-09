@@ -134,3 +134,7 @@ pb/pick 18 com-efeitos.png	05-ferramentas/barra-pick-por-contexto/18 Pick com co
 21_menu_09_table.png	02-menus/doc-vazio/09 Table/001 Table.png	Table menu (same with a selection)
 21_menu_10_tools.png	02-menus/doc-vazio/10 Tools/001 Tools.png	Tools menu (same with a selection)
 21_menu_12_help.png	02-menus/doc-vazio/12 Help/001 Help.png	Help menu (same with a selection)
+40_view_toggles.png	06-barras/00 tela inteira (referencia).png	View toggles: multipage view, baseline grid, printable area, proof colors, overprints, scrollbars
+54_document_properties.png	03-telas/doc-vazio/01 File/022 File ▸ Document Properties.png	File > Document Properties
+55_copy_properties.png	03-telas/selecao-multipla/02 Edit/001 Edit ▸ Copy Properties From.png	Edit > Copy Properties From
+56_paste_special.png	03-telas/doc-vazio/02 Edit/002 Edit ▸ Paste Special.png	Edit > Paste Special

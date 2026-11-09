@@ -2,7 +2,7 @@
 
 use crate::app::{Toolbar, VectorApp};
 use crate::commands::{Cmd, OptionsPage};
-use crate::dialogs::{ExportState, NewDocState, PrintState, ScriptEditorState, TraceState};
+use crate::dialogs::{NewDocState, PrintState, ScriptEditorState, TraceState};
 use crate::dockers::DockerId;
 use crate::docview::DocView;
 use crate::tools::{PickTarget, ToolId};
@@ -123,11 +123,110 @@ pub fn new_symbol(app: &mut VectorApp, name: &str) {
     });
 }
 
-/// Export the current page (or selection) with the Export docker's quick settings.
-pub fn quick_export(app: &mut VectorApp, format: &str, dpi: f64, selection_only: bool) {
-    let idx = vector_io::EXPORT_TYPES.iter().position(|t| t.extensions.contains(&format.to_lowercase().as_str())).unwrap_or(2);
-    let st = ExportState { format: idx, range: if selection_only { 2 } else { 0 }, dpi, ..Default::default() };
-    app.export_with(&st);
+/// Export one Export docker item (a page or an object) to its folder; returns the file written.
+pub fn export_item(app: &mut VectorApp, it: &crate::dockers::ExportItem) -> Result<PathBuf, String> {
+    let d = app.doc().ok_or("No document")?;
+    let (doc, page) = match (it.page, it.object) {
+        (Some(pid), _) => (d.doc.clone(), d.doc.pages.iter().position(|p| p.id == pid).ok_or("The page no longer exists.")?),
+        (_, Some(o)) => (selection_document(&d.doc, &[o]).ok_or("The object no longer exists.")?, 0),
+        _ => return Err("Nothing to export".into()),
+    };
+    let fmt = crate::dockers::EXPORT_DOCKER_FORMATS[it.format.min(7)].to_lowercase();
+    let _ = std::fs::create_dir_all(&it.folder);
+    let path = it.folder.join(format!("{}{}.{fmt}", it.name, it.suffix));
+    match fmt.as_str() {
+        "pdf" => {
+            let mut opts = crate::dialogs::export::pdf_options(app);
+            opts.pages = vec![page];
+            vector_io::pdf::export(&doc, &path, &opts).map_err(|e| e.to_string())?;
+        }
+        "svg" => vector_io::svg_export::export(&doc, page, &path, &Default::default()).map_err(|e| e.to_string())?,
+        _ => {
+            let bg = if matches!(fmt.as_str(), "png" | "webp" | "tif" | "gif") { None } else { Some(Color::WHITE) };
+            let opts = vector_io::image_io::RasterOptions { dpi: it.dpi, antialias: true, background: bg, jpeg_quality: 85, area: None, size: None };
+            vector_io::image_io::export_raster(&doc, page, &path, &opts).map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(path)
+}
+
+/// Send a file with the default mail program (Simple MAPI); false when there is none.
+#[cfg(windows)]
+fn mapi_send(path: &Path, subject: &str) -> bool {
+    use windows::core::{PCWSTR, PWSTR};
+    use windows::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryW};
+    use windows::Win32::System::Mapi::{MapiFileDescW, MapiMessageW, LPMAPISENDMAILW, MAPI_DIALOG, MAPI_LOGON_UI};
+    let wide = |s: &str| -> Vec<u16> { s.encode_utf16().chain(std::iter::once(0)).collect() };
+    unsafe {
+        let Ok(lib) = LoadLibraryW(PCWSTR(wide("MAPI32.DLL").as_ptr())) else { return false };
+        let Some(f) = GetProcAddress(lib, windows::core::s!("MAPISendMailW")) else { return false };
+        let send: LPMAPISENDMAILW = std::mem::transmute(f);
+        let Some(send) = send else { return false };
+        let mut file_path = wide(&path.display().to_string());
+        let mut file_name = wide(&path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default());
+        let mut subj = wide(subject);
+        let mut fd = MapiFileDescW { nPosition: u32::MAX, lpszPathName: PWSTR(file_path.as_mut_ptr()), lpszFileName: PWSTR(file_name.as_mut_ptr()), ..Default::default() };
+        let msg = MapiMessageW { lpszSubject: PWSTR(subj.as_mut_ptr()), nFileCount: 1, lpFiles: &mut fd, ..Default::default() };
+        let owner = windows::Win32::UI::Input::KeyboardAndMouse::GetActiveWindow();
+        let r = send(0, owner.0 as usize, &msg, MAPI_DIALOG | MAPI_LOGON_UI, 0);
+        // 0 = sent, 1 = the user cancelled
+        r == 0 || r == 1
+    }
+}
+
+#[cfg(not(windows))]
+fn mapi_send(_path: &Path, _subject: &str) -> bool {
+    false
+}
+
+/// PowerShell for File ▸ Acquire Image through Windows Image Acquisition: select a device
+/// (`select` = true) or scan with the chosen device's dialog and save a PNG to `out`.
+fn wia_script(select: bool, device: Option<&str>, out: &Path) -> String {
+    let png = "{B96B3CAF-0728-11D3-9D7B-0000F81EF32E}";
+    if select {
+        return "$ErrorActionPreference='Stop'; $d = New-Object -ComObject WIA.CommonDialog; $dev = $d.ShowSelectDevice(0, $true, $false); if ($dev) { Write-Output $dev.DeviceID }".into();
+    }
+    let out = out.display().to_string().replace('\'', "''");
+    let connect = match device {
+        Some(id) => format!(
+            "$m = New-Object -ComObject WIA.DeviceManager; $dev = $null; foreach ($i in $m.DeviceInfos) {{ if ($i.DeviceID -eq '{}') {{ $dev = $i.Connect() }} }}; ",
+            id.replace('\'', "''")
+        ),
+        None => "$dev = $null; ".into(),
+    };
+    format!(
+        "$ErrorActionPreference='Stop'; $d = New-Object -ComObject WIA.CommonDialog; {connect}\
+         if ($dev) {{ $items = $d.ShowSelectItems($dev, 0, 0, $false, $true, $false); if ($items -and $items.Count -gt 0) {{ $img = $d.ShowTransfer($items.Item(1), '{png}', $false) }} }} \
+         else {{ $img = $d.ShowAcquireImage(0, 0, 0, '{png}', $false, $true, $false) }}; \
+         if ($img) {{ if ($img.FormatID -ne '{png}') {{ $p = New-Object -ComObject WIA.ImageProcess; $p.Filters.Add($p.FilterInfos.Item('Convert').FilterID); $p.Filters.Item(1).Properties.Item('FormatID').Value = '{png}'; $img = $p.Apply($img) }}; \
+         if (Test-Path '{out}') {{ Remove-Item '{out}' }}; $img.SaveFile('{out}'); Write-Output 'OK' }}"
+    )
+}
+
+/// Run a hidden PowerShell command; returns its output or the error text.
+fn powershell(script: &str) -> Result<String, String> {
+    let mut cmd = std::process::Command::new("powershell");
+    cmd.args(["-NoProfile", "-NonInteractive", "-STA", "-Command", script]);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000);
+    }
+    let out = cmd.output().map_err(|e| e.to_string())?;
+    if out.status.success() {
+        Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
+    } else {
+        Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+    }
+}
+
+/// A readable message for a WIA failure.
+fn wia_error(e: &str) -> String {
+    if e.contains("0x80210015") || e.to_lowercase().contains("no wia device") || e.contains("-2145320939") {
+        "No scanner or camera was found. Connect a WIA device and try again.".into()
+    } else {
+        format!("The image could not be acquired:\n{}", e.lines().next().unwrap_or(e))
+    }
 }
 
 fn rotate_about(c: Point, deg: f64) -> Affine {
@@ -155,12 +254,6 @@ pub fn selection_document(doc: &Document, ids: &[ObjId]) -> Option<Document> {
     Some(out)
 }
 
-fn open_in_shell(path: &Path) {
-    #[cfg(windows)]
-    {
-        let _ = std::process::Command::new("explorer").arg(path).spawn();
-    }
-}
 
 fn reveal_in_explorer(path: &Path) {
     #[cfg(windows)]
@@ -533,115 +626,8 @@ impl VectorApp {
 
     // -------------------------------------------------------------------------------- export / print
 
-    pub fn export_with(&mut self, st: &ExportState) {
-        let Some(d) = self.doc() else { return };
-        let t = &vector_io::EXPORT_TYPES[st.format.min(vector_io::EXPORT_TYPES.len() - 1)];
-        let ext = t.extensions[0];
-        let stem = d.stem();
-        let path = match &st.path {
-            Some(p) => p.clone(),
-            None => {
-                let mut fd = rfd::FileDialog::new().set_title("Export").add_filter(t.name, t.extensions).set_file_name(format!("{stem}.{ext}"));
-                if let Some(dir) = self.settings.last_export_dir.clone().or_else(|| self.settings.last_dir.clone()) {
-                    fd = fd.set_directory(dir);
-                }
-                match fd.save_file() {
-                    Some(p) => p,
-                    None => return,
-                }
-            }
-        };
-        self.settings.last_export_dir = path.parent().map(|p| p.to_path_buf());
-        let d = self.doc().unwrap();
-        let sel_doc;
-        let (doc, pages): (&Document, Vec<usize>) = match st.range {
-            2 => match selection_document(&d.doc, &d.selection) {
-                Some(sd) => {
-                    sel_doc = sd;
-                    (&sel_doc, vec![0])
-                }
-                None => {
-                    self.flash("Nothing selected.");
-                    return;
-                }
-            },
-            1 => (&d.doc, (0..d.doc.pages.len()).collect()),
-            _ => (&d.doc, vec![d.page]),
-        };
-        let numbered = |i: usize| -> PathBuf {
-            if pages.len() <= 1 {
-                path.clone()
-            } else {
-                let s = path.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
-                path.with_file_name(format!("{s}-{}.{ext}", i + 1))
-            }
-        };
-        let res: Result<(), String> = match ext {
-            "pdf" => {
-                let opts = vector_io::pdf::PdfOptions { pages: pages.clone(), raster_dpi: st.dpi, ..Default::default() };
-                vector_io::pdf::export(doc, &path, &opts).map_err(|e| e.to_string())
-            }
-            "svg" => {
-                let opts = vector_io::svg_export::SvgOptions { raster_dpi: st.dpi, ..Default::default() };
-                pages.iter().try_for_each(|p| vector_io::svg_export::export(doc, *p, &numbered(*p), &opts).map_err(|e| e.to_string()))
-            }
-            _ => {
-                let bg = if st.transparent && matches!(ext, "png" | "webp" | "tif" | "gif") { None } else { Some(Color::WHITE) };
-                let opts = vector_io::image_io::RasterOptions { dpi: st.dpi, antialias: st.antialias, background: bg, jpeg_quality: st.quality, area: None, size: None };
-                pages.iter().try_for_each(|p| vector_io::image_io::export_raster(doc, *p, &numbered(*p), &opts).map_err(|e| e.to_string()))
-            }
-        };
-        match res {
-            Ok(()) => self.flash(format!("Exported {}", path.display())),
-            Err(e) => self.dialogs.message_box = Some(("Export".into(), format!("Export failed:\n{e}"))),
-        }
-    }
-
-    pub fn publish_pdf(&mut self, pages: Option<Vec<usize>>) {
-        let Some(d) = self.doc() else { return };
-        let stem = d.stem();
-        let mut fd = rfd::FileDialog::new().set_title("Publish to PDF").add_filter("PDF - Portable Document Format (*.pdf)", &["pdf"]).set_file_name(format!("{stem}.pdf"));
-        if let Some(dir) = self.settings.last_export_dir.clone() {
-            fd = fd.set_directory(dir);
-        }
-        let Some(path) = fd.save_file() else { return };
-        let opts = vector_io::pdf::PdfOptions { pages: pages.unwrap_or_default(), ..Default::default() };
-        match vector_io::pdf::export(&self.doc().unwrap().doc, &path, &opts) {
-            Ok(()) => {
-                self.settings.last_export_dir = path.parent().map(|p| p.to_path_buf());
-                self.flash(format!("Published {}", path.display()));
-            }
-            Err(e) => self.dialogs.message_box = Some(("Publish to PDF".into(), format!("Could not publish:\n{e}"))),
-        }
-    }
-
     /// Print through the Windows shell: the pages are written to a temporary PDF which is sent
     /// to the default printer with the "print" verb.
-    pub fn print_pages(&mut self, pages: &[usize], copies: u32) {
-        let Some(d) = self.doc() else { return };
-        if pages.is_empty() {
-            self.flash("No pages to print.");
-            return;
-        }
-        let path = std::env::temp_dir().join(format!("Vector Print {}.pdf", d.uid));
-        let opts = vector_io::pdf::PdfOptions { pages: pages.to_vec(), printing: true, ..Default::default() };
-        if let Err(e) = vector_io::pdf::export(&d.doc, &path, &opts) {
-            self.dialogs.message_box = Some(("Print".into(), format!("Could not prepare the print job:\n{e}")));
-            return;
-        }
-        let mut ok = true;
-        for _ in 0..copies.max(1) {
-            let r = std::process::Command::new("powershell")
-                .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", &format!("Start-Process -FilePath '{}' -Verb Print", path.display().to_string().replace('\'', "''"))])
-                .spawn();
-            ok &= r.is_ok();
-        }
-        if ok {
-            self.flash(format!("Sent {} page(s) to the printer", pages.len()));
-        } else {
-            open_in_shell(&path);
-        }
-    }
 
     // -------------------------------------------------------------------------------- clipboard
 
@@ -678,7 +664,11 @@ impl VectorApp {
         true
     }
 
-    fn paste(&mut self) {
+    /// Paste the clipboard: `kind` = the format (Paste Special) or the best one; `at` = center
+    /// the pasted objects there (Paste in View).
+    pub fn paste_as(&mut self, kind: Option<crate::dialogs::clipboard::PasteKind>, at: Option<Point>) {
+        use crate::dialogs::clipboard::PasteKind;
+        let want = |k: PasteKind| kind.is_none() || kind == Some(k);
         if !self.has_doc() {
             self.new_default_document();
         }
@@ -691,8 +681,14 @@ impl VectorApp {
                 image = cb.get_image().ok();
             }
         }
+        if kind == Some(PasteKind::Bitmap) {
+            text = None;
+            if let Ok(mut cb) = arboard::Clipboard::new() {
+                image = cb.get_image().ok();
+            }
+        }
         let ours = text.as_deref().map(|t| t.contains("data-vector-clip")).unwrap_or(false);
-        if (ours || (text.is_none() && image.is_none())) && !self.clip.objects.is_empty() {
+        if (kind == Some(PasteKind::Native) || (kind.is_none() && (ours || (text.is_none() && image.is_none())))) && !self.clip.objects.is_empty() {
             let clip = self.clip.clone();
             let d = self.doc_mut().unwrap();
             let mut tmp = Document::new(1.0, 1.0);
@@ -700,16 +696,22 @@ impl VectorApp {
             tmp.symbols = clip.symbols.iter().filter(|s| !d.doc.symbols.iter().any(|x| x.id == s.id)).cloned().collect();
             // keep symbol references to existing definitions
             tmp.pages[0].layers[0].objects = clip.objects.clone();
-            let objs = vector_io::merge_document(&mut d.doc, tmp);
+            let mut objs = vector_io::merge_document(&mut d.doc, tmp);
+            if let Some(c) = at {
+                let bb = vector_core::object::union_bounds(objs.iter().map(|o| o.bounds()));
+                for o in objs.iter_mut() {
+                    o.apply_transform(Affine::translate(c - bb.center()));
+                }
+            }
             d.add_objects("Paste", objs);
             return;
         }
         if let Some(t) = text {
             let t = t.trim().to_string();
-            if t.starts_with("<svg") || t.starts_with("<?xml") {
+            if (t.starts_with("<svg") || t.starts_with("<?xml")) && want(PasteKind::Svg) {
                 let d = self.doc_mut().unwrap();
                 if let Ok(mut objs) = vector_io::svg_import::objects_from_svg(&mut d.doc, t.as_bytes()) {
-                    let c = d.page_ref().rect().center();
+                    let c = at.unwrap_or_else(|| d.page_ref().rect().center());
                     let bb = vector_core::object::union_bounds(objs.iter().map(|o| o.bounds()));
                     for o in objs.iter_mut() {
                         o.apply_transform(Affine::translate(c - bb.center()));
@@ -718,8 +720,8 @@ impl VectorApp {
                     return;
                 }
             }
-            if !t.is_empty() {
-                crate::tools::insert_text(self, &t, None);
+            if !t.is_empty() && want(PasteKind::Text) {
+                crate::tools::insert_text_at(self, &t, None, at);
                 return;
             }
         }
@@ -734,7 +736,7 @@ impl VectorApp {
                 name: "Pasted image".into(),
             };
             let mut o = vector_io::image_io::image_object(&mut d.doc, data, 96.0);
-            let c = d.page_ref().rect().center();
+            let c = at.unwrap_or_else(|| d.page_ref().rect().center());
             let b = o.bounds();
             o.apply_transform(Affine::translate(c - b.center()));
             d.add_objects("Paste", vec![o]);
@@ -1070,17 +1072,11 @@ impl VectorApp {
             // ------------------------------------------------------------------ File
             Cmd::New => self.new_document_cmd(),
             Cmd::NewFromTemplate => {
-                let dir = crate::settings::config_dir().join("Templates");
-                let _ = std::fs::create_dir_all(&dir);
-                if let Some(p) = rfd::FileDialog::new().set_title("New From Template").add_filter("Templates (*.cdr;*.cdt;*.vct)", &["cdr", "cdt", "vct"]).set_directory(&dir).pick_file() {
-                    if self.open_path(&p) {
-                        if let Some(d) = self.doc_mut() {
-                            d.path = None;
-                            d.title = "Untitled.cdr".into();
-                            d.history.touch();
-                        }
-                    }
-                }
+                // Create a New Document, opened on its Templates tab
+                self.untitled_counter += 1;
+                let mut st = NewDocState::new(self.untitled_counter, self.unit_default());
+                st.tab = 1;
+                self.dialogs.new_doc = Some(st);
             }
             Cmd::QuickAiGenerate => self.ai.quick_open = true,
             Cmd::AiGenerate => self.dockers.show(DockerId::AiGenerate),
@@ -1131,7 +1127,7 @@ impl VectorApp {
                     let dir = crate::settings::config_dir().join("Templates");
                     let _ = std::fs::create_dir_all(&dir);
                     let stem = d.stem();
-                    if let Some(p) = rfd::FileDialog::new().set_title("Save As Template").add_filter("CDR - CorelDRAW (*.cdr)", &["cdr"]).set_directory(&dir).set_file_name(format!("{stem}.cdr")).save_file() {
+                    if let Some(p) = rfd::FileDialog::new().set_title("Save Drawing").add_filter("CDRT/CDT - CorelDRAW Template (*.cdrt;*.cdt)", &["cdrt", "cdt"]).set_directory(&dir).set_file_name(format!("{stem}.cdrt")).save_file() {
                         let opts = self.cdr_options(&d.doc, self.settings.embed_fonts, self.settings.save.embed_color_profiles, self.default_version_index());
                         match vector_io::cdr::save(&d.doc, &p, &opts) {
                             Ok(()) => self.flash("Template saved"),
@@ -1161,40 +1157,111 @@ impl VectorApp {
                     }
                 }
             }
-            Cmd::SelectTwain | Cmd::SelectWia => self.info_box("Acquire Image", "Scanners and cameras are accessed through Windows. Scan your image with the Windows Scan app, then use File > Acquire Image > Acquire... or Import to bring it into the drawing."),
-            Cmd::Acquire | Cmd::Import => self.import_dialog(),
-            Cmd::Export | Cmd::ExportForWeb | Cmd::ExportForOffice | Cmd::ExportForInkjet => {
+            Cmd::SelectWia => {
+                let (tx, rx) = std::sync::mpsc::channel();
+                std::thread::spawn(move || {
+                    let r = powershell(&wia_script(true, None, Path::new(""))).map_err(|e| wia_error(&e)).map(|id| if id.is_empty() { String::new() } else { format!("\u{1}wia:{id}") });
+                    let _ = tx.send(r);
+                });
+                self.background.push(rx);
+            }
+            Cmd::SelectTwain => {
+                let dsm = ["twaindsm.dll", "twain_32.dll"].iter().any(|n| {
+                    let win = std::env::var("WINDIR").unwrap_or_else(|_| "C:\\Windows".into());
+                    [Path::new(&win).join(n), Path::new(&win).join("System32").join(n), Path::new(&win).join("SysWOW64").join(n)].iter().any(|p| p.exists())
+                });
+                let msg = if dsm {
+                    "TWAIN sources are not supported. Choose Select WIA Source: scanners and cameras that come with a WIA driver are acquired through Windows Image Acquisition."
+                } else {
+                    "No TWAIN data source manager is installed. Choose Select WIA Source to use a scanner or camera through Windows Image Acquisition."
+                };
+                self.info_box("Select TWAIN Source", msg);
+            }
+            Cmd::Acquire => {
+                let device = self.settings.wia_device.clone();
+                let out = std::env::temp_dir().join(format!("vector-acquire-{}.png", std::process::id()));
+                let (tx, rx) = std::sync::mpsc::channel();
+                std::thread::spawn(move || {
+                    let r = powershell(&wia_script(false, device.as_deref(), &out)).map_err(|e| wia_error(&e)).map(|o| if o.contains("OK") && out.exists() { format!("\u{1}import:{}", out.display()) } else { String::new() });
+                    let _ = tx.send(r);
+                });
+                self.background.push(rx);
+                self.flash("Waiting for the scanner...");
+            }
+            Cmd::Import => self.import_dialog(),
+            Cmd::Export => {
                 if has_doc {
-                    let mut st = ExportState::default();
-                    match cmd {
-                        Cmd::ExportForWeb => {
-                            st.format = 2;
-                            st.dpi = 96.0;
-                        }
-                        Cmd::ExportForOffice => {
-                            st.format = 2;
-                            st.dpi = 300.0;
-                            st.transparent = false;
-                        }
-                        Cmd::ExportForInkjet => st.format = 0,
-                        _ => {
-                            if self.has_selection() {
-                                st.range = 2;
-                            }
-                        }
-                    }
-                    self.dialogs.export = Some(st);
+                    self.dialogs.export = Some(crate::dialogs::ExportState::new(self));
+                }
+            }
+            Cmd::ExportForWeb | Cmd::ExportForOffice | Cmd::ExportForWordPress => {
+                if let Some(d) = self.doc() {
+                    use crate::dialogs::export::{BitmapMode, BitmapState};
+                    let (mode, ext) = match cmd {
+                        Cmd::ExportForWeb => (BitmapMode::Web, "jpg"),
+                        Cmd::ExportForOffice => (BitmapMode::Office, "png"),
+                        _ => (BitmapMode::WordPress, "jpg"),
+                    };
+                    let sel = self.has_selection();
+                    let pages = vec![d.page];
+                    self.dialogs.bitmap = Some(BitmapState::new(self, mode, None, ext, pages, sel));
                 }
             }
             Cmd::ExportDockerOpen => self.dockers.show(DockerId::Export),
+            Cmd::ExportDockerAddSelection | Cmd::ExportDockerAddPage | Cmd::ExportDockerAddAllPages => {
+                if let Some(d) = self.doc() {
+                    let folder = self.settings.last_export_dir.clone().unwrap_or_else(crate::settings::documents_dir);
+                    let format = self.dockers.ui.export_format;
+                    let stem = d.stem();
+                    let mut items = vec![];
+                    let item = |page: Option<u64>, object: Option<ObjId>, name: String| crate::dockers::ExportItem { page, object, name, suffix: String::new(), format, folder: folder.clone(), selected: false, dpi: 300.0 };
+                    match cmd {
+                        Cmd::ExportDockerAddSelection => {
+                            for id in &d.selection {
+                                if let Some(o) = d.doc.find(*id) {
+                                    let name = if o.name.is_empty() { format!("{stem} {}", o.kind.type_name()) } else { o.name.clone() };
+                                    items.push(item(None, Some(*id), name));
+                                }
+                            }
+                        }
+                        Cmd::ExportDockerAddPage => items.push(item(Some(d.page_ref().id), None, format!("{stem} {}", d.doc.page_name(d.page)))),
+                        _ => {
+                            for (i, p) in d.doc.pages.iter().enumerate() {
+                                items.push(item(Some(p.id), None, format!("{stem} {}", d.doc.page_name(i))));
+                            }
+                        }
+                    }
+                    let list = &mut self.dockers.ui.export_items;
+                    for it in items {
+                        let dup = list.iter().any(|x| x.page == it.page && x.object == it.object && it.page.is_some());
+                        if !dup {
+                            list.push(it);
+                        }
+                    }
+                    // pages first, then objects
+                    list.sort_by_key(|x| x.page.is_none());
+                    self.dockers.show(DockerId::Export);
+                }
+            }
             Cmd::SendToMail => {
                 if let Some(d) = self.doc() {
                     let stem = d.stem();
-                    let p = std::env::temp_dir().join(format!("{stem}.pdf"));
-                    if vector_io::pdf::export(&d.doc, &p, &Default::default()).is_ok() {
+                    let p = match d.path.clone().filter(|p| p.exists() && !d.history.is_modified()) {
+                        Some(p) => p,
+                        None => {
+                            let p = std::env::temp_dir().join(format!("{stem}.cdr"));
+                            let opts = self.cdr_options(&d.doc, self.settings.embed_fonts, self.settings.save.embed_color_profiles, self.default_version_index());
+                            if let Err(e) = vector_io::cdr::save(&d.doc, &p, &opts) {
+                                self.info_box("Send To Mail", &format!("Could not save the drawing: {e}"));
+                                return;
+                            }
+                            p
+                        }
+                    };
+                    if !mapi_send(&p, &stem) {
                         reveal_in_explorer(&p);
                         let _ = std::process::Command::new("cmd").args(["/C", "start", "", &format!("mailto:?subject={}", stem.replace(' ', "%20"))]).spawn();
-                        self.flash("A PDF of the drawing is ready to attach to your message.");
+                        self.flash("No mail program accepted the attachment; the drawing is ready to attach to your message.");
                     }
                 }
             }
@@ -1204,23 +1271,47 @@ impl VectorApp {
                 }
             }
             Cmd::SendToDocuments => self.save_copy_to(crate::settings::documents_dir(), "Documents"),
-            Cmd::PublishPdf => self.publish_pdf(None),
-            Cmd::PrintMergeCreate | Cmd::PrintMergeEdit | Cmd::PrintMergePerform => {
-                self.dockers.show(DockerId::ObjectData);
-                self.flash("Print Merge uses Object Data fields: add fields in the Object Data docker.");
+            Cmd::PublishPdf => {
+                if has_doc {
+                    self.dialogs.pdf = Some(crate::dialogs::export::PdfState::new(self, true));
+                }
+            }
+            Cmd::PrintMergeCreate | Cmd::PrintMergeEdit => {
+                if let Some(d) = self.doc() {
+                    self.dialogs.merge = Some(crate::dialogs::merge::MergeState::new(d.doc.print_merge.clone()));
+                }
+            }
+            Cmd::PrintMergePerform => {
+                if self.doc().map(|d| merged_document(&d.doc).is_some()).unwrap_or(false) {
+                    let mut st = PrintState::new(self, false);
+                    st.merge = true;
+                    st.settings.range = crate::printing::Range::CurrentDocument;
+                    self.dialogs.print = Some(st);
+                } else {
+                    self.info_box("Print Merge", "Select at least one record in the print merge data.");
+                }
+            }
+            Cmd::PrintMergeNewDoc => {
+                let merged = self.doc().and_then(|d| merged_document(&d.doc).map(|m| (m, d.stem())));
+                match merged {
+                    Some((doc, stem)) => {
+                        self.untitled_counter += 1;
+                        let title = format!("{stem} (merged).cdr");
+                        let dv = crate::docview::DocView::new(doc, title, self.settings.undo_levels);
+                        self.docs.push(dv);
+                        self.active = Some(self.docs.len() - 1);
+                    }
+                    None => self.info_box("Print Merge", "Select at least one record in the print merge data."),
+                }
             }
             Cmd::Print => {
-                if let Some(d) = self.doc() {
-                    let mut st = PrintState::new(false, d.page);
-                    if self.settings.print_only_current {
-                        st.range = 0;
-                    }
-                    self.dialogs.print = Some(st);
+                if has_doc {
+                    self.dialogs.print = Some(PrintState::new(self, false));
                 }
             }
             Cmd::PrintPreview => {
-                if let Some(d) = self.doc() {
-                    self.dialogs.print = Some(PrintState::new(true, d.page));
+                if has_doc {
+                    self.dialogs.print = Some(PrintState::new(self, true));
                 }
             }
             Cmd::DocumentProperties => self.dialogs.doc_props = has_doc,
@@ -1272,10 +1363,34 @@ impl VectorApp {
             Cmd::Copy => {
                 self.copy_selection();
             }
-            Cmd::Paste | Cmd::PasteSpecial => self.paste(),
+            Cmd::Paste => self.paste_as(None, None),
+            Cmd::PasteSpecial => {
+                let (kinds, source) = crate::dialogs::clipboard::clipboard_kinds(self);
+                self.dialogs.paste_special = Some(crate::dialogs::clipboard::PasteSpecialState { source, kinds, chosen: 0 });
+            }
+            Cmd::PasteInView => {
+                let c = self.doc().map(|d| d.to_doc(d.canvas_rect.center()));
+                self.paste_as(None, c);
+            }
+            Cmd::BringIntoFocus => {
+                if let Some(d) = self.doc_mut() {
+                    if !d.selection.is_empty() {
+                        d.focus = d.selection.clone();
+                        d.cache.key = 0;
+                    }
+                }
+            }
+            Cmd::ExitFocusMode => {
+                if let Some(d) = self.doc_mut() {
+                    if !d.focus.is_empty() {
+                        d.selection = std::mem::take(&mut d.focus);
+                        d.cache.key = 0;
+                    }
+                }
+            }
             Cmd::NewFromClipboard => {
                 self.new_default_document();
-                self.paste();
+                self.paste_as(None, None);
             }
             Cmd::Delete => {
                 if self.tool == ToolId::Shape && self.doc().map(|d| !d.node_sel.is_empty()).unwrap_or(false) {
@@ -1300,9 +1415,7 @@ impl VectorApp {
             Cmd::StepAndRepeat => self.dockers.show(DockerId::StepRepeat),
             Cmd::CopyPropertiesFrom => {
                 if self.has_selection() {
-                    self.set_tool(ToolId::Pick);
-                    self.ts.pick_target = Some(PickTarget::CopyProperties);
-                    self.flash("Click the object to copy properties from.");
+                    self.dialogs.copy_props = Some(Default::default());
                 }
             }
             Cmd::CopyEffectFrom => {
@@ -1347,7 +1460,41 @@ impl VectorApp {
                     d.cache.key = 0;
                 }
             }
-            Cmd::FullScreenPreview => self.fullscreen_preview = has_doc && !self.fullscreen_preview,
+            Cmd::FullScreenPreview => {
+                self.preview_selected = false;
+                self.fullscreen_preview = has_doc && !self.fullscreen_preview;
+            }
+            Cmd::PreviewSelectedOnly => {
+                if self.has_selection() {
+                    self.preview_selected = true;
+                    self.fullscreen_preview = true;
+                }
+            }
+            Cmd::SnapToPixels | Cmd::SnapToBaseline | Cmd::ToggleMultipageView | Cmd::TogglePrintableArea | Cmd::ToggleBaselineGrid => {
+                if let Some(d) = self.doc_mut() {
+                    let s = &mut d.doc.settings;
+                    match cmd {
+                        Cmd::SnapToPixels => s.snap_to_pixels = !s.snap_to_pixels,
+                        Cmd::SnapToBaseline => s.snap_to_baseline = !s.snap_to_baseline,
+                        Cmd::ToggleMultipageView => s.multipage_view = !s.multipage_view,
+                        Cmd::TogglePrintableArea => s.show_printable_area = !s.show_printable_area,
+                        _ => s.show_baseline_grid = !s.show_baseline_grid,
+                    }
+                    d.cache.key = 0;
+                }
+            }
+            Cmd::ToggleSimulateOverprints => {
+                if let Some(d) = self.doc_mut() {
+                    d.simulate_overprint = !d.simulate_overprint;
+                    d.cache.key = 0;
+                }
+            }
+            Cmd::ToggleProofColors => self.settings.proof_colors = !self.settings.proof_colors,
+            Cmd::ToggleRasterizeEffects => self.settings.rasterize_complex_effects = !self.settings.rasterize_complex_effects,
+            Cmd::ToggleAlignmentGuides => self.settings.live_guides = !self.settings.live_guides,
+            Cmd::ToggleDynamicGuides => self.settings.dynamic_guides = !self.settings.dynamic_guides,
+            Cmd::ToggleDocNavigator => self.settings.show_doc_navigator = !self.settings.show_doc_navigator,
+            Cmd::ToggleScrollbars => self.settings.show_scrollbars = !self.settings.show_scrollbars,
             Cmd::PageSorterView => {
                 if let Some(d) = self.doc_mut() {
                     d.show_page_sorter = !d.show_page_sorter;
@@ -1600,7 +1747,7 @@ impl VectorApp {
                 if let Some(d) = self.doc_mut() {
                     if let Some(id) = d.selection.first().copied() {
                         if matches!(d.doc.find(id).map(|o| &o.kind), Some(ObjKind::PowerClip { .. }) | Some(ObjKind::Group(_))) {
-                            d.focus = Some(id);
+                            d.focus = vec![id];
                             d.selection.clear();
                             d.cache.key = 0;
                         }
@@ -1609,8 +1756,8 @@ impl VectorApp {
             }
             Cmd::PowerClipFinish => {
                 if let Some(d) = self.doc_mut() {
-                    if let Some(f) = d.focus.take() {
-                        d.selection = vec![f];
+                    if !d.focus.is_empty() {
+                        d.selection = std::mem::take(&mut d.focus);
                         d.cache.key = 0;
                     }
                 }
@@ -2058,4 +2205,56 @@ mod tests {
         assert_eq!(title_case("hello big-world"), "Hello Big-World");
         assert_eq!(sentence_case("HELLO. WORLD"), "Hello. World");
     }
+}
+
+/// Replace each «field» in a text object by the record's value, keeping the character formats.
+pub fn fill_merge_fields(t: &mut vector_core::text::TextObj, pm: &vector_core::document::PrintMerge, rec: &vector_core::document::MergeRecord) {
+    for (i, f) in pm.fields.iter().enumerate() {
+        let marker = vector_core::document::PrintMerge::marker(&f.name);
+        let value = rec.values.get(i).cloned().unwrap_or_default();
+        let mut guard = 0;
+        while let Some(b) = t.content.find(&marker) {
+            guard += 1;
+            if guard > 1000 {
+                break;
+            }
+            let at = t.content[..b].chars().count();
+            t.delete(at, at + marker.chars().count());
+            if !value.is_empty() {
+                t.insert(at, &value);
+            }
+        }
+    }
+}
+
+/// The merged document of Print Merge: the pages repeated for each selected record, with the
+/// fields filled in. None when there is no merge data or no record is selected.
+pub fn merged_document(doc: &Document) -> Option<Document> {
+    let pm = doc.print_merge.clone()?;
+    let records: Vec<_> = pm.records.iter().filter(|r| r.selected).cloned().collect();
+    if records.is_empty() {
+        return None;
+    }
+    let mut out = doc.clone();
+    out.print_merge = None;
+    let originals = std::mem::take(&mut out.pages);
+    for rec in &records {
+        for pg in &originals {
+            let mut p = pg.clone();
+            p.id = out.new_id();
+            for l in p.layers.iter_mut() {
+                l.id = out.new_id();
+                for o in l.objects.iter_mut() {
+                    out.reassign_ids(o);
+                    o.walk_mut(&mut |x| {
+                        if let ObjKind::Text(t) = &mut x.kind {
+                            fill_merge_fields(t, &pm, rec);
+                        }
+                    });
+                }
+            }
+            out.pages.push(p);
+        }
+    }
+    Some(out)
 }

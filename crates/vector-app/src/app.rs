@@ -82,6 +82,10 @@ pub struct VectorApp {
     pub message: Option<Message>,
     pub untitled_counter: usize,
     pub fullscreen_preview: bool,
+    /// View ▸ Preview Selected Only: the full-screen preview shows the selection only.
+    pub preview_selected: bool,
+    /// View ▸ Page ▸ Printable Area: the default printer's paper (landscape, paper).
+    pub printable_paper: Option<(bool, crate::printing::Paper)>,
     pub quit_requested: bool,
     pub allow_close: bool,
     pub last_cmd: Option<Cmd>,
@@ -97,6 +101,9 @@ pub struct VectorApp {
     pub cursor_doc: Option<kurbo::Point>,
     pub ai: crate::ai::AiState,
     pub frame_count: u64,
+    /// Work running on other threads (printing, uploads): each sends one result, shown as a
+    /// status message (Ok) or a message box (Err).
+    pub background: Vec<std::sync::mpsc::Receiver<Result<String, String>>>,
 }
 
 /// "NVIDIA GeForce RTX 3080 (Vulkan, NVIDIA 566.36)": the adapter, its API and driver.
@@ -134,6 +141,8 @@ impl VectorApp {
             message: None,
             untitled_counter: 0,
             fullscreen_preview: false,
+            preview_selected: false,
+            printable_paper: None,
             quit_requested: false,
             allow_close: false,
             last_cmd: None,
@@ -146,6 +155,7 @@ impl VectorApp {
             cursor_doc: None,
             ai: Default::default(),
             frame_count: 0,
+            background: vec![],
             gpu: cc.wgpu_render_state.as_ref().map(|rs| gpu_name(&rs.adapter.get_info())).unwrap_or_default(),
         };
         // command line: open files
@@ -239,6 +249,7 @@ impl VectorApp {
         crate::shortcuts::handle(self, &ctx);
         self.process_pending(&ctx);
         crate::ai::poll(self);
+        self.poll_background(&ctx);
 
         if self.fullscreen_preview {
             crate::canvas::fullscreen_preview(self, ui);
@@ -335,6 +346,39 @@ impl VectorApp {
             self.settings.save();
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
         }
+    }
+
+    fn poll_background(&mut self, ctx: &egui::Context) {
+        if self.background.is_empty() {
+            return;
+        }
+        let mut done = vec![];
+        self.background.retain(|rx| match rx.try_recv() {
+            Ok(r) => {
+                done.push(r);
+                false
+            }
+            Err(std::sync::mpsc::TryRecvError::Empty) => true,
+            Err(_) => false,
+        });
+        for r in done {
+            match r {
+                // File ▸ Acquire Image: the scanned image to import, or the chosen WIA device
+                Ok(m) if m.starts_with("\u{1}import:") => {
+                    let p = std::path::PathBuf::from(&m["\u{1}import:".len()..]);
+                    self.import_path(&p, None);
+                    let _ = std::fs::remove_file(&p);
+                }
+                Ok(m) if m.starts_with("\u{1}wia:") => {
+                    self.settings.wia_device = Some(m["\u{1}wia:".len()..].to_string());
+                    self.flash("Scanner selected.");
+                }
+                Ok(m) if m.is_empty() => {}
+                Ok(m) => self.flash(m),
+                Err(e) => self.dialogs.message_box = Some((vector_core::APP_NAME.to_string(), e)),
+            }
+        }
+        ctx.request_repaint_after(std::time::Duration::from_millis(200));
     }
 
     fn show_message(&mut self, ctx: &egui::Context) {

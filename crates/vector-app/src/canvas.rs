@@ -13,6 +13,22 @@ use vector_core::Color;
 
 const RULER: f32 = 18.0;
 const NAV_H: f32 = 24.0;
+/// View ▸ Scrollbars: the thin bars along the bottom and the right of the drawing window.
+const SB: f32 = 12.0;
+/// Multipage view: the space between pages, in points.
+const PAGE_GAP: f64 = 36.0;
+
+/// Multipage view: where each page sits, as a horizontal offset from the current page.
+pub fn page_offsets(doc: &vector_core::Document, cur: usize) -> Vec<(usize, f64)> {
+    let mut xs = Vec::with_capacity(doc.pages.len());
+    let mut x = 0.0;
+    for p in &doc.pages {
+        xs.push(x);
+        x += p.width + PAGE_GAP;
+    }
+    let base = xs.get(cur).copied().unwrap_or(0.0);
+    xs.iter().enumerate().map(|(i, x)| (i, x - base)).collect()
+}
 
 pub fn drawing_window(app: &mut VectorApp, ui: &mut Ui) {
     let Some(ai) = app.active else { return };
@@ -21,9 +37,14 @@ pub fn drawing_window(app: &mut VectorApp, ui: &mut Ui) {
     }
     let full = ui.available_rect_before_wrap();
     ui.allocate_rect(full, Sense::hover());
-    let nav_rect = Rect::from_min_max(pos2(full.min.x, full.max.y - NAV_H), full.max);
-    let area = Rect::from_min_max(full.min, pos2(full.max.x, full.max.y - NAV_H));
-    page_navigator(app, ui, nav_rect);
+    let show_nav = app.settings.show_doc_navigator;
+    let sb = if app.settings.show_scrollbars { SB } else { 0.0 };
+    let nav_h = if show_nav { NAV_H } else { 0.0 };
+    let nav_rect = Rect::from_min_max(pos2(full.min.x, full.max.y - nav_h), full.max);
+    let area = Rect::from_min_max(full.min, pos2(full.max.x - sb, full.max.y - nav_h - sb));
+    if show_nav {
+        page_navigator(app, ui, nav_rect);
+    }
 
     if app.docs[ai].show_page_sorter {
         page_sorter(app, ui, area);
@@ -97,6 +118,23 @@ pub fn drawing_window(app: &mut VectorApp, ui: &mut Ui) {
             time,
             dt,
         };
+        if inp.pressed && app.docs[ai].doc.settings.multipage_view {
+            // Multipage view: a click on another page makes it the current page
+            let d = &mut app.docs[ai];
+            let p = d.to_doc(inp.pos);
+            if !d.page_ref().rect().contains(p) {
+                let hit = page_offsets(&d.doc, d.page).into_iter().find(|(i, dx)| *i != d.page && d.doc.pages[*i].rect().contains(p - kurbo::Vec2::new(*dx, 0.0)));
+                if let Some((i, dx)) = hit {
+                    d.page = i;
+                    d.selection.clear();
+                    d.node_sel.clear();
+                    d.text_edit = None;
+                    d.origin.x += (dx * d.zoom) as f32;
+                    d.cache.key = 0;
+                    d.after_change();
+                }
+            }
+        }
         if inp.pressed || hovered || app.ts.press.is_some() || inp.secondary {
             if inp.pressed {
                 // clicking the drawing leaves any text field so tool keys and typing reach the canvas
@@ -131,6 +169,15 @@ pub fn drawing_window(app: &mut VectorApp, ui: &mut Ui) {
         painter.rect_filled(canvas, 0.0, theme::DESKTOP);
     }
     tools::draw_overlay(app, &painter);
+    printable_area(app, &painter, ai);
+
+    // ------------------------------------------------------------------ scrollbars
+    if sb > 0.0 {
+        let hbar = Rect::from_min_max(pos2(area.min.x, area.max.y), pos2(area.max.x, area.max.y + sb));
+        let vbar = Rect::from_min_max(pos2(area.max.x, canvas.min.y), pos2(area.max.x + sb, area.max.y));
+        let corner = Rect::from_min_size(area.max, vec2(sb, sb));
+        scrollbars(app, ui, ai, canvas, hbar, vbar, corner);
+    }
 
     // ------------------------------------------------------------------ rulers
     if show_rulers {
@@ -151,6 +198,7 @@ fn render_cache(app: &mut VectorApp, ctx: &egui::Context, ai: usize, canvas: Rec
     let ppp = ctx.pixels_per_point();
     let pw = (canvas.width() * ppp).round().max(1.0) as u32;
     let ph = (canvas.height() * ppp).round().max(1.0) as u32;
+    let proof_gray = app.dockers.ui.proof_gray;
     let settings = &app.settings;
     let ts = &mut app.ts;
     let d = &mut app.docs[ai];
@@ -168,6 +216,9 @@ fn render_cache(app: &mut VectorApp, ctx: &egui::Context, ai: usize, canvas: Rec
     settings.desktop_color.hash(&mut h);
     settings.inactive_visibility.to_bits().hash(&mut h);
     d.doc.settings.show_page_border.hash(&mut h);
+    d.doc.settings.multipage_view.hash(&mut h);
+    d.simulate_overprint.hash(&mut h);
+    (settings.proof_colors, proof_gray).hash(&mut h);
     let key = h.finish() | 1;
     if d.cache.key == key && d.cache.tex.is_some() {
         return;
@@ -182,9 +233,10 @@ fn render_cache(app: &mut VectorApp, ctx: &egui::Context, ai: usize, canvas: Rec
         draw_page: d.doc.settings.show_page_border || true,
         desktop: Color::rgb(dc[0], dc[1], dc[2]),
         hidden: vec![],
-        dim_others: d.focus.map(|f| (vec![f], (settings.inactive_visibility / 100.0).clamp(0.0, 1.0) as f32)),
+        dim_others: (!d.focus.is_empty()).then(|| (d.focus.clone(), (settings.inactive_visibility / 100.0).clamp(0.0, 1.0) as f32)),
         show_powerclip_frames: settings.powerclip_empty_lines,
         antialias: d.view_mode != ViewMode::Pixels,
+        overprint: d.simulate_overprint,
     };
     if d.view_mode == ViewMode::Pixels {
         // render at the document resolution, then show the pixels enlarged
@@ -205,12 +257,224 @@ fn render_cache(app: &mut VectorApp, ctx: &egui::Context, ai: usize, canvas: Rec
     } else {
         ts.renderer.render_page(&d.doc, d.page, view, &mut pm, &opts);
     }
+    if d.doc.settings.multipage_view && d.doc.pages.len() > 1 && d.view_mode != ViewMode::Pixels {
+        // the other pages, side by side with the current one
+        let others = vector_render::RenderOptions { draw_page: false, dim_others: None, ..opts.clone() };
+        for (i, dx) in page_offsets(&d.doc, d.page) {
+            if i == d.page {
+                continue;
+            }
+            let v = view * Affine::translate((dx, 0.0));
+            let pr = v.transform_rect_bbox(d.doc.pages[i].rect());
+            if pr.x1 < 0.0 || pr.x0 > pw as f64 || pr.y1 < 0.0 || pr.y0 > ph as f64 {
+                continue;
+            }
+            let fill = |pm: &mut tiny_skia::Pixmap, r: kurbo::Rect, c: tiny_skia::Color| {
+                if let Some(r) = tiny_skia::Rect::from_ltrb(r.x0 as f32, r.y0 as f32, r.x1 as f32, r.y1 as f32) {
+                    let mut paint = tiny_skia::Paint::default();
+                    paint.set_color(c);
+                    pm.fill_rect(r, &paint, tiny_skia::Transform::identity(), None);
+                }
+            };
+            fill(&mut pm, pr + kurbo::Vec2::new(3.0, 3.0), tiny_skia::Color::from_rgba8(0, 0, 0, 110));
+            fill(&mut pm, pr, tiny_skia::Color::WHITE);
+            ts.renderer.render_page(&d.doc, i, v, &mut pm, &others);
+        }
+    }
+    if settings.proof_colors {
+        proof_pixmap(&mut pm, proof_gray, [dc[0], dc[1], dc[2], 255]);
+    }
     let img = egui::ColorImage::from_rgba_premultiplied([pw as usize, ph as usize], pm.data());
     match &mut d.cache.tex {
         Some(t) => t.set(img, egui::TextureOptions::NEAREST),
         None => d.cache.tex = Some(ctx.load_texture(format!("canvas{}", d.uid), img, egui::TextureOptions::NEAREST)),
     }
     d.cache.key = key;
+}
+
+/// View ▸ Proof Colors: the colors as the default press (U.S. Web Coated (SWOP)) would print
+/// them, or in grayscale when the Color Proofing docker simulates grayscale output.
+/// Pixels of the desktop color are left alone.
+fn proof_pixmap(pm: &mut tiny_skia::Pixmap, gray: bool, skip: [u8; 4]) {
+    for px in pm.data_mut().chunks_exact_mut(4) {
+        if *px == skip || px[3] == 0 {
+            continue;
+        }
+        let a = px[3] as f32;
+        let un = |c: u8| (c as f32 * 255.0 / a).min(255.0);
+        let (r, g, b) = (un(px[0]), un(px[1]), un(px[2]));
+        let (r, g, b) = if gray {
+            let l = 0.299 * r + 0.587 * g + 0.114 * b;
+            (l, l, l)
+        } else {
+            press_rgb(r / 255.0, g / 255.0, b / 255.0)
+        };
+        let pre = |c: f32| (c.clamp(0.0, 255.0) * a / 255.0).round() as u8;
+        px[0] = pre(r);
+        px[1] = pre(g);
+        px[2] = pre(b);
+    }
+}
+
+/// RGB (0..1) → CMYK → the RGB that CMYK prints as on coated stock (0..255).
+pub fn press_rgb(r: f32, g: f32, b: f32) -> (f32, f32, f32) {
+    let k = 1.0 - r.max(g).max(b);
+    let (c, m, y) = if k >= 1.0 { (0.0, 0.0, 0.0) } else { ((1.0 - r - k) / (1.0 - k), (1.0 - g - k) / (1.0 - k), (1.0 - b - k) / (1.0 - k)) };
+    let r = 255.0
+        + c * (-4.387332 * c + 54.486152 * m + 18.822905 * y + 212.256625 * k - 285.233103)
+        + m * (1.714976 * m - 5.609674 * y - 17.873871 * k - 5.497006)
+        + y * (-2.521734 * y - 21.248923 * k + 17.511927)
+        + k * (-21.861221 * k - 189.481808);
+    let g = 255.0
+        + c * (8.841041 * c + 60.118027 * m + 6.871426 * y + 31.159100 * k - 79.297084)
+        + m * (-15.310361 * m + 17.575251 * y + 131.352509 * k - 190.945330)
+        + y * (4.444339 * y + 9.863286 * k - 24.867416)
+        + k * (-20.737325 * k - 187.804537);
+    let b = 255.0
+        + c * (0.884252 * c + 8.078678 * m + 30.899783 * y - 0.238832 * k - 14.183577)
+        + m * (10.495933 * m + 63.023785 * y + 50.606958 * k - 112.238843)
+        + y * (0.032960 * y + 115.603844 * k - 193.582094)
+        + k * (-22.338168 * k - 180.126140);
+    (r.clamp(0.0, 255.0), g.clamp(0.0, 255.0), b.clamp(0.0, 255.0))
+}
+
+/// View ▸ Page ▸ Printable Area: the part of the page the default printer can print on, with
+/// the page centered on the paper.
+fn printable_area(app: &mut VectorApp, painter: &egui::Painter, ai: usize) {
+    if !app.docs[ai].doc.settings.show_printable_area {
+        return;
+    }
+    let landscape = app.docs[ai].page_ref().is_landscape();
+    if app.printable_paper.map(|(l, _)| l) != Some(landscape) {
+        let printer = crate::printing::default_printer().unwrap_or_default();
+        let paper = if printer.is_empty() { crate::printing::Paper::fallback(landscape) } else { crate::printing::paper_for(&printer, None, landscape) };
+        app.printable_paper = Some((landscape, paper));
+    }
+    let Some((_, paper)) = app.printable_paper else { return };
+    let d = &app.docs[ai];
+    let pg = d.page_ref();
+    let off = kurbo::Vec2::new((pg.width - paper.width) / 2.0, (pg.height - paper.height) / 2.0);
+    let r = d.to_screen_rect(paper.printable + off);
+    let pts = [r.left_top(), r.right_top(), r.right_bottom(), r.left_bottom(), r.left_top()];
+    painter.extend(egui::Shape::dashed_line(&pts, Stroke::new(1.0, Color32::from_rgb(0x9a, 0x9a, 0x9a)), 6.0, 4.0));
+}
+
+/// The part of the drawing the scrollbars range over: the pages with a page-sized margin around
+/// them, and what is in view.
+fn scroll_extent(d: &crate::docview::DocView) -> kurbo::Rect {
+    let mut r = d.page_ref().rect();
+    if d.doc.settings.multipage_view {
+        for (i, dx) in page_offsets(&d.doc, d.page) {
+            r = r.union(d.doc.pages[i].rect() + kurbo::Vec2::new(dx, 0.0));
+        }
+    }
+    let pr = d.page_ref().rect();
+    let r = r.inflate(pr.width(), pr.height());
+    let (a, b) = (d.to_doc(d.canvas_rect.min), d.to_doc(d.canvas_rect.max));
+    r.union(kurbo::Rect::new(a.x, a.y, b.x, b.y))
+}
+
+/// View ▸ Scrollbars, and the navigator at their corner: press it to see the whole drawing and
+/// drag to choose the part to view.
+fn scrollbars(app: &mut VectorApp, ui: &mut Ui, ai: usize, canvas: Rect, hbar: Rect, vbar: Rect, corner: Rect) {
+    let uid = app.docs[ai].uid;
+    {
+        let p = ui.painter();
+        for r in [hbar, vbar, corner] {
+            p.rect_filled(r, 0.0, theme::DESKTOP);
+        }
+    }
+    let ext = scroll_extent(&app.docs[ai]);
+    for vertical in [false, true] {
+        let bar = if vertical { vbar } else { hbar };
+        let resp = ui.interact(bar, Id::unique(("scrollbar", uid, vertical)), Sense::click_and_drag());
+        let d = &mut app.docs[ai];
+        let (a, b) = (d.to_doc(canvas.min), d.to_doc(canvas.max));
+        let (e0, e1, v0, v1, len, start) = if vertical { (ext.y0, ext.y1, a.y, b.y, bar.height(), bar.min.y) } else { (ext.x0, ext.x1, a.x, b.x, bar.width(), bar.min.x) };
+        let span = (e1 - e0).max(1e-6);
+        let t0 = start + ((v0 - e0) / span) as f32 * len;
+        let t1 = (start + ((v1 - e0) / span) as f32 * len).max(t0 + 20.0);
+        if resp.dragged() {
+            let delta = if vertical { resp.drag_delta().y } else { resp.drag_delta().x };
+            let doc_delta = delta as f64 * span / len as f64;
+            if vertical {
+                d.origin.y -= (doc_delta * d.zoom) as f32;
+            } else {
+                d.origin.x -= (doc_delta * d.zoom) as f32;
+            }
+        } else if resp.clicked() {
+            // a click on the track pages toward the pointer
+            if let Some(pp) = resp.interact_pointer_pos() {
+                let at = if vertical { pp.y } else { pp.x };
+                let step = if vertical { canvas.height() } else { canvas.width() } * 0.9;
+                let dir = if at < t0 { 1.0 } else if at > t1 { -1.0 } else { 0.0 };
+                if vertical {
+                    d.origin.y += dir * step;
+                } else {
+                    d.origin.x += dir * step;
+                }
+            }
+        }
+        let hot = resp.hovered() || resp.dragged();
+        let col = if hot { Color32::from_gray(0xb8) } else { Color32::from_gray(0x8a) };
+        let w = if hot { 4.0 } else { 2.0 };
+        let p = ui.painter();
+        if vertical {
+            let x = bar.center().x;
+            p.line_segment([pos2(x, t0.max(bar.min.y)), pos2(x, t1.min(bar.max.y))], Stroke::new(w, col));
+        } else {
+            let y = bar.center().y;
+            p.line_segment([pos2(t0.max(bar.min.x), y), pos2(t1.min(bar.max.x), y)], Stroke::new(w, col));
+        }
+    }
+    // the navigator
+    let resp = ui.interact(corner, Id::unique(("navigator", uid)), Sense::click_and_drag());
+    {
+        let p = ui.painter();
+        let c = corner.center() + vec2(-1.0, -1.0);
+        let col = if resp.hovered() { theme::TEXT } else { theme::TEXT_DIM };
+        p.circle_stroke(c, 3.2, Stroke::new(1.2, col));
+        p.line_segment([c + vec2(2.3, 2.3), c + vec2(5.0, 5.0)], Stroke::new(1.5, col));
+    }
+    let resp = resp.on_hover_text("Navigator");
+    if !(resp.is_pointer_button_down_on() || resp.dragged()) {
+        return;
+    }
+    let ctx = ui.ctx().clone();
+    let k = (180.0 / ext.width().max(ext.height())) as f32;
+    let size = vec2(ext.width() as f32 * k, ext.height() as f32 * k);
+    let popup = Rect::from_min_size(corner.min - size - vec2(2.0, 2.0), size);
+    let to_pop = |q: Point| popup.min + vec2(((q.x - ext.x0) as f32) * k, ((q.y - ext.y0) as f32) * k);
+    if let Some(pp) = ctx.input(|i| i.pointer.interact_pos()) {
+        if popup.contains(pp) {
+            // center the view on the point under the pointer
+            let q = Point::new(ext.x0 + ((pp.x - popup.min.x) / k) as f64, ext.y0 + ((pp.y - popup.min.y) / k) as f64);
+            let d = &mut app.docs[ai];
+            let cs = d.canvas_rect.size();
+            d.origin = vec2(cs.x / 2.0 - (q.x * d.zoom) as f32, cs.y / 2.0 - (q.y * d.zoom) as f32);
+        }
+    }
+    let d = &app.docs[ai];
+    let p = ctx.layer_painter(egui::LayerId::new(egui::Order::Foreground, Id::unique(("navigator_popup", uid))));
+    p.rect_filled(popup.expand(4.0), 2.0, theme::BAR);
+    p.rect_stroke(popup.expand(4.0), 2.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Inside);
+    p.rect_filled(popup, 0.0, theme::DESKTOP);
+    let pages: Vec<(usize, f64)> = if d.doc.settings.multipage_view { page_offsets(&d.doc, d.page) } else { vec![(d.page, 0.0)] };
+    for (i, dx) in pages {
+        let pr = d.doc.pages[i].rect() + kurbo::Vec2::new(dx, 0.0);
+        let r = Rect::from_two_pos(to_pop(Point::new(pr.x0, pr.y0)), to_pop(Point::new(pr.x1, pr.y1)));
+        p.rect_filled(r, 0.0, Color32::WHITE);
+        if i == d.page {
+            for o in d.page_ref().layers.iter().filter(|l| l.visible).flat_map(|l| l.objects.iter()) {
+                let b = d.doc.bounds_of(o);
+                let br = Rect::from_two_pos(to_pop(Point::new(b.x0, b.y0)), to_pop(Point::new(b.x1, b.y1)));
+                p.rect_filled(br, 0.0, Color32::from_gray(0xb0));
+            }
+        }
+    }
+    let (a, b) = (d.to_doc(canvas.min), d.to_doc(canvas.max));
+    let vr = Rect::from_two_pos(to_pop(a), to_pop(b)).intersect(popup);
+    p.rect_stroke(vr, 0.0, Stroke::new(1.5, theme::FOCUS), egui::StrokeKind::Middle);
 }
 
 fn cursor_for(app: &VectorApp, pos: Pos2) -> CursorIcon {
@@ -609,7 +873,7 @@ pub fn fullscreen_preview(app: &mut VectorApp, ui: &mut Ui) {
         return;
     };
     let ppp = ctx.pixels_per_point();
-    let key = format!("fullscreen:{}:{}:{}:{}x{}", app.docs[ai].uid, app.docs[ai].history.revision, app.docs[ai].page, rect.width() as u32, rect.height() as u32);
+    let key = format!("fullscreen:{}:{}:{}:{}x{}:{}", app.docs[ai].uid, app.docs[ai].history.revision, app.docs[ai].page, rect.width() as u32, rect.height() as u32, app.preview_selected);
     if !app.ts.texture_cache.contains_key(&key) {
         app.ts.texture_cache.retain(|k, _| !k.starts_with("fullscreen:"));
         let d = &app.docs[ai];
@@ -617,7 +881,20 @@ pub fn fullscreen_preview(app: &mut VectorApp, ui: &mut Ui) {
         let k = ((rect.width() as f64 - 40.0) / pg.width).min((rect.height() as f64 - 40.0) / pg.height).max(0.01);
         let dpi = k * 72.0 * ppp as f64;
         let enhanced = app.settings.fullscreen_enhanced;
-        if let Some(pm) = vector_render::render_page_image(&d.doc, d.page, dpi, Some(Color::WHITE), None, enhanced) {
+        let pm = if app.preview_selected {
+            // View ▸ Preview Selected Only: everything but the selection is left out
+            let hidden: Vec<vector_core::ObjId> = pg.layers.iter().flat_map(|l| l.objects.iter()).map(|o| o.id).filter(|id| !d.selection.contains(id)).collect();
+            let (w, h) = ((pg.width * dpi / 72.0).ceil().max(1.0) as u32, (pg.height * dpi / 72.0).ceil().max(1.0) as u32);
+            tiny_skia::Pixmap::new(w, h).map(|mut pm| {
+                pm.fill(tiny_skia::Color::WHITE);
+                let opts = vector_render::RenderOptions { draw_page: false, hidden, antialias: enhanced, ..Default::default() };
+                app.ts.renderer.render_page(&d.doc, d.page, Affine::scale(dpi / 72.0), &mut pm, &opts);
+                pm
+            })
+        } else {
+            vector_render::render_page_image(&d.doc, d.page, dpi, Some(Color::WHITE), None, enhanced)
+        };
+        if let Some(pm) = pm {
             let img = egui::ColorImage::from_rgba_premultiplied([pm.width() as usize, pm.height() as usize], pm.data());
             let tex = ctx.load_texture(key.clone(), img, egui::TextureOptions::LINEAR);
             app.ts.texture_cache.insert(key.clone(), tex);
@@ -648,6 +925,7 @@ pub fn fullscreen_preview(app: &mut VectorApp, ui: &mut Ui) {
     }
     if exit {
         app.fullscreen_preview = false;
+        app.preview_selected = false;
         ctx.send_viewport_cmd(egui::ViewportCommand::Fullscreen(false));
     }
 }

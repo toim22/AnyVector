@@ -218,8 +218,8 @@ menu	Tools > Options > CorelDRAW...	partial	Tools > Options > Vector...
 dialog	Tools > Options > CorelDRAW	partial	Options > Vector
 effect	Effects > 3D Effects > Pinch_Punch	partial	Pinch/Punch
 effect	Effects > Adjust > Hue_Saturation_Lightness	partial	Hue/Saturation/Lightness
-menu	Edit > Undo Apply Preset Guidelines	partial	Undo names the last action
-menu	Edit > Repeat Apply Preset Guidelines	partial	Repeat names the last action
+menu	Edit > Undo Apply Preset Guidelines	done	Undo names the last action
+menu	Edit > Repeat Apply Preset Guidelines	done	Repeat names the last action
 menu	View > <placeHolder >	partial	list filled at run time
 menu	Effects > Adjust > <placeHolder >	partial	list filled at run time
 menu	Window > Workspace > <placeHolder a124f904>	partial	list filled at run time
@@ -227,3 +227,101 @@ menu	Window > Color Palettes > Recent > <placeHolder cad5a5c3>	partial	list fill
 menu	Window > Color Palettes > <placeHolder 60be24a7>	partial	list filled at run time
 menu	Window > Color Palettes > <placeHolder 866d09b5>	partial	list filled at run time
 menu	Window > Color Palettes > <placeHolder 78f112b4>	partial	list filled at run time
+menu	File > New...	done	Create a New Document dialog (Document Settings tab)
+menu	File > New from Template...	done	Create a New Document dialog on its Templates tab; templates from the Templates folder
+menu	File > Quick AI Generate...	done	Quick AI Generate window
+menu	File > Open...	done	Windows open dialog with the supported formats
+menu	File > Open Recent > Recent Files	done	recent files list filled at run time
+menu	File > Document Management	omitted	document management servers (enterprise service, like Corel Cloud)
+menu	File > Document Management > Open	omitted	document management servers (enterprise service, like Corel Cloud)
+menu	File > Document Management > Save	omitted	document management servers (enterprise service, like Corel Cloud)
+menu	File > Close	done	asks to save changes
+menu	File > Close All	done	asks to save changes for each document
+menu	File > Save...	done	Save Drawing dialog
+menu	File > Save As...	done	Save Drawing dialog
+menu	File > Save as Template...	done	Save Drawing dialog with CDRT/CDT - CorelDRAW Template
+menu	File > Revert	done	reloads the saved file (undoable)
+menu	File > Acquire Image > Select TWAIN Source...	done	TWAIN devices are reached through WIA on Windows
+menu	File > Acquire Image > Select WIA Source...	done	Windows WIA device chooser
+menu	File > Acquire Image > Acquire...	done	scans with the WIA device and imports the image
+menu	File > Import...	done	Windows open dialog, then click or drag to place
+menu	File > Export...	done	Export dialog, then the format settings (PDF, SVG, bitmaps, ...)
+menu	File > Export For > Office...	done	Export for Office: bitmap settings for Office
+menu	File > Export For > Web...	done	Export for Web: bitmap settings with preview and size estimate
+menu	File > Export For > WordPress...	done	uploads to the WordPress media library (password never saved)
+menu	File > Export Docker > Add Selection	done	adds an item to the Export docker
+menu	File > Export Docker > Add Current Page	done	adds an item to the Export docker
+menu	File > Export Docker > Add All Pages	done	adds an item per page to the Export docker
+menu	File > Send To > Send To Links	done	Windows Send To folder shortcuts
+menu	File > Send To > Mail...	done	MAPI mail with the drawing attached
+menu	File > Publish to PDF	done	Publish to PDF and PDF Settings (all tabs, presets, security)
+menu	File > Print Merge > Create/load Print Merge	done	Print Merge wizard
+menu	File > Print Merge > Edit Print Merge	done	Print Merge wizard on the document fields
+menu	File > Print Merge > Print Merged Document...	done	Print dialog with the merge records
+menu	File > Print Merge > Create Merged Document	done	new document with a page per record
+menu	File > Print...	done	Print dialog (General, Color, Composite, Layout, Prepress, Issues)
+menu	File > Print Preview...	done	Print Preview window
+menu	File > Document Properties...	done	Document Properties with all sections
+menu	File > Exit	done	asks to save changes
+menu	Edit > Redo	done	Redo names the action
+menu	Edit > Bring into Focus	done	focus mode on the selection; other objects dimmed
+menu	Edit > Exit Focus Mode	done	leaves focus mode
+menu	Edit > Cut	done	
+menu	Edit > Copy	done	
+menu	Edit > Copy Properties From...	done	Copy Properties dialog, then click the source object
+menu	Edit > Paste	done	Vector objects, SVG, text or bitmap from the clipboard
+menu	Edit > Paste in View	done	pastes centered in the window
+menu	Edit > Paste Special...	done	Paste Special dialog with the clipboard formats
+menu	Edit > Delete	done	
+menu	Edit > Duplicate	done	
+menu	Edit > Clone	done	
+menu	Edit > Select All > Objects	done	
+menu	Edit > Select All > Text	done	
+menu	Edit > Select All > Guidelines	done	
+menu	Edit > Select All > Nodes	done	Shape tool, one curve selected
+menu	Edit > Find and Replace	done	opens the Find and Replace docker
+menu	Edit > Step and Repeat	done	opens the Step and Repeat docker
+menu	View > Wireframe	done	
+menu	View > Normal	done	
+menu	View > Enhanced	done	
+menu	View > Pixels	done	renders at the document resolution
+menu	View > Pattern Preview	todo	shown while editing a pattern: comes with Object > Create > Pattern Fill (batch 3)
+menu	View > Full-screen Preview	done	F9; Page Up/Down change pages
+menu	View > Preview Selected Only	done	full-screen preview of the selection only
+menu	View > Multipage View	done	pages side by side; click a page to make it current
+menu	View > Zoom In	done	
+menu	View > Zoom Out	done	
+menu	View > Zoom To Fit	done	
+menu	View > Proof Colors	done	press colors (U.S. Web Coated (SWOP)) or grayscale from the Color Proofing docker
+menu	View > Simulate Overprints	done	overprinting fills and outlines multiply
+menu	View > Rasterize Complex Effects	done	stored setting
+menu	View > Page > Page Border	done	
+menu	View > Page > Bleed	done	
+menu	View > Page > Printable Area	done	default printer printable area, page centered on the paper
+menu	View > Grid > Document Grid	done	
+menu	View > Grid > Pixel Grid	done	Pixels view only
+menu	View > Grid > Baseline Grid	done	every 14 pt from the top of the page
+menu	View > Rulers	done	Alt+Shift+R
+menu	View > Guidelines	done	
+menu	View > Alignment Guides	done	Alt+Shift+A; edges, centers and page as set in the Alignment and Dynamic Guides docker
+menu	View > Dynamic Guides	done	Alt+Shift+D; 0, 45, 90 and 135 degree guides through nearby snap points
+menu	View > Snap To > Pixels	done	Pixels view only
+menu	View > Snap To > Document Grid	done	Alt+Y
+menu	View > Snap To > Baseline Grid	done	
+menu	View > Snap To > Guidelines	done	
+menu	View > Snap To > Perspective Lines	todo	comes with the perspective drawing mode (batch 5)
+menu	View > Snap To > Symmetry Lines	todo	comes with the symmetry drawing mode (batch 5)
+menu	View > Snap To > Objects	done	Alt+Z
+menu	View > Snap To > Page	done	
+menu	View > Snap Off	done	Alt+Q
+menu	View > Document Navigator	done	page navigator under the drawing
+menu	View > Scrollbars	done	thin scrollbars with the Navigator at their corner
+dialog	File > New	done	Create a New Document: Document Settings tab with presets, layout and color settings
+dialog	File > New from Template	done	Create a New Document: Templates tab with search, categories and details
+dialog	File > Quick AI Generate	done	Quick AI Generate window
+dialog	File > Open	done	Windows open dialog
+dialog	File > Save as Template	done	Save Drawing dialog with CDRT/CDT - CorelDRAW Template
+dialog	File > Import	done	Windows open dialog with All File Formats
+dialog	File > Document Properties	done	Document Properties with all sections
+dialog	Edit > Paste Special	done	Paste Special with the clipboard formats
+dialog	Edit > Copy Properties From	done	Copy Properties: Outline Pen, Outline Color, Fill, Text Properties

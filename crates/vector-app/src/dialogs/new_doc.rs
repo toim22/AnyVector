@@ -439,7 +439,7 @@ fn load_templates() -> Vec<TemplateInfo> {
                 // a folder named like a category files its templates under that category
                 let c = CATEGORIES.iter().find(|c| c.eq_ignore_ascii_case(&name)).map(|c| c.to_string()).unwrap_or_else(|| cat.clone());
                 stack.push((p, c));
-            } else if matches!(vector_io::extension(&p).as_str(), "cdr" | "cdt" | "vct") {
+            } else if matches!(vector_io::extension(&p).as_str(), "cdr" | "cdt" | "cdrt" | "vct") {
                 let modified = e.metadata().ok().and_then(|m| m.modified().ok()).map(crate::settings::format_time).unwrap_or_default();
                 out.push(TemplateInfo { name: p.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default(), path: p, category: cat.clone(), modified });
             }
