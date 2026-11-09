@@ -1,23 +1,27 @@
-﻿; Vector installer (Inno Setup 6.7 or later). Packages target\release\vector.exe.
+﻿; AnyVector installer (Inno Setup 6.7 or later). Packages target\release\anyvector.exe.
 ;
 ;   cargo build --release
-;   "%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe" installer\vector.iss      →   dist\Vector-<version>-setup.exe
+;   "%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe" installer\vector.iss      →   dist\AnyVector-<version>-setup.exe
 ;
 ; The version comes from the workspace Cargo.toml unless /DAppVersion=x.y.z is passed.
 ; The wizard pictures are drawn from the brand SVGs by `cargo run -p xtask -- brand`.
 ;
-; Installs for the current user only (no administrator prompt, in %LOCALAPPDATA%\Programs\Vector) or, if the user
+; Installs for the current user only (no administrator prompt, in %LOCALAPPDATA%\Programs\AnyVector) or, if the user
 ; chooses, for all users (in Program Files). Settings, palettes and templates live in the user profile and stay
 ; there after uninstalling.
+;
+; The "Product language" page chooses the language AnyVector starts in (English or Brazilian Portuguese); the choice
+; is written to Software\AnyVector (Language, LanguageStamp) and AnyVector applies it once, at its next start. A silent
+; setup (the in-app update) leaves the language alone, and /RELAUNCH=1 starts AnyVector again when it is done.
 
-#define AppName      "Vector"
+#define AppName      "AnyVector"
 #ifndef AppVersion
   ; `version = "x.y.z"` from the [workspace.package] section of Cargo.toml (the INI reader drops the quotes)
   #define AppVersion   ReadIni(SourcePath + "..\Cargo.toml", "workspace.package", "version", "0.0.0")
 #endif
-#define AppPublisher "Vector Team"
+#define AppPublisher "AnyVector Team"
 #define AppURL       "https://github.com/toim22/Vector"
-#define AppExe       "vector.exe"
+#define AppExe       "anyvector.exe"
 
 [Setup]
 ; the same AppId since the first version: every earlier version is replaced in place
@@ -39,7 +43,7 @@ DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 OutputDir=..\dist
-OutputBaseFilename=Vector-{#AppVersion}-setup
+OutputBaseFilename=AnyVector-{#AppVersion}-setup
 SetupIconFile=..\crates\vector-app\assets\vector.ico
 UninstallDisplayIcon={app}\{#AppExe}
 UninstallDisplayName={#AppName}
@@ -63,7 +67,7 @@ PrivilegesRequiredOverridesAllowed=commandline dialog
 UsePreviousPrivileges=yes
 UsePreviousAppDir=yes
 UsePreviousTasks=yes
-; the installer/uninstaller closes Vector if it is running (Restart Manager)
+; the installer/uninstaller closes AnyVector if it is running (Restart Manager)
 CloseApplications=yes
 RestartApplications=no
 ChangesAssociations=yes
@@ -89,19 +93,29 @@ english.AssocCdrOpenWith=Add {#AppName} to "Open with" for .cdr drawings
 english.AssocCdrDefault=Open .cdr drawings with {#AppName} by default (replaces the current program for .cdr)
 english.AssocVct=Open .vct drawings (older {#AppName} format) with {#AppName}
 english.AssocSvg=Add {#AppName} to "Open with" for SVG images
-english.CdrType=Vector Drawing
-english.VctType=Vector Drawing (older format)
+english.CdrType=AnyVector Drawing
+english.VctType=AnyVector Drawing (older format)
 english.DirNeedsAdmin=The selected folder requires administrator permission:%n%n%1%n%nTo install there, {#AppName} must be installed for all users. Restart Setup as administrator?
 english.DirNotWritable=Setup cannot write to the selected folder:%n%n%1%n%nPlease choose another folder.
+english.LangCaption=Product language
+english.LangDescription=Choose the language AnyVector starts in.
+english.LangSub=AnyVector starts in this language after setup. You can change it later in Tools ▸ Options ▸ Global ▸ General ▸ User interface language.
+english.LangEnglish=English
+english.LangPortuguese=Portuguese (Brazilian)
 brazilianportuguese.AssocGroup=Tipos de arquivo:
 brazilianportuguese.AssocCdrOpenWith=Incluir o {#AppName} em "Abrir com" para desenhos .cdr
 brazilianportuguese.AssocCdrDefault=Abrir desenhos .cdr com o {#AppName} por padrão (substitui o programa atual do .cdr)
 brazilianportuguese.AssocVct=Abrir desenhos .vct (formato antigo do {#AppName}) com o {#AppName}
 brazilianportuguese.AssocSvg=Incluir o {#AppName} em "Abrir com" para imagens SVG
-brazilianportuguese.CdrType=Desenho do Vector
-brazilianportuguese.VctType=Desenho do Vector (formato antigo)
+brazilianportuguese.CdrType=Desenho do AnyVector
+brazilianportuguese.VctType=Desenho do AnyVector (formato antigo)
 brazilianportuguese.DirNeedsAdmin=A pasta escolhida exige permissão de administrador:%n%n%1%n%nPara instalar nela, o {#AppName} precisa ser instalado para todos os usuários. Deseja reiniciar a instalação como administrador?
 brazilianportuguese.DirNotWritable=Não é possível gravar na pasta escolhida:%n%n%1%n%nEscolha outra pasta.
+brazilianportuguese.LangCaption=Idioma do produto
+brazilianportuguese.LangDescription=Escolha o idioma em que o AnyVector será iniciado.
+brazilianportuguese.LangSub=O AnyVector será iniciado neste idioma após a instalação. Você pode alterá-lo depois em Ferramentas ▸ Opções ▸ Global ▸ Geral ▸ Idioma da interface do usuário.
+brazilianportuguese.LangEnglish=Inglês
+brazilianportuguese.LangPortuguese=Português Brasileiro
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
@@ -109,6 +123,10 @@ Name: "assoccdr"; Description: "{cm:AssocCdrOpenWith}"; GroupDescription: "{cm:A
 Name: "assoccdr\default"; Description: "{cm:AssocCdrDefault}"; Flags: unchecked
 Name: "assocvct"; Description: "{cm:AssocVct}"; GroupDescription: "{cm:AssocGroup}"
 Name: "assocsvg"; Description: "{cm:AssocSvg}"; GroupDescription: "{cm:AssocGroup}"; Flags: unchecked
+
+[InstallDelete]
+; the program was called Vector (vector.exe) before 0.1.0
+Type: files; Name: "{app}\vector.exe"
 
 [Files]
 Source: "..\target\release\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion
@@ -119,31 +137,44 @@ Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExe}"; Comment: "Vector
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Comment: "Vector graphics editor"; Tasks: desktopicon
 
 [Registry]
+; the start language chosen on the Product language page (not by a silent setup: an update keeps the user's language)
+Root: HKA; Subkey: "Software\AnyVector"; Flags: uninsdeletekeyifempty
+Root: HKA; Subkey: "Software\AnyVector"; ValueType: string; ValueName: "Language"; ValueData: "{code:AppLanguage}"; Flags: uninsdeletevalue; Check: not WizardSilent
+Root: HKA; Subkey: "Software\AnyVector"; ValueType: string; ValueName: "LanguageStamp"; ValueData: "{code:LanguageStamp}"; Flags: uninsdeletevalue; Check: not WizardSilent
+; the names used while the program was called Vector
+Root: HKA; Subkey: "Software\Classes\Vector.Drawing"; Flags: deletekey dontcreatekey
+Root: HKA; Subkey: "Software\Classes\Vector.Drawing.Vct"; Flags: deletekey dontcreatekey
+Root: HKA; Subkey: "Software\Classes\Vector.SVG"; Flags: deletekey dontcreatekey
+Root: HKA; Subkey: "Software\Classes\Applications\vector.exe"; Flags: deletekey dontcreatekey
+Root: HKA; Subkey: "Software\Classes\.cdr\OpenWithProgids"; ValueName: "Vector.Drawing"; Flags: deletevalue dontcreatekey
+Root: HKA; Subkey: "Software\Classes\.svg\OpenWithProgids"; ValueName: "Vector.SVG"; Flags: deletevalue dontcreatekey
 ; the document type every association points to
-Root: HKA; Subkey: "Software\Classes\Vector.Drawing"; ValueType: string; ValueName: ""; ValueData: "{cm:CdrType}"; Flags: uninsdeletekey
-Root: HKA; Subkey: "Software\Classes\Vector.Drawing\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\vector.ico"
-Root: HKA; Subkey: "Software\Classes\Vector.Drawing\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExe}"" ""%1"""
-; registered application (lists Vector in Windows' "Open with" and Default apps)
+Root: HKA; Subkey: "Software\Classes\AnyVector.Drawing"; ValueType: string; ValueName: ""; ValueData: "{cm:CdrType}"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\AnyVector.Drawing\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\vector.ico"
+Root: HKA; Subkey: "Software\Classes\AnyVector.Drawing\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExe}"" ""%1"""
+; registered application (lists AnyVector in Windows' "Open with" and Default apps)
 Root: HKA; Subkey: "Software\Classes\Applications\{#AppExe}"; ValueType: string; ValueName: "FriendlyAppName"; ValueData: "{#AppName}"; Flags: uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\Applications\{#AppExe}\SupportedTypes"; ValueType: string; ValueName: ".cdr"; ValueData: ""
 Root: HKA; Subkey: "Software\Classes\Applications\{#AppExe}\SupportedTypes"; ValueType: string; ValueName: ".vct"; ValueData: ""
 Root: HKA; Subkey: "Software\Classes\Applications\{#AppExe}\SupportedTypes"; ValueType: string; ValueName: ".svg"; ValueData: ""
 Root: HKA; Subkey: "Software\Classes\Applications\{#AppExe}\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExe}"" ""%1"""
 ; .cdr: always offered in "Open with"; the default program only if the user asks (CorelDRAW may own .cdr)
-Root: HKA; Subkey: "Software\Classes\.cdr\OpenWithProgids"; ValueType: string; ValueName: "Vector.Drawing"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoccdr
-Root: HKA; Subkey: "Software\Classes\.cdr"; ValueType: string; ValueName: ""; ValueData: "Vector.Drawing"; Flags: uninsdeletevalue; Tasks: assoccdr\default
-; .vct: Vector's older drawing format
-Root: HKA; Subkey: "Software\Classes\.vct"; ValueType: string; ValueName: ""; ValueData: "Vector.Drawing.Vct"; Flags: uninsdeletevalue; Tasks: assocvct
-Root: HKA; Subkey: "Software\Classes\Vector.Drawing.Vct"; ValueType: string; ValueName: ""; ValueData: "{cm:VctType}"; Flags: uninsdeletekey; Tasks: assocvct
-Root: HKA; Subkey: "Software\Classes\Vector.Drawing.Vct\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\vector.ico"; Tasks: assocvct
-Root: HKA; Subkey: "Software\Classes\Vector.Drawing.Vct\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExe}"" ""%1"""; Tasks: assocvct
+Root: HKA; Subkey: "Software\Classes\.cdr\OpenWithProgids"; ValueType: string; ValueName: "AnyVector.Drawing"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoccdr
+Root: HKA; Subkey: "Software\Classes\.cdr"; ValueType: string; ValueName: ""; ValueData: "AnyVector.Drawing"; Flags: uninsdeletevalue; Tasks: assoccdr\default
+; .vct: AnyVector's older drawing format
+Root: HKA; Subkey: "Software\Classes\.vct"; ValueType: string; ValueName: ""; ValueData: "AnyVector.Drawing.Vct"; Flags: uninsdeletevalue; Tasks: assocvct
+Root: HKA; Subkey: "Software\Classes\AnyVector.Drawing.Vct"; ValueType: string; ValueName: ""; ValueData: "{cm:VctType}"; Flags: uninsdeletekey; Tasks: assocvct
+Root: HKA; Subkey: "Software\Classes\AnyVector.Drawing.Vct\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\vector.ico"; Tasks: assocvct
+Root: HKA; Subkey: "Software\Classes\AnyVector.Drawing.Vct\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExe}"" ""%1"""; Tasks: assocvct
 ; SVG: "Open with" only
-Root: HKA; Subkey: "Software\Classes\.svg\OpenWithProgids"; ValueType: string; ValueName: "Vector.SVG"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assocsvg
-Root: HKA; Subkey: "Software\Classes\Vector.SVG"; ValueType: string; ValueName: ""; ValueData: "SVG image ({#AppName})"; Flags: uninsdeletekey; Tasks: assocsvg
-Root: HKA; Subkey: "Software\Classes\Vector.SVG\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExe}"" ""%1"""; Tasks: assocsvg
+Root: HKA; Subkey: "Software\Classes\.svg\OpenWithProgids"; ValueType: string; ValueName: "AnyVector.SVG"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assocsvg
+Root: HKA; Subkey: "Software\Classes\AnyVector.SVG"; ValueType: string; ValueName: ""; ValueData: "SVG image ({#AppName})"; Flags: uninsdeletekey; Tasks: assocsvg
+Root: HKA; Subkey: "Software\Classes\AnyVector.SVG\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExe}"" ""%1"""; Tasks: assocsvg
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
+; the in-app update runs Setup with /SILENT /RELAUNCH=1: AnyVector starts again when it is done
+Filename: "{app}\{#AppExe}"; Flags: nowait runasoriginaluser; Check: ShouldRelaunch
 
 [Code]
 // In "just for me" mode Setup runs without administrator rights; if the user switches to a protected folder (Program
@@ -151,6 +182,39 @@ Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags
 // whether it can write there and, if not, offers to restart as administrator (/ALLUSERS) with the chosen folder.
 var
   Relaunching: Boolean;
+  LangPage: TInputOptionWizardPage;
+
+// Product language: the language AnyVector starts in, the setup's own language unless the user picks the other one
+procedure InitializeWizard;
+begin
+  LangPage := CreateInputOptionPage(wpSelectTasks, CustomMessage('LangCaption'), CustomMessage('LangDescription'),
+    CustomMessage('LangSub'), True, False);
+  LangPage.Add(CustomMessage('LangEnglish'));
+  LangPage.Add(CustomMessage('LangPortuguese'));
+  if ActiveLanguage = 'brazilianportuguese' then
+    LangPage.SelectedValueIndex := 1
+  else
+    LangPage.SelectedValueIndex := 0;
+end;
+
+function AppLanguage(Param: String): String;
+begin
+  if LangPage.SelectedValueIndex = 1 then
+    Result := 'pt-BR'
+  else
+    Result := 'en-US';
+end;
+
+// a new stamp on every interactive setup, so AnyVector applies the choice once
+function LanguageStamp(Param: String): String;
+begin
+  Result := GetDateTimeString('yyyymmddhhnnss', #0, #0);
+end;
+
+function ShouldRelaunch: Boolean;
+begin
+  Result := WizardSilent and (ExpandConstant('{param:RELAUNCH|0}') = '1');
+end;
 
 // nearest folder that already exists (the install folder may not exist yet)
 function ExistingAncestor(Dir: String): String;
@@ -178,7 +242,7 @@ begin
   Result := Dir <> '';
   if not Result then
     Exit;
-  Probe := AddBackslash(Dir) + '~vector-setup-' + GetDateTimeString('hhnnsszzz', #0, #0) + '.tmp';
+  Probe := AddBackslash(Dir) + '~anyvector-setup-' + GetDateTimeString('hhnnsszzz', #0, #0) + '.tmp';
   Result := SaveStringToFile(Probe, '', False);
   if Result then
     DeleteFile(Probe);

@@ -89,7 +89,7 @@ fn wizard_large(logo: &str, dark: bool) -> Result<String> {
   <rect width="164" height="314" fill="url(#wz_orange)"/>
   <rect width="164" height="314" fill="url(#wz_red)"/>
   <g filter="url(#wz_shadow)">{logo}</g>
-  <text x="82" y="204" text-anchor="middle" font-family="Segoe UI" font-weight="600" font-size="30" fill="{name}">Vector</text>
+  <text x="82" y="204" text-anchor="middle" font-family="Segoe UI" font-weight="600" font-size="26" fill="{name}">AnyVector</text>
   <text x="82" y="224" text-anchor="middle" font-family="Segoe UI" font-size="10.5" fill="{line}">Vector graphics editor</text>
 </svg>"##,
         b = 0.45 * glow,

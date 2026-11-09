@@ -1,4 +1,4 @@
-//! Application settings (Tools > Options), persisted as JSON in %APPDATA%\Vector\settings.json.
+//! Application settings (Tools > Options), persisted as JSON in %APPDATA%\AnyVector\settings.json.
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -384,6 +384,14 @@ pub struct Settings {
     pub spell_errors_all: bool,
     pub theme_name: String,
     pub ui_language_ask: bool,
+    /// The setup's language choice already applied (its time stamp, see `i18n::installer_choice`).
+    pub installer_lang_stamp: String,
+    /// Allow product updates: 0 keep up to date, 1 check and let me choose, 2 never.
+    pub update_mode: u8,
+    /// When updates were last checked (seconds since 1970).
+    pub update_last_check: u64,
+    /// A version the user chose to skip.
+    pub update_skip: String,
     /// Page presets saved with "+" in Create a New Document.
     pub custom_page_presets: Vec<CustomPagePreset>,
     /// Names of presets used most recently (newest first).
@@ -597,7 +605,8 @@ impl Default for Settings {
             mesh_cols: 2,
             mesh_rows: 2,
             background_tasks: true,
-            language: "English-US".into(),
+            // empty: Windows' display language (see i18n::Lang::resolve)
+            language: String::new(),
             hardware_accel: true,
             print_only_current: false,
             print: Default::default(),
@@ -690,6 +699,10 @@ impl Default for Settings {
             spell_errors_all: true,
             theme_name: "Dark".into(),
             ui_language_ask: false,
+            installer_lang_stamp: String::new(),
+            update_mode: crate::updater::KEEP_UP_TO_DATE,
+            update_last_check: 0,
+            update_skip: String::new(),
             custom_page_presets: Vec::new(),
             recent_page_presets: Vec::new(),
             save: SaveSettings::default(),
@@ -730,7 +743,14 @@ pub struct ProofPreset {
 
 pub fn config_dir() -> PathBuf {
     let base = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));
-    let d = base.join("Vector");
+    let d = base.join("AnyVector");
+    // the program was called Vector before 0.1.0: its settings folder moves to the new name
+    if !cfg!(test) && !d.exists() {
+        let old = base.join("Vector");
+        if old.is_dir() {
+            let _ = std::fs::rename(&old, &d);
+        }
+    }
     let _ = std::fs::create_dir_all(&d);
     d
 }

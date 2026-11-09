@@ -17,6 +17,7 @@ mod exec;
 mod fx;
 mod fxdata;
 mod help;
+mod i18n;
 mod icons;
 mod menus;
 mod palette;
@@ -36,6 +37,7 @@ mod toolbar;
 mod toolbox;
 mod tools;
 mod trace;
+mod updater;
 mod ui;
 mod welcome;
 mod widgets;
@@ -54,7 +56,7 @@ fn window_icon() -> Option<egui::IconData> {
 fn main() -> eframe::Result<()> {
     let mut viewport = egui::ViewportBuilder::default()
         .with_title(vector_core::APP_NAME)
-        .with_app_id("Vector")
+        .with_app_id("AnyVector")
         // the window starts as an undecorated splash and becomes the main window once loaded
         .with_inner_size([620.0, 380.0])
         .with_decorations(false)

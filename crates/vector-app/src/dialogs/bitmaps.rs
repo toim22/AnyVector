@@ -242,7 +242,7 @@ pub fn update_link(app: &mut VectorApp) {
 /// Edit Bitmap: the bitmap opens in the default image editor; saving it there updates it here.
 pub fn edit_bitmap(app: &mut VectorApp) {
     let Some(t) = need_bitmap(app) else { return };
-    let dir = std::env::temp_dir().join("Vector");
+    let dir = std::env::temp_dir().join("AnyVector");
     let _ = std::fs::create_dir_all(&dir);
     let path = dir.join(format!("bitmap-{}.png", t.obj));
     let bytes = vector_io::image_io::encode_png(t.full.w as u32, t.full.h as u32, &t.full.p.iter().flat_map(|c| *c).collect::<Vec<u8>>());
@@ -254,7 +254,7 @@ pub fn edit_bitmap(app: &mut VectorApp) {
     let _ = std::process::Command::new("cmd").args(["/C", "start", ""]).arg(&path).spawn();
     app.dialogs.bm.edits.retain(|e| e.1 != t.obj);
     app.dialogs.bm.edits.push((path, t.obj, stamp));
-    app.flash("Edit the bitmap and save it: Vector updates it.");
+    app.flash("Edit the bitmap and save it: AnyVector updates it.");
 }
 
 /// Reads back the bitmaps saved in the image editor (checked once a second).

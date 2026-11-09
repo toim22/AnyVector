@@ -32,13 +32,13 @@ pub fn run() -> Result<()> {
     let visual = root().join("target/visual");
     let map = std::fs::read_to_string(root().join("docs/reference-map.tsv")).unwrap_or_default();
     let mut html = String::from(
-        "<!doctype html><meta charset=utf-8><title>Vector vs reference</title><style>\
+        "<!doctype html><meta charset=utf-8><title>AnyVector vs reference</title><style>\
          body{background:#1e1e1e;color:#ddd;font:14px Segoe UI,sans-serif;margin:16px}\
          h2{font-weight:600;font-size:15px;margin:28px 0 8px}\
          .pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}\
          figure{margin:0}figcaption{color:#999;font-size:12px;margin-bottom:4px}\
          img{max-width:100%;border:1px solid #444;background:#000}\
-         .missing{color:#e5484d}</style><h1>Vector renders next to the reference</h1>",
+         .missing{color:#e5484d}</style><h1>AnyVector renders next to the reference</h1>",
     );
     let mut paired = HashSet::new();
     let mut n = 0;
@@ -58,7 +58,7 @@ pub fn run() -> Result<()> {
                 format!("<figure><figcaption class=missing>{label}: missing {}</figcaption></figure>", esc(&p.display().to_string()))
             }
         };
-        write!(html, "<h2>{}</h2><div class=pair>{}{}</div>", esc(title), side("Vector", &render), side("Reference", &refimg))?;
+        write!(html, "<h2>{}</h2><div class=pair>{}{}</div>", esc(title), side("AnyVector", &render), side("Reference", &refimg))?;
         n += 1;
     }
     let mut extra: Vec<_> = std::fs::read_dir(&visual).map(|rd| rd.flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "png")).collect()).unwrap_or_default();

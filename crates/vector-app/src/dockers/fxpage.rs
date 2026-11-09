@@ -254,7 +254,7 @@ fn radio_list(cx: &mut Cx, ui: &mut Ui, key: &str, label: &str, opts: &[&str], d
 /// An option button of the effect pages (a small circle, the dot when chosen).
 fn radio_row(ui: &mut Ui, on: bool, label: &str) -> bool {
     let en = ui.is_enabled();
-    let galley_w = ui.fonts_mut(|f| f.layout_no_wrap(label.to_string(), egui::FontId::proportional(12.5), theme::TEXT).size().x);
+    let galley_w = ui.fonts_mut(|f| f.layout_no_wrap(crate::i18n::t(label), egui::FontId::proportional(12.5), theme::TEXT).size().x);
     let (r, resp) = ui.allocate_exact_size(vec2(galley_w + 22.0, 18.0), if en { Sense::click() } else { Sense::hover() });
     let c = pos2(r.left() + 7.0, r.center().y);
     let p = ui.painter();
@@ -269,7 +269,7 @@ fn radio_row(ui: &mut Ui, on: bool, label: &str) -> bool {
 /// A check box as the reference draws it: a box, light and ticked when on.
 fn check_resp(ui: &mut Ui, on: &mut bool, label: &str) -> egui::Response {
     let en = ui.is_enabled();
-    let tw = if label.is_empty() { 0.0 } else { ui.fonts_mut(|f| f.layout_no_wrap(label.to_string(), egui::FontId::proportional(12.5), theme::TEXT).size().x) + 8.0 };
+    let tw = if label.is_empty() { 0.0 } else { ui.fonts_mut(|f| f.layout_no_wrap(crate::i18n::t(label), egui::FontId::proportional(12.5), theme::TEXT).size().x) + 8.0 };
     let (r, mut resp) = ui.allocate_exact_size(vec2(16.0 + tw, 20.0), if en { Sense::click() } else { Sense::hover() });
     let b = Rect::from_center_size(pos2(r.left() + 7.0, r.center().y), vec2(12.0, 12.0));
     let p = ui.painter();

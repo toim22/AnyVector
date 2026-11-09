@@ -28,7 +28,7 @@ impl Recorder {
         self.lines.push(format!("run({});", rhai_string(&cmd_to_text(cmd))));
     }
     pub fn script(&self) -> String {
-        let mut s = String::from("// Vector script\n");
+        let mut s = String::from("// AnyVector script\n");
         for l in &self.lines {
             s.push_str(l);
             s.push('\n');

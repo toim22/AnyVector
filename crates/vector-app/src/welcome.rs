@@ -221,7 +221,7 @@ fn workspace(app: &mut VectorApp, ui: &mut Ui) {
 }
 
 fn whats_new(ui: &mut Ui) {
-    heading(ui, &format!("What's New in Vector {}", vector_core::APP_VERSION));
+    heading(ui, &format!("What's New in AnyVector {}", vector_core::APP_VERSION));
     for line in WHATS_NEW {
         ui.horizontal_wrapped(|ui| {
             ui.label(egui::RichText::new("•").color(LINK));

@@ -53,11 +53,14 @@ pub struct OptionsState {
     pub security_dialog: bool,
     pub zoom_calibrate: bool,
     pub new_cmd_bar: String,
+    /// The API key typed on the Privacy page (written to the environment variable, never kept).
+    pub ai_key: String,
+    pub ai_key_msg: Option<(bool, String)>,
 }
 
 const CATEGORIES: [(OptionsPage, &str, &str); 6] = [
     (OptionsPage::Document, "opt_document", "Document"),
-    (OptionsPage::App, "opt_app", "Vector"),
+    (OptionsPage::App, "opt_app", "AnyVector"),
     (OptionsPage::Customization, "opt_custom", "Customization"),
     (OptionsPage::Tools, "opt_tools", "Tools"),
     (OptionsPage::Global, "opt_global", "Global"),
@@ -65,7 +68,7 @@ const CATEGORIES: [(OptionsPage, &str, &str); 6] = [
 ];
 
 fn title_of(c: OptionsPage) -> &'static str {
-    CATEGORIES.iter().find(|x| x.0 == c).map(|x| x.2).unwrap_or("Vector")
+    CATEGORIES.iter().find(|x| x.0 == c).map(|x| x.2).unwrap_or("AnyVector")
 }
 
 /// Pages per category (name, optional tool icon).
@@ -423,14 +426,18 @@ fn page_content(app: &mut VectorApp, ui: &mut Ui, cat: OptionsPage, page: &str) 
 // small widgets
 // ------------------------------------------------------------------------------------------
 
+/// A label in a column of width `w`; a longer (translated) label widens its row instead of being
+/// covered by the control next to it.
 fn label_w(ui: &mut Ui, text: &str, w: f32) {
-    let (r, _) = ui.allocate_exact_size(vec2(w, 22.0), Sense::hover());
-    ui.painter().text(pos2(r.left(), r.center().y), Align2::LEFT_CENTER, text, FontId::proportional(13.0), theme::TEXT);
+    let g = ui.painter().layout_no_wrap(text.to_owned(), FontId::proportional(13.0), theme::TEXT);
+    let (r, _) = ui.allocate_exact_size(vec2(w.max(g.size().x + 6.0), 22.0), Sense::hover());
+    ui.painter().galley(pos2(r.left(), r.center().y - g.size().y / 2.0), g, theme::TEXT);
 }
 
 fn label_right(ui: &mut Ui, text: &str, w: f32) {
-    let (r, _) = ui.allocate_exact_size(vec2(w, 22.0), Sense::hover());
-    ui.painter().text(pos2(r.right() - 8.0, r.center().y), Align2::RIGHT_CENTER, text, FontId::proportional(13.0), theme::TEXT);
+    let g = ui.painter().layout_no_wrap(text.to_owned(), FontId::proportional(13.0), theme::TEXT);
+    let (r, _) = ui.allocate_exact_size(vec2(w.max(g.size().x + 12.0), 22.0), Sense::hover());
+    ui.painter().galley(pos2(r.right() - 8.0 - g.size().x, r.center().y - g.size().y / 2.0), g, theme::TEXT);
 }
 
 fn combo(ui: &mut Ui, id: &str, cur: &mut usize, items: &[&str], w: f32) -> bool {
@@ -795,7 +802,7 @@ fn app_general(app: &mut VectorApp, ui: &mut Ui) {
     heading(ui, "Getting started");
     ui.add_space(6.0);
     ui.horizontal(|ui| {
-        label_w(ui, "On Vector start-up:", 150.0);
+        label_w(ui, "On AnyVector start-up:", 150.0);
         let names: Vec<&str> = StartupAction::ALL.iter().map(|a| a.name()).collect();
         let mut i = StartupAction::ALL.iter().position(|a| *a == s.startup).unwrap_or(0);
         if combo(ui, "startup", &mut i, &names, 190.0) {
@@ -1697,7 +1704,7 @@ fn tool_page(app: &mut VectorApp, ui: &mut Ui, page: &str) {
             ui.checkbox(&mut s.treat_as_filled, "Treat all objects as filled");
             separator(ui);
             heading(ui, "Ctrl and Shift keys");
-            ui.radio_value(&mut s.windows_modifiers, false, "Traditional Vector: Ctrl = Constrain, Shift = Transform from center");
+            ui.radio_value(&mut s.windows_modifiers, false, "Traditional AnyVector: Ctrl = Constrain, Shift = Transform from center");
             ui.radio_value(&mut s.windows_modifiers, true, "Windows standard: Ctrl = Duplicate/Leave Original, Shift = Constrain");
         }
         "Eraser" => {
@@ -1934,9 +1941,32 @@ fn global_general(app: &mut VectorApp, ui: &mut Ui) {
     separator(ui);
     ui.horizontal(|ui| {
         label_w(ui, "User interface language:", 170.0);
-        combo_str(ui, "lang", &mut s.language, &["English-US"], 160.0);
+        let cur = crate::i18n::Lang::resolve(&s.language);
+        egui::ComboBox::from_id_salt("lang").selected_text(cur.native_name()).width(200.0).show_ui(ui, |ui| {
+            for l in crate::i18n::Lang::ALL {
+                if ui.selectable_label(cur == l, l.native_name()).clicked() {
+                    s.language = l.code().into();
+                }
+            }
+        });
     });
     ui.checkbox(&mut s.ui_language_ask, "Ask me the next time the application starts");
+    separator(ui);
+    ui.horizontal(|ui| {
+        label_w(ui, "Allow product updates:", 170.0);
+        let mut m = s.update_mode as usize;
+        combo(ui, "upd_mode", &mut m, &crate::updater::MODES, 330.0);
+        s.update_mode = m.min(2) as u8;
+    });
+    let mode_note = crate::updater::MODE_NOTES[(s.update_mode as usize).min(2)];
+    let check = ui.indent("upd_note", |ui| {
+        note(ui, mode_note);
+        ui.button("Check Now").clicked()
+    });
+    if check.inner {
+        crate::updater::open_dialog(app);
+    }
+    let s = &mut app.settings;
     separator(ui);
     ui.horizontal(|ui| {
         ui.checkbox(&mut s.hardware_accel, "Use hardware acceleration");
@@ -1990,7 +2020,7 @@ fn printing(app: &mut VectorApp, ui: &mut Ui) {
             ui.horizontal(|ui| {
                 label_w(ui, "Default print style:", 140.0);
                 let mut i = 0;
-                combo(ui, "pstyle", &mut i, &["Vector Defaults"], 200.0);
+                combo(ui, "pstyle", &mut i, &["AnyVector Defaults"], 200.0);
             });
             ui.checkbox(&mut app.settings.print_only_current, "Print only current page");
             separator(ui);
@@ -2105,7 +2135,7 @@ fn global_color(app: &mut VectorApp, ui: &mut Ui) {
     ui.horizontal(|ui| {
         label_w(ui, "Spot color palette:", 120.0);
         let mut i = 0;
-        combo(ui, "spot_pal", &mut i, &["Vector Spot Colors"], 280.0);
+        combo(ui, "spot_pal", &mut i, &["AnyVector Spot Colors"], 280.0);
     });
     separator(ui);
     heading(ui, "Color palette mapping");
@@ -2113,7 +2143,7 @@ fn global_color(app: &mut VectorApp, ui: &mut Ui) {
     ui.horizontal(|ui| {
         label_w(ui, "Spot colors:", 120.0);
         let mut i = 0;
-        combo(ui, "spot_map", &mut i, &["Vector Spot Color Library"], 280.0);
+        combo(ui, "spot_map", &mut i, &["AnyVector Spot Color Library"], 280.0);
     });
     ui.horizontal(|ui| {
         ui.add_space(124.0);
@@ -2135,16 +2165,42 @@ fn user_id(app: &mut VectorApp, ui: &mut Ui) {
 }
 
 fn privacy(app: &mut VectorApp, ui: &mut Ui) {
-    ui.checkbox(&mut app.settings.usage_stats, "Share anonymous usage statistics to help improve Vector");
-    note(ui, "Vector stores your documents and settings on this computer only. AI Generate sends only your prompt to the AI provider when you use it.");
+    ui.checkbox(&mut app.settings.usage_stats, "Share anonymous usage statistics to help improve AnyVector");
+    note(ui, "AnyVector stores your documents and settings on this computer only. AI Generate sends only your prompt to the AI provider when you use it.");
     separator(ui);
     heading(ui, "AI Generate");
     ui.horizontal(|ui| {
         label_w(ui, "API key variable:", 130.0);
         ui.add(egui::TextEdit::singleline(&mut app.settings.ai_api_key_env).desired_width(220.0));
     });
+    let var = crate::ai::key_var(app);
     let has = crate::ai::api_key(app).is_some();
-    note(ui, if has { "An API key was found in this environment variable." } else { "Set this environment variable to your API key to enable AI Generate. The key is never saved by Vector." });
+    let st = &mut app.dialogs.options;
+    let mut save: Option<String> = None;
+    ui.horizontal(|ui| {
+        label_w(ui, "API key:", 130.0);
+        let hint = if has { "A key is set; type a new one to replace it" } else { "Paste your API key" };
+        ui.add(egui::TextEdit::singleline(&mut st.ai_key).password(true).desired_width(220.0).hint_text(hint));
+        if ui.add_enabled(!st.ai_key.trim().is_empty(), egui::Button::new("Save Key")).clicked() {
+            save = Some(std::mem::take(&mut st.ai_key));
+        }
+        if has && ui.button("Remove Key").clicked() {
+            save = Some(String::new());
+        }
+    });
+    if let Some(k) = save {
+        st.ai_key_msg = Some(match crate::ai::save_user_key(&var, &k) {
+            Ok(()) if k.is_empty() => (true, format!("The key was removed from the {var} environment variable.")),
+            Ok(()) => (true, format!("The key was saved in the {var} environment variable of your Windows account. AI Generate is ready.")),
+            Err(e) => (false, e),
+        });
+    }
+    if let Some((ok, m)) = &st.ai_key_msg {
+        let c = if *ok { theme::TEXT } else { egui::Color32::from_rgb(0xe8, 0x6a, 0x6a) };
+        ui.label(egui::RichText::new(m).color(c).size(12.0));
+    }
+    note(ui, if has { "An API key was found in this environment variable." } else { "AI Generate needs an API key. Paste it above and click Save Key, or set this environment variable yourself." });
+    note(ui, "Save Key writes the key into this environment variable of your Windows account, right away. AnyVector never saves the key in its own settings or documents.");
 }
 
 // ------------------------------------------------------------------------------------------

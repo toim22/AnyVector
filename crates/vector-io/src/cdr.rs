@@ -289,7 +289,7 @@ pub fn load_from_bytes(bytes: &[u8]) -> Result<Document> {
         CdrKind::Vector => {}
         CdrKind::LegacyVector => return crate::native::load_from_bytes(bytes),
         CdrKind::CorelDraw => {
-            return Err(IoError::Unsupported("this .cdr drawing was created by CorelDRAW. Vector reads and writes its own .cdr drawings, but cannot open files saved by CorelDRAW yet. In CorelDRAW, export the drawing as SVG or PDF and open that in Vector.".into()))
+            return Err(IoError::Unsupported("this .cdr drawing was created by CorelDRAW. AnyVector reads and writes its own .cdr drawings, but cannot open files saved by CorelDRAW yet. In CorelDRAW, export the drawing as SVG or PDF and open that in Vector.".into()))
         }
         CdrKind::Unknown => return Err(IoError::Format("not a .cdr drawing".into())),
     }
