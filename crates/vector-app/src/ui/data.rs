@@ -395,8 +395,11 @@ pub static BARS: [Bar; 279] = [
         Item { id: "724461d8-4a89-4e49-831a-79f60654927a", text: "&Object...", tip: "", kind: Button, keys: &[], sub: N, icon: "insert_object", menu_icon: true, on: 0x3ffff, face: Default, flags: 0 },
     ] },
     Bar { id: "ac756ad6-84d9-43f5-a5f1-183aa81c6870", name: "AI Generate", items: &[
+        Item { id: "9c0ccd48-7a5f-43c7-aff0-f59be1bb1595", text: "Create vector graphic", tip: "", kind: Button, keys: &[], sub: N, icon: "ai_vector", menu_icon: true, on: 0x7ffff, face: Default, flags: 0 },
         Item { id: "a0776aad-7c8b-499b-8e67-df3801bf1769", text: "Create Vector Graphic Guided by Selection", tip: "", kind: Button, keys: &[], sub: N, icon: "ai_vector", menu_icon: true, on: 0x7ffff, face: Default, flags: 0 },
+        Item { id: "4bf3be7a-cdd1-40a7-84ae-448ad787cc07", text: "Create image", tip: "", kind: Button, keys: &[], sub: N, icon: "ai_image", menu_icon: true, on: 0x7ffff, face: Default, flags: 0 },
         Item { id: "2daeddaf-49a3-4e1b-ab18-430357decbaa", text: "Create Image Guided by Selection", tip: "", kind: Button, keys: &[], sub: N, icon: "ai_image", menu_icon: true, on: 0x7ffff, face: Default, flags: 0 },
+        Item { id: "8ed410c6-5402-4bac-8abe-97c235712914", text: "Remix image", tip: "", kind: Button, keys: &[], sub: N, icon: "ai_image", menu_icon: true, on: 0x7ffff, face: Default, flags: 0 },
         Item { id: "7e547078-e4e7-4ab5-96da-d1f0c556da6b4", text: "Remix Selection", tip: "", kind: Button, keys: &[], sub: N, icon: "ai_image", menu_icon: true, on: 0x7ffff, face: Default, flags: 0 },
     ] },
     Bar { id: "5f815cd7-d3f8-453e-8e4c-58d06a2b4f9d", name: "PowerClip", items: &[

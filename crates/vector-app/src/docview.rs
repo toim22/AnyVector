@@ -64,6 +64,10 @@ pub struct DocView {
     pub rotate_mode: bool,
     pub canvas_rect: ERect,
     pub show_page_sorter: bool,
+    /// Object ▸ Symbol ▸ Edit Master in progress.
+    pub symbol_edit: Option<crate::dialogs::object::SymbolEdit>,
+    /// Object ▸ Rollover ▸ Edit Rollover in progress: the rollover.
+    pub rollover_edit: Option<ObjId>,
     pub last_saved_backup: f64,
 }
 
@@ -95,6 +99,8 @@ impl DocView {
             rotate_mode: false,
             canvas_rect: ERect::NOTHING,
             show_page_sorter: false,
+            symbol_edit: None,
+            rollover_edit: None,
             last_saved_backup: 0.0,
         }
     }
@@ -130,6 +136,7 @@ impl DocView {
 
     pub fn after_change(&mut self) {
         self.doc.update_connectors();
+        self.doc.update_page_numbers();
         let doc = &self.doc;
         self.selection.retain(|id| doc.find(*id).is_some());
         self.node_sel.retain(|(id, _, _)| doc.find(*id).is_some());

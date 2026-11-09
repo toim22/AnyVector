@@ -191,10 +191,18 @@ pub fn cmd(id: &str) -> Option<Cmd> {
         "a67a81b1" => RulerSetup,
         "88ad5cd5" => GuidelinesSetup,
         "d9c0197f" => RenamePage,
-        "774e822b" | "58bdbfc1" => DeletePage,
+        "774e822b" => DeletePage,
+        "58bdbfc1" => DeletePageNow,
         "c34fb01f" => GoToPage,
         "88ee85c6" => SwitchOrientation,
-        "0ccf3b2f" => PageSetup,
+        "0c273c3c" => PageSetup,
+        "0ccf3b2f" => PageLayout,
+        "da0c84ba" | "ba382370" => PageNumberSettings,
+        "0738bc2c" => InsertPageNumber(0),
+        "11530b48" => InsertPageNumber(1),
+        "2b6b5aa4" => InsertPageNumber(2),
+        "dbaae0c2" => InsertPageNumber(3),
+        "eeb7f2b5" => BorderGrommet,
         "d1080c69" => PageBackground,
         // Object
         "da1efe7f" | "3f1c813c" => PowerClipInside,
@@ -227,7 +235,36 @@ pub fn cmd(id: &str) -> Option<Cmd> {
         "abd75c09" => Align(Al::Bottom),
         "69bf9eec" => Align(Al::CenterH),
         "6aa736bd" => Align(Al::CenterV),
-        "af85ad65" => AlignTo(Al::CenterH),
+        "af85ad65" => CenterToPage,
+        "d4ecae41" => AlignTo(Al::CenterH),
+        "6ccb1937" => AlignTo(Al::CenterV),
+        "87a885a9" => AlignPixelGrid,
+        "e54d3dbe" => OrderInFrontOf,
+        "ce2cdd81" => OrderBehind,
+        "edd19eb3" => ShowObjects,
+        "1651a600" => OverprintFill,
+        "a86ade3d" => OverprintOutline,
+        "cb0ffd87" => OverprintBitmap,
+        "12c0a980" => ObjectHinting,
+        "25f351b0" => PowerClipEmptyFrame,
+        "6ea9b15a" => PowerClipLock,
+        "273d95de" => PowerClipPlace(0),
+        "a369e3ae" => PowerClipPlace(1),
+        "56a4aae7" => PowerClipPlace(2),
+        "8ab3326a" => PowerClipPlace(3),
+        "b9be1ce5" => CopyPowerClipFrom,
+        "fc31d658" => CopyEffectFrom(0),
+        "e0f04f36" => CopyEffectFrom(1),
+        "42c808a4" => CopyEffectFrom(2),
+        "6d0d907d" => CopyEffectFrom(3),
+        "8228969f" => CopyEffectFrom(4),
+        "bdc3960c" => CopyEffectFrom(5),
+        "5b6706b4" => CopyEffectFrom(6),
+        "04b054a8" => CopyEffectFrom(7),
+        "441d7582" => CloneEffectFrom(2),
+        "48ec026e" => CloneEffectFrom(3),
+        "ffc8be1d" => CloneEffectFrom(4),
+        "2762b176" => CloneEffectFrom(6),
         "1431ed04" => Order(Ord::ToFront),
         "94db9b5a" => Order(Ord::ToBack),
         "6a26f5e7" => Order(Ord::ToFront),
@@ -279,6 +316,43 @@ pub fn cmd(id: &str) -> Option<Cmd> {
         "789f579f" => TableDeleteCol,
         "f5950e3b" => TableDistributeRows,
         "e5a43d87" => TableDistributeCols,
+        "af65c0be" => TextToTable,
+        "00557394" => TableToText,
+        "68bea082" => TableInsertMany(false),
+        "3ecca95c" => TableInsertMany(true),
+        "3843ac65" => TableSelect(0),
+        "dc1cf549" => TableSelect(1),
+        "f06723e2" => TableSelect(2),
+        "a187e17d" => TableSelect(3),
+        "beeca38b" => TableDeleteTable,
+        "38ae2fe7" => TableMerge,
+        "ca1afb09" => TableUnmerge,
+        "524b07d8" => TableSplit(false),
+        "b60f4415" => TableSplit(true),
+        // Object
+        "73d5fcfa" => CreateArrowhead,
+        "8d3cb8e7" => CreatePattern,
+        "8a371e4d" => InsertQrCode,
+        "c22f267c" => InsertBarcode,
+        "ae803157" => ValidateBarcode,
+        "a0776aad" => AiGuided(0),
+        "2daeddaf" => AiGuided(1),
+        "7e547078" => AiGuided(2),
+        "9c0ccd48" => AiMode(0),
+        "4bf3be7a" => AiMode(1),
+        "8ed410c6" => AiMode(2),
+        "b480a210" => SymbolEditMaster,
+        "f9d79c11" => SymbolFinish,
+        "fc7aec5f" => SymbolBreakLink,
+        "3705f3b2" => SymbolUpdateLink,
+        "1b8a3585" => SymbolExportLibrary,
+        "91dbd3be" => RolloverCreate,
+        "9af6ee00" => RolloverExtract,
+        "54cac40e" => RolloverEdit,
+        "7b203f56" => RolloverFinish,
+        "9377c70c" => RolloverLivePreview,
+        "83501505" => RolloverDuplicateState,
+        "217155e9" => RolloverDeleteState,
         // Tools
         "e72e265e" => Options(OptionsPage::App),
         "ab216fdb" => Options(OptionsPage::Customization),
@@ -372,7 +446,7 @@ pub fn checked(app: &VectorApp, id: &str) -> Option<bool> {
     }
     // Lock Contents to PowerClip: Vector's PowerClip contents always move with the frame
     if key(id) == "6ea9b15a" {
-        return Some(app.doc().is_some_and(|d| matches!(d.selection.as_slice(), [o] if d.doc.find(*o).is_some_and(|o| matches!(o.kind, ObjKind::PowerClip { .. })))));
+        return Some(app.doc().is_some_and(|d| matches!(d.selection.as_slice(), [o] if d.doc.find(*o).is_some_and(|o| matches!(o.kind, ObjKind::PowerClip { .. }) && !o.powerclip_unlocked))));
     }
     if let Some(d) = docker(id) {
         return Some(app.dockers.open.contains(&d));
@@ -397,6 +471,10 @@ pub fn checked(app: &VectorApp, id: &str) -> Option<bool> {
         Cmd::SnapToObjects => doc_setting(app, |s| s.snap_to_objects),
         Cmd::SnapToPage => doc_setting(app, |s| s.snap_to_page),
         Cmd::SnapOff => doc_setting(app, |s| s.snap_off),
+        Cmd::OverprintFill => Some(first_selected(app).is_some_and(|o| o.style.overprint_fill)),
+        Cmd::OverprintOutline => Some(first_selected(app).is_some_and(|o| o.style.overprint_outline)),
+        Cmd::OverprintBitmap => Some(first_selected(app).is_some_and(|o| o.style.overprint_bitmap)),
+        Cmd::ObjectHinting => Some(first_selected(app).is_some_and(|o| o.hinting)),
         Cmd::SnapToPixels => doc_setting(app, |s| s.snap_to_pixels),
         Cmd::SnapToBaseline => doc_setting(app, |s| s.snap_to_baseline),
         Cmd::ToggleMultipageView => doc_setting(app, |s| s.multipage_view),
@@ -415,6 +493,7 @@ pub fn checked(app: &VectorApp, id: &str) -> Option<bool> {
         Cmd::ToggleToolbar(tb) => Some(toolbar_on(app, tb)),
         Cmd::LockToolbars => Some(app.settings.lock_toolbars),
         Cmd::PauseRecording => Some(app.recording.as_ref().map(|r| r.paused).unwrap_or(false)),
+        Cmd::RolloverLivePreview => Some(app.rollover_live),
         _ => None,
     }
 }
@@ -437,9 +516,11 @@ pub fn enabled(app: &VectorApp, id: &str) -> Option<bool> {
     // items that are no command of their own, or whose state is not the command's
     match key(id).as_str() {
         // PowerClip ▸ Fit Contents, Lock Contents to PowerClip, Extract Contents, Edit PowerClip
-        "78030281" | "6ea9b15a" | "6ad732d1" | "cd3ae51f" => return Some(one_is(|k| matches!(k, ObjKind::PowerClip { .. }))),
+        "78030281" | "6ea9b15a" | "6ad732d1" | "cd3ae51f" | "273d95de" | "a369e3ae" | "56a4aae7" | "8ab3326a" => return Some(one_is(|k| matches!(k, ObjKind::PowerClip { .. }))),
+        // Hide ▸ Show: hidden objects in the selection
+        "edd19eb3" => return Some(d.is_some_and(|d| d.selection.iter().any(|id| d.doc.find(*id).is_some_and(|o| !o.visible)))),
         // Finish Editing PowerClip (the right-click and the toolbar ones)
-        "22eabb92" | "1b67872b" => return Some(d.is_some_and(|d| !d.focus.is_empty())),
+        "22eabb92" | "1b67872b" => return Some(d.is_some_and(|d| !d.focus.is_empty() && d.symbol_edit.is_none() && d.rollover_edit.is_none())),
         // Pixel Grid and Snap To ▸ Pixels work in Pixels view only
         "64c626a4" | "e0c557dc" => return Some(d.is_some_and(|d| d.view_mode == Vm::Pixels)),
         // Align to Baseline Grid: paragraph text and tables
@@ -448,9 +529,6 @@ pub fn enabled(app: &VectorApp, id: &str) -> Option<bool> {
         "4aa2e1ed" => return Some(one_is(|k| matches!(k, ObjKind::Table(_)) || matches!(k, ObjKind::Text(t) if matches!(t.kind, vector_core::text::TextKind::Paragraph { .. }) && t.char_count() == 0))),
         // Wrap Paragraph Text, Wrap Connector Line: not for dimension lines
         "55f2e8c4" | "c40ff90e" if one_is(|k| matches!(k, ObjKind::Dimension(_))) => return Some(false),
-        // Merge Cells, Split into Rows/Columns, Unmerge Cells: Vector selects one cell at a time
-        // and does not merge cells
-        "38ae2fe7" | "524b07d8" | "b60f4415" | "ca1afb09" => return Some(false),
         // PowerClip Inside…: needs another object to be the container
         "da1efe7f" | "3f1c813c" => return Some(sel > 0 && d.is_some_and(|d| d.doc.pages.get(d.page).into_iter().flat_map(|p| p.layers.iter()).flat_map(|l| l.objects.iter()).any(|o| !d.selection.contains(&o.id)))),
         _ => {}
@@ -467,7 +545,31 @@ pub fn enabled(app: &VectorApp, id: &str) -> Option<bool> {
         Cmd::Save => d.is_some_and(|d| d.history.is_modified() || d.path.is_none()),
         Cmd::ZoomToSelected => sel > 0,
         Cmd::Cut | Cmd::Copy | Cmd::Delete => sel > 0,
-        Cmd::DeletePage | Cmd::GoToPage => pages > 1,
+        Cmd::DeletePage | Cmd::DeletePageNow | Cmd::GoToPage => pages > 1,
+        // Merge: a block of more than one cell; Unmerge: merged cells in the block; Split: one cell
+        Cmd::TableMerge => crate::dialogs::table::selected_range(app).is_some_and(|(t, g)| t.anchors_in(g).len() > 1),
+        Cmd::TableUnmerge => crate::dialogs::table::selected_range(app).is_some_and(|(t, g)| t.anchors_in(g).iter().any(|(r, c)| t.cell(*r, *c).rspan > 1 || t.cell(*r, *c).cspan > 1)),
+        Cmd::TableSplit(_) => crate::dialogs::table::selected_range(app).is_some_and(|(t, g)| t.anchors_in(g).len() == 1),
+        Cmd::TableSelect(_) => crate::dialogs::table::selected_range(app).is_some(),
+        Cmd::TextToTable => one_is(|k| matches!(k, ObjKind::Text(_))),
+        Cmd::TableToText | Cmd::TableDeleteTable => one_is(|k| matches!(k, ObjKind::Table(_))),
+        // Object
+        Cmd::CreateArrowhead => one.is_some_and(|o| o.bounds().width() > 0.0) && !one_is(|k| matches!(k, ObjKind::Image(_) | ObjKind::Table(_))),
+        Cmd::CreatePattern | Cmd::InsertQrCode | Cmd::InsertBarcode => d.is_some(),
+        Cmd::ValidateBarcode => d.is_some_and(|d| d.selection.iter().filter_map(|id| d.doc.find(*id)).any(|o| matches!(o.special, Some(vector_core::codes::Special::Barcode { .. })))),
+        Cmd::AiGuided(_) => sel > 0,
+        Cmd::SymbolEditMaster => d.is_some_and(|d| d.symbol_edit.is_none()) && crate::dialogs::object::selected_symbol(app).is_some(),
+        Cmd::SymbolFinish => d.is_some_and(|d| d.symbol_edit.is_some()),
+        Cmd::SymbolBreakLink | Cmd::SymbolUpdateLink => crate::dialogs::object::symbol_linked(app),
+        Cmd::SymbolExportLibrary => d.is_some_and(|d| !d.doc.symbols.is_empty()),
+        Cmd::RolloverCreate => sel > 0 && !one.is_some_and(crate::dialogs::object::is_rollover) && d.is_some_and(|d| d.rollover_edit.is_none()),
+        Cmd::RolloverExtract => d.is_some_and(|d| d.rollover_edit.is_none()) && crate::dialogs::object::selected_rollover(app).is_some(),
+        Cmd::RolloverEdit => d.is_some_and(|d| d.rollover_edit.is_none()) && crate::dialogs::object::selected_rollover(app).is_some(),
+        Cmd::RolloverFinish => d.is_some_and(|d| d.rollover_edit.is_some()),
+        Cmd::RolloverLivePreview => d.is_some(),
+        Cmd::RolloverDuplicateState => crate::dialogs::object::active_state(app).is_some_and(|s| s > 0),
+        Cmd::RolloverDeleteState => crate::dialogs::object::active_state(app).is_some(),
+        Cmd::InsertPageNumber(3) => pages > 1,
         Cmd::Group | Cmd::Combine => sel > 1,
         Cmd::StartRecording => d.is_some() && !rec,
         Cmd::PauseRecording | Cmd::StopRecording | Cmd::CancelRecording => rec,
@@ -478,6 +580,12 @@ pub fn enabled(app: &VectorApp, id: &str) -> Option<bool> {
         Cmd::PrintMergePerform | Cmd::PrintMergeNewDoc => d.is_some_and(|d| d.doc.print_merge.as_ref().is_some_and(|m| m.records.iter().any(|r| r.selected))),
         _ => return None,
     })
+}
+
+/// The first selected object.
+fn first_selected(app: &VectorApp) -> Option<&vector_core::Object> {
+    let d = app.doc()?;
+    d.doc.find(*d.selection.first()?)
 }
 
 /// The one curve selected, if that is the selection.

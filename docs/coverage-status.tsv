@@ -26,7 +26,7 @@ menu	Object > Create	done	items, order and enabled states from the reference
 menu	Object > Insert	done	items, order and enabled states from the reference
 menu	Object > AI Generate	done	items, order and enabled states from the reference
 menu	Object > PowerClip	done	items, order and enabled states from the reference
-menu	Object > Symmetry	done	items, order and enabled states from the reference
+menu	Object > Symmetry	todo	symmetry drawing mode (batch 5)
 menu	Object > Symbol	done	items, order and enabled states from the reference
 menu	Object > Rollover	done	items, order and enabled states from the reference
 menu	Object > Copy Effect	done	items, order and enabled states from the reference
@@ -325,3 +325,184 @@ dialog	File > Import	done	Windows open dialog with All File Formats
 dialog	File > Document Properties	done	Document Properties with all sections
 dialog	Edit > Paste Special	done	Paste Special with the clipboard formats
 dialog	Edit > Copy Properties From	done	Copy Properties: Outline Pen, Outline Color, Fill, Text Properties
+# Batch 3: Layout, Object and Table
+menu	Layout > Insert Page...	done	Insert Page dialog: count, before/after, page size, orientation
+menu	Layout > Duplicate Page...	done	Duplicate Page: layers only, layers and contents, or to a new document
+menu	Layout > Rename Page...	done	Rename Page dialog
+menu	Layout > Delete Page...	done	Delete Page: one page or a range
+menu	Layout > Go to Page...	done	Go to Page dialog
+menu	Layout > Insert Page Number > On Active Layer	done	page number text that follows the page
+menu	Layout > Insert Page Number > On All Pages	partial	on every existing page; the master layer that also covers new pages comes with the Layers docker (batch 6)
+menu	Layout > Insert Page Number > On All Odd Pages	partial	on the odd pages that exist; master layer in batch 6
+menu	Layout > Insert Page Number > On All Even Pages	partial	on the even pages that exist; master layer in batch 6
+menu	Layout > Page Number Settings...	done	start number, first page, style (1, I, i, A, a)
+menu	Layout > Switch Page Orientation	done	
+menu	Layout > Document Options...	partial	Options > Document pages; not every control of the reference screens is in place
+menu	Layout > Page Size...	partial	Options > Document > Page Size
+menu	Layout > Page Layout...	partial	Options > Document > Layout
+menu	Layout > Page Background...	partial	Options > Document > Background
+menu	Layout > Border and Grommet...	done	banner document with border (tile, stretch, mirror, color) and grommets
+menu	Object > Create > Arrowhead...	done	Create Arrowhead; the arrowhead joins the Arrowhead selectors
+menu	Object > Create > Pattern Fill...	partial	Create Pattern then a marquee; vector patterns are kept as 600 dpi tiles
+menu	Object > Insert > QR Code	done	editable QR code; its text in the Properties docker
+menu	Object > Insert > Barcode	done	Barcode Wizard: Code 128, Code 39, EAN-13, UPC-A
+menu	Object > Insert > Validate Barcode	done	checks the data and check digit
+menu	Object > Insert > Object...	omitted	OLE objects (Windows COM embedding) are not part of Vector
+menu	Object > AI Generate > Create vector graphic	done	AI Generate docker on Create vector graphic (shown with nothing selected)
+menu	Object > AI Generate > Create Vector Graphic Guided by Selection	done	the selection is sent as the reference image
+menu	Object > AI Generate > Create image	done	AI Generate docker on Create image; the result is a bitmap
+menu	Object > AI Generate > Create Image Guided by Selection	done	the selection is the reference; the result is a bitmap
+menu	Object > AI Generate > Remix image	done	AI Generate docker on Remix image
+menu	Object > AI Generate > Remix Selection	done	the selection is the source; the result is a bitmap
+menu	Object > PowerClip > Place Inside Frame...	done	
+menu	Object > PowerClip > Extract Contents	done	
+menu	Object > PowerClip > Edit PowerClip...	done	
+menu	Object > PowerClip > Finish Editing PowerClip	done	
+menu	Object > PowerClip > Create Empty PowerClip Frame	done	
+menu	Object > PowerClip > Lock Contents to PowerClip	done	
+menu	Object > PowerClip > Center	done	
+menu	Object > PowerClip > Fit Proportionally	done	
+menu	Object > PowerClip > Fill Proportionally	done	
+menu	Object > PowerClip > Stretch to Fill	done	
+menu	Object > PowerClip > Copy PowerClip From...	done	
+menu	Object > Symmetry > Create New Symmetry	todo	symmetry drawing mode (batch 5)
+menu	Object > Symmetry > Edit Symmetry	todo	symmetry drawing mode (batch 5)
+menu	Object > Symmetry > Finish Editing Symmetry	todo	symmetry drawing mode (batch 5)
+menu	Object > Symmetry > Remove Symmetry	todo	symmetry drawing mode (batch 5)
+menu	Object > Symmetry > Break Symmetry Link	todo	symmetry drawing mode (batch 5)
+menu	Object > Symbol > Create New Symbol	done	
+menu	Object > Symbol > Edit Master...	done	edits the symbol in place with a Finish button
+menu	Object > Symbol > Finish Editing Symbol	done	
+menu	Object > Symbol > Revert to Objects	done	
+menu	Object > Symbol > Break Link	done	for symbols linked to a library
+menu	Object > Symbol > Update from Link	done	reloads the symbol from its library
+menu	Object > Symbol > Export Library...	done	writes the symbols to a .csl library
+menu	Object > Symbol > Symbols	done	
+menu	Object > Rollover > Create Rollover	done	Normal, Over and Down states
+menu	Object > Rollover > Extract Rollover Objects	done	
+menu	Object > Rollover > Edit Rollover...	done	Internet toolbar with Active Rollover State, and a Finish button
+menu	Object > Rollover > Finish Editing rollover	done	
+menu	Object > Rollover > Rollover Live Preview	done	Over and Down states follow the pointer
+menu	Object > Clear Transformations	done	
+menu	Object > Copy Effect > Perspective From...	done	
+menu	Object > Copy Effect > Envelope From...	done	
+menu	Object > Copy Effect > Blend From...	done	
+menu	Object > Copy Effect > Extrude From...	done	
+menu	Object > Copy Effect > Contour From...	done	
+menu	Object > Copy Effect > Lens From...	done	
+menu	Object > Copy Effect > Shadow From...	done	
+menu	Object > Copy Effect > Distortion From...	done	
+menu	Object > Clone Effect > Blend From...	partial	copies the effect; the clone does not stay linked to its master
+menu	Object > Clone Effect > Extrude From...	partial	copies the effect; the clone does not stay linked to its master
+menu	Object > Clone Effect > Contour From...	partial	copies the effect; the clone does not stay linked to its master
+menu	Object > Clone Effect > Shadow From...	partial	copies the effect; the clone does not stay linked to its master
+menu	Object > Clear Effect	done	
+menu	Object > Align and Distribute > Align Left	done	
+menu	Object > Align and Distribute > Align Right	done	
+menu	Object > Align and Distribute > Align Top	done	
+menu	Object > Align and Distribute > Align Bottom	done	
+menu	Object > Align and Distribute > Align Centers Horizontally	done	
+menu	Object > Align and Distribute > Align Centers Vertically	done	
+menu	Object > Align and Distribute > Center to Page	done	
+menu	Object > Align and Distribute > Center to Page Horizontally	done	
+menu	Object > Align and Distribute > Center to Page Vertically	done	
+menu	Object > Align and Distribute > Align with Pixel Grid	done	
+menu	Object > Align and Distribute > Align and Distribute	done	
+menu	Object > Fit Objects to Path	done	
+menu	Object > Order > To Front of Page	done	
+menu	Object > Order > To Back of Page	done	
+menu	Object > Order > To Front of Layer	done	
+menu	Object > Order > To Back of Layer	done	
+menu	Object > Order > Forward One	done	
+menu	Object > Order > Back One	done	
+menu	Object > Order > In Front Of...	done	
+menu	Object > Order > Behind...	done	
+menu	Object > Order > Reverse Order	done	
+menu	Object > Group > Group	done	
+menu	Object > Group > Ungroup	done	
+menu	Object > Group > Ungroup All	done	
+menu	Object > Hide > Hide	done	
+menu	Object > Hide > Show	done	
+menu	Object > Hide > Show All	done	
+menu	Object > Lock > Lock	done	
+menu	Object > Lock > Unlock	done	
+menu	Object > Lock > Unlock All	done	
+menu	Object > Shaping > Weld	done	
+menu	Object > Shaping > Trim	done	
+menu	Object > Shaping > Intersect	done	
+menu	Object > Shaping > Simplify	done	
+menu	Object > Shaping > Front Minus Back	done	
+menu	Object > Shaping > Back Minus Front	done	
+menu	Object > Shaping > Boundary	done	
+menu	Object > Shaping > Shape	done	
+menu	Object > Combine	done	
+menu	Object > Break Apart	done	
+menu	Object > Perspective > Add Perspective...	partial	envelope-style perspective; the perspective drawing modes come in batch 5
+menu	Object > Perspective > Draw in Perspective...	todo	perspective drawing mode (batch 5)
+menu	Object > Perspective > Edit Perspective Group...	todo	perspective drawing mode (batch 5)
+menu	Object > Convert to Curves	done	
+menu	Object > Convert to Bitmap...	done	
+menu	Object > Convert Outline to Object	done	
+menu	Object > Join Curves	done	
+menu	Object > Overprint Fill	done	
+menu	Object > Overprint Outline	done	
+menu	Object > Overprint Bitmap	done	
+menu	Object > Object Hinting	done	
+menu	Object > Properties	done	
+menu	Object > Objects	done	
+menu	Object > Pages	done	
+menu	Table > Create New Table...	done	Create New Table: rows, columns, size
+menu	Table > Convert Text to Table...	done	commas, tabs, paragraphs or a character
+menu	Table > Convert Table to Text...	done	commas, tabs, paragraphs or a character
+menu	Table > Insert > Row Above	done	
+menu	Table > Insert > Row Below	done	
+menu	Table > Insert > Column Left	done	
+menu	Table > Insert > Column Right	done	
+menu	Table > Insert > Insert Rows...	done	Insert Rows dialog: count, above or below
+menu	Table > Insert > Insert Columns...	done	Insert Columns dialog: count, left or right
+menu	Table > Select > Cell	done	
+menu	Table > Select > Row	done	
+menu	Table > Select > Column	done	
+menu	Table > Select > Table	done	
+menu	Table > Delete > Row	done	
+menu	Table > Delete > Column	done	
+menu	Table > Delete > Table	done	
+menu	Table > Distribute > Rows Evenly	done	
+menu	Table > Distribute > Columns Evenly	done	
+menu	Table > Merge Cells	done	merged cells keep their text
+menu	Table > Unmerge Cells	done	
+menu	Table > Split into Rows...	done	Split Cells dialog
+menu	Table > Split into Columns...	done	Split Cells dialog
+dialog	Layout > Insert Page	done	checked against the reference
+dialog	Layout > Duplicate Page	done	checked against the reference
+dialog	Layout > Rename Page	done	checked against the reference
+dialog	Layout > Page Number Settings	done	checked against the reference
+dialog	Layout > Document Options	partial	Options > Document; not every control of the reference screens is in place
+dialog	Layout > Page Size	partial	Options > Document > Page Size
+dialog	Layout > Page Layout	partial	Options > Document > Layout
+dialog	Layout > Page Background	partial	Options > Document > Background
+dialog	Layout > Border and Grommet	done	checked against the reference, with preview
+dialog	Layout > Delete Page	done	checked against the reference
+dialog	Layout > Go to Page	done	checked against the reference
+dialog	Object > Copy Effect > Perspective From	done	pick-target mode, as in the reference
+dialog	Object > Copy Effect > Envelope From	done	pick-target mode, as in the reference
+dialog	Object > Copy Effect > Distortion From	done	pick-target mode, as in the reference
+dialog	Object > Insert > Object	omitted	OLE objects are not part of Vector
+dialog	Object > PowerClip > Place Inside Frame	done	pick-target mode, as in the reference
+dialog	Object > Order > In Front Of	done	pick-target mode, as in the reference
+dialog	Object > Order > Behind	done	pick-target mode, as in the reference
+dialog	Object > PowerClip > Edit PowerClip	done	pick-target mode, as in the reference
+dialog	Object > PowerClip > Copy PowerClip From	done	pick-target mode, as in the reference
+dialog	Object > Create > Arrowhead	done	checked against the reference
+dialog	Object > Create > Pattern Fill	done	checked against the reference
+dialog	Object > Perspective > Add Perspective	partial	the perspective drawing modes come in batch 5
+dialog	Object > Convert to Bitmap	partial	Convert to Bitmap dialog; checked again with the Bitmaps menu (batch 7)
+dialog	Object > Rollover > Edit Rollover	done	Internet toolbar and Finish button
+dialog	Object > Symbol > Edit Master	done	edit in place with a Finish button
+dialog	Table > Create New Table	done	checked against the reference
+dialog	Table > Convert Table to Text	done	checked against the reference
+dialog	Table > Insert > Insert Rows	done	checked against the reference
+dialog	Table > Insert > Insert Columns	done	checked against the reference
+dialog	Table > Split into Rows	done	checked against the reference
+dialog	Table > Split into Columns	done	checked against the reference
+dialog	Table > Convert Text to Table	done	checked against the reference

@@ -503,15 +503,14 @@ fn draw_anchors(painter: &Painter, d: &DocView) {
 }
 
 fn draw_table_cell(painter: &Painter, d: &DocView, ts: &ToolState) {
-    let Some((r, c)) = ts.table_cell else { return };
     for id in &d.selection {
         let Some(o) = d.doc.find(*id) else { continue };
         if let ObjKind::Table(t) = &o.kind {
-            if r < t.rows && c < t.cols {
-                let cr = t.cell_rect(r, c);
-                let bp = o.transform * cr.to_path(0.1);
-                stroke_bez(painter, d, &bp, Stroke::new(2.0, Color32::from_rgb(0x1e, 0x90, 0xff)));
-            }
+            let Some(g) = ts.table_range(t) else { continue };
+            let r = t.range_rect(g);
+            let pts: Vec<Pos2> = [(r.x0, r.y0), (r.x1, r.y0), (r.x1, r.y1), (r.x0, r.y1)].iter().map(|(x, y)| d.to_screen(o.transform * Point::new(*x, *y))).collect();
+            painter.add(EShape::convex_polygon(pts, Color32::from_rgba_unmultiplied(0x1e, 0x90, 0xff, 48), Stroke::NONE));
+            stroke_bez(painter, d, &(o.transform * r.to_path(0.1)), Stroke::new(2.0, Color32::from_rgb(0x1e, 0x90, 0xff)));
         }
     }
 }
@@ -546,6 +545,9 @@ fn preview_obj(painter: &Painter, d: &DocView, o: &Object) {
 fn draw_drag_preview(painter: &Painter, d: &DocView, ts: &ToolState, s: &Settings, tool: ToolId) {
     let cur = ts.cur;
     match &ts.drag {
+        Drag::PatternArea { start } => {
+            dashed_rect(painter, d.to_screen_rect(Rect::from_points(*start, cur)), Color32::from_rgb(0x3d, 0x8e, 0xf0));
+        }
         Drag::Marquee { start } | Drag::NodeMarquee { start } => {
             if ts.moved {
                 dashed_rect(painter, d.to_screen_rect(Rect::from_points(*start, ts.hover_doc.unwrap_or(cur))), Color32::from_gray(230));

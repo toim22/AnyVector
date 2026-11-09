@@ -428,6 +428,13 @@ impl<'a> Cx<'a> {
             }
             return;
         }
+        if self.ts.pattern_area.is_some() && self.ts.drag.is_none() {
+            if self.inp.pressed {
+                self.ts.drag = Drag::PatternArea { start: p };
+                self.ts.cur = p;
+            }
+            return;
+        }
         if self.inp.pressed {
             self.press();
         }
@@ -447,6 +454,9 @@ impl<'a> Cx<'a> {
     fn press(&mut self) {
         let p = self.raw;
         use ToolId::*;
+        if self.tool == Table && self.table_press() {
+            return;
+        }
         match self.tool {
             Pick | FreeTransform => self.pick_press(),
             FreehandPick => self.ts.drag = Drag::Lasso { points: vec![p] },
@@ -780,6 +790,7 @@ impl<'a> Cx<'a> {
                 if let ObjKind::Table(tb) = &o.kind {
                     let local = o.transform.inverse() * p;
                     self.ts.table_cell = tb.cell_at(local);
+                    self.ts.table_cell_to = None;
                     self.d.selection = vec![id];
                     return;
                 }
@@ -793,6 +804,25 @@ impl<'a> Cx<'a> {
         let s = self.snap(p, &[]);
         self.ts.drag = Drag::Create { start: s };
         self.ts.cur = s;
+    }
+
+    /// Table tool on a table: select the cell under the pointer; Shift extends the block, and
+    /// dragging selects the cells passed over.
+    fn table_press(&mut self) -> bool {
+        let p = self.raw;
+        let Some(id) = self.hit(p) else { return false };
+        let Some(o) = self.d.doc.find(id) else { return false };
+        let ObjKind::Table(tb) = &o.kind else { return false };
+        let Some(cell) = tb.cell_at(o.transform.inverse() * p) else { return false };
+        if self.mods().shift && self.d.selection == [id] && self.ts.table_cell.is_some() {
+            self.ts.table_cell_to = Some(cell);
+        } else {
+            self.ts.table_cell = Some(cell);
+            self.ts.table_cell_to = None;
+        }
+        self.d.selection = vec![id];
+        self.ts.drag = Drag::TableCells { obj: id };
+        true
     }
 
     fn edit_anchor_press(&mut self) {
@@ -858,7 +888,7 @@ impl<'a> Cx<'a> {
         let mut drag = std::mem::take(&mut self.ts.drag);
         match &mut drag {
             Drag::None => {}
-            Drag::Marquee { .. } | Drag::NodeMarquee { .. } | Drag::Effect { .. } | Drag::Blend { .. } => self.ts.cur = p,
+            Drag::Marquee { .. } | Drag::NodeMarquee { .. } | Drag::Effect { .. } | Drag::Blend { .. } | Drag::PatternArea { .. } => self.ts.cur = p,
             Drag::Create { .. } => {
                 self.ts.cur = if matches!(self.tool, ToolId::Zoom | ToolId::Knife) { p } else { self.snap(p, &[]) };
                 if self.ts.text_drag_select && moved {
@@ -991,6 +1021,17 @@ impl<'a> Cx<'a> {
                     self.d.history.touch();
                 }
             }
+            Drag::TableCells { obj } => {
+                if let Some(o) = self.d.doc.find(*obj) {
+                    if let ObjKind::Table(tb) = &o.kind {
+                        if let Some(c) = tb.cell_at(o.transform.inverse() * p) {
+                            if self.ts.table_cell != Some(c) || self.ts.table_cell_to.is_some() {
+                                self.ts.table_cell_to = Some(c);
+                            }
+                        }
+                    }
+                }
+            }
             Drag::Pan { last } => {
                 let dv = self.inp.pos - *last;
                 self.d.origin += dv;
@@ -1091,6 +1132,20 @@ impl<'a> Cx<'a> {
         let mods = self.mods();
         match drag {
             Drag::None => {}
+            Drag::PatternArea { start } => {
+                let Some((kind, res)) = self.ts.pattern_area.take() else { return };
+                let r = Rect::from_points(start, p);
+                if !moved || r.width() < 1.0 || r.height() < 1.0 {
+                    self.ts.pattern_area = Some((kind, res));
+                    self.out.flash = Some("Drag a marquee around the area to make the pattern from".into());
+                    return;
+                }
+                let page = self.d.page;
+                match self.d.modify("Create Pattern", |doc, _| crate::dialogs::object::make_pattern(doc, page, r, kind, res)) {
+                    Some(name) => self.out.flash = Some(format!("{name} was added to the pattern fills")),
+                    None => self.out.flash = Some("Nothing to make a pattern from in that area".into()),
+                }
+            }
             Drag::Marquee { start } => {
                 if moved {
                     let r = Rect::from_points(start, p);
@@ -1257,7 +1312,7 @@ impl<'a> Cx<'a> {
                     });
                 }
             }
-            Drag::BezierHandle { .. } => {}
+            Drag::BezierHandle { .. } | Drag::TableCells { .. } => {}
         }
         self.ts.snap_mark = None;
         self.ts.text_drag_select = false;
@@ -1596,17 +1651,101 @@ impl<'a> Cx<'a> {
                     });
                 }
             }
-            PickTarget::CopyEffect => {
-                let fx = self.d.doc.find(t).map(|o| o.effects.clone());
-                if let Some(fx) = fx {
-                    self.d.modify("Copy Effect", |doc, _| {
-                        for id in &sel {
-                            if let Some(o) = doc.find_mut(*id) {
-                                o.effects = fx.clone();
+            PickTarget::CopyEffect { kind, clone } => {
+                let Some(src) = self.d.doc.find(t).cloned() else { return };
+                let name = if clone { "Clone Effect" } else { "Copy Effect" };
+                let ok = self.d.modify(name, |doc, _| {
+                    let e = &src.effects;
+                    let mut ok = false;
+                    for id in &sel {
+                        let Some(o) = doc.find_mut(*id) else { continue };
+                        match kind {
+                            0 | 1 if e.envelope.is_some() => {
+                                o.effects.envelope = e.envelope.clone();
+                                ok = true;
                             }
+                            2 => {
+                                if let (ObjKind::Blend(from), ObjKind::Blend(to)) = (&src.kind, &mut o.kind) {
+                                    to.steps = from.steps;
+                                    to.rotation = from.rotation;
+                                    to.acceleration = from.acceleration;
+                                    ok = true;
+                                }
+                            }
+                            3 if e.extrude.is_some() => {
+                                o.effects.extrude = e.extrude.clone();
+                                ok = true;
+                            }
+                            4 if e.contour.is_some() => {
+                                o.effects.contour = e.contour.clone();
+                                ok = true;
+                            }
+                            5 if e.lens.is_some() => {
+                                o.effects.lens = e.lens.clone();
+                                ok = true;
+                            }
+                            6 if e.drop_shadow.is_some() || e.inner_shadow.is_some() || e.block_shadow.is_some() => {
+                                o.effects.drop_shadow = e.drop_shadow.clone();
+                                o.effects.inner_shadow = e.inner_shadow.clone();
+                                o.effects.block_shadow = e.block_shadow.clone();
+                                ok = true;
+                            }
+                            7 if e.distort.is_some() => {
+                                o.effects.distort = e.distort.clone();
+                                ok = true;
+                            }
+                            255 => {
+                                o.effects = e.clone();
+                                ok = true;
+                            }
+                            _ => {}
                         }
-                    });
+                    }
+                    ok
+                });
+                if !ok {
+                    self.out.flash = Some("The object clicked does not have that effect".into());
                 }
+            }
+            PickTarget::Order { in_front } => {
+                self.d.modify(if in_front { "In Front Of" } else { "Behind" }, |doc, _| ops::place_relative(doc, &sel, t, in_front));
+            }
+            PickTarget::CopyPowerClip => {
+                let Some(src) = self.d.doc.find(t).cloned() else { return };
+                let ObjKind::PowerClip { frame: sf, contents: sc } = &src.kind else {
+                    self.out.flash = Some("Click a PowerClip object".into());
+                    return;
+                };
+                let sc_center = sf.bounds().center();
+                let sc = sc.clone();
+                self.d.modify("Copy PowerClip From", |doc, s| {
+                    let mut out = vec![];
+                    for id in &sel {
+                        let Some((p, l, i)) = doc.locate(*id) else { continue };
+                        let o = doc.pages[p].layers[l].objects[i].clone();
+                        let (frame, fb) = match o.kind {
+                            ObjKind::PowerClip { frame, .. } => {
+                                let fb = frame.bounds();
+                                (*frame, fb)
+                            }
+                            _ => {
+                                let fb = o.bounds();
+                                (o, fb)
+                            }
+                        };
+                        let mut contents = sc.clone();
+                        for c in contents.iter_mut() {
+                            doc.reassign_ids(c);
+                            c.apply_transform(kurbo::Affine::translate(fb.center() - sc_center));
+                        }
+                        let nid = doc.new_id();
+                        let mut w = vector_core::Object::new(nid, ObjKind::PowerClip { frame: Box::new(frame), contents }, kurbo::Affine::IDENTITY, Default::default());
+                        w.name = "PowerClip".into();
+                        doc.pages[p].layers[l].objects[i] = w;
+                        out.push(nid);
+                    }
+                    *s = out;
+                });
             }
             PickTarget::FitToPath => {
                 let text = sel[0];

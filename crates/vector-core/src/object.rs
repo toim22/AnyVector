@@ -104,7 +104,26 @@ pub struct ImageAdjust {
 pub struct TableCell {
     pub text: String,
     pub fill: Option<Color>,
+    /// Merged cells: the top-left cell spans `rspan` rows and `cspan` columns; the cells it
+    /// covers keep a span of 1 and no text.
+    #[serde(default = "one_usize")]
+    pub rspan: usize,
+    #[serde(default = "one_usize")]
+    pub cspan: usize,
 }
+
+fn one_usize() -> usize {
+    1
+}
+
+impl TableCell {
+    pub fn empty() -> TableCell {
+        TableCell { text: String::new(), fill: None, rspan: 1, cspan: 1 }
+    }
+}
+
+/// A block of cells: first row, first column, last row, last column (inclusive).
+pub type CellRange = [usize; 4];
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TableObj {
@@ -125,7 +144,7 @@ impl TableObj {
             cols,
             col_widths: vec![w / cols as f64; cols],
             row_heights: vec![h / rows as f64; rows],
-            cells: vec![TableCell { text: String::new(), fill: None }; rows * cols],
+            cells: vec![TableCell::empty(); rows * cols],
             border: Color::BLACK,
             border_width: 0.5669,
             text_format: text::CharFormat { size: 10.0, ..Default::default() },
@@ -137,10 +156,75 @@ impl TableObj {
     pub fn height(&self) -> f64 {
         self.row_heights.iter().sum()
     }
+    pub fn cell(&self, r: usize, c: usize) -> &TableCell {
+        &self.cells[r * self.cols + c]
+    }
+    pub fn cell_mut(&mut self, r: usize, c: usize) -> &mut TableCell {
+        &mut self.cells[r * self.cols + c]
+    }
+    /// The rectangle of the single grid cell (r, c).
     pub fn cell_rect(&self, r: usize, c: usize) -> Rect {
         let x0: f64 = self.col_widths[..c].iter().sum();
         let y0: f64 = self.row_heights[..r].iter().sum();
         Rect::new(x0, y0, x0 + self.col_widths[c], y0 + self.row_heights[r])
+    }
+    /// The rectangle of the cell anchored at (r, c), merged cells included.
+    pub fn span_rect(&self, r: usize, c: usize) -> Rect {
+        let cl = self.cell(r, c);
+        let (r1, c1) = ((r + cl.rspan).min(self.rows), (c + cl.cspan).min(self.cols));
+        let x0: f64 = self.col_widths[..c].iter().sum();
+        let y0: f64 = self.row_heights[..r].iter().sum();
+        let x1: f64 = x0 + self.col_widths[c..c1].iter().sum::<f64>();
+        let y1: f64 = y0 + self.row_heights[r..r1].iter().sum::<f64>();
+        Rect::new(x0, y0, x1, y1)
+    }
+    /// The cell whose (merged) area holds grid cell (r, c).
+    pub fn anchor_of(&self, r: usize, c: usize) -> (usize, usize) {
+        for ar in 0..=r.min(self.rows.saturating_sub(1)) {
+            for ac in 0..=c.min(self.cols.saturating_sub(1)) {
+                let cl = self.cell(ar, ac);
+                if (cl.rspan > 1 || cl.cspan > 1) && ar + cl.rspan > r && ac + cl.cspan > c {
+                    return (ar, ac);
+                }
+            }
+        }
+        (r, c)
+    }
+    pub fn is_covered(&self, r: usize, c: usize) -> bool {
+        self.anchor_of(r, c) != (r, c)
+    }
+    /// The cells that are drawn: every cell not covered by a merged cell.
+    pub fn anchors(&self) -> Vec<(usize, usize)> {
+        let mut covered = vec![false; self.rows * self.cols];
+        let mut out = vec![];
+        for r in 0..self.rows {
+            for c in 0..self.cols {
+                if covered[r * self.cols + c] {
+                    continue;
+                }
+                out.push((r, c));
+                let cl = self.cell(r, c);
+                for rr in r..(r + cl.rspan).min(self.rows) {
+                    for cc in c..(c + cl.cspan).min(self.cols) {
+                        covered[rr * self.cols + cc] = true;
+                    }
+                }
+            }
+        }
+        out
+    }
+    /// Cell borders: the outline of every drawn cell.
+    pub fn grid_path(&self) -> BezPath {
+        let mut bp = BezPath::new();
+        for (r, c) in self.anchors() {
+            let rc = self.span_rect(r, c);
+            bp.move_to((rc.x0, rc.y0));
+            bp.line_to((rc.x1, rc.y0));
+            bp.line_to((rc.x1, rc.y1));
+            bp.line_to((rc.x0, rc.y1));
+            bp.close_path();
+        }
+        bp
     }
     pub fn cell_at(&self, p: Point) -> Option<(usize, usize)> {
         let mut y = 0.0;
@@ -149,13 +233,41 @@ impl TableObj {
             for c in 0..self.cols {
                 let rc = Rect::new(x, y, x + self.col_widths[c], y + self.row_heights[r]);
                 if rc.contains(p) {
-                    return Some((r, c));
+                    return Some(self.anchor_of(r, c));
                 }
                 x += self.col_widths[c];
             }
             y += self.row_heights[r];
         }
         None
+    }
+    /// The block from cell `a` to cell `b`, grown until no merged cell sticks out of it.
+    pub fn range(&self, a: (usize, usize), b: (usize, usize)) -> CellRange {
+        let lim = |v: usize, n: usize| v.min(n.saturating_sub(1));
+        let mut g = [lim(a.0.min(b.0), self.rows), lim(a.1.min(b.1), self.cols), lim(a.0.max(b.0), self.rows), lim(a.1.max(b.1), self.cols)];
+        loop {
+            let before = g;
+            for r in g[0]..=g[2] {
+                for c in g[1]..=g[3] {
+                    let (ar, ac) = self.anchor_of(r, c);
+                    let cl = self.cell(ar, ac);
+                    g[0] = g[0].min(ar);
+                    g[1] = g[1].min(ac);
+                    g[2] = g[2].max(ar + cl.rspan - 1);
+                    g[3] = g[3].max(ac + cl.cspan - 1);
+                }
+            }
+            if g == before {
+                return g;
+            }
+        }
+    }
+    pub fn range_rect(&self, g: CellRange) -> Rect {
+        self.cell_rect(g[0], g[1]).union(self.cell_rect(g[2], g[3]))
+    }
+    /// The drawn cells inside a block.
+    pub fn anchors_in(&self, g: CellRange) -> Vec<(usize, usize)> {
+        self.anchors().into_iter().filter(|(r, c)| *r >= g[0] && *r <= g[2] && *c >= g[1] && *c <= g[3]).collect()
     }
     pub fn scale(&mut self, sx: f64, sy: f64) {
         for w in self.col_widths.iter_mut() {
@@ -165,25 +277,55 @@ impl TableObj {
             *h *= sy;
         }
     }
+    /// Rows become columns (used to write the column operations once, as row operations).
+    pub fn transposed(&self) -> TableObj {
+        let mut cells = Vec::with_capacity(self.cells.len());
+        for c in 0..self.cols {
+            for r in 0..self.rows {
+                let mut cl = self.cell(r, c).clone();
+                std::mem::swap(&mut cl.rspan, &mut cl.cspan);
+                cells.push(cl);
+            }
+        }
+        TableObj { rows: self.cols, cols: self.rows, col_widths: self.row_heights.clone(), row_heights: self.col_widths.clone(), cells, border: self.border, border_width: self.border_width, text_format: self.text_format.clone() }
+    }
+    fn by_columns(&mut self, f: impl FnOnce(&mut TableObj)) {
+        let mut t = self.transposed();
+        f(&mut t);
+        *self = t.transposed();
+    }
     pub fn insert_row(&mut self, at: usize) {
+        let at = at.min(self.rows);
+        // merged cells that cross the new row grow over it
+        for (r, c) in self.anchors() {
+            let cl = self.cell_mut(r, c);
+            if r < at && r + cl.rspan > at {
+                cl.rspan += 1;
+            }
+        }
         let h = self.row_heights.get(at.min(self.rows.saturating_sub(1))).copied().unwrap_or(20.0);
         self.row_heights.insert(at, h);
         for _ in 0..self.cols {
-            self.cells.insert(at * self.cols, TableCell { text: String::new(), fill: None });
+            self.cells.insert(at * self.cols, TableCell::empty());
         }
         self.rows += 1;
     }
     pub fn insert_col(&mut self, at: usize) {
-        let w = self.col_widths.get(at.min(self.cols.saturating_sub(1))).copied().unwrap_or(40.0);
-        self.col_widths.insert(at, w);
-        for r in (0..self.rows).rev() {
-            self.cells.insert(r * self.cols + at, TableCell { text: String::new(), fill: None });
-        }
-        self.cols += 1;
+        self.by_columns(|t| t.insert_row(at));
     }
     pub fn delete_row(&mut self, at: usize) {
         if self.rows <= 1 || at >= self.rows {
             return;
+        }
+        for (r, c) in self.anchors() {
+            let cl = self.cell(r, c).clone();
+            if r < at && r + cl.rspan > at {
+                self.cell_mut(r, c).rspan -= 1;
+            } else if r == at && cl.rspan > 1 {
+                // the merged cell moves down to the next row
+                let below = self.cell_mut(r + 1, c);
+                *below = TableCell { rspan: cl.rspan - 1, ..cl };
+            }
         }
         self.row_heights.remove(at);
         self.cells.drain(at * self.cols..(at + 1) * self.cols);
@@ -193,11 +335,72 @@ impl TableObj {
         if self.cols <= 1 || at >= self.cols {
             return;
         }
-        self.col_widths.remove(at);
-        for r in (0..self.rows).rev() {
-            self.cells.remove(r * self.cols + at);
+        self.by_columns(|t| t.delete_row(at));
+    }
+    /// Table ▸ Merge Cells: the block becomes one cell holding the text of all of them.
+    pub fn merge(&mut self, g: CellRange) {
+        let g = self.range((g[0], g[1]), (g[2], g[3]));
+        let texts: Vec<String> = self.anchors_in(g).iter().map(|(r, c)| self.cell(*r, *c).text.clone()).filter(|t| !t.is_empty()).collect();
+        for r in g[0]..=g[2] {
+            for c in g[1]..=g[3] {
+                let cl = self.cell_mut(r, c);
+                cl.rspan = 1;
+                cl.cspan = 1;
+                if (r, c) != (g[0], g[1]) {
+                    cl.text.clear();
+                }
+            }
         }
-        self.cols -= 1;
+        let a = self.cell_mut(g[0], g[1]);
+        a.rspan = g[2] - g[0] + 1;
+        a.cspan = g[3] - g[1] + 1;
+        a.text = texts.join(" ");
+    }
+    /// Table ▸ Unmerge Cells.
+    pub fn unmerge(&mut self, g: CellRange) {
+        for (r, c) in self.anchors_in(g) {
+            let cl = self.cell_mut(r, c);
+            cl.rspan = 1;
+            cl.cspan = 1;
+        }
+    }
+    /// Table ▸ Split into Rows: the cell at (r, c) becomes `n` cells stacked; rows are added
+    /// when it spans fewer than `n` rows, and the other cells of those rows stay whole.
+    pub fn split_rows(&mut self, r: usize, c: usize, n: usize) {
+        let (r, c) = self.anchor_of(r, c);
+        let n = n.max(1);
+        let (mut span, cspan) = (self.cell(r, c).rspan, self.cell(r, c).cspan);
+        if span < n {
+            let extra = n - span;
+            let last = r + span - 1;
+            let others: Vec<(usize, usize)> = self.anchors().into_iter().filter(|&(ar, ac)| (ar, ac) != (r, c) && ar <= last && ar + self.cell(ar, ac).rspan > last).collect();
+            let h = self.row_heights[last] / (extra + 1) as f64;
+            self.row_heights[last] = h;
+            for _ in 0..extra {
+                self.row_heights.insert(last + 1, h);
+                for _ in 0..self.cols {
+                    self.cells.insert((last + 1) * self.cols, TableCell::empty());
+                }
+                self.rows += 1;
+            }
+            for (ar, ac) in others {
+                self.cell_mut(ar, ac).rspan += extra;
+            }
+            span = n;
+        }
+        let (base, rem) = (span / n, span % n);
+        let mut pos = r;
+        for k in 0..n {
+            let size = base + usize::from(k < rem);
+            let cl = self.cell_mut(pos, c);
+            cl.rspan = size;
+            cl.cspan = cspan;
+            pos += size;
+        }
+    }
+    /// Table ▸ Split into Columns.
+    pub fn split_cols(&mut self, r: usize, c: usize, n: usize) {
+        self.by_columns(|t| t.split_rows(c, r, n));
     }
 }
 
@@ -456,6 +659,15 @@ pub struct Object {
     pub object_style: Option<String>,
     #[serde(default)]
     pub comments: Vec<String>,
+    /// PowerClip ▸ Lock Contents to PowerClip turned off: moving the frame leaves the contents.
+    #[serde(default)]
+    pub powerclip_unlocked: bool,
+    /// Object ▸ Object Hinting: edges drawn on whole pixels.
+    #[serde(default)]
+    pub hinting: bool,
+    /// QR code, barcode or rollover data.
+    #[serde(default)]
+    pub special: Option<crate::codes::Special>,
 }
 
 fn yes() -> bool {
@@ -478,6 +690,9 @@ impl Object {
             url: None,
             object_style: None,
             comments: vec![],
+            powerclip_unlocked: false,
+            hinting: false,
+            special: None,
         }
     }
 
@@ -656,6 +871,7 @@ impl Object {
 
     /// Apply an affine transform in document space.
     pub fn apply_transform(&mut self, a: Affine) {
+        let unlocked = self.powerclip_unlocked;
         match &mut self.kind {
             ObjKind::Group(c) => {
                 for o in c.iter_mut() {
@@ -664,8 +880,10 @@ impl Object {
             }
             ObjKind::PowerClip { frame, contents } => {
                 frame.apply_transform(a);
-                for o in contents.iter_mut() {
-                    o.apply_transform(a);
+                if !unlocked {
+                    for o in contents.iter_mut() {
+                        o.apply_transform(a);
+                    }
                 }
             }
             ObjKind::Blend(b) => {
@@ -1374,4 +1592,49 @@ pub fn resample(path: &BezPath, n: usize) -> Vec<(Vec<Point>, bool)> {
             (out, closed)
         })
         .collect()
+}
+
+#[cfg(test)]
+mod table_tests {
+    use super::*;
+
+    #[test]
+    fn merge_split_and_spans() {
+        let mut t = TableObj::new(3, 4, 400.0, 300.0);
+        t.cell_mut(0, 0).text = "a".into();
+        t.cell_mut(1, 1).text = "b".into();
+        t.merge([0, 0, 1, 1]);
+        assert_eq!((t.cell(0, 0).rspan, t.cell(0, 0).cspan), (2, 2));
+        assert_eq!(t.cell(0, 0).text, "a b");
+        assert!(t.is_covered(1, 1));
+        assert_eq!(t.anchors().len(), 12 - 3);
+        assert_eq!(t.cell_at(Point::new(150.0, 150.0)), Some((0, 0)));
+        // a block touching the merged cell grows to hold all of it
+        assert_eq!(t.range((1, 1), (1, 2)), [0, 0, 1, 2]);
+        // inserting a row through the merged cell makes it taller
+        t.insert_row(1);
+        assert_eq!(t.cell(0, 0).rspan, 3);
+        t.delete_row(0);
+        assert_eq!((t.cell(0, 0).rspan, t.cell(0, 0).cspan, t.cell(0, 0).text.as_str()), (2, 2, "a b"));
+        t.insert_col(1);
+        assert_eq!(t.cell(0, 0).cspan, 3);
+        t.unmerge([0, 0, 0, 0]);
+        assert_eq!(t.anchors().len(), t.rows * t.cols);
+        // splitting one cell into rows adds rows; the neighbours stay whole
+        let mut t = TableObj::new(2, 2, 200.0, 100.0);
+        t.split_rows(0, 1, 3);
+        assert_eq!(t.rows, 4);
+        assert_eq!(t.cell(0, 0).rspan, 3);
+        assert_eq!((t.cell(0, 1).rspan, t.cell(1, 1).rspan, t.cell(2, 1).rspan), (1, 1, 1));
+        assert!((t.height() - 100.0).abs() < 1e-9);
+        // splitting a merged cell uses its rows
+        let mut t = TableObj::new(4, 2, 200.0, 100.0);
+        t.merge([0, 0, 3, 0]);
+        t.split_rows(0, 0, 2);
+        assert_eq!((t.rows, t.cell(0, 0).rspan, t.cell(2, 0).rspan), (4, 2, 2));
+        t.split_cols(0, 1, 2);
+        assert_eq!(t.cols, 3);
+        assert_eq!(t.cell(0, 0).cspan, 1);
+        assert_eq!(t.cell(1, 1).cspan, 2);
+    }
 }

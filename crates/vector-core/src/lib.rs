@@ -1,5 +1,6 @@
 //! Vector — document model, geometry and text engine.
 
+pub mod codes;
 pub mod color;
 pub mod document;
 pub mod geom;

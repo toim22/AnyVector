@@ -210,7 +210,20 @@ impl Renderer {
             return;
         }
         let dimmed = ctx.opts.dim_others.as_ref().map(|(keep, a)| (!keep.contains(&o.id), *a)).filter(|x| x.0).map(|x| x.1);
-        let overprints = ctx.opts.overprint && (o.style.overprint_fill || o.style.overprint_outline);
+        let overprints = ctx.opts.overprint && (o.style.overprint_fill || o.style.overprint_outline || (o.style.overprint_bitmap && matches!(o.kind, ObjKind::Image(_))));
+        if o.hinting && !ctx.opts.printing {
+            // Object Hinting: stretch the object so its edges fall on whole device pixels
+            let b = ctx.view.transform_rect_bbox(o.bounds());
+            if b.width() > 0.5 && b.height() > 0.5 {
+                let (x0, y0) = (b.x0.round(), b.y0.round());
+                let (x1, y1) = (b.x1.round().max(x0 + 1.0), b.y1.round().max(y0 + 1.0));
+                let fix = Affine::translate((x0, y0)) * Affine::scale_non_uniform((x1 - x0) / b.width(), (y1 - y0) / b.height()) * Affine::translate((-b.x0, -b.y0));
+                let sub = Ctx { doc: ctx.doc, view: fix * ctx.view, opts: ctx.opts };
+                let mut plain = o.clone();
+                plain.hinting = false;
+                return self.render_object(&sub, &plain, target);
+            }
+        }
         let needs_layer = !ctx.opts.wireframe
             && (overprints
                 || !matches!(o.style.transparency, Transparency::None)
@@ -702,7 +715,7 @@ impl Renderer {
                     if let Some(a) = ol.start_arrow {
                         let tip = pts[0];
                         let from = pts[1.min(pts.len() - 1)];
-                        draw_arrow(a, tip, tip - from, w, color, ctx.view, target, aa);
+                        draw_arrow(a, tip, tip - from, w, color, ctx.view, target, aa, &ctx.doc.arrowheads);
                     }
                 }
             }
@@ -710,7 +723,7 @@ impl Renderer {
                 if !closed && pts.len() >= 2 {
                     if let Some(a) = ol.end_arrow {
                         let n = pts.len();
-                        draw_arrow(a, pts[n - 1], pts[n - 1] - pts[n - 2], w, color, ctx.view, target, aa);
+                        draw_arrow(a, pts[n - 1], pts[n - 1] - pts[n - 2], w, color, ctx.view, target, aa, &ctx.doc.arrowheads);
                     }
                 }
             }
@@ -785,10 +798,10 @@ impl Renderer {
         if let Fill::Solid(c) = &o.style.fill {
             self.fill_path_simple(&Rect::new(0.0, 0.0, t.width(), t.height()).to_path(0.1), *c, view, target, aa);
         }
-        for r in 0..t.rows {
-            for c in 0..t.cols {
-                let cell = &t.cells[r * t.cols + c];
-                let rc = t.cell_rect(r, c);
+        for (r, c) in t.anchors() {
+            {
+                let cell = t.cell(r, c);
+                let rc = t.span_rect(r, c);
                 if let Some(f) = cell.fill {
                     self.fill_path_simple(&rc.to_path(0.1), f, view, target, aa);
                 }
@@ -808,25 +821,8 @@ impl Renderer {
                 }
             }
         }
-        // grid lines
-        let mut bp = BezPath::new();
-        let (w, h) = (t.width(), t.height());
-        let mut y = 0.0;
-        for r in 0..=t.rows {
-            bp.move_to((0.0, y));
-            bp.line_to((w, y));
-            if r < t.rows {
-                y += t.row_heights[r];
-            }
-        }
-        let mut x = 0.0;
-        for c in 0..=t.cols {
-            bp.move_to((x, 0.0));
-            bp.line_to((x, h));
-            if c < t.cols {
-                x += t.col_widths[c];
-            }
-        }
+        // cell borders
+        let bp = t.grid_path();
         if let Some(sp) = to_sk_path(&bp) {
             let mut st = sk::Stroke::default();
             st.width = t.border_width as f32;
@@ -1249,7 +1245,7 @@ fn gradient_mask(o: &Object, g: &Gradient, view: &Affine, w: u32, h: u32) -> Opt
 }
 
 #[allow(clippy::too_many_arguments)]
-fn draw_arrow(kind: ArrowHead, tip: Point, dir: Vec2, w: f64, color: Color, view: Affine, target: &mut sk::Pixmap, aa: bool) {
+fn draw_arrow(kind: ArrowHead, tip: Point, dir: Vec2, w: f64, color: Color, view: Affine, target: &mut sk::Pixmap, aa: bool, custom: &[vector_core::style::CustomArrow]) {
     let d = dir.normalize();
     if !d.x.is_finite() {
         return;
@@ -1294,6 +1290,11 @@ fn draw_arrow(kind: ArrowHead, tip: Point, dir: Vec2, w: f64, color: Color, view
             bp.move_to(tip + n * (s * 0.5));
             bp.line_to(tip - n * (s * 0.5));
             stroke_only = true;
+        }
+        ArrowHead::Custom(id) => {
+            let Some(ca) = custom.iter().find(|c| c.id == id) else { return };
+            bp = ca.placed(tip, d, w);
+            stroke_only = !ca.filled;
         }
     }
     if let Some(sp) = to_sk_path(&bp) {
