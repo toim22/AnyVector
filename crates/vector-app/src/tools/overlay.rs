@@ -79,7 +79,7 @@ pub fn draw_overlay(app: &mut VectorApp, painter: &Painter) {
     draw_pixel_grid(painter, d);
     draw_baseline_grid(painter, d);
     draw_guides(painter, d, &ts.drag);
-    draw_text_frames(painter, d);
+    draw_text_frames(painter, d, s);
 
     let dragging_xform = matches!(ts.drag, Drag::Transform { .. });
     match tool {
@@ -275,13 +275,192 @@ fn draw_guides(painter: &Painter, d: &DocView, drag: &Drag) {
     }
 }
 
-fn draw_text_frames(painter: &Painter, d: &DocView) {
-    for id in &d.selection {
-        if let Some(o) = d.doc.find(*id) {
-            if let ObjKind::Text(t) = &o.kind {
-                if let vector_core::text::TextKind::Paragraph { width, height } = t.kind {
-                    let bp = o.transform * Rect::new(0.0, 0.0, width, height).to_path(0.1);
-                    dashed_bez(painter, d, &bp, Color32::from_gray(140));
+thread_local! {
+    /// Text layouts of the frames on screen (laid out again only when the text changes).
+    static TEXT_LAYOUTS: std::cell::RefCell<std::collections::HashMap<vector_core::ObjId, (vector_core::text::TextObj, std::rc::Rc<vector_core::text::TextLayout>)>> = Default::default();
+    /// Spelling errors per text (content and language).
+    static SPELL_ERRORS: std::cell::RefCell<std::collections::HashMap<(String, String), Vec<crate::spell::SpellError>>> = Default::default();
+}
+
+fn cached_layout(id: vector_core::ObjId, t: &vector_core::text::TextObj) -> std::rc::Rc<vector_core::text::TextLayout> {
+    TEXT_LAYOUTS.with(|c| {
+        let mut c = c.borrow_mut();
+        if let Some((k, l)) = c.get(&id) {
+            if k == t {
+                return l.clone();
+            }
+        }
+        let l = std::rc::Rc::new(vector_core::text::layout(t));
+        if c.len() > 400 {
+            c.clear();
+        }
+        c.insert(id, (t.clone(), l.clone()));
+        l
+    })
+}
+
+fn spell_errors(t: &vector_core::text::TextObj) -> Vec<crate::spell::SpellError> {
+    let lang = crate::spell::lang_of(&t.format.lang).to_string();
+    SPELL_ERRORS.with(|c| {
+        let mut c = c.borrow_mut();
+        let key = (t.content.clone(), lang.clone());
+        if let Some(e) = c.get(&key) {
+            return e.clone();
+        }
+        let e = crate::spell::check(&t.content, &lang);
+        if c.len() > 400 {
+            c.clear();
+        }
+        c.insert(key, e.clone());
+        e
+    })
+}
+
+/// Text frames (Text ▸ Show Text Frames; red when text does not fit), the links between linked frames,
+/// non-printing characters (Text ▸ Show Non-Printing Characters) and words the spell checker does not
+/// know (Options ▸ Text ▸ Spelling ▸ Perform automatic spell checking).
+fn draw_text_frames(painter: &Painter, d: &DocView, s: &Settings) {
+    use vector_core::text::{self as vt, TextKind};
+    let editing = d.text_edit.as_ref().map(|te| te.obj);
+    let mut texts: Vec<(vector_core::ObjId, Affine, &vector_core::text::TextObj)> = vec![];
+    for l in d.page_ref().layers.iter().filter(|l| l.visible) {
+        for o in &l.objects {
+            o.walk(&mut |x| {
+                if let ObjKind::Text(t) = &x.kind {
+                    texts.push((x.id, x.transform, t));
+                }
+            });
+        }
+    }
+    let sa = screen_affine(d);
+    let blue = Color32::from_rgb(0x1e, 0x88, 0xe5);
+    let red = Color32::from_rgb(0xe0, 0x30, 0x30);
+    for (id, xf, t) in &texts {
+        let selected = d.selection.contains(id) || editing == Some(*id);
+        let m = sa * *xf;
+        let scale = m.determinant().abs().sqrt() as f32;
+        let to = |p: Point| {
+            let q = m * p;
+            Pos2::new(q.x as f32, q.y as f32)
+        };
+        let lay = if s.show_nonprinting || s.show_text_frames || selected || s.spell_check { Some(cached_layout(*id, t)) } else { None };
+        if let TextKind::Paragraph { width, height } = t.kind {
+            if s.show_text_frames || selected {
+                let over = t.link_next.is_none() && lay.as_ref().is_some_and(|l| l.fit_end < t.char_count());
+                let bp = match &t.frame_shape {
+                    Some(fs) => *xf * fs.to_bez(),
+                    None => *xf * Rect::new(0.0, 0.0, width, height).to_path(0.1),
+                };
+                dashed_bez(painter, d, &bp, if over { red } else { Color32::from_gray(140) });
+                // the tab at the bottom of the frame: ▼ when text does not fit, linked frames in blue
+                if selected || over {
+                    let c = to(Point::new(width / 2.0, height));
+                    let r = egui::Rect::from_center_size(c, egui::vec2(11.0, 11.0));
+                    let col = if over { red } else if t.link_next.is_some() || t.link_prev.is_some() { blue } else { Color32::from_gray(150) };
+                    painter.rect_filled(r, 1.0, Color32::WHITE);
+                    painter.rect_stroke(r, 1.0, Stroke::new(1.0, col), egui::StrokeKind::Inside);
+                    if over {
+                        painter.add(EShape::convex_polygon(vec![c + egui::vec2(-3.0, -2.0), c + egui::vec2(3.0, -2.0), c + egui::vec2(0.0, 2.5)], red, Stroke::NONE));
+                    } else if t.link_next.is_some() {
+                        painter.line_segment([c + egui::vec2(-3.0, 0.0), c + egui::vec2(3.0, 0.0)], Stroke::new(1.5, col));
+                        painter.line_segment([c + egui::vec2(0.0, -3.0), c + egui::vec2(0.0, 3.0)], Stroke::new(1.5, col));
+                    }
+                }
+            }
+            // where the text goes next: a blue line to the next frame
+            if s.show_text_links && selected {
+                if let Some(next) = t.link_next.and_then(|n| d.doc.find(n)) {
+                    let a = to(Point::new(width / 2.0, height));
+                    let b = next.transform * Point::ZERO;
+                    let b = sa * b;
+                    painter.line_segment([a, Pos2::new(b.x as f32, b.y as f32)], Stroke::new(1.0, blue));
+                }
+                if let Some(prev) = t.link_prev.and_then(|n| d.doc.find(n)) {
+                    if let ObjKind::Text(pt) = &prev.kind {
+                        if let TextKind::Paragraph { width: pw, height: ph } = pt.kind {
+                            let a = sa * (prev.transform * Point::new(pw / 2.0, ph));
+                            painter.line_segment([Pos2::new(a.x as f32, a.y as f32), to(Point::ZERO)], Stroke::new(1.0, blue));
+                        }
+                    }
+                }
+            }
+        }
+        let Some(lay) = lay else { continue };
+        let chars: Vec<char> = t.content.chars().collect();
+        let visible = |i: usize| lay.carets.get(i).and_then(|c| lay.lines.get(c.2)).is_some_and(|l| !l.hidden);
+        let width_of = |i: usize| match (lay.carets.get(i), lay.carets.get(i + 1)) {
+            (Some(a), Some(b)) if a.2 == b.2 => (b.0 - a.0).abs(),
+            _ => t.format_at(i).size * 0.25,
+        };
+        if s.show_nonprinting {
+            for (i, ch) in chars.iter().enumerate() {
+                if !visible(i) || t.on_path.is_some() {
+                    continue;
+                }
+                let (x, base, _) = lay.carets[i];
+                let size = t.format_at(i).size;
+                let w = width_of(i);
+                let mid = Point::new(x + w / 2.0, base - size * 0.3);
+                match *ch {
+                    ' ' => {
+                        painter.circle_filled(to(mid), (1.2 * scale.clamp(0.6, 2.0)).max(1.0), blue);
+                    }
+                    vt::NBSP => {
+                        painter.circle_stroke(to(mid), (size as f32 * 0.12 * scale).clamp(1.5, 6.0), Stroke::new(1.0, blue));
+                    }
+                    vt::EM_SPACE | vt::EN_SPACE | vt::QUARTER_EM_SPACE => {
+                        let (a, b) = (to(Point::new(x + w * 0.15, base - size * 0.3)), to(Point::new(x + w * 0.85, base - size * 0.3)));
+                        painter.line_segment([a, b], Stroke::new(1.0, blue));
+                        painter.line_segment([a + egui::vec2(0.0, -2.0), a + egui::vec2(0.0, 2.0)], Stroke::new(1.0, blue));
+                        painter.line_segment([b + egui::vec2(0.0, -2.0), b + egui::vec2(0.0, 2.0)], Stroke::new(1.0, blue));
+                    }
+                    '\t' => {
+                        let (a, b) = (to(Point::new(x + w * 0.1, base - size * 0.3)), to(Point::new(x + w.max(size * 0.5) * 0.9, base - size * 0.3)));
+                        painter.line_segment([a, b], Stroke::new(1.0, blue));
+                        let dir = (b - a).normalized();
+                        let n = egui::vec2(-dir.y, dir.x);
+                        painter.line_segment([b, b - dir * 4.0 + n * 3.0], Stroke::new(1.0, blue));
+                        painter.line_segment([b, b - dir * 4.0 - n * 3.0], Stroke::new(1.0, blue));
+                    }
+                    vt::COLUMN_BREAK => {
+                        let a = to(Point::new(x + 1.0, base - size * 0.7));
+                        let b = to(Point::new(x + 1.0, base));
+                        painter.line_segment([a, b], Stroke::new(1.0, blue));
+                        painter.line_segment([b, b + egui::vec2(-3.0, -4.0)], Stroke::new(1.0, blue));
+                        painter.line_segment([b, b + egui::vec2(3.0, -4.0)], Stroke::new(1.0, blue));
+                    }
+                    vt::SOFT_HYPHEN => {
+                        painter.text(to(Point::new(x, base)), egui::Align2::CENTER_BOTTOM, "¬", egui::FontId::proportional((size as f32 * 0.6 * scale).clamp(7.0, 60.0)), blue);
+                    }
+                    c if vt::is_para_end(c) => {
+                        painter.text(to(Point::new(x + size * 0.05, base)), egui::Align2::LEFT_BOTTOM, "¶", egui::FontId::proportional((size as f32 * 0.8 * scale).clamp(7.0, 80.0)), blue);
+                    }
+                    _ => {}
+                }
+            }
+        }
+        // spelling: a red zigzag under the words that are not in the dictionary
+        if s.spell_check && (s.spell_errors_all || selected) && t.char_count() > 0 && t.on_path.is_none() {
+            for e in spell_errors(t).iter().filter(|e| !e.delete) {
+                let mut i = e.start;
+                while i < (e.start + e.len).min(chars.len()) {
+                    let Some(&(x0, base, line)) = lay.carets.get(i) else { break };
+                    let mut j = i;
+                    while j + 1 < (e.start + e.len).min(chars.len()) && lay.carets.get(j + 1).is_some_and(|c| c.2 == line) {
+                        j += 1;
+                    }
+                    if visible(i) {
+                        let x1 = lay.carets.get(j + 1).filter(|c| c.2 == line).map(|c| c.0).unwrap_or(lay.carets[j].0 + width_of(j));
+                        let y = base + t.format_at(i).size * 0.12;
+                        let (a, b) = (to(Point::new(x0, y)), to(Point::new(x1, y)));
+                        let len = (b - a).length();
+                        let dir = (b - a) / len.max(1.0);
+                        let n = egui::vec2(-dir.y, dir.x);
+                        let steps = (len / 2.0).ceil().max(1.0) as usize;
+                        let pts: Vec<Pos2> = (0..=steps).map(|k| a + dir * (k as f32 * len / steps as f32) + n * if k % 2 == 0 { -1.0 } else { 1.0 }).collect();
+                        painter.add(EShape::line(pts, Stroke::new(1.0, red)));
+                    }
+                    i = j + 1;
                 }
             }
         }

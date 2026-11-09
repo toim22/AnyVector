@@ -22,6 +22,7 @@ mod save_dialog;
 mod scripting;
 mod settings;
 mod shortcuts;
+mod spell;
 mod splash;
 mod statusbar;
 mod sysinfo;

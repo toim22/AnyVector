@@ -944,3 +944,107 @@ fn visual_object_dialogs() {
     h.state_mut().run(Cmd::SymbolFinish);
     save(&mut h, "88_symbol_finished");
 }
+
+/// Text menu: Tabs, Leader Settings, Columns, Bullets and Numbering, Drop Cap, Statistics, Custom Optional
+/// Hyphens, Writing Tools, Text Language, Change Case, Text Encoding, Edit Text, and text frames on the
+/// page (non-printing characters, overflow, linked frames, spelling).
+#[test]
+#[ignore]
+fn visual_text_dialogs() {
+    use vector_core::text::{CharFormat, TextObj};
+    let mut h = harness();
+    h.state_mut().new_default_document();
+    let (head, follower) = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let f = CharFormat { size: 14.0, ..Default::default() };
+        let body = "Teh quick brown fox jumps over the lazy dog. This is is a paragraph of text\twith a tab and an em\u{2003}space.\nA second paragraph flows into the next frame when the first one is full of words. ".repeat(3);
+        let (a, b, c) = (d.doc.new_id(), d.doc.new_id(), d.doc.new_id());
+        let mut t1 = TextObj::paragraph(&body, 220.0, 150.0, f.clone());
+        t1.link_next = Some(b);
+        let mut t2 = TextObj::paragraph("", 220.0, 180.0, f.clone());
+        t2.link_prev = Some(a);
+        let t3 = TextObj::paragraph(&"Overflowing text that does not fit in its frame. ".repeat(6), 180.0, 60.0, f.clone());
+        let objs = vec![
+            Object::new(a, ObjKind::Text(t1), Affine::translate((60.0, 80.0)), Style::text_default()),
+            Object::new(b, ObjKind::Text(t2), Affine::translate((320.0, 80.0)), Style::text_default()),
+            Object::new(c, ObjKind::Text(t3), Affine::translate((60.0, 400.0)), Style::text_default()),
+        ];
+        d.add_objects("Text", objs);
+        d.selection = vec![a];
+        (a, b)
+    };
+    h.state_mut().settings.show_nonprinting = true;
+    h.state_mut().settings.spell_check = true;
+    save(&mut h, "90_text_frames");
+    h.state_mut().settings.show_nonprinting = false;
+    h.state_mut().run(Cmd::TextTabs);
+    save(&mut h, "90_tab_settings");
+    if let Some(st) = h.state_mut().dialogs.tabs.as_mut() {
+        st.leader_dlg = Some(st.leader);
+    }
+    save(&mut h, "90_leader_settings");
+    h.state_mut().dialogs.tabs = None;
+    h.state_mut().run(Cmd::TextColumns);
+    save(&mut h, "91_column_settings");
+    h.state_mut().dialogs.columns = None;
+    h.state_mut().run(Cmd::TextBullets);
+    h.step();
+    if let Some(st) = h.state_mut().dialogs.bullets.as_mut() {
+        st.on = true;
+    }
+    save(&mut h, "92_bullets_and_numbering");
+    h.state_mut().dialogs.bullets = None;
+    h.state_mut().run(Cmd::TextDropCap);
+    save(&mut h, "93_drop_cap");
+    h.state_mut().dialogs.drop_cap = None;
+    h.state_mut().run(Cmd::TextStatistics);
+    save(&mut h, "94_statistics");
+    h.state_mut().dialogs.text_stats = None;
+    h.state_mut().run(Cmd::CustomHyphens);
+    save(&mut h, "95_custom_optional_hyphens");
+    h.state_mut().dialogs.hyphens = None;
+    h.state_mut().run(Cmd::WritingTools(0));
+    save(&mut h, "96_spell_checker");
+    h.state_mut().dialogs.writing = None;
+    h.state_mut().run(Cmd::WritingTools(1));
+    save(&mut h, "96_grammatik");
+    h.state_mut().dialogs.writing = None;
+    h.state_mut().run(Cmd::WritingTools(2));
+    h.step();
+    if let Some(st) = h.state_mut().dialogs.writing.as_mut() {
+        st.word = "happy".into();
+        st.results = crate::spell::synonyms("happy");
+        st.looked = Some("happy".into());
+    }
+    save(&mut h, "96_thesaurus");
+    h.state_mut().dialogs.writing = None;
+    h.state_mut().run(Cmd::TextLanguage);
+    save(&mut h, "97_text_language");
+    h.state_mut().dialogs.text_lang = None;
+    h.state_mut().run(Cmd::ChangeCaseDialog);
+    save(&mut h, "98_change_case");
+    h.state_mut().dialogs.change_case = None;
+    h.state_mut().run(Cmd::EncodeText);
+    save(&mut h, "99_text_encoding");
+    h.state_mut().dialogs.encode = None;
+    h.state_mut().run(Cmd::EditText);
+    save(&mut h, "99_edit_text");
+    h.state_mut().dialogs.edit_text = None;
+    // two columns, bullets and a drop cap on the linked frames; unlink them
+    {
+        let a = h.state_mut();
+        crate::dialogs::text::modify_texts(a, "Columns", false, |t| {
+            t.columns = 2;
+            t.column_gap = 12.0;
+        });
+        crate::dialogs::text::modify_texts(a, "Drop Cap", true, |t| t.drop_cap = Some(Default::default()));
+    }
+    h.state_mut().settings.show_nonprinting = true;
+    save(&mut h, "99_columns_drop_cap");
+    {
+        let a = h.state_mut();
+        a.doc_mut().unwrap().selection = vec![head, follower];
+    }
+    h.state_mut().run(Cmd::UnlinkFrames);
+    save(&mut h, "99_unlinked");
+}

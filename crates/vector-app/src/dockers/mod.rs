@@ -6,7 +6,7 @@ mod effects;
 mod misc;
 mod objects;
 pub mod props;
-mod text;
+pub(crate) mod text;
 
 use crate::app::VectorApp;
 use crate::icons::Tone;

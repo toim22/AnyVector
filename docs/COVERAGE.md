@@ -13,14 +13,14 @@ The *Reference* column is a path inside the reference folder.
 
 | Area | Done | Partial | Todo | Omitted | Total |
 |---|---:|---:|---:|---:|---:|
-| [Menus](#menus) | 289 | 324 | 12 | 162 | 787 |
-| [Dialogs and screens](#dialogs-and-screens) | 37 | 53 | 1 | 1 | 92 |
+| [Menus](#menus) | 325 | 288 | 11 | 163 | 787 |
+| [Dialogs and screens](#dialogs-and-screens) | 49 | 41 | 0 | 2 | 92 |
 | [Bitmap effects (Properties docker)](#bitmap-effects-properties-docker) | 0 | 120 | 0 | 0 | 120 |
 | [Dockers](#dockers) | 0 | 44 | 0 | 1 | 45 |
 | [Tools](#tools) | 34 | 60 | 0 | 0 | 94 |
 | [Toolbars](#toolbars) | 12 | 0 | 0 | 0 | 12 |
 | [Right-click menus](#right-click-menus) | 24 | 0 | 0 | 3 | 27 |
-| **All** | **396** | **601** | **13** | **167** | **1177** |
+| **All** | **444** | **553** | **11** | **169** | **1177** |
 
 ## Menus
 
@@ -516,56 +516,56 @@ The *Reference* column is a path inside the reference folder.
 
 ### Text
 
-4 done · 41 partial · 1 todo · 0 omitted
+40 done · 5 partial · 0 todo · 1 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
 | Text | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\08 Text\001 Text.png` |
-| Text > Tabs... | opens a window | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\001 Text ▸ Tabs.png` |
-| Text > Columns... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\002 Text ▸ Columns.png` |
-| Text > Bullets and Numbering... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\003 Text ▸ Bullets and Numbering.png` |
-| Text > Drop Cap... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\004 Text ▸ Drop Cap.png` |
-| Text > Line-Breaking Rules... | opens a window | 1 | ⬜ todo |  | `03-telas\doc-vazio\08 Text\005 Text ▸ Line-Breaking Rules.png` |
-| Text > Text Statistics... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\006 Text ▸ Text Statistics.png` |
-| Text > Edit Text... | opens a window | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\007 Text ▸ Edit Text.png` |
+| Text > Tabs... | opens a window | 2 | ✅ done | Tab Settings and Leader Settings as the reference; left, right, center and decimal tabs with leaders | `03-telas\doc-vazio\08 Text\001 Text ▸ Tabs.png` |
+| Text > Columns... | opens a window | 1 | ✅ done | Column Settings as the reference; equal or custom widths and gutters, frame width kept or adjusted | `03-telas\doc-vazio\08 Text\002 Text ▸ Columns.png` |
+| Text > Bullets and Numbering... | opens a window | 1 | ✅ done | bullets (any glyph of a font) and the 16 numbering styles, nine levels, size and spacing | `03-telas\doc-vazio\08 Text\003 Text ▸ Bullets and Numbering.png` |
+| Text > Drop Cap... | opens a window | 1 | ✅ done | lines dropped, space after, hanging indent | `03-telas\doc-vazio\08 Text\004 Text ▸ Drop Cap.png` |
+| Text > Line-Breaking Rules... | opens a window | 1 | ➖ omitted | East Asian line-breaking rules: the reference hides this item outside East Asian languages | `03-telas\doc-vazio\08 Text\005 Text ▸ Line-Breaking Rules.png` |
+| Text > Text Statistics... | opens a window | 1 | ✅ done | lines, words, characters and fonts of the selection or the whole document | `03-telas\doc-vazio\08 Text\006 Text ▸ Text Statistics.png` |
+| Text > Edit Text... | opens a window | 3 | ✅ done | Edit Text box: font, size, bold, italic, underline, alignment, non-printing characters, zoom, Import, Change Case | `03-telas\texto-artistico\08 Text\007 Text ▸ Edit Text.png` |
 | Text > Insert Formatting Code | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\08 Text\002 Text ▸ Insert Formatting Code.png` |
-| Text > Insert Formatting Code > Em Space | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Insert Formatting Code > En Space | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Insert Formatting Code > ¼ Em Space | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Insert Formatting Code > Non-breaking Space | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Insert Formatting Code > Tab | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Insert Formatting Code > Column/Frame Break | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Insert Formatting Code > Em Dash | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Insert Formatting Code > En Dash | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Insert Formatting Code > Non-breaking Hyphen | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Insert Formatting Code > Optional Hyphen | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Insert Formatting Code > Custom Optional Hyphens... | opens a window | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\008 Text ▸ Insert Formatting Code ▸ Custom Optional Hyphens.png` |
-| Text > Convert | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Show Non-Printing Characters | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Text > Insert Formatting Code > Em Space | command |  | ✅ done |  |  |
+| Text > Insert Formatting Code > En Space | command |  | ✅ done |  |  |
+| Text > Insert Formatting Code > ¼ Em Space | command |  | ✅ done |  |  |
+| Text > Insert Formatting Code > Non-breaking Space | command |  | ✅ done |  |  |
+| Text > Insert Formatting Code > Tab | command |  | ✅ done |  |  |
+| Text > Insert Formatting Code > Column/Frame Break | command |  | ✅ done | the text after it goes to the next column or linked frame |  |
+| Text > Insert Formatting Code > Em Dash | command |  | ✅ done |  |  |
+| Text > Insert Formatting Code > En Dash | command |  | ✅ done |  |  |
+| Text > Insert Formatting Code > Non-breaking Hyphen | command |  | ✅ done |  |  |
+| Text > Insert Formatting Code > Optional Hyphen | command |  | ✅ done | shown only where the line breaks |  |
+| Text > Insert Formatting Code > Custom Optional Hyphens... | opens a window | 2 | ✅ done | definitions applied when typing, pasting or with Apply to Selection | `03-telas\doc-vazio\08 Text\008 Text ▸ Insert Formatting Code ▸ Custom Optional Hyphens.png` |
+| Text > Convert | command |  | ✅ done | artistic text to paragraph text and back |  |
+| Text > Show Non-Printing Characters | command |  | ✅ done | spaces, non-breaking spaces, em/en spaces, tabs, paragraph ends, column breaks, optional hyphens |  |
 | Text > Paragraph Text Frame | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\08 Text\003 Text ▸ Paragraph Text Frame.png` |
-| Text > Paragraph Text Frame > Show Text Frames | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Paragraph Text Frame > Fit Text To Frame | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Paragraph Text Frame > Insert Placeholder Text | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Paragraph Text Frame > Create Empty Text Frame | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Paragraph Text Frame > Link | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Paragraph Text Frame > Unlink | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Fit Text to Path | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Straighten Text | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Align to Baseline | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Align to Baseline Grid | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Use Hyphenation | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Text > Paragraph Text Frame > Show Text Frames | command |  | ✅ done | dashed frames, red when text does not fit |  |
+| Text > Paragraph Text Frame > Fit Text To Frame | command |  | ✅ done | paragraph text and table text |  |
+| Text > Paragraph Text Frame > Insert Placeholder Text | command |  | ✅ done | empty frames and table cells |  |
+| Text > Paragraph Text Frame > Create Empty Text Frame | command |  | ✅ done | the frame takes the shape of the selected object |  |
+| Text > Paragraph Text Frame > Link | command |  | ✅ done | text flows through linked frames; their own text goes to the end |  |
+| Text > Paragraph Text Frame > Unlink | command |  | ✅ done | each frame keeps the text it shows |  |
+| Text > Fit Text to Path | command |  | ✅ done |  |  |
+| Text > Straighten Text | command |  | ✅ done |  |  |
+| Text > Align to Baseline | command |  | ✅ done |  |  |
+| Text > Align to Baseline Grid | command |  | ✅ done | lines snap to the document baseline grid |  |
+| Text > Use Hyphenation | command |  | ✅ done | automatic hyphenation (US English patterns), hot zone and capitals rules |  |
 | Text > Writing Tools | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\08 Text\004 Text ▸ Writing Tools.png` |
-| Text > Writing Tools > Spell Check... | opens a window | 7 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\009 Text ▸ Writing Tools ▸ Spell Check.png` |
-| Text > Writing Tools > Grammatik... | opens a window | 9 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\010 Text ▸ Writing Tools ▸ Grammatik.png` |
-| Text > Writing Tools > Thesaurus... | opens a window | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\011 Text ▸ Writing Tools ▸ Thesaurus.png` |
-| Text > Writing Tools > QuickCorrect... | opens a window | 32 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\012 Text ▸ Writing Tools ▸ QuickCorrect.png` |
-| Text > Writing Tools > Language... | opens a window | 25 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\013 Text ▸ Writing Tools ▸ Language.png` |
-| Text > Writing Tools > Settings... | opens a window | 38 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\014 Text ▸ Writing Tools ▸ Settings.png` |
-| Text > Change Case... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\015 Text ▸ Change Case.png` |
-| Text > Make Text Web-compatible | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Encode... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\016 Text ▸ Encode.png` |
-| Text > Text | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Text > Glyphs | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Text > Writing Tools > Spell Check... | opens a window | 7 | ✅ done | Windows spell checker: Replace, Auto Replace, Skip Once, Skip All, Add, Undo, options and language | `03-telas\texto-artistico\08 Text\009 Text ▸ Writing Tools ▸ Spell Check.png` |
+| Text > Writing Tools > Grammatik... | opens a window | 9 | 🟡 partial | rules: spelling, repeated words, capitals, a/an, spacing, punctuation; fewer rules than the reference | `03-telas\texto-artistico\08 Text\010 Text ▸ Writing Tools ▸ Grammatik.png` |
+| Text > Writing Tools > Thesaurus... | opens a window | 2 | 🟡 partial | synonyms (WordNet); antonyms and the other relations are not available | `03-telas\doc-vazio\08 Text\011 Text ▸ Writing Tools ▸ Thesaurus.png` |
+| Text > Writing Tools > QuickCorrect... | opens a window | 32 | ✅ done | Options > Text > QuickCorrect; corrections are made as you type | `03-telas\doc-vazio\08 Text\012 Text ▸ Writing Tools ▸ QuickCorrect.png` |
+| Text > Writing Tools > Language... | opens a window | 25 | ✅ done | the 125 languages of the reference; tags the selected text | `03-telas\texto-artistico\08 Text\013 Text ▸ Writing Tools ▸ Language.png` |
+| Text > Writing Tools > Settings... | opens a window | 38 | ✅ done | Options > Text > Spelling | `03-telas\doc-vazio\08 Text\014 Text ▸ Writing Tools ▸ Settings.png` |
+| Text > Change Case... | opens a window | 1 | ✅ done |  | `03-telas\texto-artistico\08 Text\015 Text ▸ Change Case.png` |
+| Text > Make Text Web-compatible | command |  | 🟡 partial | the setting is kept with the text; Vector has no HTML export yet |  |
+| Text > Encode... | opens a window | 1 | ✅ done | all the code pages Windows has, with preview | `03-telas\texto-artistico\08 Text\016 Text ▸ Encode.png` |
+| Text > Text | command |  | 🟡 partial | Text docker (batch 6) |  |
+| Text > Glyphs | command |  | 🟡 partial | Glyphs docker (batch 6) |  |
 
 ### Table
 
@@ -999,26 +999,26 @@ The *Reference* column is a path inside the reference folder.
 
 ### Text
 
-0 done · 15 partial · 1 todo · 0 omitted
+12 done · 3 partial · 0 todo · 1 omitted
 
 | Opened from | Kind | Context | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|---|
-| Text > Tabs | dialog | doc-vazio | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\001 Text ▸ Tabs.png` |
-| Text > Columns | dialog | doc-vazio | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\002 Text ▸ Columns.png` |
-| Text > Bullets and Numbering | dialog | doc-vazio | 7 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\003 Text ▸ Bullets and Numbering.png` |
-| Text > Drop Cap | dialog | doc-vazio | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\004 Text ▸ Drop Cap.png` |
-| Text > Line-Breaking Rules | dialog | doc-vazio | 1 | ⬜ todo |  | `03-telas\doc-vazio\08 Text\005 Text ▸ Line-Breaking Rules.png` |
-| Text > Text Statistics | dialog | doc-vazio | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\006 Text ▸ Text Statistics.png` |
-| Text > Insert Formatting Code > Custom Optional Hyphens | dialog | doc-vazio | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\008 Text ▸ Insert Formatting Code ▸ Custom Optional Hyphens.png` |
-| Text > Writing Tools > Thesaurus | dialog | doc-vazio | 6 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\011 Text ▸ Writing Tools ▸ Thesaurus.png` |
-| Text > Writing Tools > QuickCorrect | dialog | doc-vazio | 32 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\012 Text ▸ Writing Tools ▸ QuickCorrect.png` |
-| Text > Writing Tools > Settings | dialog | doc-vazio | 38 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\08 Text\014 Text ▸ Writing Tools ▸ Settings.png` |
-| Text > Edit Text | dialog | texto-artistico | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\007 Text ▸ Edit Text.png` |
-| Text > Writing Tools > Spell Check | dialog | texto-artistico | 7 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\009 Text ▸ Writing Tools ▸ Spell Check.png` |
-| Text > Writing Tools > Grammatik | dialog | texto-artistico | 9 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\010 Text ▸ Writing Tools ▸ Grammatik.png` |
-| Text > Writing Tools > Language | dialog | texto-artistico | 25 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\013 Text ▸ Writing Tools ▸ Language.png` |
-| Text > Change Case | dialog | texto-artistico | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\015 Text ▸ Change Case.png` |
-| Text > Encode | dialog | texto-artistico | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\texto-artistico\08 Text\016 Text ▸ Encode.png` |
+| Text > Tabs | dialog | doc-vazio | 3 | ✅ done | checked against the reference | `03-telas\doc-vazio\08 Text\001 Text ▸ Tabs.png` |
+| Text > Columns | dialog | doc-vazio | 1 | ✅ done | checked against the reference | `03-telas\doc-vazio\08 Text\002 Text ▸ Columns.png` |
+| Text > Bullets and Numbering | dialog | doc-vazio | 7 | ✅ done | checked against the reference | `03-telas\doc-vazio\08 Text\003 Text ▸ Bullets and Numbering.png` |
+| Text > Drop Cap | dialog | doc-vazio | 2 | ✅ done | checked against the reference | `03-telas\doc-vazio\08 Text\004 Text ▸ Drop Cap.png` |
+| Text > Line-Breaking Rules | dialog | doc-vazio | 1 | ➖ omitted | East Asian line-breaking rules: hidden in the reference outside East Asian languages | `03-telas\doc-vazio\08 Text\005 Text ▸ Line-Breaking Rules.png` |
+| Text > Text Statistics | dialog | doc-vazio | 2 | ✅ done | checked against the reference | `03-telas\doc-vazio\08 Text\006 Text ▸ Text Statistics.png` |
+| Text > Insert Formatting Code > Custom Optional Hyphens | dialog | doc-vazio | 2 | ✅ done | checked against the reference | `03-telas\doc-vazio\08 Text\008 Text ▸ Insert Formatting Code ▸ Custom Optional Hyphens.png` |
+| Text > Writing Tools > Thesaurus | dialog | doc-vazio | 6 | 🟡 partial | synonyms only (WordNet) | `03-telas\doc-vazio\08 Text\011 Text ▸ Writing Tools ▸ Thesaurus.png` |
+| Text > Writing Tools > QuickCorrect | dialog | doc-vazio | 32 | ✅ done | Options > Text > QuickCorrect | `03-telas\doc-vazio\08 Text\012 Text ▸ Writing Tools ▸ QuickCorrect.png` |
+| Text > Writing Tools > Settings | dialog | doc-vazio | 38 | 🟡 partial | Options > Text > Spelling; not every control of the reference screens is in place | `03-telas\doc-vazio\08 Text\014 Text ▸ Writing Tools ▸ Settings.png` |
+| Text > Edit Text | dialog | texto-artistico | 3 | ✅ done | checked against the reference | `03-telas\texto-artistico\08 Text\007 Text ▸ Edit Text.png` |
+| Text > Writing Tools > Spell Check | dialog | texto-artistico | 7 | ✅ done | checked against the reference | `03-telas\texto-artistico\08 Text\009 Text ▸ Writing Tools ▸ Spell Check.png` |
+| Text > Writing Tools > Grammatik | dialog | texto-artistico | 9 | 🟡 partial | fewer grammar rules than the reference | `03-telas\texto-artistico\08 Text\010 Text ▸ Writing Tools ▸ Grammatik.png` |
+| Text > Writing Tools > Language | dialog | texto-artistico | 25 | ✅ done | checked against the reference | `03-telas\texto-artistico\08 Text\013 Text ▸ Writing Tools ▸ Language.png` |
+| Text > Change Case | dialog | texto-artistico | 1 | ✅ done | checked against the reference | `03-telas\texto-artistico\08 Text\015 Text ▸ Change Case.png` |
+| Text > Encode | dialog | texto-artistico | 1 | ✅ done | checked against the reference | `03-telas\texto-artistico\08 Text\016 Text ▸ Encode.png` |
 
 ### Table
 

@@ -156,3 +156,18 @@ pb/pick 18 com-efeitos.png	05-ferramentas/barra-pick-por-contexto/18 Pick com co
 82_create_pattern.png	03-telas/retangulo/05 Object/002 Object ▸ Create ▸ Pattern Fill.png	Object > Create > Pattern Fill
 86_edit_rollover.png	03-telas/rollover/05 Object/009 Object ▸ Rollover ▸ Edit Rollover.png	Object > Rollover > Edit Rollover (Internet toolbar)
 87_edit_master.png	03-telas/simbolo/05 Object/007 Object ▸ Symbol ▸ Edit Master (sem janela, tela principal).png	Object > Symbol > Edit Master
+90_text_frames.png		Text > Show Non-Printing Characters / Show Text Frames (no reference screenshot)
+90_tab_settings.png	03-telas/doc-vazio/08 Text/001 Text ▸ Tabs.png	Text > Tabs
+90_leader_settings.png	03-telas/doc-vazio/08 Text/001 Text ▸ Tabs/botoes/001 botao ▸ Leader Options.png	Text > Tabs > Leader Options
+91_column_settings.png	03-telas/doc-vazio/08 Text/002 Text ▸ Columns.png	Text > Columns
+92_bullets_and_numbering.png	03-telas/doc-vazio/08 Text/003 Text ▸ Bullets and Numbering.png	Text > Bullets and Numbering
+93_drop_cap.png	03-telas/doc-vazio/08 Text/004 Text ▸ Drop Cap.png	Text > Drop Cap
+94_statistics.png	03-telas/doc-vazio/08 Text/006 Text ▸ Text Statistics.png	Text > Text Statistics
+95_custom_optional_hyphens.png	03-telas/doc-vazio/08 Text/008 Text ▸ Insert Formatting Code ▸ Custom Optional Hyphens.png	Text > Insert Formatting Code > Custom Optional Hyphens
+96_spell_checker.png	03-telas/texto-artistico/08 Text/009 Text ▸ Writing Tools ▸ Spell Check.png	Text > Writing Tools > Spell Check
+96_grammatik.png	03-telas/texto-artistico/08 Text/010 Text ▸ Writing Tools ▸ Grammatik.png	Text > Writing Tools > Grammatik
+96_thesaurus.png	03-telas/doc-vazio/08 Text/011 Text ▸ Writing Tools ▸ Thesaurus.png	Text > Writing Tools > Thesaurus
+97_text_language.png	03-telas/texto-artistico/08 Text/013 Text ▸ Writing Tools ▸ Language.png	Text > Writing Tools > Language
+98_change_case.png	03-telas/texto-artistico/08 Text/015 Text ▸ Change Case.png	Text > Change Case
+99_text_encoding.png	03-telas/texto-artistico/08 Text/016 Text ▸ Encode.png	Text > Encode
+99_edit_text.png	03-telas/texto-artistico/08 Text/007 Text ▸ Edit Text.png	Text > Edit Text
