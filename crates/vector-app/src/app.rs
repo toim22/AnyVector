@@ -254,6 +254,7 @@ impl VectorApp {
         self.handle_dropped_files(&ctx);
         crate::shortcuts::handle(self, &ctx);
         self.process_pending(&ctx);
+        crate::dockers::coled::publish(self, &ctx);
         crate::ai::poll(self);
         self.poll_background(&ctx);
 
@@ -301,17 +302,32 @@ impl VectorApp {
             });
             crate::menus::command_bar_context(self, &r.response, BarSpot::Toolbar("Toolbox"));
         }
-        if self.settings.default_palette_visible {
-            egui::Panel::right("palette").frame(Frame::new().fill(theme::BAR).inner_margin(Margin::symmetric(1, 2))).exact_size(crate::palette::column_width(&self.settings)).show(ui, |ui| {
-                crate::palette::palette_column(self, ui);
+        // the open palettes: the default one at the edge, the others docked to its left
+        for i in 0..self.palettes.palettes.len() {
+            if i == 0 && !self.settings.default_palette_visible {
+                continue;
+            }
+            let id = if i == 0 { "palette".to_string() } else { format!("palette{i}") };
+            egui::Panel::right(id.as_str()).frame(Frame::new().fill(theme::BAR).inner_margin(Margin::symmetric(1, 2))).exact_size(crate::palette::column_width(&self.settings)).show(ui, |ui| {
+                crate::palette::palette_column(self, ui, i);
             });
         }
         if self.dockers.visible() {
             let w = self.settings.docker_width;
-            let resp = egui::Panel::right("dockers").frame(Frame::new().fill(theme::BAR).inner_margin(Margin::same(0))).resizable(true).default_size(w).size_range(220.0..=600.0).show(ui, |ui| {
-                crate::dockers::dockers_panel(self, ui);
-            });
-            self.settings.docker_width = resp.response.rect.width();
+            if self.dockers.collapsed {
+                egui::Panel::right("dockers_folded").frame(Frame::new().fill(theme::BG).inner_margin(Margin::same(0))).exact_size(crate::dockers::TAB_STRIP + 2.0).show(ui, |ui| {
+                    crate::dockers::dockers_panel(self, ui);
+                });
+            } else {
+                let mut panel = egui::Panel::right("dockers").frame(Frame::new().fill(theme::BG).inner_margin(Margin::same(0))).resizable(true).default_size(w).size_range(220.0..=600.0);
+                if let Some(w) = self.dockers.set_width.take() {
+                    panel = panel.exact_size(w);
+                }
+                let resp = panel.show(ui, |ui| {
+                    crate::dockers::dockers_panel(self, ui);
+                });
+                self.settings.docker_width = resp.response.rect.width();
+            }
         }
         if self.settings.doc_palette_visible {
             egui::Panel::bottom("docpalette").frame(Frame::new().fill(theme::BG).inner_margin(Margin::symmetric(2, 0))).exact_size(24.0).show(ui, |ui| {

@@ -7,7 +7,7 @@ use vector_core::object::{
 };
 use vector_core::ops::{self, KnifeOpts};
 use vector_core::style::{var_width_at, VarWidth};
-use vector_core::{Document, ObjKind, Object, Style};
+use vector_core::{Color, Document, ObjKind, Object, Style};
 
 fn doc_with_square() -> (Document, u64) {
     let mut doc = Document::new(400.0, 400.0);
@@ -114,4 +114,151 @@ fn variable_width_interpolates_between_nodes() {
     assert_eq!(var_width_at(&nodes, 1.0), (5.0, 3.0));
     let (a, b) = var_width_at(&nodes, 0.5);
     assert!((a - 3.0).abs() < 1e-9 && (b - 2.0).abs() < 1e-9);
+}
+
+fn line_doc(n: usize) -> (Document, Vec<u64>, u64) {
+    let mut doc = Document::new(600.0, 600.0);
+    let mut ids = vec![];
+    for k in 0..n {
+        let id = doc.new_id();
+        let r = RectShape { w: 20.0, h: 10.0, radii: [0.0; 4], corner: CornerType::default() };
+        doc.pages[0].layers.last_mut().unwrap().objects.push(Object::new(id, ObjKind::Rect(r), Affine::translate((40.0 * k as f64, 200.0)), Style::default()));
+        ids.push(id);
+    }
+    let pid = doc.new_id();
+    let line = vector_core::path::polyline(&[Point::new(100.0, 100.0), Point::new(400.0, 100.0)], false);
+    doc.pages[0].layers.last_mut().unwrap().objects.push(Object::new(pid, ObjKind::Path(line), Affine::IDENTITY, Style::default()));
+    (doc, ids, pid)
+}
+
+#[test]
+fn fit_objects_spreads_them_along_the_path() {
+    let (mut doc, ids, pid) = line_doc(3);
+    let o = ops::FitPathOptions { even_reference: true, ..Default::default() };
+    let out = ops::fit_objects_to_path(&mut doc, &ids, pid, &o);
+    assert_eq!(out, ids, "the originals move");
+    let c: Vec<Point> = ids.iter().map(|i| doc.bounds_of(doc.find(*i).unwrap()).center()).collect();
+    for (k, x) in [100.0, 250.0, 400.0].into_iter().enumerate() {
+        assert!((c[k].x - x).abs() < 0.5 && (c[k].y - 100.0).abs() < 0.5, "{c:?}");
+    }
+}
+
+#[test]
+fn fit_objects_keeps_originals_adds_duplicates_and_groups() {
+    let (mut doc, ids, pid) = line_doc(2);
+    let o = ops::FitPathOptions { keep_originals: true, duplicates: 1, group: true, order: 1, ..Default::default() };
+    let out = ops::fit_objects_to_path(&mut doc, &ids, pid, &o);
+    assert_eq!(out.len(), 1, "one group");
+    match &doc.find(out[0]).unwrap().kind {
+        ObjKind::Group(c) => assert_eq!(c.len(), 4, "two copies and two duplicates"),
+        k => panic!("{k:?}"),
+    }
+    // the originals stay
+    assert!((doc.bounds_of(doc.find(ids[0]).unwrap()).center().y - 205.0).abs() < 1e-6);
+}
+
+#[test]
+fn fit_objects_progressive_rotation_turns_them() {
+    let (mut doc, ids, pid) = line_doc(3);
+    let o = ops::FitPathOptions { style: 2, start_angle: 0.0, spin_angle: 90.0, revolutions: 1.0, ..Default::default() };
+    ops::fit_objects_to_path(&mut doc, &ids, pid, &o);
+    // the last one turned a quarter: taller than wide
+    let b = doc.bounds_of(doc.find(ids[2]).unwrap());
+    assert!(b.height() > b.width(), "{b:?}");
+    let b0 = doc.bounds_of(doc.find(ids[0]).unwrap());
+    assert!(b0.width() > b0.height(), "{b0:?}");
+}
+
+fn two_lines() -> (Document, Vec<u64>) {
+    let mut doc = Document::new(400.0, 400.0);
+    let mut ids = vec![];
+    for pts in [[Point::new(0.0, 100.0), Point::new(40.0, 10.0)], [Point::new(60.0, 10.0), Point::new(100.0, 100.0)]] {
+        let id = doc.new_id();
+        let np = vector_core::path::polyline(&pts, false);
+        doc.pages[0].layers.last_mut().unwrap().objects.push(Object::new(id, ObjKind::Path(np), Affine::IDENTITY, Style::default()));
+        ids.push(id);
+    }
+    (doc, ids)
+}
+
+fn joined_nodes(doc: &Document, id: u64) -> Vec<Point> {
+    match &doc.find(id).unwrap().kind {
+        ObjKind::Path(np) => {
+            assert_eq!(np.subpaths.len(), 1, "one curve");
+            let t = doc.find(id).unwrap().transform;
+            np.subpaths[0].nodes.iter().map(|n| t * n.p).collect()
+        }
+        k => panic!("{k:?}"),
+    }
+}
+
+#[test]
+fn join_curves_extend_meets_where_the_ends_point() {
+    let (mut doc, ids) = two_lines();
+    let id = ops::join_curves_ex(&mut doc, &ids, 30.0, ops::JoinMode::Extend, 0.0).unwrap();
+    let pts = joined_nodes(&doc, id);
+    assert_eq!(pts.len(), 5, "{pts:?}");
+    assert!(pts.iter().any(|p| (p.x - 50.0).abs() < 1e-6 && (p.y + 12.5).abs() < 1e-6), "{pts:?}");
+}
+
+#[test]
+fn join_curves_chamfer_and_fillet() {
+    let (mut doc, ids) = two_lines();
+    let id = ops::join_curves_ex(&mut doc, &ids, 30.0, ops::JoinMode::Chamfer, 0.0).unwrap();
+    assert_eq!(joined_nodes(&doc, id).len(), 4, "a straight segment between the ends");
+    let (mut doc, ids) = two_lines();
+    let id = ops::join_curves_ex(&mut doc, &ids, 30.0, ops::JoinMode::Fillet, 5.0).unwrap();
+    let pts = joined_nodes(&doc, id);
+    assert_eq!(pts.len(), 6, "{pts:?}");
+    // the rounded corner stays under the meeting point
+    assert!(pts.iter().all(|p| p.y > -12.5 + 1e-6), "{pts:?}");
+}
+
+#[test]
+fn join_curves_leaves_far_ends_alone() {
+    let (mut doc, ids) = two_lines();
+    let id = ops::join_curves_ex(&mut doc, &ids, 5.0, ops::JoinMode::Bezier, 0.0).unwrap();
+    match &doc.find(id).unwrap().kind {
+        ObjKind::Path(np) => assert_eq!(np.subpaths.len(), 2),
+        k => panic!("{k:?}"),
+    }
+}
+
+fn square_obj(fill: Color) -> Object {
+    let pts = [Point::new(0.0, 0.0), Point::new(100.0, 0.0), Point::new(100.0, 100.0), Point::new(0.0, 100.0)];
+    let mut st = Style::default();
+    st.fill = vector_core::Fill::Solid(fill);
+    Object::new(1, ObjKind::Path(vector_core::path::polyline(&pts, true)), Affine::IDENTITY, st)
+}
+
+#[test]
+fn contour_to_center_fills_the_object_and_turns_colors_clockwise() {
+    use vector_core::object::{contour_rings, ContourDir, ContourEffect};
+    let o = square_obj(Color::rgb(255, 0, 0));
+    let c = ContourEffect { dir: ContourDir::ToCenter, steps: 1, offset: 10.0, end_fill: Color::rgb(0, 0, 255), color_dir: 1, ..Default::default() };
+    let rings = contour_rings(&o, &c);
+    assert_eq!(rings.len(), 4, "steps of 10 until the center");
+    let col = |i: usize| match rings[i].1 {
+        vector_core::Fill::Solid(c) => c,
+        ref f => panic!("{f:?}"),
+    };
+    assert_eq!((col(3).r, col(3).g, col(3).b), (0, 0, 255));
+    // halfway from red to blue, clockwise around the wheel, is green
+    let mid = col(1);
+    assert!(mid.g > 200 && mid.r < 40 && mid.b < 40, "{mid:?}");
+}
+
+#[test]
+fn contour_outside_mitered_keeps_square_corners() {
+    use vector_core::object::{contour_rings, ContourDir, ContourEffect};
+    let o = square_obj(Color::WHITE);
+    let mitered = ContourEffect { dir: ContourDir::Outside, steps: 3, offset: 10.0, corner: 0, ..Default::default() };
+    let rings = contour_rings(&o, &mitered);
+    assert_eq!(rings.len(), 3);
+    // the farthest step comes first
+    let a = rings[0].0.area().abs();
+    assert!((a - 160.0 * 160.0).abs() < 50.0, "{a}");
+    let round = ContourEffect { corner: 1, ..mitered };
+    let r = contour_rings(&o, &round)[0].0.area().abs();
+    assert!(r < a - 100.0, "{r} {a}");
 }

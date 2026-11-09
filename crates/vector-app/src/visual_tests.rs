@@ -1126,3 +1126,318 @@ fn visual_symmetry_perspective() {
     h.state_mut().run(Cmd::InsertObject);
     save(&mut h, "s5_insert_object");
 }
+
+/// Every docker, one at a time, with a rectangle selected (as in the reference captures):
+/// `target/visual/dk_NNN.png`, numbered like `04-dockers/retangulo`.
+#[test]
+#[ignore]
+fn visual_dockers() {
+    use crate::dockers::{DockerId, ALL};
+    let mut h = harness();
+    h.state_mut().new_default_document();
+    h.state_mut().dockers.set_width = Some(320.0);
+    {
+        let d = h.state_mut().doc_mut().unwrap();
+        let mut st = Style::default();
+        st.fill = Fill::Solid(Color::rgb(70, 130, 200));
+        let r = RectShape { w: 216.0, h: 144.0, radii: [0.0; 4], corner: CornerType::default() };
+        let id = d.doc.new_id();
+        d.add_objects("Rectangle", vec![Object::new(id, ObjKind::Rect(r), Affine::translate((144.0, 288.0)), st)]);
+        d.selection = vec![id];
+    }
+    let only: Option<String> = std::env::var("VECTOR_DOCKER").ok();
+    for (i, d) in ALL.iter().copied().enumerate() {
+        if d == DockerId::Learn || only.as_ref().is_some_and(|o| format!("{d:?}") != *o) {
+            continue;
+        }
+        {
+            let app = h.state_mut();
+            app.dockers.open.clear();
+            app.dockers.show(d);
+            app.dockers.collapsed = false;
+            app.dockers.set_width = Some(320.0);
+        }
+        save(&mut h, &format!("dk_{:03}", i + 1));
+        // the inner states: tabs and modes
+        let states: &[fn(&mut VectorApp)] = match d {
+            DockerId::Transform => &[|a| a.dockers.ui.transform_tab = 1, |a| a.dockers.ui.transform_tab = 2, |a| a.dockers.ui.transform_tab = 3, |a| a.dockers.ui.transform_tab = 4],
+            DockerId::Coordinates => &[|a| a.dockers.ui.co.tab = 1, |a| a.dockers.ui.co.tab = 2, |a| a.dockers.ui.co.tab = 3, |a| a.dockers.ui.co.tab = 4, |a| a.dockers.ui.co.tab = 5, |a| a.dockers.ui.co.tab = 6],
+            DockerId::LiveGuides => &[|a| a.dockers.ui.lg_margins_open = true, |a| a.dockers.ui.lg_open = [false, true]],
+            DockerId::Guidelines => &[|a| a.dockers.ui.guide_type = 2],
+            DockerId::FitObjectsToPath => &[|a| a.dockers.ui.fit.style = 2, |a| a.dockers.ui.fit.style = 4],
+            DockerId::StepRepeat => &[|a| a.dockers.ui.step_mode = [2, 2], |a| a.dockers.ui.step_open = [false, true], |a| a.dockers.ui.step_open = [true, false]],
+            DockerId::Shape => &[|a| a.ts.shaping_op = 1, |a| a.ts.shaping_op = 2, |a| a.ts.shaping_op = 3, |a| a.ts.shaping_op = 4, |a| a.ts.shaping_op = 5, |a| a.ts.shaping_op = 6],
+            DockerId::Corners => &[|a| a.dockers.ui.corner_kind = 1, |a| a.dockers.ui.corner_kind = 2],
+            DockerId::JoinCurves => &[|a| a.dockers.ui.join_mode = 1, |a| a.dockers.ui.join_mode = 2, |a| a.dockers.ui.join_mode = 3],
+            DockerId::Bevel => &[|a| a.dockers.ui.bevel.emboss = true, |a| { a.dockers.ui.bevel.emboss = false; a.dockers.ui.bevel.to_center = true }],
+            DockerId::Blend => &[|a| a.dockers.ui.blend_dir = 1, |a| a.dockers.ui.blend_dir = 2, |a| a.dockers.ui.blend_more = true],
+            DockerId::Contour => &[
+                |a| contour_state(a, vector_core::object::ContourDir::ToCenter, 0, 0),
+                |a| contour_state(a, vector_core::object::ContourDir::Outside, 0, 0),
+                |a| contour_state(a, vector_core::object::ContourDir::Inside, 1, 0),
+                |a| contour_state(a, vector_core::object::ContourDir::Inside, 0, 1),
+                |a| contour_state(a, vector_core::object::ContourDir::Inside, 2, 0),
+                |a| contour_state(a, vector_core::object::ContourDir::Inside, 0, 2),
+            ],
+            DockerId::Envelope => &[|a| a.dockers.ui.env_mode = 0, |a| a.dockers.ui.env_mode = 1, |a| a.dockers.ui.env_mode = 2],
+            DockerId::Extrude => &[|a| a.dockers.ui.ex_tab = 1, |a| a.dockers.ui.ex_tab = 2, |a| a.dockers.ui.ex_tab = 3, |a| a.dockers.ui.ex_tab = 4],
+            DockerId::Lens => &[
+                |a| lens_state(a, 0),
+                |a| lens_state(a, 1),
+                |a| lens_state(a, 2),
+                |a| lens_state(a, 3),
+                |a| lens_state(a, 4),
+                |a| lens_state(a, 5),
+                |a| lens_state(a, 6),
+                |a| lens_state(a, 7),
+                |a| lens_state(a, 8),
+                |a| lens_state(a, 9),
+                |a| lens_state(a, 10),
+                |a| lens_state(a, 11),
+            ],
+            DockerId::Color => &[|a| a.dockers.ui.color_ed.view = 1, |a| a.dockers.ui.color_ed.view = 2],
+            DockerId::Properties => &[
+                |a| a.dockers.ui.pr.tab = 6,
+                |a| a.dockers.ui.pr.tabbed = false,
+                |a| {
+                    a.dockers.ui.pr.tabbed = true;
+                    a.dockers.ui.pr.summary = false;
+                    a.dockers.ui.pr.tab = 4;
+                },
+                |a| {
+                    a.dockers.ui.pr.summary = true;
+                    a.dockers.ui.pr.tab = 0;
+                    a.dockers.ui.pr.open[0] = false;
+                },
+                |a| {
+                    a.dockers.ui.pr.open[0] = true;
+                    a.dockers.ui.pr.tab = 1;
+                    pr_fill(a, 0);
+                },
+                |a| pr_fill(a, 2),
+                |a| pr_fill(a, 3),
+                |a| pr_fill(a, 4),
+                |a| pr_fill(a, 1),
+                |a| a.dockers.ui.pr.fill_ed.view = 1,
+                |a| a.dockers.ui.pr.fill_ed.view = 2,
+                |a| {
+                    a.dockers.ui.pr.fill_ed.view = 0;
+                    a.dockers.ui.pr.open[1] = false;
+                },
+                |a| {
+                    a.dockers.ui.pr.open[1] = true;
+                    a.dockers.ui.pr.tab = 2;
+                    pr_transparency(a, 1);
+                },
+                |a| pr_transparency(a, 2),
+                |a| pr_transparency(a, 3),
+                |a| pr_transparency(a, 4),
+                |a| pr_transparency(a, 5),
+                |a| {
+                    pr_transparency(a, 0);
+                    a.dockers.ui.pr.tab = 3;
+                },
+                |a| a.dockers.ui.pr.tab = 5,
+            ],
+            DockerId::Comments => &[comments_state],
+            DockerId::Objects => &[|a| a.settings.om_layers_view = true],
+            DockerId::ObjectStyles => &[
+                |a| a.dockers.ui.os.sel = crate::dockers::ostyles::OsSel::Styles,
+                |a| a.dockers.ui.os.sel = crate::dockers::ostyles::OsSel::Sets,
+                |a| {
+                    a.dockers.ui.os.sel = crate::dockers::ostyles::OsSel::None;
+                    a.dockers.ui.os.open[2] = true;
+                },
+                |a| a.dockers.ui.os.sel = crate::dockers::ostyles::OsSel::Default(1),
+            ],
+            DockerId::AiGenerate => &[|a| a.settings.ai_terms_accepted = true],
+            DockerId::Export => &[|a| a.run(crate::commands::Cmd::ExportDockerAddPage)],
+            DockerId::Assets => &[
+                |a| {
+                    // two drawings and two images in a sample folder (one in a category)
+                    let dir = std::path::PathBuf::from("../../target/visual/assets");
+                    let _ = std::fs::create_dir_all(dir.join("Food"));
+                    for (n, c) in [("Food/PH00066.png", [200u8, 120, 60]), ("PH00453.png", [90, 160, 70])] {
+                        let img = image::RgbImage::from_fn(96, 72, |x, y| image::Rgb([c[0].wrapping_add((x / 3) as u8), c[1], c[2].wrapping_add((y / 3) as u8)]));
+                        let _ = img.save(dir.join(n));
+                    }
+                    let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60"><circle cx="30" cy="30" r="24" fill="#e33"/></svg>"##;
+                    let _ = std::fs::write(dir.join("Food/CGS03556.svg"), svg);
+                    let _ = std::fs::write(dir.join("CGS12877.svg"), svg.replace("e33", "4a4"));
+                    a.settings.asset_folders = vec![std::fs::canonicalize(&dir).unwrap_or(dir).to_string_lossy().to_string()];
+                },
+                |a| a.dockers.ui.assets.rasters = false,
+                |a| a.dockers.ui.assets.source = 2,
+            ],
+            DockerId::ColorProofing => &[|a| {
+                a.settings.proof_colors = true;
+                a.settings.proof_gamut = true;
+            }],
+            DockerId::ColorStyles => &[
+                |a| {
+                    let d = a.doc_mut().unwrap();
+                    for (i, c) in [Color::rgb(230, 60, 40), Color::rgb(40, 110, 200), Color::rgb(250, 200, 30), Color::rgb(60, 160, 80)].into_iter().enumerate() {
+                        d.doc.color_styles.push(vector_core::NamedColor::new(format!("Color Style {}", i + 1), c));
+                    }
+                    d.doc.color_harmonies.push(vector_core::document::ColorHarmony {
+                        name: "Harmony 1".into(),
+                        rule: 6,
+                        styles: [Color::rgb(220, 40, 40), Color::rgb(40, 220, 40), Color::rgb(40, 40, 220)].into_iter().enumerate().map(|(i, c)| vector_core::NamedColor::new(format!("Color Style {}", i + 5), c)).collect(),
+                    });
+                    a.dockers.ui.cs.harmony = Some(0);
+                    a.dockers.ui.cs.sel = vec![(Some(0), 0), (Some(0), 1), (Some(0), 2)];
+                },
+                |a| {
+                    a.dockers.ui.cs.harmony = None;
+                    a.dockers.ui.cs.sel = vec![(None, 1)];
+                },
+            ],
+            DockerId::Palettes => &[
+                |a| a.dockers.ui.pm.open.extend(["lib/process".to_string()]),
+                |a| {
+                    a.dockers.ui.pm.open.remove("lib/process");
+                    a.dockers.ui.pm.open.insert("lib/spot".into());
+                    a.dockers.ui.pm.sel = Some("lib/spot".into());
+                },
+            ],
+            DockerId::LinksRollovers => &[
+                |a| {
+                    a.dockers.ui.link_url.clear();
+                    crate::propbar::edit_sel(a, "Hyperlink", |o| o.url = Some("https://example.com".into()));
+                },
+                |a| crate::propbar::edit_sel(a, "Behavior", |o| {
+                    o.url = None;
+                    o.link.bookmark = Some("top".into());
+                }),
+            ],
+            DockerId::Text => &[
+                |a| {
+                    a.dockers.ui.tx.more = [true; 3];
+                },
+                |a| {
+                    a.dockers.ui.tx.more = [false; 3];
+                    a.dockers.ui.tx.tab = 1;
+                    a.dockers.ui.tx.jump = true;
+                },
+            ],
+            DockerId::FontSampler => &[|a| a.dockers.ui.fs.view = 1, |a| a.dockers.ui.fs.view = 2],
+            DockerId::FindReplace => &[
+                |a| a.dockers.ui.fr.by_names = true,
+                |a| {
+                    a.dockers.ui.fr.by_names = false;
+                    a.dockers.ui.fr.range_open = true;
+                },
+                |a| a.dockers.ui.fr.mode = 1,
+                |a| a.dockers.ui.fr.mode = 2,
+            ],
+            DockerId::Pages => &[pages_state, |a| a.doc_mut().unwrap().doc.settings.multipage_view = true],
+            DockerId::Symbols => &[symbols_state, |a| a.dockers.ui.sym_lib = 1, |a| a.dockers.ui.sym_local_open = true],
+            DockerId::ObjectData => &[|a| a.dialogs.object_data_manager = true, |a| {
+                a.dialogs.object_data_manager = false;
+                a.dialogs.data_field_editor = Some(Default::default());
+            }],
+            DockerId::AlignDistribute => &[|a| a.dockers.ui.align_to = 1, |a| a.dockers.ui.align_to = 2, |a| a.dockers.ui.align_to = 3, |a| a.dockers.ui.align_to = 4, |a| a.dockers.ui.dist_to = 1, |a| a.dockers.ui.dist_to = 2],
+            _ => &[],
+        };
+        for (k, f) in states.iter().enumerate() {
+            f(h.state_mut());
+            save(&mut h, &format!("dk_{:03}_{}", i + 1, k + 1));
+        }
+        let a = h.state_mut();
+        a.dialogs.object_data_manager = false;
+        a.dialogs.data_field_editor = None;
+        if d == DockerId::Symbols {
+            a.doc_mut().unwrap().doc.symbols.clear();
+        }
+        a.settings.om_layers_view = false;
+        a.dockers.ui.fr = Default::default();
+        a.dockers.ui.pm = Default::default();
+        a.dockers.ui.cs = Default::default();
+        a.dockers.ui.assets = Default::default();
+        a.settings.asset_folders.clear();
+        a.settings.proof_colors = false;
+        a.settings.proof_gamut = false;
+        if d == DockerId::ColorStyles {
+            let dv = a.doc_mut().unwrap();
+            dv.doc.color_styles.clear();
+            dv.doc.color_harmonies.clear();
+        }
+        a.dockers.ui.tx = Default::default();
+        a.dockers.ui.fs = Default::default();
+        a.dockers.ui.export_items.clear();
+        a.settings.ai_terms_accepted = false;
+        if d == DockerId::LinksRollovers {
+            crate::propbar::edit_sel(a, "Behavior", |o| o.link = Default::default());
+            a.dockers.ui.link_url.clear();
+        }
+        if d == DockerId::Pages {
+            let dv = a.doc_mut().unwrap();
+            dv.doc.pages.truncate(1);
+            dv.doc.settings.multipage_view = false;
+            dv.page = 0;
+        }
+    }
+}
+
+/// A Pages docker state: three pages, the first current.
+#[cfg(test)]
+fn pages_state(a: &mut VectorApp) {
+    let d = a.doc_mut().unwrap();
+    let (w, h) = (d.doc.pages[0].width, d.doc.pages[0].height);
+    d.doc.add_page(1, w, h);
+    d.doc.add_page(2, w, h);
+    d.page = 0;
+}
+
+/// A Symbols docker state: a symbol made of the rectangle, selected.
+#[cfg(test)]
+fn symbols_state(a: &mut VectorApp) {
+    let d = a.doc_mut().unwrap();
+    let objs: Vec<Object> = d.selection.iter().filter_map(|id| d.doc.find(*id).cloned()).collect();
+    let id = d.doc.new_id();
+    d.doc.symbols.push(vector_core::document::SymbolDef { id, name: "simbolo-teste".into(), objects: objs, link: None });
+    a.dockers.ui.sym_sel = Some("simbolo-teste".into());
+}
+
+/// A Comments docker state: a note and a rectangle markup, the note selected.
+#[cfg(test)]
+fn comments_state(a: &mut VectorApp) {
+    use vector_core::document::Comment;
+    let d = a.doc_mut().unwrap();
+    let pid = d.doc.pages[0].id;
+    let mut n = Comment::new(9001, pid, "Reviewer".into(), 0, &[kurbo::Point::new(380.0, 280.0)]);
+    n.text = "Make the title larger".into();
+    n.date = "2026-11-09".into();
+    n.replies.push(("Designer".into(), "Done".into()));
+    let mut r = Comment::new(9002, pid, "Reviewer".into(), 4, &[kurbo::Point::new(130.0, 275.0), kurbo::Point::new(375.0, 445.0)]);
+    r.text = "Check this color".into();
+    r.date = "2026-11-09".into();
+    d.doc.comments = vec![n, r];
+    a.dockers.ui.comment_sel = Some(9001);
+}
+
+/// A Contour docker state: the alignment, corners and color blend.
+#[cfg(test)]
+fn contour_state(a: &mut VectorApp, dir: vector_core::object::ContourDir, corner: u8, color_dir: u8) {
+    let c = &mut a.dockers.ui.contour;
+    c.dir = dir;
+    c.corner = corner;
+    c.color_dir = color_dir;
+}
+
+/// A Lens docker state: the selection gets a lens of the `k`th type.
+#[cfg(test)]
+fn pr_fill(a: &mut VectorApp, k: u8) {
+    let f = crate::dockers::props::new_fill(a, k, Color::rgb(70, 130, 200));
+    crate::propbar::edit_sel(a, "Fill", |o| o.style.fill = f.clone());
+}
+
+fn pr_transparency(a: &mut VectorApp, k: u8) {
+    let t = crate::dockers::props::new_transparency(a, k);
+    crate::propbar::edit_sel(a, "Transparency", |o| o.style.transparency = t.clone());
+}
+
+fn lens_state(a: &mut VectorApp, k: usize) {
+    let l = vector_core::object::LensEffect::new(vector_core::object::LensKind::ALL[k]);
+    crate::propbar::edit_sel(a, "Lens", |o| o.effects.lens = Some(l.clone()));
+}

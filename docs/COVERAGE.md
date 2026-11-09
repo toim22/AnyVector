@@ -13,14 +13,14 @@ The *Reference* column is a path inside the reference folder.
 
 | Area | Done | Partial | Todo | Omitted | Total |
 |---|---:|---:|---:|---:|---:|
-| [Menus](#menus) | 334 | 290 | 1 | 162 | 787 |
+| [Menus](#menus) | 378 | 246 | 1 | 162 | 787 |
 | [Dialogs and screens](#dialogs-and-screens) | 50 | 41 | 0 | 1 | 92 |
 | [Bitmap effects (Properties docker)](#bitmap-effects-properties-docker) | 0 | 120 | 0 | 0 | 120 |
-| [Dockers](#dockers) | 0 | 44 | 0 | 1 | 45 |
+| [Dockers](#dockers) | 11 | 33 | 0 | 1 | 45 |
 | [Tools](#tools) | 94 | 0 | 0 | 0 | 94 |
 | [Toolbars](#toolbars) | 12 | 0 | 0 | 0 | 12 |
 | [Right-click menus](#right-click-menus) | 24 | 0 | 0 | 3 | 27 |
-| **All** | **514** | **495** | **1** | **167** | **1177** |
+| **All** | **569** | **440** | **1** | **167** | **1177** |
 
 ## Menus
 
@@ -630,7 +630,7 @@ The *Reference* column is a path inside the reference folder.
 
 ### Window
 
-8 done · 79 partial · 0 todo · 1 omitted
+52 done · 35 partial · 0 todo · 1 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
@@ -651,51 +651,51 @@ The *Reference* column is a path inside the reference folder.
 | Window > Workspace > Import... | opens a window | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\11 Window\002 Window ▸ Workspace ▸ Import.png` |
 | Window > Workspace > Export... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
 | Window > Dockers | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\11 Window\005 Window ▸ Dockers.png` |
-| Window > Dockers > Properties | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Objects | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Pages | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Comments | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Object Data | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Object Styles | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Symbols | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Find and Replace | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Export | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > AI Generate | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Transform | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Coordinates | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Live Guides | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Guidelines | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Align and Distribute | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Fit Objects to Path | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Step and Repeat | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Shape | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Corners | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Join Curves | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Text | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Font Sampler | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Glyphs | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Window > Dockers > Properties | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Objects | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Pages | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Comments | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Object Data | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Object Styles | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Symbols | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Find and Replace | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Export | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > AI Generate | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Transform | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Coordinates | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Live Guides | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Guidelines | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Align and Distribute | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Fit Objects to Path | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Step and Repeat | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Shape | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Corners | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Join Curves | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Text | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Font Sampler | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Glyphs | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
 | Window > Dockers > Effects | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\11 Window\006 Window ▸ Dockers ▸ Effects.png` |
-| Window > Dockers > Effects > Artistic Media | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Effects > Bevel | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Effects > Bitmap Mask | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Effects > Blend | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Effects > Contour | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Effects > Envelope | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Effects > Extrude | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Effects > Lens | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Effects > PhotoCocktail | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Effects > Pointillizer | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Color | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Palettes | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Color Styles | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Color Proofing | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Assets | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Tray | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Links and Rollovers | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Sources | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Views | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > History | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dockers > Scripts | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Window > Dockers > Effects > Artistic Media | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Effects > Bevel | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Effects > Bitmap Mask | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Effects > Blend | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Effects > Contour | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Effects > Envelope | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Effects > Extrude | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Effects > Lens | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Effects > PhotoCocktail | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Effects > Pointillizer | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Color | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Palettes | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Color Styles | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Color Proofing | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Assets | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Tray | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Links and Rollovers | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Sources | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Views | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > History | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
+| Window > Dockers > Scripts | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
 | Window > Dockers > Learn | command |  | ➖ omitted | Corel Learn content |  |
 | Window > Toolbars | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\11 Window\007 Window ▸ Toolbars.png` |
 | Window > Toolbars > Default Button Size | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\11 Window\008 Window ▸ Toolbars ▸ Default Button Size.png` |
@@ -1304,50 +1304,50 @@ The *Reference* column is a path inside the reference folder.
 
 | Docker | Inner states | Status | Note | Reference |
 |---|---|---|---|---|
-| Properties | 51 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\001 Properties.png` |
-| Objects | 5 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\002 Objects.png` |
-| Pages | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\003 Pages.png` |
-| Comments | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\004 Comments.png` |
-| Object Data | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\005 Object Data.png` |
-| Object Styles | 5 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\006 Object Styles.png` |
-| Symbols | 4 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\007 Symbols.png` |
-| Find and Replace | 5 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\008 Find and Replace.png` |
-| Export | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\009 Export.png` |
-| AI Generate | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\010 AI Generate.png` |
-| Transform | 5 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\011 Transform.png` |
-| Coordinates | 7 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\012 Coordinates.png` |
-| Live Guides | 8 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\013 Live Guides.png` |
-| Guidelines | 7 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\014 Guidelines.png` |
-| Align and Distribute | 7 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\015 Align and Distribute.png` |
-| Fit Objects to Path | 9 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\016 Fit Objects to Path.png` |
-| Step and Repeat | 9 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\017 Step and Repeat.png` |
-| Shape | 8 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\018 Shape.png` |
-| Corners | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\019 Corners.png` |
-| Join Curves | 4 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\020 Join Curves.png` |
-| Text | 25 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\021 Text.png` |
-| Font Sampler | 4 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\022 Font Sampler.png` |
-| Glyphs | 11 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\023 Glyphs.png` |
-| Effects > Artistic Media | 11 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\024 Effects ▸ Artistic Media.png` |
-| Effects > Bevel | 5 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\025 Effects ▸ Bevel.png` |
-| Effects > Bitmap Mask | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\026 Effects ▸ Bitmap Mask.png` |
-| Effects > Blend | 5 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\027 Effects ▸ Blend.png` |
-| Effects > Contour | 9 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\028 Effects ▸ Contour.png` |
-| Effects > Envelope | 5 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\029 Effects ▸ Envelope.png` |
-| Effects > Extrude | 5 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\030 Effects ▸ Extrude.png` |
-| Effects > Lens | 14 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\031 Effects ▸ Lens.png` |
-| Effects > PhotoCocktail | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\032 Effects ▸ PhotoCocktail.png` |
-| Effects > Pointillizer | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\033 Effects ▸ Pointillizer.png` |
-| Color | 6 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\034 Color.png` |
-| Palettes | 7 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\035 Palettes.png` |
-| Color Styles | 6 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\036 Color Styles.png` |
-| Color Proofing | 5 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\037 Color Proofing.png` |
-| Assets | 7 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\038 Assets.png` |
-| Tray | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\039 Tray.png` |
-| Links and Rollovers | 4 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\040 Links and Rollovers.png` |
-| Sources | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\041 Sources.png` |
-| Views | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\042 Views.png` |
-| History | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\043 History.png` |
-| Scripts | 4 | 🟡 partial | exists in Vector; not yet checked against the reference | `04-dockers\retangulo\044 Scripts.png` |
+| Properties | 51 | 🟡 partial | matches the reference layout; skew of fills, texture and PostScript fills, bitmap tone adjustments, pattern offsets and Save as new are missing | `04-dockers\retangulo\001 Properties.png` |
+| Objects | 5 | 🟡 partial | matches the reference; no drag and drop of layers and objects, the Desktop layer is not a real layer | `04-dockers\retangulo\002 Objects.png` |
+| Pages | 3 | 🟡 partial | matches the reference; the Custom multipage arrangement is horizontal | `04-dockers\retangulo\003 Pages.png` |
+| Comments | 2 | 🟡 partial | matches the reference; no anonymous mode | `04-dockers\retangulo\004 Comments.png` |
+| Object Data | 3 | 🟡 partial | matches the reference; no Application Defaults, field formats or Print | `04-dockers\retangulo\005 Object Data.png` |
+| Object Styles | 5 | 🟡 partial | matches the reference; the style editor is simpler, Character/Paragraph/Frame styles are disabled | `04-dockers\retangulo\006 Object Styles.png` |
+| Symbols | 4 | 🟡 partial | matches the reference; Network Symbols is empty | `04-dockers\retangulo\007 Symbols.png` |
+| Find and Replace | 5 | 🟡 partial | matches the reference; Pantone queries find nothing, Color model or palette replace is disabled | `04-dockers\retangulo\008 Find and Replace.png` |
+| Export | 1 | 🟡 partial | matches the reference; the export list cannot be reordered by dragging | `04-dockers\retangulo\009 Export.png` |
+| AI Generate | 1 | ✅ done | terms page, then the create pages; the API key comes from an environment variable | `04-dockers\retangulo\010 AI Generate.png` |
+| Transform | 5 | 🟡 partial | matches the reference; Scale portion is measured with two clicks | `04-dockers\retangulo\011 Transform.png` |
+| Coordinates | 7 | ✅ done | matches the reference | `04-dockers\retangulo\012 Coordinates.png` |
+| Live Guides | 8 | 🟡 partial | matches the reference; the intelligent spacing and dimensioning marks are not drawn | `04-dockers\retangulo\013 Live Guides.png` |
+| Guidelines | 7 | 🟡 partial | matches the reference; Show at scale is only stored | `04-dockers\retangulo\014 Guidelines.png` |
+| Align and Distribute | 7 | 🟡 partial | matches the reference; Use outline is not shown | `04-dockers\retangulo\015 Align and Distribute.png` |
+| Fit Objects to Path | 9 | ✅ done | matches the reference | `04-dockers\retangulo\016 Fit Objects to Path.png` |
+| Step and Repeat | 9 | 🟡 partial | matches the reference; the vertical offset runs down (the ruler is y-down) | `04-dockers\retangulo\017 Step and Repeat.png` |
+| Shape | 8 | ✅ done | matches the reference | `04-dockers\retangulo\018 Shape.png` |
+| Corners | 3 | ✅ done | matches the reference | `04-dockers\retangulo\019 Corners.png` |
+| Join Curves | 4 | ✅ done | matches the reference | `04-dockers\retangulo\020 Join Curves.png` |
+| Text | 25 | 🟡 partial | matches the reference; some Character, Paragraph and Frame options are disabled | `04-dockers\retangulo\021 Text.png` |
+| Font Sampler | 4 | 🟡 partial | matches the reference; samples cannot be dragged into the drawing | `04-dockers\retangulo\022 Font Sampler.png` |
+| Glyphs | 11 | 🟡 partial | matches the reference; OpenType and Language info are empty, Show all glyph variations is disabled | `04-dockers\retangulo\023 Glyphs.png` |
+| Effects > Artistic Media | 11 | ✅ done | matches the reference | `04-dockers\retangulo\024 Effects ▸ Artistic Media.png` |
+| Effects > Bevel | 5 | 🟡 partial | matches the reference; Emboss is approximate | `04-dockers\retangulo\025 Effects ▸ Bevel.png` |
+| Effects > Bitmap Mask | 2 | ✅ done | matches the reference | `04-dockers\retangulo\026 Effects ▸ Bitmap Mask.png` |
+| Effects > Blend | 5 | 🟡 partial | matches the reference; fixed spacing, Map nodes, Split and Fuse are disabled | `04-dockers\retangulo\027 Effects ▸ Blend.png` |
+| Effects > Contour | 9 | ✅ done | matches the reference | `04-dockers\retangulo\028 Effects ▸ Contour.png` |
+| Effects > Envelope | 5 | 🟡 partial | matches the reference; presets are approximated with 8 handles | `04-dockers\retangulo\029 Effects ▸ Envelope.png` |
+| Effects > Extrude | 5 | 🟡 partial | matches the reference; Shared vanishing point is disabled, Copy VP From copies the whole extrusion | `04-dockers\retangulo\030 Effects ▸ Extrude.png` |
+| Effects > Lens | 14 | 🟡 partial | matches the reference; Frozen is only stored, the Bitmap Effect lens does nothing | `04-dockers\retangulo\031 Effects ▸ Lens.png` |
+| Effects > PhotoCocktail | 2 | ✅ done | matches the reference | `04-dockers\retangulo\032 Effects ▸ PhotoCocktail.png` |
+| Effects > Pointillizer | 3 | ✅ done | matches the reference | `04-dockers\retangulo\033 Effects ▸ Pointillizer.png` |
+| Color | 6 | 🟡 partial | matches the reference; Add to Custom Spot Colors lasts for the session only | `04-dockers\retangulo\034 Color.png` |
+| Palettes | 7 | 🟡 partial | matches the reference; licensed palette books (PANTONE, TRUMATCH...) are not included | `04-dockers\retangulo\035 Palettes.png` |
+| Color Styles | 6 | 🟡 partial | matches the reference; styles link to objects by equal color only, the harmony wheel is display-only | `04-dockers\retangulo\036 Color Styles.png` |
+| Color Proofing | 5 | 🟡 partial | matches the reference; CMYK output is simulated with a built-in SWOP approximation (no color engine) | `04-dockers\retangulo\037 Color Proofing.png` |
+| Assets | 7 | 🟡 partial | matches the reference; Cloud and Get More are disabled, categories are subfolders | `04-dockers\retangulo\038 Assets.png` |
+| Tray | 3 | 🟡 partial | matches the reference; trays last for the session only | `04-dockers\retangulo\039 Tray.png` |
+| Links and Rollovers | 4 | 🟡 partial | matches the reference; the hotspot is always the bounding box, Target and Alt are only stored | `04-dockers\retangulo\040 Links and Rollovers.png` |
+| Sources | 1 | 🟡 partial | matches the reference; only bitmaps can be linked | `04-dockers\retangulo\041 Sources.png` |
+| Views | 1 | 🟡 partial | matches the reference; views are not listed in the zoom list | `04-dockers\retangulo\042 Views.png` |
+| History | 2 | 🟡 partial | matches the reference; no Save as a script | `04-dockers\retangulo\043 History.png` |
+| Scripts | 4 | 🟡 partial | matches the reference; scripts are Rhai | `04-dockers\retangulo\044 Scripts.png` |
 | Learn | 11 | ➖ omitted | Corel Learn content | `04-dockers\retangulo\045 Learn.png` |
 
 ## Tools

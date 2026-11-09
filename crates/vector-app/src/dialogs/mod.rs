@@ -3,11 +3,13 @@
 
 pub mod forms;
 pub mod layout;
+pub mod linestyle;
 pub mod clipboard;
 pub mod docprops;
 pub mod export;
 pub mod merge;
 pub mod new_doc;
+pub mod objdata;
 pub mod object;
 pub mod options;
 pub mod print;
@@ -36,6 +38,8 @@ pub enum Choice {
 #[derive(Default)]
 pub struct Dialogs {
     pub confirm_quit: bool,
+    /// Properties ▸ Outline ▸ Edit Line Style.
+    pub line_style: Option<linestyle::LineStyleState>,
     /// Shape tool ▸ Align Nodes: horizontally, vertically, control points.
     pub node_align: Option<[bool; 3]>,
     pub options: OptionsState,
@@ -44,6 +48,10 @@ pub struct Dialogs {
     pub print: Option<PrintState>,
     pub doc_props: bool,
     pub script_editor: Option<ScriptEditorState>,
+    /// Object Data docker: the spreadsheet (Object Data Manager), its levels, and the field editor.
+    pub object_data_manager: bool,
+    pub data_levels: usize,
+    pub data_field_editor: Option<objdata::FieldEditorState>,
     pub about: bool,
     pub palette_editor: Option<PaletteEditorState>,
     /// Rename page: (page index, edited name).
@@ -140,6 +148,7 @@ impl Dialogs {
             || self.border_grommet.is_some()
             || self.table.is_some()
             || self.arrowhead.is_some()
+            || self.line_style.is_some()
             || self.pattern.is_some()
             || self.barcode.is_some()
             || self.tabs.is_some()
@@ -207,6 +216,9 @@ pub fn show(app: &mut VectorApp, ctx: &egui::Context) {
     }
     if app.dialogs.arrowhead.is_some() {
         object::arrowhead(app, ctx);
+    }
+    if app.dialogs.line_style.is_some() {
+        linestyle::show(app, ctx);
     }
     if app.dialogs.pattern.is_some() {
         object::pattern(app, ctx);

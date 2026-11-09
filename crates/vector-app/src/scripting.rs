@@ -241,9 +241,3 @@ pub fn scripts_dir() -> std::path::PathBuf {
     let _ = std::fs::create_dir_all(&d);
     d
 }
-
-pub fn list_scripts() -> Vec<std::path::PathBuf> {
-    let mut v: Vec<_> = std::fs::read_dir(scripts_dir()).map(|r| r.filter_map(|e| e.ok()).map(|e| e.path()).filter(|p| p.extension().map(|e| e == "rhai").unwrap_or(false)).collect()).unwrap_or_default();
-    v.sort();
-    v
-}

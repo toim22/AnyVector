@@ -8,7 +8,7 @@ pub(crate) mod overlay;
 pub mod shapes;
 
 pub use ids::*;
-pub use interact::{guide_at, handle_input, handle_point, handle_table_keys, handle_text_keys, regen_impacts, table_typing, tick, Input};
+pub use interact::{envelope_from_shape, guide_at, handle_input, handle_point, handle_table_keys, handle_text_keys, regen_impacts, table_typing, tick, Input};
 pub use overlay::draw_overlay;
 
 use crate::app::VectorApp;
@@ -24,7 +24,7 @@ use vector_core::{Color, Fill, ObjId, ObjKind, Object, Outline, Style};
 pub use shapes::COMMON_SHAPES;
 
 /// A one-shot "click an object" target set by commands such as PowerClip > Place Inside.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum PickTarget {
     PowerClip,
     /// Copy Properties From: which properties to copy.
@@ -39,6 +39,16 @@ pub enum PickTarget {
     /// Order ▸ In Front Of / Behind.
     Order { in_front: bool },
     CopyPowerClip,
+    /// Bitmap Mask color selector: the color under the click.
+    SampleColor,
+    /// Pointillizer ▸ Shape ▸ Custom ▸ Select: a closed curve.
+    TileShape,
+    /// A docker measuring on the canvas (Transform ▸ Scale portion, Coordinates): two points.
+    Measure { first: Option<Point> },
+    /// A docker taking a point clicked on the canvas (Coordinates).
+    DockerPoint,
+    /// A docker taking an object clicked on the canvas (Shape ▸ Weld to, Trim, Intersect with).
+    DockerObject,
 }
 
 /// Kind of interactive transform on the Pick tool.
@@ -61,6 +71,8 @@ pub enum Drag {
     Marquee { start: Point },
     /// Object ▸ Create ▸ Pattern Fill: the area the pattern is made from.
     PatternArea { start: Point },
+    /// A Comments docker markup being drawn.
+    Markup { points: Vec<Point> },
     Lasso { points: Vec<Point> },
     Transform { kind: Xform, start: Point, bb: Rect, ids: Vec<ObjId>, center: Point },
     /// Two-point drags: shapes, text frames, tables, zoom area, crop, knife, effects.
@@ -111,6 +123,18 @@ pub struct ToolState {
     pub auto_close: bool,
     pub media_width: f64,
     pub media_kind: usize,
+    /// Artistic Media docker: the stroke the Artistic Media tool draws (preset kind 0).
+    pub media_profile: Option<vector_core::style::WidthProfile>,
+    /// A color clicked on the canvas for a docker (Bitmap Mask color selector).
+    pub picked_color: Option<Color>,
+    /// A closed curve clicked on the canvas for a docker (Pointillizer custom tile).
+    pub picked_shape: Option<kurbo::BezPath>,
+    /// Two points measured on the canvas for a docker (Transform ▸ Scale portion, Coordinates).
+    pub picked_segment: Option<(Point, Point)>,
+    /// A point clicked on the canvas for a docker (Coordinates).
+    pub picked_point: Option<Point>,
+    /// An object clicked on the canvas for a docker (Shape ▸ Weld to, Trim, Intersect with).
+    pub picked_object: Option<vector_core::ObjId>,
     pub blend_steps: u32,
     pub distort_kind: DistortKind,
     pub text_format: CharFormat,
@@ -139,13 +163,18 @@ pub struct ToolState {
     pub table_cell_to: Option<(usize, usize)>,
     /// Object ▸ Create ▸ Pattern Fill waiting for its marquee: type and resolution.
     pub pattern_area: Option<(u8, u8)>,
+    /// A Comments docker markup tool waiting for the pointer (see `Comment::mark`), and the
+    /// comment it made last (for the docker to take its text).
+    pub markup: Option<u8>,
+    pub comment_new: Option<u64>,
     /// Fill for new objects (`None` = no fill, as in the original's defaults).
     pub new_fill: Option<Color>,
     pub eyedrop_color: Option<Color>,
     pub eyedrop_attrs: Option<(Style, vector_core::object::Effects)>,
     pub snap_mark: Option<(Point, &'static str)>,
     /// Alignment and dynamic guides shown while snapping to them.
-    pub guide_lines: Vec<(Point, Point)>,
+    /// Alignment, margin and dynamic guide lines on screen: (from, to, 0 alignment / 1 margin / 2 dynamic).
+    pub guide_lines: Vec<(Point, Point, u8)>,
     pub renderer: vector_render::Renderer,
     /// Text typed at a point before the text object exists: (point, paragraph frame).
     pub pending_text: Option<(Point, Option<Rect>)>,
@@ -210,6 +239,12 @@ impl Default for ToolState {
             auto_close: false,
             media_width: 7.2,
             media_kind: 0,
+            media_profile: None,
+            picked_color: None,
+            picked_shape: None,
+            picked_segment: None,
+            picked_point: None,
+            picked_object: None,
             blend_steps: 20,
             distort_kind: DistortKind::PushPull,
             text_format: CharFormat::default(),
@@ -230,6 +265,8 @@ impl Default for ToolState {
             table_cell: None,
             table_cell_to: None,
             pattern_area: None,
+            markup: None,
+            comment_new: None,
             new_fill: None,
             eyedrop_color: None,
             eyedrop_attrs: None,
@@ -279,6 +316,9 @@ impl ToolState {
     }
     /// Status bar hint for a tool, adapted to what is in progress.
     pub fn hint(&self, t: ToolId) -> String {
+        if let Some(m) = self.markup {
+            return if m == 0 { "Click to place a note (Esc to cancel)" } else { "Drag to draw the markup (Esc to cancel)" }.into();
+        }
         if let Some(p) = self.pick_target {
             return match p {
                 PickTarget::PowerClip => "Click the frame object to place the selection inside it (Esc to cancel)",
@@ -291,6 +331,12 @@ impl ToolState {
                 PickTarget::EnvelopeFrom => "Click the object whose shape the envelope takes (Esc to cancel)",
                 PickTarget::ImpactBoundary { outer: false } => "Click the object that makes the inner boundary (Esc to cancel)",
                 PickTarget::ImpactBoundary { outer: true } => "Click the object that makes the outer boundary (Esc to cancel)",
+                PickTarget::SampleColor => "Click a color in the bitmap (Esc to cancel)",
+                PickTarget::TileShape => "Click the closed curve to use as the tile (Esc to cancel)",
+                PickTarget::Measure { first: None } => "Click the first point (Esc to cancel)",
+                PickTarget::Measure { first: Some(_) } => "Click the second point (Esc to cancel)",
+                PickTarget::DockerPoint => "Click a point on the page (Esc to cancel)",
+                PickTarget::DockerObject => "Click the target object (Esc to cancel)",
             }
             .into();
         }
@@ -308,7 +354,7 @@ impl ToolState {
     }
 
     pub fn is_busy(&self) -> bool {
-        !self.drag.is_none() || !self.curve.is_empty() || self.crop_rect.is_some() || self.line_start.is_some() || !self.stage.is_empty() || self.pick_target.is_some() || self.pending_text.is_some() || self.pattern_area.is_some()
+        !self.drag.is_none() || !self.curve.is_empty() || self.crop_rect.is_some() || self.line_start.is_some() || !self.stage.is_empty() || self.pick_target.is_some() || self.pending_text.is_some() || self.pattern_area.is_some() || self.markup.is_some()
     }
 
     pub fn cancel(&mut self) {
@@ -320,6 +366,7 @@ impl ToolState {
         self.pick_target = None;
         self.pending_text = None;
         self.pattern_area = None;
+        self.markup = None;
         self.snap_mark = None;
         self.guide_lines.clear();
         self.press = None;
@@ -650,9 +697,10 @@ pub fn move_nodes(np: &mut NodePath, refs: &[(usize, usize)], d: Vec2) {
 }
 
 /// Round / scallop / chamfer the sharp corners of a curve.
-/// `kind`: 0 = round (fillet), 1 = scallop, 2 = chamfer.
-pub fn round_corners(np: &NodePath, r: f64, kind: usize) -> NodePath {
-    if r <= 0.0 {
+/// `kind`: 0 = round (fillet), 1 = scallop, 2 = chamfer. A chamfer with `ab` cuts A along the
+/// segment arriving at the corner and B along the one leaving it (the Corners docker's distances).
+pub fn round_corners_ex(np: &NodePath, r: f64, kind: usize, ab: Option<(f64, f64)>) -> NodePath {
+    if r <= 0.0 && ab.is_none() {
         return np.clone();
     }
     let mut out = NodePath::new();
@@ -688,8 +736,16 @@ pub fn round_corners(np: &NodePath, r: f64, kind: usize) -> NodePath {
             }
             // distance from the corner to the tangent points
             let t = (r / (angle / 2.0).tan()).min(lin * 0.5).min(lout * 0.5);
-            let a = node.p + din * (t / lin);
-            let b = node.p + dout * (t / lout);
+            let (ta, tb) = match ab {
+                Some((da, db)) if kind == 2 => (da.min(lin * 0.5), db.min(lout * 0.5)),
+                _ => (t, t),
+            };
+            if ta <= 0.0 || tb <= 0.0 {
+                nodes.push(node);
+                continue;
+            }
+            let a = node.p + din * (ta / lin);
+            let b = node.p + dout * (tb / lout);
             let mut na = Node::corner(a);
             let mut nb = Node::corner(b);
             match kind {

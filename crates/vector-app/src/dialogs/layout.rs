@@ -68,30 +68,21 @@ pub fn page_number_settings(app: &mut VectorApp, ctx: &egui::Context) {
 /// order and the Page Number Settings.
 pub fn insert_page_number(app: &mut VectorApp, which: u8) {
     let Some(d) = app.doc_mut() else { return };
-    let (cur, layer) = (d.page, d.layer);
+    let (cur, layer) = (d.page, d.active_loc().1);
+    // On all pages / odd pages / even pages: a new master layer of that kind holds the number.
     d.modify("Insert Page Number", |doc, sel| {
-        let pages: Vec<usize> = match which {
-            0 => vec![cur],
-            1 => (0..doc.pages.len()).collect(),
-            2 => (0..doc.pages.len()).filter(|i| i % 2 == 0).collect(),
-            _ => (0..doc.pages.len()).filter(|i| i % 2 == 1).collect(),
-        };
         sel.clear();
-        for p in pages {
-            let mut t = vector_core::text::TextObj::artistic("#", vector_core::text::CharFormat { size: 12.0, ..Default::default() });
-            t.page_number = true;
-            t.align = vector_core::text::TextAlign::Center;
-            let (w, h) = (doc.pages[p].width, doc.pages[p].height);
-            let id = doc.new_id();
-            let mut o = Object::new(id, ObjKind::Text(t), Affine::translate((w / 2.0, h - 36.0)), Style::text_default());
-            o.name = "Page Number".into();
-            let l = if p == cur { layer.min(doc.pages[p].layers.len().saturating_sub(1)) } else { 0 };
-            if let Some(layer) = doc.pages[p].layers.get_mut(l) {
-                layer.objects.push(o);
-                if p == cur {
-                    sel.push(id);
-                }
-            }
+        let mut t = vector_core::text::TextObj::artistic("#", vector_core::text::CharFormat { size: 12.0, ..Default::default() });
+        t.page_number = true;
+        t.align = vector_core::text::TextAlign::Center;
+        let (w, h) = (doc.pages[cur].width, doc.pages[cur].height);
+        let id = doc.new_id();
+        let mut o = Object::new(id, ObjKind::Text(t), Affine::translate((w / 2.0, h - 36.0)), Style::text_default());
+        o.name = "Page Number".into();
+        let (p, l) = if which == 0 { (cur, layer.min(doc.pages[cur].layers.len().saturating_sub(1))) } else { (0, doc.new_master_layer(which)) };
+        if let Some(layer) = doc.pages[p].layers.get_mut(l) {
+            layer.objects.push(o);
+            sel.push(id);
         }
     });
 }
@@ -678,6 +669,7 @@ pub struct DuplicatePageState {
 fn copy_page(src: &Document, i: usize, contents: bool, dst: &mut Document) -> vector_core::Page {
     let mut p = src.pages[i].clone();
     p.id = dst.new_id();
+    p.layers.retain(|l| l.master == 0);
     for l in p.layers.iter_mut() {
         l.id = dst.new_id();
         if contents {
@@ -807,7 +799,9 @@ pub fn delete_page(app: &mut VectorApp, ctx: &egui::Context) {
             app.flash("A document must have at least one page.");
         } else if let Some(d) = app.doc_mut() {
             d.modify("Delete Page", |doc, sel| {
+                let m = doc.take_master_layers();
                 doc.pages.drain(a..=b);
+                doc.restore_master_layers(m);
                 sel.clear();
             });
             d.page = a.min(d.doc.pages.len() - 1);
