@@ -23,6 +23,7 @@ const ARG_LENS: u32 = 0x1f40;
 const ARG_POLYGON: u32 = 0x2af8;
 const ARG_PAGE_SIZE: u32 = 0x4aba;
 const ARG_POWERCLIP: u32 = 0x1f45;
+const ARG_CLIP_ID: u32 = 0xdac;
 
 // loda object types
 const T_RECT: u32 = 1;
@@ -45,6 +46,8 @@ pub(super) enum RawFill {
     Solid(Color),
     /// kind, angle (degrees), center offset (fractions of the box), edge pad (0..0.5), stops
     Gradient { kind: GradientKind, angle: f64, cx: f64, cy: f64, pad: f64, stops: Vec<GradientStop> },
+    /// A bitmap, full-color or texture fill: the bitmap id and the tile width in points.
+    Image { bitmap: u32, tile: f64 },
 }
 
 pub(super) struct Ctx<'a> {
@@ -58,10 +61,10 @@ pub(super) struct Ctx<'a> {
     pub styles: text::Styles,
     /// Bitmap id to the document's image id and its pixel size.
     pub images: HashMap<u32, (u64, u32, u32)>,
-    /// PowerClip contents: the groups of the clip table, in file order.
-    pub clips: Vec<&'a Chunk>,
-    /// Half a pixel grid step of the page origin (see `origin_shift`).
-    pub snap: bool,
+    /// PowerClip contents: the groups of the clip table, by id.
+    pub clips: HashMap<u32, &'a Chunk>,
+    /// Object types that were not converted, with how many of each.
+    pub skipped: std::collections::BTreeMap<u32, usize>,
     pub doc: Document,
 }
 
@@ -189,7 +192,12 @@ impl<'a> Ctx<'a> {
                 return;
             }
             if c.is_list(b"clpt") {
-                self.clips.extend(c.children.iter().filter(|k| k.list.is_some()));
+                for k in c.children.iter().filter(|k| k.list.is_some()) {
+                    let id = k.list_child(b"lgob").and_then(|l| l.child(b"loda")).and_then(|l| self.loda(&l.data).arg(ARG_CLIP_ID).map(|a| Rd::new(a).u32()));
+                    if let Some(id) = id {
+                        self.clips.insert(id, k);
+                    }
+                }
                 return;
             }
             for k in &c.children {
@@ -251,6 +259,12 @@ impl<'a> Ctx<'a> {
             7 => {
                 r.skip(if self.ver >= 1300 { 8 } else { 2 });
                 self.two_color(&mut r)
+            }
+            9 | 10 | 11 if self.ver >= 1300 => {
+                // tile size, then the bitmap that holds the tile
+                let b = r.b;
+                let tile = Rd::at(b, r.p + 16).i32().abs() as f64 * self.k;
+                RawFill::Image { bitmap: Rd::at(b, r.p + 48).u32(), tile }
             }
             _ => RawFill::Solid(Color::rgb(200, 200, 200)),
         };
@@ -420,20 +434,22 @@ impl<'a> Ctx<'a> {
         }
     }
 
-    /// Recent versions put the page's lower-left corner on a whole pixel of a 300 dpi grid, so
-    /// the page center is not exactly the origin. The document settings hold that corner for
-    /// the first page; when it follows the rule, every page does.
-    fn origin_is_snapped(&self, root: &Chunk) -> bool {
-        if self.ver < 1300 {
-            return false;
+    /// The lower-left corner of the first page, in points from the origin, as the document
+    /// settings give it (X5 and later). Pages are not always centered on the origin: recent
+    /// versions put that corner on a whole pixel of a 300 dpi grid, and templates may start
+    /// the page at the origin.
+    fn origin(&self, root: &Chunk) -> Option<(f64, f64)> {
+        if self.ver < 1500 {
+            return None;
         }
-        let Some(first) = root.lists(b"page").find(|p| Self::flags(p) & 0x0001_0000 == 0) else { return false };
-        let Some((w, h)) = self.page_size(first) else { return false };
-        let Some(doc) = root.list_child(b"doc ") else { return false };
-        let Some(m) = doc.child(b"mcfg") else { return false };
+        let m = root.list_child(b"doc ")?.child(b"mcfg")?;
+        if m.data.len() < 678 {
+            return None;
+        }
         let mut r = Rd::at(&m.data, 670);
-        let (x, y) = (-(r.i32() as f64) * self.k, -(r.i32() as f64) * self.k);
-        (x - w / 2.0 - origin_shift(w)).abs() < 0.002 && (y - h / 2.0 - origin_shift(h)).abs() < 0.002 && origin_shift(w) + origin_shift(h) > 0.0
+        let (x, y) = (r.i32() as f64 * self.k, r.i32() as f64 * self.k);
+        // a corner further than a few pages away is not a corner
+        (x.abs() < 20_000.0 && y.abs() < 20_000.0).then_some((x, y))
     }
 
     fn page_size(&self, page: &Chunk) -> Option<(f64, f64)> {
@@ -522,12 +538,14 @@ impl<'a> Ctx<'a> {
         if let Some(mut o) = shape {
             o.name = name;
             // a PowerClip frame: its contents are a group of the clip table
-            if let Some(clip) = loda.as_ref().and_then(|l| l.arg(ARG_POWERCLIP)).and_then(|a| self.clip(a)) {
+            if let Some(a) = loda.as_ref().and_then(|l| l.arg(ARG_POWERCLIP)) {
                 let mut contents = vec![];
-                for k in clip.children.iter().rev() {
-                    self.object(k, to_page, Affine::IDENTITY, &mut contents);
+                if let Some(clip) = self.clip(a) {
+                    for k in clip.children.iter().rev() {
+                        self.object(k, to_page, Affine::IDENTITY, &mut contents);
+                    }
                 }
-                if !contents.is_empty() {
+                {
                     let style = o.style.clone();
                     let name = std::mem::take(&mut o.name);
                     let mut pc = Object::new(self.doc.new_id(), ObjKind::PowerClip { frame: Box::new(o), contents }, Affine::IDENTITY, style);
@@ -556,13 +574,15 @@ impl<'a> Ctx<'a> {
             g.name = name;
             out.push(g);
         }
-        let _ = kind;
+        if !has_children && &lt == b"obj " {
+            *self.skipped.entry(kind).or_default() += 1;
+        }
     }
 
-    /// The clip-table group a PowerClip frame points at (1-based position).
+    /// The clip-table group of a PowerClip frame: the group's id follows the frame's.
     fn clip(&self, a: &[u8]) -> Option<&'a Chunk> {
-        let n = Rd::new(a).u32() as usize;
-        self.clips.get(n.checked_sub(1)?).copied()
+        let n = Rd::new(a).u32();
+        self.clips.get(&n.wrapping_add(1)).copied()
     }
 
     pub(super) fn style_of(&self, l: &Loda, bounds: kurbo::Rect, world: Affine) -> Style {
@@ -574,6 +594,20 @@ impl<'a> Ctx<'a> {
             st.fill = match self.fills.get(&id) {
                 Some(RawFill::Solid(c)) => Fill::Solid(*c),
                 Some(RawFill::Gradient { kind, angle, cx, cy, pad, stops }) => fit_gradient(*kind, *angle, *cx, *cy, *pad, stops, bounds, world),
+                Some(RawFill::Image { bitmap, tile }) => match self.images.get(bitmap) {
+                    Some((image, _, _)) => Fill::Pattern(PatternFill {
+                        kind: PatternKind::Checker,
+                        fg: Color::BLACK,
+                        bg: Color::WHITE,
+                        tile: if *tile > 0.1 { *tile } else { 36.0 },
+                        angle: 0.0,
+                        image: Some(*image),
+                        transform_with_object: true,
+                        vector: false,
+                        mirror: 0,
+                    }),
+                    None => Fill::Solid(Color::rgb(200, 200, 200)),
+                },
                 _ => Fill::None,
             };
         }
@@ -838,7 +872,7 @@ fn origin_shift(side: f64) -> f64 {
     ((px - 1e-6).ceil() - px) / 300.0 * 72.0
 }
 
-fn version(root: &Chunk) -> u32 {
+pub(super) fn version(root: &Chunk) -> u32 {
     if let Some(v) = root.child(b"vrsn") {
         let n = Rd::new(&v.data).u16() as u32;
         if n >= 100 {
@@ -855,12 +889,22 @@ fn version(root: &Chunk) -> u32 {
 }
 
 pub(super) fn document(root: &Chunk) -> Result<Document> {
+    document_with_report(root).map(|r| r.0)
+}
+
+/// The document and the object types left out (type, count).
+pub(super) fn document_with_report(root: &Chunk) -> Result<(Document, Vec<(u32, usize)>)> {
     let ver = version(root);
     let k = if ver >= 600 { 72.0 / 254_000.0 } else { 72.0 / 1000.0 };
-    let mut cx = Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), styles: Default::default(), images: HashMap::new(), clips: vec![], snap: false, doc: Document::new(612.0, 792.0) };
+    let mut cx = Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), skipped: Default::default(), doc: Document::new(612.0, 792.0) };
     cx.collect(root);
     let default_size = cx.default_page_size(root);
-    cx.snap = cx.origin_is_snapped(root);
+    let origin = cx.origin(root);
+    let mut first_size: Option<(f64, f64)> = None;
+    let centered_on_grid = match (origin, root.lists(b"page").find(|p| Ctx::flags(p) & 0x0001_0000 == 0).map(|p| cx.page_size(p).unwrap_or(default_size))) {
+        (Some((x, y)), Some((w, h))) => (x + w / 2.0 + origin_shift(w)).abs() < 0.002 && (y + h / 2.0 + origin_shift(h)).abs() < 0.002,
+        _ => false,
+    };
     let pages: Vec<&Chunk> = root.lists(b"page").collect();
     if pages.is_empty() {
         return Err(IoError::Format("the CorelDRAW drawing has no pages".into()));
@@ -873,8 +917,17 @@ pub(super) fn document(root: &Chunk) -> Result<Document> {
             continue;
         }
         let (w, h) = cx.page_size(p).unwrap_or(default_size);
-        let (ox, oy) = if cx.snap { (origin_shift(w), origin_shift(h)) } else { (0.0, 0.0) };
-        let to_page = Affine::translate((w / 2.0 + ox, h / 2.0 - oy)) * Affine::scale_non_uniform(k, -k);
+        // the page's lower-left corner, in points from the origin
+        let (first_w, first_h) = *first_size.get_or_insert((w, h));
+        let corner = match origin {
+            Some((x, y)) if centered_on_grid => {
+                let _ = (x, y);
+                (-w / 2.0 - origin_shift(w), -h / 2.0 - origin_shift(h))
+            }
+            Some((x, y)) => (x + first_w / 2.0 - w / 2.0, y + first_h / 2.0 - h / 2.0),
+            None => (-w / 2.0, -h / 2.0),
+        };
+        let to_page = Affine::translate((-corner.0, h + corner.1)) * Affine::scale_non_uniform(k, -k);
         let mut layers = cx.layers(p, to_page, false);
         if out.is_empty() {
             if let Some(m) = master {
@@ -892,8 +945,9 @@ pub(super) fn document(root: &Chunk) -> Result<Document> {
         page.layers = layers;
         out.push(page);
     }
+    let skipped = cx.skipped.iter().map(|(k, v)| (*k, *v)).collect();
     let mut doc = cx.doc;
     doc.pages = out;
     doc.ensure_next_id();
-    Ok(doc)
+    Ok((doc, skipped))
 }

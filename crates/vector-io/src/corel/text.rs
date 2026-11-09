@@ -44,6 +44,9 @@ struct Look {
     strike: Option<bool>,
     color: Option<Color>,
     align: Option<TextAlign>,
+    /// Line spacing and extra paragraph spacing, percent of the character height.
+    line: Option<f64>,
+    para: Option<f64>,
 }
 
 impl Look {
@@ -57,6 +60,8 @@ impl Look {
             strike: self.strike.or(base.strike),
             color: self.color.or(base.color),
             align: self.align.or(base.align),
+            line: self.line.or(base.line),
+            para: self.para.or(base.para),
         }
     }
     fn format(&self) -> CharFormat {
@@ -231,6 +236,15 @@ fn json_look(v: &serde_json::Value, k: f64) -> Look {
     }
     if let Some(p) = v.get("paragraph") {
         l.align = p.get("justify").and_then(json_num).and_then(align);
+        // spacing in millionths of the character height when the method is 0
+        if p.get("spacingMethod").and_then(json_num).unwrap_or(0.0) == 0.0 {
+            l.line = p.get("interLineSpacing").and_then(json_num).map(|v| v / 10_000.0).filter(|v| *v > 1.0 && *v < 2000.0);
+            let before = p.get("beforeParaSpacing").and_then(json_num).map(|v| v / 10_000.0);
+            let after = p.get("afterParaSpacing").and_then(json_num).map(|v| v / 10_000.0);
+            if before.is_some() || after.is_some() {
+                l.para = Some(((before.unwrap_or(100.0) - 100.0) + after.unwrap_or(0.0)).clamp(0.0, 2000.0));
+            }
+        }
     }
     l
 }
@@ -547,6 +561,12 @@ pub(super) fn object(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Opti
         xf = world * Affine::scale_non_uniform(1.0 / k, -1.0 / k);
     }
     t.spans = spans;
+    if let Some(v) = first.line {
+        t.line_spacing = v;
+    }
+    if let Some(v) = first.para {
+        t.para_spacing = v;
+    }
     if let Some(a) = paras[0].align.or(first.align).or(own.align) {
         t.align = a;
     }
