@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 //! Vector — vector graphics editor for Windows.
 
+mod about;
 mod ai;
 mod app;
 mod bugreport;
@@ -21,6 +22,7 @@ mod settings;
 mod shortcuts;
 mod splash;
 mod statusbar;
+mod sysinfo;
 mod tabs;
 mod theme;
 mod toolbar;
@@ -31,7 +33,8 @@ mod welcome;
 mod widgets;
 
 pub const ICON_PNG: &[u8] = include_bytes!("../assets/icon-256.png");
-pub const SPLASH_PNG: &[u8] = include_bytes!("../assets/splash-airship.png");
+/// The logo (the airship alone), drawn from `assets/brand/vector-logo.svg` by `cargo run -p xtask -- brand`.
+pub const LOGO_PNG: &[u8] = include_bytes!("../assets/logo.png");
 
 fn window_icon() -> Option<egui::IconData> {
     let img = image::load_from_memory(ICON_PNG).ok()?.to_rgba8();

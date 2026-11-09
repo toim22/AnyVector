@@ -83,6 +83,8 @@ pub fn apply(ctx: &egui::Context) {
         s.spacing.icon_spacing = 6.0;
         s.spacing.combo_height = 400.0;
         s.spacing.scroll = egui::style::ScrollStyle::thin();
+        // lists end with a hard edge, as in the reference (no faded last row)
+        s.spacing.scroll.fade.strength = 0.0;
         s.interaction.tooltip_delay = 0.6;
         s.interaction.selectable_labels = false;
         s.text_styles = [

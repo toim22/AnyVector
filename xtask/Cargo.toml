@@ -1,0 +1,11 @@
+[package]
+name = "xtask"
+version.workspace = true
+edition.workspace = true
+publish = false
+description = "Build helpers: brand assets from the SVGs, the coverage report, the reference comparison page"
+
+[dependencies]
+resvg = { workspace = true }
+image = { workspace = true }
+serde_json = { workspace = true }

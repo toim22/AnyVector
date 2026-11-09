@@ -1,0 +1,11 @@
+# Hand-kept statuses for docs/COVERAGE.md (regenerate with: cargo run -p xtask -- coverage).
+# Columns, tab-separated: section	key	status	note
+# section: menu, dialog, effect, docker, tool, toolbar, context-menu
+# key: exactly as the first column of COVERAGE.md shows it (menu path, dialog path, docker name...)
+# status: done | partial | todo | omitted
+menu	Help > About CorelDRAW...	done	Help > About Vector (same layout: banner, version, Source ID, System Info, Legal Notices)
+dialog	Help > About CorelDRAW	done	About Vector, with System Info (5 categories, Save) and Legal Notices
+toolbar	Standard	partial	exists; to be checked against the reference in batch 1
+toolbar	Status Bar	partial	exists; to be checked against the reference in batch 1
+toolbar	Color palette	partial	exists; to be checked against the reference in batch 1
+toolbar	Document palette	partial	exists; to be checked against the reference in batch 1

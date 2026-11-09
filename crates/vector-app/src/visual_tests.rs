@@ -187,3 +187,30 @@ fn visual_new_document_and_bug_report() {
     h.state_mut().run(Cmd::ReportBug);
     save(&mut h, "09_report_bug");
 }
+
+#[test]
+#[ignore]
+fn visual_about_and_system_info() {
+    let mut h = harness();
+    h.state_mut().new_default_document();
+    h.state_mut().dialogs.about = true;
+    save(&mut h, "10_about");
+    let gpu = h.state().gpu.clone();
+    h.state_mut().dialogs.system_info = Some(crate::about::SystemInfoState::new(&gpu));
+    save(&mut h, "11_system_info");
+    h.state_mut().dialogs.system_info = None;
+    h.state_mut().dialogs.legal_notices = true;
+    save(&mut h, "12_legal_notices");
+}
+
+#[test]
+#[ignore]
+fn visual_splash() {
+    let mut h = Harness::builder().with_size(egui::vec2(620.0, 380.0)).wgpu().build_eframe(|cc| VectorApp::new(cc));
+    // the splash shows for 1.8 s of app time; render it right after it has faded in
+    for _ in 0..2 {
+        h.step();
+    }
+    let img = h.render().expect("render");
+    img.save(out_dir().join("00_splash.png")).unwrap();
+}

@@ -86,6 +86,8 @@ pub struct VectorApp {
     pub temp_script: String,
     pub default_fill: Color,
     pub start_time: std::time::Instant,
+    /// The graphics adapter the window renders with (Help > About > System Info).
+    pub gpu: String,
     pub splash: Option<crate::splash::Splash>,
     pub thumbnails: std::collections::HashMap<std::path::PathBuf, Option<egui::TextureHandle>>,
     pub palettes: crate::palette::PaletteState,
@@ -93,6 +95,16 @@ pub struct VectorApp {
     pub cursor_doc: Option<kurbo::Point>,
     pub ai: crate::ai::AiState,
     pub frame_count: u64,
+}
+
+/// "NVIDIA GeForce RTX 3080 (Vulkan, NVIDIA 566.36)": the adapter, its API and driver.
+fn gpu_name(i: &eframe::egui_wgpu::wgpu::AdapterInfo) -> String {
+    let driver = [i.driver.trim(), i.driver_info.trim()].iter().filter(|s| !s.is_empty()).cloned().collect::<Vec<_>>().join(" ");
+    if driver.is_empty() {
+        format!("{} ({:?})", i.name, i.backend)
+    } else {
+        format!("{} ({:?}, {driver})", i.name, i.backend)
+    }
 }
 
 impl VectorApp {
@@ -133,6 +145,7 @@ impl VectorApp {
             cursor_doc: None,
             ai: Default::default(),
             frame_count: 0,
+            gpu: cc.wgpu_render_state.as_ref().map(|rs| gpu_name(&rs.adapter.get_info())).unwrap_or_default(),
         };
         // command line: open files
         for a in std::env::args().skip(1) {

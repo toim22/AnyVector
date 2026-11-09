@@ -1,7 +1,9 @@
 # Vector — Architecture
 
-Vector is a Windows vector-graphics editor written in Rust. The UI follows the design screenshots in
-`deepseek-harness/default-workspace/Vector/screens` (see `docs/UI-SPEC.md`).
+Vector is a Windows vector-graphics editor written in Rust. From version 0.1.0 the interface follows the
+CorelDRAW 2026 reference in `C:\Users\anton\Documents\Claude\corel-screenshots\MAPEAMENTO` (screenshots of every
+menu, dialog, docker, tool and toolbar, plus the inventory and the functional notes). `docs/PLAN-0.1.0.md` has the
+plan and the decisions; `docs/COVERAGE.md` tracks every item of the reference.
 
 ## Workspace
 
@@ -11,6 +13,7 @@ Vector is a Windows vector-graphics editor written in Rust. The UI follows the d
 | `vector-render` | CPU renderer on tiny-skia, used for the drawing window, export, printing and thumbnails. Handles gradients, patterns, mesh fills, transparency, merge modes, shadows, contours, extrusions, envelopes, distortions, bitmap effects and lenses. |
 | `vector-io` | File formats: `.cdr` (Vector's zip container: drawing JSON, XMP metadata, embedded fonts/ICC profiles, thumbnail; real CorelDRAW files are detected and refused), legacy native `.vct`, SVG import/export, PDF export, PNG/JPEG/BMP/TIFF/WebP raster import/export. |
 | `vector-app` | The egui/eframe application (binary `vector.exe`). |
+| `xtask` | Build helpers (`cargo run -p xtask -- <command>`): `brand` draws the icon, logo and installer pictures from the brand SVGs; `coverage` writes `docs/COVERAGE.md`; `compare` writes `target/visual/compare.html` (renders next to the reference screenshots, pairs listed in `docs/reference-map.tsv`); `licenses` writes the Legal Notices text. |
 
 ## Application (`crates/vector-app/src`)
 
@@ -24,7 +27,8 @@ Vector is a Windows vector-graphics editor written in Rust. The UI follows the d
   - `overlay.rs`: on-canvas feedback such as handles, nodes, guides, grid, previews, the caret and snap marks.
   - `shapes.rs`: the Common Shapes library.
   - `mod.rs`: tool state, node operations, corner rounding and text insertion.
-- `dialogs/`: modal dialogs. `options.rs` is the Options dialog with every page from the screenshots; `forms.rs` holds New Document, Export, Print, Trace, Script editor, About and the others.
+- `dialogs/`: modal dialogs. `options.rs` is the Options dialog with every page from the screenshots; `new_doc.rs` is Create a New Document; `forms.rs` holds Export, Print, Trace, Script editor and the others.
+- `about.rs`, `sysinfo.rs`: Help ▸ About Vector with System Info and Legal Notices.
 - `dockers/`: right-side dockers such as Properties, Objects, Transform, Align and Text.
 - `trace.rs`: bitmap-to-vector tracing (k-means colour quantization, region cleanup, contour following, curve fitting).
 - `scripting.rs`: macro recording and scripts.
@@ -55,6 +59,17 @@ These are GPU snapshot tests: renders of the window, plus a smoke test that driv
 cargo test -p vector-app visual -- --ignored --test-threads=1
 ```
 
+## Brand assets
+
+The two SVGs in `crates/vector-app/assets/brand/` are the sources:
+
+- `vector-icon.svg` (the airship on its rounded dark tile) is the program icon: `vector.ico` (10 sizes, embedded in
+  the exe and used for shortcuts and file types), `icon-256.png` (window icon) and the installer's small picture.
+- `vector-logo.svg` (the airship alone) is the logo: `logo.png` (splash screen, About box) and the installer's side
+  picture (light and dark, six display scales).
+
+After changing an SVG, run `cargo run -p xtask -- brand`.
+
 ## Building the installer
 
 ```bash
@@ -62,4 +77,7 @@ cargo build --release -p vector-app
 "$LOCALAPPDATA/Programs/Inno Setup 6/ISCC.exe" installer/vector.iss
 ```
 
-The installer is written to `dist/Vector-1.0.0-setup.exe`.
+The version comes from the workspace `Cargo.toml`, and the installer is written to `dist/Vector-<version>-setup.exe`.
+It installs per user without an administrator prompt (or for all users if chosen), adds Vector to "Open with" for
+`.cdr` (making it the default for `.cdr` is an unchecked option, because CorelDRAW may own that type), opens `.vct`
+files, and keeps the install folder and choices on updates.
