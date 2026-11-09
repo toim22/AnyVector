@@ -302,9 +302,14 @@ impl VectorApp {
             });
             crate::menus::command_bar_context(self, &r.response, BarSpot::Toolbar("Toolbox"));
         }
-        if self.settings.default_palette_visible {
-            egui::Panel::right("palette").frame(Frame::new().fill(theme::BAR).inner_margin(Margin::symmetric(1, 2))).exact_size(crate::palette::column_width(&self.settings)).show(ui, |ui| {
-                crate::palette::palette_column(self, ui);
+        // the open palettes: the default one at the edge, the others docked to its left
+        for i in 0..self.palettes.palettes.len() {
+            if i == 0 && !self.settings.default_palette_visible {
+                continue;
+            }
+            let id = if i == 0 { "palette".to_string() } else { format!("palette{i}") };
+            egui::Panel::right(id.as_str()).frame(Frame::new().fill(theme::BAR).inner_margin(Margin::symmetric(1, 2))).exact_size(crate::palette::column_width(&self.settings)).show(ui, |ui| {
+                crate::palette::palette_column(self, ui, i);
             });
         }
         if self.dockers.visible() {

@@ -869,7 +869,7 @@ pub fn press(app: &mut VectorApp, key: &str) {
         "019453ed" => {
             if let Some(d) = app.doc_mut() {
                 let r = if d.doc.settings.multipage_view && d.doc.pages.len() > 1 {
-                    crate::canvas::page_offsets(&d.doc, d.page).into_iter().map(|(i, dx)| d.doc.pages[i].rect() + Vec2::new(dx, 0.0)).reduce(|a, b| a.union(b))
+                    crate::canvas::page_offsets(&d.doc, d.page).into_iter().map(|(i, dv)| d.doc.pages[i].rect() + dv).reduce(|a, b| a.union(b))
                 } else {
                     Some(d.doc.pages[d.page].rect())
                 };

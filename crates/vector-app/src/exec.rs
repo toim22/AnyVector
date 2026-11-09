@@ -293,6 +293,9 @@ impl VectorApp {
         doc.settings.bleed = if st.bleed_on { st.bleed } else { 0.0 };
         doc.settings.show_bleed = st.bleed_on;
         doc.info.author = self.settings.user_name.clone();
+        doc.object_styles = self.settings.default_object_styles.clone();
+        doc.color_styles = self.settings.default_color_styles.clone();
+        doc.color_harmonies = self.settings.default_color_harmonies.clone();
         for k in 1..st.pages.max(1) {
             doc.add_page(k, st.width, st.height);
         }
@@ -1088,6 +1091,19 @@ impl VectorApp {
                     self.open_dialog(Some(dir));
                 }
             }
+            Cmd::NewStyleSetFrom => {
+                crate::dockers::ostyles::new_style(self, 0);
+                self.dockers.show(crate::dockers::DockerId::ObjectStyles);
+            }
+            Cmd::NewStyleFrom(k) => {
+                crate::dockers::ostyles::new_style(self, k);
+                self.dockers.show(crate::dockers::DockerId::ObjectStyles);
+            }
+            Cmd::ApplyObjectStyle(i) => crate::dockers::ostyles::apply_to_selection(self, i),
+            Cmd::EditObjectStyle(i) => crate::dockers::ostyles::edit_style(self, i),
+            Cmd::ApplyToStyle => crate::dockers::ostyles::apply_to_style(self),
+            Cmd::RevertToStyle => crate::dockers::ostyles::revert_to_style(self),
+            Cmd::BreakStyleLink => crate::dockers::ostyles::break_link(self),
             Cmd::OpenRecent(i) => {
                 if let Some(p) = self.settings.recent_files.get(i).cloned() {
                     if p.exists() {
@@ -1616,7 +1632,9 @@ impl VectorApp {
                     if d.doc.pages.len() > 1 {
                         let cur = d.page;
                         d.modify("Delete Page", |doc, sel| {
+                            let m = doc.take_master_layers();
                             doc.pages.remove(cur);
+                            doc.restore_master_layers(m);
                             sel.clear();
                         });
                     } else {
@@ -2197,6 +2215,7 @@ impl VectorApp {
             }
             Cmd::RolloverDuplicateState => crate::dialogs::object::state_contents(self, true),
             Cmd::RolloverDeleteState => crate::dialogs::object::state_contents(self, false),
+            Cmd::ShowHotspots => self.settings.show_hotspots = !self.settings.show_hotspots,
             Cmd::TableSplit(cols) => {
                 if self.table_sel().is_some() {
                     self.dialogs.table = Some(crate::dialogs::table::TableDialog::Split { cols, count: 2 });

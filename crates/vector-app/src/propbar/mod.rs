@@ -7,12 +7,11 @@
 mod extra;
 pub(crate) use extra::{choose_brush, paint_apply, BRUSHES};
 mod fields;
-mod text;
+pub(crate) mod text;
 
 pub use extra::{mesh_palette_color, node_align_dialog, painterly_profile};
 pub(crate) use extra::bake_warps_with;
 
-pub use text::text_controls;
 
 use crate::app::VectorApp;
 use crate::commands::Cmd;

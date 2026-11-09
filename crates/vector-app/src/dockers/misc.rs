@@ -1,13 +1,13 @@
 //! Comments, Object Data, Object Styles, Symbols, Export, Assets, Tray, Links and Rollovers,
 //! Sources, Views, History, Scripts and Learn dockers.
 
-use super::{choice, drop_mark, heading, hint, icon_button, icon_button_resp, list_row, no_doc, primary, table_header};
+use super::{choice, drop_mark, heading, icon_button, icon_button_resp, list_row, no_doc, separator, table_header};
 use crate::app::VectorApp;
 use crate::commands::Cmd;
 use crate::propbar::edit_sel;
 use crate::theme;
 use egui::{pos2, vec2, Color32, Rect, Sense, Ui};
-use vector_core::document::{ObjectStyle, SavedView, SymbolDef};
+use vector_core::document::{SavedView, SymbolDef};
 use vector_core::{ObjKind, Object};
 
 fn first(app: &VectorApp) -> Option<Object> {
@@ -286,59 +286,6 @@ pub fn object_data(app: &mut VectorApp, ui: &mut Ui) {
     }
 }
 
-pub fn object_styles(app: &mut VectorApp, ui: &mut Ui) {
-    if !app.has_doc() {
-        return no_doc(ui);
-    }
-    ui.horizontal(|ui| {
-        ui.add(egui::TextEdit::singleline(&mut app.dockers.ui.style_name).hint_text("Style name").desired_width(140.0));
-        if ui.add_enabled(app.has_selection() && !app.dockers.ui.style_name.is_empty(), egui::Button::new("New from selection")).clicked() {
-            if let Some(o) = first(app) {
-                let name = std::mem::take(&mut app.dockers.ui.style_name);
-                if let Some(d) = app.doc_mut() {
-                    d.modify("New Object Style", |doc, _| {
-                        doc.object_styles.retain(|s| s.name != name);
-                        doc.object_styles.push(ObjectStyle { name, style: o.style.clone() });
-                    });
-                }
-            }
-        }
-    });
-    let Some(d) = app.doc() else { return };
-    let styles = d.doc.object_styles.clone();
-    if styles.is_empty() {
-        hint(ui, "No object styles yet. Select an object and create a style from it.");
-    }
-    let mut apply = None;
-    let mut delete = None;
-    for (i, s) in styles.iter().enumerate() {
-        ui.horizontal(|ui| {
-            let (r, _) = ui.allocate_exact_size(egui::vec2(16.0, 16.0), egui::Sense::hover());
-            crate::widgets::paint_well(ui.painter(), r, s.style.fill.main_color());
-            ui.label(&s.name);
-            if ui.small_button("Apply").clicked() {
-                apply = Some(s.clone());
-            }
-            if ui.small_button("×").clicked() {
-                delete = Some(i);
-            }
-        });
-    }
-    if let Some(s) = apply {
-        edit_sel(app, "Apply Object Style", |x| {
-            x.style = s.style.clone();
-            x.object_style = Some(s.name.clone());
-        });
-    }
-    if let Some(i) = delete {
-        if let Some(d) = app.doc_mut() {
-            d.modify("Delete Object Style", |doc, _| {
-                doc.object_styles.remove(i);
-            });
-        }
-    }
-}
-
 /// Does a symbol hold instances of other symbols?
 fn nested(s: &SymbolDef) -> bool {
     let mut n = false;
@@ -389,7 +336,7 @@ fn insert_symbol(app: &mut VectorApp, s: &SymbolDef, library: Option<&std::path:
     let Some(d) = app.doc_mut() else { return };
     let link = library.map(|p| p.to_string_lossy().to_string());
     let c = d.page_ref().rect().center();
-    let (page, layer) = (d.page, d.layer);
+    let (page, layer) = d.active_loc();
     d.modify("Insert Symbol", |doc, sel| {
         let id = match &link {
             None => s.id,
@@ -638,32 +585,14 @@ fn thumb(app: &mut VectorApp, ctx: &egui::Context, key: &str, objs: &[Object]) -
     Some(t)
 }
 
+/// The Export docker: the items to export (pages first, then objects), or three hints when there
+/// are none; at the bottom Add (Selection, Current Page, All Pages), the default file format for
+/// new items, Select all, Delete, the destination folder and Export.
 pub fn export(app: &mut VectorApp, ui: &mut Ui) {
     if !app.has_doc() {
         return no_doc(ui);
     }
     use super::EXPORT_DOCKER_FORMATS as F;
-    ui.horizontal(|ui| {
-        ui.label("Default file format:");
-        egui::ComboBox::from_id_salt("dk_exp").selected_text(F[app.dockers.ui.export_format.min(F.len() - 1)]).width(80.0).show_ui(ui, |ui| {
-            for (i, f) in F.iter().enumerate() {
-                ui.selectable_value(&mut app.dockers.ui.export_format, i, *f);
-            }
-        });
-    });
-    ui.horizontal(|ui| {
-        let has_sel = app.has_selection();
-        if ui.add_enabled(has_sel, egui::Button::new("Add selection")).clicked() {
-            app.run(Cmd::ExportDockerAddSelection);
-        }
-        if ui.button("Add current page").clicked() {
-            app.run(Cmd::ExportDockerAddPage);
-        }
-        if ui.button("Add all pages").clicked() {
-            app.run(Cmd::ExportDockerAddAllPages);
-        }
-    });
-    ui.separator();
     let doc_pages: Vec<u64> = app.doc().map(|d| d.doc.pages.iter().map(|p| p.id).collect()).unwrap_or_default();
     // items whose page or object no longer exists are removed
     let alive: Vec<bool> = app
@@ -682,65 +611,163 @@ pub fn export(app: &mut VectorApp, ui: &mut Ui) {
         k += 1;
         alive[k - 1]
     });
-    if app.dockers.ui.export_items.is_empty() {
-        hint(ui, "Add the selection, the current page or all pages to export them as assets.");
-        return;
-    }
     let mut run: Vec<usize> = vec![];
     let mut delete: Vec<usize> = vec![];
-    egui::ScrollArea::vertical().id_salt("dk_exp_items").max_height(360.0).show(ui, |ui| {
-        for (i, it) in app.dockers.ui.export_items.iter_mut().enumerate() {
+    let mut dup: Vec<usize> = vec![];
+    let mut like: Option<usize> = None;
+    let has_sel0 = app.has_selection();
+    let list_h = (ui.clip_rect().bottom() - ui.cursor().top() - 44.0).max(60.0);
+    egui::ScrollArea::vertical().id_salt("dk_exp_items").max_height(list_h).min_scrolled_height(list_h).auto_shrink([false, false]).show(ui, |ui| {
+        if app.dockers.ui.export_items.is_empty() {
+            ui.add_space(14.0);
+            for (text, icon) in [
+                ("In the document, select objects and click Add > Selection.", "ex_add"),
+                ("Or click Add > Current Page to add the current page.", "ex_page"),
+                ("Or click Add > All Pages to add all pages.", "ex_pages"),
+            ] {
+                ui.vertical_centered(|ui| {
+                    ui.set_max_width(ui.available_width() - 24.0);
+                    ui.label(egui::RichText::new(text).italics().color(egui::Color32::from_gray(205)));
+                    ui.add_space(4.0);
+                    if let Some(t) = app.icons.get(ui.ctx(), icon, 20.0, crate::icons::Tone::Normal) {
+                        ui.add(egui::Image::new(t).fit_to_exact_size(vec2(20.0, 20.0)));
+                    }
+                });
+                ui.add_space(18.0);
+            }
+            return;
+        }
+        let n = app.dockers.ui.export_items.len();
+        for i in 0..n {
+            let it = app.dockers.ui.export_items[i].clone();
+            let tex = export_thumb(app, ui.ctx(), &it);
+            let it = &mut app.dockers.ui.export_items[i];
             egui::Frame::new().stroke(egui::Stroke::new(1.0, crate::theme::SEP)).inner_margin(6.0).show(ui, |ui| {
                 ui.set_width(ui.available_width());
                 ui.horizontal(|ui| {
-                    ui.checkbox(&mut it.selected, "");
-                    ui.add(egui::TextEdit::singleline(&mut it.name).desired_width(120.0));
-                    ui.add(egui::TextEdit::singleline(&mut it.suffix).hint_text("suffix").desired_width(60.0));
-                });
-                ui.horizontal(|ui| {
-                    egui::ComboBox::from_id_salt(("dk_exp_fmt", i)).selected_text(F[it.format.min(F.len() - 1)]).width(64.0).show_ui(ui, |ui| {
-                        for (k, f) in F.iter().enumerate() {
-                            ui.selectable_value(&mut it.format, k, *f);
-                        }
-                    });
-                    if !matches!(F[it.format], "PDF" | "SVG") {
-                        ui.add(egui::DragValue::new(&mut it.dpi).range(36.0..=1200.0).suffix(" dpi"));
+                    ui.checkbox(&mut it.selected, "").on_hover_text("Select item");
+                    if let Some(t) = &tex {
+                        let s = t.size_vec2();
+                        let f = 40.0 / s.x.max(s.y).max(1.0);
+                        ui.add(egui::Image::new(t).fit_to_exact_size(s * f));
                     }
+                    ui.vertical(|ui| {
+                        ui.horizontal(|ui| {
+                            ui.add(egui::TextEdit::singleline(&mut it.name).desired_width(ui.available_width() - 70.0));
+                            ui.add(egui::TextEdit::singleline(&mut it.suffix).hint_text("Suffix").desired_width(60.0));
+                        });
+                        ui.horizontal(|ui| {
+                            egui::ComboBox::from_id_salt(("dk_exp_fmt", i)).selected_text(F[it.format.min(F.len() - 1)]).width(64.0).show_ui(ui, |ui| {
+                                for (k, f) in F.iter().enumerate() {
+                                    ui.selectable_value(&mut it.format, k, *f);
+                                }
+                            });
+                            if !matches!(F[it.format.min(F.len() - 1)], "PDF" | "SVG") {
+                                ui.add(egui::DragValue::new(&mut it.dpi).range(36.0..=1200.0).suffix(" dpi"));
+                            }
+                        });
+                    });
                 });
-                let folder = it.folder.display().to_string();
-                ui.add(egui::Label::new(egui::RichText::new(&folder).small()).truncate()).on_hover_text(&folder);
                 ui.horizontal(|ui| {
-                    if ui.button("Folder...").on_hover_text("Destination folder").clicked() {
+                    let folder = it.folder.display().to_string();
+                    if crate::widgets::icon_button(&mut app.icons, ui, "open", "Destination folder", true, false).clicked() {
                         if let Some(d) = rfd::FileDialog::new().set_directory(&it.folder).pick_folder() {
                             it.folder = d;
                         }
                     }
-                    if ui.button("Export").clicked() {
+                    ui.add(egui::Label::new(egui::RichText::new(&folder).small()).truncate()).on_hover_text(&folder);
+                });
+                let opts = ui.add_sized(vec2(ui.available_width(), 20.0), egui::Button::new("Options"));
+                egui::Popup::menu(&opts).show(|ui| {
+                    crate::menus::menu_style(ui);
+                    if ui.button("Export Item").clicked() {
                         run.push(i);
+                    }
+                    if ui.button("Duplicate").clicked() {
+                        dup.push(i);
+                    }
+                    if ui.add_enabled(has_sel0, egui::Button::new("Add Asset with These Settings")).clicked() {
+                        like = Some(i);
                     }
                     if ui.button("Delete").clicked() {
                         delete.push(i);
                     }
                 });
             });
+            ui.add_space(2.0);
         }
     });
+    // the bottom bar
+    let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), 1.0), Sense::hover());
+    ui.painter().hline(r.x_range(), r.center().y, egui::Stroke::new(1.0, crate::theme::SEP));
+    let has_sel = app.has_selection();
+    let any = app.dockers.ui.export_items.iter().any(|i| i.selected);
+    let all = !app.dockers.ui.export_items.is_empty() && app.dockers.ui.export_items.iter().all(|i| i.selected);
     ui.horizontal(|ui| {
-        let all = app.dockers.ui.export_items.iter().all(|i| i.selected);
-        if ui.button(if all { "Deselect all" } else { "Select all" }).clicked() {
+        ui.spacing_mut().item_spacing.x = 6.0;
+        let add = super::icon_button_resp(app, ui, "ex_add", "Add", true);
+        super::drop_mark(ui, add.rect);
+        egui::Popup::menu(&add).show(|ui| {
+            crate::menus::menu_style(ui);
+            if crate::menus::item(app, ui, "&Selection", has_sel, false) {
+                app.run(Cmd::ExportDockerAddSelection);
+            }
+            if crate::menus::item(app, ui, "&Current Page", true, false) {
+                app.run(Cmd::ExportDockerAddPage);
+            }
+            if crate::menus::item(app, ui, "&All Pages", true, false) {
+                app.run(Cmd::ExportDockerAddAllPages);
+            }
+        });
+        let fmt = &mut app.dockers.ui.export_format;
+        egui::ComboBox::from_id_salt("dk_exp").selected_text(F[(*fmt).min(F.len() - 1)]).width(62.0).show_ui(ui, |ui| {
+            for (i, f) in F.iter().enumerate() {
+                ui.selectable_value(fmt, i, *f);
+            }
+        })
+        .response
+        .on_hover_text("Choose a default file format for new items.");
+        let items_on = !app.dockers.ui.export_items.is_empty();
+        if crate::widgets::icon_button(&mut app.icons, ui, "ex_selall", "Select all", items_on, all).clicked() {
             app.dockers.ui.export_items.iter_mut().for_each(|i| i.selected = !all);
         }
-        let any = app.dockers.ui.export_items.iter().any(|i| i.selected);
-        if ui.add_enabled(any, egui::Button::new("Export")).clicked() {
-            run.extend(app.dockers.ui.export_items.iter().enumerate().filter(|(_, i)| i.selected).map(|(k, _)| k));
-        }
-        if ui.add_enabled(any, egui::Button::new("Delete")).clicked() {
+        if super::icon_button(app, ui, "delete", "Delete", any) {
             delete.extend(app.dockers.ui.export_items.iter().enumerate().filter(|(_, i)| i.selected).map(|(k, _)| k));
         }
+        if super::icon_button(app, ui, "open", "Destination folder", any) {
+            let start = app.dockers.ui.export_items.iter().find(|i| i.selected).map(|i| i.folder.clone()).unwrap_or_else(crate::settings::documents_dir);
+            if let Some(d) = rfd::FileDialog::new().set_directory(&start).pick_folder() {
+                for it in app.dockers.ui.export_items.iter_mut().filter(|i| i.selected) {
+                    it.folder = d.clone();
+                }
+            }
+        }
+        let w = ui.available_width();
+        if ui.add_enabled_ui(any, |ui| ui.add_sized(vec2(w, 24.0), egui::Button::new("Export"))).inner.clicked() {
+            run.extend(app.dockers.ui.export_items.iter().enumerate().filter(|(_, i)| i.selected).map(|(k, _)| k));
+        }
     });
+    if let Some(i) = like {
+        let base = app.dockers.ui.export_items[i].clone();
+        let n0 = app.dockers.ui.export_items.len();
+        app.run(Cmd::ExportDockerAddSelection);
+        for it in app.dockers.ui.export_items.iter_mut().skip(n0) {
+            it.format = base.format;
+            it.dpi = base.dpi;
+            it.folder = base.folder.clone();
+            it.suffix = base.suffix.clone();
+        }
+    }
+    for i in dup.into_iter().rev() {
+        let mut c = app.dockers.ui.export_items[i].clone();
+        c.selected = false;
+        app.dockers.ui.export_items.insert(i + 1, c);
+    }
     let mut done = 0;
+    run.sort_unstable();
+    run.dedup();
     for i in run {
-        let it = app.dockers.ui.export_items[i].clone();
+        let Some(it) = app.dockers.ui.export_items.get(i).cloned() else { continue };
         match crate::exec::export_item(app, &it) {
             Ok(_) => done += 1,
             Err(e) => {
@@ -755,31 +782,37 @@ pub fn export(app: &mut VectorApp, ui: &mut Ui) {
     delete.sort_unstable();
     delete.dedup();
     for i in delete.into_iter().rev() {
-        app.dockers.ui.export_items.remove(i);
+        if i < app.dockers.ui.export_items.len() {
+            app.dockers.ui.export_items.remove(i);
+        }
     }
 }
 
-pub fn assets(app: &mut VectorApp, ui: &mut Ui) {
-    hint(ui, "Assets: reusable content from your local Vector library folder.");
-    let dir = crate::settings::config_dir().join("Assets");
-    let _ = std::fs::create_dir_all(&dir);
-    if ui.button("Open library folder").clicked() {
-        let _ = std::process::Command::new("explorer").arg(&dir).spawn();
+/// The thumbnail of an Export docker item: its page or its object.
+fn export_thumb(app: &mut VectorApp, ctx: &egui::Context, it: &super::ExportItem) -> Option<egui::TextureHandle> {
+    let d = app.doc()?;
+    let rev = d.history.revision;
+    let key = format!("exp:{:?}:{:?}:{rev}", it.page, it.object);
+    if let Some(t) = app.ts.texture_cache.get(&key) {
+        return Some(t.clone());
     }
-    let files: Vec<std::path::PathBuf> = std::fs::read_dir(&dir).map(|r| r.filter_map(|e| e.ok()).map(|e| e.path()).collect()).unwrap_or_default();
-    if files.is_empty() {
-        hint(ui, "Save .cdr, .svg or image files to the library folder to see them here.");
-    }
-    for f in files {
-        let name = f.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
-        if ui.button(&name).on_hover_text("Import into the current document").clicked() {
-            if app.has_doc() {
-                app.import_path(&f, None);
-            } else {
-                app.open_path(&f);
-            }
+    let pm = match (it.page, it.object) {
+        (Some(pid), _) => {
+            let i = d.doc.pages.iter().position(|p| p.id == pid)?;
+            let p = &d.doc.pages[i];
+            let dpi = 48.0 * 72.0 / p.width.max(p.height).max(1.0);
+            vector_render::render_page_image(&d.doc, i, dpi, Some(vector_core::Color::WHITE), None, true)?
         }
-    }
+        (_, Some(oid)) => {
+            let o = d.doc.find(oid)?.clone();
+            vector_render::render_objects_image(&d.doc, &[o], 48, None)?
+        }
+        _ => return None,
+    };
+    let img = egui::ColorImage::from_rgba_premultiplied([pm.width() as usize, pm.height() as usize], pm.data());
+    let t = ctx.load_texture(&key, img, egui::TextureOptions::LINEAR);
+    app.ts.texture_cache.insert(key, t.clone());
+    Some(t)
 }
 
 // ------------------------------------------------------------------ Tray
@@ -1005,25 +1038,223 @@ pub fn links(app: &mut VectorApp, ui: &mut Ui) {
     if !app.has_doc() {
         return no_doc(ui);
     }
-    let Some(o) = first(app) else {
-        hint(ui, "Select an object to assign a hyperlink. Links are kept in PDF and SVG exports.");
-        return;
+    let o = first(app);
+    let has = o.is_some();
+    let link = o.as_ref().map(|o| o.link.clone()).unwrap_or_default();
+    let url = o.as_ref().and_then(|o| o.url.clone()).unwrap_or_default();
+    let bookmark = link.bookmark.is_some();
+    let w = ui.available_width() - 6.0;
+    let lbl = |ui: &mut Ui, t: &str, on: bool| {
+        ui.add_enabled(on, egui::Label::new(t));
+        ui.add_space(2.0);
     };
-    if app.dockers.ui.link_url.is_empty() {
-        app.dockers.ui.link_url = o.url.clone().unwrap_or_default();
-    }
-    ui.label("URL:");
-    ui.text_edit_singleline(&mut app.dockers.ui.link_url);
-    ui.horizontal(|ui| {
-        if primary(ui, "Apply", true) {
-            let u = app.dockers.ui.link_url.trim().to_string();
-            edit_sel(app, "Hyperlink", |x| x.url = if u.is_empty() { None } else { Some(u.clone()) });
-        }
-        if ui.button("Remove").clicked() {
-            app.dockers.ui.link_url.clear();
-            edit_sel(app, "Hyperlink", |x| x.url = None);
+    ui.add_space(2.0);
+    // Behavior: a Web link or a bookmark
+    lbl(ui, "Behavior:", true);
+    let mut b = bookmark as usize;
+    ui.add_enabled_ui(has, |ui| {
+        if super::choice(ui, "lr_behavior", &mut b, &["Link", "Bookmark"], w) {
+            let to_bm = b == 1;
+            edit_sel(app, "Behavior", |x| {
+                if to_bm {
+                    x.link.bookmark = Some(x.link.bookmark.clone().unwrap_or_default());
+                    x.url = None;
+                } else {
+                    x.link.bookmark = None;
+                }
+            });
         }
     });
+    ui.add_space(4.0);
+    if bookmark {
+        lbl(ui, "Bookmark:", true);
+        let mut name = link.bookmark.clone().unwrap_or_default();
+        if ui.add_enabled(has, egui::TextEdit::singleline(&mut name).desired_width(w)).on_hover_text("Add descriptive information about a bookmark or anchor.").changed() {
+            edit_sel(app, "Bookmark", |x| x.link.bookmark = Some(name.clone()));
+        }
+    } else {
+        lbl(ui, "URL:", true);
+        // the URL, or one of the document's bookmarks
+        let marks: Vec<String> = app.doc().map(|d| {
+            let mut v = vec![];
+            for p in &d.doc.pages {
+                for x in p.all_objects() {
+                    x.walk(&mut |y| {
+                        if let Some(b) = &y.link.bookmark {
+                            if !b.is_empty() {
+                                v.push(format!("#{b}"));
+                            }
+                        }
+                    });
+                }
+            }
+            v
+        }).unwrap_or_default();
+        if app.dockers.ui.link_url.is_empty() || !has {
+            app.dockers.ui.link_url = url.clone();
+        }
+        ui.add_enabled_ui(has, |ui| {
+            ui.horizontal(|ui| {
+                ui.spacing_mut().item_spacing.x = 0.0;
+                let r = ui.add(egui::TextEdit::singleline(&mut app.dockers.ui.link_url).desired_width(w - 20.0)).on_hover_text("Assign a hyperlink to the Web object or bookmark.");
+                if r.lost_focus() && app.dockers.ui.link_url != url {
+                    let u = app.dockers.ui.link_url.trim().to_string();
+                    edit_sel(app, "Hyperlink", |x| x.url = (!u.is_empty()).then(|| u.clone()));
+                }
+                let (ar, aresp) = ui.allocate_exact_size(vec2(20.0, 22.0), Sense::click());
+                crate::widgets::chevron(ui.painter(), ar.center(), 3.0, crate::theme::TEXT);
+                egui::Popup::menu(&aresp).show(|ui| {
+                    crate::menus::menu_style(ui);
+                    if marks.is_empty() {
+                        ui.add_enabled(false, egui::Button::new("(no bookmarks)"));
+                    }
+                    for m in &marks {
+                        if ui.button(m).clicked() {
+                            let u = m.clone();
+                            app.dockers.ui.link_url = u.clone();
+                            edit_sel(app, "Hyperlink", |x| x.url = Some(u.clone()));
+                        }
+                    }
+                });
+            });
+        });
+        ui.add_space(4.0);
+        let on = has && !url.is_empty();
+        lbl(ui, "Target:", on);
+        let targets = ["_blank", "_self", "_top", "_parent"];
+        let mut t = targets.iter().position(|x| *x == link.target).unwrap_or(0);
+        ui.add_enabled_ui(on, |ui| {
+            if !on {
+                super::choice(ui, "lr_target_off", &mut 0, &[""], w);
+            } else if super::choice(ui, "lr_target", &mut t, &targets, w) {
+                let v = targets[t].to_string();
+                edit_sel(app, "Target Frame", |x| x.link.target = v.clone());
+            }
+        });
+        let mut alt = link.alt.clone();
+        if ui.add_enabled(on, egui::TextEdit::singleline(&mut alt).desired_width(w)).changed() {
+            edit_sel(app, "Alt Comments", |x| x.link.alt = alt.clone());
+        }
+        ui.add_space(8.0);
+        lbl(ui, "Define hotspot using:", on);
+        ui.indent("lr_hot", |ui| {
+            for (k, t) in [(true, "Shape"), (false, "Bounds")] {
+                if super::radio(ui, link.hotspot_shape == k, t, on) {
+                    edit_sel(app, "Hotspot", |x| x.link.hotspot_shape = k);
+                }
+                ui.add_space(3.0);
+            }
+        });
+        egui::Grid::new("lr_hot_colors").num_columns(2).spacing(vec2(8.0, 6.0)).show(ui, |ui| {
+            ui.label("Cross-hatch:");
+            let mut c = Some(app.dockers.ui.hotspot_colors.0);
+            if super::color_pick_w(ui, "lr_hatch", &mut c, false, true, 46.0) {
+                if let Some(c) = c {
+                    app.dockers.ui.hotspot_colors.0 = c;
+                }
+            }
+            ui.end_row();
+            ui.label("Background:");
+            let mut c = app.dockers.ui.hotspot_colors.1;
+            if super::color_pick_w(ui, "lr_hot_bg", &mut c, true, true, 46.0) {
+                app.dockers.ui.hotspot_colors.1 = c;
+            }
+            ui.end_row();
+        });
+    }
+    ui.add_space(10.0);
+    separator(ui);
+    ui.add_space(10.0);
+    // Rollover
+    ui.horizontal(|ui| {
+        ui.label(egui::RichText::new("Rollover").font(crate::theme::bold(12.5)));
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            let (live, has_doc) = (app.rollover_live, app.has_doc());
+            if crate::widgets::icon_button(&mut app.icons, ui, "rollover_preview", "Rollover live preview", has_doc, live).clicked() {
+                app.run(Cmd::RolloverLivePreview);
+            }
+        });
+    });
+    ui.add_space(4.0);
+    let en = |app: &VectorApp, id: &str| crate::ui::bind::enabled(app, id).unwrap_or(true);
+    ui.horizontal(|ui| {
+        for (icon, tip, id, c) in [
+            ("rollover_create", "Create rollover", "91dbd3be", Cmd::RolloverCreate),
+            ("rollover_edit", "Edit rollover", "54cac40e", Cmd::RolloverEdit),
+            ("rollover_extract", "Extract rollover objects", "9af6ee00", Cmd::RolloverExtract),
+            ("rollover_finish", "Finish editing rollover", "7b203f56", Cmd::RolloverFinish),
+        ] {
+            let on = en(app, id);
+            if crate::widgets::icon_button(&mut app.icons, ui, icon, tip, on, false).clicked() && on {
+                app.run(c);
+            }
+        }
+    });
+    lbl(ui, "Active rollover state:", true);
+    let state = crate::dialogs::object::active_state(app);
+    ui.horizontal(|ui| {
+        let mut s = state.unwrap_or(0) as usize;
+        ui.add_enabled_ui(state.is_some(), |ui| {
+            let cw = (w - 60.0).max(80.0);
+            if state.is_none() {
+                super::choice(ui, "lr_state_off", &mut 0, &[""], cw);
+            } else if super::choice(ui, "lr_state", &mut s, &["[NORMAL]", "[OVER]", "[DOWN]"], cw) {
+                crate::dialogs::object::show_state(app, s as u8);
+            }
+        });
+        for (icon, tip, id, c) in [("duplicate", "Duplicate rollover state", "83501505", Cmd::RolloverDuplicateState), ("delete", "Deletes rollover state", "217155e9", Cmd::RolloverDeleteState)] {
+            let on = en(app, id);
+            if crate::widgets::icon_button(&mut app.icons, ui, icon, tip, on, false).clicked() && on {
+                app.run(c);
+            }
+        }
+    });
+    ui.horizontal(|ui| {
+        let web = en(app, "e4f6d170");
+        let web_on = crate::ui::bind::checked(app, "e4f6d170").unwrap_or(false);
+        if crate::widgets::icon_button(&mut app.icons, ui, "web_text", "Make text Web-compatible", web, web_on).clicked() && web {
+            app.run(Cmd::MakeWebCompatible);
+        }
+        let enc = en(app, "63992d01");
+        if crate::widgets::icon_button(&mut app.icons, ui, "encode", "Encode...", enc, false).clicked() && enc {
+            app.run(Cmd::EncodeText);
+        }
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            let on = app.settings.show_hotspots;
+            if crate::widgets::icon_button(&mut app.icons, ui, "hotspots", "Show or hide hotspots on objects.", true, on).clicked() {
+                app.run(Cmd::ShowHotspots);
+            }
+        });
+    });
+}
+
+/// Show Hotspots: the Web links of the page, cross-hatched over their shape or bounds.
+pub fn draw_hotspots(app: &VectorApp, painter: &egui::Painter, d: &crate::docview::DocView) {
+    if !app.settings.show_hotspots {
+        return;
+    }
+    let (hatch, bg) = app.dockers.ui.hotspot_colors;
+    let hc = egui::Color32::from_rgba_unmultiplied(hatch.r, hatch.g, hatch.b, 200);
+    for (_, _, l) in d.doc.layers_on_page(d.page) {
+        for o in &l.objects {
+            o.walk(&mut |x| {
+                if x.url.as_deref().is_none_or(str::is_empty) {
+                    return;
+                }
+                let r = d.to_screen_rect(x.bounds());
+                if let Some(b) = bg {
+                    painter.rect_filled(r, 0.0, egui::Color32::from_rgba_unmultiplied(b.r, b.g, b.b, 90));
+                }
+                let p = painter.with_clip_rect(r.intersect(painter.clip_rect()));
+                let step = 6.0;
+                let mut t = -r.height();
+                while t < r.width() {
+                    p.line_segment([egui::pos2(r.left() + t, r.bottom()), egui::pos2(r.left() + t + r.height(), r.top())], egui::Stroke::new(1.0, hc));
+                    t += step;
+                }
+            });
+        }
+    }
 }
 
 // ------------------------------------------------------------------ Sources

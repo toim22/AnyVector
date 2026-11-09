@@ -144,12 +144,17 @@ impl Renderer {
             }
         }
         let ctx = Ctx { doc, view, opts };
-        for layer in &pg.layers {
+        for (_, _, layer) in doc.layers_on_page(page) {
             if !layer.visible || (opts.printing && !layer.printable) {
                 continue;
             }
             for o in &layer.objects {
-                self.render_object(&ctx, o, target);
+                if layer.master != 0 {
+                    let o = doc.object_on_page(o, page);
+                    self.render_object(&ctx, &o, target);
+                } else {
+                    self.render_object(&ctx, o, target);
+                }
             }
         }
     }

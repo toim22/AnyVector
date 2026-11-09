@@ -1,9 +1,11 @@
 //! Dockers (Window > Dockers): the right-hand docking panel with a tab per open docker.
 
 mod arrange;
+mod assets;
 mod color;
 pub mod coled;
 mod coords;
+mod cstyles;
 mod guides;
 pub use guides::styled_line;
 mod effects;
@@ -12,11 +14,18 @@ mod extrude;
 pub(crate) mod extrude_pages {
     pub(crate) use super::extrude::{bevel_ui, color_ui, lighting_ui, rotation_ui};
 }
+mod find;
 mod fx_dockers;
 mod misc;
+pub use misc::draw_hotspots;
+pub use proofing::gamut_overlay;
 mod objects;
+mod palettes;
+mod proofing;
+pub mod ostyles;
 pub mod props;
 pub(crate) mod text;
+mod textdk;
 
 use crate::app::VectorApp;
 use crate::icons::Tone;
@@ -274,13 +283,16 @@ pub struct DockerUi {
     /// Shape ▸ Boundary: place behind the selected objects; leave the original objects.
     pub boundary_behind: bool,
     pub boundary_leave: bool,
-    pub find_text: String,
-    pub replace_text: String,
-    pub find_case: bool,
-    pub glyph_font: String,
-    pub glyph_filter: String,
-    pub sampler_text: String,
-    pub sampler_size: f32,
+    pub fr: find::FrUi,
+    /// Palettes docker: the expanded folders, the selected row and the clipboard.
+    pub pm: palettes::PmUi,
+    /// Color Styles docker: the selection, the view options and the editors.
+    pub cs: cstyles::CsUi,
+    /// Assets docker: the source, search, sorting, filters, folder, selection and thumbnails.
+    pub assets: assets::AsUi,
+    pub tx: textdk::TextUi,
+    pub fs: text::FsUi,
+    pub gl: text::GlUi,
     /// Live Guides: the section picked by the top buttons, one section at a time, open sections, Margins open.
     pub lg_section: usize,
     pub lg_collapse: bool,
@@ -351,17 +363,21 @@ pub struct DockerUi {
     pub comment_sel: Option<u64>,
     pub comment_edit: Option<(u64, String, bool)>,
     pub comment_reply: String,
-    pub style_name: String,
     pub export_format: usize,
     /// Export docker items (pages first, then objects).
     pub export_items: Vec<ExportItem>,
     pub script_error: Option<String>,
     pub link_url: String,
+    /// Links and Rollovers: the hotspot cross-hatch and background colors.
+    pub hotspot_colors: (vector_core::Color, Option<vector_core::Color>),
     /// Fit Objects to Path options.
     pub fit: vector_core::ops::FitPathOptions,
     pub objects_filter: String,
+    pub pages_filter: String,
     pub rename: Option<(vector_core::ObjId, String)>,
-    pub layer_rename: Option<(usize, String)>,
+    pub om: objects::ObjUi,
+    pub os: ostyles::OsUi,
+    pub pg: objects::PagesUi,
     /// Tray docker: the trays, the one shown, its new name while renaming, the last item id.
     pub trays: Vec<misc::TrayDef>,
     pub tray_sel: usize,
@@ -377,7 +393,12 @@ pub struct DockerUi {
     pub script_closed: Vec<String>,
     pub script_simple: bool,
     pub script_rename: Option<(std::path::PathBuf, String)>,
-    pub proof_gray: bool,
+    /// Color Proofing: the installed color profiles, the description of the control under the
+    /// pointer (and the last one shown), and the name of a preset being saved.
+    pub proof_profiles: Vec<proofing::Env>,
+    pub proof_desc: Option<&'static str>,
+    pub proof_last_desc: Option<&'static str>,
+    pub proof_new_preset: Option<String>,
     /// Symbols docker: the library shown (0 the document, 1 linked symbols, 2 local symbols,
     /// 3 network symbols, 4 a local library file), the file, Local Symbols unfolded, the selected
     /// symbol (by name), the search text, Scale to world units, the symbol being renamed, and the
@@ -430,13 +451,13 @@ impl Default for DockerUi {
             shape_leave: [[false, false], [true, false], [true, true]],
             boundary_behind: false,
             boundary_leave: true,
-            find_text: String::new(),
-            replace_text: String::new(),
-            find_case: false,
-            glyph_font: vector_core::text::default_font_family(),
-            glyph_filter: String::new(),
-            sampler_text: "The quick brown fox jumps over the lazy dog".into(),
-            sampler_size: 20.0,
+            fr: Default::default(),
+            pm: Default::default(),
+            cs: Default::default(),
+            assets: Default::default(),
+            tx: Default::default(),
+            fs: Default::default(),
+            gl: Default::default(),
             lg_section: 0,
             lg_collapse: false,
             lg_open: [true, true],
@@ -489,15 +510,18 @@ impl Default for DockerUi {
             comment_sel: None,
             comment_edit: None,
             comment_reply: String::new(),
-            style_name: String::new(),
-            export_format: 0,
+            export_format: 1,
             export_items: vec![],
             script_error: None,
             link_url: String::new(),
+            hotspot_colors: (vector_core::Color::rgb(230, 30, 40), None),
             fit: vector_core::ops::FitPathOptions::default(),
             objects_filter: String::new(),
+            pages_filter: String::new(),
             rename: None,
-            layer_rename: None,
+            om: Default::default(),
+            os: Default::default(),
+            pg: Default::default(),
             trays: vec![misc::TrayDef::new("Tray 1")],
             tray_sel: 0,
             tray_rename: None,
@@ -509,7 +533,10 @@ impl Default for DockerUi {
             script_closed: vec![],
             script_simple: false,
             script_rename: None,
-            proof_gray: false,
+            proof_profiles: vec![],
+            proof_desc: None,
+            proof_last_desc: None,
+            proof_new_preset: None,
             sym_lib: 0,
             sym_file: None,
             sym_local_open: false,
@@ -687,9 +714,9 @@ fn docker_content(app: &mut VectorApp, ui: &mut Ui, d: DockerId) {
         Pages => objects::pages(app, ui),
         Comments => misc::comments(app, ui),
         ObjectData => misc::object_data(app, ui),
-        ObjectStyles => misc::object_styles(app, ui),
+        ObjectStyles => ostyles::object_styles(app, ui),
         Symbols => misc::symbols(app, ui),
-        FindReplace => text::find_replace(app, ui),
+        FindReplace => find::find_replace(app, ui),
         Export => misc::export(app, ui),
         AiGenerate => crate::ai::panel(app, ui),
         Transform => arrange::transform(app, ui),
@@ -702,7 +729,7 @@ fn docker_content(app: &mut VectorApp, ui: &mut Ui, d: DockerId) {
         Shape => arrange::shaping(app, ui),
         Corners => arrange::corners(app, ui),
         JoinCurves => arrange::join_curves(app, ui),
-        Text => text::text(app, ui),
+        Text => textdk::text(app, ui),
         FontSampler => text::font_sampler(app, ui),
         Glyphs => text::glyphs(app, ui),
         ArtisticMedia => fx_dockers::artistic_media(app, ui),
@@ -716,10 +743,10 @@ fn docker_content(app: &mut VectorApp, ui: &mut Ui, d: DockerId) {
         PhotoCocktail => fx_dockers::photococktail(app, ui),
         Pointillizer => fx_dockers::pointillizer(app, ui),
         Color => color::color(app, ui),
-        Palettes => color::palettes(app, ui),
-        ColorStyles => color::color_styles(app, ui),
-        ColorProofing => color::proofing(app, ui),
-        Assets => misc::assets(app, ui),
+        Palettes => palettes::palettes(app, ui),
+        ColorStyles => cstyles::color_styles(app, ui),
+        ColorProofing => proofing::proofing(app, ui),
+        Assets => assets::assets(app, ui),
         Tray => misc::tray(app, ui),
         LinksRollovers => misc::links(app, ui),
         Sources => misc::sources(app, ui),
@@ -747,10 +774,6 @@ pub(crate) fn heading(ui: &mut Ui, text: &str) {
     let r = ui.available_rect_before_wrap();
     ui.painter().line_segment([pos2(r.left(), r.top()), pos2(r.right(), r.top())], Stroke::new(1.0, theme::SEP));
     ui.add_space(2.0);
-}
-
-pub(crate) fn primary(ui: &mut Ui, text: &str, enabled: bool) -> bool {
-    ui.add_enabled(enabled, egui::Button::new(egui::RichText::new(text).color(Color32::WHITE)).fill(theme::ACCENT).min_size(vec2(90.0, 24.0))).clicked()
 }
 
 // ----------------------------------------------------------------------------- docker forms

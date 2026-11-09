@@ -1211,6 +1211,9 @@ pub struct Object {
     /// Internet link (Links and Rollovers).
     #[serde(default)]
     pub url: Option<String>,
+    /// Links and Rollovers: the behavior, target frame, comments and hotspot of the link.
+    #[serde(default)]
+    pub link: LinkInfo,
     #[serde(default)]
     pub object_style: Option<String>,
     #[serde(default)]
@@ -1230,6 +1233,20 @@ fn yes() -> bool {
     true
 }
 
+/// Links and Rollovers: a bookmark (else the object is a Web link), the browser window the link
+/// opens in, the alternate comments, and the hotspot: the object's shape instead of its bounds.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct LinkInfo {
+    #[serde(default)]
+    pub bookmark: Option<String>,
+    #[serde(default)]
+    pub target: String,
+    #[serde(default)]
+    pub alt: String,
+    #[serde(default)]
+    pub hotspot_shape: bool,
+}
+
 impl Object {
     pub fn new(id: ObjId, kind: ObjKind, transform: Affine, style: Style) -> Object {
         Object {
@@ -1244,6 +1261,7 @@ impl Object {
             effects: Effects::default(),
             data: vec![],
             url: None,
+            link: LinkInfo::default(),
             object_style: None,
             comments: vec![],
             powerclip_unlocked: false,

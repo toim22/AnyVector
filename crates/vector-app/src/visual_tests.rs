@@ -1240,6 +1240,97 @@ fn visual_dockers() {
                 |a| a.dockers.ui.pr.tab = 5,
             ],
             DockerId::Comments => &[comments_state],
+            DockerId::Objects => &[|a| a.settings.om_layers_view = true],
+            DockerId::ObjectStyles => &[
+                |a| a.dockers.ui.os.sel = crate::dockers::ostyles::OsSel::Styles,
+                |a| a.dockers.ui.os.sel = crate::dockers::ostyles::OsSel::Sets,
+                |a| {
+                    a.dockers.ui.os.sel = crate::dockers::ostyles::OsSel::None;
+                    a.dockers.ui.os.open[2] = true;
+                },
+                |a| a.dockers.ui.os.sel = crate::dockers::ostyles::OsSel::Default(1),
+            ],
+            DockerId::AiGenerate => &[|a| a.settings.ai_terms_accepted = true],
+            DockerId::Export => &[|a| a.run(crate::commands::Cmd::ExportDockerAddPage)],
+            DockerId::Assets => &[
+                |a| {
+                    // two drawings and two images in a sample folder (one in a category)
+                    let dir = std::path::PathBuf::from("../../target/visual/assets");
+                    let _ = std::fs::create_dir_all(dir.join("Food"));
+                    for (n, c) in [("Food/PH00066.png", [200u8, 120, 60]), ("PH00453.png", [90, 160, 70])] {
+                        let img = image::RgbImage::from_fn(96, 72, |x, y| image::Rgb([c[0].wrapping_add((x / 3) as u8), c[1], c[2].wrapping_add((y / 3) as u8)]));
+                        let _ = img.save(dir.join(n));
+                    }
+                    let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60"><circle cx="30" cy="30" r="24" fill="#e33"/></svg>"##;
+                    let _ = std::fs::write(dir.join("Food/CGS03556.svg"), svg);
+                    let _ = std::fs::write(dir.join("CGS12877.svg"), svg.replace("e33", "4a4"));
+                    a.settings.asset_folders = vec![std::fs::canonicalize(&dir).unwrap_or(dir).to_string_lossy().to_string()];
+                },
+                |a| a.dockers.ui.assets.rasters = false,
+                |a| a.dockers.ui.assets.source = 2,
+            ],
+            DockerId::ColorProofing => &[|a| {
+                a.settings.proof_colors = true;
+                a.settings.proof_gamut = true;
+            }],
+            DockerId::ColorStyles => &[
+                |a| {
+                    let d = a.doc_mut().unwrap();
+                    for (i, c) in [Color::rgb(230, 60, 40), Color::rgb(40, 110, 200), Color::rgb(250, 200, 30), Color::rgb(60, 160, 80)].into_iter().enumerate() {
+                        d.doc.color_styles.push(vector_core::NamedColor::new(format!("Color Style {}", i + 1), c));
+                    }
+                    d.doc.color_harmonies.push(vector_core::document::ColorHarmony {
+                        name: "Harmony 1".into(),
+                        rule: 6,
+                        styles: [Color::rgb(220, 40, 40), Color::rgb(40, 220, 40), Color::rgb(40, 40, 220)].into_iter().enumerate().map(|(i, c)| vector_core::NamedColor::new(format!("Color Style {}", i + 5), c)).collect(),
+                    });
+                    a.dockers.ui.cs.harmony = Some(0);
+                    a.dockers.ui.cs.sel = vec![(Some(0), 0), (Some(0), 1), (Some(0), 2)];
+                },
+                |a| {
+                    a.dockers.ui.cs.harmony = None;
+                    a.dockers.ui.cs.sel = vec![(None, 1)];
+                },
+            ],
+            DockerId::Palettes => &[
+                |a| a.dockers.ui.pm.open.extend(["lib/process".to_string()]),
+                |a| {
+                    a.dockers.ui.pm.open.remove("lib/process");
+                    a.dockers.ui.pm.open.insert("lib/spot".into());
+                    a.dockers.ui.pm.sel = Some("lib/spot".into());
+                },
+            ],
+            DockerId::LinksRollovers => &[
+                |a| {
+                    a.dockers.ui.link_url.clear();
+                    crate::propbar::edit_sel(a, "Hyperlink", |o| o.url = Some("https://example.com".into()));
+                },
+                |a| crate::propbar::edit_sel(a, "Behavior", |o| {
+                    o.url = None;
+                    o.link.bookmark = Some("top".into());
+                }),
+            ],
+            DockerId::Text => &[
+                |a| {
+                    a.dockers.ui.tx.more = [true; 3];
+                },
+                |a| {
+                    a.dockers.ui.tx.more = [false; 3];
+                    a.dockers.ui.tx.tab = 1;
+                    a.dockers.ui.tx.jump = true;
+                },
+            ],
+            DockerId::FontSampler => &[|a| a.dockers.ui.fs.view = 1, |a| a.dockers.ui.fs.view = 2],
+            DockerId::FindReplace => &[
+                |a| a.dockers.ui.fr.by_names = true,
+                |a| {
+                    a.dockers.ui.fr.by_names = false;
+                    a.dockers.ui.fr.range_open = true;
+                },
+                |a| a.dockers.ui.fr.mode = 1,
+                |a| a.dockers.ui.fr.mode = 2,
+            ],
+            DockerId::Pages => &[pages_state, |a| a.doc_mut().unwrap().doc.settings.multipage_view = true],
             DockerId::Symbols => &[symbols_state, |a| a.dockers.ui.sym_lib = 1, |a| a.dockers.ui.sym_local_open = true],
             DockerId::ObjectData => &[|a| a.dialogs.object_data_manager = true, |a| {
                 a.dialogs.object_data_manager = false;
@@ -1258,7 +1349,44 @@ fn visual_dockers() {
         if d == DockerId::Symbols {
             a.doc_mut().unwrap().doc.symbols.clear();
         }
+        a.settings.om_layers_view = false;
+        a.dockers.ui.fr = Default::default();
+        a.dockers.ui.pm = Default::default();
+        a.dockers.ui.cs = Default::default();
+        a.dockers.ui.assets = Default::default();
+        a.settings.asset_folders.clear();
+        a.settings.proof_colors = false;
+        a.settings.proof_gamut = false;
+        if d == DockerId::ColorStyles {
+            let dv = a.doc_mut().unwrap();
+            dv.doc.color_styles.clear();
+            dv.doc.color_harmonies.clear();
+        }
+        a.dockers.ui.tx = Default::default();
+        a.dockers.ui.fs = Default::default();
+        a.dockers.ui.export_items.clear();
+        a.settings.ai_terms_accepted = false;
+        if d == DockerId::LinksRollovers {
+            crate::propbar::edit_sel(a, "Behavior", |o| o.link = Default::default());
+            a.dockers.ui.link_url.clear();
+        }
+        if d == DockerId::Pages {
+            let dv = a.doc_mut().unwrap();
+            dv.doc.pages.truncate(1);
+            dv.doc.settings.multipage_view = false;
+            dv.page = 0;
+        }
     }
+}
+
+/// A Pages docker state: three pages, the first current.
+#[cfg(test)]
+fn pages_state(a: &mut VectorApp) {
+    let d = a.doc_mut().unwrap();
+    let (w, h) = (d.doc.pages[0].width, d.doc.pages[0].height);
+    d.doc.add_page(1, w, h);
+    d.doc.add_page(2, w, h);
+    d.page = 0;
 }
 
 /// A Symbols docker state: a symbol made of the rectangle, selected.

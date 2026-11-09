@@ -246,6 +246,22 @@ fn placeholder(app: &VectorApp, it: &'static Item, ctx: u32, strict: bool, out: 
                 out.push(Row::Item(Entry::new(n.replace('&', "&&"), Act::OpenPalette(n.clone()))));
             }
         }
+        // Object ▸ Object Styles ▸ Apply Style, Edit Style, New Style From
+        "44d9aafa" | "9273fe44" | "8b49f41d" => {
+            let which = match key8(it.id).as_str() {
+                "44d9aafa" => 0,
+                "9273fe44" => 1,
+                _ => 2,
+            };
+            for (text, i, on) in crate::dockers::ostyles::menu_styles(app, which) {
+                let c = match which {
+                    0 => Cmd::ApplyObjectStyle(i),
+                    1 => Cmd::EditObjectStyle(i),
+                    _ => Cmd::NewStyleFrom(i as u8),
+                };
+                out.push(Row::Item(Entry::new(text, Act::Cmd(c)).enabled(on)));
+            }
+        }
         // Bitmaps ▸ Plug-ins
         "be2d1143" => out.push(Row::Item(Entry::new(it.text, Act::None).enabled(false))),
         _ => {}
@@ -265,6 +281,39 @@ pub fn menu_style(ui: &mut Ui) {
     ui.spacing_mut().button_padding = egui::vec2(6.0, 2.0);
     ui.style_mut().visuals.widgets.hovered.weak_bg_fill = theme::HOVER;
     ui.style_mut().visuals.widgets.hovered.bg_stroke = egui::Stroke::NONE;
+}
+
+/// A row of a docker's own menu (Options and the like), drawn as the reference menus: the
+/// check mark in the icon column, the mnemonic underlined. Gives whether it was chosen.
+pub fn item(app: &mut VectorApp, ui: &mut Ui, text: &str, enabled: bool, check: bool) -> bool {
+    let img = icon_img(app, ui, None, enabled);
+    let color = if enabled { theme::TEXT } else { theme::DISABLED };
+    let r = ui.add_enabled(enabled, Button::image_and_text(img, mnemonic(text, color, 12.5)).min_size(egui::vec2(200.0, 22.0)));
+    if check {
+        let c = r.rect.left_center() + egui::vec2(ui.spacing().button_padding.x + 8.0, 0.0);
+        ui.painter().text(c, egui::Align2::CENTER_CENTER, '✓', egui::FontId::proportional(13.0), color);
+    }
+    r.clicked()
+}
+
+/// A submenu row of a docker's own menu.
+pub fn submenu(app: &mut VectorApp, ui: &mut Ui, text: &str, enabled: bool, f: impl FnOnce(&mut VectorApp, &mut Ui)) {
+    let img = icon_img(app, ui, None, enabled);
+    let color = if enabled { theme::TEXT } else { theme::DISABLED };
+    let b = Button::image_and_text(img, mnemonic(text, color, 12.5)).min_size(egui::vec2(200.0, 22.0));
+    if !enabled {
+        ui.add_enabled(false, b.right_text(SubMenuButton::arrow_atom(Some(color))));
+        return;
+    }
+    SubMenuButton::from_button(b.right_text(SubMenuButton::arrow_atom(None))).ui(ui, |ui| {
+        menu_style(ui);
+        f(app, ui);
+    });
+}
+
+/// A separator of a docker's own menu.
+pub fn separator(ui: &mut Ui) {
+    sep(ui);
 }
 
 fn sep(ui: &mut Ui) {

@@ -84,12 +84,14 @@ impl<'a> Flattener<'a> {
         if let Some(bg) = pg.background {
             self.out.push(Prim::Fill { path: pg.rect().to_path(0.1), paint: Paint::Solid(bg), even_odd: false });
         }
-        for l in &pg.layers {
+        let doc = self.doc;
+        for (_, _, l) in doc.layers_on_page(page) {
             if !l.visible || (self.opts.printing && !l.printable) {
                 continue;
             }
             for o in &l.objects {
-                self.object(o);
+                let o = doc.object_on_page(o, page);
+                self.object(&o);
             }
         }
     }

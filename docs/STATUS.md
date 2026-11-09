@@ -233,6 +233,34 @@ its status in Vector.
   - Double-click opens the object in its program. When the file is saved there, the object updates.
   - Embedded objects are stored in the drawing; linked ones point to their file.
 
+**Batch 6 (Dockers), done:**
+
+- Every docker of Window ▸ Dockers was compared with the reference captures and their inner states, and rebuilt
+  with the same layout, order, icons and wording. A visual test opens each docker and saves a render next to its
+  reference (`target/visual/dk_NNN.png`, listed in `docs/reference-map.tsv`). Learn is left out (Corel content).
+- The docker host has the vertical tabs on the right edge, as in the reference.
+- Arrange dockers: Transform, Coordinates, Live Guides, Guidelines, Align and Distribute, Fit Objects to Path, Step
+  and Repeat, Shape, Corners and Join Curves.
+- Effects dockers: Artistic Media, Bevel, Bitmap Mask, Blend, Contour, Envelope, Extrude (its five pages), Lens (every
+  lens kind), PhotoCocktail and Pointillizer.
+- Properties: Outline, Fill, Transparency, Bitmap Effects, object, Painterly Brush and Summary sections, tabbed or in
+  one folding column. Fountain fill nodes, blend direction, acceleration and smooth transitions; vector, bitmap and
+  two-color pattern fills and transparencies; transparency targets; the calligraphic nib; dash alignment; the Edit
+  Line Style dialog.
+- Objects, Pages, Comments, Object Data, Object Styles, Symbols, Find and Replace, Export and AI Generate.
+- Text (Character, Paragraph and Frame), Font Sampler and Glyphs.
+- Color, Palettes, Color Styles, Color Proofing and Assets:
+  - Palettes is a palette manager: Document Palette, Color Styles Palette, My Palettes and the Palette Libraries,
+    each with a check box that opens the palette as a column at the window edge.
+  - Color Styles has color styles and harmonies (Analogous, Complementary, Monochromatic, Tetrad, Triad...), the
+    Harmony Editor, gradients, merge, swap, select unused, and style sheets that import and export.
+  - Color Proofing: Proof colors, the gamut warning in its color and transparency, the simulated environment from
+    the installed color profiles, presets, Export soft proof and Print proof.
+  - Assets: local folders and the document's linked files, with search, sorting, categories, favorites, a folder
+    tree, list or thumbnails, and Import with link options.
+- Tray, Links and Rollovers, Sources, Views, History and Scripts. Links and Rollovers sets links and bookmarks,
+  draws the hotspots on the canvas, and creates and edits rollovers.
+
 ## Working (verified by build and tests)
 
 - Full workspace compiles. Unit tests pass for:
@@ -315,5 +343,49 @@ its status in Vector.
   toolbar. Vanishing points cannot be dragged on the canvas, and there are no camera lines.
 - **Symmetry preview:** the mirror copies show as outlines while you edit. Show full preview and Fuse open curves
   are not available.
+- **Dockers (batch 6):**
+  - Properties: no skew of fills, no texture or PostScript fills and transparencies, no bitmap tone adjustments, no
+    pattern X/Y and row/column offsets; effect presets come with batch 7; the (+) Save as new button is disabled.
+    The eye button's tooltip ("Show or hide the summary.") is not in the reference strings.
+  - The ruler, the rotation center and the Step and Repeat vertical offset count downward (y-down); CorelDRAW counts
+    upward.
+  - Objects: no drag and drop of layers and objects; the Desktop layer is not a real layer (Keep Desktop Objects is
+    only stored); no wireframe per layer; master layers are stored with page 1.
+  - Pages: the Custom multipage arrangement is horizontal; the three view tooltips are not in the reference strings.
+  - Object Styles: the style editor is simpler; Character, Paragraph and Frame styles are disabled; Default Object
+    Properties change the graphic defaults only; style sheets are Vector's own `.vstyles` file.
+  - Find and Replace: Pantone queries find nothing (colors keep no palette names); Color model or palette replace is
+    disabled.
+  - Export: the export list cannot be reordered by dragging. AI Generate: the terms page is in Vector's own words.
+  - Text: Character background fill, horizontal offset, angle, overline, capital spacing, annotation forms, OpenType
+    features, synthesized sub/superscripts and small-caps options are disabled; Paragraph Before paragraph spacing,
+    language spacing, text direction and Justification are disabled; Frame background, vertical alignment and
+    right-to-left columns are disabled; underline and strikethrough are Single Thin only.
+  - Font Sampler: samples cannot be dragged into the drawing; Copy puts SVG on the clipboard. Glyphs: OpenType and
+    Language info are empty; Show all glyph variations is disabled.
+  - Transform: Scale portion is measured with two clicks instead of a drag. Live Guides: the intelligent spacing and
+    dimensioning marks are not drawn. Guidelines: Show at scale is only stored. Align and Distribute: Use outline is
+    not shown.
+  - Blend: fixed spacing, Map nodes, Split and Fuse are disabled. Bevel: Emboss is approximate. Envelope: the presets
+    are approximated with 8 handles. Extrude: Shared vanishing point is disabled and Copy VP From copies the whole
+    extrusion. Lens: Frozen is only stored and the Bitmap Effect lens does nothing.
+  - Color: Add to Custom Spot Colors lasts for the session only.
+  - Palettes: licensed palette books (PANTONE, TRUMATCH, HKS, DIC, FOCOLTONE, SpectraMaster, TOYO, ONYX, Roland,
+    Universal Laser Systems) and the themed CMYK and RGB subfolders are not included; the Lab, Uniform, CMYK and
+    Percent Gray palettes are generated approximations; the open state of library palettes is not saved.
+  - Color Styles: styles link to objects only by equal colors; New from Selected and New from Document skip their
+    dialogs; New Gradient uses fixed options (5 colors, 50%); the harmony wheel is display-only; Add Linked Style
+    Sheet is disabled; converting to CMYK keeps the RGB values.
+  - Color Proofing: every CMYK environment is simulated with the built-in U.S. Web Coated (SWOP) approximation (no
+    color engine) and RGB environments leave the colors unchanged; Preserve numbers and the rendering intent are only
+    stored; the gamut test is approximate; Export soft proof writes PNG, JPG or TIFF.
+  - Assets: Cloud and Get More are disabled; categories are subfolders; linked assets are the document's linked files
+    (no symbol libraries); Properties shows a message box; Edit opens the file in its default program or in Vector.
+  - Links and Rollovers: the hotspot is always the bounding box, even with Shape; Target and Alt comments are only
+    stored.
+  - Tray: trays last for the session only, and files cannot be dragged in from Explorer. Sources: only bitmaps can
+    be linked. History: no Save as a script. Scripts are Rhai. Comments: no anonymous mode. Object Data: no
+    Application Defaults, field formats or Print. Symbols: Network Symbols is empty. Views are not listed in the
+    zoom list.
 - **Items with no command yet:** menu and toolbar items the reference has but Vector cannot do yet are shown and
   say so when chosen; `docs/COVERAGE.md` lists them.

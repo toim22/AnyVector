@@ -46,6 +46,9 @@ pub struct DocView {
     pub selection: Vec<ObjId>,
     pub page: usize,
     pub layer: usize,
+    /// The active layer is a master layer (stored with the first page; `layer` indexes the
+    /// first page's layers).
+    pub on_master: bool,
     /// Screen points per document point.
     pub zoom: f64,
     /// Screen position (relative to the canvas rect min) of document point (0,0).
@@ -91,6 +94,7 @@ impl DocView {
             selection: vec![],
             page: 0,
             layer: 0,
+            on_master: false,
             zoom: 1.0,
             origin: Vec2::ZERO,
             needs_fit: true,
@@ -150,9 +154,22 @@ impl DocView {
         if self.page >= self.doc.pages.len() {
             self.page = self.doc.pages.len().saturating_sub(1);
         }
-        let nl = self.doc.pages[self.page].layers.len();
+        if self.on_master && !self.doc.pages[0].layers.get(self.layer).is_some_and(|l| l.master != 0) {
+            self.on_master = false;
+            self.layer = 0;
+        }
+        let nl = self.doc.pages[self.active_loc().0].layers.len();
         if self.layer >= nl {
             self.layer = nl.saturating_sub(1);
+        }
+    }
+
+    /// Where the active layer is stored: (page, layer index).
+    pub fn active_loc(&self) -> (usize, usize) {
+        if self.on_master {
+            (0, self.layer)
+        } else {
+            (self.page, self.layer)
         }
     }
 
@@ -262,8 +279,9 @@ impl DocView {
 
     /// The layer new objects go to (unlocked, visible).
     pub fn active_layer_mut(&mut self) -> &mut vector_core::Layer {
-        let p = &mut self.doc.pages[self.page];
-        let idx = self.layer.min(p.layers.len() - 1);
+        let (pi, li) = self.active_loc();
+        let p = &mut self.doc.pages[pi];
+        let idx = li.min(p.layers.len() - 1);
         &mut p.layers[idx]
     }
 
