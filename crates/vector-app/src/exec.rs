@@ -58,6 +58,11 @@ pub fn apply_color(app: &mut VectorApp, color: Option<Color>, outline: bool) {
         app.flash(if outline { "Select objects to change their outline color." } else { "Default fill set for new objects." });
         return;
     }
+    if let (false, Some(c)) = (outline, color) {
+        if crate::propbar::mesh_palette_color(app, c) {
+            return;
+        }
+    }
     let width = app.ts.default_outline_width;
     let Some(d) = app.doc_mut() else { return };
     let ids = d.selection.clone();
@@ -1383,6 +1388,8 @@ impl VectorApp {
             }
             Cmd::ExitFocusMode if self.doc().is_some_and(|d| d.symbol_edit.is_some()) => crate::dialogs::object::finish_symbol(self),
             Cmd::ExitFocusMode if self.doc().is_some_and(|d| d.rollover_edit.is_some()) => crate::dialogs::object::finish_rollover(self),
+            Cmd::ExitFocusMode if self.doc().is_some_and(|d| d.symmetry_edit.is_some()) => crate::dialogs::symmetry::finish_symmetry(self),
+            Cmd::ExitFocusMode if self.doc().is_some_and(|d| d.persp_edit.is_some()) => crate::dialogs::symmetry::finish_perspective(self),
             Cmd::ExitFocusMode => {
                 if let Some(d) = self.doc_mut() {
                     if !d.focus.is_empty() {
@@ -1926,7 +1933,7 @@ impl VectorApp {
             Cmd::AddPerspective => self.modify_sel("Add Perspective", |doc, sel| {
                 for id in sel.iter() {
                     if let Some(o) = doc.find_mut(*id) {
-                        o.effects.envelope = Some(vector_core::object::EnvelopeEffect { handles: [kurbo::Vec2::ZERO; 8] });
+                        o.effects.envelope = Some(vector_core::object::EnvelopeEffect { handles: [kurbo::Vec2::ZERO; 8], ..Default::default() });
                     }
                 }
             }),
@@ -2169,6 +2176,21 @@ impl VectorApp {
             Cmd::SymbolBreakLink => crate::dialogs::object::break_link(self),
             Cmd::SymbolUpdateLink => crate::dialogs::object::update_from_link(self),
             Cmd::SymbolExportLibrary => crate::dialogs::object::export_library(self),
+            Cmd::SymmetryCreate => crate::dialogs::symmetry::create_symmetry(self),
+            Cmd::SymmetryEdit => crate::dialogs::symmetry::edit_symmetry(self),
+            Cmd::SymmetryFinish => crate::dialogs::symmetry::finish_symmetry(self),
+            Cmd::SymmetryRemove => crate::dialogs::symmetry::remove_symmetry(self),
+            Cmd::SymmetryBreak => crate::dialogs::symmetry::break_symmetry(self),
+            Cmd::PerspectiveDraw => crate::dialogs::symmetry::draw_in_perspective(self),
+            Cmd::PerspectiveEdit => crate::dialogs::symmetry::edit_perspective(self),
+            Cmd::PerspectiveFinish => crate::dialogs::symmetry::finish_perspective(self),
+            Cmd::MoveToPlane(p) => crate::dialogs::symmetry::move_to_plane(self, p),
+            Cmd::InsertObject => self.dialogs.insert_object = Some(Default::default()),
+            Cmd::OleOpen => {
+                if let Some(&[id]) = self.doc().map(|d| d.selection.as_slice()) {
+                    crate::dialogs::symmetry::open_ole(self, id);
+                }
+            }
             Cmd::RolloverCreate => crate::dialogs::object::create_rollover(self),
             Cmd::RolloverExtract => crate::dialogs::object::extract_rollover(self),
             Cmd::RolloverEdit => crate::dialogs::object::edit_rollover(self),

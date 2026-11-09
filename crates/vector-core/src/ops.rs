@@ -581,7 +581,7 @@ pub fn create_blend(doc: &mut Document, a: ObjId, b: ObjId, steps: u32) -> Optio
     let nid = doc.new_id();
     let bl = Object::new(
         nid,
-        ObjKind::Blend(BlendObj { start: Box::new(oa), end: Box::new(ob), steps, rotation: 0.0, acceleration: 0.0 }),
+        ObjKind::Blend(BlendObj { start: Box::new(oa), end: Box::new(ob), steps, rotation: 0.0, acceleration: 0.0, ..Default::default() }),
         Affine::IDENTITY,
         Default::default(),
     );
@@ -596,11 +596,7 @@ pub fn break_blend(doc: &mut Document, id: ObjId) -> Vec<ObjId> {
     let o = doc.pages[p].layers[l].objects[i].clone();
     let ObjKind::Blend(b) = &o.kind else { return vec![] };
     let mut objs = vec![(*b.start).clone()];
-    for k in 1..=b.steps {
-        let t = k as f64 / (b.steps + 1) as f64;
-        let nid = doc.new_id();
-        objs.push(crate::object::blend_step(&b.start, &b.end, t, nid, b.rotation));
-    }
+    objs.extend(crate::object::blend_steps(b, || doc.new_id()));
     objs.push((*b.end).clone());
     doc.pages[p].layers[l].objects.remove(i);
     let mut out = vec![];
@@ -865,6 +861,11 @@ fn first_intersection(np: &NodePath, a: Point, b: Point) -> Option<(usize, usize
 
 /// Erase: subtract a brush stroke (polyline with given width) from closed shapes; open curves are cut.
 pub fn erase(doc: &mut Document, page: usize, stroke: &[Point], width: f64) -> Vec<ObjId> {
+    erase_nib(doc, page, stroke, width, false)
+}
+
+/// Erase with a round or square nib.
+pub fn erase_nib(doc: &mut Document, page: usize, stroke: &[Point], width: f64, square: bool) -> Vec<ObjId> {
     if stroke.is_empty() {
         return vec![];
     }
@@ -876,7 +877,11 @@ pub fn erase(doc: &mut Document, page: usize, stroke: &[Point], width: f64) -> V
     if stroke.len() == 1 {
         sp.line_to(stroke[0] + Vec2::new(0.01, 0.0));
     }
-    let brush = geom::stroke_to_path(&sp, width, kurbo::Join::Round, kurbo::Cap::Round, &[]);
+    let brush = if square {
+        geom::stroke_to_path(&sp, width, kurbo::Join::Miter, kurbo::Cap::Square, &[])
+    } else {
+        geom::stroke_to_path(&sp, width, kurbo::Join::Round, kurbo::Cap::Round, &[])
+    };
     let brush_bb = brush.bounding_box();
     let mut out = vec![];
     let ids: Vec<ObjId> = doc.pages.get(page).map(|p| p.all_objects().map(|o| o.id).collect()).unwrap_or_default();
@@ -1158,4 +1163,176 @@ pub fn align_pixel_grid(doc: &mut Document, ids: &[ObjId], px: f64) {
         let a = Affine::translate((x0, y0)) * Affine::scale_non_uniform(sx, sy) * Affine::translate((-b.x0, -b.y0));
         o.apply_transform(a);
     }
+}
+
+/// Knife options of the property bar.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct KnifeOpts {
+    /// Cut span: 0 none, 1 create gap, 2 overlap.
+    pub span: u8,
+    pub width: f64,
+    /// Auto-close: the pieces of closed objects are closed objects (off: open curves).
+    pub auto_close: bool,
+    /// Outline options: 1 converts outlines to objects before cutting.
+    pub outline: u8,
+}
+
+/// Split a path made of separate parts into its parts: each outer contour with its holes.
+pub fn components(path: &BezPath) -> Vec<BezPath> {
+    let subs = geom::subpaths(path);
+    if subs.len() <= 1 {
+        return subs;
+    }
+    let main = subs.iter().map(|p| p.area()).max_by(|a, b| a.abs().total_cmp(&b.abs())).unwrap_or(1.0).signum();
+    let (outer, holes): (Vec<BezPath>, Vec<BezPath>) = subs.into_iter().partition(|p| p.area().signum() == main);
+    let mut out: Vec<BezPath> = outer.clone();
+    for h in holes {
+        let Some(pt) = h.elements().first().and_then(|e| e.end_point()) else { continue };
+        let best = outer.iter().enumerate().filter(|(_, o)| geom::contains(o, pt, false)).min_by(|a, b| a.1.area().abs().total_cmp(&b.1.area().abs())).map(|(i, _)| i);
+        match best {
+            Some(i) => out[i].extend(h.elements().iter().copied()),
+            None => out.push(h),
+        }
+    }
+    out
+}
+
+/// Knife along a polyline (freehand and Bezier modes, cut spans): closed objects are split into
+/// their parts on each side of the cut; open curves are cut where the line crosses them.
+pub fn knife_path(doc: &mut Document, page: usize, cut: &[Point], o: KnifeOpts) -> Vec<ObjId> {
+    let mut out = vec![];
+    if cut.len() < 2 {
+        return out;
+    }
+    let mut line = BezPath::new();
+    line.move_to(cut[0]);
+    for p in &cut[1..] {
+        line.line_to(*p);
+    }
+    let gap = match o.span {
+        1 => o.width.max(0.01),
+        _ => 0.02,
+    };
+    let blade = geom::stroke_to_path(&line, gap, kurbo::Join::Miter, kurbo::Cap::Butt, &[]);
+    let ids: Vec<ObjId> = doc.pages.get(page).map(|p| p.all_objects().map(|o| o.id).collect()).unwrap_or_default();
+    for id in ids {
+        let Some(obj) = doc.find(id).cloned() else { continue };
+        if obj.locked || obj.is_container() || matches!(obj.kind, ObjKind::Image(_) | ObjKind::Text(_)) {
+            continue;
+        }
+        let wp = obj.world_path();
+        let crosses = geom::flatten_polylines(&wp, 0.2).iter().any(|(pts, closed)| {
+            let n = pts.len();
+            let m = if *closed { n } else { n.saturating_sub(1) };
+            (0..m).any(|k| cut.windows(2).any(|c| geom::seg_intersect(c[0], c[1], pts[k], pts[(k + 1) % n]).is_some()))
+        });
+        if !crosses {
+            continue;
+        }
+        let Some((p, l, i)) = doc.locate(id) else { continue };
+        if !obj.is_closed_shape() {
+            // open curves: cut at every crossing
+            let ObjKind::Path(np) = &obj.kind else { continue };
+            let np = NodePath::from_bez(&(obj.transform * np.to_bez()));
+            let mut parts = vec![np];
+            for c in cut.windows(2) {
+                let mut next = vec![];
+                for mut part in parts {
+                    if let Some((si, seg, t)) = first_intersection(&part, c[0], c[1]) {
+                        if let Some(r) = part.insert_node(si, seg, t) {
+                            part.break_at(r);
+                        }
+                        for sp in part.subpaths {
+                            next.push(NodePath { subpaths: vec![sp] });
+                        }
+                    } else {
+                        next.push(part);
+                    }
+                }
+                parts = next;
+            }
+            doc.pages[p].layers[l].objects.remove(i);
+            for (k, part) in parts.into_iter().enumerate() {
+                let nid = doc.new_id();
+                doc.pages[p].layers[l].objects.insert(i + k, Object::new(nid, ObjKind::Path(part), Affine::IDENTITY, obj.style.clone()));
+                out.push(nid);
+            }
+            continue;
+        }
+        let mut sources = vec![(wp.clone(), obj.style.clone())];
+        if o.outline == 1 && obj.style.outline.is_visible() && obj.style.outline.width > 0.0 {
+            // the outline becomes an object of its own, cut with the shape
+            let ol = &obj.style.outline;
+            let shape = geom::stroke_to_path(&wp, ol.width, kurbo::Join::Miter, kurbo::Cap::Butt, &[]);
+            let mut st = obj.style.clone();
+            st.fill = crate::style::Fill::Solid(ol.color.unwrap_or(crate::Color::BLACK));
+            st.outline = crate::style::Outline::none();
+            sources[0].1.outline = crate::style::Outline::none();
+            sources.push((shape, st));
+        }
+        doc.pages[p].layers[l].objects.remove(i);
+        let mut k = 0;
+        for (src, style) in sources {
+            let rest = geom::boolean(&src, &blade, BoolOp::Difference, false);
+            for piece in components(&rest) {
+                let piece = if o.span == 2 && o.width > 0.0 {
+                    // overlap: each piece reaches over the cut by half the width
+                    geom::boolean(&geom::offset_path(&piece, o.width / 2.0, kurbo::Join::Miter), &src, BoolOp::Intersect, false)
+                } else {
+                    piece
+                };
+                let mut np = NodePath::from_bez(&piece);
+                if !o.auto_close {
+                    np = open_along(&np, cut, gap.max(0.5) * 2.0);
+                }
+                let nid = doc.new_id();
+                let mut no = Object::new(nid, ObjKind::Path(np), Affine::IDENTITY, style.clone());
+                if !o.auto_close {
+                    no.style.fill = crate::style::Fill::None;
+                    if no.style.outline.color.is_none() {
+                        no.style.outline = crate::style::Outline::default();
+                    }
+                }
+                doc.pages[p].layers[l].objects.insert(i + k, no);
+                k += 1;
+                out.push(nid);
+            }
+        }
+    }
+    out
+}
+
+/// Remove the segments that lie along the cut, leaving open curves (Auto-Close off).
+fn open_along(np: &NodePath, cut: &[Point], tol: f64) -> NodePath {
+    use kurbo::ParamCurve;
+    let near = |q: Point| cut.windows(2).any(|c| geom::dist_point_segment(q, c[0], c[1]) <= tol);
+    let mut out = NodePath::new();
+    for sp in &np.subpaths {
+        let n = sp.segment_count();
+        let keep: Vec<bool> = (0..n).map(|s| sp.segment(s).map(|(c, _)| !(near(c.eval(0.5)) && near(c.eval(0.25)) && near(c.eval(0.75)))).unwrap_or(true)).collect();
+        if n == 0 || keep.iter().all(|k| *k) {
+            out.subpaths.push(sp.clone());
+            continue;
+        }
+        // start after a removed segment, then emit the runs of kept segments
+        let start = keep.iter().position(|k| !*k).map(|s| (s + 1) % n).unwrap_or(0);
+        let mut run: Vec<crate::path::Node> = vec![];
+        for j in 0..n {
+            let s = (start + j) % n;
+            if keep[s] {
+                if run.is_empty() {
+                    run.push(sp.nodes[s].clone());
+                }
+                run.push(sp.nodes[(s + 1) % sp.nodes.len()].clone());
+            } else if run.len() >= 2 {
+                out.subpaths.push(crate::path::SubPath { nodes: std::mem::take(&mut run), closed: false });
+            } else {
+                run.clear();
+            }
+        }
+        if run.len() >= 2 {
+            out.subpaths.push(crate::path::SubPath { nodes: run, closed: false });
+        }
+    }
+    out
 }

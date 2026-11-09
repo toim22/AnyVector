@@ -171,3 +171,6 @@ pb/pick 18 com-efeitos.png	05-ferramentas/barra-pick-por-contexto/18 Pick com co
 98_change_case.png	03-telas/texto-artistico/08 Text/015 Text ▸ Change Case.png	Text > Change Case
 99_text_encoding.png	03-telas/texto-artistico/08 Text/016 Text ▸ Encode.png	Text > Encode
 99_edit_text.png	03-telas/texto-artistico/08 Text/007 Text ▸ Edit Text.png	Text > Edit Text
+s1_symmetry_edit.png		Object > Symmetry > Create New Symmetry (no reference capture; follows the helper: 04-shaping-objects §21)
+s3_draw_in_perspective.png		Object > Perspective > Draw in Perspective (no reference capture; follows the helper: 04-shaping-objects §22)
+s5_insert_object.png	03-telas/doc-vazio/05 Object/003 Object ▸ Insert ▸ Object.png	Object > Insert > Object

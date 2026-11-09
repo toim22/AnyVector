@@ -26,7 +26,7 @@ menu	Object > Create	done	items, order and enabled states from the reference
 menu	Object > Insert	done	items, order and enabled states from the reference
 menu	Object > AI Generate	done	items, order and enabled states from the reference
 menu	Object > PowerClip	done	items, order and enabled states from the reference
-menu	Object > Symmetry	todo	symmetry drawing mode (batch 5)
+menu	Object > Symmetry	done	items, order and enabled states from the reference
 menu	Object > Symbol	done	items, order and enabled states from the reference
 menu	Object > Rollover	done	items, order and enabled states from the reference
 menu	Object > Copy Effect	done	items, order and enabled states from the reference
@@ -81,66 +81,66 @@ menu	Window > Toolbars > Default Button Size	done	items, order and enabled state
 menu	Window > Color Palettes	done	items, order and enabled states from the reference
 menu	Window > Color Palettes > Recent	done	items, order and enabled states from the reference
 menu	Help	done	items, order and enabled states from the reference
-tool	Pick	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Freehand Pick	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Free Transform	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Shape	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Smooth	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Smear	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Twirl	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Attract and Repel	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Smudge	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Roughen	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Crop	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Knife	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Virtual Segment Delete	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Eraser	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Zoom	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Pan	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Freehand	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	2-Point Line	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Bézier	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Pen	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	B-Spline	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Polyline	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	3-Point Curve	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Painterly Brush	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Artistic Media	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	LiveSketch	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Smart Drawing	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Rectangle	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	3-Point Rectangle	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Ellipse	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	3-Point Ellipse	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Polygon	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Star	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Spiral	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Common Shapes	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Impact tool	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Graph Paper	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Text	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Table	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Parallel Dimension	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Horizontal or Vertical Dimension	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Angular Dimension	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Segment Dimension	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	2-Leg Callout	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Connector	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Anchor Editing	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Shadow	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Contour	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Blend	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Distort	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Envelope	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Extrude	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Block Shadow	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Transparency	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Color Eyedropper	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Attributes Eyedropper	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Interactive Fill	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Smart Fill	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Mesh Fill	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
-tool	Variable Outline	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Pick	done	the tool and every property bar option work
+tool	Freehand Pick	done	the tool and every property bar option work
+tool	Free Transform	done	rotate, reflect, scale and skew about the clicked point; apply to duplicate
+tool	Shape	done	the tool and every property bar option work
+tool	Smooth	done	the tool and every property bar option work
+tool	Smear	done	the tool and every property bar option work
+tool	Twirl	done	the tool and every property bar option work
+tool	Attract and Repel	done	the tool and every property bar option work
+tool	Smudge	done	the tool and every property bar option work
+tool	Roughen	done	the tool and every property bar option work
+tool	Crop	done	the tool and every property bar option work
+tool	Knife	done	2-point, freehand and Bézier cuts; gap or overlap width; auto-close; outline to object or curve
+tool	Virtual Segment Delete	done	the tool and every property bar option work
+tool	Eraser	done	round or square nib; size; reduce nodes
+tool	Zoom	done	the tool and every property bar option work
+tool	Pan	done	the tool and every property bar option work
+tool	Freehand	done	the tool and every property bar option work
+tool	2-Point Line	done	the tool and every property bar option work
+tool	Bézier	done	the tool and every property bar option work
+tool	Pen	done	the tool and every property bar option work
+tool	B-Spline	done	the tool and every property bar option work
+tool	Polyline	done	the tool and every property bar option work
+tool	3-Point Curve	done	the tool and every property bar option work
+tool	Painterly Brush	done	brush, size, opacity, smoothing and color variation
+tool	Artistic Media	done	the tool and every property bar option work
+tool	LiveSketch	done	timer, proximity, single curve, smoothing and include curve
+tool	Smart Drawing	done	the tool and every property bar option work
+tool	Rectangle	done	the tool and every property bar option work
+tool	3-Point Rectangle	done	the tool and every property bar option work
+tool	Ellipse	done	the tool and every property bar option work
+tool	3-Point Ellipse	done	the tool and every property bar option work
+tool	Polygon	done	the tool and every property bar option work
+tool	Star	done	the tool and every property bar option work
+tool	Spiral	done	the tool and every property bar option work
+tool	Common Shapes	done	the tool and every property bar option work
+tool	Impact tool	done	radial and parallel styles, line widths and spacings with series and random values, inner and outer boundaries
+tool	Graph Paper	done	the tool and every property bar option work
+tool	Text	done	the tool and every property bar option work
+tool	Table	done	the tool and every property bar option work
+tool	Parallel Dimension	done	units, leading zero, dynamic dimensions, extension lines and successive dimensions
+tool	Horizontal or Vertical Dimension	done	units, leading zero, dynamic dimensions, extension lines and successive dimensions
+tool	Angular Dimension	done	the tool and every property bar option work
+tool	Segment Dimension	done	the tool and every property bar option work
+tool	2-Leg Callout	done	callout shapes and gap
+tool	Connector	done	the tool and every property bar option work
+tool	Anchor Editing	done	add, move, delete and auto-place anchors; connectors follow
+tool	Shadow	done	the tool and every property bar option work
+tool	Contour	done	the tool and every property bar option work
+tool	Blend	done	the tool and every property bar option work
+tool	Distort	done	the tool and every property bar option work
+tool	Envelope	done	straight, single-arc, double-arc and unconstrained modes; envelope from a shape; mapping modes
+tool	Extrude	done	the tool and every property bar option work
+tool	Block Shadow	done	the tool and every property bar option work
+tool	Transparency	done	gradient handles drag after creation
+tool	Color Eyedropper	done	1x1, 2x2 or 5x5 sample; sample from the desktop
+tool	Attributes Eyedropper	done	properties, transformations and effects as the reference chooses them
+tool	Interactive Fill	done	gradient handles drag after creation
+tool	Smart Fill	done	the tool and every property bar option work
+tool	Mesh Fill	done	patch selection, palette colors and sampled colors go to the selected patch
+tool	Variable Outline	done	width nodes added, dragged and locked; widths interpolate along the outline
 tool	flyout: caixa de ferramentas	done	toolbox and flyout as the reference
 tool	flyout: flyout Pick (3 itens)	done	toolbox and flyout as the reference
 tool	flyout: flyout Shape (7 itens)	done	toolbox and flyout as the reference
@@ -309,8 +309,8 @@ menu	View > Snap To > Pixels	done	Pixels view only
 menu	View > Snap To > Document Grid	done	Alt+Y
 menu	View > Snap To > Baseline Grid	done	
 menu	View > Snap To > Guidelines	done	
-menu	View > Snap To > Perspective Lines	todo	comes with the perspective drawing mode (batch 5)
-menu	View > Snap To > Symmetry Lines	todo	comes with the symmetry drawing mode (batch 5)
+menu	View > Snap To > Perspective Lines	done	hidden in the reference menu; snapping to the plane lines is on while drawing in perspective
+menu	View > Snap To > Symmetry Lines	done	hidden in the reference menu; snapping to the mirror lines is on while a symmetry is edited
 menu	View > Snap To > Objects	done	Alt+Z
 menu	View > Snap To > Page	done	
 menu	View > Snap Off	done	Alt+Q
@@ -347,7 +347,7 @@ menu	Object > Create > Pattern Fill...	partial	Create Pattern then a marquee; ve
 menu	Object > Insert > QR Code	done	editable QR code; its text in the Properties docker
 menu	Object > Insert > Barcode	done	Barcode Wizard: Code 128, Code 39, EAN-13, UPC-A
 menu	Object > Insert > Validate Barcode	done	checks the data and check digit
-menu	Object > Insert > Object...	omitted	OLE objects (Windows COM embedding) are not part of Vector
+menu	Object > Insert > Object...	done	Create New (the document types Windows can create) or Create from File, Link, Display As Icon; double-click opens it in its program and saving there updates it
 menu	Object > AI Generate > Create vector graphic	done	AI Generate docker on Create vector graphic (shown with nothing selected)
 menu	Object > AI Generate > Create Vector Graphic Guided by Selection	done	the selection is sent as the reference image
 menu	Object > AI Generate > Create image	done	AI Generate docker on Create image; the result is a bitmap
@@ -365,11 +365,11 @@ menu	Object > PowerClip > Fit Proportionally	done
 menu	Object > PowerClip > Fill Proportionally	done	
 menu	Object > PowerClip > Stretch to Fill	done	
 menu	Object > PowerClip > Copy PowerClip From...	done	
-menu	Object > Symmetry > Create New Symmetry	todo	symmetry drawing mode (batch 5)
-menu	Object > Symmetry > Edit Symmetry	todo	symmetry drawing mode (batch 5)
-menu	Object > Symmetry > Finish Editing Symmetry	todo	symmetry drawing mode (batch 5)
-menu	Object > Symmetry > Remove Symmetry	todo	symmetry drawing mode (batch 5)
-menu	Object > Symmetry > Break Symmetry Link	todo	symmetry drawing mode (batch 5)
+menu	Object > Symmetry > Create New Symmetry	partial	floating toolbar: mirror lines 1 to 12, angle, center, show symmetry lines, Finish, Remove; no full preview (copies show as outlines) and no Fuse open curves
+menu	Object > Symmetry > Edit Symmetry	done	
+menu	Object > Symmetry > Finish Editing Symmetry	done	
+menu	Object > Symmetry > Remove Symmetry	done	
+menu	Object > Symmetry > Break Symmetry Link	done	
 menu	Object > Symbol > Create New Symbol	done	
 menu	Object > Symbol > Edit Master...	done	edits the symbol in place with a Finish button
 menu	Object > Symbol > Finish Editing Symbol	done	
@@ -437,9 +437,9 @@ menu	Object > Shaping > Boundary	done
 menu	Object > Shaping > Shape	done	
 menu	Object > Combine	done	
 menu	Object > Break Apart	done	
-menu	Object > Perspective > Add Perspective...	partial	envelope-style perspective; the perspective drawing modes come in batch 5
-menu	Object > Perspective > Draw in Perspective...	todo	perspective drawing mode (batch 5)
-menu	Object > Perspective > Edit Perspective Group...	todo	perspective drawing mode (batch 5)
+menu	Object > Perspective > Add Perspective...	partial	envelope-style perspective (four corner handles)
+menu	Object > Perspective > Draw in Perspective...	partial	one-point, two-point and three-point fields; five planes; horizon; Move to Plane; the field fills the page and its vanishing points cannot be dragged, no camera lines
+menu	Object > Perspective > Edit Perspective Group...	done	the flat objects come back until Finish
 menu	Object > Convert to Curves	done	
 menu	Object > Convert to Bitmap...	done	
 menu	Object > Convert Outline to Object	done	
@@ -487,7 +487,7 @@ dialog	Layout > Go to Page	done	checked against the reference
 dialog	Object > Copy Effect > Perspective From	done	pick-target mode, as in the reference
 dialog	Object > Copy Effect > Envelope From	done	pick-target mode, as in the reference
 dialog	Object > Copy Effect > Distortion From	done	pick-target mode, as in the reference
-dialog	Object > Insert > Object	omitted	OLE objects are not part of Vector
+dialog	Object > Insert > Object	done	checked against the reference
 dialog	Object > PowerClip > Place Inside Frame	done	pick-target mode, as in the reference
 dialog	Object > Order > In Front Of	done	pick-target mode, as in the reference
 dialog	Object > Order > Behind	done	pick-target mode, as in the reference
@@ -495,7 +495,7 @@ dialog	Object > PowerClip > Edit PowerClip	done	pick-target mode, as in the refe
 dialog	Object > PowerClip > Copy PowerClip From	done	pick-target mode, as in the reference
 dialog	Object > Create > Arrowhead	done	checked against the reference
 dialog	Object > Create > Pattern Fill	done	checked against the reference
-dialog	Object > Perspective > Add Perspective	partial	the perspective drawing modes come in batch 5
+dialog	Object > Perspective > Add Perspective	partial	envelope-style perspective (four corner handles)
 dialog	Object > Convert to Bitmap	partial	Convert to Bitmap dialog; checked again with the Bitmaps menu (batch 7)
 dialog	Object > Rollover > Edit Rollover	done	Internet toolbar and Finish button
 dialog	Object > Symbol > Edit Master	done	edit in place with a Finish button

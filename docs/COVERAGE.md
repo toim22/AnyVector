@@ -13,14 +13,14 @@ The *Reference* column is a path inside the reference folder.
 
 | Area | Done | Partial | Todo | Omitted | Total |
 |---|---:|---:|---:|---:|---:|
-| [Menus](#menus) | 325 | 288 | 11 | 163 | 787 |
-| [Dialogs and screens](#dialogs-and-screens) | 49 | 41 | 0 | 2 | 92 |
+| [Menus](#menus) | 334 | 290 | 1 | 162 | 787 |
+| [Dialogs and screens](#dialogs-and-screens) | 50 | 41 | 0 | 1 | 92 |
 | [Bitmap effects (Properties docker)](#bitmap-effects-properties-docker) | 0 | 120 | 0 | 0 | 120 |
 | [Dockers](#dockers) | 0 | 44 | 0 | 1 | 45 |
-| [Tools](#tools) | 34 | 60 | 0 | 0 | 94 |
+| [Tools](#tools) | 94 | 0 | 0 | 0 | 94 |
 | [Toolbars](#toolbars) | 12 | 0 | 0 | 0 | 12 |
 | [Right-click menus](#right-click-menus) | 24 | 0 | 0 | 3 | 27 |
-| **All** | **444** | **553** | **11** | **169** | **1177** |
+| **All** | **514** | **495** | **1** | **167** | **1177** |
 
 ## Menus
 
@@ -107,7 +107,7 @@ The *Reference* column is a path inside the reference folder.
 
 ### View
 
-36 done · 2 partial · 3 todo · 0 omitted
+38 done · 2 partial · 1 todo · 0 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
@@ -145,8 +145,8 @@ The *Reference* column is a path inside the reference folder.
 | View > Snap To > Document Grid | command |  | ✅ done | Alt+Y |  |
 | View > Snap To > Baseline Grid | command |  | ✅ done |  |  |
 | View > Snap To > Guidelines | command |  | ✅ done |  |  |
-| View > Snap To > Perspective Lines | command |  | ⬜ todo | comes with the perspective drawing mode (batch 5) |  |
-| View > Snap To > Symmetry Lines | command |  | ⬜ todo | comes with the symmetry drawing mode (batch 5) |  |
+| View > Snap To > Perspective Lines | command |  | ✅ done | hidden in the reference menu; snapping to the plane lines is on while drawing in perspective |  |
+| View > Snap To > Symmetry Lines | command |  | ✅ done | hidden in the reference menu; snapping to the mirror lines is on while a symmetry is edited |  |
 | View > Snap To > Objects | command |  | ✅ done | Alt+Z |  |
 | View > Snap To > Page | command |  | ✅ done |  |  |
 | View > Snap Off | command |  | ✅ done | Alt+Q |  |
@@ -180,7 +180,7 @@ The *Reference* column is a path inside the reference folder.
 
 ### Object
 
-111 done · 6 partial · 8 todo · 1 omitted
+118 done · 8 partial · 0 todo · 0 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
@@ -192,7 +192,7 @@ The *Reference* column is a path inside the reference folder.
 | Object > Insert > QR Code | command |  | ✅ done | editable QR code; its text in the Properties docker |  |
 | Object > Insert > Barcode | command |  | ✅ done | Barcode Wizard: Code 128, Code 39, EAN-13, UPC-A |  |
 | Object > Insert > Validate Barcode | command |  | ✅ done | checks the data and check digit |  |
-| Object > Insert > Object... | opens a window | 4 | ➖ omitted | OLE objects (Windows COM embedding) are not part of Vector | `03-telas\doc-vazio\05 Object\003 Object ▸ Insert ▸ Object.png` |
+| Object > Insert > Object... | opens a window | 4 | ✅ done | Create New (the document types Windows can create) or Create from File, Link, Display As Icon; double-click opens it in its program and saving there updates it | `03-telas\doc-vazio\05 Object\003 Object ▸ Insert ▸ Object.png` |
 | Object > AI Generate | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\004 Object ▸ AI Generate.png` |
 | Object > AI Generate > Create vector graphic | command |  | ✅ done | AI Generate docker on Create vector graphic (shown with nothing selected) |  |
 | Object > AI Generate > Create Vector Graphic Guided by Selection | command |  | ✅ done | the selection is sent as the reference image |  |
@@ -212,12 +212,12 @@ The *Reference* column is a path inside the reference folder.
 | Object > PowerClip > Fill Proportionally | command |  | ✅ done |  |  |
 | Object > PowerClip > Stretch to Fill | command |  | ✅ done |  |  |
 | Object > PowerClip > Copy PowerClip From... | opens a window |  | ✅ done |  | `03-telas\powerclip\05 Object\006 Object ▸ PowerClip ▸ Copy PowerClip From (sem janela, tela principal).png` |
-| Object > Symmetry | submenu |  | ⬜ todo | symmetry drawing mode (batch 5) | `02-menus\doc-vazio\05 Object\006 Object ▸ Symmetry.png` |
-| Object > Symmetry > Create New Symmetry | command |  | ⬜ todo | symmetry drawing mode (batch 5) |  |
-| Object > Symmetry > Edit Symmetry | command |  | ⬜ todo | symmetry drawing mode (batch 5) |  |
-| Object > Symmetry > Finish Editing Symmetry | command |  | ⬜ todo | symmetry drawing mode (batch 5) |  |
-| Object > Symmetry > Remove Symmetry | command |  | ⬜ todo | symmetry drawing mode (batch 5) |  |
-| Object > Symmetry > Break Symmetry Link | command |  | ⬜ todo | symmetry drawing mode (batch 5) |  |
+| Object > Symmetry | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\006 Object ▸ Symmetry.png` |
+| Object > Symmetry > Create New Symmetry | command |  | 🟡 partial | floating toolbar: mirror lines 1 to 12, angle, center, show symmetry lines, Finish, Remove; no full preview (copies show as outlines) and no Fuse open curves |  |
+| Object > Symmetry > Edit Symmetry | command |  | ✅ done |  |  |
+| Object > Symmetry > Finish Editing Symmetry | command |  | ✅ done |  |  |
+| Object > Symmetry > Remove Symmetry | command |  | ✅ done |  |  |
+| Object > Symmetry > Break Symmetry Link | command |  | ✅ done |  |  |
 | Object > Symbol | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\007 Object ▸ Symbol.png` |
 | Object > Symbol > Create New Symbol | command |  | ✅ done |  |  |
 | Object > Symbol > Edit Master... | opens a window |  | ✅ done | edits the symbol in place with a Finish button | `03-telas\simbolo\05 Object\007 Object ▸ Symbol ▸ Edit Master (sem janela, tela principal).png` |
@@ -296,9 +296,9 @@ The *Reference* column is a path inside the reference folder.
 | Object > Combine | command |  | ✅ done |  |  |
 | Object > Break Apart | command |  | ✅ done |  |  |
 | Object > Perspective | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\05 Object\017 Object ▸ Perspective.png` |
-| Object > Perspective > Add Perspective... | opens a window |  | 🟡 partial | envelope-style perspective; the perspective drawing modes come in batch 5 | `03-telas\retangulo\05 Object\024 Object ▸ Perspective ▸ Add Perspective (sem janela, tela principal).png` |
-| Object > Perspective > Draw in Perspective... | opens a window |  | ⬜ todo | perspective drawing mode (batch 5) |  |
-| Object > Perspective > Edit Perspective Group... | opens a window |  | ⬜ todo | perspective drawing mode (batch 5) |  |
+| Object > Perspective > Add Perspective... | opens a window |  | 🟡 partial | envelope-style perspective (four corner handles) | `03-telas\retangulo\05 Object\024 Object ▸ Perspective ▸ Add Perspective (sem janela, tela principal).png` |
+| Object > Perspective > Draw in Perspective... | opens a window |  | 🟡 partial | one-point, two-point and three-point fields; five planes; horizon; Move to Plane; the field fills the page and its vanishing points cannot be dragged, no camera lines |  |
+| Object > Perspective > Edit Perspective Group... | opens a window |  | ✅ done | the flat objects come back until Finish |  |
 | Object > Convert to Curves | command |  | ✅ done |  |  |
 | Object > Convert to Bitmap... | opens a window | 3 | ✅ done |  | `03-telas\retangulo\05 Object\027 Object ▸ Convert to Bitmap.png` |
 | Object > Convert Outline to Object | command |  | ✅ done |  |  |
@@ -954,14 +954,14 @@ The *Reference* column is a path inside the reference folder.
 
 ### Object
 
-12 done · 2 partial · 0 todo · 1 omitted
+13 done · 2 partial · 0 todo · 0 omitted
 
 | Opened from | Kind | Context | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|---|
 | Object > Copy Effect > Perspective From | mode (no window) | com-efeitos | 0 | ✅ done | pick-target mode, as in the reference | `03-telas\com-efeitos\05 Object\010 Object ▸ Copy Effect ▸ Perspective From (sem janela, tela principal).png` |
 | Object > Copy Effect > Envelope From | mode (no window) | com-efeitos | 0 | ✅ done | pick-target mode, as in the reference | `03-telas\com-efeitos\05 Object\011 Object ▸ Copy Effect ▸ Envelope From (sem janela, tela principal).png` |
 | Object > Copy Effect > Distortion From | mode (no window) | com-efeitos | 0 | ✅ done | pick-target mode, as in the reference | `03-telas\com-efeitos\05 Object\017 Object ▸ Copy Effect ▸ Distortion From (sem janela, tela principal).png` |
-| Object > Insert > Object | dialog | doc-vazio | 4 | ➖ omitted | OLE objects are not part of Vector | `03-telas\doc-vazio\05 Object\003 Object ▸ Insert ▸ Object.png` |
+| Object > Insert > Object | dialog | doc-vazio | 4 | ✅ done | checked against the reference | `03-telas\doc-vazio\05 Object\003 Object ▸ Insert ▸ Object.png` |
 | Object > PowerClip > Place Inside Frame | mode (no window) | linha-de-cota | 0 | ✅ done | pick-target mode, as in the reference | `03-telas\linha-de-cota\05 Object\004 Object ▸ PowerClip ▸ Place Inside Frame (sem janela, tela principal).png` |
 | Object > Order > In Front Of | mode (no window) | linha-de-cota | 0 | ✅ done | pick-target mode, as in the reference | `03-telas\linha-de-cota\05 Object\022 Object ▸ Order ▸ In Front Of (sem janela, tela principal).png` |
 | Object > Order > Behind | mode (no window) | linha-de-cota | 0 | ✅ done | pick-target mode, as in the reference | `03-telas\linha-de-cota\05 Object\023 Object ▸ Order ▸ Behind (sem janela, tela principal).png` |
@@ -969,7 +969,7 @@ The *Reference* column is a path inside the reference folder.
 | Object > PowerClip > Copy PowerClip From | mode (no window) | powerclip | 0 | ✅ done | pick-target mode, as in the reference | `03-telas\powerclip\05 Object\006 Object ▸ PowerClip ▸ Copy PowerClip From (sem janela, tela principal).png` |
 | Object > Create > Arrowhead | dialog | retangulo | 1 | ✅ done | checked against the reference | `03-telas\retangulo\05 Object\001 Object ▸ Create ▸ Arrowhead.png` |
 | Object > Create > Pattern Fill | dialog | retangulo | 1 | ✅ done | checked against the reference | `03-telas\retangulo\05 Object\002 Object ▸ Create ▸ Pattern Fill.png` |
-| Object > Perspective > Add Perspective | mode (no window) | retangulo | 0 | 🟡 partial | the perspective drawing modes come in batch 5 | `03-telas\retangulo\05 Object\024 Object ▸ Perspective ▸ Add Perspective (sem janela, tela principal).png` |
+| Object > Perspective > Add Perspective | mode (no window) | retangulo | 0 | 🟡 partial | envelope-style perspective (four corner handles) | `03-telas\retangulo\05 Object\024 Object ▸ Perspective ▸ Add Perspective (sem janela, tela principal).png` |
 | Object > Convert to Bitmap | dialog | retangulo | 3 | 🟡 partial | Convert to Bitmap dialog; checked again with the Bitmaps menu (batch 7) | `03-telas\retangulo\05 Object\027 Object ▸ Convert to Bitmap.png` |
 | Object > Rollover > Edit Rollover | dialog | rollover | 0 | ✅ done | Internet toolbar and Finish button | `03-telas\rollover\05 Object\009 Object ▸ Rollover ▸ Edit Rollover.png` |
 | Object > Symbol > Edit Master | mode (no window) | simbolo | 0 | ✅ done | edit in place with a Finish button | `03-telas\simbolo\05 Object\007 Object ▸ Symbol ▸ Edit Master (sem janela, tela principal).png` |
@@ -1354,70 +1354,70 @@ The *Reference* column is a path inside the reference folder.
 
 ### Property bar of each tool
 
-0 done · 60 partial · 0 todo · 0 omitted
+60 done · 0 partial · 0 todo · 0 omitted
 
 | Tool | Context | Status | Note | Reference |
 |---|---|---|---|---|
-| Pick | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\001 Pick (retangulo).png` |
-| Freehand Pick | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\002 Freehand Pick (retangulo).png` |
-| Free Transform | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\003 Free Transform (retangulo).png` |
-| Shape | curva | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\004 Shape (curva).png` |
-| Smooth | curva | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\005 Smooth (curva).png` |
-| Smear | curva | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\006 Smear (curva).png` |
-| Twirl | curva | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\007 Twirl (curva).png` |
-| Attract and Repel | curva | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\008 Attract and Repel (curva).png` |
-| Smudge | curva | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\009 Smudge (curva).png` |
-| Roughen | curva | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\010 Roughen (curva).png` |
-| Crop | bitmap | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\011 Crop (bitmap).png` |
-| Knife | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\012 Knife (retangulo).png` |
-| Virtual Segment Delete | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\013 Virtual Segment Delete (retangulo).png` |
-| Eraser | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\014 Eraser (retangulo).png` |
-| Zoom | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\015 Zoom (retangulo).png` |
-| Pan | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\016 Pan (retangulo).png` |
-| Freehand | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\017 Freehand (retangulo).png` |
-| 2-Point Line | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\018 2-Point Line (retangulo).png` |
-| Bézier | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\019 Bézier (retangulo).png` |
-| Pen | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\020 Pen (retangulo).png` |
-| B-Spline | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\021 B-Spline (retangulo).png` |
-| Polyline | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\022 Polyline (retangulo).png` |
-| 3-Point Curve | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\023 3-Point Curve (retangulo).png` |
-| Painterly Brush | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\024 Painterly Brush (retangulo).png` |
-| Artistic Media | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\025 Artistic Media (retangulo).png` |
-| LiveSketch | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\026 LiveSketch (retangulo).png` |
-| Smart Drawing | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\027 Smart Drawing (retangulo).png` |
-| Rectangle | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\028 Rectangle (retangulo).png` |
-| 3-Point Rectangle | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\029 3-Point Rectangle (retangulo).png` |
-| Ellipse | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\030 Ellipse (retangulo).png` |
-| 3-Point Ellipse | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\031 3-Point Ellipse (retangulo).png` |
-| Polygon | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\032 Polygon (retangulo).png` |
-| Star | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\033 Star (retangulo).png` |
-| Spiral | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\034 Spiral (retangulo).png` |
-| Common Shapes | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\035 Common Shapes (retangulo).png` |
-| Impact tool | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\036 Impact tool (retangulo).png` |
-| Graph Paper | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\037 Graph Paper (retangulo).png` |
-| Text | texto-artistico | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\038 Text (texto-artistico).png` |
-| Table | tabela | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\039 Table (tabela).png` |
-| Parallel Dimension | linha-de-cota | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\040 Parallel Dimension (linha-de-cota).png` |
-| Horizontal or Vertical Dimension | linha-de-cota | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\041 Horizontal or Vertical Dimension (linha-de-cota).png` |
-| Angular Dimension | linha-de-cota | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\042 Angular Dimension (linha-de-cota).png` |
-| Segment Dimension | linha-de-cota | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\043 Segment Dimension (linha-de-cota).png` |
-| 2-Leg Callout | linha-de-cota | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\044 2-Leg Callout (linha-de-cota).png` |
-| Connector | conector | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\045 Connector (conector).png` |
-| Anchor Editing | conector | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\046 Anchor Editing (conector).png` |
-| Shadow | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\047 Shadow (retangulo).png` |
-| Contour | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\048 Contour (retangulo).png` |
-| Blend | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\049 Blend (retangulo).png` |
-| Distort | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\050 Distort (retangulo).png` |
-| Envelope | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\051 Envelope (retangulo).png` |
-| Extrude | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\052 Extrude (retangulo).png` |
-| Block Shadow | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\053 Block Shadow (retangulo).png` |
-| Transparency | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\054 Transparency (retangulo).png` |
-| Color Eyedropper | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\055 Color Eyedropper (retangulo).png` |
-| Attributes Eyedropper | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\056 Attributes Eyedropper (retangulo).png` |
-| Interactive Fill | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\057 Interactive Fill (retangulo).png` |
-| Smart Fill | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\058 Smart Fill (retangulo).png` |
-| Mesh Fill | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\059 Mesh Fill (retangulo).png` |
-| Variable Outline | retangulo | 🟡 partial | property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5 | `05-ferramentas\barra-de-propriedades\060 Variable Outline (retangulo).png` |
+| Pick | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\001 Pick (retangulo).png` |
+| Freehand Pick | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\002 Freehand Pick (retangulo).png` |
+| Free Transform | retangulo | ✅ done | rotate, reflect, scale and skew about the clicked point; apply to duplicate | `05-ferramentas\barra-de-propriedades\003 Free Transform (retangulo).png` |
+| Shape | curva | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\004 Shape (curva).png` |
+| Smooth | curva | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\005 Smooth (curva).png` |
+| Smear | curva | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\006 Smear (curva).png` |
+| Twirl | curva | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\007 Twirl (curva).png` |
+| Attract and Repel | curva | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\008 Attract and Repel (curva).png` |
+| Smudge | curva | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\009 Smudge (curva).png` |
+| Roughen | curva | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\010 Roughen (curva).png` |
+| Crop | bitmap | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\011 Crop (bitmap).png` |
+| Knife | retangulo | ✅ done | 2-point, freehand and Bézier cuts; gap or overlap width; auto-close; outline to object or curve | `05-ferramentas\barra-de-propriedades\012 Knife (retangulo).png` |
+| Virtual Segment Delete | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\013 Virtual Segment Delete (retangulo).png` |
+| Eraser | retangulo | ✅ done | round or square nib; size; reduce nodes | `05-ferramentas\barra-de-propriedades\014 Eraser (retangulo).png` |
+| Zoom | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\015 Zoom (retangulo).png` |
+| Pan | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\016 Pan (retangulo).png` |
+| Freehand | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\017 Freehand (retangulo).png` |
+| 2-Point Line | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\018 2-Point Line (retangulo).png` |
+| Bézier | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\019 Bézier (retangulo).png` |
+| Pen | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\020 Pen (retangulo).png` |
+| B-Spline | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\021 B-Spline (retangulo).png` |
+| Polyline | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\022 Polyline (retangulo).png` |
+| 3-Point Curve | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\023 3-Point Curve (retangulo).png` |
+| Painterly Brush | retangulo | ✅ done | brush, size, opacity, smoothing and color variation | `05-ferramentas\barra-de-propriedades\024 Painterly Brush (retangulo).png` |
+| Artistic Media | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\025 Artistic Media (retangulo).png` |
+| LiveSketch | retangulo | ✅ done | timer, proximity, single curve, smoothing and include curve | `05-ferramentas\barra-de-propriedades\026 LiveSketch (retangulo).png` |
+| Smart Drawing | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\027 Smart Drawing (retangulo).png` |
+| Rectangle | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\028 Rectangle (retangulo).png` |
+| 3-Point Rectangle | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\029 3-Point Rectangle (retangulo).png` |
+| Ellipse | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\030 Ellipse (retangulo).png` |
+| 3-Point Ellipse | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\031 3-Point Ellipse (retangulo).png` |
+| Polygon | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\032 Polygon (retangulo).png` |
+| Star | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\033 Star (retangulo).png` |
+| Spiral | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\034 Spiral (retangulo).png` |
+| Common Shapes | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\035 Common Shapes (retangulo).png` |
+| Impact tool | retangulo | ✅ done | radial and parallel styles, line widths and spacings with series and random values, inner and outer boundaries | `05-ferramentas\barra-de-propriedades\036 Impact tool (retangulo).png` |
+| Graph Paper | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\037 Graph Paper (retangulo).png` |
+| Text | texto-artistico | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\038 Text (texto-artistico).png` |
+| Table | tabela | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\039 Table (tabela).png` |
+| Parallel Dimension | linha-de-cota | ✅ done | units, leading zero, dynamic dimensions, extension lines and successive dimensions | `05-ferramentas\barra-de-propriedades\040 Parallel Dimension (linha-de-cota).png` |
+| Horizontal or Vertical Dimension | linha-de-cota | ✅ done | units, leading zero, dynamic dimensions, extension lines and successive dimensions | `05-ferramentas\barra-de-propriedades\041 Horizontal or Vertical Dimension (linha-de-cota).png` |
+| Angular Dimension | linha-de-cota | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\042 Angular Dimension (linha-de-cota).png` |
+| Segment Dimension | linha-de-cota | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\043 Segment Dimension (linha-de-cota).png` |
+| 2-Leg Callout | linha-de-cota | ✅ done | callout shapes and gap | `05-ferramentas\barra-de-propriedades\044 2-Leg Callout (linha-de-cota).png` |
+| Connector | conector | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\045 Connector (conector).png` |
+| Anchor Editing | conector | ✅ done | add, move, delete and auto-place anchors; connectors follow | `05-ferramentas\barra-de-propriedades\046 Anchor Editing (conector).png` |
+| Shadow | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\047 Shadow (retangulo).png` |
+| Contour | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\048 Contour (retangulo).png` |
+| Blend | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\049 Blend (retangulo).png` |
+| Distort | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\050 Distort (retangulo).png` |
+| Envelope | retangulo | ✅ done | straight, single-arc, double-arc and unconstrained modes; envelope from a shape; mapping modes | `05-ferramentas\barra-de-propriedades\051 Envelope (retangulo).png` |
+| Extrude | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\052 Extrude (retangulo).png` |
+| Block Shadow | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\053 Block Shadow (retangulo).png` |
+| Transparency | retangulo | ✅ done | gradient handles drag after creation | `05-ferramentas\barra-de-propriedades\054 Transparency (retangulo).png` |
+| Color Eyedropper | retangulo | ✅ done | 1x1, 2x2 or 5x5 sample; sample from the desktop | `05-ferramentas\barra-de-propriedades\055 Color Eyedropper (retangulo).png` |
+| Attributes Eyedropper | retangulo | ✅ done | properties, transformations and effects as the reference chooses them | `05-ferramentas\barra-de-propriedades\056 Attributes Eyedropper (retangulo).png` |
+| Interactive Fill | retangulo | ✅ done | gradient handles drag after creation | `05-ferramentas\barra-de-propriedades\057 Interactive Fill (retangulo).png` |
+| Smart Fill | retangulo | ✅ done | the tool and every property bar option work | `05-ferramentas\barra-de-propriedades\058 Smart Fill (retangulo).png` |
+| Mesh Fill | retangulo | ✅ done | patch selection, palette colors and sampled colors go to the selected patch | `05-ferramentas\barra-de-propriedades\059 Mesh Fill (retangulo).png` |
+| Variable Outline | retangulo | ✅ done | width nodes added, dragged and locked; widths interpolate along the outline | `05-ferramentas\barra-de-propriedades\060 Variable Outline (retangulo).png` |
 
 ### Toolbox and flyouts
 

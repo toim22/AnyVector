@@ -159,3 +159,39 @@ fn trim_num(v: f64) -> String {
     let s = format!("{v:.1}");
     s.trim_end_matches('0').trim_end_matches('.').to_string()
 }
+
+/// Variable Fonts: a slider for each design axis of the font (off for fonts without axes).
+pub fn variable_axes(app: &mut VectorApp, ui: &mut Ui, it: &crate::ui::Item) {
+    let f = format(app);
+    let axes = vector_core::text::fonts().lock().variation_axes(&f.font, f.bold, f.italic);
+    let tip = if it.tip.is_empty() { crate::ui::plain(it.text) } else { it.tip.to_string() };
+    let lead = if it.icon.is_empty() { fields::Lead::None } else { fields::Lead::Icon(it.icon) };
+    let on = app.has_doc() && !axes.is_empty();
+    let mut out: Option<Vec<(String, f32)>> = None;
+    fields::panel(app, ui, lead, "", 16.0, on, &tip, |_, ui| {
+        let mut vals = f.variations.clone();
+        let mut ch = false;
+        for (tag, name, lo, def, hi) in &axes {
+            let mut v = vals.iter().find(|(t, _)| t == tag).map(|x| x.1).unwrap_or(*def);
+            ui.label(name);
+            if ui.add(egui::Slider::new(&mut v, *lo..=*hi)).changed() {
+                match vals.iter_mut().find(|(t, _)| t == tag) {
+                    Some(x) => x.1 = v,
+                    None => vals.push((tag.clone(), v)),
+                }
+                ch = true;
+            }
+        }
+        ui.separator();
+        if ui.button("Reset").clicked() {
+            vals.clear();
+            ch = true;
+        }
+        if ch {
+            out = Some(vals);
+        }
+    });
+    if let Some(v) = out {
+        apply(app, "Variable Fonts", &move |c| c.variations = v.clone());
+    }
+}
