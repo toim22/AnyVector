@@ -1,7 +1,7 @@
-# Vector 0.1.0
+# AnyVector 0.1.0
 
-Vector 0.1.0 is the first release that follows the CorelDRAW 2026 interface item by item: the same menus in the
-same order, the same toolbars, tools, property bars, dockers and dialogs, with Vector's own icons that mean the same
+AnyVector 0.1.0 is the first release that follows the CorelDRAW 2026 interface item by item: the same menus in the
+same order, the same toolbars, tools, property bars, dockers and dialogs, with AnyVector's own icons that mean the same
 thing. Corel's online services (Corel Cloud, accounts, Learn, Support and the community pages) are left out.
 
 ## The workspace
@@ -58,12 +58,27 @@ thing. Corel's online services (Corel Cloud, accounts, Learn, Support and the co
 - View ▸ Pattern Preview shows how a pattern tile repeats while you edit it.
 - Help: Product Help, Quick Start Guide, User Guide and Keyboard Shortcuts open in your browser and work without an
   internet connection. The User Guide is built from the program, so it lists exactly the tools, menu commands and
-  dockers of this version. Updates shows these release notes. Submit Ideas and Feedback and Report a Bug go to the
-  Vector issue tracker.
+  dockers of this version. Submit Ideas and Feedback and Report a Bug open a form inside AnyVector and send it to
+  the AnyVector issue tracker (ideas are labeled "enhancement", bugs "bug").
+
+## AnyVector name, languages and updates
+
+- The program is now called AnyVector (`anyvector.exe`). The banner, icon and logo are unchanged. Settings move
+  from `%APPDATA%\Vector` to `%APPDATA%\AnyVector` on the first start.
+- The interface is available in English (United States) and Brazilian Portuguese. Choose the language in
+  Tools ▸ Options ▸ Global ▸ General ▸ User interface language; it changes at once, without restarting. The
+  installer asks which language AnyVector starts in.
+- Help ▸ Updates checks for a new version. Tools ▸ Options ▸ Global ▸ General ▸ Allow product updates chooses
+  between keeping the product up to date (downloads in the background and asks before installing), checking and
+  letting you choose, or never checking. The update installs when AnyVector closes and AnyVector starts again.
+- The Welcome Screen tab has a close button like a document tab; Window ▸ Welcome Screen opens it again.
+- The AI Generate message about a missing API key says where to add it, and Open AI Settings goes straight to
+  Tools ▸ Options ▸ Global ▸ Privacy, where Save Key stores the key in your Windows account's environment variable.
+- The menu bar captions are centered vertically.
 
 ## Known limits
 
 - Licensed palette books (PANTONE, TRUMATCH and others) are not included.
-- Workspaces exported from CorelDRAW (.cdws) cannot be imported; Vector's own .cdws files can.
+- Workspaces exported from CorelDRAW (.cdws) cannot be imported; AnyVector's own .cdws files can.
 - Some dockers and dialogs have controls that are shown but not active yet; `docs/STATUS.md` and
   `docs/COVERAGE.md` list them item by item.

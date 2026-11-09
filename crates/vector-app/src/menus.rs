@@ -237,7 +237,9 @@ fn placeholder(app: &VectorApp, it: &'static Item, ctx: u32, strict: bool, out: 
         // Window ▸ Window List: the Welcome Screen, then the open documents
         "92fa5ba8" => {
             out.push(Row::Sep);
-            out.push(Row::Item(Entry::new("Welcome Screen", Act::Cmd(Cmd::WelcomeScreen)).mark(Mark::Radio(app.active.is_none()))));
+            if app.home_open {
+                out.push(Row::Item(Entry::new("Welcome Screen", Act::Cmd(Cmd::WelcomeScreen)).mark(Mark::Radio(app.active.is_none()))));
+            }
             for (i, d) in app.docs.iter().enumerate() {
                 out.push(Row::Item(Entry::new(d.display_name().replace('&', "&&"), Act::Cmd(Cmd::WindowList(i))).mark(Mark::Radio(app.active == Some(i)))));
             }
@@ -526,22 +528,36 @@ pub fn canvas_menu(app: &VectorApp) -> Option<&'static str> {
     })
 }
 
+/// Height of the menu bar panel.
+pub const MENU_BAR_HEIGHT: f32 = 26.0;
+/// How far the captions sit above the center of the bar.
+const MENU_BAR_LIFT: f32 = 3.0;
+
 pub fn menu_bar(app: &mut VectorApp, ui: &mut Ui) {
     MenuBar::new().ui(ui, |ui| {
-        // Fill the bar height so the labels sit vertically centered with breathing room
-        // above the standard toolbar.
-        ui.spacing_mut().button_padding = egui::vec2(8.0, 4.0);
-        ui.spacing_mut().interact_size.y = 24.0;
-        ui.set_min_height(24.0);
+        // The buttons fill the bar height. The caption is painted by hand, a little above the
+        // geometric center: lowercase letters and the access-key underline sit low in the line,
+        // so a centered line box looks low in the bar.
+        ui.spacing_mut().button_padding = egui::vec2(8.0, 0.0);
+        ui.spacing_mut().interact_size.y = MENU_BAR_HEIGHT;
+        ui.set_min_height(MENU_BAR_HEIGHT);
         let Some(bar) = ui::bar(ui::menu_bar_index(app.has_doc())) else { return };
         for it in bar.items {
             if it.sub == NO_SUB {
                 continue;
             }
-            MenuButton::new(mnemonic(it.text, theme::TEXT, 12.5)).ui(ui, |ui| {
+            let galley = ui.painter().layout_job(mnemonic(it.text, theme::TEXT, 12.5));
+            let size = galley.size();
+            let atom = egui::IdSalt::new(("menubar_caption", it.sub));
+            let (resp, _) = MenuButton::from_button(egui::Button::new(egui::Atom::custom(atom, size))).ui(ui, |ui| {
                 ui.set_min_width(220.0);
                 show_bar(app, ui, it.sub);
             });
+            // The caption is painted, so give the button its name for accessibility (and tests).
+            let name = galley.text().to_owned();
+            resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
+            let pos = (resp.rect.center() - size / 2.0 - egui::vec2(0.0, MENU_BAR_LIFT)).round();
+            ui.painter().galley(pos, galley, theme::TEXT);
         }
     });
 }

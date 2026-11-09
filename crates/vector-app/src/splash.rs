@@ -18,7 +18,7 @@ impl Splash {
     }
 }
 
-const STEPS: [&str; 5] = ["Initializing...", "Loading fonts...", "Loading color palettes...", "Loading workspace...", "Starting Vector..."];
+const STEPS: [&str; 5] = ["Initializing...", "Loading fonts...", "Loading color palettes...", "Loading workspace...", "Starting AnyVector..."];
 
 /// Draws the splash. Returns `true` while the splash is still showing (the main UI is skipped).
 pub fn show(app: &mut VectorApp, ui: &mut Ui) -> bool {

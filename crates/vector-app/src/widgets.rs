@@ -172,6 +172,8 @@ pub fn checker(p: &egui::Painter, rect: Rect, s: f32) {
 
 /// Label with one underlined mnemonic character marked by '&'.
 pub fn mnemonic(text: &str, color: Color32, size: f32) -> egui::text::LayoutJob {
+    // a layout job is not translated by egui: the caption is translated here, with its access key
+    let text = &crate::i18n::caption(text);
     let mut job = egui::text::LayoutJob::default();
     let font = egui::FontId::proportional(size);
     let mut chars = text.chars().peekable();
@@ -203,11 +205,14 @@ pub fn plain(text: &str) -> String {
 
 /// A combo-like dropdown button showing `text`; returns the response (open a popup on click).
 pub fn dropdown_button(ui: &mut Ui, text: &str, width: f32, enabled: bool) -> Response {
+    let c = if enabled { theme::TEXT } else { theme::DISABLED };
+    // a longer (translated) caption widens the button so the arrow stays clear of it
+    let g = ui.painter().layout_no_wrap(text.to_owned(), egui::FontId::proportional(12.5), c);
+    let width = width.max(g.size().x + 26.0);
     let (rect, resp) = ui.allocate_exact_size(vec2(width, 22.0), if enabled { Sense::click() } else { Sense::hover() });
     let p = ui.painter();
     p.rect_filled(rect, 2.0, if resp.hovered() && enabled { Color32::from_rgb(0x2a, 0x2a, 0x2a) } else { theme::FIELD });
-    let c = if enabled { theme::TEXT } else { theme::DISABLED };
-    p.text(pos2(rect.left() + 6.0, rect.center().y), egui::Align2::LEFT_CENTER, text, egui::FontId::proportional(12.5), c);
+    p.galley(pos2(rect.left() + 6.0, rect.center().y - g.size().y / 2.0), g, c);
     chevron(p, pos2(rect.right() - 10.0, rect.center().y), 3.5, c);
     resp
 }

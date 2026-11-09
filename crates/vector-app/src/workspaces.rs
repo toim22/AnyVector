@@ -97,12 +97,12 @@ pub fn display(name: &str) -> &str {
 /// What the built-in workspaces are for (Options ▸ Workspaces ▸ Description).
 fn builtin_description(name: &str) -> &'static str {
     match name {
-        "Lite" => "The Lite workspace is ideal for new users who are getting started. Its clean look invites you to explore Vector in a friendly environment.",
+        "Lite" => "The Lite workspace is ideal for new users who are getting started. Its clean look invites you to explore AnyVector in a friendly environment.",
         "Default" => "The Default workspace places tools and controls where they are easy to find. It suits users who know other vector graphics software as well as long-time users.",
         "Touch" => "Optimized for touch-enabled devices, the Touch workspace is ideal for field work and sketching. Work with touch, a dial or a stylus, without a mouse or keyboard.",
         "Illustration" => "The Illustration workspace is ideal for an intuitive and efficient workflow when you create book covers, magazine ads, storyboards and other illustrations.",
         "Page Layout" => "The Page Layout workspace is optimized for arranging graphics and text into layouts for business cards, branding, product packaging and multipage documents such as brochures and newsletters.",
-        "Adobe Illustrator" => "This workspace has the look and feel of Adobe® Illustrator®, helping Illustrator users to get started quickly with Vector.",
+        "Adobe Illustrator" => "This workspace has the look and feel of Adobe® Illustrator®, helping Illustrator users to get started quickly with AnyVector.",
         _ => "",
     }
 }
@@ -357,7 +357,7 @@ pub fn write_file(path: &std::path::Path, f: &WorkspaceFile) -> Result<(), Strin
     let stored = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
     let deflated = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
     let meta = format!(
-        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<x:xmpmeta xmlns:x=\"adobe:ns:meta/\">\n <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n  <rdf:Description rdf:about=\"\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n   <dc:title>{}</dc:title>\n   <dc:description>{}</dc:description>\n   <dc:creator>Vector {}</dc:creator>\n  </rdf:Description>\n </rdf:RDF>\n</x:xmpmeta>\n",
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<x:xmpmeta xmlns:x=\"adobe:ns:meta/\">\n <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n  <rdf:Description rdf:about=\"\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n   <dc:title>{}</dc:title>\n   <dc:description>{}</dc:description>\n   <dc:creator>AnyVector {}</dc:creator>\n  </rdf:Description>\n </rdf:RDF>\n</x:xmpmeta>\n",
         xml_escape(&f.name),
         xml_escape(&f.description),
         vector_core::APP_VERSION
@@ -381,7 +381,7 @@ pub fn read_file(path: &std::path::Path) -> Result<WorkspaceFile, String> {
         Ok(mut e) => {
             e.read_to_string(&mut s).map_err(|e| e.to_string())?;
         }
-        Err(_) => return Err("This workspace was not made with Vector, so its elements cannot be read.".into()),
+        Err(_) => return Err("This workspace was not made with AnyVector, so its elements cannot be read.".into()),
     }
     serde_json::from_str(&s).map_err(|e| e.to_string())
 }

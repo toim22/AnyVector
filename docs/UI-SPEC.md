@@ -1,10 +1,10 @@
-# Vector — UI specification (transcribed from `screens/`)
+# AnyVector — UI specification (transcribed from `screens/`)
 
 Source of truth: the 73 screenshots in
 `C:\Users\anton\Documents\deepseek-harness\default-workspace\Vector\screens`.
 Everything here is copied from those images; the only systematic change is the
-product name: wherever the screenshots say the original product name, Vector says
-**Vector** (e.g. `Tools > Options > Vector...`, `About Vector...`, `Vector Community`).
+product name: wherever the screenshots say the original product name, AnyVector says
+**AnyVector** (e.g. `Tools > Options > AnyVector...`, `About AnyVector...`, `AnyVector Community`).
 
 Theme: dark. Window/desktop background `#262626`, bars `#2b2b2b`/`#262626`,
 separators `#3c3c3c`, text `#d4d4d4`, disabled text `#6e6e6e`, accent/selection blue
@@ -85,7 +85,7 @@ fold and follows the same toolbox order.)
 | Exit | Alt+F4 | power | |
 
 ### Tools
-- Options ▸ — `Vector... Ctrl+J` · `Customization...` · `Tools...` · `Global...` · `Workspaces...`
+- Options ▸ — `AnyVector... Ctrl+J` · `Customization...` · `Tools...` · `Global...` · `Workspaces...`
 - Save Settings as Default... (gear icon, disabled w/o doc)
 - —
 - Color Management...
@@ -102,21 +102,21 @@ fold and follows the same toolbox order.)
 - **Color Palettes ▸**: Add Colors from Selection... · Add Colors from Document... · — · Create Palette from Selection... · Create Palette from Document... · Open Palette... · Close All Palettes · — · Palette Editor... · Palettes · — · Recent ▸ · — · ✓Default Palette · ✓Document Palette · Color Styles Palette
 
 ### Help
-Product Help... · — · Welcome Screen · Video Tutorials... · Learn · Quick Start Guide... · User Guide... · — · What's New?... · — · Updates... · Message Settings · Vector Community · Vector Support... · Submit Ideas and Feedback... · Report a Bug ▸ (Report a Bug... · View Reported Bugs...) · — · Refresh your Account · Account Settings... · — · About Vector...
+Product Help... · — · Welcome Screen · Video Tutorials... · Learn · Quick Start Guide... · User Guide... · — · What's New?... · — · Updates... · Message Settings · AnyVector Community · AnyVector Support... · Submit Ideas and Feedback... · Report a Bug ▸ (Report a Bug... · View Reported Bugs...) · — · Refresh your Account · Account Settings... · — · About AnyVector...
 
 ### Purchase
 Removed at the product owner's request (2026-11-08).
 
 ### Options ⚙ (standard toolbar) menu
-Vector... `Ctrl+J` · Customization... · Tools... · Global... · Workspaces...
+AnyVector... `Ctrl+J` · Customization... · Tools... · Global... · Workspaces...
 
 ## 3. Options dialog
 Title `Options`, close ✕. Header row: category title (left, bold) and six category
-buttons (right): Document · Vector · Customization · Tools · Global · Workspaces.
+buttons (right): Document · AnyVector · Customization · Tools · Global · Workspaces.
 Left list, right page, bottom: `?` · `OK` (blue) · `Cancel`.
 
-### Vector (application)
-- **General** — Getting started: *On Vector start-up:* [Welcome Screen ▾]; ☑ Show New Document dialog box │ Undo levels: Regular [150]
+### AnyVector (application)
+- **General** — Getting started: *On AnyVector start-up:* [Welcome Screen ▾]; ☑ Show New Document dialog box │ Undo levels: Regular [150]
 - **Tablet Mode** — ☑ Auto - switch between Tablet and Desktop workspaces; When switching to: Desktop mode [Default ▾], Tablet mode [Touch ▾]
 - **Display** — ☐ Proof colors │ Other controls: ☑ Interruptible refresh, ☐ Manual refresh, ☑ Auto-panning, ☑ Show tooltips, ☑ Antialias bitmaps in enhanced view, ☐ Hide bounding box for curve tools, ☐ Highlight outline for selected objects │ Full-screen preview: ○ Use normal view ● Use enhanced view; ☑ Show page border │ Navigation: Default action for mouse wheel [Zoom ▾]; Zoom rate [15 %] Reset; Alternate Zoom (Ctrl+Shift) rate [100 %] Reset
 - **Edit** — Constrain angle [15.0] degrees; Drawing precision [3] decimal places; ☐ Double-click to edit bitmaps in an image editor │ Visibility of inactive objects: slider [20] % Reset; *When editing objects, this setting controls the visibility of objects that are not currently active.* │ ☑ Double-click to activate Focus Mode
@@ -144,7 +144,7 @@ Left list, right page, bottom: `?` · `OK` (blue) · `Cancel`.
 
 ### Tools
 Pick · Eraser · Zoom/Pan · Freehand/Bézier · Smart Drawing · Rectangle · Ellipse · Graph Paper · Spiral · Table · Dimension · Angular Dimension · Connector · Mesh Fill
-- Pick: ☐ Crosshair cursor; ☑ Treat all objects as filled; Ctrl and Shift keys: ● Traditional Vector: Ctrl = Constrain, Shift = Transform from center ○ Windows standard: Ctrl = Duplicate/Leave Original, Shift = Constrain
+- Pick: ☐ Crosshair cursor; ☑ Treat all objects as filled; Ctrl and Shift keys: ● Traditional AnyVector: Ctrl = Constrain, Shift = Transform from center ○ Windows standard: Ctrl = Duplicate/Leave Original, Shift = Constrain
 - Eraser: Thickness [0.25 "]; ☑ Auto-reduce nodes of resulting objects
 - Zoom/Pan: Zoom tool secondary button ● Zoom out ○ Context menu; ☑ Zoom relative to 1:1; ☐ Center mouse when zooming with the mouse wheel │ Pan tool secondary button ● Zoom out ○ Context menu │ [Calibrate Zoom...] note
 - Freehand/Bézier: Freehand smoothing slider [50]; Corner threshold [5] px; Straight line threshold [5] px; Auto-join [5] px
@@ -162,7 +162,7 @@ Pick · Eraser · Zoom/Pan · Freehand/Bézier · Smart Drawing · Rectangle · 
 ### Global
 General · Printing · File Locations · File Formats · Color · User ID · Privacy
 - General: ☑ Enable background tasks; User interface language [English-US ▾]; ☐ Ask me the next time the application starts; ☑ Use hardware acceleration [GPU ▾]; ☑ Display ☑ Effects ☐ Art Styles ☐ Resampling ☐ JPEG Artifact Removal; *You need to restart the application to apply these changes.*
-- Printing: tabs Print Style / Driver Compatibility; Default print style [Vector Defaults ▾]; ☐ Print only current page; Special settings (Spot color separations warning, Preview color, Preview separations, Preview image, Overprint black threshold (PS) 95, Send large bitmaps in chunks No, Bitmap output threshold (K) 4096, Bitmap chunk overlap 32 pixels, Small fonts (Preflight) 7, Image resolution too low (Preflight) 96, Composite crop marks (PS) Output on all plates, PostScript 2 stroke adjust (PS) On, Many fonts (Preflight) 10, NT double download workaround (PS) On, NT bookman download workaround (PS) On, Render to bitmap resolution Automatic dpi)
+- Printing: tabs Print Style / Driver Compatibility; Default print style [AnyVector Defaults ▾]; ☐ Print only current page; Special settings (Spot color separations warning, Preview color, Preview separations, Preview image, Overprint black threshold (PS) 95, Send large bitmaps in chunks No, Bitmap output threshold (K) 4096, Bitmap chunk overlap 32 pixels, Small fonts (Preflight) 7, Image resolution too low (Preflight) 96, Composite crop marks (PS) Output on all plates, PostScript 2 stroke adjust (PS) On, Many fonts (Preflight) 10, NT double download workaround (PS) On, NT bookman download workaround (PS) On, Render to bitmap resolution Automatic dpi)
 - File Locations: table Content Type / Location (Fills, Adjustment Presets, Artistic Media, Bitmap Presets, Blend, Cloud, Contour, Distortion, Documents, Envelope, Export Presets, Find and Replace, Fonts, Image Lists, Images, Palettes, Photo Frames, Print Styles, Shadow, Symbols, Templates, Trays, Vector Extrude, Writing Tools); Reset · Edit
 - File Formats: Available file types tree (Raster, Vector, Text, Animation); Add · Remove · Move Up · Move Down; Active filters list; Reset to Default
 - Color: Spot color palette [..▾]; Color palette mapping: Spot colors [..▾]; ☑ Show Choose Color Palette dialog box

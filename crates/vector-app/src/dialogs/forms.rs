@@ -237,7 +237,7 @@ pub fn parse_page_range(s: &str, n: usize) -> Vec<usize> {
 // Script Editor
 // ------------------------------------------------------------------------------------------
 
-pub const SCRIPT_TEMPLATE: &str = "// Vector script (Rhai). Coordinates are in points, y down.\n// Shapes: rect(x, y, w, h), ellipse(x, y, w, h), line(x0, y0, x1, y1), text(x, y, \"text\")\n// Style:  fill(\"#ff0000\"), outline(\"#000000\", width)\n// Edit:   select_all(), move_by(dx, dy), rotate(deg), scale(sx, sy)\n// Any command: run(\"Group\"), run(\"ZoomToPage\")\n\nfor i in 0..5 {\n    ellipse(100 + i * 60, 100, 50, 50);\n    fill(\"#1d4a85\");\n}\n";
+pub const SCRIPT_TEMPLATE: &str = "// AnyVector script (Rhai). Coordinates are in points, y down.\n// Shapes: rect(x, y, w, h), ellipse(x, y, w, h), line(x0, y0, x1, y1), text(x, y, \"text\")\n// Style:  fill(\"#ff0000\"), outline(\"#000000\", width)\n// Edit:   select_all(), move_by(dx, dy), rotate(deg), scale(sx, sy)\n// Any command: run(\"Group\"), run(\"ZoomToPage\")\n\nfor i in 0..5 {\n    ellipse(100 + i * 60, 100, 50, 50);\n    fill(\"#1d4a85\");\n}\n";
 
 fn script_editor(app: &mut VectorApp, ctx: &egui::Context) {
     let Some(mut st) = app.dialogs.script_editor.clone() else { return };
@@ -251,7 +251,7 @@ fn script_editor(app: &mut VectorApp, ctx: &egui::Context) {
                 st = ScriptEditorState { code: SCRIPT_TEMPLATE.to_string(), ..Default::default() };
             }
             if ui.button("Open...").clicked() {
-                if let Some(p) = rfd::FileDialog::new().add_filter("Vector script", &["rhai", "vsc"]).set_directory(crate::scripting::scripts_dir()).pick_file() {
+                if let Some(p) = rfd::FileDialog::new().add_filter("AnyVector script", &["rhai", "vsc"]).set_directory(crate::scripting::scripts_dir()).pick_file() {
                     if let Ok(t) = std::fs::read_to_string(&p) {
                         st.code = t;
                         st.path = Some(p);
@@ -260,7 +260,7 @@ fn script_editor(app: &mut VectorApp, ctx: &egui::Context) {
                 }
             }
             if ui.button("Save").clicked() {
-                let p = st.path.clone().or_else(|| rfd::FileDialog::new().add_filter("Vector script", &["rhai"]).set_directory(crate::scripting::scripts_dir()).set_file_name("Script.rhai").save_file());
+                let p = st.path.clone().or_else(|| rfd::FileDialog::new().add_filter("AnyVector script", &["rhai"]).set_directory(crate::scripting::scripts_dir()).set_file_name("Script.rhai").save_file());
                 if let Some(p) = p {
                     match std::fs::write(&p, &st.code) {
                         Ok(_) => {

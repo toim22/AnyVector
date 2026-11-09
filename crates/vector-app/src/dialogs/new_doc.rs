@@ -552,7 +552,7 @@ fn draw_thumb(p: &egui::Painter, area: Rect, w: f64, h: f64, rounded: bool) {
 }
 
 fn elide(ui: &Ui, text: &str, max_w: f32, font: &FontId) -> String {
-    let width = |s: &str| ui.fonts_mut(|f| f.layout_no_wrap(s.to_string(), font.clone(), Color32::WHITE).size().x);
+    let width = |s: &str| ui.fonts_mut(|f| f.layout_no_wrap(crate::i18n::t(s), font.clone(), Color32::WHITE).size().x);
     if width(text) <= max_w {
         return text.to_string();
     }

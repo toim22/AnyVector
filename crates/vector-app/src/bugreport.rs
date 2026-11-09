@@ -1,4 +1,5 @@
-//! Help ▸ Report a Bug: files a GitHub issue on the Vector project.
+//! Help ▸ Report a Bug and Help ▸ Submit Ideas and Feedback: file a GitHub issue on the
+//! AnyVector project, labeled `bug` or `enhancement`.
 //!
 //! Sending tries, in order:
 //! 1. the GitHub CLI (`gh issue create`), when it is installed and signed in: the issue is
@@ -20,11 +21,6 @@ pub fn issues_url() -> String {
     format!("https://github.com/{REPO}/issues")
 }
 
-/// Help ▸ Submit Ideas and Feedback: a new issue marked as an idea.
-pub fn feedback_url() -> String {
-    format!("https://github.com/{REPO}/issues/new?labels=enhancement&title={}", url_encode("Idea: "))
-}
-
 #[derive(Debug)]
 pub enum Sent {
     /// Created directly; the issue URL.
@@ -36,6 +32,8 @@ pub enum Sent {
 
 #[derive(Default)]
 pub struct BugReportState {
+    /// Submit Ideas and Feedback instead of Report a Bug.
+    pub idea: bool,
     pub title: String,
     pub what_happened: String,
     pub steps: String,
@@ -50,6 +48,16 @@ impl BugReportState {
         BugReportState { include_system: true, ..Default::default() }
     }
 
+    /// Help ▸ Submit Ideas and Feedback.
+    pub fn idea() -> BugReportState {
+        BugReportState { idea: true, include_system: false, ..Default::default() }
+    }
+
+    /// The GitHub label of the issue.
+    pub fn label(&self) -> &'static str {
+        if self.idea { "enhancement" } else { "bug" }
+    }
+
     fn can_send(&self) -> bool {
         !self.title.trim().is_empty() && !self.what_happened.trim().is_empty() && self.sending.is_none()
     }
@@ -61,7 +69,7 @@ pub fn system_info(ctx: &egui::Context) -> String {
     let ppp = ctx.pixels_per_point();
     let screen = ctx.content_rect().size() * ppp;
     format!(
-        "- Vector: {} ({})\n- Windows: {}\n- Window size: {:.0} × {:.0} px, scale {:.0}%",
+        "- AnyVector: {} ({})\n- Windows: {}\n- Window size: {:.0} × {:.0} px, scale {:.0}%",
         env!("CARGO_PKG_VERSION"),
         if cfg!(debug_assertions) { "debug build" } else { "release build" },
         os,
@@ -94,11 +102,11 @@ fn hide_console(cmd: &mut Command) {
 /// The issue body in GitHub Markdown.
 pub fn issue_body(st: &BugReportState, system: Option<&str>) -> String {
     let mut b = String::new();
-    b.push_str("### What happened\n\n");
+    b.push_str(if st.idea { "### Idea or feedback\n\n" } else { "### What happened\n\n" });
     b.push_str(st.what_happened.trim());
     b.push_str("\n\n");
     if !st.steps.trim().is_empty() {
-        b.push_str("### Steps to reproduce\n\n");
+        b.push_str(if st.idea { "### Why it would help\n\n" } else { "### Steps to reproduce\n\n" });
         b.push_str(st.steps.trim());
         b.push_str("\n\n");
     }
@@ -112,7 +120,7 @@ pub fn issue_body(st: &BugReportState, system: Option<&str>) -> String {
         b.push_str(s);
         b.push('\n');
     }
-    b.push_str("\n_Sent from Vector (Help ▸ Report a Bug)._\n");
+    b.push_str(if st.idea { "\n_Sent from AnyVector (Help ▸ Submit Ideas and Feedback)._\n" } else { "\n_Sent from AnyVector (Help ▸ Report a Bug)._\n" });
     b
 }
 
@@ -128,8 +136,8 @@ pub fn url_encode(s: &str) -> String {
     out
 }
 
-pub fn new_issue_url(title: &str, body: &str) -> String {
-    format!("https://github.com/{REPO}/issues/new?labels=bug&title={}&body={}", url_encode(title), url_encode(body))
+pub fn new_issue_url(label: &str, title: &str, body: &str) -> String {
+    format!("https://github.com/{REPO}/issues/new?labels={label}&title={}&body={}", url_encode(title), url_encode(body))
 }
 
 pub fn open_in_browser(url: &str) -> bool {
@@ -147,7 +155,8 @@ pub fn open_in_browser(url: &str) -> bool {
     }
 }
 
-fn gh(args: &[&str]) -> Option<std::process::Output> {
+/// Run the GitHub CLI without a console window; `None` when it is not installed.
+pub(crate) fn gh(args: &[&str]) -> Option<std::process::Output> {
     let mut cmd = Command::new("gh");
     cmd.args(args);
     hide_console(&mut cmd);
@@ -155,14 +164,14 @@ fn gh(args: &[&str]) -> Option<std::process::Output> {
 }
 
 /// Create the issue with the GitHub CLI. `None` if the CLI is missing or not signed in.
-fn create_with_gh(title: &str, body: &str) -> Option<Result<String, String>> {
+fn create_with_gh(label: &str, title: &str, body: &str) -> Option<Result<String, String>> {
     let auth = gh(&["auth", "status", "--hostname", "github.com"])?;
     if !auth.status.success() {
         return None;
     }
-    let mut out = gh(&["issue", "create", "--repo", REPO, "--title", title, "--body", body, "--label", "bug"])?;
+    let mut out = gh(&["issue", "create", "--repo", REPO, "--title", title, "--body", body, "--label", label])?;
     if !out.status.success() {
-        // The repository may not have a "bug" label; retry without it.
+        // The repository may not have the label; retry without it.
         out = gh(&["issue", "create", "--repo", REPO, "--title", title, "--body", body])?;
     }
     if out.status.success() {
@@ -174,17 +183,17 @@ fn create_with_gh(title: &str, body: &str) -> Option<Result<String, String>> {
 }
 
 /// Send in the background; the dialog polls the receiver.
-fn send(title: String, body: String) -> Receiver<Sent> {
+fn send(label: &'static str, title: String, body: String) -> Receiver<Sent> {
     let (tx, rx) = channel();
     std::thread::spawn(move || {
-        let r = match create_with_gh(&title, &body) {
+        let r = match create_with_gh(label, &title, &body) {
             Some(Ok(url)) => Sent::Created(url),
             // CLI present but failed, or absent: fall back to the browser.
             Some(Err(_)) | None => {
-                if open_in_browser(&new_issue_url(&title, &body)) {
+                if open_in_browser(&new_issue_url(label, &title, &body)) {
                     Sent::Browser
                 } else {
-                    Sent::Failed(format!("Could not open the browser. Please report the bug at {}", issues_url()))
+                    Sent::Failed(format!("Could not open the browser. Please send it at {}", issues_url()))
                 }
             }
         };
@@ -193,8 +202,10 @@ fn send(title: String, body: String) -> Receiver<Sent> {
     rx
 }
 
-pub fn dialog(app: &mut VectorApp, ctx: &egui::Context) {
-    let Some(mut st) = app.dialogs.bug_report.take() else { return };
+/// Report a Bug (`idea` false) or Submit Ideas and Feedback (`idea` true).
+pub fn dialog(app: &mut VectorApp, ctx: &egui::Context, idea: bool) {
+    let slot = if idea { &mut app.dialogs.feedback } else { &mut app.dialogs.bug_report };
+    let Some(mut st) = slot.take() else { return };
     if let Some(rx) = &st.sending {
         if let Ok(r) = rx.try_recv() {
             st.sending = None;
@@ -205,25 +216,28 @@ pub fn dialog(app: &mut VectorApp, ctx: &egui::Context) {
     }
     let system = system_info(ctx);
     let mut close = false;
-    let ((), dismissed) = window(ctx, "bug_report", "Report a Bug", vec2(560.0, 560.0), |ui| {
+    let (id, title) = if idea { ("feedback", "Submit Ideas and Feedback") } else { ("bug_report", "Report a Bug") };
+    let ((), dismissed) = window(ctx, id, title, vec2(560.0, 560.0), |ui| {
         ui.add_space(8.0);
         ui.spacing_mut().item_spacing.y = 6.0;
         if let Some(r) = &st.result {
             heading(ui, match r {
+                Sent::Created(_) if st.idea => "Thank you! Your idea was sent.",
                 Sent::Created(_) => "Thank you! Your bug report was sent.",
                 Sent::Browser => "Almost done: finish in your browser",
+                Sent::Failed(_) if st.idea => "Your idea could not be sent",
                 Sent::Failed(_) => "The report could not be sent",
             });
             ui.add_space(6.0);
             match r {
                 Sent::Created(url) => {
-                    ui.label("The issue was created on the Vector project on GitHub:");
+                    ui.label("The issue was created on the AnyVector project on GitHub:");
                     if ui.link(url.as_str()).clicked() {
                         open_in_browser(url);
                     }
                 }
                 Sent::Browser => {
-                    ui.label("GitHub opened in your browser with the report already filled in.");
+                    ui.label(if st.idea { "GitHub opened in your browser with your idea already filled in." } else { "GitHub opened in your browser with the report already filled in." });
                     ui.label("Sign in if asked, review it and click \"Create\" to send it.");
                 }
                 Sent::Failed(e) => {
@@ -243,16 +257,27 @@ pub fn dialog(app: &mut VectorApp, ctx: &egui::Context) {
             });
             return;
         }
-        note(ui, "Describe the problem. It is sent to the Vector project on GitHub as a new issue.");
-        ui.add_space(4.0);
-        ui.label("Title (a short summary):");
-        ui.add(egui::TextEdit::singleline(&mut st.title).hint_text("e.g. Toolbar overlaps the menu bar").desired_width(f32::INFINITY));
-        ui.label("What happened?");
-        ui.add(egui::TextEdit::multiline(&mut st.what_happened).desired_rows(4).desired_width(f32::INFINITY));
-        ui.label("Steps to reproduce (optional):");
-        ui.add(egui::TextEdit::multiline(&mut st.steps).hint_text("1. ...\n2. ...").desired_rows(3).desired_width(f32::INFINITY));
-        ui.label("What did you expect to happen? (optional)");
-        ui.add(egui::TextEdit::multiline(&mut st.expected).desired_rows(2).desired_width(f32::INFINITY));
+        if st.idea {
+            note(ui, "Tell us your idea or what you think of AnyVector. It is sent to the AnyVector project on GitHub as a new idea.");
+            ui.add_space(4.0);
+            ui.label("Title (your idea in a few words):");
+            ui.add(egui::TextEdit::singleline(&mut st.title).hint_text("e.g. Snap to the center of the page").desired_width(f32::INFINITY));
+            ui.label("Describe your idea or feedback:");
+            ui.add(egui::TextEdit::multiline(&mut st.what_happened).desired_rows(6).desired_width(f32::INFINITY));
+            ui.label("How would it help you? (optional)");
+            ui.add(egui::TextEdit::multiline(&mut st.steps).desired_rows(4).desired_width(f32::INFINITY));
+        } else {
+            note(ui, "Describe the problem. It is sent to the AnyVector project on GitHub as a new issue.");
+            ui.add_space(4.0);
+            ui.label("Title (a short summary):");
+            ui.add(egui::TextEdit::singleline(&mut st.title).hint_text("e.g. Toolbar overlaps the menu bar").desired_width(f32::INFINITY));
+            ui.label("What happened?");
+            ui.add(egui::TextEdit::multiline(&mut st.what_happened).desired_rows(4).desired_width(f32::INFINITY));
+            ui.label("Steps to reproduce (optional):");
+            ui.add(egui::TextEdit::multiline(&mut st.steps).hint_text("1. ...\n2. ...").desired_rows(3).desired_width(f32::INFINITY));
+            ui.label("What did you expect to happen? (optional)");
+            ui.add(egui::TextEdit::multiline(&mut st.expected).desired_rows(2).desired_width(f32::INFINITY));
+        }
         separator(ui);
         ui.checkbox(&mut st.include_system, "Include system information");
         if st.include_system {
@@ -262,8 +287,8 @@ pub fn dialog(app: &mut VectorApp, ctx: &egui::Context) {
         }
         ui.add_space((ui.available_height() - 34.0).max(0.0));
         ui.horizontal(|ui| {
-            if ui.link("View reported bugs").clicked() {
-                open_in_browser(&issues_url());
+            if ui.link(if st.idea { "View submitted ideas" } else { "View reported bugs" }).clicked() {
+                open_in_browser(&if st.idea { format!("{}?q=is%3Aissue+label%3Aenhancement", issues_url()) } else { issues_url() });
             }
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.add(egui::Button::new("Cancel").min_size(vec2(80.0, 24.0))).clicked() {
@@ -272,7 +297,7 @@ pub fn dialog(app: &mut VectorApp, ctx: &egui::Context) {
                 let label = if st.sending.is_some() { "Sending..." } else { "Send" };
                 if crate::dialogs::ok_button(ui, label, st.can_send()) {
                     let body = issue_body(&st, st.include_system.then_some(system.as_str()));
-                    st.sending = Some(send(st.title.trim().to_string(), body));
+                    st.sending = Some(send(st.label(), st.title.trim().to_string(), body));
                 }
                 if st.sending.is_some() {
                     ui.spinner();
@@ -281,7 +306,7 @@ pub fn dialog(app: &mut VectorApp, ctx: &egui::Context) {
         });
     });
     if !(close || (dismissed && st.sending.is_none())) {
-        app.dialogs.bug_report = Some(st);
+        *(if idea { &mut app.dialogs.feedback } else { &mut app.dialogs.bug_report }) = Some(st);
     }
 }
 
@@ -293,11 +318,17 @@ mod tests {
     fn encodes_and_builds_url() {
         assert_eq!(url_encode("a b&c/ç"), "a%20b%26c%2F%C3%A7");
         let st = BugReportState { title: "T".into(), what_happened: "Crash".into(), steps: "1. Open".into(), ..BugReportState::new() };
-        let body = issue_body(&st, Some("- Vector: 0.1.0"));
+        let body = issue_body(&st, Some("- AnyVector: 0.1.0"));
         assert!(body.contains("### What happened\n\nCrash"));
         assert!(body.contains("### Steps to reproduce"));
         assert!(!body.contains("### Expected behavior"));
-        let url = new_issue_url("T", &body);
+        let url = new_issue_url(st.label(), "T", &body);
         assert!(url.starts_with("https://github.com/toim22/Vector/issues/new?labels=bug&title=T&body="));
+        let idea = BugReportState { title: "Snap".into(), what_happened: "Snap to page center".into(), steps: "Faster layout".into(), ..BugReportState::idea() };
+        let body = issue_body(&idea, None);
+        assert!(body.contains("### Idea or feedback\n\nSnap to page center"));
+        assert!(body.contains("### Why it would help\n\nFaster layout"));
+        assert!(!body.contains("System information"));
+        assert!(new_issue_url(idea.label(), "Snap", &body).contains("labels=enhancement&"));
     }
 }

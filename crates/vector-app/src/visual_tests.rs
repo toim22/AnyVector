@@ -260,6 +260,31 @@ fn visual_menus() {
     }
 }
 
+/// The interface in Brazilian Portuguese: Welcome Screen, a menu, a document and the Options dialog.
+#[test]
+#[ignore]
+fn visual_pt_br() {
+    let mut h = harness();
+    h.state_mut().settings.language = "pt-BR".into();
+    save(&mut h, "90_ptbr_home");
+    h.state_mut().new_default_document();
+    open_menu(&mut h, "Arquivo");
+    save(&mut h, "90_ptbr_menu_file");
+    close_menu(&mut h);
+    open_menu(&mut h, "Objeto");
+    save(&mut h, "90_ptbr_menu_object");
+    close_menu(&mut h);
+    // the Updates dialog alone, without a network check
+    h.state_mut().update.dialog = true;
+    save(&mut h, "90_ptbr_updates");
+    h.state_mut().update.dialog = false;
+    h.state_mut().open_options(crate::commands::OptionsPage::Global, None);
+    save(&mut h, "90_ptbr_options");
+    h.state_mut().settings.language = "en-US".into();
+    h.step();
+    assert_eq!(crate::i18n::lang(), crate::i18n::Lang::EnUs);
+}
+
 fn right_click(h: &mut Harness<'_, VectorApp>, p: egui::Pos2) {
     for _ in 0..30 {
         h.step();

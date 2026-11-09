@@ -1,25 +1,25 @@
-# Vector — Status
+# AnyVector — Status
 
 Last updated: 2026-11-09.
 
 ## Version 0.1.0 (release candidate)
 
-Vector 0.1.0 is being built to match the CorelDRAW 2026 reference, in batches (see `docs/PLAN-0.1.0.md`).
+AnyVector 0.1.0 is being built to match the CorelDRAW 2026 reference, in batches (see `docs/PLAN-0.1.0.md`).
 `docs/COVERAGE.md` lists every menu item, dialog, docker, tool, toolbar and right-click menu of the reference with
-its status in Vector.
+its status in AnyVector.
 
 **Batch 0 (foundation and branding), done:**
 
 - The version is 0.1.0 everywhere (program, file version label "0.1 (2026.0)", installer).
 - New icon and logo from the brand SVGs: the exe and window icon, shortcuts and file types use the icon; the splash
   screen, the About box and the installer's side picture use the logo.
-- Help ▸ About Vector follows the reference: logo banner, version and release, copyright, Source ID (the commit the
+- Help ▸ About AnyVector follows the reference: logo banner, version and release, copyright, Source ID (the commit the
   program was built from), System Info... and Legal Notices....
-  - System Info has the reference's five categories (System, Display, Printing, Vector EXEs & DLLs, System DLLs),
+  - System Info has the reference's five categories (System, Display, Printing, AnyVector EXEs & DLLs, System DLLs),
     read from Windows, and Save writes them to a text file.
-  - Legal Notices lists the 278 open-source components in vector.exe and their licenses.
-- The installer (`dist/Vector-0.1.0-setup.exe`) has the Windows 11 wizard style with light and dark pictures,
-  installs per user or for all users, adds Vector to "Open with" for `.cdr` (default program only if chosen), opens
+  - Legal Notices lists the 278 open-source components in anyvector.exe and their licenses.
+- The installer (`dist/AnyVector-0.1.0-setup.exe`) has the Windows 11 wizard style with light and dark pictures,
+  installs per user or for all users, adds AnyVector to "Open with" for `.cdr` (default program only if chosen), opens
   `.vct` and optionally SVG, and keeps the folder and choices on updates.
 - Build helpers (`xtask`): brand assets, the coverage report, the comparison page and the Legal Notices list.
 
@@ -29,7 +29,7 @@ its status in Vector.
   279 bars and 4006 items to `crates/vector-app/src/ui/data.rs`): captions with access keys, shortcuts, tooltips,
   separators and order exactly as CorelDRAW 2026 has them.
 - All 12 menus and their submenus, each item enabled for the same 17 selection states as the reference. All 462
-  reference menu screenshots have the same number of rows in Vector. Without a document (or on the Welcome Screen
+  reference menu screenshots have the same number of rows in AnyVector. Without a document (or on the Welcome Screen
   tab) the menu bar shrinks to File, Tools, Window and Help.
 - Right-click menus in the 24 places the reference has them (objects of each kind, text being edited, curve nodes,
   table cells, page, desktop, rulers, page tab, toolbars, status bar, toolbox), including Customize.
@@ -37,9 +37,9 @@ its status in Vector.
 - The toolbox with its 15 flyouts and Quick Customize.
 - The property bar of each of the 60 tools and of the Pick tool for 18 kinds of selection, field by field in the
   reference order and look (one box for X/Y and for width/height, "%" and "°" units, lead icons only where the
-  reference has them, the open padlock while a lock is off). Fields Vector does not have yet are drawn in place,
+  reference has them, the open padlock while a lock is off). Fields AnyVector does not have yet are drawn in place,
   disabled.
-- Icons: all 985 reference icons used by menus, toolbars, flyouts, property bars and dockers have a Vector drawing
+- Icons: all 985 reference icons used by menus, toolbars, flyouts, property bars and dockers have a AnyVector drawing
   with the same meaning (`crates/vector-app/src/icons.rs`, mapped in `assets/ui/icon-map.tsv`). Corel's artwork is
   not copied.
 - The Welcome Screen tab: Get Started (New Document, New from Template, Open Document, recent documents),
@@ -139,7 +139,7 @@ its status in Vector.
 - Fixes found on the way: the object being edited in focus mode (PowerClip contents, a rollover) is no longer
   dimmed with everything else; the interface generator read `*Not(...)` around the wrong binding and hid the three
   AI Generate items the reference shows with nothing selected. All 462 reference menus again have the same number
-  of rows in Vector.
+  of rows in AnyVector.
 
 **Batch 4 (Text menu), done:**
 
@@ -171,7 +171,7 @@ its status in Vector.
   - Change Case, Text Statistics, Encode (every Windows code page, with preview), Fit Text to Frame (paragraph
     text and tables), Insert Placeholder Text (frames and table cells) and Align to Baseline.
   - Show Non-Printing Characters, Show Text Frames and Make Text Web-compatible. Make Text Web-compatible is kept
-    with the text; Vector has no HTML export yet.
+    with the text; AnyVector has no HTML export yet.
 - Tables: with the Table tool, typing goes into the chosen cell. Tab and Shift+Tab move between cells.
 
 **Batch 5 (Tools), done:**
@@ -279,7 +279,7 @@ its status in Vector.
     Adjustment Lab (temperature, tint, saturation, brightness, contrast, highlights, shadows, midtones, Auto adjust,
     white and black points, rotation, snapshots, undo and redo, histogram).
   - Remove JPEG Artifacts, Remove Background and Crop Bitmap. Edit Bitmap opens the bitmap in the default image
-    editor, and saving it there updates it in Vector (also on double-click when Options ask for it).
+    editor, and saving it there updates it in AnyVector (also on double-click when Options ask for it).
   - Resample: size in eight units, resolution, bicubic or nearest neighbor, file and pixel sizes.
   - Mode: Convert to 1 bit (Line Art, Ordered, Jarvis, Stucki, Floyd-Steinberg, Halftone screens,
     Cardinality-Distribution), Grayscale, Duotone (monotone to quadtone, ink curves, overprints, load and save),
@@ -328,11 +328,31 @@ its status in Vector.
   - Product Help, Quick Start Guide, User Guide and Keyboard Shortcuts are HTML pages that open in the browser and
     need no internet connection. The User Guide and the shortcut list are built from the program's own menus,
     tools and dockers, so they always match it.
-  - Updates shows the release notes of this version (`docs/RELEASE-NOTES-0.1.0.md`).
-  - Submit Ideas and Feedback opens a new idea in the Vector issue tracker; Report a Bug is unchanged.
+  - Updates opens the Updates dialog (see below); its Release Notes link opens the release page.
+  - Submit Ideas and Feedback opens a new idea in the AnyVector issue tracker; Report a Bug is unchanged.
   - Message Settings is left out with Corel's other online services (it sets Corel's in-product messages).
-- The 0.1.0 installer is rebuilt (`dist/Vector-0.1.0-setup.exe`) and the release notes are in
+- The 0.1.0 installer is rebuilt (`dist/AnyVector-0.1.0-setup.exe`) and the release notes are in
   `docs/RELEASE-NOTES-0.1.0.md`. Nothing is tagged or published.
+
+**After batch 8 (AnyVector name, languages, updates), done:**
+
+- The program is renamed AnyVector everywhere: window title, About box, menus (Help ▸ About AnyVector, Options ▸
+  AnyVector), file types, the installer (`AnyVector-0.1.0-setup.exe`, `anyvector.exe`, Start menu) and the
+  settings folder (`%APPDATA%\AnyVector`, moved from `%APPDATA%\Vector` on the first start). The banner, icon and
+  logo are unchanged; the installer's side picture now says AnyVector.
+- Brazilian Portuguese interface (`assets/i18n/pt-BR.tsv`, 5,524 of 5,777 strings; the rest are names and codes),
+  aligned with the `corel-i18n` pt-BR guide. The language is chosen in Options ▸ Global ▸ General and changes at
+  once. The installer has a language page (English or Português Brasileiro), and "Ask me the next time the
+  application starts" shows a language chooser on the next start.
+- Help ▸ Updates and Options ▸ Global ▸ General ▸ Allow product updates: keep up to date (background download,
+  install when AnyVector closes, then start again), check and let me choose, or never. Updates come from the
+  GitHub releases of the project; while the repository is private they need `gh` signed in.
+- Submit Ideas and Feedback opens a form like Report a Bug and sends the idea as a GitHub issue labeled
+  `enhancement`.
+- The Welcome Screen tab has a close button (×, on the right like the document tabs; middle-click also closes it).
+- AI Generate without an API key says where to add it (Tools ▸ Options ▸ Global ▸ Privacy ▸ AI Generate) and has an
+  Open AI Settings button; Save Key writes the key to the user's Windows environment variable.
+- The menu bar captions are centered vertically in a 26-pixel bar.
 
 ## Working (verified by build and tests)
 
@@ -361,7 +381,7 @@ its status in Vector.
   - palette
   - document palette
   - status bar
-- Options dialog: every category and page from the screenshots, with "CorelDRAW" renamed to "Vector" and VBA renamed to Scripts.
+- Options dialog: every category and page from the screenshots, with "CorelDRAW" renamed to "AnyVector" and VBA renamed to Scripts.
 - Menu bar is 26 px tall so the standard toolbar no longer crowds it; disabled toolbar icons use a lighter gray.
 - The Purchase menu is removed. Help ▸ Report a Bug opens a form that creates a GitHub issue on toim22/Vector through the `gh` CLI when it is signed in, or opens a prefilled issue page in the browser otherwise. Help ▸ Report a Bug ▸ View Reported Bugs opens the issue list.
 - Create a New Document follows the reference photos:
@@ -397,13 +417,13 @@ its status in Vector.
 
 ## Known gaps
 
-- **.cdr is Vector's own container, not CorelDRAW's format.** It is a zip that holds:
+- **.cdr is AnyVector's own container, not CorelDRAW's format.** It is a zip that holds:
   - the drawing
   - XMP metadata (title, subject, rating)
   - embedded fonts and ICC profiles
   - a thumbnail
 
-  Vector opens and saves it, and the older `.vct` format still opens and saves. Files made by CorelDRAW (RIFF, or a zip with `content/riffData.cdr`) are detected and refused with a message. Vector cannot read them yet.
+  AnyVector opens and saves it, and the older `.vct` format still opens and saves. Files made by CorelDRAW (RIFF, or a zip with `content/riffData.cdr`) are detected and refused with a message. AnyVector cannot read them yet.
 - **Color settings are stored, not applied.** The document's color mode, profiles and rendering intent are saved, and profiles can be embedded, but the canvas does not do color management.
 - **Multipage view** is stored per document but the canvas still shows one page at a time.
 - **Top print presets inferred.** The first rows of print presets in New Document (US sizes, Arch, ISO, envelopes, and so on) are not visible in the reference photos, so their order was inferred. The rest follows the photos exactly.
@@ -418,7 +438,7 @@ its status in Vector.
     are disabled, as in the reference without AI.
   - Effect pages: Levels, Tone Curve and Color Balance have no eyedroppers; the Sample & Target default targets are
     approximated; the Lens Flare center and the Lighting Effects light cone use a simplified preview; Art Style uses
-    local filters; frames, canvas textures, bump and displacement maps are drawn by Vector (no CorelDRAW content
+    local filters; frames, canvas textures, bump and displacement maps are drawn by AnyVector (no CorelDRAW content
     files). Presets saved with (+) are named Preset 1, 2...
 - **Perspective field handles:** the field covers the page (Fill page), and the horizon is set on the floating
   toolbar. Vanishing points cannot be dragged on the canvas, and there are no camera lines.
@@ -434,10 +454,10 @@ its status in Vector.
     only stored); no wireframe per layer; master layers are stored with page 1.
   - Pages: the Custom multipage arrangement is horizontal; the three view tooltips are not in the reference strings.
   - Object Styles: the style editor is simpler; Character, Paragraph and Frame styles are disabled; Default Object
-    Properties change the graphic defaults only; style sheets are Vector's own `.vstyles` file.
+    Properties change the graphic defaults only; style sheets are AnyVector's own `.vstyles` file.
   - Find and Replace: Pantone queries find nothing (colors keep no palette names); Color model or palette replace is
     disabled.
-  - Export: the export list cannot be reordered by dragging. AI Generate: the terms page is in Vector's own words.
+  - Export: the export list cannot be reordered by dragging. AI Generate: the terms page is in AnyVector's own words.
   - Text: Character background fill, horizontal offset, angle, overline, capital spacing, annotation forms, OpenType
     features, synthesized sub/superscripts and small-caps options are disabled; Paragraph Before paragraph spacing,
     language spacing, text direction and Justification are disabled; Frame background, vertical alignment and
@@ -461,7 +481,7 @@ its status in Vector.
     color engine) and RGB environments leave the colors unchanged; Preserve numbers and the rendering intent are only
     stored; the gamut test is approximate; Export soft proof writes PNG, JPG or TIFF.
   - Assets: Cloud and Get More are disabled; categories are subfolders; linked assets are the document's linked files
-    (no symbol libraries); Properties shows a message box; Edit opens the file in its default program or in Vector.
+    (no symbol libraries); Properties shows a message box; Edit opens the file in its default program or in AnyVector.
   - Links and Rollovers: the hotspot is always the bounding box, even with Shape; Target and Alt comments are only
     stored.
   - Tray: trays last for the session only, and files cannot be dragged in from Explorer. Sources: only bitmaps can
@@ -471,10 +491,10 @@ its status in Vector.
 - **Window, workspaces and palettes (batch 8):**
   - Document windows never float, so Dock Window does what Combine Windows does. Inactive tiled windows show no
     ruler ticks.
-  - Workspace files: Vector reads and writes its own `.cdws` content (`content/workspace.json`); workspace files saved
+  - Workspace files: AnyVector reads and writes its own `.cdws` content (`content/workspace.json`); workspace files saved
     by CorelDRAW cannot be imported.
   - Help ▸ Updates shows this version's release notes; there is no online update check.
-  - Pattern documents edit vector patterns made in Vector 0.1.0 or later as objects; older patterns and bitmap
+  - Pattern documents edit vector patterns made in AnyVector 0.1.0 or later as objects; older patterns and bitmap
     patterns open as their tile image.
-- **Items with no command yet:** menu and toolbar items the reference has but Vector cannot do yet are shown and
+- **Items with no command yet:** menu and toolbar items the reference has but AnyVector cannot do yet are shown and
   say so when chosen; `docs/COVERAGE.md` lists them.

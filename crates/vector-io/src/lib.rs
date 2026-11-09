@@ -51,18 +51,18 @@ pub struct FileType {
 /// "Save as type" entries of Save Drawing; the first is the default.
 pub const SAVE_TYPES: &[FileType] = &[
     FileType { name: "CDR - CorelDRAW (*.cdr)", extensions: &["cdr"], vector: true },
-    FileType { name: "VCT - Vector Drawing (*.vct)", extensions: &["vct"], vector: true },
+    FileType { name: "VCT - AnyVector Drawing (*.vct)", extensions: &["vct"], vector: true },
 ];
 
 pub const OPEN_TYPES: &[FileType] = &[
     FileType { name: "CDR - CorelDRAW (*.cdr)", extensions: &["cdr"], vector: true },
-    FileType { name: "Vector Drawing (*.vct)", extensions: &["vct"], vector: true },
+    FileType { name: "AnyVector Drawing (*.vct)", extensions: &["vct"], vector: true },
     FileType { name: "Scalable Vector Graphics (*.svg)", extensions: &["svg", "svgz"], vector: true },
 ];
 
 pub const IMPORT_TYPES: &[FileType] = &[
     FileType { name: "CDR - CorelDRAW (*.cdr)", extensions: &["cdr"], vector: true },
-    FileType { name: "Vector Drawing (*.vct)", extensions: &["vct"], vector: true },
+    FileType { name: "AnyVector Drawing (*.vct)", extensions: &["vct"], vector: true },
     FileType { name: "SVG - Scalable Vector Graphics (*.svg;*.svgz)", extensions: &["svg", "svgz"], vector: true },
     FileType { name: "PNG - Portable Network Graphics (*.png)", extensions: &["png"], vector: false },
     FileType { name: "JPG - JPEG Bitmaps (*.jpg;*.jpeg;*.jfif)", extensions: &["jpg", "jpeg", "jfif"], vector: false },

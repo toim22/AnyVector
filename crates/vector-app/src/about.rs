@@ -73,7 +73,7 @@ pub fn about(app: &mut VectorApp, ctx: &egui::Context) {
         // version and copyright
         let f = egui::FontId::proportional(13.0);
         p.text(pos2(b.center().x, b.top() + 230.0), Align2::CENTER_CENTER, format!("Version {} - {RELEASE} Release", vector_core::APP_VERSION), f.clone(), theme::TEXT);
-        p.text(pos2(b.center().x, b.top() + 253.0), Align2::CENTER_CENTER, "(C) 2026 Vector Team.  All rights reserved.", f.clone(), theme::TEXT);
+        p.text(pos2(b.center().x, b.top() + 253.0), Align2::CENTER_CENTER, "(C) 2026 AnyVector Team.  All rights reserved.", f.clone(), theme::TEXT);
         // Source ID box
         let sid = Rect::from_min_max(pos2(b.left() + 5.0, b.top() + 266.0), pos2(b.right() - 5.0, b.top() + 295.0));
         p.rect_stroke(sid, 0.0, Stroke::new(1.0, Color32::from_gray(0x5a)), egui::StrokeKind::Inside);

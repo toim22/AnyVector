@@ -2312,14 +2312,14 @@ impl VectorApp {
                 self.settings.save();
                 self.flash("Settings saved as default");
             }
-            Cmd::ColorManagement => self.info_box("Color Management", "Vector works in sRGB. CMYK values shown in the color dockers are converted with a standard (uncalibrated) formula; use Color Proofing to preview print output."),
+            Cmd::ColorManagement => self.info_box("Color Management", "AnyVector works in sRGB. CMYK values shown in the color dockers are converted with a standard (uncalibrated) formula; use Color Proofing to preview print output."),
             Cmd::ScriptEditor | Cmd::VsEditor => {
                 if self.dialogs.script_editor.is_none() {
                     self.dialogs.script_editor = Some(ScriptEditorState { code: crate::dialogs::forms::SCRIPT_TEMPLATE.to_string(), ..Default::default() });
                 }
             }
             Cmd::RunScript => {
-                if let Some(p) = rfd::FileDialog::new().set_title("Run Script").add_filter("Vector script", &["rhai", "vsc"]).set_directory(crate::scripting::scripts_dir()).pick_file() {
+                if let Some(p) = rfd::FileDialog::new().set_title("Run Script").add_filter("AnyVector script", &["rhai", "vsc"]).set_directory(crate::scripting::scripts_dir()).pick_file() {
                     match std::fs::read_to_string(&p) {
                         Ok(src) => {
                             if let Err(e) = crate::scripting::run_script(self, &src) {
@@ -2423,32 +2423,34 @@ impl VectorApp {
             }
 
             // ------------------------------------------------------------------ Help
-            Cmd::ProductHelp | Cmd::UserGuide | Cmd::QuickStart | Cmd::Updates => {
+            Cmd::Updates => crate::updater::open_dialog(self),
+            Cmd::ProductHelp | Cmd::UserGuide | Cmd::QuickStart => {
                 let page = match cmd {
                     Cmd::QuickStart => crate::help::Page::QuickStart,
                     Cmd::UserGuide => crate::help::Page::UserGuide,
-                    Cmd::Updates => crate::help::Page::ReleaseNotes,
                     _ => crate::help::Page::Home,
                 };
                 if let Err(e) = crate::help::open(page) {
-                    self.info_box("Vector Help", &e);
+                    self.info_box("AnyVector Help", &e);
                 }
             }
             Cmd::WelcomeScreen | Cmd::ShowHome => {
                 self.finish_tool();
+                self.home_open = true;
                 self.active = None;
             }
             Cmd::VideoTutorials => self.dockers.show(DockerId::Learn),
             Cmd::WhatsNew => {
                 self.finish_tool();
+                self.home_open = true;
                 self.active = None;
                 self.welcome_page = crate::welcome::Page::WhatsNew;
             }
-            Cmd::MessageSettings | Cmd::RefreshAccount | Cmd::AccountSettings => self.info_box("Account", "Vector does not require an account. All your work stays on this computer."),
+            Cmd::MessageSettings | Cmd::RefreshAccount | Cmd::AccountSettings => self.info_box("Account", "AnyVector does not require an account. All your work stays on this computer."),
             Cmd::Feedback => {
-                crate::bugreport::open_in_browser(&crate::bugreport::feedback_url());
+                self.dialogs.feedback = Some(crate::bugreport::BugReportState::idea());
             }
-            Cmd::Community | Cmd::Support => self.info_box("Vector Community", "Share ideas and report problems with Help > Submit Ideas and Feedback and Help > Report a Bug."),
+            Cmd::Community | Cmd::Support => self.info_box("AnyVector Community", "Share ideas and report problems with Help > Submit Ideas and Feedback and Help > Report a Bug."),
             Cmd::ReportBug => self.dialogs.bug_report = Some(crate::bugreport::BugReportState::new()),
             Cmd::ViewReportedBugs => {
                 crate::bugreport::open_in_browser(&crate::bugreport::issues_url());
