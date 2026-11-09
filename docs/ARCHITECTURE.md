@@ -122,4 +122,6 @@ cargo build --release -p vector-app
 The version comes from the workspace `Cargo.toml`, and the installer is written to `dist/AnyVector-<version>-setup.exe`.
 It installs per user without an administrator prompt (or for all users if chosen), adds AnyVector to "Open with" for
 `.cdr` (making it the default for `.cdr` is an unchecked option, because CorelDRAW may own that type), opens `.vct`
-files, and keeps the install folder and choices on updates.
+files, and keeps the install folder and choices on updates. Updating an install made while the program was called
+Vector moves it from its `Vector` folder to an `AnyVector` folder next to it and replaces the Vector shortcuts in the
+Start menu and on the desktop.
