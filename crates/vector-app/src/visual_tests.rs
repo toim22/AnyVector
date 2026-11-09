@@ -1195,6 +1195,13 @@ fn visual_dockers() {
                 |a| lens_state(a, 10),
                 |a| lens_state(a, 11),
             ],
+            DockerId::Color => &[|a| a.dockers.ui.color_ed.view = 1, |a| a.dockers.ui.color_ed.view = 2],
+            DockerId::Comments => &[comments_state],
+            DockerId::Symbols => &[symbols_state, |a| a.dockers.ui.sym_lib = 1, |a| a.dockers.ui.sym_local_open = true],
+            DockerId::ObjectData => &[|a| a.dialogs.object_data_manager = true, |a| {
+                a.dialogs.object_data_manager = false;
+                a.dialogs.data_field_editor = Some(Default::default());
+            }],
             DockerId::AlignDistribute => &[|a| a.dockers.ui.align_to = 1, |a| a.dockers.ui.align_to = 2, |a| a.dockers.ui.align_to = 3, |a| a.dockers.ui.align_to = 4, |a| a.dockers.ui.dist_to = 1, |a| a.dockers.ui.dist_to = 2],
             _ => &[],
         };
@@ -1202,7 +1209,40 @@ fn visual_dockers() {
             f(h.state_mut());
             save(&mut h, &format!("dk_{:03}_{}", i + 1, k + 1));
         }
+        let a = h.state_mut();
+        a.dialogs.object_data_manager = false;
+        a.dialogs.data_field_editor = None;
+        if d == DockerId::Symbols {
+            a.doc_mut().unwrap().doc.symbols.clear();
+        }
     }
+}
+
+/// A Symbols docker state: a symbol made of the rectangle, selected.
+#[cfg(test)]
+fn symbols_state(a: &mut VectorApp) {
+    let d = a.doc_mut().unwrap();
+    let objs: Vec<Object> = d.selection.iter().filter_map(|id| d.doc.find(*id).cloned()).collect();
+    let id = d.doc.new_id();
+    d.doc.symbols.push(vector_core::document::SymbolDef { id, name: "simbolo-teste".into(), objects: objs, link: None });
+    a.dockers.ui.sym_sel = Some("simbolo-teste".into());
+}
+
+/// A Comments docker state: a note and a rectangle markup, the note selected.
+#[cfg(test)]
+fn comments_state(a: &mut VectorApp) {
+    use vector_core::document::Comment;
+    let d = a.doc_mut().unwrap();
+    let pid = d.doc.pages[0].id;
+    let mut n = Comment::new(9001, pid, "Reviewer".into(), 0, &[kurbo::Point::new(380.0, 280.0)]);
+    n.text = "Make the title larger".into();
+    n.date = "2026-11-09".into();
+    n.replies.push(("Designer".into(), "Done".into()));
+    let mut r = Comment::new(9002, pid, "Reviewer".into(), 4, &[kurbo::Point::new(130.0, 275.0), kurbo::Point::new(375.0, 445.0)]);
+    r.text = "Check this color".into();
+    r.date = "2026-11-09".into();
+    d.doc.comments = vec![n, r];
+    a.dockers.ui.comment_sel = Some(9001);
 }
 
 /// A Contour docker state: the alignment, corners and color blend.

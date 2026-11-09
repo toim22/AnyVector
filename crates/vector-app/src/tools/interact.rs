@@ -465,6 +465,18 @@ impl<'a> Cx<'a> {
             }
             return;
         }
+        if let (Some(m), true) = (self.ts.markup, self.ts.drag.is_none()) {
+            if self.inp.pressed {
+                if m == 0 {
+                    self.ts.markup = None;
+                    self.add_comment(0, vec![p]);
+                } else {
+                    self.ts.drag = Drag::Markup { points: vec![p] };
+                    self.ts.cur = p;
+                }
+            }
+            return;
+        }
         if self.ts.pattern_area.is_some() && self.ts.drag.is_none() {
             if self.inp.pressed {
                 self.ts.drag = Drag::PatternArea { start: p };
@@ -1258,6 +1270,12 @@ impl<'a> Cx<'a> {
         match &mut drag {
             Drag::None => {}
             Drag::Marquee { .. } | Drag::NodeMarquee { .. } | Drag::Effect { .. } | Drag::Blend { .. } | Drag::PatternArea { .. } => self.ts.cur = p,
+            Drag::Markup { points } => {
+                if matches!(self.ts.markup, Some(2 | 3)) && points.last().is_none_or(|l| self.screen_dist(*l, p) > 2.0) {
+                    points.push(p);
+                }
+                self.ts.cur = p;
+            }
             Drag::Create { .. } => {
                 self.ts.cur = if matches!(self.tool, ToolId::Zoom | ToolId::Knife) { p } else { self.snap(p, &[]) };
                 if self.ts.text_drag_select && moved {
@@ -1633,6 +1651,15 @@ impl<'a> Cx<'a> {
         let mods = self.mods();
         match drag {
             Drag::None => {}
+            Drag::Markup { points } => {
+                let Some(m) = self.ts.markup.take() else { return };
+                if !moved {
+                    self.ts.markup = Some(m);
+                    return;
+                }
+                let pts = if m == 2 || m == 3 { points } else { vec![points[0], p] };
+                self.add_comment(m, pts);
+            }
             Drag::PatternArea { start } => {
                 let Some((kind, res)) = self.ts.pattern_area.take() else { return };
                 let r = Rect::from_points(start, p);
@@ -2200,6 +2227,20 @@ impl<'a> Cx<'a> {
             },
             _ => {}
         }
+    }
+
+    /// A comment of a Comments docker tool; the docker then takes its text.
+    fn add_comment(&mut self, mark: u8, pts: Vec<Point>) {
+        let author = if self.s.user_name.is_empty() { std::env::var("USERNAME").unwrap_or_else(|_| "User".into()) } else { self.s.user_name.clone() };
+        let page = self.d.page;
+        let id = self.d.modify("Add Comment", |doc, _| {
+            let id = doc.new_id();
+            let mut c = vector_core::document::Comment::new(id, doc.pages[page].id, author, mark, &pts);
+            c.date = crate::dockers::today();
+            doc.comments.push(c);
+            id
+        });
+        self.ts.comment_new = Some(id);
     }
 
     fn pick_target_click(&mut self) {

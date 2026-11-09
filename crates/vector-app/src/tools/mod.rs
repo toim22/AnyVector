@@ -71,6 +71,8 @@ pub enum Drag {
     Marquee { start: Point },
     /// Object ▸ Create ▸ Pattern Fill: the area the pattern is made from.
     PatternArea { start: Point },
+    /// A Comments docker markup being drawn.
+    Markup { points: Vec<Point> },
     Lasso { points: Vec<Point> },
     Transform { kind: Xform, start: Point, bb: Rect, ids: Vec<ObjId>, center: Point },
     /// Two-point drags: shapes, text frames, tables, zoom area, crop, knife, effects.
@@ -161,6 +163,10 @@ pub struct ToolState {
     pub table_cell_to: Option<(usize, usize)>,
     /// Object ▸ Create ▸ Pattern Fill waiting for its marquee: type and resolution.
     pub pattern_area: Option<(u8, u8)>,
+    /// A Comments docker markup tool waiting for the pointer (see `Comment::mark`), and the
+    /// comment it made last (for the docker to take its text).
+    pub markup: Option<u8>,
+    pub comment_new: Option<u64>,
     /// Fill for new objects (`None` = no fill, as in the original's defaults).
     pub new_fill: Option<Color>,
     pub eyedrop_color: Option<Color>,
@@ -259,6 +265,8 @@ impl Default for ToolState {
             table_cell: None,
             table_cell_to: None,
             pattern_area: None,
+            markup: None,
+            comment_new: None,
             new_fill: None,
             eyedrop_color: None,
             eyedrop_attrs: None,
@@ -308,6 +316,9 @@ impl ToolState {
     }
     /// Status bar hint for a tool, adapted to what is in progress.
     pub fn hint(&self, t: ToolId) -> String {
+        if let Some(m) = self.markup {
+            return if m == 0 { "Click to place a note (Esc to cancel)" } else { "Drag to draw the markup (Esc to cancel)" }.into();
+        }
         if let Some(p) = self.pick_target {
             return match p {
                 PickTarget::PowerClip => "Click the frame object to place the selection inside it (Esc to cancel)",
@@ -343,7 +354,7 @@ impl ToolState {
     }
 
     pub fn is_busy(&self) -> bool {
-        !self.drag.is_none() || !self.curve.is_empty() || self.crop_rect.is_some() || self.line_start.is_some() || !self.stage.is_empty() || self.pick_target.is_some() || self.pending_text.is_some() || self.pattern_area.is_some()
+        !self.drag.is_none() || !self.curve.is_empty() || self.crop_rect.is_some() || self.line_start.is_some() || !self.stage.is_empty() || self.pick_target.is_some() || self.pending_text.is_some() || self.pattern_area.is_some() || self.markup.is_some()
     }
 
     pub fn cancel(&mut self) {
@@ -355,6 +366,7 @@ impl ToolState {
         self.pick_target = None;
         self.pending_text = None;
         self.pattern_area = None;
+        self.markup = None;
         self.snap_mark = None;
         self.guide_lines.clear();
         self.press = None;

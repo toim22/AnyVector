@@ -519,6 +519,9 @@ fn cursor_for(app: &VectorApp, pos: Pos2) -> CursorIcon {
     if app.ts.pick_target.is_some() {
         return CursorIcon::PointingHand;
     }
+    if app.ts.markup.is_some() {
+        return CursorIcon::Crosshair;
+    }
     let Some(d) = app.doc() else { return CursorIcon::Default };
     if app.settings.crosshair_cursor && app.tool != ToolId::Pick {
         return CursorIcon::Crosshair;

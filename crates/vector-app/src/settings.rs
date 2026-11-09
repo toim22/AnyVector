@@ -266,6 +266,8 @@ pub struct Settings {
     pub usage_stats: bool,
     // Session
     pub recent_files: Vec<PathBuf>,
+    /// Script folders loaded in the Scripts docker.
+    pub script_folders: Vec<PathBuf>,
     pub last_dir: Option<PathBuf>,
     pub workspace: String,
     pub open_dockers: Vec<String>,
@@ -551,6 +553,7 @@ impl Default for Settings {
             user_company: String::new(),
             usage_stats: false,
             recent_files: vec![],
+            script_folders: vec![],
             last_dir: None,
             workspace: "Default".into(),
             open_dockers: vec![],

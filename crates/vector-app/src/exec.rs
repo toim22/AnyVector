@@ -318,7 +318,7 @@ impl VectorApp {
         }
     }
 
-    fn open_filters(d: rfd::FileDialog, import: bool) -> rfd::FileDialog {
+    pub(crate) fn open_filters(d: rfd::FileDialog, import: bool) -> rfd::FileDialog {
         let types = if import { vector_io::IMPORT_TYPES } else { vector_io::OPEN_TYPES };
         let mut all: Vec<&str> = types.iter().flat_map(|t| t.extensions.iter().copied()).collect();
         if !import {

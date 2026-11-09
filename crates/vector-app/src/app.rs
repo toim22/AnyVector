@@ -254,6 +254,7 @@ impl VectorApp {
         self.handle_dropped_files(&ctx);
         crate::shortcuts::handle(self, &ctx);
         self.process_pending(&ctx);
+        crate::dockers::coled::publish(self, &ctx);
         crate::ai::poll(self);
         self.poll_background(&ctx);
 

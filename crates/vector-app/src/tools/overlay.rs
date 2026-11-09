@@ -80,6 +80,9 @@ pub fn draw_overlay(app: &mut VectorApp, painter: &Painter) {
     draw_baseline_grid(painter, d);
     draw_guides(painter, d, &ts.drag, s.guide_line_style);
     draw_text_frames(painter, d, s);
+    if app.dockers.ui.comment_show {
+        draw_comments(painter, d, app.dockers.ui.comment_resolved, app.dockers.ui.comment_sel);
+    }
     crate::dialogs::symmetry::draw_overlay(painter, d);
 
     let dragging_xform = matches!(ts.drag, Drag::Transform { .. });
@@ -769,9 +772,81 @@ fn preview_obj(painter: &Painter, d: &DocView, o: &Object) {
     stroke_bez(painter, d, &bp, Stroke::new(1.0, PREVIEW));
 }
 
+/// The marks of the comments on the page, at 50% opacity (notes opaque).
+fn draw_comments(painter: &Painter, d: &DocView, resolved: bool, sel: Option<u64>) {
+    let pid = d.doc.pages[d.page].id;
+    for c in d.doc.comments.iter().filter(|c| c.page == pid && (resolved || !c.resolved)) {
+        let mut pts = vec![c.pos];
+        pts.extend(c.pts.iter().copied());
+        draw_mark(painter, d, c.mark, &pts, c.color, c.width, c.fill, sel == Some(c.id));
+    }
+}
+
+fn draw_mark(painter: &Painter, d: &DocView, mark: u8, pts: &[Point], color: vector_core::Color, width: f64, fill: Option<vector_core::Color>, selected: bool) {
+    let half = |c: vector_core::Color| {
+        let c = theme::to_c32(c);
+        Color32::from_rgba_unmultiplied(c.r(), c.g(), c.b(), 128)
+    };
+    let sp: Vec<Pos2> = pts.iter().map(|p| d.to_screen(*p)).collect();
+    let w = (width * d.zoom) as f32;
+    let st = Stroke::new(w.max(1.0), half(color));
+    match mark {
+        0 => {
+            // a speech bubble
+            let p = sp[0];
+            let r = ERect::from_min_size(p + egui::vec2(-2.0, -18.0), egui::vec2(20.0, 15.0));
+            painter.rect_filled(r, 2.0, Color32::from_rgb(0xff, 0xd8, 0x3a));
+            painter.add(EShape::convex_polygon(vec![pos2(r.left() + 3.0, r.bottom() - 1.0), pos2(r.left() + 9.0, r.bottom() - 1.0), p], Color32::from_rgb(0xff, 0xd8, 0x3a), Stroke::NONE));
+            painter.rect_stroke(r, 2.0, Stroke::new(1.0, Color32::from_rgb(0x8a, 0x6d, 0x00)), egui::StrokeKind::Inside);
+            for k in 0..2 {
+                let y = r.top() + 5.0 + k as f32 * 4.0;
+                painter.line_segment([pos2(r.left() + 4.0, y), pos2(r.right() - 4.0, y)], Stroke::new(1.0, Color32::from_rgb(0x8a, 0x6d, 0x00)));
+            }
+            if selected {
+                painter.rect_stroke(r.expand(2.0), 2.0, Stroke::new(1.0, theme::SELECTION), egui::StrokeKind::Outside);
+            }
+            return;
+        }
+        1 if sp.len() >= 2 => {
+            let (a, b) = (sp[0], sp[1]);
+            let v = (b - a).normalized();
+            let n = egui::vec2(-v.y, v.x);
+            let hl = (w * 4.0).max(10.0);
+            painter.line_segment([a, b - v * hl * 0.8], st);
+            painter.add(EShape::convex_polygon(vec![b, b - v * hl + n * hl * 0.45, b - v * hl - n * hl * 0.45], half(color), Stroke::NONE));
+        }
+        2 | 3 => {
+            painter.add(EShape::line(sp.clone(), st));
+        }
+        4 | 5 if sp.len() >= 2 => {
+            let r = ERect::from_two_pos(sp[0], sp[1]);
+            if mark == 4 {
+                if let Some(f) = fill {
+                    painter.rect_filled(r, 0.0, half(f));
+                }
+                painter.rect_stroke(r, 0.0, st, egui::StrokeKind::Middle);
+            } else {
+                painter.add(EShape::ellipse_filled(r.center(), r.size() / 2.0, fill.map(half).unwrap_or(Color32::TRANSPARENT)));
+                painter.add(EShape::ellipse_stroke(r.center(), r.size() / 2.0, st));
+            }
+        }
+        _ => {}
+    }
+    if selected && !sp.is_empty() {
+        let r = sp.iter().fold(ERect::NOTHING, |r, p| r.union(ERect::from_center_size(*p, egui::Vec2::ZERO)));
+        painter.rect_stroke(r.expand(w / 2.0 + 3.0), 0.0, Stroke::new(1.0, theme::SELECTION), egui::StrokeKind::Outside);
+    }
+}
+
 fn draw_drag_preview(painter: &Painter, d: &DocView, ts: &ToolState, s: &Settings, tool: ToolId) {
     let cur = ts.cur;
     match &ts.drag {
+        Drag::Markup { points } => {
+            let m = ts.markup.unwrap_or(1);
+            let pts = if m == 2 || m == 3 { points.clone() } else { vec![points[0], cur] };
+            let (color, width) = if m == 2 { (vector_core::Color::rgb(0xff, 0xe6, 0x00), 12.0) } else { (vector_core::Color::rgb(0xe5, 0x2b, 0x2b), 1.5) };
+            draw_mark(painter, d, m, &pts, color, width, None, false);
+        }
         Drag::PatternArea { start } => {
             dashed_rect(painter, d.to_screen_rect(Rect::from_points(*start, cur)), Color32::from_rgb(0x3d, 0x8e, 0xf0));
         }

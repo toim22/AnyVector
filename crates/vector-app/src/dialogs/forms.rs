@@ -62,6 +62,12 @@ pub fn show_all(app: &mut VectorApp, ctx: &egui::Context) {
     if app.dialogs.script_editor.is_some() {
         script_editor(app, ctx);
     }
+    if app.dialogs.object_data_manager {
+        super::objdata::data_manager(app, ctx);
+    }
+    if app.dialogs.data_field_editor.is_some() {
+        super::objdata::field_editor(app, ctx);
+    }
     if app.dialogs.palette_editor.is_some() {
         palette_editor(app, ctx);
     }
