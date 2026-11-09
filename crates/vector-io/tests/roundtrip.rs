@@ -17,7 +17,7 @@ fn sample() -> Document {
     e.style.transparency = Transparency::Uniform(30.0);
     let id = d.new_id();
     let mut star = Object::new(id, ObjKind::Polygon(PolygonShape { w: 120.0, h: 120.0, sides: 5, kind: PolygonKind::Star, sharpness: 53.0 }), Affine::translate((80.0, 400.0)), Style::filled(Color::rgb(255, 241, 0)));
-    star.effects.drop_shadow = Some(DropShadow { offset: kurbo::Vec2::new(6.0, 6.0), feather: 4.0, color: Color::BLACK, opacity: 50.0, inner: false });
+    star.effects.drop_shadow = Some(DropShadow { offset: kurbo::Vec2::new(6.0, 6.0), feather: 4.0, color: Color::BLACK, opacity: 50.0, inner: false, ..Default::default() });
     let id = d.new_id();
     let t = Object::new(id, ObjKind::Text(TextObj::artistic("Vector", CharFormat::default())), Affine::translate((60.0, 650.0)), Style::text_default());
     d.pages[0].layers[0].objects = vec![r, e, star, t];

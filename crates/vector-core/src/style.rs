@@ -153,23 +153,79 @@ pub struct MeshFill {
     pub rows: usize,
     /// (cols+1) * (rows+1) node colors, row-major.
     pub colors: Vec<Color>,
+    /// Node transparency 0..100 (empty = opaque), same order as `colors`.
+    #[serde(default)]
+    pub alpha: Vec<f64>,
+    /// Smooth Mesh Color: smooth color transitions between patches.
+    #[serde(default)]
+    pub smooth: bool,
+    /// Curve smoothness 0..100: how far the color of a node spreads into its patches.
+    #[serde(default)]
+    pub smoothness: f64,
 }
 
 impl MeshFill {
     pub fn new(cols: usize, rows: usize, base: Color) -> MeshFill {
-        MeshFill { cols, rows, colors: vec![base; (cols + 1) * (rows + 1)] }
+        MeshFill { cols, rows, colors: vec![base; (cols + 1) * (rows + 1)], alpha: vec![], smooth: false, smoothness: 0.0 }
     }
     pub fn color_at(&self, u: f64, v: f64) -> Color {
         let u = u.clamp(0.0, 1.0) * self.cols as f64;
         let v = v.clamp(0.0, 1.0) * self.rows as f64;
         let i = (u.floor() as usize).min(self.cols.saturating_sub(1));
         let j = (v.floor() as usize).min(self.rows.saturating_sub(1));
-        let fu = u - i as f64;
-        let fv = v - j as f64;
-        let idx = |i: usize, j: usize| self.colors.get(j * (self.cols + 1) + i).copied().unwrap_or(Color::WHITE);
+        let mut fu = u - i as f64;
+        let mut fv = v - j as f64;
+        if self.smooth {
+            fu = fu * fu * (3.0 - 2.0 * fu);
+            fv = fv * fv * (3.0 - 2.0 * fv);
+        }
+        if self.smoothness > 0.0 {
+            // a node's color spreads further into its patches: push the factors toward the nearest node
+            let k = 1.0 + self.smoothness.clamp(0.0, 100.0) / 25.0;
+            let push = |f: f64| if f < 0.5 { 0.5 * (2.0 * f).powf(k) } else { 1.0 - 0.5 * (2.0 * (1.0 - f)).powf(k) };
+            fu = push(fu);
+            fv = push(fv);
+        }
+        let n = self.cols + 1;
+        let idx = |i: usize, j: usize| {
+            let mut c = self.colors.get(j * n + i).copied().unwrap_or(Color::WHITE);
+            if let Some(a) = self.alpha.get(j * n + i) {
+                c.a = ((1.0 - a.clamp(0.0, 100.0) / 100.0) * c.a as f64).round() as u8;
+            }
+            c
+        };
         let top = Color::lerp(idx(i, j), idx(i + 1, j), fu);
         let bot = Color::lerp(idx(i, j + 1), idx(i + 1, j + 1), fu);
         Color::lerp(top, bot, fv)
+    }
+    /// Add Intersection: a new column and row of nodes through (u, v), colored from the mesh.
+    pub fn add_intersection(&mut self, u: f64, v: f64) {
+        let (u, v) = (u.clamp(0.001, 0.999), v.clamp(0.001, 0.999));
+        let old = self.clone();
+        let (cols, rows) = (self.cols + 1, self.rows + 1);
+        // the node positions, evenly spaced; the new ones are inserted at the nearest cell
+        let ci = ((u * self.cols as f64).floor() as usize + 1).min(cols);
+        let ri = ((v * self.rows as f64).floor() as usize + 1).min(rows);
+        let us: Vec<f64> = (0..=cols).map(|c| if c < ci { c as f64 / self.cols as f64 } else if c == ci { u } else { (c - 1) as f64 / self.cols as f64 }).collect();
+        let vs: Vec<f64> = (0..=rows).map(|r| if r < ri { r as f64 / self.rows as f64 } else if r == ri { v } else { (r - 1) as f64 / self.rows as f64 }).collect();
+        let mut colors = Vec::with_capacity((cols + 1) * (rows + 1));
+        let mut alpha = vec![];
+        let mut plain = old.clone();
+        plain.alpha.clear();
+        for vv in &vs {
+            for uu in &us {
+                colors.push(plain.color_at(*uu, *vv));
+                if !old.alpha.is_empty() {
+                    let c = old.color_at(*uu, *vv);
+                    let p = plain.color_at(*uu, *vv);
+                    alpha.push(if p.a == 0 { 0.0 } else { (1.0 - c.a as f64 / p.a as f64) * 100.0 });
+                }
+            }
+        }
+        self.cols = cols;
+        self.rows = rows;
+        self.colors = colors;
+        self.alpha = alpha;
     }
 }
 
@@ -296,7 +352,74 @@ pub enum WidthProfile {
     /// Pressure samples (0..1) along the stroke, evenly spaced.
     Pressure(Vec<f32>),
     /// Painterly brush: stamped, textured dabs.
-    Painterly { bristles: u32, jitter: f64, seed: u32 },
+    Painterly {
+        bristles: u32,
+        jitter: f64,
+        seed: u32,
+        #[serde(default)]
+        opts: PaintOpts,
+    },
+    /// Variable Outline: widths of the two sides at positions along the outline.
+    Variable { nodes: Vec<VarWidth>, scale: bool },
+}
+
+/// The settings of a Painterly Brush stroke (property bar).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct PaintOpts {
+    /// Brush style (index into the brush catalog of the app).
+    pub brush: u32,
+    /// Brush transparency, 0..100.
+    pub alpha: f64,
+    /// Glow: brightness builds up to white along the stroke.
+    pub glow: bool,
+    /// Simulate pen pressure: the stroke tapers.
+    pub taper: bool,
+    /// Density of droplets and particles, 0..100.
+    pub density: f64,
+    /// Tilt angle (90 = upright) and direction (degrees, 0 = pointing left).
+    pub tilt: f64,
+    pub tilt_dir: f64,
+    /// Texture strength of the Basic Paper texture, 0..100.
+    pub texture_strength: f64,
+    /// Kind of mark: 0 bristles, 1 airbrush droplets, 2 particles, 3 solid ink.
+    pub mark: u8,
+}
+
+impl Default for PaintOpts {
+    fn default() -> Self {
+        PaintOpts { brush: 0, alpha: 0.0, glow: false, taper: false, density: 50.0, tilt: 90.0, tilt_dir: 0.0, texture_strength: 50.0, mark: 0 }
+    }
+}
+
+/// A node of a variable outline: position along the outline (0..1) and the width on each side
+/// of the path, in points.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct VarWidth {
+    pub t: f64,
+    pub side1: f64,
+    pub side2: f64,
+}
+
+/// The widths of a variable outline at `t` (0..1): (side 1, side 2), interpolated between nodes.
+pub fn var_width_at(nodes: &[VarWidth], t: f64) -> (f64, f64) {
+    if nodes.is_empty() {
+        return (0.0, 0.0);
+    }
+    let mut v: Vec<&VarWidth> = nodes.iter().collect();
+    v.sort_by(|a, b| a.t.partial_cmp(&b.t).unwrap_or(std::cmp::Ordering::Equal));
+    if t <= v[0].t {
+        return (v[0].side1, v[0].side2);
+    }
+    for w in v.windows(2) {
+        if t <= w[1].t {
+            let f = ((t - w[0].t) / (w[1].t - w[0].t).max(1e-9)).clamp(0.0, 1.0);
+            let f = f * f * (3.0 - 2.0 * f);
+            return (w[0].side1 + (w[1].side1 - w[0].side1) * f, w[0].side2 + (w[1].side2 - w[0].side2) * f);
+        }
+    }
+    let l = v[v.len() - 1];
+    (l.side1, l.side2)
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

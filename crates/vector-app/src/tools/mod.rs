@@ -4,11 +4,11 @@
 
 pub mod ids;
 mod interact;
-mod overlay;
+pub(crate) mod overlay;
 pub mod shapes;
 
 pub use ids::*;
-pub use interact::{guide_at, handle_input, handle_point, handle_table_keys, handle_text_keys, table_typing, Input};
+pub use interact::{guide_at, handle_input, handle_point, handle_table_keys, handle_text_keys, regen_impacts, table_typing, tick, Input};
 pub use overlay::draw_overlay;
 
 use crate::app::VectorApp;
@@ -32,6 +32,10 @@ pub enum PickTarget {
     /// Copy Effect / Clone Effect From: the effect (see `Cmd::CloneEffectFrom`), 255 = all.
     CopyEffect { kind: u8, clone: bool },
     FitToPath,
+    /// Envelope ▸ Create Envelope From: the object whose shape the envelope takes.
+    EnvelopeFrom,
+    /// Impact tool ▸ Select inner / outer boundary: the reference object.
+    ImpactBoundary { outer: bool },
     /// Order ▸ In Front Of / Behind.
     Order { in_front: bool },
     CopyPowerClip,
@@ -45,6 +49,8 @@ pub enum Xform {
     Scale(usize),
     Rotate,
     Skew(usize),
+    /// Free Transform tool: 0 rotate, 1 reflect, 2 scale, 3 skew around the point clicked.
+    Free(u8),
 }
 
 /// The pointer drag in progress.
@@ -75,6 +81,12 @@ pub enum Drag {
     BezierHandle { node: Point },
     /// Table tool: dragging across the cells of a table.
     TableCells { obj: ObjId },
+    /// Variable Outline tool: dragging the width of a node (`node` into the profile's nodes).
+    VarWidth { obj: ObjId, node: usize, base: Point, normal: Vec2, moved: bool },
+    /// Anchor Editing tool: moving an anchor of an object.
+    Anchor { obj: ObjId, idx: usize, moved: bool },
+    /// Interactive Fill and Transparency tools: moving the start or end handle of a gradient.
+    GradientHandle { obj: ObjId, end: bool, moved: bool },
 }
 
 impl Drag {
@@ -151,6 +163,33 @@ pub struct ToolState {
     pub copy_on_drop: bool,
     /// A Text tool drag selects characters instead of drawing a frame.
     pub text_drag_select: bool,
+    /// Free Transform: the center of rotation set on the property bar (`None` = the center).
+    pub ft_center: Option<Point>,
+    /// Eyedroppers: apply mode (the paint bucket) instead of sampling.
+    pub eye_apply: bool,
+    pub attr_apply: bool,
+    /// Color Eyedropper: picking a color anywhere on the desktop.
+    pub desktop_pick: bool,
+    /// The object the attributes were sampled from (transformations are copied from it).
+    pub eyedrop_source: Option<vector_core::Object>,
+    /// LiveSketch: strokes waiting for the timer, and when the last one ended.
+    pub ls_pending: Vec<Vec<Point>>,
+    pub ls_last: f64,
+    /// Variable Outline tool: the selected width node.
+    pub vo_node: Option<usize>,
+    /// Anchor Editing tool: the selected anchor.
+    pub anchor_sel: Option<(ObjId, usize)>,
+    /// Shape tool: 0 move nodes, 1 stretch and scale them, 2 rotate and skew them.
+    pub node_mode: u8,
+    /// Mesh Fill: the next click samples the color of the selected nodes.
+    pub mesh_sample: bool,
+    /// Crop tool: rotation of the crop area (degrees).
+    pub crop_angle: f64,
+    /// Successive dimensioning: the end of the last dimension and its label offset.
+    pub dim_chain: Option<(Point, Vec2)>,
+    /// Impact tool: the inner boundary (outline) and the outer boundary (bounding box).
+    pub impact_inner: Option<kurbo::BezPath>,
+    pub impact_outer: Option<Rect>,
 }
 
 impl Default for ToolState {
@@ -207,6 +246,21 @@ impl Default for ToolState {
             bspline: false,
             copy_on_drop: false,
             text_drag_select: false,
+            ft_center: None,
+            eye_apply: false,
+            attr_apply: false,
+            desktop_pick: false,
+            eyedrop_source: None,
+            ls_pending: vec![],
+            ls_last: 0.0,
+            vo_node: None,
+            anchor_sel: None,
+            node_mode: 0,
+            mesh_sample: false,
+            crop_angle: 0.0,
+            dim_chain: None,
+            impact_inner: None,
+            impact_outer: None,
         }
     }
 }
@@ -234,6 +288,9 @@ impl ToolState {
                 PickTarget::Order { in_front: false } => "Click the object to place the selection behind (Esc to cancel)",
                 PickTarget::CopyPowerClip => "Click the PowerClip to copy the contents from (Esc to cancel)",
                 PickTarget::FitToPath => "Click the path to fit the text to (Esc to cancel)",
+                PickTarget::EnvelopeFrom => "Click the object whose shape the envelope takes (Esc to cancel)",
+                PickTarget::ImpactBoundary { outer: false } => "Click the object that makes the inner boundary (Esc to cancel)",
+                PickTarget::ImpactBoundary { outer: true } => "Click the object that makes the outer boundary (Esc to cancel)",
             }
             .into();
         }
@@ -268,6 +325,7 @@ impl ToolState {
         self.press = None;
         self.bspline = false;
         self.copy_on_drop = false;
+        self.dim_chain = None;
     }
 
     /// Style for newly drawn objects.
@@ -304,10 +362,22 @@ pub fn finish(ts: &mut ToolState, d: &mut DocView, _settings: &Settings) {
     if let Some(r) = ts.crop_rect.take() {
         let page = d.page;
         let ids = d.selection.clone();
+        let angle = ts.crop_angle;
         d.modify("Crop", |doc, sel| {
-            ops_crop(doc, page, &ids, r);
+            if angle.abs() > 1e-9 {
+                // a rotated crop area: turn the drawing so the area is upright, crop, turn back
+                let all = |doc: &vector_core::Document| -> Vec<ObjId> { doc.pages[page].layers.iter().filter(|l| !l.locked).flat_map(|l| l.objects.iter().map(|o| o.id)).collect() };
+                let ids0 = all(doc);
+                doc.transform_objects(&ids0, Affine::rotate_about(-angle.to_radians(), r.center()));
+                ops_crop(doc, page, &ids, r);
+                let ids1 = all(doc);
+                doc.transform_objects(&ids1, Affine::rotate_about(angle.to_radians(), r.center()));
+            } else {
+                ops_crop(doc, page, &ids, r);
+            }
             sel.clear();
         });
+        ts.crop_angle = 0.0;
     }
     if let Some(te) = d.text_edit.take() {
         // remove empty text objects
@@ -359,7 +429,7 @@ pub fn add_curve(ts: &ToolState, d: &mut DocView, np: NodePath, label: &str) {
 }
 
 pub fn default_shadow(inner: bool) -> DropShadow {
-    DropShadow { offset: Vec2::new(6.0, 6.0), feather: 8.0, color: Color::BLACK, opacity: 50.0, inner }
+    DropShadow { offset: Vec2::new(6.0, 6.0), feather: 8.0, color: Color::BLACK, opacity: 50.0, inner, ..Default::default() }
 }
 
 // ------------------------------------------------------------------------------------------

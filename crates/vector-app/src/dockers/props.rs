@@ -102,6 +102,22 @@ fn special_section(app: &mut VectorApp, ui: &mut Ui, o: &Object) {
             heading(ui, "Rollover");
             hint(ui, &format!("Showing the {} state", crate::dialogs::object::ROLLOVER_STATES[*state as usize % 3]));
         }
+        Some(Special::Impact { .. }) => {
+            heading(ui, "Impact Effect");
+            hint(ui, "Select it with the Impact tool to change it on the property bar");
+        }
+        Some(Special::Symmetry { lines, .. }) => {
+            heading(ui, "Symmetry");
+            hint(ui, &format!("{lines} mirror line{}; double-click to edit", if *lines == 1 { "" } else { "s" }));
+        }
+        Some(Special::Perspective { kind, .. }) => {
+            heading(ui, "Perspective Group");
+            hint(ui, &format!("{} perspective; double-click to edit", crate::dialogs::symmetry::PERSP_TYPES[*kind as usize % 4]));
+        }
+        Some(Special::Ole { name, linked, .. }) => {
+            heading(ui, if *linked { "Linked Object" } else { "Embedded Object" });
+            hint(ui, &format!("{name}; double-click to open it in its program"));
+        }
         None => {}
     }
 }

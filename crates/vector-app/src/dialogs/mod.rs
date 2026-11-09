@@ -11,6 +11,7 @@ pub mod new_doc;
 pub mod object;
 pub mod options;
 pub mod print;
+pub mod symmetry;
 pub mod table;
 pub mod text;
 
@@ -35,6 +36,8 @@ pub enum Choice {
 #[derive(Default)]
 pub struct Dialogs {
     pub confirm_quit: bool,
+    /// Shape tool ▸ Align Nodes: horizontally, vertically, control points.
+    pub node_align: Option<[bool; 3]>,
     pub options: OptionsState,
     pub new_doc: Option<NewDocState>,
     pub export: Option<ExportState>,
@@ -87,6 +90,8 @@ pub struct Dialogs {
     pub pattern: Option<object::PatternState>,
     /// Object ▸ Insert ▸ Barcode.
     pub barcode: Option<object::BarcodeState>,
+    /// Object ▸ Insert ▸ Object.
+    pub insert_object: Option<symmetry::InsertObject>,
     /// The Text menu dialogs.
     pub tabs: Option<text::TabsState>,
     pub columns: Option<text::ColumnsState>,
@@ -209,6 +214,11 @@ pub fn show(app: &mut VectorApp, ctx: &egui::Context) {
     if app.dialogs.barcode.is_some() {
         object::barcode(app, ctx);
     }
+    if app.dialogs.insert_object.is_some() {
+        symmetry::insert_object_dialog(app, ctx);
+    }
+    symmetry::floating_bars(app, ctx);
+    symmetry::poll_ole(app, ctx);
     text::tabs(app, ctx);
     text::columns(app, ctx);
     text::bullets(app, ctx);

@@ -41,6 +41,9 @@ pub struct TraceState {
 // ------------------------------------------------------------------------------------------
 
 pub fn show_all(app: &mut VectorApp, ctx: &egui::Context) {
+    if app.dialogs.node_align.is_some() {
+        crate::propbar::node_align_dialog(app, ctx);
+    }
     if app.dialogs.confirm_quit {
         confirm_quit(app, ctx);
     }

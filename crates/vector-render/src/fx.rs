@@ -301,3 +301,21 @@ pub fn multiply_alpha(p: &mut Pixmap, mask: &[u8]) {
         }
     }
 }
+
+/// Fade a layer from row `near` (unchanged) to row `far` (alpha reduced by `amount`, 0..1).
+pub fn fade_rows(p: &mut Pixmap, near: f32, far: f32, amount: f32) {
+    let w = p.width() as usize;
+    let span = far - near;
+    if span.abs() < 1.0 {
+        return;
+    }
+    for (y, row) in p.data_mut().chunks_exact_mut(w * 4).enumerate() {
+        let t = ((y as f32 - near) / span).clamp(0.0, 1.0);
+        let k = 1.0 - amount.clamp(0.0, 1.0) * t;
+        for px in row.chunks_exact_mut(4) {
+            for c in px.iter_mut() {
+                *c = (*c as f32 * k).round() as u8;
+            }
+        }
+    }
+}

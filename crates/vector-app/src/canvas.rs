@@ -152,6 +152,7 @@ pub fn drawing_window(app: &mut VectorApp, ui: &mut Ui) {
             }
             tools::handle_input(app, &inp);
         }
+        tools::tick(app, &ctx);
         if hovered {
             app.cursor_doc = pos.map(|p| app.docs[ai].to_doc(p));
         }

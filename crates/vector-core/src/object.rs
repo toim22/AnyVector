@@ -135,9 +135,58 @@ pub struct TableObj {
     pub border: Color,
     pub border_width: f64,
     pub text_format: text::CharFormat,
+    /// Cell margins: top, bottom, left, right (points).
+    #[serde(default = "cell_margins")]
+    pub margins: [f64; 4],
+    /// Rows grow to fit their text while typing.
+    #[serde(default)]
+    pub auto_resize: bool,
+    /// Separated cell borders: horizontal and vertical spacing between the cells.
+    #[serde(default)]
+    pub spacing: Option<(f64, f64)>,
+}
+
+fn cell_margins() -> [f64; 4] {
+    [2.0; 4]
 }
 
 impl TableObj {
+    /// The area of the cell anchored at (r, c) inside its margins and spacing.
+    pub fn text_rect(&self, r: usize, c: usize) -> Rect {
+        let rc = self.cell_box(r, c);
+        let [t, b, l, rr] = self.margins;
+        Rect::new(rc.x0 + l, rc.y0 + t, (rc.x1 - rr).max(rc.x0 + l + 1.0), (rc.y1 - b).max(rc.y0 + t + 1.0))
+    }
+    /// The box of the cell anchored at (r, c): its span, inset by half the spacing when the
+    /// cell borders are separated.
+    pub fn cell_box(&self, r: usize, c: usize) -> Rect {
+        let rc = self.span_rect(r, c);
+        match self.spacing {
+            Some((h, v)) => Rect::new(rc.x0 + h / 2.0, rc.y0 + v / 2.0, (rc.x1 - h / 2.0).max(rc.x0 + h / 2.0), (rc.y1 - v / 2.0).max(rc.y0 + v / 2.0)),
+            None => rc,
+        }
+    }
+    /// Automatically resize cells while typing: each row is made tall enough for its text.
+    pub fn fit_rows(&mut self) {
+        for r in 0..self.rows {
+            let mut need: f64 = 0.0;
+            for c in 0..self.cols {
+                let cell = self.cell(r, c);
+                if cell.text.is_empty() || cell.rspan != 1 {
+                    continue;
+                }
+                let tr = self.text_rect(r, c);
+                let mut t = text::TextObj::paragraph(&cell.text, tr.width().max(1.0), 1e6, self.text_format.clone());
+                t.align = text::TextAlign::Left;
+                let lay = text::layout(&t);
+                let h = lay.to_path().bounding_box().y1.max(self.text_format.size * 1.2);
+                need = need.max(h + self.margins[0] + self.margins[1] + self.spacing.map(|s| s.1).unwrap_or(0.0));
+            }
+            if need > self.row_heights[r] {
+                self.row_heights[r] = need;
+            }
+        }
+    }
     pub fn new(rows: usize, cols: usize, w: f64, h: f64) -> TableObj {
         TableObj {
             rows,
@@ -148,6 +197,9 @@ impl TableObj {
             border: Color::BLACK,
             border_width: 0.5669,
             text_format: text::CharFormat { size: 10.0, ..Default::default() },
+            margins: cell_margins(),
+            auto_resize: false,
+            spacing: None,
         }
     }
     pub fn width(&self) -> f64 {
@@ -287,7 +339,7 @@ impl TableObj {
                 cells.push(cl);
             }
         }
-        TableObj { rows: self.cols, cols: self.rows, col_widths: self.row_heights.clone(), row_heights: self.col_widths.clone(), cells, border: self.border, border_width: self.border_width, text_format: self.text_format.clone() }
+        TableObj { rows: self.cols, cols: self.rows, col_widths: self.row_heights.clone(), row_heights: self.col_widths.clone(), cells, border: self.border, border_width: self.border_width, text_format: self.text_format.clone(), margins: self.margins, auto_resize: self.auto_resize, spacing: self.spacing }
     }
     fn by_columns(&mut self, f: impl FnOnce(&mut TableObj)) {
         let mut t = self.transposed();
@@ -425,6 +477,57 @@ pub struct DimensionObj {
     pub show_units: bool,
     pub font_size: f64,
     pub unit: crate::units::Unit,
+    /// Show Leading Zero: 0.5 instead of .5.
+    #[serde(default = "yes")]
+    pub leading_zero: bool,
+    /// Dynamic Dimensioning: the value follows the measured objects (off = frozen text).
+    #[serde(default = "yes")]
+    pub dynamic: bool,
+    /// Extension lines: gap from the object and extension past the dimension line, points.
+    #[serde(default)]
+    pub ext_gap: f64,
+    #[serde(default)]
+    pub ext_len: Option<f64>,
+    /// Arrowheads of the dimension line (`None` = no arrowheads).
+    #[serde(default = "dim_arrow")]
+    pub arrow: Option<crate::style::ArrowHead>,
+    /// Callout shape around the text: 0 none, 1 rectangle, 2 rounded rectangle, 3 ellipse.
+    #[serde(default)]
+    pub callout_shape: u8,
+    /// Gap between the callout text and its line or shape, points.
+    #[serde(default = "callout_gap")]
+    pub callout_gap: f64,
+}
+
+fn dim_arrow() -> Option<crate::style::ArrowHead> {
+    Some(crate::style::ArrowHead::OpenTriangle)
+}
+
+fn callout_gap() -> f64 {
+    2.0
+}
+
+impl Default for DimensionObj {
+    fn default() -> Self {
+        DimensionObj {
+            kind: DimensionKind::Parallel,
+            points: vec![],
+            text: String::new(),
+            precision: 2,
+            prefix: String::new(),
+            suffix: String::new(),
+            show_units: true,
+            font_size: 10.0,
+            unit: crate::units::Unit::Millimeters,
+            leading_zero: true,
+            dynamic: true,
+            ext_gap: 0.0,
+            ext_len: None,
+            arrow: dim_arrow(),
+            callout_shape: 0,
+            callout_gap: callout_gap()
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -439,6 +542,10 @@ pub struct ConnectorEnd {
     pub point: Point,
     /// Attached object and the anchor (normalized point in its bbox).
     pub attached: Option<(ObjId, Point)>,
+    /// Direction the connector leaves the anchor in (degrees: 0 right, 90 up), from the anchor's
+    /// Adjust Anchor Direction (right-angle connectors).
+    #[serde(default)]
+    pub dir: Option<f64>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -458,6 +565,27 @@ pub struct BlendObj {
     pub rotation: f64,
     /// Accelerate objects/colors (-100..100).
     pub acceleration: f64,
+    /// Color blend direction: 0 direct, 1 clockwise, 2 counterclockwise (around the color wheel).
+    #[serde(default)]
+    pub color_dir: u8,
+    /// Loop: the rotation turns the steps around the center between the two ends.
+    #[serde(default)]
+    pub looped: bool,
+    /// Color acceleration when it is not linked to the object acceleration.
+    #[serde(default)]
+    pub color_accel: f64,
+    #[serde(default = "yes")]
+    pub link_accel: bool,
+    /// Accelerate the sizes too.
+    #[serde(default)]
+    pub size_accel: bool,
+}
+
+impl Default for BlendObj {
+    fn default() -> Self {
+        let o = Object::new(0, ObjKind::Group(vec![]), Affine::IDENTITY, crate::style::Style::default());
+        BlendObj { start: Box::new(o.clone()), end: Box::new(o), steps: 20, rotation: 0.0, acceleration: 0.0, color_dir: 0, looped: false, color_accel: 0.0, link_accel: true, size_accel: false }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -524,12 +652,54 @@ pub struct DropShadow {
     pub opacity: f64,
     #[serde(default)]
     pub inner: bool,
+    /// Perspective shadow (dragged from the top or bottom of the object): angle, fade and stretch apply.
+    #[serde(default)]
+    pub perspective: bool,
+    /// Perspective shadow angle, degrees.
+    #[serde(default)]
+    pub angle: f64,
+    /// Fade toward the far end, 0..100.
+    #[serde(default)]
+    pub fade: f64,
+    /// Stretch of the perspective shadow, 0..100 (50 = as tall as the object).
+    #[serde(default = "fifty")]
+    pub stretch: f64,
+    #[serde(default)]
+    pub merge: crate::style::MergeMode,
+}
+
+fn fifty() -> f64 {
+    50.0
+}
+
+impl Default for DropShadow {
+    fn default() -> Self {
+        DropShadow { offset: Vec2::new(6.0, 6.0), feather: 8.0, color: Color::BLACK, opacity: 50.0, inner: false, perspective: false, angle: 0.0, fade: 0.0, stretch: 50.0, merge: crate::style::MergeMode::Multiply }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct BlockShadow {
     pub offset: Vec2,
     pub color: Color,
+    /// Expand the shadow beyond the object, points.
+    #[serde(default)]
+    pub expand: f64,
+    /// Include the outline in the shadow shape.
+    #[serde(default)]
+    pub from_outline: bool,
+    #[serde(default)]
+    pub overprint: bool,
+    #[serde(default)]
+    pub remove_holes: bool,
+    #[serde(default)]
+    pub simplify: bool,
+}
+
+impl Default for BlockShadow {
+    fn default() -> Self {
+        BlockShadow { offset: Vec2::new(9.0, 9.0), color: Color::BLACK, expand: 0.0, from_outline: false, overprint: false, remove_holes: false, simplify: false }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -546,6 +716,23 @@ pub struct ContourEffect {
     pub offset: f64,
     pub end_fill: Color,
     pub end_outline: Color,
+    /// Object acceleration (-100..100): steps crowd toward the object (positive) or the end.
+    #[serde(default)]
+    pub accel: f64,
+    /// Color acceleration when not linked to the object acceleration.
+    #[serde(default)]
+    pub color_accel: f64,
+    #[serde(default = "yes")]
+    pub link_accel: bool,
+    /// Last Fill Color: the end color of the last step of a fountain-filled object.
+    #[serde(default)]
+    pub last_fill: Option<Color>,
+}
+
+impl Default for ContourEffect {
+    fn default() -> Self {
+        ContourEffect { dir: ContourDir::Outside, steps: 3, offset: 6.0, end_fill: Color::WHITE, end_outline: Color::BLACK, accel: 0.0, color_accel: 0.0, link_accel: true, last_fill: None }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -555,6 +742,36 @@ pub struct ExtrudeEffect {
     pub color: Color,
     pub shade: Color,
     pub steps: u32,
+    /// Extrusion type: 0 small back, 1 small front, 2 big back, 3 big front, 4 back parallel, 5 front parallel.
+    #[serde(default)]
+    pub kind: u8,
+    /// The vanishing point is locked to the page (true) or to the object.
+    #[serde(default)]
+    pub vp_page: bool,
+    /// 3D rotation of the extrusion (degrees around x, y, z).
+    #[serde(default)]
+    pub rotation: [f64; 3],
+    /// Color: 0 use object fill, 1 solid fill (`color`), 2 color shading (`color` to `shade`).
+    #[serde(default = "two")]
+    pub color_mode: u8,
+    /// Bevel: depth (points) and angle (degrees).
+    #[serde(default)]
+    pub bevel: Option<(f64, f64)>,
+    #[serde(default)]
+    pub bevel_only: bool,
+    /// Lights: position (0..15 on the light cube grid) and intensity 0..100.
+    #[serde(default)]
+    pub lights: Vec<(u8, f64)>,
+}
+
+fn two() -> u8 {
+    2
+}
+
+impl Default for ExtrudeEffect {
+    fn default() -> Self {
+        ExtrudeEffect { depth: Vec2::new(18.0, -18.0), color: Color::rgb(128, 128, 128), shade: Color::BLACK, steps: 24, kind: 0, vp_page: false, rotation: [0.0; 3], color_mode: 2, bevel: None, bevel_only: false, lights: vec![] }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -578,6 +795,39 @@ pub struct DistortEffect {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct EnvelopeEffect {
     pub handles: [Vec2; 8],
+    /// Edges: 0 straight line, 1 single arc, 2 double arc, 3 unconstrained.
+    #[serde(default = "three_u8")]
+    pub mode: u8,
+    /// Mapping mode: 0 horizontal, 1 original, 2 putty, 3 vertical.
+    #[serde(default = "one_u8")]
+    pub mapping: u8,
+    /// Keep lines: straight segments stay straight.
+    #[serde(default)]
+    pub keep_lines: bool,
+}
+
+fn one_u8() -> u8 {
+    1
+}
+
+fn three_u8() -> u8 {
+    3
+}
+
+impl Default for EnvelopeEffect {
+    fn default() -> Self {
+        EnvelopeEffect { handles: [Vec2::ZERO; 8], mode: 3, mapping: 1, keep_lines: false }
+    }
+}
+
+/// Wrap Paragraph Text: how paragraph text flows around an object.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct TextWrap {
+    /// 0 contour left, 1 contour right, 2 contour straddle, 3 square left, 4 square right,
+    /// 5 square straddle, 6 square above/below.
+    pub style: u8,
+    /// Text wrap offset, points.
+    pub offset: f64,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -609,6 +859,35 @@ pub struct Effects {
     /// Lens: magnify factor (1 = none), or color filter.
     #[serde(default)]
     pub lens: Option<LensEffect>,
+    /// Wrap Paragraph Text around this object.
+    #[serde(default)]
+    pub wrap: Option<TextWrap>,
+    /// Connector anchors set with the Anchor Editing tool (empty = the geometric anchors).
+    #[serde(default)]
+    pub anchors: Vec<ObjAnchor>,
+}
+
+/// A connector anchor of an object: a normalized point of its bounding box, the direction
+/// connectors leave it in (degrees, `None` = automatic) and whether it is a snap point.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ObjAnchor {
+    pub pos: Point,
+    pub dir: Option<f64>,
+    pub auto: bool,
+}
+
+/// The geometric anchors every object has: the middle of each side and the center.
+pub const DEFAULT_ANCHORS: [(f64, f64); 5] = [(0.5, 0.0), (1.0, 0.5), (0.5, 1.0), (0.0, 0.5), (0.5, 0.5)];
+
+impl Effects {
+    /// The anchors connectors attach to: the edited ones, else the geometric ones.
+    pub fn anchor_list(&self) -> Vec<ObjAnchor> {
+        if self.anchors.is_empty() {
+            DEFAULT_ANCHORS.iter().map(|(x, y)| ObjAnchor { pos: Point::new(*x, *y), dir: None, auto: true }).collect()
+        } else {
+            self.anchors.clone()
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -921,6 +1200,38 @@ impl Object {
                 self.style.outline.width *= s;
             }
         }
+        if let Some(crate::style::WidthProfile::Variable { nodes, scale: true }) = &mut self.style.outline.profile {
+            let (_, _, _, sx, sy) = geom::decompose(a);
+            let s = (sx.abs() * sy.abs()).sqrt();
+            if s.is_finite() && s > 0.0 {
+                for n in nodes.iter_mut() {
+                    n.side1 *= s;
+                    n.side2 *= s;
+                }
+            }
+        }
+        // symmetry and perspective groups keep their mirror lines and fields with them
+        match &mut self.special {
+            Some(crate::codes::Special::Symmetry { center, angle, .. }) => {
+                let c = a * Point::new(center[0], center[1]);
+                let lin = Affine::new([a.as_coeffs()[0], a.as_coeffs()[1], a.as_coeffs()[2], a.as_coeffs()[3], 0.0, 0.0]);
+                let r = angle.to_radians();
+                let d = lin * Point::new(r.cos(), r.sin());
+                if d.to_vec2().hypot() > 1e-12 {
+                    *angle = d.y.atan2(d.x).to_degrees();
+                }
+                *center = [c.x, c.y];
+            }
+            Some(crate::codes::Special::Perspective { field, horizon, flats, .. }) => {
+                let f = a.transform_rect_bbox(kurbo::Rect::new(field[0], field[1], field[2], field[3]));
+                *horizon = (a * Point::new(field[0], *horizon)).y;
+                *field = [f.x0, f.y0, f.x1, f.y1];
+                for (_, o) in flats.iter_mut() {
+                    o.apply_transform(a);
+                }
+            }
+            _ => {}
+        }
         if let Some(sh) = &mut self.effects.drop_shadow {
             let lin = Affine::new([a.as_coeffs()[0], a.as_coeffs()[1], a.as_coeffs()[2], a.as_coeffs()[3], 0.0, 0.0]);
             let v = lin * Point::new(sh.offset.x, sh.offset.y);
@@ -1202,10 +1513,14 @@ fn fmt_measure(d: &DimensionObj, v_pt: f64, angle: bool) -> String {
         format!("{:.*}°", d.precision, v_pt)
     } else {
         let v = d.unit.to_unit(v_pt, 96.0);
+        let mut n = format!("{:.*}", d.precision, v);
+        if !d.leading_zero && (n.starts_with("0.") || n.starts_with("-0.")) {
+            n = n.replacen("0.", ".", 1);
+        }
         if d.show_units {
-            format!("{:.*} {}", d.precision, v, d.unit.suffix())
+            format!("{} {}", n, d.unit.suffix())
         } else {
-            format!("{:.*}", d.precision, v)
+            n
         }
     };
     format!("{}{}{}", d.prefix, s, d.suffix)
@@ -1261,16 +1576,55 @@ pub fn dimension_label(d: &DimensionObj) -> (String, Point, f64) {
 }
 
 pub fn dimension_path(d: &DimensionObj) -> BezPath {
+    use crate::style::ArrowHead;
     let mut bp = BezPath::new();
     let pts = &d.points;
+    let kind = d.arrow;
     let arrow = |bp: &mut BezPath, tip: Point, dir: Vec2, size: f64| {
         let dir = dir.normalize();
         let n = Vec2::new(-dir.y, dir.x);
-        bp.move_to(tip);
-        bp.line_to(tip - dir * size + n * size * 0.35);
-        bp.move_to(tip);
-        bp.line_to(tip - dir * size - n * size * 0.35);
+        match kind {
+            None => {}
+            Some(ArrowHead::OpenTriangle) | Some(ArrowHead::Custom(_)) => {
+                bp.move_to(tip);
+                bp.line_to(tip - dir * size + n * size * 0.35);
+                bp.move_to(tip);
+                bp.line_to(tip - dir * size - n * size * 0.35);
+            }
+            Some(ArrowHead::Triangle) => {
+                bp.move_to(tip);
+                bp.line_to(tip - dir * size + n * size * 0.35);
+                bp.line_to(tip - dir * size - n * size * 0.35);
+                bp.close_path();
+            }
+            Some(ArrowHead::Circle) => {
+                let c = kurbo::Circle::new(tip, size * 0.3).to_path(0.05);
+                bp.extend(c.elements().iter().copied());
+            }
+            Some(ArrowHead::Square) => {
+                let h = size * 0.3;
+                bp.move_to(tip + n * h);
+                bp.line_to(tip + n * h - dir * h * 2.0);
+                bp.line_to(tip - n * h - dir * h * 2.0);
+                bp.line_to(tip - n * h);
+                bp.close_path();
+            }
+            Some(ArrowHead::Diamond) => {
+                let h = size * 0.35;
+                bp.move_to(tip);
+                bp.line_to(tip - dir * h + n * h);
+                bp.line_to(tip - dir * h * 2.0);
+                bp.line_to(tip - dir * h - n * h);
+                bp.close_path();
+            }
+            Some(ArrowHead::Bar) => {
+                bp.move_to(tip + n * size * 0.4);
+                bp.line_to(tip - n * size * 0.4);
+            }
+        }
     };
+    let gap = d.ext_gap.max(0.0);
+    let past = d.ext_len.unwrap_or(2.0);
     let sz = (d.font_size * 0.5).max(3.0);
     match d.kind {
         DimensionKind::Parallel | DimensionKind::Segment if pts.len() >= 2 => {
@@ -1281,10 +1635,11 @@ pub fn dimension_path(d: &DimensionObj) -> BezPath {
             let off = (lp - a).dot(normal);
             let a2 = a + normal * off;
             let b2 = b + normal * off;
-            let ext = normal * (2.0 * off.signum());
-            bp.move_to(a);
+            let ext = normal * (past * off.signum());
+            let g = normal * (gap * off.signum());
+            bp.move_to(a + g);
             bp.line_to(a2 + ext);
-            bp.move_to(b);
+            bp.move_to(b + g);
             bp.line_to(b2 + ext);
             bp.move_to(a2);
             bp.line_to(b2);
@@ -1296,20 +1651,24 @@ pub fn dimension_path(d: &DimensionObj) -> BezPath {
             let (_, mid, ang) = dimension_label(d);
             if ang == 0.0 {
                 let y = mid.y;
-                bp.move_to(a);
-                bp.line_to((a.x, y));
-                bp.move_to(b);
-                bp.line_to((b.x, y));
+                let sa = (y - a.y).signum();
+                let sb = (y - b.y).signum();
+                bp.move_to((a.x, a.y + gap * sa));
+                bp.line_to((a.x, y + past * sa));
+                bp.move_to((b.x, b.y + gap * sb));
+                bp.line_to((b.x, y + past * sb));
                 bp.move_to((a.x, y));
                 bp.line_to((b.x, y));
                 arrow(&mut bp, Point::new(a.x, y), Vec2::new(a.x - b.x, 0.0), sz);
                 arrow(&mut bp, Point::new(b.x, y), Vec2::new(b.x - a.x, 0.0), sz);
             } else {
                 let x = mid.x;
-                bp.move_to(a);
-                bp.line_to((x, a.y));
-                bp.move_to(b);
-                bp.line_to((x, b.y));
+                let sa = (x - a.x).signum();
+                let sb = (x - b.x).signum();
+                bp.move_to((a.x + gap * sa, a.y));
+                bp.line_to((x + past * sa, a.y));
+                bp.move_to((b.x + gap * sb, b.y));
+                bp.line_to((x + past * sb, b.y));
                 bp.move_to((x, a.y));
                 bp.line_to((x, b.y));
                 arrow(&mut bp, Point::new(x, a.y), Vec2::new(0.0, a.y - b.y), sz);
@@ -1360,8 +1719,21 @@ pub fn connector_path(c: &ConnectorObj) -> BezPath {
             bp.line_to(b);
         }
         ConnectorKind::RightAngle | ConnectorKind::RoundedRightAngle => {
-            let midx = (a.x + b.x) / 2.0;
-            let pts = [a, Point::new(midx, a.y), Point::new(midx, b.y), b];
+            // the legs leave the anchors in their directions (horizontal unless set vertical)
+            let vertical = |d: Option<f64>| d.is_some_and(|d| (d.rem_euclid(180.0) - 90.0).abs() < 45.0);
+            let (sv, ev) = (vertical(c.start.dir), vertical(c.end.dir));
+            let pts: Vec<Point> = match (sv, ev) {
+                (false, false) => {
+                    let midx = (a.x + b.x) / 2.0;
+                    vec![a, Point::new(midx, a.y), Point::new(midx, b.y), b]
+                }
+                (true, true) => {
+                    let midy = (a.y + b.y) / 2.0;
+                    vec![a, Point::new(a.x, midy), Point::new(b.x, midy), b]
+                }
+                (false, true) => vec![a, Point::new(b.x, a.y), b],
+                (true, false) => vec![a, Point::new(a.x, b.y), b],
+            };
             if c.kind == ConnectorKind::RightAngle || c.corner_radius <= 0.0 {
                 bp.move_to(pts[0]);
                 for p in &pts[1..] {
@@ -1396,11 +1768,17 @@ pub fn connector_path(c: &ConnectorObj) -> BezPath {
 // ------------------------------------------------------------------------------------------
 
 fn map_points(path: &BezPath, f: impl Fn(Point) -> Point) -> BezPath {
+    map_points_ex(path, f, false)
+}
+
+/// Map every point of a path; `keep_lines` leaves straight segments straight (Keep Lines).
+fn map_points_ex(path: &BezPath, f: impl Fn(Point) -> Point, keep_lines: bool) -> BezPath {
     // subdivide curves first so warps look smooth
     let mut fine = BezPath::new();
     for el in path.elements() {
         match *el {
             kurbo::PathEl::MoveTo(p) => fine.move_to(p),
+            kurbo::PathEl::LineTo(p) if keep_lines => fine.line_to(p),
             kurbo::PathEl::LineTo(p) => {
                 let last = fine.elements().last().and_then(|e| e.end_point()).unwrap_or(p);
                 let n = (((p - last).hypot()) / 6.0).ceil().clamp(1.0, 64.0) as usize;
@@ -1457,24 +1835,61 @@ pub fn envelope_warp(path: &BezPath, bb: Rect, env: &EnvelopeEffect) -> BezPath 
         let mt = 1.0 - t;
         Point::new(mt * mt * p0.x + 2.0 * mt * t * c.x + t * t * p1.x, mt * mt * p0.y + 2.0 * mt * t * c.y + t * t * p1.y)
     };
-    map_points(path, |p| {
-        let u = (p.x - bb.x0) / w;
-        let v = (p.y - bb.y0) / h;
-        let top = quad(hp[0], hp[1], hp[2], u);
-        let bottom = quad(hp[6], hp[5], hp[4], u);
-        let left = quad(hp[0], hp[7], hp[6], v);
-        let right = quad(hp[2], hp[3], hp[4], v);
-        // Coons patch
-        let c00 = hp[0];
-        let c10 = hp[2];
-        let c01 = hp[6];
-        let c11 = hp[4];
-        let x = (1.0 - v) * top.x + v * bottom.x + (1.0 - u) * left.x + u * right.x
-            - ((1.0 - u) * (1.0 - v) * c00.x + u * (1.0 - v) * c10.x + (1.0 - u) * v * c01.x + u * v * c11.x);
-        let y = (1.0 - v) * top.y + v * bottom.y + (1.0 - u) * left.y + u * right.y
-            - ((1.0 - u) * (1.0 - v) * c00.y + u * (1.0 - v) * c10.y + (1.0 - u) * v * c01.y + u * v * c11.y);
-        Point::new(bb.x0 + x * w, bb.y0 + y * h)
-    })
+    let mode = env.mode;
+    // the edges of the envelope for its mode
+    let edge = |p0: Point, pm: Point, p1: Point, t: f64| -> Point {
+        match mode {
+            // straight line: the midpoint handle is not used
+            0 => p0.lerp(p1, t),
+            // double arc: an S through the middle of the edge, as deep as the midpoint handle
+            2 => {
+                let d = pm - p0.midpoint(p1);
+                let c1 = p0.lerp(p1, 1.0 / 3.0) + d * 2.0;
+                let c2 = p0.lerp(p1, 2.0 / 3.0) - d * 2.0;
+                kurbo::CubicBez::new(p0, c1, c2, p1).eval(t)
+            }
+            _ => quad(p0, pm, p1, t),
+        }
+    };
+    let mapping = env.mapping;
+    map_points_ex(
+        path,
+        |p| {
+            let u = (p.x - bb.x0) / w;
+            let v = (p.y - bb.y0) / h;
+            let c00 = hp[0];
+            let c10 = hp[2];
+            let c01 = hp[6];
+            let c11 = hp[4];
+            let bilinear = |u: f64, v: f64| -> Point {
+                Point::new(
+                    (1.0 - u) * (1.0 - v) * c00.x + u * (1.0 - v) * c10.x + (1.0 - u) * v * c01.x + u * v * c11.x,
+                    (1.0 - u) * (1.0 - v) * c00.y + u * (1.0 - v) * c10.y + (1.0 - u) * v * c01.y + u * v * c11.y,
+                )
+            };
+            let top = edge(hp[0], hp[1], hp[2], u);
+            let bottom = edge(hp[6], hp[5], hp[4], u);
+            let left = edge(hp[0], hp[7], hp[6], v);
+            let right = edge(hp[2], hp[3], hp[4], v);
+            // Coons patch (Original)
+            let b = bilinear(u, v);
+            let coons = Point::new(
+                (1.0 - v) * top.x + v * bottom.x + (1.0 - u) * left.x + u * right.x - b.x,
+                (1.0 - v) * top.y + v * bottom.y + (1.0 - u) * left.y + u * right.y - b.y,
+            );
+            let q = match mapping {
+                // Horizontal: each row is fitted between the left and right edges
+                0 => Point::new(left.x + (right.x - left.x) * u, coons.y),
+                // Putty: only the corner handles
+                2 => b,
+                // Vertical: each column is fitted between the top and bottom edges
+                3 => Point::new(coons.x, top.y + (bottom.y - top.y) * v),
+                _ => coons,
+            };
+            Point::new(bb.x0 + q.x * w, bb.y0 + q.y * h)
+        },
+        env.keep_lines,
+    )
 }
 
 pub fn distort_warp(path: &BezPath, bb: Rect, d: &DistortEffect) -> BezPath {
@@ -1513,6 +1928,72 @@ pub fn distort_warp(path: &BezPath, bb: Rect, d: &DistortEffect) -> BezPath {
             })
         }
     }
+}
+
+/// Acceleration curve (-100..100) of blends and contours.
+pub fn accel(t: f64, a: f64) -> f64 {
+    if a.abs() < 1e-6 {
+        return t;
+    }
+    let k = 1.0 + a.abs() / 25.0;
+    if a > 0.0 {
+        t.powf(k)
+    } else {
+        1.0 - (1.0 - t).powf(k)
+    }
+}
+
+/// Color of a blend or contour step: direct, or clockwise / counterclockwise around the color wheel.
+pub fn blend_color(a: Color, b: Color, t: f64, dir: u8) -> Color {
+    if dir == 0 {
+        return Color::lerp(a, b, t);
+    }
+    let [h1, s1, v1] = a.to_hsb();
+    let [h2, s2, v2] = b.to_hsb();
+    let mut dh = h2 - h1;
+    if dir == 1 {
+        if dh <= 0.0 {
+            dh += 360.0;
+        }
+    } else if dh >= 0.0 {
+        dh -= 360.0;
+    }
+    let h = (h1 + dh * t).rem_euclid(360.0);
+    let mut c = Color::from_hsb(h, s1 + (s2 - s1) * t, v1 + (v2 - v1) * t);
+    c.a = (a.a as f64 + (b.a as f64 - a.a as f64) * t).round() as u8;
+    c
+}
+
+/// The intermediate objects of a blend, with its accelerations, color direction and loop.
+pub fn blend_steps(b: &BlendObj, mut new_id: impl FnMut() -> ObjId) -> Vec<Object> {
+    let ca = b.start.bounds().center();
+    let cb = b.end.bounds().center();
+    let pivot = ca.midpoint(cb);
+    (1..=b.steps)
+        .map(|k| {
+            let t = k as f64 / (b.steps + 1) as f64;
+            let to = accel(t, b.acceleration);
+            let tc = if b.link_accel { to } else { accel(t, b.color_accel) };
+            let ts = if b.size_accel { to } else { t };
+            let mut o = blend_step(&b.start, &b.end, ts, new_id(), if b.looped { 0.0 } else { b.rotation });
+            // position follows the object acceleration
+            let want = ca.lerp(cb, to);
+            let have = o.bounds().center();
+            o.apply_transform(Affine::translate(want - have));
+            if b.looped && b.rotation != 0.0 {
+                o.apply_transform(Affine::rotate_about((b.rotation * to).to_radians(), pivot));
+            }
+            // colors follow the color acceleration and direction
+            use crate::style::Fill;
+            if let (Fill::Solid(x), Fill::Solid(y)) = (&b.start.style.fill, &b.end.style.fill) {
+                o.style.fill = Fill::Solid(blend_color(*x, *y, tc, b.color_dir));
+            }
+            if let (Some(x), Some(y)) = (b.start.style.outline.color, b.end.style.outline.color) {
+                o.style.outline.color = Some(blend_color(x, y, tc, b.color_dir));
+            }
+            o
+        })
+        .collect()
 }
 
 /// Interpolate two objects for a blend step (t in 0..1). Geometry is matched by flattening both

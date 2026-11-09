@@ -68,6 +68,10 @@ pub struct DocView {
     pub symbol_edit: Option<crate::dialogs::object::SymbolEdit>,
     /// Object ▸ Rollover ▸ Edit Rollover in progress: the rollover.
     pub rollover_edit: Option<ObjId>,
+    /// Object ▸ Symmetry: the symmetry being drawn or edited.
+    pub symmetry_edit: Option<crate::dialogs::symmetry::SymEdit>,
+    /// Object ▸ Perspective: the perspective group being drawn or edited.
+    pub persp_edit: Option<crate::dialogs::symmetry::PerspEdit>,
     pub last_saved_backup: f64,
 }
 
@@ -101,6 +105,8 @@ impl DocView {
             show_page_sorter: false,
             symbol_edit: None,
             rollover_edit: None,
+            symmetry_edit: None,
+            persp_edit: None,
             last_saved_backup: 0.0,
         }
     }
