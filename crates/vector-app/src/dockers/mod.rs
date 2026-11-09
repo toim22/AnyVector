@@ -2,6 +2,7 @@
 
 mod arrange;
 mod color;
+pub mod coled;
 mod coords;
 mod guides;
 pub use guides::styled_line;
@@ -333,12 +334,21 @@ pub struct DockerUi {
     /// Bevel docker settings, and the object they were read from.
     pub bevel: vector_core::object::BevelEffect,
     pub bevel_for: Option<vector_core::ObjId>,
-    pub color_model: usize,
+    /// Color docker: its editor, the new color, auto-apply and its target (outline).
+    pub color_ed: coled::ColorEd,
     pub color_edit: Option<vector_core::Color>,
-    pub data_name: String,
-    pub data_value: String,
-    pub comment: String,
-    pub view_name: String,
+    pub color_auto: bool,
+    pub color_auto_outline: bool,
+    /// The color editor whose eyedropper is sampling.
+    pub coled_owner: Option<String>,
+    /// Comments docker: Show Annotations, Show Resolved, the search text, the selected comment,
+    /// the comment being typed (id, text, a new one), the reply being typed.
+    pub comment_show: bool,
+    pub comment_resolved: bool,
+    pub comment_search: String,
+    pub comment_sel: Option<u64>,
+    pub comment_edit: Option<(u64, String, bool)>,
+    pub comment_reply: String,
     pub style_name: String,
     pub export_format: usize,
     /// Export docker items (pages first, then objects).
@@ -350,9 +360,34 @@ pub struct DockerUi {
     pub objects_filter: String,
     pub rename: Option<(vector_core::ObjId, String)>,
     pub layer_rename: Option<(usize, String)>,
-    pub tray: Vec<vector_core::Object>,
+    /// Tray docker: the trays, the one shown, its new name while renaming, the last item id.
+    pub trays: Vec<misc::TrayDef>,
+    pub tray_sel: usize,
+    pub tray_rename: Option<String>,
+    pub tray_next: u64,
+    /// Sources docker: the selected link (image id).
+    pub src_sel: Option<u64>,
+    /// Views docker: the selected view and the one being renamed.
+    pub view_sel: Option<usize>,
+    pub view_rename: Option<(usize, String)>,
+    /// Scripts docker: the selected node, the folded nodes, Simple mode and a script being renamed.
+    pub script_sel: Option<String>,
+    pub script_closed: Vec<String>,
+    pub script_simple: bool,
+    pub script_rename: Option<(std::path::PathBuf, String)>,
     pub proof_gray: bool,
-    pub sym_name: String,
+    /// Symbols docker: the library shown (0 the document, 1 linked symbols, 2 local symbols,
+    /// 3 network symbols, 4 a local library file), the file, Local Symbols unfolded, the selected
+    /// symbol (by name), the search text, Scale to world units, the symbol being renamed, and the
+    /// symbols of the library file read last.
+    pub sym_lib: u8,
+    pub sym_file: Option<std::path::PathBuf>,
+    pub sym_local_open: bool,
+    pub sym_sel: Option<String>,
+    pub sym_search: String,
+    pub sym_world: bool,
+    pub sym_rename: Option<(u64, String)>,
+    pub sym_cache: Option<(std::path::PathBuf, Vec<vector_core::document::SymbolDef>)>,
     pub fx: fx_dockers::FxUi,
     pub co: coords::CoUi,
     /// Which docker field a point or length picked on the canvas goes to (1 = Transform ▸ Scale portion).
@@ -440,12 +475,17 @@ impl Default for DockerUi {
             blend_for: None,
             bevel: vector_core::object::BevelEffect::default(),
             bevel_for: None,
-            color_model: 0,
+            color_ed: coled::ColorEd::default(),
             color_edit: None,
-            data_name: String::new(),
-            data_value: String::new(),
-            comment: String::new(),
-            view_name: String::new(),
+            color_auto: false,
+            color_auto_outline: false,
+            coled_owner: None,
+            comment_show: true,
+            comment_resolved: false,
+            comment_search: String::new(),
+            comment_sel: None,
+            comment_edit: None,
+            comment_reply: String::new(),
             style_name: String::new(),
             export_format: 0,
             export_items: vec![],
@@ -455,9 +495,26 @@ impl Default for DockerUi {
             objects_filter: String::new(),
             rename: None,
             layer_rename: None,
-            tray: vec![],
+            trays: vec![misc::TrayDef::new("Tray 1")],
+            tray_sel: 0,
+            tray_rename: None,
+            tray_next: 0,
+            src_sel: None,
+            view_sel: None,
+            view_rename: None,
+            script_sel: Some("rhai".into()),
+            script_closed: vec![],
+            script_simple: false,
+            script_rename: None,
             proof_gray: false,
-            sym_name: String::new(),
+            sym_lib: 0,
+            sym_file: None,
+            sym_local_open: false,
+            sym_sel: None,
+            sym_search: String::new(),
+            sym_world: true,
+            sym_rename: None,
+            sym_cache: None,
             fx: fx_dockers::FxUi::default(),
             co: coords::CoUi::default(),
             pick_slot: 0,
@@ -826,18 +883,13 @@ pub(crate) fn color_pick_w(ui: &mut Ui, id: &str, c: &mut Option<vector_core::Co
     p.rect_stroke(sw, 1.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Outside);
     crate::widgets::chevron(p, pos2(r.right() - 9.0, r.center().y), 3.0, if enabled { theme::TEXT } else { theme::DISABLED });
     let mut changed = false;
-    egui::Popup::menu(&resp).id(egui::Id::unique(("color_pick", id))).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
-        let mut v = c.unwrap_or(vector_core::Color::BLACK);
-        if props::color_edit(ui, &mut v, false) {
-            *c = Some(v);
-            changed = true;
-        }
-        if allow_none && ui.button("No color").clicked() {
-            *c = None;
-            changed = true;
-            ui.close();
-        }
+    let pid = egui::Id::unique(("color_pick", id));
+    let open = egui::Popup::menu(&resp).id(pid).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
+        changed = coled::picker(ui, id, c, allow_none);
     });
+    if open.is_none() {
+        coled::picker_closed(ui.ctx(), id);
+    }
     changed
 }
 
@@ -890,6 +942,82 @@ pub(crate) fn choice(ui: &mut Ui, id: &str, cur: &mut usize, items: &[&str], w: 
         }
     });
     before != *cur
+}
+
+/// A row of a docker list or tree, 24 points high: `depth` levels in, then a fold chevron
+/// (`fold`: None on a flat list; Some(None) on a tree leaf, which keeps the chevron's room;
+/// Some(Some(open)) on a node with children), an icon and the label, on `fill` when given.
+/// Gives the row's response and whether the chevron was clicked.
+pub(crate) fn list_row(app: &mut VectorApp, ui: &mut Ui, depth: usize, fold: Option<Option<bool>>, icon: &str, label: impl Into<egui::WidgetText>, fill: Option<Color32>) -> (egui::Response, bool) {
+    let w = ui.available_width();
+    let (r, resp) = ui.allocate_exact_size(vec2(w, 24.0), Sense::click());
+    let p = ui.painter().clone();
+    if let Some(c) = fill {
+        p.rect_filled(r, 0.0, c);
+    } else if resp.hovered() {
+        p.rect_filled(r, 0.0, theme::HOVER);
+    }
+    let mut x = r.left() + 6.0 + depth as f32 * 19.0;
+    let mut chevron = false;
+    if let Some(f) = fold {
+        if let Some(open) = f {
+            let c = pos2(x + 5.0, r.center().y);
+            let pts = if open { vec![c + vec2(-4.0, -2.0), c + vec2(0.0, 2.0), c + vec2(4.0, -2.0)] } else { vec![c + vec2(-2.0, -4.0), c + vec2(2.0, 0.0), c + vec2(-2.0, 4.0)] };
+            p.add(egui::Shape::line(pts, Stroke::new(1.2, theme::TEXT)));
+            let cr = Rect::from_min_max(pos2(x - 3.0, r.top()), pos2(x + 13.0, r.bottom()));
+            chevron = resp.clicked() && resp.interact_pointer_pos().is_some_and(|q| cr.contains(q));
+        }
+        x += 14.0;
+    }
+    if !icon.is_empty() {
+        if let Some(t) = app.icons.get(ui.ctx(), icon, 16.0, Tone::Normal) {
+            p.image(t.id, Rect::from_min_size(pos2(x, r.center().y - 8.0), vec2(16.0, 16.0)), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
+        }
+        x += 22.0;
+    }
+    let g = label.into().into_galley(ui, Some(egui::TextWrapMode::Truncate), (r.right() - x - 4.0).max(10.0), egui::TextStyle::Body);
+    p.galley(pos2(x, r.center().y - g.size().y / 2.0), g, theme::TEXT);
+    (resp, chevron)
+}
+
+/// The small triangle in the corner of a button that drops a menu.
+pub(crate) fn drop_mark(ui: &Ui, r: Rect) {
+    let c = r.right_bottom() - vec2(3.0, 3.0);
+    ui.painter().add(egui::Shape::convex_polygon(vec![c, c - vec2(4.0, 0.0), c - vec2(0.0, 4.0)], theme::TEXT, Stroke::NONE));
+}
+
+/// A table header of a docker list: the column titles centered over columns ending at the
+/// given right edges (relative to the left).
+pub(crate) fn table_header(ui: &mut Ui, cols: &[(&str, f32)]) {
+    let w = ui.available_width();
+    let (r, _) = ui.allocate_exact_size(vec2(w, 22.0), Sense::hover());
+    let p = ui.painter();
+    p.rect_filled(r, 0.0, Color32::from_rgb(0x33, 0x33, 0x33));
+    let mut x0 = r.left();
+    for (i, (t, right)) in cols.iter().enumerate() {
+        let x1 = if i + 1 == cols.len() { r.right() } else { r.left() + right };
+        if i > 0 {
+            p.vline(x0, r.y_range(), Stroke::new(1.0, theme::SEP));
+        }
+        p.text(pos2((x0 + x1) / 2.0, r.center().y), egui::Align2::CENTER_CENTER, *t, egui::FontId::proportional(12.5), theme::TEXT);
+        x0 = x1;
+    }
+}
+
+/// Today's date, as the comments show it (year-month-day).
+pub fn today() -> String {
+    let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0) as i64;
+    // days since 1970-01-01 to a civil date (Howard Hinnant's algorithm)
+    let z = secs.div_euclid(86_400) + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = doy - (153 * mp + 2) / 5 + 1;
+    let month = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = yoe + era * 400 + i64::from(month <= 2);
+    format!("{year}-{month:02}-{day:02}")
 }
 
 /// A small icon button of the docker toolbars.

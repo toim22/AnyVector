@@ -8,6 +8,7 @@ pub mod docprops;
 pub mod export;
 pub mod merge;
 pub mod new_doc;
+pub mod objdata;
 pub mod object;
 pub mod options;
 pub mod print;
@@ -44,6 +45,10 @@ pub struct Dialogs {
     pub print: Option<PrintState>,
     pub doc_props: bool,
     pub script_editor: Option<ScriptEditorState>,
+    /// Object Data docker: the spreadsheet (Object Data Manager), its levels, and the field editor.
+    pub object_data_manager: bool,
+    pub data_levels: usize,
+    pub data_field_editor: Option<objdata::FieldEditorState>,
     pub about: bool,
     pub palette_editor: Option<PaletteEditorState>,
     /// Rename page: (page index, edited name).

@@ -491,6 +491,37 @@ pub struct Comment {
     pub page: u64,
     pub resolved: bool,
     pub replies: Vec<(String, String)>,
+    /// The mark: 0 note, 1 arrow, 2 highlighter, 3 freehand, 4 rectangle, 5 ellipse.
+    #[serde(default)]
+    pub mark: u8,
+    /// The mark's points after `pos`: the arrow's end, the stroke, the opposite corner.
+    #[serde(default)]
+    pub pts: Vec<Point>,
+    #[serde(default = "comment_color")]
+    pub color: Color,
+    #[serde(default = "comment_width")]
+    pub width: f64,
+    /// Fill of a rectangle or ellipse mark.
+    #[serde(default)]
+    pub fill: Option<Color>,
+    #[serde(default)]
+    pub date: String,
+}
+
+fn comment_color() -> Color {
+    Color::rgb(0xe5, 0x2b, 0x2b)
+}
+
+fn comment_width() -> f64 {
+    1.5
+}
+
+impl Comment {
+    /// A comment of `mark` at `pts` (the first point is the position), in the mark's default style.
+    pub fn new(id: u64, page: u64, author: String, mark: u8, pts: &[Point]) -> Comment {
+        let (color, width) = if mark == 2 { (Color::rgb(0xff, 0xe6, 0x00), 12.0) } else { (comment_color(), comment_width()) };
+        Comment { id, author, text: String::new(), pos: pts.first().copied().unwrap_or_default(), page, resolved: false, replies: vec![], mark, pts: pts.iter().skip(1).copied().collect(), color, width, fill: None, date: String::new() }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -528,6 +559,9 @@ pub struct Document {
     /// Patterns made with Object ▸ Create ▸ Pattern Fill.
     #[serde(default)]
     pub patterns: Vec<NamedPattern>,
+    /// Externally linked images: image id → the source file (Sources docker).
+    #[serde(default)]
+    pub links: BTreeMap<u64, String>,
     next_id: u64,
 }
 
@@ -558,6 +592,7 @@ impl Document {
             print_merge: None,
             arrowheads: vec![],
             patterns: vec![],
+            links: BTreeMap::new(),
             next_id: 1,
         };
         let pid = d.new_id();

@@ -13,11 +13,32 @@ fn first(app: &VectorApp) -> Option<Object> {
     d.doc.find(*d.selection.first()?).cloned()
 }
 
+/// A color button opening the color editor (`alpha`: with an opacity slider).
 pub fn color_edit(ui: &mut Ui, c: &mut Color, alpha: bool) -> bool {
-    let mut c32 = theme::to_c32(*c);
-    let changed = egui::color_picker::color_edit_button_srgba(ui, &mut c32, if alpha { egui::color_picker::Alpha::OnlyBlend } else { egui::color_picker::Alpha::Opaque }).changed();
-    if changed {
-        *c = theme::from_c32(c32);
+    let resp = crate::widgets::color_well(ui, Some(*c), egui::vec2(40.0, 18.0));
+    let key = format!("{:?}", resp.id);
+    let mut changed = false;
+    let open = egui::Popup::menu(&resp).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
+        let mut v = Some(*c);
+        if super::coled::picker(ui, &key, &mut v, false) {
+            if let Some(n) = v {
+                *c = n.with_alpha(c.a);
+                changed = true;
+            }
+        }
+        if alpha {
+            ui.horizontal(|ui| {
+                ui.label("Opacity:");
+                let mut a = c.a as f64 / 255.0 * 100.0;
+                if ui.add(egui::Slider::new(&mut a, 0.0..=100.0).suffix(" %").max_decimals(0)).changed() {
+                    *c = c.with_alpha((a / 100.0 * 255.0).round() as u8);
+                    changed = true;
+                }
+            });
+        }
+    });
+    if open.is_none() {
+        super::coled::picker_closed(ui.ctx(), &key);
     }
     changed
 }
