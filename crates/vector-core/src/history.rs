@@ -11,7 +11,7 @@ pub struct Snapshot {
     pub page: usize,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct History {
     pub undo: Vec<Snapshot>,
     pub redo: Vec<Snapshot>,

@@ -1656,7 +1656,13 @@ fn pattern(app: &mut VectorApp, ui: &mut Ui, o: &Object, p: PatternFill, kind: u
         let (sr, _) = ui.allocate_exact_size(vec2(1.0, 52.0), Sense::hover());
         ui.painter().line_segment([sr.center_top(), sr.center_bottom()], Stroke::new(1.0, theme::SEP));
         ui.vertical(|ui| {
-            super::icon_button(app, ui, if transp { "edit_transparency" } else { "edit_fill" }, if transp { "Edit transparency" } else { "Edit fill" }, false);
+            // a vector pattern opens as its own document (with View ▸ Pattern Preview)
+            let editable = kind == 3 && !transp && p.image.is_some_and(|id| named.iter().any(|n| n.fill.image == Some(id)));
+            if super::icon_button(app, ui, if transp { "edit_transparency" } else { "edit_fill" }, if transp { "Edit transparency" } else { "Edit fill" }, editable) {
+                if let Some(id) = p.image {
+                    crate::dialogs::object::edit_pattern(app, id);
+                }
+            }
             if kind != 5 {
                 let r = super::icon_button_resp(app, ui, "new_source", "New source", true);
                 egui::Popup::menu(&r).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
@@ -1851,7 +1857,7 @@ fn load_pattern_image(app: &mut VectorApp, path: &std::path::Path) -> Option<u64
     let d = app.doc_mut()?;
     let id = d.doc.add_image(vector_core::document::ImageData { width: w, height: h, rgba: std::sync::Arc::new(img.into_raw()), encoded: std::sync::Arc::new(bytes), format: ext, name: name.clone() });
     let fill = PatternFill { kind: PatternKind::Checker, fg: Color::BLACK, bg: Color::WHITE, tile: 72.0, angle: 0.0, image: Some(id), transform_with_object: true, vector: false, mirror: 0 };
-    d.doc.patterns.push(vector_core::document::NamedPattern { name, fill });
+    d.doc.patterns.push(vector_core::document::NamedPattern { name, fill, source: vec![] });
     Some(id)
 }
 

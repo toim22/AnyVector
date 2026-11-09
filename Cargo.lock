@@ -4382,6 +4382,7 @@ dependencies = [
  "windows",
  "windows-core",
  "winresource",
+ "zip",
 ]
 
 [[package]]

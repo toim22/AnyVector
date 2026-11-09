@@ -154,6 +154,7 @@ pub fn cmd(id: &str) -> Option<Cmd> {
         "844cb5e2" => ViewMode(Vm::Normal),
         "e09c1ea0" => ViewMode(Vm::Enhanced),
         "6f9db850" => ViewMode(Vm::Pixels),
+        "141c5d5e" => ViewMode(Vm::PatternPreview),
         "e279d745" => ToggleSimulateOverprints,
         "4b726144" => PreviewSelectedOnly,
         "2273acde" => ToggleMultipageView,
@@ -632,6 +633,7 @@ pub fn enabled(app: &VectorApp, id: &str) -> Option<bool> {
     }
     Some(match cmd(id)? {
         Cmd::Undo => d.is_some_and(|d| d.history.can_undo()),
+        Cmd::WorkspaceDelete => crate::workspaces::is_custom(&app.settings, &app.settings.workspace),
         Cmd::Redo => d.is_some_and(|d| d.history.can_redo()),
         Cmd::Repeat => d.is_some() && app.last_cmd.is_some(),
         Cmd::Revert => d.is_some_and(|d| d.history.is_modified() && d.path.is_some()),
@@ -697,6 +699,7 @@ pub fn enabled(app: &VectorApp, id: &str) -> Option<bool> {
         Cmd::PauseRecording | Cmd::StopRecording | Cmd::CancelRecording => rec,
         Cmd::RunTemporary => d.is_some() && !app.temp_script.is_empty(),
         Cmd::WelcomeScreen | Cmd::About | Cmd::Feedback => true,
+        Cmd::ViewMode(crate::docview::ViewMode::PatternPreview) => d.is_some_and(|d| d.pattern.is_some()),
         Cmd::Node(op) => node_enabled(app, op),
         Cmd::PrintMergeEdit => d.is_some_and(|d| d.doc.print_merge.is_some()),
         // Bitmaps
@@ -781,6 +784,15 @@ pub fn label_of(c: Cmd) -> Option<String> {
 
 /// Captions set from the document: `%s` filled in ("Undo Delete"), and the ones the reference
 /// words after the selection ("Convert To Paragraph Text").
+/// Whether an item with the run-time visibility flag shows now.
+pub fn visible(app: &VectorApp, id: &str) -> bool {
+    match cmd(id) {
+        // View ▸ Pattern Preview: in pattern documents
+        Some(Cmd::ViewMode(crate::docview::ViewMode::PatternPreview)) => app.doc().is_some_and(|d| d.pattern.is_some()),
+        _ => true,
+    }
+}
+
 pub fn caption(app: &VectorApp, it: &super::Item) -> Option<String> {
     let d = app.doc();
     let one = d.and_then(|d| match d.selection.as_slice() {

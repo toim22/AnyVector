@@ -125,6 +125,7 @@ fn raw_rows(app: &VectorApp, bar: u16, ctx: u32, strict: bool) -> Vec<Row> {
                 Kind::Placeholder => placeholder(app, it, ctx, strict, &mut out),
                 Kind::GroupBegin | Kind::GroupEnd | Kind::Spacer | Kind::Anchors => {}
                 _ if !spot_shows(it) || !selection_shows(app, it) => {}
+                _ if it.flags & ui::RUNTIME_VISIBLE != 0 && !bind::visible(app, it.id) => {}
                 _ => out.push(Row::Item(entry(app, it, ctx, strict))),
             }
         }
@@ -226,6 +227,11 @@ fn placeholder(app: &VectorApp, it: &'static Item, ctx: u32, strict: bool, out: 
             out.push(radio("&Default", 1));
             out.push(Row::Item(Entry::new("&Touch", Act::Rows(vec![radio("&Touch", 2)]))));
             out.push(Row::Item(Entry::new("&Specialty", Act::Rows(vec![radio("&Illustration", 3), radio("&Page Layout", 4), radio("&Adobe Illustrator", 5)]))));
+            for c in &app.settings.custom_workspaces {
+                if let Some(i) = crate::workspaces::index_of(&app.settings, &c.name) {
+                    out.push(Row::Item(Entry::new(c.name.replace('&', "&&"), Act::Cmd(Cmd::Workspace(i))).mark(Mark::Radio(ws == c.name))));
+                }
+            }
             out.push(Row::Sep);
         }
         // Window ▸ Window List: the Welcome Screen, then the open documents

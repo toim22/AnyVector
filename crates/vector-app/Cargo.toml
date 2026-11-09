@@ -27,6 +27,7 @@ dirs = { workspace = true }
 arboard = { workspace = true }
 log = { workspace = true }
 ureq = { workspace = true }
+zip = { workspace = true }
 thesaurus-wordnet = "0.2"
 
 [target.'cfg(windows)'.dependencies]

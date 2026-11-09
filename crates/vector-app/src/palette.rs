@@ -23,7 +23,8 @@ pub struct PaletteState {
 
 impl PaletteState {
     pub fn new(s: &Settings) -> PaletteState {
-        let mut palettes = vec![Palette::default_palette()];
+        let edited = std::fs::read_to_string(crate::dialogs::palette::default_palette_file()).ok().map(|t| Palette::parse("Default Palette", &t)).filter(|p| !p.colors.is_empty());
+        let mut palettes = vec![edited.unwrap_or_else(Palette::default_palette)];
         for p in &s.open_palettes {
             if let Ok(t) = std::fs::read_to_string(p) {
                 let name = std::path::Path::new(p).file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();

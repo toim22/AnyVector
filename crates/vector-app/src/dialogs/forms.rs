@@ -1,11 +1,10 @@
 //! The smaller dialogs: Document Properties,
-//! Script Editor, About, Palette Editor, page dialogs and confirmations.
+//! Script Editor, About, page dialogs and confirmations.
 
-use super::{ok_cancel_row, separator, window};
+use super::window;
 use crate::app::VectorApp;
 use crate::theme;
 use egui::{vec2, Color32};
-use vector_core::{Color, NamedColor, Palette};
 
 // ------------------------------------------------------------------------------------------
 // state
@@ -19,12 +18,6 @@ pub struct ScriptEditorState {
     pub dirty: bool,
 }
 
-#[derive(Clone)]
-pub struct PaletteEditorState {
-    pub palette: Palette,
-    pub selected: Option<usize>,
-    pub path: Option<std::path::PathBuf>,
-}
 
 
 // ------------------------------------------------------------------------------------------
@@ -56,9 +49,6 @@ pub fn show_all(app: &mut VectorApp, ctx: &egui::Context) {
     }
     if app.dialogs.data_field_editor.is_some() {
         super::objdata::field_editor(app, ctx);
-    }
-    if app.dialogs.palette_editor.is_some() {
-        palette_editor(app, ctx);
     }
     if app.dialogs.rename_page.is_some() {
         super::layout::rename_page(app, ctx);
@@ -333,110 +323,3 @@ fn script_editor(app: &mut VectorApp, ctx: &egui::Context) {
 // Palette Editor
 // ------------------------------------------------------------------------------------------
 
-fn palette_editor(app: &mut VectorApp, ctx: &egui::Context) {
-    let Some(mut st) = app.dialogs.palette_editor.clone() else { return };
-    let mut result = (false, false);
-    let ((), dismissed) = window(ctx, "palette_editor", "Palette Editor", vec2(640.0, 500.0), |ui| {
-        ui.add_space(8.0);
-        ui.horizontal(|ui| {
-            ui.label("Palette:");
-            ui.add(egui::TextEdit::singleline(&mut st.palette.name).desired_width(200.0));
-            if ui.button("Open...").clicked() {
-                if let Some(p) = rfd::FileDialog::new().add_filter("Palettes", &["vpal", "txt", "gpl"]).pick_file() {
-                    if let Ok(t) = std::fs::read_to_string(&p) {
-                        let name = p.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
-                        st.palette = Palette::parse(&name, &t);
-                        st.path = Some(p);
-                        st.selected = None;
-                    }
-                }
-            }
-            if ui.button("Save As...").clicked() {
-                if let Some(p) = rfd::FileDialog::new().add_filter("Vector palette", &["vpal"]).set_file_name(format!("{}.vpal", st.palette.name)).save_file() {
-                    let _ = std::fs::write(&p, st.palette.serialize());
-                    st.path = Some(p);
-                }
-            }
-        });
-        ui.horizontal_top(|ui| {
-            egui::Frame::new().stroke(egui::Stroke::new(1.0, theme::SEP)).inner_margin(4.0).show(ui, |ui| {
-                ui.set_width(330.0);
-                ui.set_min_height(350.0);
-                egui::ScrollArea::vertical().max_height(350.0).show(ui, |ui| {
-                    ui.horizontal_wrapped(|ui| {
-                        ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
-                        for (i, c) in st.palette.colors.iter().enumerate() {
-                            let r = crate::widgets::color_well(ui, Some(c.color), vec2(22.0, 22.0)).on_hover_text(&c.name);
-                            if st.selected == Some(i) {
-                                ui.painter().rect_stroke(r.rect.expand(1.0), 0.0, egui::Stroke::new(2.0, theme::FOCUS), egui::StrokeKind::Outside);
-                            }
-                            if r.clicked() {
-                                st.selected = Some(i);
-                            }
-                        }
-                    });
-                });
-            });
-            ui.vertical(|ui| {
-                ui.spacing_mut().item_spacing.y = 6.0;
-                if ui.button("Add Color").clicked() {
-                    let c = st.selected.and_then(|i| st.palette.colors.get(i)).map(|c| c.color).unwrap_or(Color::rgb(128, 128, 128));
-                    st.palette.colors.push(NamedColor::new(c.to_hex(), c));
-                    st.selected = Some(st.palette.colors.len() - 1);
-                }
-                if ui.add_enabled(st.selected.is_some(), egui::Button::new("Delete Color")).clicked() {
-                    if let Some(i) = st.selected.take() {
-                        if i < st.palette.colors.len() {
-                            st.palette.colors.remove(i);
-                        }
-                    }
-                }
-                if ui.button("Sort by hue").clicked() {
-                    st.palette.colors.sort_by(|a, b| a.color.to_hsb()[0].partial_cmp(&b.color.to_hsb()[0]).unwrap_or(std::cmp::Ordering::Equal));
-                }
-                if ui.button("Add document colors").clicked() {
-                    if let Some(d) = app.doc() {
-                        for c in d.doc.used_colors() {
-                            if !st.palette.colors.iter().any(|x| x.color == c) {
-                                st.palette.colors.push(NamedColor::new(c.to_hex(), c));
-                            }
-                        }
-                    }
-                }
-                separator(ui);
-                if let Some(i) = st.selected {
-                    if let Some(c) = st.palette.colors.get_mut(i) {
-                        ui.horizontal(|ui| {
-                            ui.label("Name:");
-                            ui.add(egui::TextEdit::singleline(&mut c.name).desired_width(150.0));
-                        });
-                        crate::dockers::props::color_edit(ui, &mut c.color, false);
-                        let mut c32 = theme::to_c32(c.color);
-                        if egui::color_picker::color_picker_color32(ui, &mut c32, egui::color_picker::Alpha::Opaque) {
-                            c.color = theme::from_c32(c32);
-                        }
-                        ui.checkbox(&mut c.spot, "Spot color");
-                    }
-                }
-            });
-        });
-        result = ok_cancel_row(ui, "OK", true);
-    });
-    let (ok, cancel) = result;
-    if ok {
-        let p = st.palette.clone();
-        if let Some(path) = &st.path {
-            let _ = std::fs::write(path, p.serialize());
-        }
-        if let Some(existing) = app.palettes.palettes.iter_mut().find(|x| x.name == p.name) {
-            *existing = p;
-        } else {
-            app.palettes.palettes.push(p);
-        }
-        app.dialogs.palette_editor = None;
-    } else if cancel || dismissed {
-        app.dialogs.palette_editor = None;
-    } else {
-        app.dialogs.palette_editor = Some(st);
-    }
-}

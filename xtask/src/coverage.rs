@@ -209,6 +209,7 @@ fn omitted_by_decision(path: &str) -> Option<&'static str> {
         ("Help > Corel Support", "Corel Support"),
         ("Help > CorelDRAW Community", "Corel online community"),
         ("Help > Share Your Experience", "Share Your Experience"),
+        ("Help > Message Settings", "Corel in-product messages"),
         ("Help > Sign out of Cloud", "Corel Cloud"),
         ("Help > Refresh your account", "Corel account"),
         ("Help > Refresh your Account", "Corel account"),
