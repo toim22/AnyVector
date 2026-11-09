@@ -11,6 +11,18 @@ pub enum Special {
     Barcode { kind: BarcodeKind, data: String },
     /// A rollover: a group of three state groups (Normal, Over, Down); `state` is shown.
     Rollover { state: u8 },
+    /// An impact effect: the frame it fills and the bounds of its lines when they were made
+    /// (x0, y0, x1, y1), and the seed of its random widths and spacings.
+    Impact { frame: [f64; 4], bounds: [f64; 4], seed: u32 },
+    /// Object ▸ Symmetry: the first `primaries` children are the drawn objects, the others their
+    /// mirror copies across `lines` mirror lines through `center` (the first at `angle` degrees).
+    Symmetry { lines: u32, center: [f64; 2], angle: f64, primaries: usize },
+    /// Object ▸ Perspective: the perspective type, the field (x0, y0, x1, y1), the height of the
+    /// horizon and the flat objects with their planes (0 orthographic, 1 top, 2 left, 3 right,
+    /// 4 side).
+    Perspective { kind: u8, field: [f64; 4], horizon: f64, flats: Vec<(u8, crate::Object)> },
+    /// Object ▸ Insert ▸ Object: a linked file, or an embedded one (base64 `data`).
+    Ole { name: String, path: String, linked: bool, data: String, icon: bool },
 }
 
 /// The QR code of `text` as one path of dark modules, `size` points square (the quiet zone

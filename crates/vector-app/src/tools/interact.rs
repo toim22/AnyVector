@@ -10,7 +10,7 @@ use egui::Pos2;
 use kurbo::{BezPath, CubicBez, ParamCurve, Shape};
 use vector_core::object::*;
 use vector_core::path::{fit_freehand, polyline};
-use vector_core::style::{Gradient, Transparency, WidthProfile};
+use vector_core::style::{Gradient, Transparency, VarWidth, WidthProfile};
 use vector_core::text::TextKind;
 use vector_core::{geom, ops};
 
@@ -161,6 +161,7 @@ pub fn xform_affine(kind: Xform, start: Point, cur: Point, bb: Rect, center: Poi
             }
             Affine::rotate_about(a, center)
         }
+        Xform::Free(m) => free_affine(m, center, cur, bb, mods, constrain_deg),
         Xform::Skew(h) => {
             let dv = cur - start;
             if h == 1 || h == 5 {
@@ -174,6 +175,39 @@ pub fn xform_affine(kind: Xform, start: Point, cur: Point, bb: Rect, center: Poi
                 let k = if den.abs() > 1e-9 { dv.y / den } else { 0.0 };
                 Affine::new([1.0, k, 0.0, 1.0, 0.0, -k * anchor])
             }
+        }
+    }
+}
+
+/// Free Transform tool: the transform dragged out from the point clicked (`center`): 0 rotates
+/// by the angle of the drag line, 1 reflects across it, 2 scales, 3 skews.
+pub fn free_affine(mode: u8, center: Point, cur: Point, bb: Rect, mods: egui::Modifiers, constrain_deg: f64) -> Affine {
+    let v = cur - center;
+    let c = center.to_vec2();
+    let about = |a: Affine| Affine::translate(c) * a * Affine::translate(-c);
+    let mut ang = v.atan2();
+    if mods.ctrl {
+        let step = constrain_deg.max(1.0).to_radians();
+        ang = (ang / step).round() * step;
+    }
+    let (w, h) = (bb.width().max(1e-9), bb.height().max(1e-9));
+    match mode {
+        0 => Affine::rotate_about(ang, center),
+        1 => {
+            let (s, co) = (2.0 * ang).sin_cos();
+            about(Affine::new([co, s, s, -co, 0.0, 0.0]))
+        }
+        3 => about(Affine::new([1.0, v.y / w, v.x / h, 1.0, 0.0, 0.0])),
+        _ => {
+            let mut sx = 1.0 + v.x / w;
+            let mut sy = 1.0 + v.y / h;
+            if mods.ctrl {
+                let k = sx.abs().max(sy.abs());
+                sx = k * sx.signum();
+                sy = k * sy.signum();
+            }
+            let fix = |s: f64| if s.abs() < 1e-4 { 1e-4 } else { s };
+            about(Affine::scale_non_uniform(fix(sx), fix(sy)))
         }
     }
 }
@@ -407,6 +441,9 @@ impl<'a> Cx<'a> {
 
     fn run(&mut self) {
         let p = self.raw;
+        if !self.ts.ls_pending.is_empty() && self.tool != ToolId::LiveSketch {
+            self.commit_livesketch();
+        }
         if !self.ts.drag.is_none() || self.ts.press.is_none() {
             // keep the pointer position current for previews of multi-click tools
             if self.ts.drag.is_none() {
@@ -473,7 +510,24 @@ impl<'a> Cx<'a> {
                 let s = self.snap(p, &[]);
                 self.ts.drag = Drag::Create { start: s };
             }
-            Knife | Zoom | Rectangle | Ellipse | Polygon | Star | Spiral | GraphPaper | CommonShapes | Table | TwoPointLine => {
+            Knife if self.s.topts.knife_mode == 1 => self.ts.drag = Drag::Stroke { points: vec![p], times: vec![self.inp.time] },
+            Knife if self.s.topts.knife_mode == 2 => {
+                let s = self.snap(p, &[]);
+                if self.ts.stage.last().map(|l| self.screen_dist(*l, s) > 2.0).unwrap_or(true) {
+                    self.ts.stage.push(s);
+                }
+            }
+            VariableOutline => self.var_outline_press(),
+            ParallelDim | HvDim if self.s.topts.dim_successive && self.ts.stage.is_empty() && self.ts.dim_chain.is_some() => {
+                // Successive dimensioning: each click measures from the end of the last dimension
+                let s = self.snap(p, &[]);
+                if let Some((last, off)) = self.ts.dim_chain {
+                    if (s - last).hypot() > 1e-6 {
+                        self.add_dimension(vec![last, s, s + off]);
+                    }
+                }
+            }
+            Knife | Zoom | Rectangle | Ellipse | Polygon | Star | Spiral | GraphPaper | CommonShapes | Table | TwoPointLine | Impact => {
                 let s = if self.tool == Zoom || self.tool == Knife { p } else { self.snap(p, &[]) };
                 self.ts.drag = Drag::Create { start: s };
                 self.ts.cur = s;
@@ -564,6 +618,12 @@ impl<'a> Cx<'a> {
                 self.ts.cur = start;
             }
             EditAnchor => self.edit_anchor_press(),
+            Transparency | InteractiveFill if self.gradient_handle_at(p).is_some() => {
+                if let Some((obj, end)) = self.gradient_handle_at(p) {
+                    self.ts.drag = Drag::GradientHandle { obj, end, moved: false };
+                    self.ts.cur = p;
+                }
+            }
             DropShadow | InnerShadow | BlockShadow | Contour | Distort | Extrude | Transparency | InteractiveFill => {
                 let target = self.hit(p).or_else(|| self.d.selection.first().copied().filter(|id| self.d.doc.find(*id).map(|o| o.bounds().inflate(self.tol(), self.tol()).contains(p)).unwrap_or(false)));
                 match target {
@@ -624,6 +684,17 @@ impl<'a> Cx<'a> {
             }
         }
         let hit = self.hit(p);
+        // Free Transform: the selection turns around the point clicked
+        if self.tool == ToolId::FreeTransform && !self.d.selection.is_empty() && hit.map_or(true, |id| self.d.selection.contains(&id)) {
+            if let Some(bb) = self.d.selection_bounds() {
+                let t = &self.s.topts;
+                self.ts.ft_center = Some(p);
+                self.ts.drag = Drag::Transform { kind: Xform::Free(t.ft_mode.min(3)), start: p, bb, ids: self.d.selection.clone(), center: p };
+                self.ts.cur = p;
+                self.ts.copy_on_drop = t.ft_duplicate;
+                return;
+            }
+        }
         let shift = self.mods().shift;
         match hit {
             Some(id) => {
@@ -745,6 +816,9 @@ impl<'a> Cx<'a> {
     }
 
     fn bezier_press(&mut self) {
+        if self.tool == ToolId::Pen && self.s.topts.pen_auto_add && self.ts.curve.is_empty() && self.pen_auto_add_delete() {
+            return;
+        }
         let s = self.snap(self.raw, &[]);
         if self.ts.curve.len() >= 2 && self.screen_dist(self.ts.curve[0].p, s) <= 6.0 {
             let first = self.ts.curve[0].p;
@@ -770,6 +844,286 @@ impl<'a> Cx<'a> {
         self.ts.curve.push(Node::corner(s));
         self.ts.bspline = false;
         self.ts.drag = Drag::BezierHandle { node: s };
+    }
+
+    /// Pen ▸ Auto add or delete nodes: clicking a node of a selected curve deletes it, clicking
+    /// one of its segments adds a node.
+    fn pen_auto_add_delete(&mut self) -> bool {
+        let p = self.raw;
+        let tol = self.tol();
+        for id in self.d.selection.clone() {
+            let Some(o) = self.d.doc.find(id) else { continue };
+            let ObjKind::Path(np) = &o.kind else { continue };
+            let t = o.transform;
+            for (si, sp) in np.subpaths.iter().enumerate() {
+                for (ni, n) in sp.nodes.iter().enumerate() {
+                    if ((t * n.p) - p).hypot() <= tol {
+                        if np.node_count() <= 2 {
+                            return true;
+                        }
+                        self.d.modify("Delete Node", |doc, _| {
+                            if let Some(ObjKind::Path(np)) = doc.find_mut(id).map(|o| &mut o.kind) {
+                                np.delete_nodes(&[(si, ni)]);
+                            }
+                        });
+                        self.d.node_sel.clear();
+                        return true;
+                    }
+                }
+            }
+            let local = t.inverse() * p;
+            if let Some((si, seg, tt, q, _)) = np.nearest(local) {
+                if ((t * q) - p).hypot() <= tol && tt > 0.02 && tt < 0.98 {
+                    self.d.modify("Add Node", |doc, _| {
+                        if let Some(ObjKind::Path(np)) = doc.find_mut(id).map(|o| &mut o.kind) {
+                            np.insert_node(si, seg, tt);
+                        }
+                    });
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    /// Variable Outline tool: a press on the outline of the selected object selects the width node
+    /// there, or adds one; dragging sets the width of that side.
+    fn var_outline_press(&mut self) {
+        let p = self.raw;
+        let tol = self.tol();
+        let mut target = None;
+        for id in self.d.selection.clone() {
+            let Some(o) = self.d.doc.find(id) else { continue };
+            if o.is_container() {
+                continue;
+            }
+            let reach = tol + o.style.outline.width / 2.0
+                + match &o.style.outline.profile {
+                    Some(WidthProfile::Variable { nodes, .. }) => nodes.iter().map(|w| w.side1.max(w.side2)).fold(0.0, f64::max),
+                    _ => 0.0,
+                };
+            if let Some(r) = outline_param(&o.world_path(), p) {
+                if r.3 <= reach {
+                    target = Some((id, r, outline_length(&o.world_path())));
+                    break;
+                }
+            }
+        }
+        let Some((id, (t, q, normal, _), total)) = target else {
+            self.ts.vo_node = None;
+            match self.hit(p) {
+                Some(id) => self.d.selection = vec![id],
+                None => self.d.selection.clear(),
+            }
+            return;
+        };
+        let Some(o) = self.d.doc.find(id) else { return };
+        let mut nodes = match &o.style.outline.profile {
+            Some(WidthProfile::Variable { nodes, .. }) => nodes.clone(),
+            _ => vec![],
+        };
+        let idx = match nodes.iter().position(|w| (w.t - t).abs() * total <= tol) {
+            Some(i) => i,
+            None => {
+                let w = o.style.outline.width.max(self.ts.default_outline_width).max(0.5) / 2.0;
+                if nodes.is_empty() {
+                    nodes = vec![VarWidth { t: 0.0, side1: w, side2: w }, VarWidth { t: 1.0, side1: w, side2: w }];
+                }
+                let (s1, s2) = vector_core::style::var_width_at(&nodes, t);
+                nodes.push(VarWidth { t, side1: s1, side2: s2 });
+                nodes.sort_by(|a, b| a.t.total_cmp(&b.t));
+                let i = nodes.iter().position(|w| w.t == t).unwrap_or(0);
+                let scale = self.s.topts.vo_scale;
+                self.d.modify("Add Node", |doc, _| {
+                    if let Some(o) = doc.find_mut(id) {
+                        let scale = match &o.style.outline.profile {
+                            Some(WidthProfile::Variable { scale, .. }) => *scale,
+                            _ => scale,
+                        };
+                        o.style.outline.profile = Some(WidthProfile::Variable { nodes, scale });
+                        if o.style.outline.color.is_none() {
+                            o.style.outline.color = Some(Color::BLACK);
+                        }
+                    }
+                });
+                i
+            }
+        };
+        self.ts.vo_node = Some(idx);
+        self.ts.drag = Drag::VarWidth { obj: id, node: idx, base: q, normal, moved: false };
+        self.ts.cur = p;
+    }
+
+    /// Where an anchor goes for a pointer position: the nearest point of the object's outline, or
+    /// its center, normalized to the bounding box.
+    fn anchor_spot(&self, id: ObjId, p: Point) -> Option<Point> {
+        let o = self.d.doc.find(id)?;
+        if matches!(o.kind, ObjKind::Connector(_) | ObjKind::Dimension(_)) {
+            return None;
+        }
+        let b = self.d.doc.bounds_of(o);
+        if b.width() <= 0.0 || b.height() <= 0.0 {
+            return None;
+        }
+        let q = if (p - b.center()).hypot() <= self.tol() * 2.0 { b.center() } else { outline_param(&o.world_path(), p).map(|r| r.1).unwrap_or(p) };
+        Some(Point::new(((q.x - b.x0) / b.width()).clamp(0.0, 1.0), ((q.y - b.y0) / b.height()).clamp(0.0, 1.0)))
+    }
+
+    /// The anchor of an object under the pointer: (index, document point).
+    fn anchor_under(&self, id: ObjId, p: Point) -> Option<usize> {
+        let o = self.d.doc.find(id)?;
+        let b = self.d.doc.bounds_of(o);
+        let tol = self.tol();
+        o.effects.anchor_list().iter().position(|a| (Point::new(b.x0 + a.pos.x * b.width(), b.y0 + a.pos.y * b.height()) - p).hypot() <= tol)
+    }
+
+    fn knife_opts(&self) -> ops::KnifeOpts {
+        let t = &self.s.topts;
+        ops::KnifeOpts { span: t.knife_span, width: t.knife_width, auto_close: t.knife_auto_close, outline: t.knife_outline }
+    }
+
+    /// Knife along a polyline with the property bar options.
+    fn knife_along(&mut self, pts: Vec<Point>) {
+        if pts.len() < 2 {
+            return;
+        }
+        let page = self.d.page;
+        let o = self.knife_opts();
+        let plain = pts.len() == 2 && o.span == 0 && o.auto_close && o.outline == 0;
+        self.d.modify("Knife", |doc, sel| {
+            let ids = if plain { ops::knife(doc, page, pts[0], pts[1]) } else { ops::knife_path(doc, page, &pts, o) };
+            if !ids.is_empty() {
+                *sel = ids;
+            }
+        });
+    }
+
+    /// Fit a curve to pointer points (fitted in screen space so smoothing does not depend on zoom).
+    fn fit_points(&self, pts: &[Point], smoothing: f64, closed: bool) -> NodePath {
+        let zoom = self.d.zoom.max(1e-6);
+        let scaled: Vec<Point> = pts.iter().map(|p| Point::new(p.x * zoom, p.y * zoom)).collect();
+        let mut np = fit_freehand(&scaled, smoothing, closed);
+        np.transform(Affine::scale(1.0 / zoom));
+        np
+    }
+
+    /// LiveSketch: turn the strokes waiting for the timer into curves. With "Create single curve"
+    /// they become one curve; with "Include curves" a stroke that starts or ends near the end of an
+    /// open curve extends it.
+    fn commit_livesketch(&mut self) {
+        let strokes = std::mem::take(&mut self.ts.ls_pending);
+        let t = self.s.topts.clone();
+        let reach = self.d.doc_len(t.ls_distance.max(0.0) as f32);
+        let groups: Vec<Vec<Point>> = if t.ls_single && strokes.len() > 1 {
+            // chain the strokes: each one continues from the end nearest to the last point
+            let mut rest = strokes;
+            let mut out = rest.remove(0);
+            while !rest.is_empty() {
+                let last = *out.last().unwrap();
+                let (i, rev) = rest
+                    .iter()
+                    .enumerate()
+                    .flat_map(|(i, s)| [((s[0] - last).hypot(), i, false), ((s[s.len() - 1] - last).hypot(), i, true)])
+                    .min_by(|a, b| a.0.total_cmp(&b.0))
+                    .map(|(_, i, r)| (i, r))
+                    .unwrap_or((0, false));
+                let mut s = rest.remove(i);
+                if rev {
+                    s.reverse();
+                }
+                out.extend(s);
+            }
+            vec![out]
+        } else {
+            strokes
+        };
+        let smoothing = t.ls_smoothing.clamp(0.0, 100.0);
+        let join = self.d.doc_len(self.s.auto_join.max(1.0) as f32);
+        for pts in groups {
+            if pts.len() < 2 {
+                continue;
+            }
+            let closed = pts.len() > 3 && (pts[0] - pts[pts.len() - 1]).hypot() <= join;
+            let np = self.fit_points(&pts, smoothing, closed);
+            if t.ls_include && !closed && self.extend_curve(&np, reach) {
+                continue;
+            }
+            add_curve(self.ts, self.d, np, "LiveSketch");
+        }
+    }
+
+    /// Join a new open curve to an open curve whose end is within `reach` of one of its ends.
+    fn extend_curve(&mut self, np: &NodePath, reach: f64) -> bool {
+        let Some(sp) = np.subpaths.first() else { return false };
+        if sp.nodes.len() < 2 {
+            return false;
+        }
+        let (a, b) = (sp.nodes[0].p, sp.nodes[sp.nodes.len() - 1].p);
+        let mut best: Option<(ObjId, bool, bool, f64)> = None;
+        for o in self.d.page_ref().all_objects() {
+            if o.locked || !o.visible {
+                continue;
+            }
+            let ObjKind::Path(op) = &o.kind else { continue };
+            if op.subpaths.len() != 1 || op.subpaths[0].closed || op.subpaths[0].nodes.len() < 2 {
+                continue;
+            }
+            let on = &op.subpaths[0].nodes;
+            let (s, e) = (o.transform * on[0].p, o.transform * on[on.len() - 1].p);
+            for (at_end, pt) in [(true, e), (false, s)] {
+                for (new_start, q) in [(true, a), (false, b)] {
+                    let dd = (pt - q).hypot();
+                    if dd <= reach && best.map_or(true, |x| dd < x.3) {
+                        best = Some((o.id, at_end, new_start, dd));
+                    }
+                }
+            }
+        }
+        let Some((id, at_end, new_start, _)) = best else { return false };
+        let mut add: Vec<Node> = sp.nodes.clone();
+        // orient the new nodes to continue the old curve
+        if at_end != new_start {
+            add.reverse();
+            for n in add.iter_mut() {
+                std::mem::swap(&mut n.c_in, &mut n.c_out);
+            }
+            for i in 0..add.len().saturating_sub(1) {
+                add[i].line_out = add[i + 1].line_out;
+            }
+        }
+        self.d.modify("LiveSketch", |doc, sel| {
+            let Some(o) = doc.find_mut(id) else { return };
+            let inv = o.transform.inverse();
+            let ObjKind::Path(op) = &mut o.kind else { return };
+            let mut local: Vec<Node> = add
+                .iter()
+                .map(|n| {
+                    let mut n = *n;
+                    n.p = inv * n.p;
+                    n.c_in = inv * n.c_in;
+                    n.c_out = inv * n.c_out;
+                    n
+                })
+                .collect();
+            let nodes = &mut op.subpaths[0].nodes;
+            if at_end {
+                local.remove(0);
+                if let Some(l) = nodes.last_mut() {
+                    l.line_out = false;
+                    l.kind = NodeKind::Smooth;
+                }
+                nodes.extend(local);
+            } else {
+                local.pop();
+                if let Some(f) = nodes.first_mut() {
+                    f.kind = NodeKind::Smooth;
+                }
+                local.extend(nodes.drain(..));
+                *nodes = local;
+            }
+            *sel = vec![id];
+        });
+        true
     }
 
     fn text_press(&mut self) {
@@ -842,6 +1196,15 @@ impl<'a> Cx<'a> {
                 }
             }
         }
+        // anchors of the selected object
+        if let Some(&id) = self.d.selection.first() {
+            if let Some(i) = self.anchor_under(id, p) {
+                self.ts.anchor_sel = Some((id, i));
+                self.ts.drag = Drag::Anchor { obj: id, idx: i, moved: false };
+                return;
+            }
+        }
+        self.ts.anchor_sel = None;
         if let Some(id) = self.hit(p) {
             self.d.selection = vec![id];
         }
@@ -855,6 +1218,10 @@ impl<'a> Cx<'a> {
                 if let Some(env) = &o.effects.envelope {
                     let bb = warp_bbox(o);
                     for i in 0..8 {
+                        // straight-line envelopes have no middle nodes
+                        if env.mode == 0 && i % 2 == 1 {
+                            continue;
+                        }
                         if (envelope_handle(bb, env, i) - p).hypot() <= tol {
                             self.ts.drag = Drag::Envelope { obj: id, handle: i, start: p, orig: env.handles, moved: false };
                             return;
@@ -869,9 +1236,11 @@ impl<'a> Cx<'a> {
                 let has = self.d.doc.find(id).map(|o| o.effects.envelope.is_some()).unwrap_or(true);
                 let container = self.d.doc.find(id).map(|o| o.is_container()).unwrap_or(true);
                 if !has && !container {
+                    let t = &self.s.topts;
+                    let env = EnvelopeEffect { handles: [Vec2::ZERO; 8], mode: t.env_mode, mapping: t.env_mapping, keep_lines: t.env_keep_lines };
                     self.d.modify("Envelope", |doc, _| {
                         if let Some(o) = doc.find_mut(id) {
-                            o.effects.envelope = Some(EnvelopeEffect { handles: [Vec2::ZERO; 8] });
+                            o.effects.envelope = Some(env);
                         }
                     });
                 }
@@ -923,15 +1292,58 @@ impl<'a> Cx<'a> {
                     *started = true;
                 }
                 if *started {
-                    let dv = cur - *start;
+                    let start_pt = *start;
+                    let dv = cur - start_pt;
                     let elastic = self.ts.elastic;
+                    let mode = self.ts.node_mode;
+                    let (rh, rv) = (self.s.topts.reflect_h, self.s.topts.reflect_v);
+                    // the center of the selected nodes, for stretching and rotating them
+                    let mut sum = Vec2::ZERO;
+                    let mut cnt = 0.0;
+                    for (id, np0) in orig.iter() {
+                        let Some(o) = self.d.doc.find(*id) else { continue };
+                        for (_, s, n) in self.d.node_sel.iter().filter(|(x, _, _)| x == id) {
+                            if let Some(nd) = np0.node((*s, *n)) {
+                                sum += (o.transform * nd.p).to_vec2();
+                                cnt += 1.0;
+                            }
+                        }
+                    }
+                    let c = if cnt > 0.0 { (sum / cnt).to_point() } else { start_pt };
+                    let world: Option<Affine> = match mode {
+                        1 if cnt > 1.0 => {
+                            let k = |a: f64, b: f64, s: f64| if (s - a).abs() > 1e-6 { (b - a) / (s - a) } else { 1.0 };
+                            let (sx, sy) = (k(c.x, cur.x, start_pt.x), k(c.y, cur.y, start_pt.y));
+                            Some(Affine::translate(c.to_vec2()) * Affine::scale_non_uniform(sx, sy) * Affine::translate(-c.to_vec2()))
+                        }
+                        2 if cnt > 1.0 => Some(Affine::rotate_about((cur - c).atan2() - (start_pt - c).atan2(), c)),
+                        _ => None,
+                    };
                     for (id, np0) in orig.iter() {
                         let refs: Vec<(usize, usize)> = self.d.node_sel.iter().filter(|(o, _, _)| o == id).map(|(_, s, n)| (*s, *n)).collect();
                         if let Some(o) = self.d.doc.find_mut(*id) {
-                            let inv = o.transform.inverse();
+                            let t = o.transform;
+                            let inv = t.inverse();
                             let ld = inv * Point::new(dv.x, dv.y) - inv * Point::ZERO;
                             let mut np = np0.clone();
-                            if elastic {
+                            if let Some(a) = world {
+                                let la = inv * a * t;
+                                for r in &refs {
+                                    if let Some(n) = np.node_mut(*r) {
+                                        n.p = la * n.p;
+                                        n.c_in = la * n.c_in;
+                                        n.c_out = la * n.c_out;
+                                    }
+                                }
+                            } else if (rh || rv) && cnt > 1.0 {
+                                // reflect: the node dragged follows the pointer, the others mirror its move
+                                let m = Vec2::new(if rh { -dv.x } else { dv.x }, if rv { -dv.y } else { dv.y });
+                                let lm = inv * Point::new(m.x, m.y) - inv * Point::ZERO;
+                                for r in &refs {
+                                    let dragged = np0.node(*r).map(|n| ((t * n.p) - start_pt).hypot() < 1e-6).unwrap_or(false);
+                                    move_nodes(&mut np, &[*r], if dragged { ld } else { lm });
+                                }
+                            } else if elastic {
                                 elastic_move(&mut np, &refs, ld);
                             } else {
                                 move_nodes(&mut np, &refs, ld);
@@ -1091,7 +1503,15 @@ impl<'a> Cx<'a> {
                     if let Some(o) = self.d.doc.find_mut(*obj) {
                         let bb = warp_bbox(o);
                         if bb.width() > 1e-9 && bb.height() > 1e-9 {
-                            let dv = p - *start;
+                            let mut dv = p - *start;
+                            // straight line, single arc and double arc nodes move across or up and down only
+                            if o.effects.envelope.as_ref().map(|e| e.mode <= 2).unwrap_or(false) {
+                                if dv.x.abs() > dv.y.abs() {
+                                    dv.y = 0.0;
+                                } else {
+                                    dv.x = 0.0;
+                                }
+                            }
                             let mut h = *orig;
                             h[*handle] += Vec2::new(dv.x / bb.width(), dv.y / bb.height());
                             if let Some(env) = o.effects.envelope.as_mut() {
@@ -1101,6 +1521,87 @@ impl<'a> Cx<'a> {
                     }
                     self.d.history.touch();
                 }
+            }
+            Drag::VarWidth { obj, node, base, normal, moved: started } => {
+                if !*started && moved {
+                    self.d.checkpoint("Variable Outline");
+                    *started = true;
+                }
+                if *started {
+                    let off = (p - *base).dot(*normal);
+                    let w = off.abs();
+                    let lock = self.s.topts.vo_lock;
+                    if let Some(o) = self.d.doc.find_mut(*obj) {
+                        if let Some(WidthProfile::Variable { nodes, .. }) = &mut o.style.outline.profile {
+                            if let Some(n) = nodes.get_mut(*node) {
+                                if lock {
+                                    let cur = if off >= 0.0 { n.side1 } else { n.side2 };
+                                    let k = if cur > 1e-6 { w / cur } else { 1.0 };
+                                    n.side1 *= k;
+                                    n.side2 *= k;
+                                    if cur <= 1e-6 {
+                                        n.side1 = w;
+                                        n.side2 = w;
+                                    }
+                                } else if off >= 0.0 {
+                                    n.side1 = w;
+                                } else {
+                                    n.side2 = w;
+                                }
+                            }
+                        }
+                    }
+                    self.d.history.touch();
+                }
+                self.ts.cur = p;
+            }
+            Drag::GradientHandle { obj, end, moved: started } => {
+                if moved {
+                    if !*started {
+                        self.d.checkpoint(if self.tool == ToolId::Transparency { "Transparency" } else { "Fill" });
+                        *started = true;
+                    }
+                    let q = self.snap(p, &[*obj]);
+                    let transparency = self.tool == ToolId::Transparency;
+                    if let Some(o) = self.d.doc.find_mut(*obj) {
+                        let uv = fill_uv(o, q);
+                        let g = match (transparency, &mut o.style.fill, &mut o.style.transparency) {
+                            (false, Fill::Gradient(g), _) => Some(g),
+                            (true, _, Transparency::Gradient(g)) => Some(g),
+                            _ => None,
+                        };
+                        if let Some(g) = g {
+                            if *end {
+                                g.end = uv;
+                            } else {
+                                g.start = uv;
+                            }
+                        }
+                    }
+                    self.d.history.touch();
+                }
+                self.ts.cur = p;
+            }
+            Drag::Anchor { obj, idx, moved: started } => {
+                if moved {
+                    if let Some(q) = self.anchor_spot(*obj, p) {
+                        if !*started {
+                            self.d.checkpoint("Edit Anchor");
+                            *started = true;
+                        }
+                        if let Some(o) = self.d.doc.find_mut(*obj) {
+                            if o.effects.anchors.is_empty() {
+                                o.effects.anchors = o.effects.anchor_list();
+                            }
+                            if let Some(a) = o.effects.anchors.get_mut(*idx) {
+                                a.pos = q;
+                            }
+                        }
+                        self.d.doc.update_connectors();
+                        self.d.history.touch();
+                    }
+                }
+                self.ts.cur = p;
             }
             Drag::BezierHandle { node } => {
                 if moved {
@@ -1197,6 +1698,7 @@ impl<'a> Cx<'a> {
                         Xform::Scale(_) => "Stretch",
                         Xform::Rotate => "Rotate",
                         Xform::Skew(_) => "Skew",
+                        Xform::Free(m) => ["Rotate", "Reflect", "Scale", "Skew"][m.min(3) as usize],
                     };
                     let ids: Vec<ObjId> = ids.into_iter().filter(|id| self.d.doc.find(*id).map(|o| !o.locked).unwrap_or(false)).collect();
                     if !ids.is_empty() {
@@ -1213,7 +1715,7 @@ impl<'a> Cx<'a> {
                 self.ts.was_selected = false;
             }
             Drag::Create { start } => self.release_create(start, moved),
-            Drag::Nodes { moved: started, .. } | Drag::Control { moved: started, .. } | Drag::Corner { moved: started, .. } | Drag::Envelope { moved: started, .. } => {
+            Drag::Nodes { moved: started, .. } | Drag::Control { moved: started, .. } | Drag::Corner { moved: started, .. } | Drag::Envelope { moved: started, .. } | Drag::VarWidth { moved: started, .. } | Drag::Anchor { moved: started, .. } | Drag::GradientHandle { moved: started, .. } => {
                 if started {
                     self.d.after_change();
                     self.d.history.touch();
@@ -1286,8 +1788,8 @@ impl<'a> Cx<'a> {
                     };
                     let c = ConnectorObj {
                         kind,
-                        start: ConnectorEnd { point: start, attached: from },
-                        end: ConnectorEnd { point: to, attached: end.map(|e| (e.0, e.1)) },
+                        start: ConnectorEnd { point: start, attached: from, dir: None },
+                        end: ConnectorEnd { point: to, attached: end.map(|e| (e.0, e.1)), dir: None },
                         corner_radius: if kind == ConnectorKind::RoundedRightAngle { 8.0 } else { 0.0 },
                     };
                     let id = self.d.doc.new_id();
@@ -1339,14 +1841,33 @@ impl<'a> Cx<'a> {
             }
             Knife => {
                 if moved {
-                    let page = self.d.page;
-                    let (a, b) = (start, self.raw);
-                    self.d.modify("Knife", |doc, sel| {
-                        let ids = ops::knife(doc, page, a, b);
-                        if !ids.is_empty() {
-                            *sel = ids;
-                        }
-                    });
+                    let b = self.raw;
+                    self.knife_along(vec![start, b]);
+                }
+            }
+            Impact => {
+                if moved {
+                    let id = self.d.doc.new_id();
+                    let color = self.ts.new_fill.unwrap_or(Color::BLACK);
+                    let frame = self.ts.impact_outer.unwrap_or_else(|| Rect::from_points(start, cur));
+                    if let Some(g) = impact_group(self.d, &self.s.topts, frame, self.ts.impact_inner.as_ref(), color, id) {
+                        self.d.add_objects("Impact", vec![g]);
+                    }
+                }
+            }
+            TwoPointLine if moved && self.s.topts.line2_mode != 0 => {
+                // perpendicular or tangent to the curve the line starts on
+                let tol = self.tol();
+                let on = self.d.page_ref().all_objects().filter(|o| o.visible && !o.is_container()).filter_map(|o| outline_param(&o.world_path(), start)).filter(|r| r.3 <= tol).min_by(|a, b| a.3.total_cmp(&b.3));
+                let (a, b) = match on {
+                    Some((_, q, normal, _)) => {
+                        let dir = if self.s.topts.line2_mode == 1 { normal } else { Vec2::new(normal.y, -normal.x) };
+                        (q, q + dir * (cur - q).dot(dir))
+                    }
+                    None => (start, cur),
+                };
+                if (b - a).hypot() > 1e-6 {
+                    add_curve(self.ts, self.d, polyline(&[a, b], false), "Create 2-Point Line");
                 }
             }
             Text => {
@@ -1435,8 +1956,9 @@ impl<'a> Cx<'a> {
                     if pts.len() == 1 {
                         pts.push(pts[0] + Vec2::new(0.01, 0.0));
                     }
+                    let square = self.s.topts.eraser_square;
                     self.d.modify("Erase", |doc, sel| {
-                        let ids = ops::erase(doc, page, &pts, w);
+                        let ids = ops::erase_nib(doc, page, &pts, w, square);
                         if !ids.is_empty() {
                             *sel = ids;
                         }
@@ -1445,6 +1967,20 @@ impl<'a> Cx<'a> {
             }
             Polyline => {
                 // nodes were added on press and while dragging
+            }
+            Knife => {
+                if moved {
+                    self.knife_along(points);
+                }
+            }
+            LiveSketch => {
+                if points.len() >= 2 && moved {
+                    self.ts.ls_pending.push(points);
+                    self.ts.ls_last = self.inp.time;
+                    if self.s.topts.ls_timer <= 0.0 {
+                        self.commit_livesketch();
+                    }
+                }
             }
             Freehand if !moved => {
                 // click-click straight lines
@@ -1473,11 +2009,10 @@ impl<'a> Cx<'a> {
                     np
                 };
                 match self.tool {
-                    Freehand | LiveSketch => {
-                        let smoothing = if self.tool == LiveSketch { (self.s.freehand_smoothing + 30.0).min(100.0) } else { self.s.freehand_smoothing };
+                    Freehand => {
                         let closed = self.ts.auto_close || closed_by_proximity;
-                        let np = fit(&points, smoothing, closed);
-                        add_curve(self.ts, self.d, np, if self.tool == LiveSketch { "LiveSketch" } else { "Freehand" });
+                        let np = fit(&points, self.s.freehand_smoothing, closed);
+                        add_curve(self.ts, self.d, np, "Freehand");
                     }
                     SmartDrawing => {
                         let id = self.d.doc.new_id();
@@ -1494,22 +2029,24 @@ impl<'a> Cx<'a> {
                         self.d.add_objects("Smart Drawing", vec![o]);
                     }
                     ArtisticMedia | PainterlyBrush => {
-                        let np = fit(&points, 40.0, false);
+                        let seed = (self.inp.time * 1000.0) as u32;
+                        let smooth = if self.tool == PainterlyBrush { (40.0 + self.s.topts.paint_smoothing * 0.6).min(100.0) } else { 40.0 };
+                        let np = fit(&points, smooth, false);
                         let profile = if self.tool == PainterlyBrush {
-                            WidthProfile::Painterly { bristles: 14, jitter: 0.35, seed: (self.inp.time * 1000.0) as u32 }
+                            crate::propbar::painterly_profile(&self.s.topts, seed)
                         } else {
                             match self.ts.media_kind {
                                 1 => WidthProfile::TaperEnd,
                                 2 => WidthProfile::TaperStart,
                                 3 => WidthProfile::Calligraphic { angle: 45.0, min_ratio: 0.2 },
                                 4 => WidthProfile::Pressure(speed_pressure(&points, &times)),
-                                5 => WidthProfile::Painterly { bristles: 14, jitter: 0.35, seed: (self.inp.time * 1000.0) as u32 },
+                                5 => crate::propbar::painterly_profile(&self.s.topts, seed),
                                 _ => WidthProfile::Taper,
                             }
                         };
                         let id = self.d.doc.new_id();
                         let color = self.ts.new_fill.unwrap_or(Color::BLACK);
-                        let style = Style { fill: Fill::None, outline: Outline { width: self.ts.media_width.max(0.1), color: Some(color), profile: Some(profile), cap: vector_core::style::LineCap::Round, join: vector_core::style::LineJoin::Round, ..Outline::default() }, ..Default::default() };
+                        let style = Style { fill: Fill::None, outline: Outline { width: self.ts.media_width.max(0.1), color: Some(color), profile: Some(profile), cap: vector_core::style::LineCap::Round, join: vector_core::style::LineJoin::Round, scale_with_object: self.s.topts.media_scale, ..Outline::default() }, ..Default::default() };
                         let o = Object::new(id, ObjKind::Path(np), Affine::IDENTITY, style);
                         self.d.add_objects("Artistic Media", vec![o]);
                     }
@@ -1527,6 +2064,7 @@ impl<'a> Cx<'a> {
         match self.tool {
             Bezier | Pen | Polyline | BSpline => {
                 self.ts.drag = Drag::None;
+                self.auto_close_polyline();
                 super::finish(self.ts, self.d, self.s);
             }
             Crop => {
@@ -1534,8 +2072,45 @@ impl<'a> Cx<'a> {
                     super::finish(self.ts, self.d, self.s);
                 }
             }
+            Knife if !self.ts.stage.is_empty() => {
+                let pts = std::mem::take(&mut self.ts.stage);
+                self.knife_along(pts);
+            }
+            EditAnchor => {
+                // add an anchor where the object was double-clicked
+                let Some(id) = self.d.selection.first().copied().or_else(|| self.hit(p)) else { return };
+                if self.anchor_under(id, p).is_some() {
+                    return;
+                }
+                let Some(q) = self.anchor_spot(id, p) else { return };
+                let auto = self.s.topts.anchor_auto;
+                let mut n = 0;
+                self.d.modify("Add Anchor", |doc, _| {
+                    if let Some(o) = doc.find_mut(id) {
+                        if o.effects.anchors.is_empty() {
+                            o.effects.anchors = o.effects.anchor_list();
+                        }
+                        o.effects.anchors.push(ObjAnchor { pos: q, dir: None, auto });
+                        n = o.effects.anchors.len() - 1;
+                    }
+                });
+                self.ts.anchor_sel = Some((id, n));
+            }
             Pick => {
                 if let Some(id) = self.hit(p) {
+                    // symmetry and perspective groups open for editing; inserted objects open in
+                    // their programs
+                    let open = match self.d.doc.find(id).and_then(|o| o.special.as_ref()) {
+                        Some(vector_core::codes::Special::Symmetry { .. }) => Some(Cmd::SymmetryEdit),
+                        Some(vector_core::codes::Special::Perspective { .. }) => Some(Cmd::PerspectiveEdit),
+                        Some(vector_core::codes::Special::Ole { .. }) => Some(Cmd::OleOpen),
+                        _ => None,
+                    };
+                    if let Some(c) = open {
+                        self.d.selection = vec![id];
+                        self.out.cmds.push(c);
+                        return;
+                    }
                     match self.d.doc.find(id).map(|o| &o.kind) {
                         Some(ObjKind::Text(_)) => {
                             self.out.tool = Some(Text);
@@ -1582,6 +2157,24 @@ impl<'a> Cx<'a> {
         }
     }
 
+    /// Polyline ▸ Auto-close curve: finishing a polyline closes it.
+    fn auto_close_polyline(&mut self) {
+        if self.tool != ToolId::Polyline || !self.s.topts.polyline_auto_close {
+            return;
+        }
+        let n = self.ts.curve.len();
+        if n >= 2 && (self.ts.curve[n - 1].p - self.ts.curve[n - 2].p).hypot() < self.d.doc_len(3.0) {
+            self.ts.curve.pop();
+        }
+        if self.ts.curve.len() >= 3 {
+            let mut nodes = std::mem::take(&mut self.ts.curve);
+            if let Some(l) = nodes.last_mut() {
+                l.line_out = true;
+            }
+            add_curve(self.ts, self.d, NodePath { subpaths: vec![SubPath { nodes, closed: true }] }, "Create Polyline");
+        }
+    }
+
     fn secondary(&mut self) {
         use ToolId::*;
         if matches!(self.ts.drag, Drag::Transform { .. }) {
@@ -1591,7 +2184,10 @@ impl<'a> Cx<'a> {
         }
         match self.tool {
             Zoom => self.d.zoom_at(self.inp.pos, 0.5),
-            Bezier | Pen | Polyline | BSpline if !self.ts.curve.is_empty() => super::finish(self.ts, self.d, self.s),
+            Bezier | Pen | Polyline | BSpline if !self.ts.curve.is_empty() => {
+                self.auto_close_polyline();
+                super::finish(self.ts, self.d, self.s);
+            }
             ColorEyedropper => self.color_eyedropper(true),
             // right-clicking an object selects it before its right-click menu opens
             Pick | FreehandPick | FreeTransform => match self.hit(self.raw) {
@@ -1609,6 +2205,22 @@ impl<'a> Cx<'a> {
             self.out.flash = Some("No object was clicked".into());
             return;
         };
+        if let PickTarget::ImpactBoundary { outer } = target {
+            let Some(o) = self.d.doc.find(t) else { return };
+            if o.is_container() || matches!(o.kind, ObjKind::Text(_)) {
+                self.out.flash = Some("Groups, text and impact effects can't be boundaries".into());
+                return;
+            }
+            let wp = o.world_path();
+            if outer {
+                self.ts.impact_outer = Some(self.d.doc.bounds_of(o));
+            } else {
+                self.ts.impact_inner = Some(wp);
+            }
+            let (inner, outer_r) = (self.ts.impact_inner.clone(), self.ts.impact_outer);
+            regen_selected_impacts(self.d, &self.s.topts, inner.as_ref(), outer_r);
+            return;
+        }
         let sel: Vec<ObjId> = self.d.selection.iter().copied().filter(|x| *x != t).collect();
         if sel.is_empty() {
             return;
@@ -1669,6 +2281,11 @@ impl<'a> Cx<'a> {
                                     to.steps = from.steps;
                                     to.rotation = from.rotation;
                                     to.acceleration = from.acceleration;
+                                    to.color_dir = from.color_dir;
+                                    to.looped = from.looped;
+                                    to.color_accel = from.color_accel;
+                                    to.link_accel = from.link_accel;
+                                    to.size_accel = from.size_accel;
                                     ok = true;
                                 }
                             }
@@ -1692,6 +2309,25 @@ impl<'a> Cx<'a> {
                             }
                             7 if e.distort.is_some() => {
                                 o.effects.distort = e.distort.clone();
+                                ok = true;
+                            }
+                            8 => {
+                                o.style.fill = src.style.fill.clone();
+                                ok = true;
+                            }
+                            9 => {
+                                o.style.transparency = src.style.transparency.clone();
+                                ok = true;
+                            }
+                            10 if matches!(src.style.outline.profile, Some(WidthProfile::Variable { .. })) => {
+                                o.style.outline.profile = src.style.outline.profile.clone();
+                                if o.style.outline.color.is_none() {
+                                    o.style.outline.color = src.style.outline.color;
+                                }
+                                ok = true;
+                            }
+                            11 if matches!(src.style.fill, Fill::Mesh(_)) => {
+                                o.style.fill = src.style.fill.clone();
                                 ok = true;
                             }
                             255 => {
@@ -1747,6 +2383,25 @@ impl<'a> Cx<'a> {
                     *s = out;
                 });
             }
+            PickTarget::ImpactBoundary { .. } => {}
+            PickTarget::EnvelopeFrom => {
+                let Some(src) = self.d.doc.find(t) else { return };
+                let Some(handles) = envelope_from_shape(&src.world_path()) else {
+                    self.out.flash = Some("The object clicked has no shape to take".into());
+                    return;
+                };
+                let tt = &self.s.topts;
+                let env = EnvelopeEffect { handles, mode: 3, mapping: tt.env_mapping, keep_lines: tt.env_keep_lines };
+                self.d.modify("Create Envelope From", |doc, _| {
+                    for id in &sel {
+                        if let Some(o) = doc.find_mut(*id) {
+                            if !o.is_container() {
+                                o.effects.envelope = Some(env.clone());
+                            }
+                        }
+                    }
+                });
+            }
             PickTarget::FitToPath => {
                 let text = sel[0];
                 let ok = self.d.modify("Fit Text to Path", |doc, _| ops::fit_text_to_path(doc, text, t));
@@ -1768,17 +2423,31 @@ impl<'a> Cx<'a> {
             _ => DimensionKind::Parallel,
         };
         let angular = kind == DimensionKind::Angular;
-        let dim = DimensionObj {
+        let t = &self.s.topts;
+        if t.dim_successive && pts.len() == 3 && matches!(kind, DimensionKind::Parallel | DimensionKind::HorizontalVertical) {
+            self.ts.dim_chain = Some((pts[1], pts[2] - pts[1]));
+        }
+        let mut dim = DimensionObj {
             kind,
             points: pts,
             text: String::new(),
             precision: if angular { self.s.angular_precision } else { self.s.dim_precision } as usize,
             prefix: self.s.dim_prefix.clone(),
             suffix: self.s.dim_suffix.clone(),
-            show_units: !angular,
+            show_units: !angular && t.dim_units,
             font_size: 12.0,
             unit: self.d.doc.settings.unit,
+            leading_zero: t.dim_leading_zero,
+            dynamic: t.dim_dynamic,
+            ext_gap: t.dim_ext_gap,
+            ext_len: t.dim_ext_len,
+            arrow: t.dim_arrow,
+            callout_shape: t.callout_shape,
+            callout_gap: t.callout_gap,
         };
+        if !dim.dynamic {
+            dim.text = dimension_label(&dim).0;
+        }
         let id = self.d.doc.new_id();
         let mut st = self.ts.new_style();
         st.fill = Fill::Solid(Color::BLACK);
@@ -1809,9 +2478,9 @@ impl<'a> Cx<'a> {
         if b.width() <= 0.0 || b.height() <= 0.0 {
             return None;
         }
-        let anchors = [(0.5, 0.0), (1.0, 0.5), (0.5, 1.0), (0.0, 0.5), (0.5, 0.5)];
         let mut best = (f64::MAX, Point::ZERO, Point::ZERO);
-        for (u, v) in anchors {
+        for a in o.effects.anchor_list() {
+            let (u, v) = (a.pos.x, a.pos.y);
             let q = Point::new(b.x0 + u * b.width(), b.y0 + v * b.height());
             let dd = (q - p).hypot();
             if dd < best.0 {
@@ -1819,6 +2488,22 @@ impl<'a> Cx<'a> {
             }
         }
         Some((id, best.1, best.2))
+    }
+
+    /// The gradient handle (object, end handle) under the pointer, of the fill (Interactive Fill)
+    /// or the transparency (Transparency tool) of a selected object.
+    fn gradient_handle_at(&self, p: Point) -> Option<(ObjId, bool)> {
+        let tol = self.tol() * 1.5;
+        self.d.selection.iter().find_map(|id| {
+            let o = self.d.doc.find(*id)?;
+            let g = match (self.tool, &o.style.fill, &o.style.transparency) {
+                (ToolId::InteractiveFill, Fill::Gradient(g), _) => g,
+                (ToolId::Transparency, _, Transparency::Gradient(g)) => g,
+                _ => return None,
+            };
+            let space = vector_render::Renderer::fill_space(o, &o.world_path());
+            [(false, g.start), (true, g.end)].into_iter().find(|(_, uv)| ((space * *uv) - p).hypot() <= tol).map(|(end, _)| (*id, end))
+        })
     }
 
     fn apply_effect(&mut self, obj: ObjId, start: Point, end: Point) {
@@ -1845,9 +2530,9 @@ impl<'a> Cx<'a> {
         self.d.modify(label, |doc, _| {
             let Some(o) = doc.find_mut(obj) else { return };
             match tool {
-                ToolId::DropShadow => o.effects.drop_shadow = Some(DropShadow { offset: dv, feather: 8.0, color: Color::BLACK, opacity: 50.0, inner: false }),
-                ToolId::InnerShadow => o.effects.inner_shadow = Some(DropShadow { offset: dv, feather: 6.0, color: Color::BLACK, opacity: 70.0, inner: true }),
-                ToolId::BlockShadow => o.effects.block_shadow = Some(BlockShadow { offset: dv, color: Color::rgb(0x40, 0x40, 0x40) }),
+                ToolId::DropShadow => o.effects.drop_shadow = Some(DropShadow { offset: dv, feather: 8.0, color: Color::BLACK, opacity: 50.0, inner: false, ..Default::default() }),
+                ToolId::InnerShadow => o.effects.inner_shadow = Some(DropShadow { offset: dv, feather: 6.0, color: Color::BLACK, opacity: 70.0, inner: true, ..Default::default() }),
+                ToolId::BlockShadow => o.effects.block_shadow = Some(BlockShadow { offset: dv, color: Color::rgb(0x40, 0x40, 0x40), ..Default::default() }),
                 ToolId::Contour => {
                     let outward = (end - center).hypot() > (start - center).hypot();
                     let steps = 4;
@@ -1856,7 +2541,7 @@ impl<'a> Cx<'a> {
                         steps,
                         offset: (dv.hypot() / steps as f64).max(0.5),
                         end_fill: Color::WHITE,
-                        end_outline: Color::BLACK,
+                        end_outline: Color::BLACK, ..Default::default()
                     });
                 }
                 ToolId::Distort => {
@@ -1870,7 +2555,7 @@ impl<'a> Cx<'a> {
                 }
                 ToolId::Extrude => {
                     let shade = Color::rgb((main.r as f64 * 0.45) as u8, (main.g as f64 * 0.45) as u8, (main.b as f64 * 0.45) as u8);
-                    o.effects.extrude = Some(ExtrudeEffect { depth: dv, color: main, shade, steps: 24 });
+                    o.effects.extrude = Some(ExtrudeEffect { depth: dv, color: main, shade, steps: 24, ..Default::default() });
                 }
                 ToolId::Transparency => {
                     let mut g = Gradient::linear(Color::WHITE, Color::BLACK);
@@ -1890,9 +2575,24 @@ impl<'a> Cx<'a> {
 
     fn color_eyedropper(&mut self, outline: bool) {
         let p = self.raw;
-        if self.ts.eyedrop_color.is_none() || self.mods().shift {
-            let c = sample_color(self.ts, self.d, p);
+        if !self.ts.eye_apply || self.ts.eyedrop_color.is_none() || self.mods().shift {
+            // sample size: 1 x 1, 2 x 2 or 5 x 5 screen pixels
+            let n = [1, 2, 5][self.s.topts.eye_area.min(2) as usize];
+            let step = self.d.doc_len(1.0);
+            let (mut r, mut g, mut b) = (0u32, 0u32, 0u32);
+            for i in 0..n {
+                for j in 0..n {
+                    let q = p + Vec2::new((i as f64 - (n - 1) as f64 / 2.0) * step, (j as f64 - (n - 1) as f64 / 2.0) * step);
+                    let c = sample_color(self.ts, self.d, q);
+                    r += c.r as u32;
+                    g += c.g as u32;
+                    b += c.b as u32;
+                }
+            }
+            let k = (n * n) as u32;
+            let c = Color::rgb((r / k) as u8, (g / k) as u8, (b / k) as u8);
             self.ts.eyedrop_color = Some(c);
+            self.ts.eye_apply = true;
             self.out.flash = Some(format!("Sampled color R{} G{} B{}", c.r, c.g, c.b));
             return;
         }
@@ -1913,24 +2613,109 @@ impl<'a> Cx<'a> {
     fn attributes_eyedropper(&mut self) {
         let p = self.raw;
         let Some(id) = self.hit(p) else { return };
-        if self.ts.eyedrop_attrs.is_none() || self.mods().shift {
+        if !self.ts.attr_apply || self.ts.eyedrop_attrs.is_none() || self.mods().shift {
             if let Some(o) = self.d.doc.find(id) {
                 self.ts.eyedrop_attrs = Some((o.style.clone(), o.effects.clone()));
+                self.ts.eyedrop_source = Some(o.clone());
+                self.ts.attr_apply = true;
                 self.out.flash = Some("Attributes sampled; click objects to apply them".into());
             }
             return;
         }
         let Some((st, fx)) = self.ts.eyedrop_attrs.clone() else { return };
+        let src = self.ts.eyedrop_source.clone();
+        let src_bounds = src.as_ref().map(|s| self.d.doc.bounds_of(s));
+        let t = self.s.topts.clone();
         self.d.modify("Apply Attributes", |doc, _| {
-            if let Some(o) = doc.find_mut(id) {
-                o.style = st;
-                o.effects = fx;
+            let Some(b) = doc.find(id).map(|o| doc.bounds_of(o)) else { return };
+            let Some(o) = doc.find_mut(id) else { return };
+            // properties: outline, fill, text
+            if t.eye_props[0] {
+                o.style.outline = st.outline.clone();
+            }
+            if t.eye_props[1] {
+                o.style.fill = st.fill.clone();
+                o.style.transparency = st.transparency.clone();
+            }
+            if t.eye_props[2] {
+                if let (ObjKind::Text(dst), Some(ObjKind::Text(from))) = (&mut o.kind, src.as_ref().map(|s| &s.kind)) {
+                    dst.format = from.format.clone();
+                    dst.spans.clear();
+                }
+            }
+            // transformations: size, rotation, position
+            if let (Some(s), Some(sb)) = (&src, src_bounds) {
+                if t.eye_xforms[1] {
+                    let ang = |a: Affine| {
+                        let c = a.as_coeffs();
+                        c[1].atan2(c[0])
+                    };
+                    let d = ang(s.transform) - ang(o.transform);
+                    if d.abs() > 1e-9 {
+                        o.apply_transform(Affine::rotate_about(d, b.center()));
+                    }
+                }
+                let b = o.bounds();
+                if t.eye_xforms[0] && b.width() > 1e-9 && b.height() > 1e-9 {
+                    let a = Affine::translate(b.center().to_vec2()) * Affine::scale_non_uniform(sb.width() / b.width(), sb.height() / b.height()) * Affine::translate(-b.center().to_vec2());
+                    o.apply_transform(a);
+                }
+                if t.eye_xforms[2] {
+                    let b = o.bounds();
+                    o.apply_transform(Affine::translate(sb.center() - b.center()));
+                }
+            }
+            // effects: perspective, envelope, blend, extrude, contour, lens, PowerClip, drop shadow, distortion
+            let e = &t.eye_effects;
+            if e[1] {
+                o.effects.envelope = fx.envelope.clone();
+            }
+            if e[3] {
+                o.effects.extrude = fx.extrude.clone();
+            }
+            if e[4] {
+                o.effects.contour = fx.contour.clone();
+            }
+            if e[5] {
+                o.effects.lens = fx.lens.clone();
+            }
+            if e[7] {
+                o.effects.drop_shadow = fx.drop_shadow.clone();
+                o.effects.inner_shadow = fx.inner_shadow.clone();
+                o.effects.block_shadow = fx.block_shadow.clone();
+            }
+            if e[8] {
+                o.effects.distort = fx.distort.clone();
             }
         });
     }
 
     fn mesh_fill_click(&mut self) {
         let p = self.raw;
+        if self.ts.mesh_sample {
+            // Sample: the color under the pointer goes to the selected patch
+            self.ts.mesh_sample = false;
+            let c = sample_color(self.ts, self.d, p);
+            let Some(&id) = self.d.selection.first() else { return };
+            let cell = self.ts.table_cell;
+            self.d.modify("Mesh Fill Color", |doc, _| {
+                if let Some(o) = doc.find_mut(id) {
+                    if let Fill::Mesh(m) = &mut o.style.fill {
+                        let n = m.cols + 1;
+                        let nodes: Vec<usize> = match cell.filter(|(r, c)| *r < m.rows && *c < m.cols) {
+                            Some((r, cc)) => vec![r * n + cc, r * n + cc + 1, (r + 1) * n + cc, (r + 1) * n + cc + 1],
+                            None => (0..m.colors.len()).collect(),
+                        };
+                        for i in nodes {
+                            if let Some(x) = m.colors.get_mut(i) {
+                                *x = c;
+                            }
+                        }
+                    }
+                }
+            });
+            return;
+        }
         let Some(id) = self.hit(p) else {
             self.d.selection.clear();
             return;
@@ -1960,8 +2745,21 @@ impl<'a> Cx<'a> {
         match ops::smart_fill_region(&self.d.doc, page, p) {
             Some(bp) => {
                 let id = self.d.doc.new_id();
+                let t = &self.s.topts;
                 let mut st = self.ts.new_style();
-                st.fill = Fill::Solid(self.ts.new_fill.unwrap_or(self.default_fill));
+                st.fill = match t.sf_fill_src {
+                    1 => Fill::Solid(t.sf_fill),
+                    2 => Fill::None,
+                    _ => Fill::Solid(self.ts.new_fill.unwrap_or(self.default_fill)),
+                };
+                match t.sf_outline_src {
+                    1 => {
+                        st.outline.width = t.sf_outline_w;
+                        st.outline.color = Some(t.sf_outline);
+                    }
+                    2 => st.outline.color = None,
+                    _ => {}
+                }
                 let o = Object::new(id, ObjKind::Path(NodePath::from_bez(&bp)), Affine::IDENTITY, st);
                 self.d.add_objects("Smart Fill", vec![o]);
             }
@@ -2077,8 +2875,11 @@ impl<'a> Cx<'a> {
         let strength = (self.ts.brush_strength / 100.0).clamp(0.01, 1.0);
         let dt = self.inp.dt.clamp(0.0, 0.1);
         let tool = self.tool;
-        let repel = self.mods().ctrl;
-        let ccw = self.mods().ctrl;
+        let t = &self.s.topts;
+        let repel = t.repel != self.mods().ctrl;
+        let ccw = t.twirl_ccw != self.mods().ctrl;
+        let smear_smooth = t.smear_smooth;
+        let rough = (t.rough_freq.max(0.1), t.rough_fixed.then_some(t.rough_bearing));
         let ids = self.d.selection.clone();
         let mut changed = false;
         for id in ids {
@@ -2091,7 +2892,11 @@ impl<'a> Cx<'a> {
             let r = scale.max(1e-6);
             let ObjKind::Path(np) = &mut o.kind else { continue };
             if tool == ToolId::Roughen {
-                changed |= roughen(np, lp, r, strength);
+                let bearing = rough.1.map(|b| {
+                    let v = Vec2::new(b.to_radians().cos(), -b.to_radians().sin());
+                    inv * Point::new(v.x, v.y) - inv * Point::ZERO
+                });
+                changed |= roughen(np, lp, r, strength, rough.0, bearing);
                 continue;
             }
             for sp in np.subpaths.iter_mut() {
@@ -2103,7 +2908,8 @@ impl<'a> Cx<'a> {
                         continue;
                     }
                     let fall = 1.0 - dist / r;
-                    let w = fall * fall * (3.0 - 2.0 * fall);
+                    // smooth smears fall off gently, pointed ones are drawn out to a point
+                    let w = if tool == ToolId::Smear && !smear_smooth { fall * fall * fall } else { fall * fall * (3.0 - 2.0 * fall) };
                     let mv: Vec2 = match tool {
                         ToolId::Smear | ToolId::Smudge => ld * (w * strength),
                         ToolId::AttractRepel => {
@@ -2170,6 +2976,430 @@ impl<'a> Cx<'a> {
     }
 }
 
+// ------------------------------------------------------------------------------ geometry helpers
+
+/// The nearest point of an outline by arc length: (t 0..1 along its subpath, point, left
+/// normal, distance). `t` is measured like the variable width renderer measures it.
+pub fn outline_param(path: &BezPath, p: Point) -> Option<(f64, Point, Vec2, f64)> {
+    let mut best: Option<(f64, Point, Vec2, f64)> = None;
+    for (pts, _) in geom::flatten_polylines(path, 0.2) {
+        if pts.len() < 2 {
+            continue;
+        }
+        let mut acc = vec![0.0];
+        for w in pts.windows(2) {
+            acc.push(acc.last().unwrap() + (w[1] - w[0]).hypot());
+        }
+        let total = acc.last().copied().unwrap_or(1.0).max(1e-9);
+        for (i, w) in pts.windows(2).enumerate() {
+            let d = w[1] - w[0];
+            let l2 = d.hypot2();
+            let f = if l2 > 1e-12 { ((p - w[0]).dot(d) / l2).clamp(0.0, 1.0) } else { 0.0 };
+            let q = w[0] + d * f;
+            let dist = (p - q).hypot();
+            if best.map_or(true, |b| dist < b.3) {
+                let dir = d.normalize();
+                let dir = if dir.x.is_finite() { dir } else { Vec2::new(1.0, 0.0) };
+                best = Some(((acc[i] + f * d.hypot()) / total, q, Vec2::new(-dir.y, dir.x), dist));
+            }
+        }
+    }
+    best
+}
+
+/// The length of the longest subpath of an outline.
+pub fn outline_length(path: &BezPath) -> f64 {
+    geom::flatten_polylines(path, 0.2).iter().map(|(pts, _)| pts.windows(2).map(|w| (w[1] - w[0]).hypot()).sum::<f64>()).fold(0.0, f64::max)
+}
+
+/// The point and left normal of the first subpath of an outline at arc-length fraction `t`.
+pub fn outline_point(path: &BezPath, t: f64) -> Option<(Point, Vec2)> {
+    let (pts, _) = geom::flatten_polylines(path, 0.2).into_iter().find(|(p, _)| p.len() >= 2)?;
+    let total: f64 = pts.windows(2).map(|w| (w[1] - w[0]).hypot()).sum();
+    let mut want = t.clamp(0.0, 1.0) * total;
+    let last = pts.len() - 2;
+    for (i, w) in pts.windows(2).enumerate() {
+        let l = (w[1] - w[0]).hypot();
+        if want <= l || i == last {
+            let d = (w[1] - w[0]).normalize();
+            let d = if d.x.is_finite() { d } else { Vec2::new(1.0, 0.0) };
+            let f = if l > 1e-12 { (want / l).clamp(0.0, 1.0) } else { 0.0 };
+            return Some((w[0] + (w[1] - w[0]) * f, Vec2::new(-d.y, d.x)));
+        }
+        want -= l;
+    }
+    None
+}
+
+/// Where a ray from `c` along `u` last crosses an outline.
+fn ray_exit(path: &BezPath, c: Point, u: Vec2) -> Option<Point> {
+    let far = c + u * 1e5;
+    let mut best: Option<f64> = None;
+    for (pts, closed) in geom::flatten_polylines(path, 0.2) {
+        let mut pts = pts;
+        if closed && !pts.is_empty() {
+            pts.push(pts[0]);
+        }
+        for w in pts.windows(2) {
+            if let Some((ta, _, _)) = geom::seg_intersect(c, far, w[0], w[1]) {
+                best = Some(best.map_or(ta, |b: f64| b.max(ta)));
+            }
+        }
+    }
+    best.map(|ta| c + (far - c) * ta)
+}
+
+/// The parameters where the line `p + u * s` is inside `frame`.
+fn clip_line(frame: Rect, p: Point, u: Vec2) -> Option<(f64, f64)> {
+    let mut t0 = f64::NEG_INFINITY;
+    let mut t1 = f64::INFINITY;
+    for (pc, uc, lo, hi) in [(p.x, u.x, frame.x0, frame.x1), (p.y, u.y, frame.y0, frame.y1)] {
+        if uc.abs() < 1e-12 {
+            if pc < lo || pc > hi {
+                return None;
+            }
+        } else {
+            let (a, b) = ((lo - pc) / uc, (hi - pc) / uc);
+            t0 = t0.max(a.min(b));
+            t1 = t1.min(a.max(b));
+        }
+    }
+    (t1 > t0).then_some((t0, t1))
+}
+
+/// Envelope ▸ Create Envelope From: the envelope handles that give an object the shape of an
+/// outline (rays from its center through the eight handle positions).
+pub fn envelope_from_shape(path: &BezPath) -> Option<[Vec2; 8]> {
+    let b = path.bounding_box();
+    if b.width() < 1e-6 || b.height() < 1e-6 {
+        return None;
+    }
+    let c = b.center();
+    let mut h = [Vec2::ZERO; 8];
+    for (i, hv) in h.iter_mut().enumerate() {
+        let (u, v) = ENVELOPE_BASE[i];
+        let target = Point::new(b.x0 + u * b.width(), b.y0 + v * b.height());
+        let q = ray_exit(path, c, (target - c).normalize()).unwrap_or(target);
+        *hv = Vec2::new((q.x - b.x0) / b.width() - u, (q.y - b.y0) / b.height() - v);
+    }
+    Some(h)
+}
+
+// ------------------------------------------------------------------------------ Impact tool
+
+/// Impact tool: the lines of an impact effect in `frame`: radial lines toward the center (or
+/// around the inner boundary), or parallel lines at the angle, with the property bar settings.
+pub fn impact_paths(t: &crate::settings::ToolOpts, frame: Rect, inner: Option<&BezPath>, seed: u32) -> Vec<BezPath> {
+    let mut out = vec![];
+    if frame.width() < 1.0 || frame.height() < 1.0 {
+        return out;
+    }
+    let mut state = seed.wrapping_mul(747796405).wrapping_add(2891336453).max(1);
+    let mut rnd = move || {
+        state ^= state << 13;
+        state ^= state >> 17;
+        state ^= state << 5;
+        state as f64 / u32::MAX as f64
+    };
+    // widths and spacings go from the minimum to the maximum in steps, in order or at random
+    let series = |range: [f64; 2], steps: u32| -> Vec<f64> {
+        if (range[1] - range[0]).abs() < 1e-9 {
+            return vec![range[0]];
+        }
+        let n = steps as usize + 2;
+        (0..n).map(|i| range[0] + (range[1] - range[0]) * i as f64 / (n - 1) as f64).collect()
+    };
+    let widths = series(t.impact_width, t.impact_width_steps);
+    let spacings = series(t.impact_spacing, t.impact_spacing_steps);
+    let pick = |v: &[f64], i: usize, random: bool, r: f64| if random { v[((r * v.len() as f64) as usize).min(v.len() - 1)] } else { v[i % v.len()] };
+    let widest = (t.impact_widest / 100.0).clamp(0.0, 1.0);
+    let style = t.impact_style;
+    let (rand_start, rand_end) = (t.impact_ends & 1 != 0, t.impact_ends & 2 != 0);
+    // a line from `a` (s = 0) to `b` (s = 1) in the line style
+    let shape = |a: Point, b: Point, w: f64| -> BezPath {
+        let d = b - a;
+        let len = d.hypot();
+        let mut bp = BezPath::new();
+        if len < 1e-6 || w <= 0.0 {
+            return bp;
+        }
+        let n = Vec2::new(-d.y, d.x) / len * (w / 2.0);
+        let m = a + d * widest;
+        match style {
+            1 => {
+                bp.move_to(a);
+                bp.line_to(m + n);
+                bp.line_to(b);
+                bp.line_to(m - n);
+            }
+            2 => {
+                bp.move_to(a);
+                bp.line_to(m + n);
+                bp.line_to(b + n);
+                bp.line_to(b - n);
+                bp.line_to(m - n);
+            }
+            3 => {
+                bp.move_to(a + n);
+                bp.line_to(b + n);
+                bp.line_to(b - n);
+                bp.line_to(a - n);
+            }
+            _ => {
+                bp.move_to(a);
+                bp.line_to(b + n);
+                bp.line_to(b - n);
+            }
+        }
+        bp.close_path();
+        bp
+    };
+    if !t.impact_parallel {
+        // radial: from the inner edge out to the frame; the spacing is measured around the frame
+        let c = inner.map(|p| p.bounding_box().center()).unwrap_or(frame.center());
+        let (rx, ry) = (frame.width() * 0.2, frame.height() * 0.2);
+        let radius = ((frame.width() + frame.height()) / 4.0).max(1.0);
+        let rot = t.impact_angle.to_radians();
+        let mut ang = 0.0f64;
+        let mut i = 0;
+        while ang < std::f64::consts::TAU - 1e-9 && i < 4000 {
+            let u = Vec2::new(ang.cos(), ang.sin());
+            let pin = match inner {
+                Some(path) => ray_exit(path, c, u).unwrap_or(c),
+                None => c + u * (1.0 / ((u.x / rx).powi(2) + (u.y / ry).powi(2)).sqrt()),
+            };
+            // with an inner boundary the lines turn around its edge by the angle
+            let dir = if inner.is_some() { Vec2::new(u.x * rot.cos() - u.y * rot.sin(), u.x * rot.sin() + u.y * rot.cos()) } else { u };
+            if let Some((_, s1)) = clip_line(frame, pin, dir).filter(|r| r.1 > 0.0) {
+                let (mut a, mut b) = (pin, pin + dir * s1);
+                if rand_start {
+                    b = a + (b - a) * (0.6 + 0.4 * rnd());
+                }
+                if rand_end {
+                    a = a + (b - a) * (0.4 * rnd());
+                }
+                let r = rnd();
+                let bp = shape(a, b, pick(&widths, i, t.impact_width_random, r));
+                if !bp.elements().is_empty() {
+                    out.push(bp);
+                }
+            }
+            let r = rnd();
+            ang += (pick(&spacings, i, t.impact_spacing_random, r) / radius).max(0.002);
+            i += 1;
+        }
+    } else {
+        // parallel: lines across the frame at the angle, the spacing apart
+        let th = t.impact_angle.to_radians();
+        let u = Vec2::new(th.cos(), -th.sin());
+        let n = Vec2::new(-u.y, u.x);
+        let corners = [Point::new(frame.x0, frame.y0), Point::new(frame.x1, frame.y0), Point::new(frame.x1, frame.y1), Point::new(frame.x0, frame.y1)];
+        let lo = corners.iter().map(|p| p.to_vec2().dot(n)).fold(f64::INFINITY, f64::min);
+        let hi = corners.iter().map(|p| p.to_vec2().dot(n)).fold(f64::NEG_INFINITY, f64::max);
+        let along = frame.center().to_vec2().dot(u);
+        let mut i = 0;
+        let mut off = lo + pick(&spacings, 0, false, 0.0) / 2.0;
+        while off < hi && i < 4000 {
+            let base = Point::ZERO + n * off + u * along;
+            if let Some((s0, s1)) = clip_line(frame, base, u) {
+                // pieces outside the inner boundary
+                let mut cuts = vec![s0, s1];
+                if let Some(path) = inner {
+                    let (a, b) = (base + u * s0, base + u * s1);
+                    for (pts, closed) in geom::flatten_polylines(path, 0.2) {
+                        let mut pts = pts;
+                        if closed && !pts.is_empty() {
+                            pts.push(pts[0]);
+                        }
+                        for w in pts.windows(2) {
+                            if let Some((ta, _, _)) = geom::seg_intersect(a, b, w[0], w[1]) {
+                                cuts.push(s0 + (s1 - s0) * ta);
+                            }
+                        }
+                    }
+                    cuts.sort_by(|x, y| x.total_cmp(y));
+                }
+                for w in cuts.windows(2) {
+                    let (mut a, mut b) = (base + u * w[0], base + u * w[1]);
+                    if (b - a).hypot() < 0.5 {
+                        continue;
+                    }
+                    if let Some(path) = inner {
+                        if geom::contains(path, a.midpoint(b), false) {
+                            continue;
+                        }
+                    }
+                    if rand_start {
+                        a = a + (b - a) * (0.4 * rnd());
+                    }
+                    if rand_end {
+                        b = b + (a - b) * (0.4 * rnd());
+                    }
+                    let r = rnd();
+                    let bp = shape(a, b, pick(&widths, i, t.impact_width_random, r));
+                    if !bp.elements().is_empty() {
+                        out.push(bp);
+                    }
+                }
+            }
+            let r = rnd();
+            off += pick(&spacings, i + 1, t.impact_spacing_random, r).max(0.1) + pick(&widths, i, false, 0.0);
+            i += 1;
+        }
+    }
+    out
+}
+
+/// The lines of an impact effect as objects of the given color.
+fn impact_objects(doc: &mut vector_core::Document, paths: Vec<BezPath>, color: Color) -> Vec<Object> {
+    paths
+        .into_iter()
+        .map(|bp| {
+            let st = Style { fill: Fill::Solid(color), outline: Outline { color: None, ..Outline::default() }, ..Default::default() };
+            Object::new(doc.new_id(), ObjKind::Path(NodePath::from_bez(&bp)), Affine::IDENTITY, st)
+        })
+        .collect()
+}
+
+/// A new impact effect: a group of its lines that remembers its frame so the property bar can
+/// change it later.
+fn impact_group(d: &mut DocView, t: &crate::settings::ToolOpts, frame: Rect, inner: Option<&BezPath>, color: Color, id: ObjId) -> Option<Object> {
+    let seed = (id as u32).wrapping_mul(2654435761);
+    let paths = impact_paths(t, frame, inner, seed);
+    if paths.is_empty() {
+        return None;
+    }
+    let kids = impact_objects(&mut d.doc, paths, color);
+    let mut g = Object::new(id, ObjKind::Group(kids), Affine::IDENTITY, Style::default());
+    g.name = "Impact Effect".into();
+    let b = d.doc.bounds_of(&g);
+    g.special = Some(vector_core::codes::Special::Impact { frame: [frame.x0, frame.y0, frame.x1, frame.y1], bounds: [b.x0, b.y0, b.x1, b.y1], seed });
+    Some(g)
+}
+
+/// Make the selected impact effects again with the property bar settings and boundaries.
+fn regen_selected_impacts(d: &mut DocView, t: &crate::settings::ToolOpts, inner: Option<&BezPath>, outer: Option<Rect>) {
+    use vector_core::codes::Special;
+    let targets: Vec<(ObjId, Rect, u32, Color)> = d
+        .selection
+        .iter()
+        .filter_map(|id| {
+            let o = d.doc.find(*id)?;
+            let Some(Special::Impact { frame, bounds, seed }) = &o.special else { return None };
+            // the frame follows the effect where it was moved or sized
+            let now = d.doc.bounds_of(o);
+            let was = Rect::new(bounds[0], bounds[1], bounds[2], bounds[3]);
+            let k = |a: f64, b: f64| if a > 1e-9 { b / a } else { 1.0 };
+            let (sx, sy) = (k(was.width(), now.width()), k(was.height(), now.height()));
+            let map = |x: f64, y: f64| Point::new(now.x0 + (x - was.x0) * sx, now.y0 + (y - was.y0) * sy);
+            let f = outer.unwrap_or_else(|| Rect::from_points(map(frame[0], frame[1]), map(frame[2], frame[3])));
+            let color = match &o.kind {
+                ObjKind::Group(k) => k.first().and_then(|c| c.style.fill.main_color()),
+                _ => None,
+            }
+            .unwrap_or(Color::BLACK);
+            Some((*id, f, *seed, color))
+        })
+        .collect();
+    if targets.is_empty() {
+        return;
+    }
+    d.modify("Impact", |doc, _| {
+        for (id, frame, seed, color) in targets {
+            let kids = impact_objects(doc, impact_paths(t, frame, inner, seed), color);
+            if let Some(o) = doc.find_mut(id) {
+                o.kind = ObjKind::Group(kids);
+                o.transform = Affine::IDENTITY;
+            }
+            let Some(b) = doc.find(id).map(|o| doc.bounds_of(o)) else { continue };
+            if let Some(o) = doc.find_mut(id) {
+                o.special = Some(Special::Impact { frame: [frame.x0, frame.y0, frame.x1, frame.y1], bounds: [b.x0, b.y0, b.x1, b.y1], seed });
+            }
+        }
+    });
+}
+
+/// The property bar changed an Impact setting: the selected impact effects follow.
+pub fn regen_impacts(app: &mut VectorApp) {
+    let t = app.settings.topts.clone();
+    let (inner, outer) = (app.ts.impact_inner.clone(), app.ts.impact_outer);
+    if let Some(d) = app.doc_mut() {
+        regen_selected_impacts(d, &t, inner.as_ref(), outer);
+    }
+}
+
+// ------------------------------------------------------------------------------ every frame
+
+/// Work that runs every frame: LiveSketch strokes waiting for the timer, and picking a color
+/// anywhere on the desktop with the Color Eyedropper.
+pub fn tick(app: &mut VectorApp, ctx: &egui::Context) {
+    let now = ctx.input(|i| i.time);
+    if !app.ts.ls_pending.is_empty() && app.ts.drag.is_none() {
+        let wait = app.settings.topts.ls_timer.max(0.0);
+        let left = wait - (now - app.ts.ls_last);
+        if app.tool != ToolId::LiveSketch || left <= 0.0 {
+            if let Some(ai) = app.active.filter(|a| *a < app.docs.len()) {
+                let mut out = Out::default();
+                let inp = Input { pos: Pos2::ZERO, hovered: false, pressed: false, released: false, down: false, double: false, secondary: false, mods: Default::default(), time: now, dt: 0.0 };
+                let default_fill = app.default_fill;
+                let tool = app.tool;
+                let mut cx = Cx { ts: &mut app.ts, d: &mut app.docs[ai], s: &app.settings, tool, inp: &inp, out: &mut out, default_fill, raw: Point::ZERO };
+                cx.commit_livesketch();
+            } else {
+                app.ts.ls_pending.clear();
+            }
+        } else {
+            ctx.request_repaint_after(std::time::Duration::from_secs_f64(left.max(0.01)));
+        }
+    }
+    if app.ts.desktop_pick {
+        ctx.request_repaint_after(std::time::Duration::from_millis(30));
+        if let Some(c) = desktop_click_color() {
+            app.ts.desktop_pick = false;
+            app.ts.eyedrop_color = Some(c);
+            app.ts.eye_apply = true;
+            app.flash(format!("Sampled color R{} G{} B{}", c.r, c.g, c.b));
+        }
+    }
+}
+
+/// The color of the screen pixel clicked (polled each frame; the click is taken when the
+/// button goes down after having been up).
+#[cfg(windows)]
+fn desktop_click_color() -> Option<Color> {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use windows::Win32::Foundation::POINT;
+    use windows::Win32::Graphics::Gdi::{GetDC, GetPixel, ReleaseDC};
+    use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_LBUTTON};
+    use windows::Win32::UI::WindowsAndMessaging::GetCursorPos;
+    static ARMED: AtomicBool = AtomicBool::new(false);
+    let down = unsafe { GetAsyncKeyState(VK_LBUTTON.0 as i32) } as u16 & 0x8000 != 0;
+    if !down {
+        ARMED.store(true, Ordering::Relaxed);
+        return None;
+    }
+    if !ARMED.swap(false, Ordering::Relaxed) {
+        return None;
+    }
+    let mut pt = POINT::default();
+    unsafe {
+        GetCursorPos(&mut pt).ok()?;
+        let dc = GetDC(None);
+        let c = GetPixel(dc, pt.x, pt.y);
+        ReleaseDC(None, dc);
+        let v = c.0;
+        if v == u32::MAX {
+            return None;
+        }
+        Some(Color::rgb((v & 0xff) as u8, ((v >> 8) & 0xff) as u8, ((v >> 16) & 0xff) as u8))
+    }
+}
+
+#[cfg(not(windows))]
+fn desktop_click_color() -> Option<Color> {
+    None
+}
+
 /// Elastic mode: unselected nodes follow with a falloff based on their distance to the dragged nodes.
 fn elastic_move(np: &mut NodePath, refs: &[(usize, usize)], d: Vec2) {
     let sel_pts: Vec<Point> = refs.iter().filter_map(|r| np.node(*r).map(|n| n.p)).collect();
@@ -2192,8 +3422,9 @@ fn elastic_move(np: &mut NodePath, refs: &[(usize, usize)], d: Vec2) {
 }
 
 /// Replace long segments near the brush with zigzags. Returns whether anything changed.
-fn roughen(np: &mut NodePath, lp: Point, r: f64, strength: f64) -> bool {
-    let spacing = (r / 3.0).max(0.5);
+fn roughen(np: &mut NodePath, lp: Point, r: f64, strength: f64, freq: f64, bearing: Option<Vec2>) -> bool {
+    // Frequency: more spikes for higher values
+    let spacing = (r / (3.0 * freq)).max(0.5);
     let amp = r * 0.25 * strength;
     let mut changed = false;
     for sp in np.subpaths.iter_mut() {
@@ -2224,7 +3455,8 @@ fn roughen(np: &mut NodePath, lp: Point, r: f64, strength: f64) -> bool {
                 let q = c.eval(t);
                 let q2 = c.eval((t + 0.01).min(1.0));
                 let tan = (q2 - q).normalize();
-                let normal = Vec2::new(-tan.y, tan.x);
+                // Spike direction: fixed bearing, or across the curve
+                let normal = bearing.map(|b| b.normalize()).unwrap_or(Vec2::new(-tan.y, tan.x));
                 let sign = if j % 2 == 0 { 1.0 } else { -1.0 };
                 out.push(Node::corner(q + normal * amp * sign));
             }
@@ -2388,6 +3620,10 @@ pub fn snap_point_ex(d: &DocView, s: &Settings, p: Point, exclude: &[ObjId]) -> 
             best = Some((dist, q, label));
         }
     };
+    // View ▸ Snap To ▸ Symmetry Lines: on while a symmetry is edited
+    if let Some(q) = crate::dialogs::symmetry::snap_symmetry(d, p, r) {
+        consider(q, if d.symmetry_edit.is_some() { "Symmetry line" } else { "Perspective line" });
+    }
     let page = d.page_ref();
     if ds.snap_to_objects && s.snap_to_objects {
         let mut budget = 4000usize;
@@ -2723,6 +3959,9 @@ pub fn handle_table_keys(app: &mut VectorApp, ctx: &egui::Context) {
                 chars.extend(s.chars());
             }
             *text = chars.into_iter().collect();
+            if t.auto_resize {
+                t.fit_rows();
+            }
         }
         d.history.touch();
     }
@@ -2901,4 +4140,72 @@ fn move_caret(app: &mut VectorApp, key: egui::Key, mods: egui::Modifiers) {
 #[allow(dead_code)]
 pub fn text_kind_is_paragraph(t: &TextObj) -> bool {
     matches!(t.kind, TextKind::Paragraph { .. })
+}
+
+#[cfg(test)]
+mod batch5_tests {
+    use super::*;
+    use crate::settings::ToolOpts;
+
+    #[test]
+    fn impact_radial_and_parallel() {
+        let frame = Rect::new(0.0, 0.0, 200.0, 100.0);
+        let t = ToolOpts { impact_width: [2.0, 2.0], impact_spacing: [10.0, 10.0], ..Default::default() };
+        let radial = impact_paths(&t, frame, None, 7);
+        assert!(radial.len() > 10, "{} radial lines", radial.len());
+        // lines reach the frame and keep clear of the middle
+        for bp in &radial {
+            let b = bp.bounding_box();
+            assert!(b.x0 >= -2.0 && b.y0 >= -2.0 && b.x1 <= 202.0 && b.y1 <= 102.0);
+            assert!(!b.contains(frame.center()) || b.width() > 150.0 || b.height() > 80.0);
+        }
+        let par = ToolOpts { impact_parallel: true, ..t.clone() };
+        let lines = impact_paths(&par, frame, None, 7);
+        // horizontal lines 10 pt apart plus their 2 pt width: about 100 / 12
+        assert!((7..=10).contains(&lines.len()), "{} parallel lines", lines.len());
+        // an inner boundary leaves a gap: lines through it are cut in two
+        let mut hole = BezPath::new();
+        hole.extend(Rect::new(80.0, 0.0, 120.0, 100.0).to_path(0.1));
+        let cut = impact_paths(&par, frame, Some(&hole), 7);
+        assert_eq!(cut.len(), lines.len() * 2);
+    }
+
+    #[test]
+    fn free_transform_modes() {
+        let bb = Rect::new(0.0, 0.0, 100.0, 50.0);
+        let c = Point::new(10.0, 10.0);
+        let m = egui::Modifiers::NONE;
+        // rotate by the angle of the drag line
+        let r = free_affine(0, c, Point::new(10.0, 60.0), bb, m, 15.0);
+        let p = r * Point::new(20.0, 10.0);
+        assert!((p - Point::new(10.0, 20.0)).hypot() < 1e-9, "{p:?}");
+        // reflect across a horizontal line through the point clicked
+        let f = free_affine(1, c, Point::new(60.0, 10.0), bb, m, 15.0);
+        assert!(((f * Point::new(30.0, 30.0)) - Point::new(30.0, -10.0)).hypot() < 1e-9);
+        // scale: dragging one width to the right doubles the width
+        let s = free_affine(2, c, Point::new(110.0, 10.0), bb, m, 15.0);
+        assert!(((s * Point::new(20.0, 10.0)) - Point::new(30.0, 10.0)).hypot() < 1e-9);
+    }
+
+    #[test]
+    fn envelope_takes_the_shape_of_an_ellipse() {
+        let e = kurbo::Ellipse::new((50.0, 50.0), (50.0, 50.0), 0.0).to_path(0.01);
+        let h = envelope_from_shape(&e).unwrap();
+        // the side middles touch the box; the corners come in to the circle
+        assert!(h[1].hypot() < 0.01 && h[3].hypot() < 0.01);
+        let k = 0.5 - 0.5 / std::f64::consts::SQRT_2;
+        assert!((h[0] - Vec2::new(k, k)).hypot() < 0.01, "{:?}", h[0]);
+    }
+
+    #[test]
+    fn outline_parameter_along_a_line() {
+        let mut bp = BezPath::new();
+        bp.move_to((0.0, 0.0));
+        bp.line_to((100.0, 0.0));
+        let (t, q, n, d) = outline_param(&bp, Point::new(25.0, 5.0)).unwrap();
+        assert!((t - 0.25).abs() < 1e-9 && (q - Point::new(25.0, 0.0)).hypot() < 1e-9 && (d - 5.0).abs() < 1e-9);
+        assert!((n - Vec2::new(0.0, 1.0)).hypot() < 1e-9);
+        let (p, _) = outline_point(&bp, 0.75).unwrap();
+        assert!((p - Point::new(75.0, 0.0)).hypot() < 1e-9);
+    }
 }

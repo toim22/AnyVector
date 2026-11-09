@@ -80,6 +80,7 @@ pub fn draw_overlay(app: &mut VectorApp, painter: &Painter) {
     draw_baseline_grid(painter, d);
     draw_guides(painter, d, &ts.drag);
     draw_text_frames(painter, d, s);
+    crate::dialogs::symmetry::draw_overlay(painter, d);
 
     let dragging_xform = matches!(ts.drag, Drag::Transform { .. });
     match tool {
@@ -88,7 +89,7 @@ pub fn draw_overlay(app: &mut VectorApp, painter: &Painter) {
         ToolId::Envelope => draw_envelope(painter, d),
         ToolId::InteractiveFill | ToolId::Transparency => draw_gradient_vector(painter, d, tool),
         ToolId::MeshFill => draw_mesh(painter, d, ts),
-        ToolId::EditAnchor => draw_anchors(painter, d),
+        ToolId::EditAnchor => draw_anchors(painter, d, ts),
         _ => {
             if !dragging_xform && !(s.hide_bbox_curve_tools && tool.is_curve_creation()) {
                 draw_selection(painter, d, tool == ToolId::FreeTransform || d.rotate_mode);
@@ -97,6 +98,18 @@ pub fn draw_overlay(app: &mut VectorApp, painter: &Painter) {
     }
     if tool == ToolId::Table {
         draw_table_cell(painter, d, ts);
+    }
+    if tool == ToolId::VariableOutline {
+        draw_var_outline(painter, d, ts);
+    }
+    // LiveSketch strokes waiting for the timer
+    if s.topts.ls_preview {
+        for st in &ts.ls_pending {
+            let pts: Vec<Pos2> = st.iter().map(|p| d.to_screen(*p)).collect();
+            if pts.len() >= 2 {
+                painter.add(EShape::line(pts, Stroke::new(1.5, Color32::from_rgb(0x1e, 0x90, 0xff))));
+            }
+        }
     }
     if tool == ToolId::Text {
         draw_selection(painter, d, false);
@@ -659,7 +672,25 @@ fn draw_mesh(painter: &Painter, d: &DocView, ts: &ToolState) {
     }
 }
 
-fn draw_anchors(painter: &Painter, d: &DocView) {
+/// Variable Outline tool: the width nodes of the selected objects.
+fn draw_var_outline(painter: &Painter, d: &DocView, ts: &ToolState) {
+    for id in &d.selection {
+        let Some(o) = d.doc.find(*id) else { continue };
+        let Some(vector_core::style::WidthProfile::Variable { nodes, .. }) = &o.style.outline.profile else { continue };
+        let wp = o.world_path();
+        for (i, w) in nodes.iter().enumerate() {
+            let Some((p, n)) = super::interact::outline_point(&wp, w.t) else { continue };
+            let (a, b) = (d.to_screen(p + n * w.side1), d.to_screen(p - n * w.side2));
+            painter.line_segment([a, b], Stroke::new(1.0, Color32::from_rgb(0x1e, 0x90, 0xff)));
+            let sel = ts.vo_node == Some(i);
+            handle(painter, d.to_screen(p), 7.0, sel);
+            painter.circle_stroke(a, 3.0, Stroke::new(1.0, Color32::from_rgb(0x1e, 0x90, 0xff)));
+            painter.circle_stroke(b, 3.0, Stroke::new(1.0, Color32::from_rgb(0x1e, 0x90, 0xff)));
+        }
+    }
+}
+
+fn draw_anchors(painter: &Painter, d: &DocView, ts: &ToolState) {
     for id in &d.selection {
         let Some(o) = d.doc.find(*id) else { continue };
         match &o.kind {
@@ -672,9 +703,17 @@ fn draw_anchors(painter: &Painter, d: &DocView) {
             }
             _ => {
                 let b = d.doc.bounds_of(o);
-                for (u, v) in [(0.5, 0.0), (1.0, 0.5), (0.5, 1.0), (0.0, 0.5), (0.5, 0.5)] {
-                    let p = d.to_screen(Point::new(b.x0 + u * b.width(), b.y0 + v * b.height()));
-                    painter.rect_stroke(ERect::from_center_size(p, egui::vec2(7.0, 7.0)), 0.0, Stroke::new(1.0, Color32::from_rgb(0xff, 0x40, 0x40)), egui::StrokeKind::Middle);
+                for (i, a) in o.effects.anchor_list().iter().enumerate() {
+                    let p = d.to_screen(Point::new(b.x0 + a.pos.x * b.width(), b.y0 + a.pos.y * b.height()));
+                    let r = ERect::from_center_size(p, egui::vec2(7.0, 7.0));
+                    if ts.anchor_sel == Some((*id, i)) {
+                        painter.rect_filled(r, 0.0, Color32::from_rgb(0xff, 0x40, 0x40));
+                    }
+                    painter.rect_stroke(r, 0.0, Stroke::new(1.0, Color32::from_rgb(0xff, 0x40, 0x40)), egui::StrokeKind::Middle);
+                    if let Some(deg) = a.dir {
+                        let v = egui::vec2(deg.to_radians().cos() as f32, -deg.to_radians().sin() as f32) * 14.0;
+                        painter.arrow(p, v, Stroke::new(1.0, Color32::from_rgb(0xff, 0x40, 0x40)));
+                    }
                 }
             }
         }
@@ -767,6 +806,14 @@ fn draw_drag_preview(painter: &Painter, d: &DocView, ts: &ToolState, s: &Setting
                 ToolId::Knife => {
                     painter.line_segment([d.to_screen(*start), d.to_screen(ts.hover_doc.unwrap_or(cur))], Stroke::new(1.0, Color32::from_rgb(0xff, 0x40, 0x40)));
                 }
+                ToolId::Impact => {
+                    if ts.moved {
+                        let frame = ts.impact_outer.unwrap_or(Rect::from_points(*start, cur));
+                        for bp in super::interact::impact_paths(&s.topts, frame, ts.impact_inner.as_ref(), 1) {
+                            stroke_bez(painter, d, &bp, Stroke::new(1.0, PREVIEW));
+                        }
+                    }
+                }
                 ToolId::Text => {
                     if ts.moved && !ts.text_drag_select {
                         dashed_rect(painter, d.to_screen_rect(Rect::from_points(*start, cur)), Color32::from_gray(230));
@@ -839,8 +886,8 @@ fn draw_drag_preview(painter: &Painter, d: &DocView, ts: &ToolState, s: &Setting
                 };
                 let c = ConnectorObj {
                     kind,
-                    start: ConnectorEnd { point: *start, attached: None },
-                    end: ConnectorEnd { point: cur, attached: None },
+                    start: ConnectorEnd { point: *start, attached: None, dir: None },
+                    end: ConnectorEnd { point: cur, attached: None, dir: None },
                     corner_radius: if kind == ConnectorKind::RoundedRightAngle { 8.0 } else { 0.0 },
                 };
                 stroke_bez(painter, d, &vector_core::object::connector_path(&c), Stroke::new(1.0, PREVIEW));
@@ -867,8 +914,8 @@ fn draw_in_progress(painter: &Painter, d: &DocView, ts: &ToolState, s: &Settings
             let sp: Vec<Pos2> = pts.iter().map(|p| d.to_screen(*p)).collect();
             painter.extend(EShape::dashed_line(&sp, Stroke::new(1.0, Color32::from_gray(150)), 3.0, 3.0));
         }
-        // rubber band to the pointer
-        if ts.drag.is_none() || matches!(ts.drag, Drag::Stroke { .. }) {
+        // rubber band to the pointer (the Pen shows it with Preview mode)
+        if (ts.drag.is_none() || matches!(ts.drag, Drag::Stroke { .. })) && !(tool == ToolId::Pen && !s.topts.pen_preview) {
             if let Some(last) = ts.curve.last() {
                 let mut bp = BezPath::new();
                 bp.move_to(last.p);
@@ -898,6 +945,11 @@ fn draw_in_progress(painter: &Painter, d: &DocView, ts: &ToolState, s: &Settings
     }
     if !ts.stage.is_empty() && ts.drag.is_none() {
         match tool {
+            ToolId::Knife => {
+                let mut sp: Vec<Pos2> = ts.stage.iter().map(|p| d.to_screen(*p)).collect();
+                sp.push(d.to_screen(cur));
+                painter.add(EShape::line(sp, Stroke::new(1.0, Color32::from_rgb(0xff, 0x40, 0x40))));
+            }
             ToolId::ThreePointCurve | ToolId::Rect3 | ToolId::Ellipse3 if ts.stage.len() == 2 => {
                 if let Some(o) = three_point_object(ts, tool, ts.stage[0], ts.stage[1], cur, 0) {
                     preview_obj(painter, d, &o);
@@ -926,7 +978,7 @@ fn draw_in_progress(painter: &Painter, d: &DocView, ts: &ToolState, s: &Settings
                         suffix: s.dim_suffix.clone(),
                         show_units: true,
                         font_size: 12.0,
-                        unit: d.doc.settings.unit,
+                        unit: d.doc.settings.unit, ..Default::default()
                     };
                     stroke_bez(painter, d, &dimension_path(&dim), Stroke::new(1.0, PREVIEW));
                     let (label, at, _) = vector_core::object::dimension_label(&dim);
@@ -936,7 +988,15 @@ fn draw_in_progress(painter: &Painter, d: &DocView, ts: &ToolState, s: &Settings
             _ => {}
         }
     }
-    if let Some(r) = ts.crop_rect {
+    if let (Some(r), true) = (ts.crop_rect, ts.crop_angle.abs() > 1e-9) {
+        // a rotated crop area
+        let a = Affine::rotate_about(ts.crop_angle.to_radians(), r.center());
+        let pts: Vec<Pos2> = [Point::new(r.x0, r.y0), Point::new(r.x1, r.y0), Point::new(r.x1, r.y1), Point::new(r.x0, r.y1)].iter().map(|p| d.to_screen(a * *p)).collect();
+        painter.add(EShape::closed_line(pts.clone(), Stroke::new(1.0, Color32::WHITE)));
+        for p in pts {
+            handle(painter, p, 7.0, true);
+        }
+    } else if let Some(r) = ts.crop_rect {
         let sr = d.to_screen_rect(r);
         let cr = d.canvas_rect;
         let shade = Color32::from_black_alpha(110);

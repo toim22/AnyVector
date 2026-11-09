@@ -206,9 +206,7 @@ impl<'a> Flattener<'a> {
             }
             ObjKind::Blend(b) => {
                 self.object(&b.start);
-                for k in 1..=b.steps {
-                    let t = k as f64 / (b.steps + 1) as f64;
-                    let step = blend_step(&b.start, &b.end, t, 0, b.rotation);
+                for step in vector_core::object::blend_steps(b, || 0) {
                     self.object(&step);
                 }
                 self.object(&b.end);

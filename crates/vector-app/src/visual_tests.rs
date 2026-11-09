@@ -320,10 +320,10 @@ fn visual_context_menus() {
             suffix: String::new(),
             show_units: true,
             font_size: 10.0,
-            unit: vector_core::units::Unit::Inches,
+            unit: vector_core::units::Unit::Inches, ..Default::default()
         };
         add(d, ObjKind::Dimension(dim), 0.0, 0.0);
-        let end = |x: f64, y: f64| ConnectorEnd { point: Point::new(x, y), attached: None };
+        let end = |x: f64, y: f64| ConnectorEnd { point: Point::new(x, y), attached: None, dir: None };
         add(d, ObjKind::Connector(ConnectorObj { kind: ConnectorKind::Straight, start: end(260.0, 500.0), end: end(400.0, 580.0), corner_radius: 0.0 }), 0.0, 0.0);
         d.add_objects("test", objs);
         d.selection = vec![poly];
@@ -530,6 +530,7 @@ fn visual_property_bars() {
     use vector_core::text::{CharFormat, TextObj};
     let dir = out_dir().join("pb");
     std::fs::create_dir_all(&dir).unwrap();
+    *crate::cmdbar::MISSING.lock().unwrap() = Some(Default::default());
     let mut h = harness();
     h.state_mut().new_default_document();
     let mut ids = std::collections::HashMap::new();
@@ -570,10 +571,10 @@ fn visual_property_bars() {
             suffix: String::new(),
             show_units: true,
             font_size: 10.0,
-            unit: vector_core::units::Unit::Inches,
+            unit: vector_core::units::Unit::Inches, ..Default::default()
         };
         add(d, "linha-de-cota", ObjKind::Dimension(dim), 0.0, 0.0);
-        let end = |x: f64, y: f64| ConnectorEnd { point: Point::new(x, y), attached: None };
+        let end = |x: f64, y: f64| ConnectorEnd { point: Point::new(x, y), attached: None, dir: None };
         add(d, "conector", ObjKind::Connector(ConnectorObj { kind: ConnectorKind::Straight, start: end(260.0, 500.0), end: end(400.0, 580.0), corner_radius: 0.0 }), 0.0, 0.0);
         add(d, "com-efeitos", rect(80.0), 600.0, 420.0);
         add(d, "simbolo", rect(60.0), 700.0, 40.0);
@@ -701,6 +702,11 @@ fn visual_property_bars() {
         select(&mut h, vec![ids[ctx]]);
         shot(&mut h, name);
     }
+    // what the bars still show disabled: target/propbar-missing.txt
+    let missing = crate::cmdbar::MISSING.lock().unwrap().take().unwrap_or_default();
+    let text: String = missing.iter().map(|(b, i, k)| format!("{b}	{i}	{k}
+")).collect();
+    std::fs::write(out_dir().join("../propbar-missing.txt"), text).unwrap();
 }
 
 /// View menu toggles: multipage view, baseline grid, printable area, proof colors, simulated
@@ -1047,4 +1053,76 @@ fn visual_text_dialogs() {
     }
     h.state_mut().run(Cmd::UnlinkFrames);
     save(&mut h, "99_unlinked");
+}
+
+#[test]
+#[ignore]
+fn visual_symmetry_perspective() {
+    use kurbo::Rect;
+    use vector_core::codes::Special;
+    let mut h = harness();
+    h.state_mut().new_default_document();
+    // a petal to the left of the symmetry center
+    let petal = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let mut st = Style::default();
+        st.fill = Fill::Solid(Color::rgb(0xe0, 0x50, 0x70));
+        let e = EllipseShape { w: 90.0, h: 40.0, kind: EllipseKind::default(), start: 0.0, end: 0.0, clockwise: false };
+        let id = d.doc.new_id();
+        d.add_objects("Petal", vec![Object::new(id, ObjKind::Ellipse(e), Affine::translate((200.0, 280.0)), st)]);
+        d.selection = vec![id];
+        id
+    };
+    h.state_mut().run(Cmd::SymmetryCreate);
+    h.step();
+    if let Some(se) = h.state_mut().doc_mut().unwrap().symmetry_edit.as_mut() {
+        se.lines = 4;
+        se.center = Point::new(306.0, 300.0);
+    }
+    save(&mut h, "s1_symmetry_edit");
+    h.state_mut().run(Cmd::SymmetryFinish);
+    h.step();
+    {
+        let d = h.state().doc().unwrap();
+        let [g] = d.selection.as_slice() else { panic!("the symmetry is selected") };
+        let o = d.doc.find(*g).unwrap();
+        assert!(matches!(o.special, Some(Special::Symmetry { lines: 4, primaries: 1, .. })));
+        let ObjKind::Group(kids) = &o.kind else { panic!() };
+        assert_eq!(kids.len(), 8, "the petal and 7 copies");
+        assert_eq!(kids[0].id, petal);
+    }
+    save(&mut h, "s2_symmetry");
+    // draw in perspective: a square on the left plane
+    h.state_mut().run(Cmd::Deselect);
+    h.state_mut().run(Cmd::PerspectiveDraw);
+    h.step();
+    if let Some(pe) = h.state_mut().doc_mut().unwrap().persp_edit.as_mut() {
+        pe.kind = 1;
+        pe.plane = 2;
+    }
+    {
+        let d = h.state_mut().doc_mut().unwrap();
+        let mut st = Style::default();
+        st.fill = Fill::Solid(Color::rgb(0x40, 0x90, 0xd0));
+        let r = RectShape { w: 200.0, h: 200.0, radii: [0.0; 4], corner: CornerType::default() };
+        let id = d.doc.new_id();
+        d.add_objects("Rectangle", vec![Object::new(id, ObjKind::Rect(r), Affine::translate((150.0, 450.0)), st)]);
+    }
+    save(&mut h, "s3_draw_in_perspective");
+    h.state_mut().run(Cmd::PerspectiveFinish);
+    h.step();
+    {
+        let d = h.state().doc().unwrap();
+        let [g] = d.selection.as_slice() else { panic!("the perspective group is selected") };
+        let o = d.doc.find(*g).unwrap();
+        let Some(Special::Perspective { flats, .. }) = &o.special else { panic!("a perspective group") };
+        assert_eq!(flats.len(), 1);
+        assert_eq!(flats[0].0, 2, "on the left plane");
+        // the square is no longer square on its plane
+        let b: Rect = d.doc.bounds_of(o);
+        assert!((b.width() - 200.0).abs() > 1.0 || (b.height() - 200.0).abs() > 1.0, "{b:?}");
+    }
+    save(&mut h, "s4_perspective_group");
+    h.state_mut().run(Cmd::InsertObject);
+    save(&mut h, "s5_insert_object");
 }

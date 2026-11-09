@@ -290,6 +290,19 @@ pub enum Cmd {
     RolloverLivePreview,
     RolloverDuplicateState,
     RolloverDeleteState,
+    SymmetryCreate,
+    SymmetryEdit,
+    SymmetryFinish,
+    SymmetryRemove,
+    SymmetryBreak,
+    PerspectiveDraw,
+    PerspectiveEdit,
+    PerspectiveFinish,
+    /// Move to Plane: 0 orthographic, 1 top, 2 left, 3 right, 4 side.
+    MoveToPlane(u8),
+    InsertObject,
+    /// Open an inserted object (OLE) in its program.
+    OleOpen,
     // Tools
     Options(OptionsPage),
     SaveSettingsAsDefault,

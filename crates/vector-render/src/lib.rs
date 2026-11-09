@@ -291,8 +291,6 @@ impl Renderer {
     }
 
     fn render_plain(&mut self, ctx: &Ctx, o: &Object, target: &mut sk::Pixmap) {
-        let aa = ctx.opts.antialias;
-        let view = ctx.view;
         if ctx.opts.wireframe {
             return self.render_wire(ctx, o, target);
         }
@@ -304,13 +302,34 @@ impl Renderer {
             self.render_block_shadow(ctx, o, b, target);
         }
         if let Some(e) = &o.effects.extrude {
-            self.render_extrude(ctx, o, e, target);
+            if !matches!(e.kind, 1 | 3 | 5) {
+                self.render_extrude(ctx, o, e, target);
+            }
         }
         if let Some(c) = &o.effects.contour {
             if c.dir == ContourDir::Outside {
                 self.render_contour(ctx, o, c, target);
             }
         }
+        self.render_body(ctx, o, target);
+        if let Some(e) = &o.effects.extrude {
+            if matches!(e.kind, 1 | 3 | 5) && !e.bevel_only {
+                // front extrusions come toward the viewer: drawn over the object, capped with its fill
+                self.render_extrude(ctx, o, e, target);
+                let cap = extrude_back(o.world_path().bounding_box(), e) * o.world_path();
+                let c = o.style.fill.main_color().unwrap_or(e.color);
+                self.fill_path_simple(&cap, c, ctx.view, target, ctx.opts.antialias);
+            }
+            if e.bevel.is_some() && !e.bevel_only {
+                self.render_bevel(ctx, o, &o.world_path(), e, target);
+            }
+        }
+    }
+
+    /// The object itself, without the effects drawn behind or in front of it.
+    fn render_body(&mut self, ctx: &Ctx, o: &Object, target: &mut sk::Pixmap) {
+        let aa = ctx.opts.antialias;
+        let view = ctx.view;
         match &o.kind {
             ObjKind::Group(children) => {
                 for c in children {
@@ -354,10 +373,7 @@ impl Renderer {
             }
             ObjKind::Blend(b) => {
                 self.render_object(ctx, &b.start, target);
-                for k in 1..=b.steps {
-                    let t = k as f64 / (b.steps + 1) as f64;
-                    let t = accel(t, b.acceleration);
-                    let step = blend_step(&b.start, &b.end, t, 0, b.rotation);
+                for step in vector_core::object::blend_steps(b, || 0) {
                     self.render_object(ctx, &step, target);
                 }
                 self.render_object(ctx, &b.end, target);
@@ -390,6 +406,16 @@ impl Renderer {
                 let tp = tr * lay.to_path();
                 let c = st.outline.color.unwrap_or(Color::BLACK);
                 self.fill_path_simple(&tp, c, view, target, aa);
+                if d.kind == vector_core::object::DimensionKind::Callout && d.callout_shape > 0 && !tp.elements().is_empty() {
+                    let g = d.callout_gap.max(0.0);
+                    let r = tp.bounding_box().inflate(g, g);
+                    let shape = match d.callout_shape {
+                        1 => r.to_path(0.1),
+                        2 => kurbo::RoundedRect::from_rect(r, (r.height() / 4.0).min(8.0)).to_path(0.1),
+                        _ => kurbo::Ellipse::from_rect(r.inflate(r.width() * 0.2, r.height() * 0.3)).to_path(0.1),
+                    };
+                    self.stroke(ctx, &shape, &st.outline, o, target, None);
+                }
             }
             _ => {
                 let path = o.world_path();
@@ -657,8 +683,8 @@ impl Renderer {
         // width profiles (artistic media / painterly)
         if let Some(profile) = &ol.profile {
             match profile {
-                WidthProfile::Painterly { bristles, jitter, seed } => {
-                    painterly(path, ol.width.max(1.0), color, *bristles, *jitter, *seed, ctx.view, target, aa);
+                WidthProfile::Painterly { bristles, jitter, seed, opts } => {
+                    painterly(path, ol.width.max(1.0), color, *bristles, *jitter, *seed, opts, ctx.view, target, aa);
                 }
                 _ => {
                     let shape = variable_width_outline(path, ol.width.max(0.1), profile);
@@ -801,15 +827,16 @@ impl Renderer {
         for (r, c) in t.anchors() {
             {
                 let cell = t.cell(r, c);
-                let rc = t.span_rect(r, c);
+                let rc = t.cell_box(r, c);
                 if let Some(f) = cell.fill {
                     self.fill_path_simple(&rc.to_path(0.1), f, view, target, aa);
                 }
                 if !cell.text.is_empty() {
-                    let mut tobj = text::TextObj::paragraph(&cell.text, (rc.width() - 4.0).max(1.0), (rc.height() - 4.0).max(1.0), t.text_format.clone());
+                    let tr = t.text_rect(r, c);
+                    let mut tobj = text::TextObj::paragraph(&cell.text, tr.width().max(1.0), tr.height().max(1.0), t.text_format.clone());
                     tobj.align = text::TextAlign::Left;
                     let lay = text::layout(&tobj);
-                    let tp = Affine::translate((rc.x0 + 2.0, rc.y0 + 2.0)) * lay.to_path();
+                    let tp = Affine::translate((tr.x0, tr.y0)) * lay.to_path();
                     let col = t.text_format.color.unwrap_or(Color::BLACK);
                     let mut mask = sk::Mask::new(target.width(), target.height()).unwrap();
                     if let Some(rp) = to_sk_path(&rc.to_path(0.1)) {
@@ -821,8 +848,17 @@ impl Renderer {
                 }
             }
         }
-        // cell borders
-        let bp = t.grid_path();
+        // cell borders: one grid, or a box around each cell when they are separated
+        let bp = match t.spacing {
+            Some(_) => {
+                let mut bp = BezPath::new();
+                for (r, c) in t.anchors() {
+                    bp.extend(t.cell_box(r, c).to_path(0.1));
+                }
+                bp
+            }
+            None => t.grid_path(),
+        };
         if let Some(sp) = to_sk_path(&bp) {
             let mut st = sk::Stroke::default();
             st.width = t.border_width as f32;
@@ -844,6 +880,18 @@ impl Renderer {
     fn render_drop_shadow(&mut self, ctx: &Ctx, o: &Object, s: &DropShadow, target: &mut sk::Pixmap) {
         let zoom = view_scale(ctx.view);
         let feather = s.feather * zoom;
+        // a perspective shadow lies on the ground behind the object: flattened and slanted
+        let persp = s.perspective.then(|| perspective_shadow(o.bounds(), s));
+        let shadowed;
+        let o = match persp {
+            Some(m) => {
+                let mut c = o.clone();
+                c.apply_transform(m);
+                shadowed = c;
+                &shadowed
+            }
+            None => o,
+        };
         let vb = ctx.view.transform_rect_bbox(o.bounds()).inflate(feather * 2.0 + 4.0, feather * 2.0 + 4.0);
         let off = ctx.view.transform_rect_bbox(Rect::from_points(Point::ZERO, Point::new(s.offset.x, s.offset.y)));
         let _ = off;
@@ -862,7 +910,14 @@ impl Renderer {
         self.silhouette(&sub, o, &mut layer);
         fx::blur(&mut layer, feather as f32);
         fx::tint(&mut layer, [s.color.r, s.color.g, s.color.b], (s.opacity / 100.0) as f32);
-        target.draw_pixmap(x0, y0, layer.as_ref(), &sk::PixmapPaint { blend_mode: sk::BlendMode::Multiply, ..Default::default() }, sk::Transform::identity(), None);
+        if s.fade > 0.0 {
+            // fade from the near end (the object's base) to the far end
+            let bb = o.bounds();
+            let near = (sub.view * Point::new(bb.center().x, if persp.is_some() { bb.y1 } else { bb.y0 })).y;
+            let far = (sub.view * Point::new(bb.center().x, if persp.is_some() { bb.y0 } else { bb.y1 })).y;
+            fx::fade_rows(&mut layer, near as f32, far as f32, (s.fade / 100.0) as f32);
+        }
+        target.draw_pixmap(x0, y0, layer.as_ref(), &sk::PixmapPaint { blend_mode: blend_mode(s.merge), ..Default::default() }, sk::Transform::identity(), None);
     }
 
     fn render_inner_shadow(&mut self, ctx: &Ctx, o: &Object, path: &BezPath, s: &DropShadow, target: &mut sk::Pixmap) {
@@ -886,7 +941,20 @@ impl Renderer {
     }
 
     fn render_block_shadow(&mut self, ctx: &Ctx, o: &Object, b: &BlockShadow, target: &mut sk::Pixmap) {
-        let path = o.world_path();
+        let mut path = o.world_path();
+        if b.remove_holes {
+            path = outer_contours(&path);
+        }
+        let mut grow = b.expand;
+        if b.from_outline && o.style.outline.is_visible() {
+            grow += o.style.outline.width / 2.0;
+        }
+        if grow.abs() > 1e-6 {
+            path = geom::offset_path(&path, grow, kurbo::Join::Miter);
+        }
+        if b.simplify {
+            path = geom::simplify_path(&path, 0.5);
+        }
         let mut paths = vec![path.clone()];
         // sweep: union of the object translated along the offset, plus side quads
         let len_px = (linear_part(ctx.view) * Point::new(b.offset.x, b.offset.y)).to_vec2().hypot();
@@ -900,7 +968,11 @@ impl Renderer {
             all.extend(p.elements().iter().copied());
         }
         if let Some(sp) = to_sk_path(&all) {
-            target.fill_path(&sp, &paint_solid(b.color, ctx.opts.antialias), sk::FillRule::Winding, to_sk(ctx.view), None);
+            let mut paint = paint_solid(b.color, ctx.opts.antialias);
+            if b.overprint {
+                paint.blend_mode = sk::BlendMode::Multiply;
+            }
+            target.fill_path(&sp, &paint, sk::FillRule::Winding, to_sk(ctx.view), None);
             let mut st = sk::Stroke::default();
             st.width = 0.0;
             if let Some(op) = to_sk_path(&paths[paths.len() - 1]) {
@@ -911,9 +983,17 @@ impl Renderer {
 
     fn render_extrude(&mut self, ctx: &Ctx, o: &Object, e: &ExtrudeEffect, target: &mut sk::Pixmap) {
         let path = o.world_path();
+        if e.bevel_only {
+            return self.render_bevel(ctx, o, &path, e, target);
+        }
+        let back_m = extrude_back(path.bounding_box(), e);
         let polys = geom::flatten_polylines(&path, 0.5);
         let mut quads: Vec<([Point; 4], f64)> = vec![];
-        let light = Vec2::new(-0.6, -0.8);
+        let light = extrude_light(e);
+        let base = match e.color_mode {
+            0 => o.style.fill.main_color().unwrap_or(e.color),
+            _ => e.color,
+        };
         for (pts, closed) in &polys {
             let n = pts.len();
             let m = if *closed { n } else { n - 1 };
@@ -925,20 +1005,26 @@ impl Renderer {
                     continue;
                 }
                 let normal = Vec2::new(edge.y, -edge.x).normalize();
-                let shade = (normal.dot(light) * 0.5 + 0.5).clamp(0.0, 1.0);
-                quads.push(([a, b, b + e.depth, a + e.depth], shade));
+                let shade = (normal.dot(light.0) * 0.5 + 0.5).clamp(0.0, 1.0) * light.1;
+                quads.push(([a, b, back_m * b, back_m * a], shade));
             }
         }
         // painter's order: draw faces farther along the depth first
-        let dir = e.depth.normalize();
+        let depth = (back_m * path.bounding_box().center()) - path.bounding_box().center();
+        let dir = depth.normalize();
         quads.sort_by(|x, y| {
             let dx = (x.0[0].to_vec2() + x.0[1].to_vec2()).dot(dir);
             let dy = (y.0[0].to_vec2() + y.0[1].to_vec2()).dot(dir);
             dy.partial_cmp(&dx).unwrap_or(std::cmp::Ordering::Equal)
         });
         // back face
-        let back = Affine::translate(e.depth) * path.clone();
-        self.fill_path_simple(&back, e.shade, ctx.view, target, ctx.opts.antialias);
+        let back = back_m * path.clone();
+        let back_c = match e.color_mode {
+            1 => base,
+            0 => Color::lerp(Color::BLACK, base, 0.55),
+            _ => e.shade,
+        };
+        self.fill_path_simple(&back, back_c, ctx.view, target, ctx.opts.antialias);
         for (q, shade) in quads {
             let mut bp = BezPath::new();
             bp.move_to(q[0]);
@@ -946,7 +1032,11 @@ impl Renderer {
             bp.line_to(q[2]);
             bp.line_to(q[3]);
             bp.close_path();
-            let c = Color::lerp(e.shade, e.color, shade);
+            let c = match e.color_mode {
+                1 => base,
+                0 => Color::lerp(Color::lerp(Color::BLACK, base, 0.45), base, shade),
+                _ => Color::lerp(e.shade, e.color, shade),
+            };
             if let Some(sp) = to_sk_path(&bp) {
                 let p = paint_solid(c, ctx.opts.antialias);
                 target.fill_path(&sp, &p, sk::FillRule::Winding, to_sk(ctx.view), None);
@@ -955,6 +1045,33 @@ impl Renderer {
                 target.stroke_path(&sp, &p, &st, to_sk(ctx.view), None);
             }
         }
+    }
+
+    /// The bevel of an extrusion: a ring inside the front face, lit from the extrusion's lights.
+    fn render_bevel(&mut self, ctx: &Ctx, o: &Object, path: &BezPath, e: &ExtrudeEffect, target: &mut sk::Pixmap) {
+        let Some((depth, angle)) = e.bevel else { return };
+        let inner = geom::offset_path(path, -depth.max(0.1), kurbo::Join::Miter);
+        let base = o.style.fill.main_color().unwrap_or(e.color);
+        let light = extrude_light(e);
+        let lit = Color::lerp(base, Color::WHITE, (0.35 * light.1).clamp(0.0, 0.8));
+        let dark = Color::lerp(base, Color::BLACK, (0.25 + angle.clamp(0.0, 89.0) / 300.0).clamp(0.0, 0.8));
+        // the ring: outer minus inner, split into a lit half (top left) and a dark half
+        let mut ring = path.clone();
+        ring.extend(inner.elements().iter().copied());
+        let Some(sp) = to_sk_path(&ring) else { return };
+        let bb = path.bounding_box();
+        let mut mask_lit = sk::Mask::new(target.width(), target.height()).unwrap();
+        let mut tri = BezPath::new();
+        tri.move_to((bb.x0 - 1.0, bb.y0 - 1.0));
+        tri.line_to((bb.x1 + 1.0, bb.y0 - 1.0));
+        tri.line_to((bb.x0 - 1.0, bb.y1 + 1.0));
+        tri.close_path();
+        if let Some(tp) = to_sk_path(&tri) {
+            mask_lit.fill_path(&tp, sk::FillRule::Winding, true, to_sk(ctx.view));
+        }
+        let aa = ctx.opts.antialias;
+        target.fill_path(&sp, &paint_solid(dark, aa), sk::FillRule::EvenOdd, to_sk(ctx.view), None);
+        target.fill_path(&sp, &paint_solid(lit, aa), sk::FillRule::EvenOdd, to_sk(ctx.view), Some(&mask_lit));
     }
 
     fn render_contour(&mut self, ctx: &Ctx, o: &Object, c: &ContourEffect, target: &mut sk::Pixmap) {
@@ -977,16 +1094,29 @@ impl Renderer {
                 let start_ol = o.style.outline.color.unwrap_or(Color::BLACK);
                 let steps = c.steps.max(1).min(64);
                 for k in 1..=steps {
+                    let tk = vector_core::object::accel(k as f64 / steps as f64, c.accel);
                     let d = match c.dir {
-                        ContourDir::Outside => c.offset * k as f64,
-                        _ => -c.offset * k as f64,
+                        ContourDir::Outside => c.offset * steps as f64 * tk,
+                        _ => -c.offset * steps as f64 * tk,
                     };
                     let p = geom::offset_path(&base, d, kurbo::Join::Round);
                     if p.elements().is_empty() || p.area().abs() < 1e-3 {
                         break;
                     }
-                    let t = k as f64 / steps as f64;
-                    v.push((p, Fill::Solid(Color::lerp(start_fill, c.end_fill, t)), Some(Color::lerp(start_ol, c.end_outline, t))));
+                    let t = if c.link_accel { tk } else { vector_core::object::accel(k as f64 / steps as f64, c.color_accel) };
+                    // fountain fills blend their first color to the fill color and their last
+                    // one to the last fill color
+                    let fill = match (&o.style.fill, c.last_fill) {
+                        (Fill::Gradient(g), Some(lf)) if g.stops.len() >= 2 => {
+                            let mut g = g.clone();
+                            let n = g.stops.len();
+                            g.stops[0].color = Color::lerp(g.stops[0].color, c.end_fill, t);
+                            g.stops[n - 1].color = Color::lerp(g.stops[n - 1].color, lf, t);
+                            Fill::Gradient(g)
+                        }
+                        _ => Fill::Solid(Color::lerp(start_fill, c.end_fill, t)),
+                    };
+                    v.push((p, fill, Some(Color::lerp(start_ol, c.end_outline, t))));
                 }
                 if c.dir == ContourDir::Outside {
                     v.reverse();
@@ -1087,17 +1217,6 @@ fn normalize_text_angle(a: f64) -> f64 {
     a
 }
 
-fn accel(t: f64, a: f64) -> f64 {
-    if a.abs() < 1e-6 {
-        return t;
-    }
-    let k = 1.0 + a.abs() / 25.0;
-    if a > 0.0 {
-        t.powf(k)
-    } else {
-        1.0 - (1.0 - t).powf(k)
-    }
-}
 
 pub fn hash_str(s: &str) -> u64 {
     use std::hash::{Hash, Hasher};
@@ -1348,8 +1467,15 @@ pub fn variable_width_outline(path: &BezPath, width: f64, profile: &WidthProfile
                         (a + (b - a) * f).max(0.05)
                     }
                 }
-                WidthProfile::Painterly { .. } => 1.0,
+                WidthProfile::Painterly { .. } | WidthProfile::Variable { .. } => 1.0,
             }
+        };
+        let side = |s: f64, dir: Vec2| -> (f64, f64) {
+            if let WidthProfile::Variable { nodes, .. } = profile {
+                return vector_core::style::var_width_at(nodes, s / total);
+            }
+            let hw = width / 2.0 * wfn(s, dir);
+            (hw, hw)
         };
         let mut left = vec![];
         let mut right = vec![];
@@ -1359,9 +1485,9 @@ pub fn variable_width_outline(path: &BezPath, width: f64, profile: &WidthProfile
             let dir = (next - prev).normalize();
             let dir = if dir.x.is_finite() { dir } else { Vec2::new(1.0, 0.0) };
             let normal = Vec2::new(-dir.y, dir.x);
-            let hw = width / 2.0 * wfn(acc[i], dir);
-            left.push(pts[i] + normal * hw);
-            right.push(pts[i] - normal * hw);
+            let (hl, hr) = side(acc[i], dir);
+            left.push(pts[i] + normal * hl);
+            right.push(pts[i] - normal * hr);
         }
         out.move_to(left[0]);
         for p in &left[1..] {
@@ -1377,7 +1503,7 @@ pub fn variable_width_outline(path: &BezPath, width: f64, profile: &WidthProfile
 }
 
 #[allow(clippy::too_many_arguments)]
-fn painterly(path: &BezPath, width: f64, color: Color, bristles: u32, jitter: f64, seed: u32, view: Affine, target: &mut sk::Pixmap, aa: bool) {
+fn painterly(path: &BezPath, width: f64, color: Color, bristles: u32, jitter: f64, seed: u32, o: &vector_core::style::PaintOpts, view: Affine, target: &mut sk::Pixmap, aa: bool) {
     let mut state = seed.wrapping_mul(747796405).wrapping_add(2891336453).max(1);
     let mut rnd = move || {
         state ^= state << 13;
@@ -1386,45 +1512,124 @@ fn painterly(path: &BezPath, width: f64, color: Color, bristles: u32, jitter: f6
         state as f64 / u32::MAX as f64
     };
     let bristles = bristles.clamp(1, 24);
+    let opacity = (1.0 - o.alpha / 100.0).clamp(0.0, 1.0);
+    let grain = (o.texture_strength / 100.0).clamp(0.0, 1.0);
+    // a tilted nib is flatter and wider, and leans in its direction
+    let lean = ((90.0 - o.tilt.clamp(0.0, 90.0)) / 90.0).clamp(0.0, 1.0);
+    let width = width * (1.0 + lean * 0.6);
+    let lean_v = Vec2::new(-o.tilt_dir.to_radians().cos(), o.tilt_dir.to_radians().sin()) * (lean * width * 0.3);
+    let shade_of = |base: Color, t: f64, k: f64| -> (u8, u8, u8) {
+        // Glow: the color builds up to white along the stroke
+        let g = if o.glow { (t * 0.85).clamp(0.0, 0.85) } else { 0.0 };
+        let ch = |c: u8| ((c as f64 * k) * (1.0 - g) + 255.0 * g).clamp(0.0, 255.0) as u8;
+        (ch(base.r), ch(base.g), ch(base.b))
+    };
     for (pts, _) in geom::flatten_polylines(path, 0.3) {
         if pts.len() < 2 {
             continue;
         }
-        for b in 0..bristles {
-            let off = (b as f64 / (bristles.max(2) - 1) as f64 - 0.5) * width;
-            let shade = 0.75 + rnd() * 0.5;
-            let c = Color::rgba(
-                (color.r as f64 * shade).clamp(0.0, 255.0) as u8,
-                (color.g as f64 * shade).clamp(0.0, 255.0) as u8,
-                (color.b as f64 * shade).clamp(0.0, 255.0) as u8,
-                (180.0 + rnd() * 75.0) as u8,
-            );
-            let mut bp = BezPath::new();
-            let mut started = false;
-            let n = pts.len();
-            for i in 0..n {
-                let prev = if i == 0 { pts[0] } else { pts[i - 1] };
-                let next = if i + 1 < n { pts[i + 1] } else { pts[n - 1] };
-                let dir = (next - prev).normalize();
-                if !dir.x.is_finite() {
-                    continue;
-                }
-                let normal = Vec2::new(-dir.y, dir.x);
-                let j = (rnd() - 0.5) * jitter * width * 0.2;
-                let p = pts[i] + normal * (off + j);
-                if !started {
-                    bp.move_to(p);
-                    started = true;
-                } else {
-                    bp.line_to(p);
+        let n = pts.len();
+        // position along the stroke (0..1) of each point
+        let mut along = vec![0.0; n];
+        for i in 1..n {
+            along[i] = along[i - 1] + (pts[i] - pts[i - 1]).hypot();
+        }
+        let total = along[n - 1].max(1e-9);
+        let taper = |i: usize| -> f64 {
+            if o.taper {
+                (std::f64::consts::PI * along[i] / total).sin().max(0.0).powf(0.6).max(0.08)
+            } else {
+                1.0
+            }
+        };
+        let normal_at = |i: usize| -> Option<Vec2> {
+            let prev = if i == 0 { pts[0] } else { pts[i - 1] };
+            let next = if i + 1 < n { pts[i + 1] } else { pts[n - 1] };
+            let dir = (next - prev).normalize();
+            dir.x.is_finite().then(|| Vec2::new(-dir.y, dir.x))
+        };
+        match o.mark {
+            // airbrush droplets and particles: dots scattered over the stroke
+            1 | 2 => {
+                let particles = o.mark == 2;
+                let per = (o.density.clamp(1.0, 100.0) / 100.0) * if particles { 0.6 } else { 3.0 };
+                for i in 0..n {
+                    let Some(nv) = normal_at(i) else { continue };
+                    let step = if i == 0 { 0.0 } else { (pts[i] - pts[i - 1]).hypot() };
+                    let count = ((step.max(0.5) * per).round() as usize).clamp(1, 60);
+                    for _ in 0..count {
+                        let off = (rnd() - 0.5) * width * taper(i);
+                        let q = pts[i] + nv * off + lean_v + Vec2::new((rnd() - 0.5) * width * 0.2, (rnd() - 0.5) * width * 0.2);
+                        let r = if particles { width * (0.04 + rnd() * 0.08) } else { width * 0.02 + 0.15 };
+                        let a = opacity * (0.5 + rnd() * 0.5) * (1.0 - grain * rnd() * 0.5);
+                        let (r8, g8, b8) = shade_of(color, along[i] / total, 0.85 + rnd() * 0.3);
+                        if let Some(c) = sk::PathBuilder::from_circle(q.x as f32, q.y as f32, r.max(0.05) as f32) {
+                            target.fill_path(&c, &paint_solid(Color::rgba(r8, g8, b8, (a * 255.0) as u8), aa), sk::FillRule::Winding, to_sk(view), None);
+                        }
+                    }
                 }
             }
-            if let Some(sp) = to_sk_path(&bp) {
-                let mut st = sk::Stroke::default();
-                st.width = (width / bristles as f64 * 1.6) as f32;
-                st.line_cap = sk::LineCap::Round;
-                st.line_join = sk::LineJoin::Round;
-                target.stroke_path(&sp, &paint_solid(c, aa), &st, to_sk(view), None);
+            // ink: one solid stroke following the taper
+            3 => {
+                let mut left = vec![];
+                let mut right = vec![];
+                for i in 0..n {
+                    let Some(nv) = normal_at(i) else { continue };
+                    let w = width * 0.5 * taper(i);
+                    left.push(pts[i] + nv * w + lean_v);
+                    right.push(pts[i] - nv * w + lean_v);
+                }
+                if left.len() >= 2 {
+                    let mut bp = BezPath::new();
+                    bp.move_to(left[0]);
+                    for q in &left[1..] {
+                        bp.line_to(*q);
+                    }
+                    for q in right.iter().rev() {
+                        bp.line_to(*q);
+                    }
+                    bp.close_path();
+                    let (r8, g8, b8) = shade_of(color, 0.5, 1.0);
+                    if let Some(sp) = to_sk_path(&bp) {
+                        target.fill_path(&sp, &paint_solid(Color::rgba(r8, g8, b8, (opacity * 255.0) as u8), aa), sk::FillRule::Winding, to_sk(view), None);
+                    }
+                }
+            }
+            // bristles: one textured line per bristle
+            _ => {
+                for b in 0..bristles {
+                    let off = (b as f64 / (bristles.max(2) - 1) as f64 - 0.5) * width;
+                    let shade = 0.75 + rnd() * 0.5;
+                    let a = opacity * ((180.0 + rnd() * 75.0) / 255.0) * (1.0 - grain * rnd() * 0.6);
+                    // glow: split the bristle in runs so the color can build up along it
+                    let runs = if o.glow { 8 } else { 1 };
+                    for run in 0..runs {
+                        let i0 = run * (n - 1) / runs;
+                        let i1 = ((run + 1) * (n - 1) / runs).max(i0 + 1).min(n - 1);
+                        let mut bp = BezPath::new();
+                        let mut started = false;
+                        for i in i0..=i1 {
+                            let Some(nv) = normal_at(i) else { continue };
+                            let j = (rnd() - 0.5) * jitter * width * 0.2;
+                            let q = pts[i] + nv * ((off + j) * taper(i)) + lean_v;
+                            if !started {
+                                bp.move_to(q);
+                                started = true;
+                            } else {
+                                bp.line_to(q);
+                            }
+                        }
+                        let t = (along[i0] + along[i1]) / 2.0 / total;
+                        let (r8, g8, b8) = shade_of(color, t, shade);
+                        if let Some(sp) = to_sk_path(&bp) {
+                            let mut st = sk::Stroke::default();
+                            st.width = (width / bristles as f64 * 1.6) as f32;
+                            st.line_cap = sk::LineCap::Round;
+                            st.line_join = sk::LineJoin::Round;
+                            target.stroke_path(&sp, &paint_solid(Color::rgba(r8, g8, b8, (a * 255.0) as u8), aa), &st, to_sk(view), None);
+                        }
+                    }
+                }
             }
         }
     }
@@ -1476,4 +1681,69 @@ pub fn pixmap_to_rgba(pm: &sk::Pixmap) -> Vec<u8> {
         out.extend_from_slice(&[c.red(), c.green(), c.blue(), c.alpha()]);
     }
     out
+}
+
+/// The ground transform of a perspective shadow: flattened by the stretch and slanted by the angle,
+/// from the base of the object.
+pub fn perspective_shadow(bb: Rect, s: &DropShadow) -> Affine {
+    let base = Point::new(bb.center().x, bb.y1);
+    let k = (s.stretch / 100.0).clamp(0.0, 2.0);
+    let skew = s.angle.clamp(-89.0, 89.0).to_radians().tan();
+    Affine::translate(base.to_vec2()) * Affine::new([1.0, 0.0, -skew * k, k, 0.0, 0.0]) * Affine::translate(-base.to_vec2())
+}
+
+/// Only the outer contours of a path (Remove Holes).
+fn outer_contours(path: &BezPath) -> BezPath {
+    let subs = geom::subpaths(path);
+    let Some(main_sign) = subs.iter().map(|p| p.area()).max_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap_or(std::cmp::Ordering::Equal)).map(|a| a.signum()) else {
+        return path.clone();
+    };
+    let mut out = BezPath::new();
+    for p in subs {
+        if p.area().signum() == main_sign {
+            out.extend(p.elements().iter().copied());
+        }
+    }
+    out
+}
+
+/// Where the back (or front) face of an extrusion goes: along the depth, converging toward the
+/// vanishing point (small), away from it (big) or parallel; turned by the extrusion's rotation.
+pub fn extrude_back(bb: Rect, e: &ExtrudeEffect) -> Affine {
+    let [rx, ry, rz] = e.rotation;
+    let mut d = e.depth;
+    // rotation: turn the depth around the view axis and foreshorten it around the other two
+    let (sz, cz) = rz.to_radians().sin_cos();
+    d = Vec2::new(d.x * cz - d.y * sz, d.x * sz + d.y * cz);
+    d = Vec2::new(d.x * ry.to_radians().cos() + bb.width() * 0.5 * ry.to_radians().sin(), d.y * rx.to_radians().cos() + bb.height() * 0.5 * rx.to_radians().sin());
+    let front = matches!(e.kind, 1 | 3 | 5);
+    if front {
+        d = -d;
+    }
+    let scale = match e.kind {
+        0 | 1 => 0.7,
+        2 | 3 => 1.4,
+        _ => 1.0,
+    };
+    let c = bb.center();
+    Affine::translate(d) * Affine::translate(c.to_vec2()) * Affine::scale(scale) * Affine::translate(-c.to_vec2())
+}
+
+/// The extrusion's light: direction (toward the light) and intensity factor.
+fn extrude_light(e: &ExtrudeEffect) -> (Vec2, f64) {
+    if e.lights.is_empty() {
+        return (Vec2::new(-0.6, -0.8), 1.0);
+    }
+    let mut dir = Vec2::ZERO;
+    let mut total = 0.0;
+    for (pos, intensity) in &e.lights {
+        // positions on the front of the light cube, a 4x4 grid read left to right, top to bottom
+        let gx = (*pos % 4) as f64 / 3.0 * 2.0 - 1.0;
+        let gy = (*pos / 4) as f64 / 3.0 * 2.0 - 1.0;
+        let k = intensity / 100.0;
+        dir += Vec2::new(gx, gy) * k;
+        total += k;
+    }
+    let n = if dir.hypot() > 1e-6 { dir.normalize() } else { Vec2::new(-0.6, -0.8) };
+    (n, (0.4 + total * 0.6).clamp(0.2, 1.6))
 }

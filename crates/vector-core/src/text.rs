@@ -39,6 +39,9 @@ pub struct CharFormat {
     /// default language).
     #[serde(default)]
     pub lang: String,
+    /// Variable fonts: the values of the font's design axes (tag, value).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub variations: Vec<(String, f32)>,
 }
 
 impl Default for CharFormat {
@@ -55,6 +58,7 @@ impl Default for CharFormat {
             baseline_shift: 0.0,
             caps: false,
             lang: String::new(),
+            variations: vec![],
         }
     }
 }
@@ -156,6 +160,10 @@ pub struct TextObj {
     /// fit in, in frame coordinates.
     #[serde(default)]
     pub frame_shape: Option<crate::path::NodePath>,
+    /// Wrap Paragraph Text: the objects this text flows around, in its own coordinates (style of
+    /// the wrap, outline as a polygon). Derived by `Document::update_text_flow`.
+    #[serde(skip)]
+    pub wrap_obstacles: Vec<(u8, Vec<Point>)>,
 }
 
 /// Formatting codes (Text ▸ Insert Formatting Code).
@@ -456,6 +464,7 @@ impl TextObj {
             grid: None,
             web: false,
             frame_shape: None,
+            wrap_obstacles: vec![],
         }
     }
     pub fn paragraph(s: &str, w: f64, h: f64, format: CharFormat) -> TextObj {
@@ -558,7 +567,7 @@ pub struct FontDb {
     pub db: fontdb::Database,
     families: Vec<String>,
     face_cache: HashMap<fontdb::ID, Arc<FaceData>>,
-    glyph_cache: HashMap<(fontdb::ID, u16), Arc<BezPath>>,
+    glyph_cache: HashMap<(fontdb::ID, u16, u64), Arc<BezPath>>,
 }
 
 pub struct FaceData {
@@ -672,17 +681,49 @@ impl FontDb {
         Some(fd)
     }
 
-    fn glyph(&mut self, id: fontdb::ID, face: &FaceData, gid: u16) -> Arc<BezPath> {
-        if let Some(g) = self.glyph_cache.get(&(id, gid)) {
+    fn glyph(&mut self, id: fontdb::ID, face: &FaceData, gid: u16, vars: &[(String, f32)]) -> Arc<BezPath> {
+        let vkey = vars_key(vars);
+        if let Some(g) = self.glyph_cache.get(&(id, gid, vkey)) {
             return g.clone();
         }
         let mut b = OutlineBuilder(BezPath::new());
-        if let Ok(f) = ttf_parser::Face::parse(&face.data, face.index) {
+        if let Ok(mut f) = ttf_parser::Face::parse(&face.data, face.index) {
+            for (tag, v) in vars {
+                f.set_variation(ttf_parser::Tag::from_bytes_lossy(tag.as_bytes()), *v);
+            }
             f.outline_glyph(ttf_parser::GlyphId(gid), &mut b);
         }
         let g = Arc::new(b.0);
-        self.glyph_cache.insert((id, gid), g.clone());
+        self.glyph_cache.insert((id, gid, vkey), g.clone());
         g
+    }
+
+    /// The design axes of a variable font: (tag, name, minimum, default, maximum). Empty for
+    /// fonts that are not variable.
+    pub fn variation_axes(&mut self, family: &str, bold: bool, italic: bool) -> Vec<(String, String, f32, f32, f32)> {
+        let Some(face) = self.query(family, bold, italic).and_then(|id| self.face(id)) else { return vec![] };
+        let Ok(f) = ttf_parser::Face::parse(&face.data, face.index) else { return vec![] };
+        f.variation_axes()
+            .into_iter()
+            .filter(|a| !a.hidden)
+            .map(|a| {
+                let tag = a.tag.to_string();
+                let name = f
+                    .names()
+                    .into_iter()
+                    .find(|n| n.name_id == a.name_id && n.is_unicode())
+                    .and_then(|n| n.to_string())
+                    .unwrap_or_else(|| match tag.as_str() {
+                        "wght" => "Weight".into(),
+                        "wdth" => "Width".into(),
+                        "ital" => "Italic".into(),
+                        "slnt" => "Slant".into(),
+                        "opsz" => "Optical Size".into(),
+                        _ => tag.clone(),
+                    });
+                (tag, name, a.min_value, a.def_value, a.max_value)
+            })
+            .collect()
     }
 }
 
@@ -840,12 +881,30 @@ pub fn layout(t: &TextObj) -> TextLayout {
 }
 
 /// Shape one run of text in one face: glyphs per character.
-fn shape_run(face: &FaceData, run: &str, scale: f64, n: usize) -> Vec<Vec<(u16, f64, f64, f64)>> {
+/// A key for a set of axis values (0 = the default instance).
+fn vars_key(vars: &[(String, f32)]) -> u64 {
+    use std::hash::{Hash, Hasher};
+    if vars.is_empty() {
+        return 0;
+    }
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    for (t, v) in vars {
+        t.hash(&mut h);
+        v.to_bits().hash(&mut h);
+    }
+    h.finish() | 1
+}
+
+fn shape_run(face: &FaceData, run: &str, scale: f64, n: usize, vars: &[(String, f32)]) -> Vec<Vec<(u16, f64, f64, f64)>> {
     let mut per_char: Vec<Vec<(u16, f64, f64, f64)>> = vec![vec![]; n];
     if n == 0 {
         return per_char;
     }
-    if let Some(rb) = rustybuzz::Face::from_slice(&face.data, face.index) {
+    if let Some(mut rb) = rustybuzz::Face::from_slice(&face.data, face.index) {
+        if !vars.is_empty() {
+            let v: Vec<rustybuzz::Variation> = vars.iter().map(|(t, v)| rustybuzz::Variation { tag: ttf_parser::Tag::from_bytes_lossy(t.as_bytes()), value: *v }).collect();
+            rb.set_variations(&v);
+        }
         let mut buf = rustybuzz::UnicodeBuffer::new();
         buf.push_str(run);
         let gb = rustybuzz::shape(&rb, &[], buf);
@@ -894,7 +953,7 @@ fn shape_text(db: &mut FontDb, t: &TextObj, chars: &[char], fallback: (fontdb::I
                 }
             })
             .collect();
-        let per_char = shape_run(&face, &run, scale, j - i);
+        let per_char = shape_run(&face, &run, scale, j - i, &fmt.variations);
         for (k, ci) in (i..j).enumerate() {
             let c = chars[ci];
             let space_w = fmt.size * 0.25;
@@ -943,7 +1002,7 @@ fn shape_str(db: &mut FontDb, font: &str, bold: bool, italic: bool, size: f64, s
     let fid = db.query(font, bold, italic)?;
     let face = db.face(fid)?;
     let n = s.chars().count();
-    let glyphs: Vec<(u16, f64, f64, f64)> = shape_run(&face, s, size / face.units_per_em, n).into_iter().flatten().collect();
+    let glyphs: Vec<(u16, f64, f64, f64)> = shape_run(&face, s, size / face.units_per_em, n, &[]).into_iter().flatten().collect();
     let width = glyphs.iter().map(|g| g.1).sum();
     Some(ShapedStr { glyphs, width, face_id: fid, face, size })
 }
@@ -954,7 +1013,7 @@ impl FontDb {
         let scale = s.size / s.face.units_per_em * k;
         let mut gx = x;
         for &(gid, adv, xo, yo) in &s.glyphs {
-            let path = self.glyph(s.face_id, &s.face, gid);
+            let path = self.glyph(s.face_id, &s.face, gid, &[]);
             if !path.elements().is_empty() {
                 out.push(LaidGlyph {
                     char_index,
@@ -1220,6 +1279,59 @@ fn scan(polys: &[Vec<Point>], y: f64) -> Vec<(f64, f64)> {
     xs.chunks(2).filter(|c| c.len() == 2).map(|c| (c[0], c[1])).collect()
 }
 
+/// The part of [x0, x1] left for a line over the band [y0, y1] by the objects text wraps around
+/// (`None` = no room of at least `min` here).
+fn wrap_span(obstacles: &[(u8, Vec<Point>)], (x0, x1): (f64, f64), y0: f64, y1: f64, min: f64) -> Option<(f64, f64)> {
+    let mut free = vec![(x0, x1)];
+    for (style, poly) in obstacles {
+        let (bx0, bx1, by0, by1) = poly.iter().fold((f64::MAX, f64::MIN, f64::MAX, f64::MIN), |a, p| (a.0.min(p.x), a.1.max(p.x), a.2.min(p.y), a.3.max(p.y)));
+        if by1 <= y0 || by0 >= y1 {
+            continue;
+        }
+        // what the object covers across the band
+        let (l, r) = if *style <= 2 {
+            let mut l = f64::MAX;
+            let mut r = f64::MIN;
+            for k in 0..=4 {
+                let y = y0 + (y1 - y0) * k as f64 / 4.0;
+                for (a, b) in scan(std::slice::from_ref(poly), y) {
+                    l = l.min(a);
+                    r = r.max(b);
+                }
+            }
+            if l > r {
+                continue;
+            }
+            (l, r)
+        } else {
+            (bx0, bx1)
+        };
+        let (l, r) = match style % 3 {
+            // left: text only on the left of the object
+            0 if *style < 6 => (l, f64::MAX),
+            // right: text only on its right
+            1 if *style < 6 => (f64::MIN, r),
+            _ => (l, r),
+        };
+        let (l, r) = if *style == 6 { (f64::MIN, f64::MAX) } else { (l, r) };
+        let mut next = vec![];
+        for (a, b) in free {
+            if r <= a || l >= b {
+                next.push((a, b));
+                continue;
+            }
+            if l > a {
+                next.push((a, l));
+            }
+            if r < b {
+                next.push((r, b));
+            }
+        }
+        free = next;
+    }
+    free.into_iter().filter(|s| s.1 - s.0 >= min).max_by(|a, b| (a.1 - a.0).total_cmp(&(b.1 - b.0)))
+}
+
 /// The widest stretch inside the shape over the band [y0, y1].
 fn shape_span(polys: &[Vec<Point>], y0: f64, y1: f64) -> Option<(f64, f64)> {
     let mut cur = scan(polys, y0);
@@ -1376,6 +1488,25 @@ pub fn layout_with(db: &mut FontDb, t: &TextObj) -> TextLayout {
                 }
             }
         }
+        if paragraph && !t.wrap_obstacles.is_empty() {
+            // Wrap Paragraph Text: move the line beside or below the objects it flows around
+            let mut yy = est_y + push_down;
+            loop {
+                match wrap_span(&t.wrap_obstacles, (span_x, span_x + span_w), yy - base_asc, yy + base_desc, t.format.size * 2.0) {
+                    Some((a, b)) => {
+                        span_x = a;
+                        span_w = b - a;
+                        push_down = yy - est_y;
+                        break;
+                    }
+                    None if yy > frame_h + base_line_h => {
+                        push_down = yy - est_y;
+                        break;
+                    }
+                    None => yy += base_line_h * 0.5,
+                }
+            }
+        }
         let dc_indent = match (&drop, drop_cap) {
             (Some(d), Some(dc)) if para_line < dc.lines as usize || dc.hanging => d.width + dc.space,
             _ => 0.0,
@@ -1474,7 +1605,7 @@ pub fn layout_with(db: &mut FontDb, t: &TextObj) -> TextLayout {
                 let mut gx = x;
                 let shift = sc.fmt.baseline_shift;
                 for &(gid, gadv, xo, yo) in &sc.glyphs {
-                    let gpath = db.glyph(sc.face_id, &sc.face, gid);
+                    let gpath = db.glyph(sc.face_id, &sc.face, gid, &sc.fmt.variations);
                     let sc_scale = sc.fmt.size / sc.face.units_per_em;
                     let mut tr = Affine::translate((gx + xo, by - yo - shift)) * Affine::scale(sc_scale);
                     if sc.fmt.italic && !is_italic_face(db, sc.face_id) {
