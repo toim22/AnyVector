@@ -7,11 +7,13 @@ members = [
     "crates/vector-app",
     "xtask",
 ]
+# vendor/egui is egui 0.37.0 with AnyVector's user interface translator (see vendor/egui/README.md)
+exclude = ["vendor"]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-authors = ["Vector Team"]
+authors = ["AnyVector Team"]
 license = "Proprietary"
 
 [workspace.dependencies]
@@ -57,3 +59,6 @@ opt-level = 3
 lto = "thin"
 codegen-units = 4
 strip = true
+
+[patch.crates-io]
+egui = { path = "vendor/egui" }

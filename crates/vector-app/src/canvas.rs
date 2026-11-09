@@ -81,7 +81,7 @@ pub fn drawing_window(app: &mut VectorApp, ui: &mut Ui) {
     let resp = ui.interact(canvas, Id::unique(("canvas", app.docs[ai].uid)), Sense::click_and_drag());
     // Edit Master shows a Finish button at the top left of the drawing
     let finish = finish_label(&app.docs[ai]).map(|t| {
-        let w = 18.0 + ctx.fonts_mut(|f| f.layout_no_wrap(t.to_string(), egui::FontId::proportional(12.0), Color32::WHITE).size().x);
+        let w = 18.0 + ctx.fonts_mut(|f| f.layout_no_wrap(crate::i18n::t(t), egui::FontId::proportional(12.0), Color32::WHITE).size().x);
         (t, Rect::from_min_size(canvas.min + vec2(8.0, 8.0), vec2(w, 24.0)))
     });
     let over_finish = finish.is_some_and(|(_, r)| ctx.input(|i| i.pointer.latest_pos()).is_some_and(|p| r.contains(p)));

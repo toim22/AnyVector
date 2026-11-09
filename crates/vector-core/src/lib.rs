@@ -19,6 +19,6 @@ pub use object::{ObjId, ObjKind, Object};
 pub use style::{Fill, Outline, Style, Transparency};
 pub use units::Unit;
 
-pub const APP_NAME: &str = "Vector";
+pub const APP_NAME: &str = "AnyVector";
 pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const FILE_EXT: &str = "vct";

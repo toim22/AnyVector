@@ -2,10 +2,10 @@
 name = "vector-app"
 version.workspace = true
 edition.workspace = true
-description = "Vector - vector graphics editor"
+description = "AnyVector - vector graphics editor"
 
 [[bin]]
-name = "vector"
+name = "anyvector"
 path = "src/main.rs"
 
 [dependencies]

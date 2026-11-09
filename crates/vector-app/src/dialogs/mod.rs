@@ -77,6 +77,10 @@ pub struct Dialogs {
     /// Docs still waiting for a decision while closing all / quitting.
     pub close_queue: Vec<usize>,
     pub bug_report: Option<crate::bugreport::BugReportState>,
+    /// Help ▸ Submit Ideas and Feedback.
+    pub feedback: Option<crate::bugreport::BugReportState>,
+    /// Ask for the user interface language at start-up (Options ▸ Global ▸ General).
+    pub ask_language: bool,
     /// Help > About > System Info...
     pub system_info: Option<crate::about::SystemInfoState>,
     /// Help > About > Legal Notices...
@@ -140,6 +144,7 @@ impl Dialogs {
             || self.duplicate_page.is_some()
             || self.delete_page.is_some()
             || self.bug_report.is_some()
+            || self.feedback.is_some()
             || self.system_info.is_some()
             || self.legal_notices
             || self.merge.is_some()
@@ -173,6 +178,7 @@ impl Dialogs {
 /// Show all open dialogs.
 pub fn show(app: &mut VectorApp, ctx: &egui::Context) {
     crate::ai::quick_dialog(app, ctx);
+    crate::updater::dialogs(app, ctx);
     if app.dialogs.options.open || app.dialogs.options.page.is_some() {
         options::show(app, ctx);
     }
@@ -180,8 +186,14 @@ pub fn show(app: &mut VectorApp, ctx: &egui::Context) {
     bitmaps::show(app, ctx);
     workspace::show(app, ctx);
     palette::show(app, ctx);
+    if app.dialogs.feedback.is_some() {
+        crate::bugreport::dialog(app, ctx, true);
+    }
+    if app.dialogs.ask_language {
+        ask_language(app, ctx);
+    }
     if app.dialogs.bug_report.is_some() {
-        crate::bugreport::dialog(app, ctx);
+        crate::bugreport::dialog(app, ctx, false);
     }
     if app.dialogs.about {
         crate::about::about(app, ctx);
@@ -418,4 +430,31 @@ pub fn combo(ui: &mut Ui, id: &str, current: &mut usize, names: &[&str], width: 
         }
     });
     changed
+}
+
+/// "Ask me the next time the application starts": the user interface language, before work begins.
+fn ask_language(app: &mut VectorApp, ctx: &egui::Context) {
+    let mut done = false;
+    let ((), dismissed) = window(ctx, "ask_language", "User interface language", vec2(380.0, 190.0), |ui| {
+        ui.add_space(10.0);
+        ui.label("Choose the language of the user interface:");
+        ui.add_space(6.0);
+        let cur = crate::i18n::Lang::resolve(&app.settings.language);
+        for l in crate::i18n::Lang::ALL {
+            if ui.radio(cur == l, l.native_name()).clicked() {
+                app.settings.language = l.code().into();
+            }
+        }
+        ui.add_space((ui.available_height() - 34.0).max(0.0));
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            if ok_button(ui, "OK", true) {
+                done = true;
+            }
+        });
+    });
+    if done || dismissed {
+        app.dialogs.ask_language = false;
+        app.settings.ui_language_ask = false;
+        app.settings.save();
+    }
 }

@@ -558,7 +558,7 @@ struct StyleSheet {
 }
 
 pub(crate) fn import_styles(app: &mut VectorApp) {
-    let Some(p) = rfd::FileDialog::new().set_title("Import Style Sheet").add_filter("Vector Style Sheet (*.vstyles)", &["vstyles"]).pick_file() else { return };
+    let Some(p) = rfd::FileDialog::new().set_title("Import Style Sheet").add_filter("AnyVector Style Sheet (*.vstyles)", &["vstyles"]).pick_file() else { return };
     let text = std::fs::read_to_string(&p).unwrap_or_default();
     let sheet: Option<StyleSheet> = serde_json::from_str(&text).ok().or_else(|| serde_json::from_str::<Vec<ObjectStyle>>(&text).ok().map(|object_styles| StyleSheet { object_styles, ..Default::default() }));
     let Some(sheet) = sheet else {
@@ -586,7 +586,7 @@ pub(crate) fn export_styles(app: &mut VectorApp) {
     let Some(d) = app.doc() else { return };
     let sheet = StyleSheet { object_styles: d.doc.object_styles.clone(), color_styles: d.doc.color_styles.clone(), color_harmonies: d.doc.color_harmonies.clone() };
     let json = serde_json::to_string_pretty(&sheet).unwrap_or_default();
-    let Some(p) = rfd::FileDialog::new().set_title("Export Style Sheet").add_filter("Vector Style Sheet (*.vstyles)", &["vstyles"]).set_file_name("Styles.vstyles").save_file() else { return };
+    let Some(p) = rfd::FileDialog::new().set_title("Export Style Sheet").add_filter("AnyVector Style Sheet (*.vstyles)", &["vstyles"]).set_file_name("Styles.vstyles").save_file() else { return };
     if std::fs::write(&p, json).is_err() {
         app.flash("The style sheet could not be saved.");
     }

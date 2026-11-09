@@ -1,7 +1,7 @@
 //! The facts shown by Help ▸ About Vector ▸ System Info..., one list per category.
 
 /// The categories of the "Choose a category" list, in the reference's order.
-pub const CATEGORIES: [&str; 5] = ["System", "Display", "Printing", "Vector EXEs & DLLs", "System DLLs"];
+pub const CATEGORIES: [&str; 5] = ["System", "Display", "Printing", "AnyVector EXEs & DLLs", "System DLLs"];
 
 pub type Rows = Vec<(String, String)>;
 
@@ -27,7 +27,7 @@ pub fn collect(index: usize, gpu: &str) -> Rows {
 
 /// Every category as plain text (for the Save button).
 pub fn report(gpu: &str) -> String {
-    let mut s = format!("Vector {} - System Info\r\n", vector_core::APP_VERSION);
+    let mut s = format!("AnyVector {} - System Info\r\n", vector_core::APP_VERSION);
     for (i, name) in CATEGORIES.iter().enumerate() {
         s.push_str(&format!("\r\n[{name}]\r\n"));
         for (k, v) in collect(i, gpu) {
@@ -294,7 +294,7 @@ fn modules(own: bool) -> Rows {
         let name = p.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
         let value = if own {
             let size = std::fs::metadata(p).map(|m| m.len()).unwrap_or(0);
-            let ver = if name.eq_ignore_ascii_case("vector.exe") || p.extension().is_some_and(|e| e == "exe") { format!("{}, ", vector_core::APP_VERSION) } else { String::new() };
+            let ver = if name.eq_ignore_ascii_case("anyvector.exe") || p.extension().is_some_and(|e| e == "exe") { format!("{}, ", vector_core::APP_VERSION) } else { String::new() };
             format!("{ver}{}, {path}", mb(size))
         } else {
             path.clone()

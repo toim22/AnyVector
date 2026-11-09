@@ -19,7 +19,7 @@ pub enum PasteKind {
 impl PasteKind {
     pub fn name(self) -> &'static str {
         match self {
-            PasteKind::Native => "Vector Graphic",
+            PasteKind::Native => "AnyVector Graphic",
             PasteKind::Svg => "SVG Document",
             PasteKind::Text => "Text",
             PasteKind::Bitmap => "Device Independent Bitmap",
@@ -27,7 +27,7 @@ impl PasteKind {
     }
     fn result(self) -> &'static str {
         match self {
-            PasteKind::Native => "Inserts the contents of the clipboard into your document as Vector objects.",
+            PasteKind::Native => "Inserts the contents of the clipboard into your document as AnyVector objects.",
             PasteKind::Svg => "Inserts the contents of the clipboard into your document as SVG objects.",
             PasteKind::Text => "Inserts the contents of the clipboard into your document as Text.",
             PasteKind::Bitmap => "Inserts the contents of the clipboard into your document as a bitmap.",

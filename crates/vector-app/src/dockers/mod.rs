@@ -825,7 +825,7 @@ pub(crate) fn fold_header(ui: &mut Ui, title: &str, open: &mut bool) {
 
 /// A radio button with its label.
 pub(crate) fn radio(ui: &mut Ui, on: bool, label: &str, enabled: bool) -> bool {
-    let galley_w = ui.fonts_mut(|f| f.layout_no_wrap(label.to_string(), egui::FontId::proportional(12.5), theme::TEXT).size().x);
+    let galley_w = ui.fonts_mut(|f| f.layout_no_wrap(crate::i18n::t(label), egui::FontId::proportional(12.5), theme::TEXT).size().x);
     let (r, resp) = ui.allocate_exact_size(vec2(galley_w + 22.0, 22.0), if enabled { Sense::click() } else { Sense::hover() });
     let c = pos2(r.left() + 7.0, r.center().y);
     let p = ui.painter();

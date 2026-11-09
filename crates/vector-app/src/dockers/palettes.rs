@@ -260,7 +260,7 @@ fn row(ui: &mut Ui, key: &str, depth: usize, folder: Option<bool>, check: Option
     }
     let tx = if check.is_some() { cb.right() + 6.0 } else { x + 14.0 };
     p.text(pos2(tx, r.center().y), egui::Align2::LEFT_CENTER, label, egui::FontId::proportional(12.5), if enabled { theme::TEXT } else { theme::DISABLED });
-    let resp = if enabled { resp } else { resp.on_hover_text("Not included in Vector") };
+    let resp = if enabled { resp } else { resp.on_hover_text("Not included in AnyVector") };
     if !enabled {
         return None;
     }

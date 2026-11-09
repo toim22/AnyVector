@@ -69,6 +69,8 @@ pub struct VectorApp {
     pub active: Option<usize>,
     /// The page the Welcome Screen shows.
     pub welcome_page: crate::welcome::Page,
+    /// The Welcome Screen tab is open (its X closes it; Help ▸ Welcome Screen opens it again).
+    pub home_open: bool,
     pub settings: Settings,
     pub icons: Icons,
     pub tool: ToolId,
@@ -107,6 +109,8 @@ pub struct VectorApp {
     pub status_hover: String,
     pub cursor_doc: Option<kurbo::Point>,
     pub ai: crate::ai::AiState,
+    /// Product updates (Help ▸ Updates).
+    pub update: crate::updater::UpdateState,
     pub frame_count: u64,
     /// Work running on other threads (printing, uploads): each sends one result, shown as a
     /// status message (Ok) or a message box (Err).
@@ -127,7 +131,16 @@ impl VectorApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> VectorApp {
         theme::apply(&cc.egui_ctx);
         egui_extras_install(&cc.egui_ctx);
-        let settings = Settings::load();
+        let mut settings = Settings::load();
+        // the language chosen in the setup, once per setup
+        if let Some((lang, stamp)) = crate::i18n::installer_choice().filter(|_| !cfg!(test)) {
+            if settings.installer_lang_stamp != stamp {
+                settings.language = lang.code().into();
+                settings.installer_lang_stamp = stamp;
+                settings.save();
+            }
+        }
+        crate::i18n::init(&settings.language);
         cc.egui_ctx.set_zoom_factor((settings.ui_scale / 100.0) as f32);
         // warm the font database in the background (first text layout is otherwise slow)
         std::thread::spawn(vector_core::text::preload_fonts);
@@ -135,6 +148,7 @@ impl VectorApp {
             docs: vec![],
             active: None,
             welcome_page: Default::default(),
+            home_open: true,
             dockers: DockerState::from_settings(&settings),
             palettes: crate::palette::PaletteState::new(&settings),
             settings,
@@ -164,6 +178,7 @@ impl VectorApp {
             status_hover: String::new(),
             cursor_doc: None,
             ai: Default::default(),
+            update: Default::default(),
             frame_count: 0,
             background: vec![],
             gpu: cc.wgpu_render_state.as_ref().map(|rs| gpu_name(&rs.adapter.get_info())).unwrap_or_default(),
@@ -174,6 +189,9 @@ impl VectorApp {
             if p.exists() {
                 app.open_path(&p);
             }
+        }
+        if app.settings.startup == crate::settings::StartupAction::Nothing {
+            app.home_open = false;
         }
         if app.docs.is_empty() {
             match app.settings.startup {
@@ -186,6 +204,10 @@ impl VectorApp {
                 }
                 _ => {}
             }
+        }
+        crate::updater::startup(&mut app);
+        if app.settings.ui_language_ask && !cfg!(test) {
+            app.dialogs.ask_language = true;
         }
         app
     }
@@ -250,6 +272,7 @@ impl VectorApp {
     fn ui_impl(&mut self, ui: &mut egui::Ui) {
         let ctx = ui.ctx().clone();
         self.frame_count += 1;
+        crate::i18n::sync(&self.settings.language);
         if self.splash.is_some() {
             if crate::splash::show(self, ui) {
                 return;
@@ -270,7 +293,7 @@ impl VectorApp {
 
         let bar = Frame::new().fill(theme::BAR).inner_margin(Margin::symmetric(2, 0));
         if self.settings.show_menu_bar {
-            let r = egui::Panel::top("menubar").frame(Frame::new().fill(theme::BAR_DARK).inner_margin(Margin::symmetric(4, 0))).exact_size(26.0).show(ui, |ui| {
+            let r = egui::Panel::top("menubar").frame(Frame::new().fill(theme::BAR_DARK).inner_margin(Margin::symmetric(4, 0))).exact_size(crate::menus::MENU_BAR_HEIGHT).show(ui, |ui| {
                 crate::menus::menu_bar(self, ui);
             });
             crate::menus::command_bar_context(self, &r.response, BarSpot::MenuBar);
@@ -346,7 +369,7 @@ impl VectorApp {
                 crate::tabs::tab_strip(self, ui);
                 if self.active.is_some() {
                     crate::canvas::drawing_window(self, ui);
-                } else {
+                } else if self.home_open {
                     crate::welcome::welcome(self, ui);
                 }
             }
@@ -462,7 +485,7 @@ impl VectorApp {
         }
         let now = self.time();
         let interval = self.settings.auto_backup_minutes.max(1) as f64 * 60.0;
-        let dir = self.settings.auto_backup_dir.clone().unwrap_or_else(|| std::env::temp_dir().join("Vector Backups"));
+        let dir = self.settings.auto_backup_dir.clone().unwrap_or_else(|| std::env::temp_dir().join("AnyVector Backups"));
         for d in self.docs.iter_mut() {
             if d.history.is_modified() && now - d.last_saved_backup > interval {
                 d.last_saved_backup = now;
@@ -491,6 +514,7 @@ impl eframe::App for VectorApp {
     fn on_exit(&mut self) {
         self.dockers.save(&mut self.settings);
         self.settings.save();
+        crate::updater::run_pending_install(self);
     }
 }
 

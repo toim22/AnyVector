@@ -115,7 +115,7 @@ const FORCE_HIDDEN: &[&str] = &[
 
 /// Captions set at run time in the reference (bindings), as Vector shows them.
 const CAPTIONS: &[(&str, &str)] = &[
-    ("1eaa019d-6dff-4c53-bbd3-5abbb970c53e", "&About Vector..."),
+    ("1eaa019d-6dff-4c53-bbd3-5abbb970c53e", "&About AnyVector..."),
 ];
 
 /// Vector's own additions, asked for by the user: (insert after this item, id, caption, kind, submenu items).
@@ -383,9 +383,9 @@ impl Defs {
     }
 }
 
-/// "CorelDRAW" in a caption becomes "Vector".
+/// "CorelDRAW" in a caption becomes "AnyVector".
 fn brand(s: &str) -> String {
-    s.replace("CorelDRAW", "Vector")
+    s.replace("CorelDRAW", "AnyVector")
 }
 
 fn plain(s: &str) -> String {

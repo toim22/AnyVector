@@ -317,7 +317,7 @@ pub static BARS: [Bar; 279] = [
         Item { id: "vector:report-bug", text: "Report a &Bug", tip: "", kind: Flyout, keys: &[], sub: 13, icon: "", menu_icon: false, on: 0xffffffff, face: Default, flags: 0 },
         Item { id: "", text: "", tip: "", kind: Separator, keys: &[], sub: N, icon: "", menu_icon: false, on: 0xffffffff, face: Default, flags: 0 },
         Item { id: "", text: "", tip: "", kind: Separator, keys: &[], sub: N, icon: "", menu_icon: false, on: 0xffffffff, face: Default, flags: 0 },
-        Item { id: "1eaa019d-6dff-4c53-bbd3-5abbb970c53e", text: "&About Vector...", tip: "", kind: Button, keys: &[], sub: N, icon: "about", menu_icon: true, on: 0x7ffff, face: Default, flags: 0 },
+        Item { id: "1eaa019d-6dff-4c53-bbd3-5abbb970c53e", text: "&About AnyVector...", tip: "", kind: Button, keys: &[], sub: N, icon: "about", menu_icon: true, on: 0x7ffff, face: Default, flags: 0 },
     ] },
     Bar { id: "vector:report-bug:menu", name: "Report a Bug", items: &[
         Item { id: "vector:report-bug-new", text: "&Report a Bug...", tip: "", kind: Button, keys: &[], sub: N, icon: "", menu_icon: false, on: 0xffffffff, face: Default, flags: 0 },
@@ -772,7 +772,7 @@ pub static BARS: [Bar; 279] = [
         Item { id: "e5a43d87-e442-4e03-bf36-fd157b8d8ddd", text: "&Columns Evenly", tip: "", kind: Button, keys: &[], sub: N, icon: "distribute_columns", menu_icon: true, on: 0x40400, face: Default, flags: 0 },
     ] },
     Bar { id: "6a1c3af6-3a73-7ab0-4448-28c218974932", name: "Options", items: &[
-        Item { id: "e72e265e-d708-1682-4e94-da7b0b9ef9a2", text: "Vector...", tip: "", kind: Button, keys: &["Ctrl+J"], sub: N, icon: "opt_app", menu_icon: true, on: 0x7ffff, face: Default, flags: 0 },
+        Item { id: "e72e265e-d708-1682-4e94-da7b0b9ef9a2", text: "AnyVector...", tip: "", kind: Button, keys: &["Ctrl+J"], sub: N, icon: "opt_app", menu_icon: true, on: 0x7ffff, face: Default, flags: 0 },
         Item { id: "ab216fdb-f7c3-48e9-8712-4ab7935d50c0", text: "Customi&zation...", tip: "", kind: Button, keys: &[], sub: N, icon: "opt_custom", menu_icon: true, on: 0x7ffff, face: Default, flags: 0 },
         Item { id: "886df349-8be7-5994-47c3-adf38726eb13", text: "Tools...", tip: "", kind: Button, keys: &[], sub: N, icon: "opt_tools", menu_icon: true, on: 0x7ffff, face: Default, flags: 0 },
         Item { id: "9b473401-5bed-00bf-408d-97a1673f594a", text: "Global...", tip: "", kind: Button, keys: &[], sub: N, icon: "opt_global", menu_icon: true, on: 0x7ffff, face: Default, flags: 0 },
