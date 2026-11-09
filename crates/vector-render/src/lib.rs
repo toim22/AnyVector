@@ -1,5 +1,7 @@
 //! CPU renderer for Vector documents (tiny-skia). Used for the drawing window, export and print.
 
+pub mod bitfx;
+pub mod bitfx_art;
 pub mod fx;
 
 use kurbo::{Affine, BezPath, PathEl, Point, Rect, Shape, Vec2};
@@ -269,7 +271,15 @@ impl Renderer {
                 || dimmed.is_some());
         if needs_layer {
             // render into an offscreen layer covering the object's device bounds
-            let pad = 4.0;
+            // bitmap effects may spread past the object (Bitmaps ▸ Inflate Bitmap ▸ Auto Inflate
+            // Bitmap); without it a bitmap's effects stay inside its edges
+            let pad = if o.effects.bitmap.is_empty() {
+                4.0
+            } else if ctx.doc.bitmap_no_inflate && matches!(o.kind, ObjKind::Image(_)) {
+                0.0
+            } else {
+                (vb.width().max(vb.height()) * 0.08).clamp(4.0, 256.0)
+            };
             let r = vb.inflate(pad, pad).intersect(canvas);
             let (x0, y0) = (r.x0.floor() as i32, r.y0.floor() as i32);
             let w = (r.x1.ceil() as i32 - x0).max(1) as u32;
@@ -280,25 +290,10 @@ impl Renderer {
             let Some(mut layer) = sk::Pixmap::new(w, h) else { return };
             let sub = Ctx { doc: ctx.doc, view: Affine::translate((-x0 as f64, -y0 as f64)) * ctx.view, opts: ctx.opts };
             self.render_plain(&sub, o, &mut layer);
-            for e in &o.effects.bitmap {
-                let zoom = view_scale(ctx.view) as f32;
-                match e {
-                    BitmapEffect::GaussianBlur { radius } => fx::blur(&mut layer, *radius as f32 * zoom),
-                    BitmapEffect::Glow { radius, color } => {
-                        let mut glow = layer.clone();
-                        fx::blur(&mut glow, *radius as f32 * zoom);
-                        fx::tint(&mut glow, [color.r, color.g, color.b], color.a as f32 / 255.0);
-                        let mut out = sk::Pixmap::new(w, h).unwrap();
-                        out.draw_pixmap(0, 0, glow.as_ref(), &sk::PixmapPaint::default(), sk::Transform::identity(), None);
-                        out.draw_pixmap(0, 0, layer.as_ref(), &sk::PixmapPaint::default(), sk::Transform::identity(), None);
-                        layer = out;
-                    }
-                    BitmapEffect::Emboss { depth } => fx::emboss(&mut layer, *depth as f32),
-                    BitmapEffect::Noise { amount } => fx::noise(&mut layer, *amount as f32, o.id as u32),
-                    BitmapEffect::Pixelate { size } => fx::pixelate(&mut layer, (*size as f32 * zoom).max(1.0) as u32),
-                    BitmapEffect::Grayscale => fx::grayscale(&mut layer),
-                    BitmapEffect::Sepia => fx::sepia(&mut layer),
-                    BitmapEffect::Invert => fx::invert(&mut layer),
+            if !o.effects.bitmap.is_empty() {
+                let cx = bitfx::FxCtx { s: effect_scale(ctx, o), frame: [(vb.x0 - x0 as f64) as f32, (vb.y0 - y0 as f64) as f32, (vb.x1 - x0 as f64) as f32, (vb.y1 - y0 as f64) as f32], seed: o.id as u32 };
+                for e in &o.effects.bitmap {
+                    bitfx::apply(e, &mut layer, &cx);
                 }
             }
             if let Some(b) = &o.effects.bevel {
@@ -1300,6 +1295,21 @@ fn mask_offset(mask: &sk::Mask, _target: &sk::Pixmap, _x0: i32, _y0: i32) -> sk:
 fn linear_part(a: Affine) -> Affine {
     let c = a.as_coeffs();
     Affine::new([c[0], c[1], c[2], c[3], 0.0, 0.0])
+}
+
+/// Device pixels per effect pixel: a bitmap's effects work on its own pixels, other objects' on
+/// 96 dpi pixels.
+fn effect_scale(ctx: &Ctx, o: &Object) -> f32 {
+    let zoom = view_scale(ctx.view);
+    let per = match &o.kind {
+        ObjKind::Image(i) => ctx.doc.images.get(&i.image).filter(|d| d.width > 0).map(|d| {
+            let pts = (i.w * o.transform.as_coeffs()[0].hypot(o.transform.as_coeffs()[1])) / (d.width as f64 * (i.crop[2] - i.crop[0]).max(1e-6));
+            pts.max(1e-3)
+        }),
+        _ => None,
+    }
+    .unwrap_or(72.0 / 96.0);
+    (zoom * per) as f32
 }
 
 pub fn view_scale(a: Affine) -> f64 {

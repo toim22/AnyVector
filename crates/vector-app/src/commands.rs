@@ -218,8 +218,31 @@ pub enum Cmd {
     // Bitmaps
     ConvertToBitmap,
     QuickTrace,
-    OutlineTrace,
+    /// Bitmaps ▸ Outline Trace ▸ a profile: 0 Line art, 1 Logo, 2 Detailed logo, 3 Clipart,
+    /// 4 Low quality image, 5 High quality image.
+    OutlineTrace(u8),
+    /// Bitmaps ▸ Centerline Trace ▸ 0 Technical Illustration, 1 Line drawing.
+    CenterlineTrace(u8),
+    RepeatLastTrace,
+    OpenLastTraceSettings,
+    StraightenImage,
+    ImageAdjustmentLab,
+    RemoveJpegArtifacts,
+    EditBitmap,
+    RemoveBackground,
+    CropBitmap,
+    /// Bitmaps ▸ Mode ▸ `crate::bitmaps::MODES[i]`.
+    BitmapMode(u8),
+    /// Bitmaps ▸ Inflate Bitmap ▸ Auto Inflate Bitmap (a setting).
+    AutoInflateBitmap,
+    ManualInflateBitmap,
+    /// Bitmaps ▸ Break Link / Update from Link (linked bitmaps).
+    BitmapBreakLink,
+    BitmapUpdateLink,
+    /// Adds the effect `crate::fx::FX[i]` to the selection and shows its page.
     BitmapEffect(u8),
+    /// Effects ▸ Flatten Effects: the selected objects with bitmap effects become bitmaps.
+    FlattenEffects,
     AutoAdjust,
     ResampleBitmap,
     // Text

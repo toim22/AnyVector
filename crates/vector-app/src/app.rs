@@ -257,6 +257,7 @@ impl VectorApp {
         crate::dockers::coled::publish(self, &ctx);
         crate::ai::poll(self);
         self.poll_background(&ctx);
+        crate::dialogs::bitmaps::poll_edits(self, &ctx);
 
         if self.fullscreen_preview {
             crate::canvas::fullscreen_preview(self, ui);

@@ -16,7 +16,8 @@ pub(crate) mod extrude_pages {
 }
 mod find;
 mod fx_dockers;
-mod misc;
+mod fxpage;
+pub(crate) mod misc;
 pub use misc::draw_hotspots;
 pub use proofing::gamut_overlay;
 mod objects;

@@ -105,6 +105,8 @@ pub struct Settings {
     pub powerclip_lines_print: bool,
     // PowerTRACE
     pub quick_trace_method: String,
+    /// Bitmap effect presets saved with (+) on an effect's page: effect id → (name, settings).
+    pub fx_presets: std::collections::BTreeMap<String, Vec<(String, std::collections::BTreeMap<String, vector_core::object::FxValue>)>>,
     // Snapping
     pub snap_to_objects: bool,
     pub snap_self: bool,
@@ -453,6 +455,7 @@ impl Default for Settings {
             powerclip_empty_lines: true,
             powerclip_lines_print: true,
             quick_trace_method: "Clipart".into(),
+            fx_presets: Default::default(),
             snap_to_objects: true,
             snap_self: true,
             snap_to_page: false,

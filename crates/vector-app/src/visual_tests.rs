@@ -1441,3 +1441,107 @@ fn lens_state(a: &mut VectorApp, k: usize) {
     let l = vector_core::object::LensEffect::new(vector_core::object::LensKind::ALL[k]);
     crate::propbar::edit_sel(a, "Lens", |o| o.effects.lens = Some(l.clone()));
 }
+
+/// Every bitmap effect's page in the Properties docker, on a sample bitmap (`VECTOR_FX=Id`
+/// renders one).
+#[test]
+#[ignore]
+fn visual_effect_pages() {
+    let mut h = harness();
+    sample_bitmap(&mut h);
+    let only: Option<String> = std::env::var("VECTOR_FX").ok();
+    for (i, f) in crate::fx::FX.iter().enumerate() {
+        if only.as_ref().is_some_and(|o| o != f.id) {
+            continue;
+        }
+        {
+            let app = h.state_mut();
+            let d = app.doc_mut().unwrap();
+            let id = d.selection[0];
+            d.doc.find_mut(id).unwrap().effects.bitmap.clear();
+            app.dockers.set_width = Some(300.0);
+            app.run(Cmd::BitmapEffect(i as u8));
+        }
+        save(&mut h, &format!("fx_{:03}_{}", i + 1, f.id));
+    }
+}
+
+/// A new document with a 240 × 160 bitmap (sky, sun and hills), selected.
+fn sample_bitmap(h: &mut Harness<'_, VectorApp>) {
+    use vector_core::document::ImageData;
+    use vector_core::object::ImageObj;
+    h.state_mut().new_default_document();
+    {
+        let d = h.state_mut().doc_mut().unwrap();
+        let (w, ht) = (240u32, 160u32);
+        let mut rgba = Vec::with_capacity((w * ht * 4) as usize);
+        for y in 0..ht {
+            for x in 0..w {
+                // sky, a yellow sun and green hills
+                let (u, v) = (x as f32 / w as f32, y as f32 / ht as f32);
+                let hill = 0.62 + 0.08 * (u * 9.0).sin();
+                let sun = ((u - 0.72).powi(2) + (v - 0.28).powi(2)).sqrt() < 0.12;
+                let c = if v > hill { [60 + (u * 60.0) as u8, 140 + (v * 60.0) as u8, 50] } else if sun { [250, 210, 60] } else { [70 + (v * 90.0) as u8, 140 + (v * 60.0) as u8, 230] };
+                rgba.extend_from_slice(&[c[0], c[1], c[2], 255]);
+            }
+        }
+        let image = d.doc.add_image(ImageData { width: w, height: ht, rgba: std::sync::Arc::new(rgba), encoded: std::sync::Arc::new(vec![]), format: "png".into(), name: "sample.png".into() });
+        let id = d.doc.new_id();
+        d.add_objects("Bitmap", vec![Object::new(id, ObjKind::Image(ImageObj { image, w: 360.0, h: 240.0, crop: [0.0, 0.0, 1.0, 1.0], adjust: Default::default() }), Affine::translate((150.0, 250.0)), Style::default())]);
+        d.selection = vec![id];
+    }
+}
+
+/// The Bitmaps menu: Convert To Bitmap, Straighten Image, Image Adjustment Lab, Resample, Mode
+/// (1 bit, Duotone, Paletted), Inflate Bitmap and PowerTRACE, then the commands without a dialog.
+#[test]
+#[ignore]
+fn visual_bitmap_dialogs() {
+    let mut h = harness();
+    sample_bitmap(&mut h);
+    let shots: [(Cmd, &str); 11] = [
+        (Cmd::ConvertToBitmap, "bm_01_convert_to_bitmap"),
+        (Cmd::StraightenImage, "bm_02_straighten_image"),
+        (Cmd::ImageAdjustmentLab, "bm_03_image_adjustment_lab"),
+        (Cmd::ResampleBitmap, "bm_05_resample"),
+        (Cmd::BitmapMode(0), "bm_06_convert_to_1_bit"),
+        (Cmd::BitmapMode(2), "bm_07_duotone"),
+        (Cmd::BitmapMode(3), "bm_08_convert_to_paletted"),
+        (Cmd::ManualInflateBitmap, "bm_09_inflate_bitmap"),
+        (Cmd::CenterlineTrace(0), "bm_11_centerline_technical"),
+        (Cmd::OutlineTrace(0), "bm_13_outline_line_art"),
+        (Cmd::OutlineTrace(3), "bm_16_outline_clipart"),
+    ];
+    for (cmd, name) in shots {
+        h.state_mut().run(cmd);
+        for _ in 0..4 {
+            h.step();
+        }
+        save(&mut h, name);
+        h.state_mut().dialogs.bm = Default::default();
+        h.step();
+    }
+    // Halftone in Convert to 1 bit and Tritone in Duotone
+    h.state_mut().run(Cmd::BitmapMode(0));
+    h.step();
+    h.state_mut().dialogs.bm.one_bit.as_mut().unwrap().o.method = 5;
+    save(&mut h, "bm_06b_halftone");
+    h.state_mut().dialogs.bm = Default::default();
+    h.state_mut().run(Cmd::BitmapMode(2));
+    h.step();
+    {
+        let st = h.state_mut().dialogs.bm.duotone.as_mut().unwrap();
+        st.d = crate::bitmaps::Duotone { kind: 2, inks: crate::bitmaps::Duotone::inks_for(2) };
+    }
+    save(&mut h, "bm_07b_tritone");
+    h.state_mut().dialogs.bm = Default::default();
+    // the commands that change the bitmap at once, and the trace itself
+    for c in [Cmd::RemoveJpegArtifacts, Cmd::BitmapMode(1), Cmd::RemoveBackground, Cmd::BitmapMode(6), Cmd::QuickTrace] {
+        h.state_mut().run(c);
+        h.step();
+    }
+    save(&mut h, "bm_20_after_commands");
+    let a = h.state_mut();
+    let d = a.doc().unwrap();
+    assert!(d.doc.pages[0].layers.iter().map(|l| l.objects.len()).sum::<usize>() >= 2, "Quick Trace added the traced group");
+}
