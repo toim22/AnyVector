@@ -64,7 +64,9 @@ thing. Corel's online services (Corel Cloud, accounts, Learn, Support and the co
 ## AnyVector name, languages and updates
 
 - The program is now called AnyVector (`anyvector.exe`). The banner, icon and logo are unchanged. Settings move
-  from `%APPDATA%\Vector` to `%APPDATA%\AnyVector` on the first start.
+  from `%APPDATA%\Vector` to `%APPDATA%\AnyVector` on the first start. Installing over Vector moves the program
+  from its `Vector` folder to an `AnyVector` folder and replaces the Vector shortcuts in the Start menu and on the
+  desktop.
 - The interface is available in English (United States) and Brazilian Portuguese. Choose the language in
   Tools ▸ Options ▸ Global ▸ General ▸ User interface language; it changes at once, without restarting. The
   installer asks which language AnyVector starts in.
