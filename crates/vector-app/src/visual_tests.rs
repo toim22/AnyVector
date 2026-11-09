@@ -285,6 +285,38 @@ fn visual_pt_br() {
     assert_eq!(crate::i18n::lang(), crate::i18n::Lang::EnUs);
 }
 
+/// The message shown at start when a new version is found, in English and in Brazilian Portuguese.
+#[test]
+#[ignore]
+fn visual_update_prompt() {
+    use crate::updater::{Release, Status};
+    let mut h = harness();
+    let r = Release {
+        version: "0.2.0".into(),
+        tag: "v0.2.0".into(),
+        notes: String::new(),
+        page: String::new(),
+        asset_name: "AnyVector-0.2.0-setup.exe".into(),
+        asset_url: String::new(),
+        asset_size: 0,
+        via_gh: false,
+    };
+    h.state_mut().update.status = Status::Available(r.clone());
+    h.state_mut().update.prompt = true;
+    save(&mut h, "91_update_prompt");
+    h.state_mut().settings.language = "pt-BR".into();
+    save(&mut h, "91_update_prompt_ptbr");
+    // after OK, while the setup downloads
+    h.state_mut().update.status = Status::Downloading(r, 0.4);
+    h.state_mut().update.install_when_ready = true;
+    save(&mut h, "91_update_prompt_ptbr_downloading");
+    h.state_mut().settings.language = "en-US".into();
+    h.state_mut().update.prompt = false;
+    h.state_mut().update.install_when_ready = false;
+    h.step();
+    assert_eq!(crate::i18n::lang(), crate::i18n::Lang::EnUs);
+}
+
 fn right_click(h: &mut Harness<'_, VectorApp>, p: egui::Pos2) {
     for _ in 0..30 {
         h.step();

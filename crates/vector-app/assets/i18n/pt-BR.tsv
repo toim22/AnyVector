@@ -2814,8 +2814,10 @@ Allow product updates:	Permitir atualizações do produto:
 Release Notes	Notas da versão
 Install Now	Instalar agora
 Check Now	Verificar agora
-Skip This Version	Ignorar esta versão
 Later	Mais tarde
+There is a new version of AnyVector available.	Há uma nova versão do AnyVector disponível.
+New version: {}. Your version: {}.	Nova versão: {}. Sua versão: {}.
+Click OK to install the new version.	Clique em OK para instalar a nova versão.
 Get Started	Introdução
 What's New	Novidades
 Menus, right-click menus, toolbars, the toolbox and every property bar follow the reference layout	Menus, menus de contexto, barras de ferramentas, a caixa de ferramentas e todas as barras de propriedades seguem o layout de referência
