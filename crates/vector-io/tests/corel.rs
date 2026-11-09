@@ -281,3 +281,32 @@ fn damaged_files_fail_cleanly() {
         let _ = vector_io::corel::load_from_bytes(&zipped[..cut]);
     }
 }
+
+/// Older versions read the same records with other layouts (16-bit numbers before 6, no
+/// property lists before X3, ...). Every one of those readers must cope with whatever bytes
+/// it is handed, so the X5 drawing is read again as if each older version had written it.
+#[test]
+fn older_layouts_never_panic() {
+    let bytes = std::fs::read(fixture("shapes-x5-riff.cdr")).unwrap();
+    let at = bytes.windows(4).position(|w| w == b"vrsn").expect("version chunk") + 8;
+    let mut seed = 0x9e37_79b9u32;
+    for (i, ver) in [300u16, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400].into_iter().enumerate() {
+        let mut b = bytes.clone();
+        b[at..at + 2].copy_from_slice(&ver.to_le_bytes());
+        // the form type names the version too: CDR3..CDR9, then CDRA (10), CDRB, ...
+        b[11] = if ver < 1000 { b'0' + (ver / 100) as u8 } else { b'A' + (ver / 100 - 10) as u8 };
+        assert_eq!(vector_io::corel::version(&b).ok(), Some(ver as u32), "{ver}");
+        let _ = vector_io::corel::load_from_bytes(&b);
+        for _ in 0..8 {
+            let mut d = b.clone();
+            for _ in 0..16 {
+                seed ^= seed << 13;
+                seed ^= seed >> 17;
+                seed ^= seed << 5;
+                let j = 12 + seed as usize % (d.len() - 12);
+                d[j] = (seed >> 8) as u8 ^ i as u8;
+            }
+            let _ = vector_io::corel::load_from_bytes(&d);
+        }
+    }
+}

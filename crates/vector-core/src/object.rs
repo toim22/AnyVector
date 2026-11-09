@@ -1753,11 +1753,11 @@ pub fn rect_path(r: &RectShape) -> BezPath {
                     bp.line_to(b);
                 }
                 CornerType::Scallop => {
-                    // concave quarter circle centered at the corner
-                    let ctr = c;
-                    let a2 = a - ctr;
-                    let b2 = b - ctr;
-                    bp.curve_to(ctr + a2 * (1.0 - k) + (b2 * 0.0), ctr + b2 * (1.0 - k), b);
+                    // concave quarter circle centered at the corner: it leaves each edge at a
+                    // right angle, bowing in towards the middle of the rectangle
+                    let a2 = a - c;
+                    let b2 = b - c;
+                    bp.curve_to(a + b2 * k, b + a2 * k, b);
                 }
             }
         }

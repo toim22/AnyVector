@@ -1,6 +1,7 @@
 //! Turns the chunk tree of a CorelDRAW drawing into an AnyVector document.
 
 use super::color;
+use super::persp;
 use super::riff::{Chunk, Rd};
 use super::text;
 use crate::{IoError, Result};
@@ -65,6 +66,8 @@ pub(super) struct Ctx<'a> {
     pub clips: HashMap<u32, &'a Chunk>,
     /// Object types that were not converted, with how many of each.
     pub skipped: std::collections::BTreeMap<u32, usize>,
+    /// Perspectives of the groups being converted, innermost last.
+    pub warps: Vec<persp::Warp>,
     pub doc: Document,
 }
 
@@ -182,6 +185,41 @@ impl<'a> Ctx<'a> {
             }
         }
         t
+    }
+
+    /// The perspective of a `trfl` list (transform type 2): the box the object had in its
+    /// parent's space, and the four corners it is drawn to.
+    fn perspective(&self, lgob: &Chunk) -> Option<persp::Persp> {
+        let trfl = lgob.list_child(b"trfl")?;
+        for c in trfl.children.iter().filter(|c| c.is(b"trfd")) {
+            let b = &c.data[..];
+            let mut r = Rd::new(b);
+            let _len = self.uint(&mut r);
+            let n = self.uint(&mut r) as usize;
+            let start_args = self.uint(&mut r) as usize;
+            let w = if self.wide() { 4 } else { 2 };
+            for i in 0..n.min(64) {
+                let off = self.uint(&mut Rd::at(b, start_args + i * w)) as usize;
+                let mut r = Rd::at(b, off);
+                if self.ver >= 1300 {
+                    r.skip(8);
+                }
+                if r.u16() != 0x02 {
+                    continue;
+                }
+                r.skip(if self.wide() { 10 } else { 6 });
+                let l = self.coord(&mut r);
+                let t = self.coord(&mut r);
+                let rt = self.coord(&mut r);
+                let bt = self.coord(&mut r);
+                let quad: [kurbo::Point; 4] = std::array::from_fn(|_| {
+                    let x = self.coord(&mut r);
+                    kurbo::Point::new(x, self.coord(&mut r))
+                });
+                return persp::Persp::new(l, t, rt, bt, quad);
+            }
+        }
+        None
     }
 
     // ---------------------------------------------------------------- document resources
@@ -531,6 +569,7 @@ impl<'a> Ctx<'a> {
         let name = loda.as_ref().and_then(|l| l.arg(ARG_NAME)).map(|n| self.string(n)).unwrap_or_default();
         let has_children = c.children.iter().any(|k| k.list.is_some() && !k.is_list(b"lgob"));
         let kind = loda.as_ref().map(|l| l.kind).unwrap_or(0);
+        let own = lgob.and_then(|l| self.perspective(l)).map(|p| persp::Warp { persp: p, space: to_page * parent });
         let shape = match (&loda, &lt) {
             (Some(l), b"obj ") => self.shape(c, l, to_page * t),
             _ => None,
@@ -553,13 +592,19 @@ impl<'a> Ctx<'a> {
                     o = pc;
                 }
             }
+            let warps: Vec<persp::Warp> = own.into_iter().chain(self.warps.iter().rev().copied()).collect();
+            persp::bake(&mut o, &warps);
             out.push(o);
             return;
         }
         if has_children {
             let mut kids = vec![];
+            let pushed = own.map(|w| self.warps.push(w)).is_some();
             for k in c.children.iter().rev() {
                 self.object(k, to_page, t, &mut kids);
+            }
+            if pushed {
+                self.warps.pop();
             }
             if kids.is_empty() {
                 return;
@@ -654,21 +699,21 @@ impl<'a> Ctx<'a> {
             T_RECT => {
                 let mut r = Rd::new(l.arg(ARG_COORDS)?);
                 let (x0, y0);
-                let mut radii = [0.0f64; 4];
+                // corner sizes in points, or as a fraction of half the shorter side
+                let mut radii = [(false, 0.0f64); 4];
                 let mut corner = CornerType::Round;
                 if self.ver >= 1500 {
                     x0 = r.f64();
                     y0 = r.f64();
                     let _scale_x = r.f64();
                     let _scale_y = r.f64();
-                    let limit = x0.abs().min(y0.abs()) / 2.0;
                     for rad in radii.iter_mut() {
                         let absolute = r.u8() != 0;
                         r.skip(7);
                         let v = r.f64();
                         let ct = r.u8();
                         r.skip(7);
-                        *rad = if absolute { v } else { v * limit };
+                        *rad = if absolute { (false, v * k) } else { (true, v) };
                         corner = match ct {
                             1 => CornerType::Scallop,
                             2 => CornerType::Chamfer,
@@ -679,17 +724,26 @@ impl<'a> Ctx<'a> {
                     x0 = self.coord(&mut r);
                     y0 = self.coord(&mut r);
                     for rad in radii.iter_mut() {
-                        *rad = self.coord(&mut r).abs();
+                        *rad = (false, self.coord(&mut r).abs() * k);
                     }
                 }
                 if x0 == 0.0 || y0 == 0.0 {
                     return None;
                 }
+                // Corners keep their shape when CorelDRAW stretches a rectangle, so a stretch
+                // without skew goes into the rectangle's size instead of its transform.
+                let [a, b, c, d, _, _] = world.as_coeffs();
+                let (ux, uy) = (kurbo::Vec2::new(a, b), kurbo::Vec2::new(c, d));
+                let straight = ux.dot(uy).abs() <= 1e-6 * ux.hypot() * uy.hypot();
+                let (sx, sy) = if self.ver >= 1500 && straight && ux.hypot() > 0.0 && uy.hypot() > 0.0 { (ux.hypot(), uy.hypot()) } else { (k, k) };
+                let (w, h) = (x0.abs() * sx, y0.abs() * sy);
+                let half = w.min(h) / 2.0;
+                let size = |(relative, v): (bool, f64)| if relative { v * half } else { v };
                 // stored: lower-right, upper-right, upper-left, lower-left;
                 // ours: top-left, top-right, bottom-right, bottom-left
-                let rr = [radii[2] * k, radii[1] * k, radii[0] * k, radii[3] * k];
-                let shape = RectShape { w: x0.abs() * k, h: y0.abs() * k, radii: rr, corner };
-                let local = Affine::scale_non_uniform(x0.signum() / k, y0.signum() / k);
+                let rr = [size(radii[2]), size(radii[1]), size(radii[0]), size(radii[3])];
+                let shape = RectShape { w, h, radii: rr, corner };
+                let local = Affine::scale_non_uniform(x0.signum() / sx, y0.signum() / sy);
                 let xf = world * local;
                 let bounds = (xf * kurbo::Rect::new(0.0, 0.0, shape.w, shape.h).to_path(0.1)).bounding_box();
                 let st = self.style_of(l, bounds, xf);
@@ -896,7 +950,7 @@ pub(super) fn document(root: &Chunk) -> Result<Document> {
 pub(super) fn document_with_report(root: &Chunk) -> Result<(Document, Vec<(u32, usize)>)> {
     let ver = version(root);
     let k = if ver >= 600 { 72.0 / 254_000.0 } else { 72.0 / 1000.0 };
-    let mut cx = Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), skipped: Default::default(), doc: Document::new(612.0, 792.0) };
+    let mut cx = Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), skipped: Default::default(), warps: vec![], doc: Document::new(612.0, 792.0) };
     cx.collect(root);
     let default_size = cx.default_page_size(root);
     let origin = cx.origin(root);
