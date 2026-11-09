@@ -676,6 +676,11 @@ pub fn bar(ui: &mut Ui, owner: &str, c: &mut Color, reference: Option<Color>, no
 /// The editor of a color picker's popup (the viewer, the model and the bar), its settings kept
 /// for the picker `id`. `none`: the no-color swatch.
 pub fn picker(ui: &mut Ui, id: &str, c: &mut Option<Color>, none: bool) -> bool {
+    picker_ex(ui, id, c, none, false)
+}
+
+/// [`picker`], with the viewer tabs when `tabs`.
+pub fn picker_ex(ui: &mut Ui, id: &str, c: &mut Option<Color>, none: bool, tabs: bool) -> bool {
     let sid = egui::Id::unique(("coled_picker", id));
     let mut ed = ui.data_mut(|m| m.get_temp::<ColorEd>(sid)).unwrap_or_default();
     // the color when the popup opened is the reference
@@ -683,7 +688,7 @@ pub fn picker(ui: &mut Ui, id: &str, c: &mut Option<Color>, none: bool) -> bool 
     let reference = ui.data_mut(|m| *m.get_temp_mut_or_insert_with(rid, || c.unwrap_or(Color::BLACK)));
     ui.set_width(236.0);
     let mut col = c.unwrap_or(Color::BLACK);
-    let mut changed = editor(ui, &mut ed, &mut col, false);
+    let mut changed = editor(ui, &mut ed, &mut col, tabs);
     ui.add_space(4.0);
     super::separator(ui);
     ui.add_space(4.0);

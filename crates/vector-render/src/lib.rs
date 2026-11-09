@@ -224,6 +224,37 @@ impl Renderer {
                 return self.render_object(&sub, &plain, target);
             }
         }
+        if o.style.transparency_target != 0 && !matches!(o.style.transparency, Transparency::None) && !ctx.opts.wireframe && o.style.outline.is_visible() && !o.style.fill.is_none() {
+            // the transparency applies to the fill or to the outline only: draw them apart
+            let mut fill = o.clone();
+            fill.style.outline = Outline::none();
+            fill.style.transparency_target = 0;
+            let mut line = o.clone();
+            line.style.fill = Fill::None;
+            line.style.transparency_target = 0;
+            line.effects.drop_shadow = None;
+            line.effects.inner_shadow = None;
+            line.effects.block_shadow = None;
+            line.effects.extrude = None;
+            if o.style.transparency_target == 1 {
+                line.style.transparency = Transparency::None;
+            } else {
+                fill.style.transparency = Transparency::None;
+            }
+            if o.style.outline.behind_fill {
+                fill.effects.drop_shadow = None;
+                fill.effects.inner_shadow = None;
+                fill.effects.block_shadow = None;
+                fill.effects.extrude = None;
+                line.effects = o.effects.clone();
+                self.render_object(ctx, &line, target);
+                self.render_object(ctx, &fill, target);
+            } else {
+                self.render_object(ctx, &fill, target);
+                self.render_object(ctx, &line, target);
+            }
+            return;
+        }
         let needs_layer = !ctx.opts.wireframe
             && (overprints
                 || !matches!(o.style.transparency, Transparency::None)
@@ -284,6 +315,9 @@ impl Renderer {
             let mut mask = None;
             if let Transparency::Gradient(g) = &o.style.transparency {
                 mask = gradient_mask(o, g, &sub.view, w, h);
+            }
+            if let Transparency::Pattern { pattern, front, back } = &o.style.transparency {
+                mask = self.pattern_mask(&sub, o, pattern, *front, *back, w, h);
             }
             let mut pp = sk::PixmapPaint::default();
             pp.opacity = opacity;
@@ -521,7 +555,7 @@ impl Renderer {
             Fill::Solid(c) => target.fill_path(&sp, &paint_solid(*c, aa), rule, view, None),
             Fill::Gradient(g) => {
                 let space = Self::fill_space(o, path);
-                if g.steps > 0 || g.kind == GradientKind::Rectangular {
+                if g.steps > 0 || g.kind == GradientKind::Rectangular || g.accel != 0.0 || g.blend != 0 || g.smooth {
                     let g2 = g.clone();
                     self.fill_per_pixel(ctx, &sp, rule, space, target, move |u, v| gradient_color(&g2, u, v));
                     return;
@@ -534,25 +568,9 @@ impl Renderer {
                 }
             }
             Fill::Pattern(pf) => {
-                let zoom = view_scale(ctx.view);
-                let tile_px = (pf.tile * zoom).clamp(2.0, 1024.0);
-                let img_pm = pf.image.and_then(|id| self.image_pixmap(ctx.doc, id, &ImageAdjust::default()));
-                let tile = match img_pm {
-                    Some(p) => p,
-                    None => self.pattern_tile(pf, 64),
-                };
-                let tw = tile.width() as f64;
-                let scale = tile_px / tw / zoom;
-                let space = if pf.transform_with_object {
-                    let s = Self::fill_space(o, path);
-                    let origin = s * Point::ZERO;
-                    Affine::translate(origin.to_vec2()) * Affine::rotate(-pf.angle.to_radians())
-                } else {
-                    Affine::rotate(-pf.angle.to_radians())
-                };
-                let shader_tf = to_sk(space * Affine::scale(scale));
+                let (tile, tf) = self.pattern_paint(ctx, o, path, pf);
                 let mut p = sk::Paint::default();
-                p.shader = sk::Pattern::new(tile.as_ref().as_ref(), sk::SpreadMode::Repeat, sk::FilterQuality::Bilinear, 1.0, shader_tf);
+                p.shader = sk::Pattern::new(tile.as_ref().as_ref(), sk::SpreadMode::Repeat, sk::FilterQuality::Bilinear, 1.0, to_sk(tf));
                 p.anti_alias = aa;
                 target.fill_path(&sp, &p, rule, view, None);
             }
@@ -597,6 +615,51 @@ impl Renderer {
         let mut mask = sk::Mask::new(w, h).unwrap();
         mask.fill_path(sp, rule, ctx.opts.antialias, sk::Transform::from_translate(-x0 as f32, -y0 as f32).pre_concat(view));
         target.draw_pixmap(x0, y0, layer.as_ref(), &sk::PixmapPaint::default(), sk::Transform::identity(), Some(&mask_offset(&mask, target, x0, y0)));
+    }
+
+    /// The tile of a pattern fill and its transform (object space).
+    fn pattern_paint(&mut self, ctx: &Ctx, o: &Object, path: &BezPath, pf: &PatternFill) -> (Arc<sk::Pixmap>, Affine) {
+        let zoom = view_scale(ctx.view);
+        let tile_px = (pf.tile * zoom).clamp(2.0, 1024.0);
+        let img_pm = pf.image.and_then(|id| self.image_pixmap(ctx.doc, id, &ImageAdjust::default()));
+        let tile = match img_pm {
+            Some(p) => p,
+            None => self.pattern_tile(pf, 64),
+        };
+        let tw = tile.width() as f64;
+        let tile = if pf.mirror != 0 { mirror_tile(&tile, pf.mirror) } else { tile };
+        let scale = tile_px / tw / zoom;
+        let space = if pf.transform_with_object {
+            let s = Self::fill_space(o, path);
+            let origin = s * Point::ZERO;
+            Affine::translate(origin.to_vec2()) * Affine::rotate(-pf.angle.to_radians())
+        } else {
+            Affine::rotate(-pf.angle.to_radians())
+        };
+        (tile, space * Affine::scale(scale))
+    }
+
+    /// The opacity of a pattern transparency: the pattern's dark parts (its foreground) get the
+    /// foreground transparency, its light parts the background one.
+    #[allow(clippy::too_many_arguments)]
+    fn pattern_mask(&mut self, ctx: &Ctx, o: &Object, pf: &PatternFill, front: f64, back: f64, w: u32, h: u32) -> Option<sk::Mask> {
+        let mut pm = sk::Pixmap::new(w, h)?;
+        let path = o.world_path();
+        let bw = PatternFill { fg: Color::BLACK, bg: Color::WHITE, ..pf.clone() };
+        let (tile, tf) = self.pattern_paint(ctx, o, &path, &bw);
+        let mut p = sk::Paint::default();
+        p.shader = sk::Pattern::new(tile.as_ref().as_ref(), sk::SpreadMode::Repeat, sk::FilterQuality::Bilinear, 1.0, to_sk(ctx.view * tf));
+        pm.fill_rect(sk::Rect::from_xywh(0.0, 0.0, w as f32, h as f32)?, &p, sk::Transform::identity(), None);
+        let mut m = sk::Mask::new(w, h)?;
+        let data = m.data_mut();
+        let (fo, bo) = (1.0 - front / 100.0, 1.0 - back / 100.0);
+        for (i, p) in pm.pixels().iter().enumerate() {
+            let c = p.demultiply();
+            let lum = (0.299 * c.red() as f64 + 0.587 * c.green() as f64 + 0.114 * c.blue() as f64) / 255.0;
+            let a = fo + (bo - fo) * lum;
+            data[i] = (a * 255.0).round().clamp(0.0, 255.0) as u8;
+        }
+        Some(m)
     }
 
     fn pattern_tile(&mut self, pf: &PatternFill, size: u32) -> Arc<sk::Pixmap> {
@@ -705,6 +768,20 @@ impl Renderer {
             }
             return;
         }
+        // calligraphy: a stretched, turned nib is a round pen in a stretched space
+        let nib = if (ol.stretch - 100.0).abs() > 0.01 && ol.stretch > 0.0 { Some(Affine::rotate(-ol.nib_angle.to_radians()) * Affine::scale_non_uniform(1.0, ol.stretch / 100.0)) } else { None };
+        let view = match nib {
+            Some(t) => to_sk(ctx.view * t),
+            None => view,
+        };
+        let nib_path;
+        let path = match nib {
+            Some(t) => {
+                nib_path = t.inverse() * path.clone();
+                &nib_path
+            }
+            None => path,
+        };
         let Some(sp) = to_sk_path(path) else { return };
         let mut st = sk::Stroke::default();
         st.width = ol.width as f32;
@@ -724,6 +801,18 @@ impl Renderer {
             let mut arr: Vec<f32> = ol.dash.iter().map(|d| (*d as f32 * w).max(0.1)).collect();
             if arr.len() % 2 == 1 {
                 arr.extend(arr.clone());
+            }
+            if ol.dash_mode == 1 {
+                // aligned dashes: stretch the pattern so a whole dash ends the path
+                let len: f64 = path.segments().map(|s| kurbo::ParamCurveArclen::arclen(&s, 0.05)).sum();
+                let period: f32 = arr.iter().sum();
+                if len > 0.0 && period > 0.0 {
+                    let n = ((len as f32 - arr[0]) / period).round().max(1.0);
+                    let k = len as f32 / (n * period + arr[0]);
+                    for a in arr.iter_mut() {
+                        *a *= k;
+                    }
+                }
             }
             st.dash = sk::StrokeDash::new(arr, 0.0);
         }
@@ -1349,6 +1438,23 @@ pub fn gradient_color(g: &Gradient, u: f64, v: f64) -> Color {
         t = t.clamp(0.0, 1.0);
     }
     g.color_at(t)
+}
+
+/// A tile twice as wide (and/or high) holding the tile and its mirror images, for patterns whose
+/// alternate tiles are mirrored.
+fn mirror_tile(tile: &sk::Pixmap, mirror: u8) -> Arc<sk::Pixmap> {
+    let (w, h) = (tile.width(), tile.height());
+    let (nx, ny) = (if mirror & 1 != 0 { 2 } else { 1 }, if mirror & 2 != 0 { 2 } else { 1 });
+    let Some(mut out) = sk::Pixmap::new(w * nx, h * ny) else { return Arc::new(tile.clone()) };
+    for j in 0..ny {
+        for i in 0..nx {
+            let (fx, fy) = (if i == 1 { -1.0 } else { 1.0 }, if j == 1 { -1.0 } else { 1.0 });
+            let tx = if i == 1 { (2 * w) as f32 } else { 0.0 };
+            let ty = if j == 1 { (2 * h) as f32 } else { 0.0 };
+            out.draw_pixmap(0, 0, tile.as_ref(), &sk::PixmapPaint::default(), sk::Transform::from_row(fx, 0.0, 0.0, fy, tx, ty), None);
+        }
+    }
+    Arc::new(out)
 }
 
 fn gradient_mask(o: &Object, g: &Gradient, view: &Affine, w: u32, h: u32) -> Option<sk::Mask> {

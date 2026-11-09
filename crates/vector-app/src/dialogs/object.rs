@@ -274,7 +274,7 @@ pub fn make_pattern(doc: &mut Document, page: usize, area: Rect, kind: u8, resol
     let name = format!("Pattern {n}");
     let img = ImageData { width: pm.width(), height: pm.height(), rgba: Arc::new(rgba), encoded: Arc::new(vec![]), format: "png".into(), name: name.clone() };
     let iid = doc.add_image(img);
-    let fill = PatternFill { kind: PatternKind::Checker, fg: Color::BLACK, bg: Color::WHITE, tile: area.width().max(area.height()), angle: 0.0, image: Some(iid), transform_with_object: true };
+    let fill = PatternFill { kind: PatternKind::Checker, fg: Color::BLACK, bg: Color::WHITE, tile: area.width().max(area.height()), angle: 0.0, image: Some(iid), transform_with_object: true, vector: true, mirror: 0 };
     doc.patterns.push(NamedPattern { name: name.clone(), fill });
     Some(name)
 }

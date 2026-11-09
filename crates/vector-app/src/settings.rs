@@ -155,6 +155,10 @@ pub struct Settings {
     pub extra_toolbars: Vec<String>,
     /// Arrowheads made with Object ▸ Create ▸ Arrowhead, listed in the Arrowhead selectors.
     pub custom_arrowheads: Vec<vector_core::style::CustomArrow>,
+    /// Line styles made with Edit Line Style (dash lengths, in outline widths).
+    pub custom_dashes: Vec<Vec<f64>>,
+    /// Properties ▸ Summary ▸ Wrap Connector Line.
+    pub wrap_connector_lines: bool,
     /// Text ▸ Show Non-Printing Characters.
     pub show_nonprinting: bool,
     /// Text ▸ Insert Formatting Code ▸ Custom Optional Hyphens: (word, hyphenated word) and when they apply.
@@ -459,6 +463,8 @@ impl Default for Settings {
             show_toolbox: true,
             extra_toolbars: vec![],
             custom_arrowheads: vec![],
+            custom_dashes: vec![],
+            wrap_connector_lines: true,
             show_nonprinting: false,
             hyphen_defs: vec![],
             hyphen_when_typing: true,
