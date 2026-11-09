@@ -436,7 +436,7 @@ pub enum Align {
     Bottom,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AlignTo {
     /// Last selected object (the original's default).
     LastSelected,
@@ -444,32 +444,77 @@ pub enum AlignTo {
     Selection,
     Page,
     PageEdge,
-    Point(i64, i64),
+    /// The center of the page: each object lines its edge or center up with it.
+    PageCenter,
+    /// The nearest grid line, for each object on its own.
+    Grid,
+    Point(f64, f64),
+}
+
+/// Align and Distribute ▸ Text: what of a text object lines up vertically.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum TextSource {
+    FirstBaseline,
+    LastBaseline,
+    #[default]
+    BoundingBox,
 }
 
 pub fn align(doc: &mut Document, ids: &[ObjId], how: Align, to: AlignTo, page: usize, use_outline: bool) {
+    align_ex(doc, ids, how, to, page, use_outline, TextSource::BoundingBox)
+}
+
+/// [`align`], with the baselines of text objects when `text` says so.
+pub fn align_ex(doc: &mut Document, ids: &[ObjId], how: Align, to: AlignTo, page: usize, use_outline: bool, text: TextSource) {
     if ids.is_empty() {
         return;
     }
     let b = |doc: &Document, id: ObjId| -> Rect {
-        doc.find(id)
-            .map(|o| if use_outline { o.visual_bounds() } else { doc.bounds_of(o) })
-            .unwrap_or(Rect::ZERO)
+        let Some(o) = doc.find(id) else { return Rect::ZERO };
+        let r = if use_outline { o.visual_bounds() } else { doc.bounds_of(o) };
+        if let (ObjKind::Text(t), TextSource::FirstBaseline | TextSource::LastBaseline) = (&o.kind, text) {
+            let l = crate::text::layout(t);
+            let mut lines = l.lines.iter().filter(|l| !l.hidden);
+            let line = if text == TextSource::FirstBaseline { lines.next() } else { lines.next_back() };
+            if let Some(line) = line {
+                let (a, c) = (o.transform * Point::new(line.x0, line.baseline), o.transform * Point::new(line.x1, line.baseline));
+                return Rect::new(r.x0, a.y.min(c.y), r.x1, a.y.max(c.y));
+            }
+        }
+        r
     };
+    let page_rect = doc.pages.get(page).map(|p| p.rect()).unwrap_or(Rect::ZERO);
     let reference = match to {
         AlignTo::LastSelected => b(doc, *ids.last().unwrap()),
         AlignTo::FirstSelected => b(doc, ids[0]),
         AlignTo::Selection => doc.selection_bounds(ids).unwrap_or(Rect::ZERO),
-        AlignTo::Page | AlignTo::PageEdge => doc.pages.get(page).map(|p| p.rect()).unwrap_or(Rect::ZERO),
-        AlignTo::Point(x, y) => Rect::new(x as f64, y as f64, x as f64, y as f64),
+        AlignTo::Page | AlignTo::PageEdge => page_rect,
+        AlignTo::PageCenter => Rect::from_center_size(page_rect.center(), (0.0, 0.0)),
+        AlignTo::Grid => Rect::ZERO,
+        AlignTo::Point(x, y) => Rect::new(x, y, x, y),
     };
     let movers: Vec<ObjId> = match to {
         AlignTo::LastSelected => ids[..ids.len() - 1].to_vec(),
         AlignTo::FirstSelected => ids[1..].to_vec(),
         _ => ids.to_vec(),
     };
+    let (gs, go) = (doc.settings.grid_spacing, doc.settings.ruler_origin);
     for id in movers {
         let r = b(doc, id);
+        if to == AlignTo::Grid {
+            // the edge or center moves to the nearest grid line
+            let snap = |v: f64, g: f64, o: f64| ((v - o) / g.max(1e-6)).round() * g.max(1e-6) + o;
+            let d = match how {
+                Align::Left => Vec2::new(snap(r.x0, gs.x, go.x) - r.x0, 0.0),
+                Align::Right => Vec2::new(snap(r.x1, gs.x, go.x) - r.x1, 0.0),
+                Align::CenterH => Vec2::new(snap(r.center().x, gs.x, go.x) - r.center().x, 0.0),
+                Align::Top => Vec2::new(0.0, snap(r.y0, gs.y, go.y) - r.y0),
+                Align::Bottom => Vec2::new(0.0, snap(r.y1, gs.y, go.y) - r.y1),
+                Align::CenterV => Vec2::new(0.0, snap(r.center().y, gs.y, go.y) - r.center().y),
+            };
+            doc.transform_objects(&[id], Affine::translate(d));
+            continue;
+        }
         let d = match how {
             Align::Left => Vec2::new(reference.x0 - r.x0, 0.0),
             Align::Right => Vec2::new(reference.x1 - r.x1, 0.0),
@@ -546,6 +591,245 @@ pub fn distribute(doc: &mut Document, ids: &[ObjId], how: Distribute, extent: Op
             }
         }
     }
+}
+
+/// Distribute with a fixed space between the objects (Align and Distribute ▸ Distribute to ▸ Spacing):
+/// in their order along the axis, each one `gap` after the one before it, the first staying put.
+pub fn distribute_spacing(doc: &mut Document, ids: &[ObjId], how: Distribute, gap: f64) {
+    if ids.len() < 2 {
+        return;
+    }
+    let horizontal = matches!(how, Distribute::Left | Distribute::CenterH | Distribute::SpacingH | Distribute::Right);
+    let mut items: Vec<(ObjId, Rect)> = ids.iter().filter_map(|i| doc.find(*i).map(|o| (*i, doc.bounds_of(o)))).collect();
+    items.sort_by(|a, b| if horizontal { a.1.x0.total_cmp(&b.1.x0) } else { a.1.y0.total_cmp(&b.1.y0) });
+    let mut next = if horizontal { items[0].1.x1 } else { items[0].1.y1 } + gap;
+    for (id, r) in items.into_iter().skip(1) {
+        let d = if horizontal { Vec2::new(next - r.x0, 0.0) } else { Vec2::new(0.0, next - r.y0) };
+        doc.transform_objects(&[id], Affine::translate(d));
+        next += (if horizontal { r.width() } else { r.height() }) + gap;
+    }
+}
+
+/// Fit Objects to Path: how the objects are placed along the path.
+#[derive(Clone, Debug, PartialEq)]
+pub struct FitPathOptions {
+    /// Fit copies and leave the objects where they are.
+    pub keep_originals: bool,
+    /// Group the fitted objects (the path stays out of the group).
+    pub group: bool,
+    /// Extra copies of the objects along the path.
+    pub duplicates: usize,
+    /// Spread the objects over all the subpaths as one path (else each subpath gets its share).
+    pub contiguous: bool,
+    /// 0 selection order, 1 reversed selection, 2 top to bottom, 3 bottom to top, 4 left to right,
+    /// 5 right to left, 6 area big to small, 7 small to big, 8 height tall to short, 9 short to tall,
+    /// 10 width wide to narrow, 11 narrow to wide, 12 random.
+    pub order: usize,
+    /// Uniform reference point spacing (else uniform object spacing: equal gaps between the objects).
+    pub even_reference: bool,
+    /// The point of each object on the path: the object origin picked in `origin` (else its center of rotation).
+    pub object_origin: bool,
+    /// The 3×3 origin point, row by row from the top left.
+    pub origin: usize,
+    /// Rotate each object to follow the path.
+    pub follow_path: bool,
+    /// Clear the rotation the objects already have first.
+    pub ignore_rotation: bool,
+    /// 0 none, 1 uniform, 2 progressive, 3 jitter, 4 progressive jitter.
+    pub style: usize,
+    pub start_angle: f64,
+    pub spin_angle: f64,
+    pub revolutions: f64,
+    /// Jitter range (±degrees).
+    pub range: f64,
+    pub clockwise: bool,
+    pub seed: u64,
+}
+
+impl Default for FitPathOptions {
+    fn default() -> Self {
+        FitPathOptions {
+            keep_originals: false,
+            group: false,
+            duplicates: 0,
+            contiguous: true,
+            order: 0,
+            even_reference: false,
+            object_origin: false,
+            origin: 4,
+            follow_path: true,
+            ignore_rotation: false,
+            style: 0,
+            start_angle: 0.0,
+            spin_angle: 360.0,
+            revolutions: 1.0,
+            range: 15.0,
+            clockwise: false,
+            seed: 1,
+        }
+    }
+}
+
+fn split_subpaths(bp: &BezPath) -> Vec<(BezPath, bool)> {
+    let mut out: Vec<(BezPath, bool)> = vec![];
+    for el in bp.elements() {
+        if let kurbo::PathEl::MoveTo(_) = el {
+            out.push((BezPath::new(), false));
+        }
+        if let Some(last) = out.last_mut() {
+            if let kurbo::PathEl::ClosePath = el {
+                last.1 = true;
+            }
+            last.0.push(*el);
+        }
+    }
+    out.retain(|(p, _)| crate::path::bez_length(p) > 1e-9);
+    out
+}
+
+/// Fit the objects `ids` along the path of `path_id`; gives the fitted objects (or their group).
+pub fn fit_objects_to_path(doc: &mut Document, ids: &[ObjId], path_id: ObjId, o: &FitPathOptions) -> Vec<ObjId> {
+    let Some(path) = doc.find(path_id).map(|p| p.world_path()) else { return vec![] };
+    let mut ids: Vec<ObjId> = ids.iter().copied().filter(|i| *i != path_id && doc.find(*i).is_some()).collect();
+    if ids.is_empty() {
+        return vec![];
+    }
+    let mut rng = o.seed.max(1);
+    let mut rand = move || {
+        rng ^= rng << 13;
+        rng ^= rng >> 7;
+        rng ^= rng << 17;
+        (rng >> 11) as f64 / (1u64 << 53) as f64
+    };
+    // the order
+    let bounds: std::collections::HashMap<ObjId, Rect> = ids.iter().map(|i| (*i, doc.bounds_of(doc.find(*i).unwrap()))).collect();
+    let key = |i: &ObjId| -> f64 {
+        let b = bounds[i];
+        match o.order {
+            2 => b.y0,
+            3 => -b.y1,
+            4 => b.x0,
+            5 => -b.x1,
+            6 => -b.area(),
+            7 => b.area(),
+            8 => -b.height(),
+            9 => b.height(),
+            10 => -b.width(),
+            11 => b.width(),
+            _ => 0.0,
+        }
+    };
+    match o.order {
+        0 => {}
+        1 => ids.reverse(),
+        12 => {
+            for k in (1..ids.len()).rev() {
+                let j = (rand() * (k + 1) as f64) as usize;
+                ids.swap(k, j.min(k));
+            }
+        }
+        _ => ids.sort_by(|a, b| key(a).total_cmp(&key(b))),
+    }
+    // the objects to place: the originals (or copies of them) and the duplicates
+    let mut items: Vec<ObjId> = if o.keep_originals { duplicate(doc, &ids, Vec2::ZERO) } else { ids.clone() };
+    for _ in 0..o.duplicates {
+        items.extend(duplicate(doc, &ids, Vec2::ZERO));
+    }
+    // clear the rotation they have
+    let reference = |doc: &Document, id: ObjId| -> Point {
+        let Some(ob) = doc.find(id) else { return Point::ZERO };
+        let b = doc.bounds_of(ob);
+        if o.object_origin {
+            Point::new(b.x0 + b.width() * (o.origin % 3) as f64 / 2.0, b.y0 + b.height() * (o.origin / 3).min(2) as f64 / 2.0)
+        } else {
+            b.center()
+        }
+    };
+    if o.ignore_rotation {
+        for id in &items {
+            let Some(ob) = doc.find(*id) else { continue };
+            let c = ob.transform.as_coeffs();
+            let a = c[1].atan2(c[0]);
+            if a.abs() > 1e-9 {
+                let p = reference(doc, *id);
+                doc.transform_objects(&[*id], Affine::translate(p.to_vec2()) * Affine::rotate(-a) * Affine::translate(-p.to_vec2()));
+            }
+        }
+    }
+    // where each one goes: (subpath, length along it)
+    let subs = split_subpaths(&path);
+    if subs.is_empty() {
+        return items;
+    }
+    let n = items.len();
+    let widths: Vec<f64> = items.iter().map(|i| doc.find(*i).map(|ob| doc.bounds_of(ob).width()).unwrap_or(0.0)).collect();
+    // the lengths along the path of the reference points: the first at the start, the gaps between
+    // the objects equal (uniform object spacing) or the reference points evenly apart
+    let spread = |len: f64, closed: bool, w: &[f64]| -> Vec<f64> {
+        let m = w.len();
+        if m < 2 {
+            return vec![0.0; m];
+        }
+        let slots = if closed { m } else { m - 1 } as f64;
+        let total: f64 = w.iter().sum();
+        let inner = if closed { total } else { total - (w[0] + w[m - 1]) / 2.0 };
+        if o.even_reference || inner > len {
+            return (0..m).map(|k| len * k as f64 / slots).collect();
+        }
+        let gap = (len - inner) / slots;
+        let mut out = vec![0.0];
+        for k in 1..m {
+            out.push(out[k - 1] + w[k - 1] / 2.0 + gap + w[k] / 2.0);
+        }
+        out
+    };
+    let mut place: Vec<(usize, f64)> = vec![];
+    if o.contiguous || subs.len() == 1 {
+        let lens: Vec<f64> = subs.iter().map(|(p, _)| crate::path::bez_length(p)).collect();
+        let total: f64 = lens.iter().sum();
+        let closed = subs.len() == 1 && subs[0].1;
+        for s in spread(total, closed, &widths) {
+            let mut s = s.clamp(0.0, total);
+            let mut k = 0;
+            while k + 1 < lens.len() && s > lens[k] {
+                s -= lens[k];
+                k += 1;
+            }
+            place.push((k, s));
+        }
+    } else {
+        let per = n.div_ceil(subs.len());
+        for (k, chunk) in widths.chunks(per).enumerate() {
+            let k = k.min(subs.len() - 1);
+            let (p, closed) = &subs[k];
+            for s in spread(crate::path::bez_length(p), *closed, chunk) {
+                place.push((k, s));
+            }
+        }
+    }
+    for (k, (id, (sub, s))) in items.iter().zip(place).enumerate() {
+        let Some((pt, tan)) = crate::path::point_at_length(&subs[sub].0, s) else { continue };
+        let r = reference(doc, *id);
+        let mut angle = if o.follow_path { tan.y.atan2(tan.x) } else { 0.0 };
+        let t = if n > 1 { k as f64 / (n - 1) as f64 } else { 0.0 };
+        let sign = if o.clockwise { 1.0 } else { -1.0 };
+        let extra = match o.style {
+            1 => o.start_angle,
+            2 => o.start_angle + o.spin_angle * o.revolutions * t,
+            3 => o.start_angle + (rand() * 2.0 - 1.0) * o.range,
+            4 => o.start_angle + o.spin_angle * o.revolutions * t + (rand() * 2.0 - 1.0) * o.range,
+            _ => 0.0,
+        };
+        angle += sign * extra.to_radians();
+        let m = Affine::translate(pt.to_vec2()) * Affine::rotate(angle) * Affine::translate(-r.to_vec2());
+        doc.transform_objects(&[*id], m);
+    }
+    if o.group {
+        if let Some(g) = group(doc, &items) {
+            return vec![g];
+        }
+    }
+    items
 }
 
 /// Duplicate objects with an offset; returns new ids (placed above originals).
@@ -1083,6 +1367,183 @@ pub fn join_curves(doc: &mut Document, ids: &[ObjId], tolerance: f64) -> Option<
                 break;
             }
         }
+    }
+    Some(combined)
+}
+
+/// Join Curves docker ▸ how the end nodes join: Extend, Chamfer, Fillet, Bézier curve.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum JoinMode {
+    /// Extend the end segments until they meet.
+    Extend,
+    /// A straight segment between the ends.
+    Chamfer,
+    /// Extend them and round the corner they make.
+    Fillet,
+    /// A smooth curve leaving each end along its direction.
+    Bezier,
+}
+
+/// The nodes that bridge the end `a` (arriving from `pa`) and the start `b` (leaving towards `pb`).
+fn join_bridge(a: &mut crate::path::Node, b: &mut crate::path::Node, pa: Point, pb: Point, mode: JoinMode, radius: f64) -> Vec<crate::path::Node> {
+    use crate::path::Node;
+    let unit = |v: Vec2| if v.hypot() > 1e-9 { v / v.hypot() } else { Vec2::ZERO };
+    let da = unit(a.p - pa);
+    let db = unit(b.p - pb);
+    let gap = b.p - a.p;
+    let dist = gap.hypot().max(1e-6);
+    // where the extensions of the two ends meet
+    let meet = || -> Option<Point> {
+        let det = -da.x * db.y + da.y * db.x;
+        if det.abs() < 1e-9 || da == Vec2::ZERO || db == Vec2::ZERO {
+            return None;
+        }
+        let s = (gap.x * -db.y - gap.y * -db.x) / det;
+        let t = (da.x * gap.y - da.y * gap.x) / det;
+        (s >= -1e-9 && t >= -1e-9).then(|| a.p + da * s)
+    };
+    let bezier = |a: &mut Node, b: &mut Node| {
+        a.line_out = false;
+        a.c_out = a.p + da * dist * 0.55;
+        b.c_in = b.p + db * dist * 0.55;
+        vec![]
+    };
+    match mode {
+        JoinMode::Chamfer => {
+            a.line_out = true;
+            vec![]
+        }
+        JoinMode::Bezier => bezier(a, b),
+        JoinMode::Extend => match meet() {
+            Some(x) => {
+                a.line_out = true;
+                vec![Node::corner(x)]
+            }
+            None => bezier(a, b),
+        },
+        JoinMode::Fillet => match meet() {
+            Some(x) => {
+                let (ua, ub) = (a.p - x, b.p - x);
+                let (la, lb) = (ua.hypot(), ub.hypot());
+                let theta = if la > 1e-9 && lb > 1e-9 { (ua.dot(ub) / (la * lb)).clamp(-1.0, 1.0).acos() } else { 0.0 };
+                if theta < 1e-3 || theta > std::f64::consts::PI - 1e-3 {
+                    a.line_out = true;
+                    return vec![Node::corner(x)];
+                }
+                let t = (radius / (theta / 2.0).tan()).min(la).min(lb);
+                let pa2 = x + ua * (t / la);
+                let pb2 = x + ub * (t / lb);
+                let k = 4.0 / 3.0 * ((std::f64::consts::PI - theta) / 4.0).tan();
+                let mut na = Node::corner(pa2);
+                let mut nb = Node::corner(pb2);
+                na.line_out = false;
+                na.c_out = pa2 + (x - pa2) * k;
+                nb.c_in = pb2 + (x - pb2) * k;
+                a.line_out = true;
+                vec![na, nb]
+            }
+            None => bezier(a, b),
+        },
+    }
+}
+
+/// The point the segment arriving at `nodes[i]` comes from (its control, or the node before).
+fn arriving_from(nodes: &[crate::path::Node], i: usize) -> Point {
+    let prev = nodes[i - 1];
+    if prev.line_out {
+        prev.p
+    } else if nodes[i].c_in != nodes[i].p {
+        nodes[i].c_in
+    } else if prev.c_out != prev.p {
+        prev.c_out
+    } else {
+        prev.p
+    }
+}
+
+/// The point the segment leaving `nodes[0]` goes towards.
+fn leaving_to(nodes: &[crate::path::Node]) -> Point {
+    let (n0, n1) = (nodes[0], nodes[1]);
+    if n0.line_out {
+        n1.p
+    } else if n0.c_out != n0.p {
+        n0.c_out
+    } else if n1.c_in != n1.p {
+        n1.c_in
+    } else {
+        n1.p
+    }
+}
+
+/// Join Curves docker: join the end nodes of the selected curves that are within `tolerance`,
+/// the way `mode` says (the radius for Fillet).
+pub fn join_curves_ex(doc: &mut Document, ids: &[ObjId], tolerance: f64, mode: JoinMode, radius: f64) -> Option<ObjId> {
+    use crate::path::SubPath;
+    let combined = if ids.len() > 1 { combine(doc, ids)? } else { *ids.first()? };
+    let o = doc.find_mut(combined)?;
+    let ObjKind::Path(np) = &mut o.kind else { return Some(combined) };
+    loop {
+        let n = np.subpaths.len();
+        let mut found = None;
+        'outer: for a in 0..n {
+            let sa = &np.subpaths[a];
+            if sa.closed || sa.nodes.len() < 2 {
+                continue;
+            }
+            let alen = sa.nodes.len();
+            if alen > 2 && (sa.nodes[0].p - sa.nodes[alen - 1].p).hypot() <= tolerance {
+                found = Some(((a, alen - 1), (a, 0)));
+                break;
+            }
+            for b in a + 1..n {
+                let sb = &np.subpaths[b];
+                if sb.closed || sb.nodes.len() < 2 {
+                    continue;
+                }
+                let blen = sb.nodes.len();
+                for ea in [alen - 1, 0] {
+                    for eb in [0, blen - 1] {
+                        if (sa.nodes[ea].p - sb.nodes[eb].p).hypot() <= tolerance {
+                            found = Some(((a, ea), (b, eb)));
+                            break 'outer;
+                        }
+                    }
+                }
+            }
+        }
+        let Some(((ai, ae), (bi, be))) = found else { break };
+        if ai == bi {
+            let sp = &mut np.subpaths[ai];
+            let n = sp.nodes.len();
+            let (pa, pb) = (arriving_from(&sp.nodes, n - 1), leaving_to(&sp.nodes));
+            let (mut last, mut first) = (sp.nodes[n - 1], sp.nodes[0]);
+            let mid = join_bridge(&mut last, &mut first, pa, pb, mode, radius);
+            sp.nodes[n - 1] = last;
+            sp.nodes[0] = first;
+            sp.nodes.extend(mid);
+            sp.closed = true;
+            continue;
+        }
+        let mut sa = np.subpaths[ai].clone();
+        if ae == 0 {
+            sa.reverse();
+        }
+        let mut sb = np.subpaths[bi].clone();
+        if be != 0 {
+            sb.reverse();
+        }
+        let la = sa.nodes.len() - 1;
+        let (pa, pb) = (arriving_from(&sa.nodes, la), leaving_to(&sb.nodes));
+        let (mut last, mut first) = (sa.nodes[la], sb.nodes[0]);
+        let mid = join_bridge(&mut last, &mut first, pa, pb, mode, radius);
+        sa.nodes[la] = last;
+        sb.nodes[0] = first;
+        let mut nodes = sa.nodes;
+        nodes.extend(mid);
+        nodes.extend(sb.nodes);
+        let (lo, hi) = if ai < bi { (ai, bi) } else { (bi, ai) };
+        np.subpaths.remove(hi);
+        np.subpaths[lo] = SubPath { nodes, closed: false };
     }
     Some(combined)
 }

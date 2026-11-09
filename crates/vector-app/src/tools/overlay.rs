@@ -78,7 +78,7 @@ pub fn draw_overlay(app: &mut VectorApp, painter: &Painter) {
     draw_grid(painter, d);
     draw_pixel_grid(painter, d);
     draw_baseline_grid(painter, d);
-    draw_guides(painter, d, &ts.drag);
+    draw_guides(painter, d, &ts.drag, s.guide_line_style);
     draw_text_frames(painter, d, s);
     crate::dialogs::symmetry::draw_overlay(painter, d);
 
@@ -126,9 +126,14 @@ pub fn draw_overlay(app: &mut VectorApp, painter: &Painter) {
         }
     }
     // alignment and dynamic guides
-    for (a, b) in &ts.guide_lines {
+    for (a, b, kind) in &ts.guide_lines {
         let (a, b) = (d.to_screen(*a), d.to_screen(*b));
-        painter.extend(egui::Shape::dashed_line(&[a, b], Stroke::new(1.0, Color32::from_rgb(0xe8, 0x3f, 0xb8)), 4.0, 3.0));
+        let (c, style) = match kind {
+            0 => (s.align_guide_color, s.align_guide_style),
+            1 => (s.guide_margin_color, s.guide_margin_style),
+            _ => (s.dyn_guide_color, s.dyn_guide_style),
+        };
+        crate::dockers::styled_line(painter, a, b, Stroke::new(1.0, Color32::from_rgb(c[0], c[1], c[2])), style);
     }
     // snap mark
     if s.show_snap_marks {
@@ -244,7 +249,7 @@ fn draw_grid(painter: &Painter, d: &DocView) {
     }
 }
 
-fn draw_guides(painter: &Painter, d: &DocView, drag: &Drag) {
+fn draw_guides(painter: &Painter, d: &DocView, drag: &Drag, style: usize) {
     if !d.doc.settings.show_guides {
         return;
     }
@@ -266,7 +271,7 @@ fn draw_guides(painter: &Painter, d: &DocView, drag: &Drag) {
                 if g.locked {
                     painter.extend(EShape::dashed_line(&[pos2(cr.left(), y), pos2(cr.right(), y)], stroke, 6.0, 3.0));
                 } else {
-                    painter.line_segment([pos2(cr.left(), y), pos2(cr.right(), y)], stroke);
+                    crate::dockers::styled_line(painter, pos2(cr.left(), y), pos2(cr.right(), y), stroke, style);
                 }
             }
             vector_core::GuideKind::Vertical => {
@@ -274,7 +279,7 @@ fn draw_guides(painter: &Painter, d: &DocView, drag: &Drag) {
                 if g.locked {
                     painter.extend(EShape::dashed_line(&[pos2(x, cr.top()), pos2(x, cr.bottom())], stroke, 6.0, 3.0));
                 } else {
-                    painter.line_segment([pos2(x, cr.top()), pos2(x, cr.bottom())], stroke);
+                    crate::dockers::styled_line(painter, pos2(x, cr.top()), pos2(x, cr.bottom()), stroke, style);
                 }
             }
             vector_core::GuideKind::Angled(deg) => {
@@ -282,7 +287,11 @@ fn draw_guides(painter: &Painter, d: &DocView, drag: &Drag) {
                 let dir = Vec2::new(a.cos(), -a.sin()) * 1e5;
                 let p0 = d.to_screen(g.pos - dir);
                 let p1 = d.to_screen(g.pos + dir);
-                painter.line_segment([p0, p1], stroke);
+                if g.locked {
+                    painter.extend(EShape::dashed_line(&[p0, p1], stroke, 6.0, 3.0));
+                } else {
+                    crate::dockers::styled_line(painter, p0, p1, stroke, style);
+                }
             }
         }
     }

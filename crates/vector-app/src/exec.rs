@@ -12,12 +12,6 @@ use vector_core::object::{BitmapEffect, ImageAdjust, ObjKind};
 use vector_core::ops::{self, AlignTo};
 use vector_core::{Color, Document, Fill, ObjId, Object};
 
-pub const BITMAP_EFFECTS: [&str; 8] = ["Gaussian Blur", "Glow", "Emboss", "Add Noise", "Pixelate", "Grayscale", "Sepia", "Invert"];
-
-pub fn bitmap_effect_has_amount(i: usize) -> bool {
-    i < 5
-}
-
 pub fn bitmap_effect(i: usize, amount: f64) -> BitmapEffect {
     match i {
         0 => BitmapEffect::GaussianBlur { radius: amount },

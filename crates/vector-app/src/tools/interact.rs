@@ -1937,7 +1937,7 @@ impl<'a> Cx<'a> {
                             kind: if vertical { vector_core::GuideKind::Vertical } else { vector_core::GuideKind::Horizontal },
                             pos: p,
                             locked: false,
-                            color: Color::rgb(0x00, 0x99, 0xff),
+                            color: Color::rgb(self.s.guide_color[0], self.s.guide_color[1], self.s.guide_color[2]),
                         });
                     }
                 }
@@ -2041,7 +2041,10 @@ impl<'a> Cx<'a> {
                                 3 => WidthProfile::Calligraphic { angle: 45.0, min_ratio: 0.2 },
                                 4 => WidthProfile::Pressure(speed_pressure(&points, &times)),
                                 5 => crate::propbar::painterly_profile(&self.s.topts, seed),
-                                _ => WidthProfile::Taper,
+                                _ => match &self.ts.media_profile {
+                                    Some(p) => crate::dockers::fit_profile(p, self.ts.media_width.max(0.1)),
+                                    None => WidthProfile::Taper,
+                                },
                             }
                         };
                         let id = self.d.doc.new_id();
@@ -2201,10 +2204,40 @@ impl<'a> Cx<'a> {
 
     fn pick_target_click(&mut self) {
         let Some(target) = self.ts.pick_target.take() else { return };
+        if let PickTarget::Measure { first } = target {
+            match first {
+                None => self.ts.pick_target = Some(PickTarget::Measure { first: Some(self.raw) }),
+                Some(a) => self.ts.picked_segment = Some((a, self.raw)),
+            }
+            return;
+        }
+        if let PickTarget::DockerPoint = target {
+            self.ts.picked_point = Some(self.raw);
+            return;
+        }
+        if let PickTarget::SampleColor = target {
+            let c = sample_color(self.ts, self.d, self.raw);
+            self.ts.picked_color = Some(c);
+            return;
+        }
         let Some(t) = self.hit(self.raw) else {
             self.out.flash = Some("No object was clicked".into());
             return;
         };
+        if let PickTarget::DockerObject = target {
+            self.ts.picked_object = Some(t);
+            return;
+        }
+        if let PickTarget::TileShape = target {
+            let Some(o) = self.d.doc.find(t) else { return };
+            let closed = matches!(&o.kind, ObjKind::Path(np) if np.subpaths.iter().any(|s| s.closed)) || matches!(o.kind, ObjKind::Rect(_) | ObjKind::Ellipse(_) | ObjKind::Polygon(_));
+            if !closed {
+                self.out.flash = Some("Click a closed curve".into());
+                return;
+            }
+            self.ts.picked_shape = Some(o.world_path());
+            return;
+        }
         if let PickTarget::ImpactBoundary { outer } = target {
             let Some(o) = self.d.doc.find(t) else { return };
             if o.is_container() || matches!(o.kind, ObjKind::Text(_)) {
@@ -2383,7 +2416,7 @@ impl<'a> Cx<'a> {
                     *s = out;
                 });
             }
-            PickTarget::ImpactBoundary { .. } => {}
+            PickTarget::ImpactBoundary { .. } | PickTarget::SampleColor | PickTarget::TileShape | PickTarget::Measure { .. } | PickTarget::DockerPoint | PickTarget::DockerObject => {}
             PickTarget::EnvelopeFrom => {
                 let Some(src) = self.d.doc.find(t) else { return };
                 let Some(handles) = envelope_from_shape(&src.world_path()) else {
@@ -3586,7 +3619,7 @@ fn sample_color(ts: &mut ToolState, d: &DocView, p: Point) -> Color {
 
 /// Snap a document point to grid, guides, page and object points. Returns the label of the snap.
 /// The anchor points of the objects near `p`: bounding box corners, midpoints and centers.
-fn anchors_near(d: &DocView, p: Point, reach: f64, exclude: &[ObjId]) -> Vec<(kurbo::Rect, Point)> {
+fn anchors_near(d: &DocView, p: Point, reach: f64, exclude: &[ObjId], groups: bool) -> Vec<(kurbo::Rect, Point)> {
     let mut out = vec![];
     for l in d.page_ref().layers.iter().filter(|l| l.visible) {
         for o in &l.objects {
@@ -3598,6 +3631,15 @@ fn anchors_near(d: &DocView, p: Point, reach: f64, exclude: &[ObjId]) -> Vec<(ku
                 continue;
             }
             out.push((b, b.center()));
+            // Live Guides ▸ Individual objects in a group
+            if groups {
+                if let ObjKind::Group(children) = &o.kind {
+                    for c in children {
+                        let cb = d.doc.bounds_of(c);
+                        out.push((cb, cb.center()));
+                    }
+                }
+            }
             if out.len() > 500 {
                 return out;
             }
@@ -3607,7 +3649,7 @@ fn anchors_near(d: &DocView, p: Point, reach: f64, exclude: &[ObjId]) -> Vec<(ku
 }
 
 /// Snap a point, also returning the alignment or dynamic guide lines it snapped to.
-pub fn snap_point_ex(d: &DocView, s: &Settings, p: Point, exclude: &[ObjId]) -> (Point, Option<&'static str>, Vec<(Point, Point)>) {
+pub fn snap_point_ex(d: &DocView, s: &Settings, p: Point, exclude: &[ObjId]) -> (Point, Option<&'static str>, Vec<(Point, Point, u8)>) {
     let ds = &d.doc.settings;
     if ds.snap_off {
         return (p, None, vec![]);
@@ -3720,66 +3762,116 @@ pub fn snap_point_ex(d: &DocView, s: &Settings, p: Point, exclude: &[ObjId]) -> 
         }
     }
     let reach = d.doc_len(400.0);
-    // View ▸ Dynamic Guides: lines at 0°, 45°, 90° and 135° through the snap points of nearby objects
+    // View ▸ Dynamic Guides: lines at the angles checked in the Live Guides docker through the snap
+    // points of nearby objects, and along the end segments of open curves (Extend along segment)
     if s.dynamic_guides && label.is_none() {
-        let mut found: Option<(f64, Point, Point)> = None;
-        for (b, c) in anchors_near(d, p, reach, exclude) {
-            let pts = [c, Point::new(b.x0, b.y0), Point::new(b.x1, b.y0), Point::new(b.x1, b.y1), Point::new(b.x0, b.y1)];
-            for a in pts {
-                for deg in [0.0f64, 45.0, 90.0, 135.0] {
-                    let dir = kurbo::Vec2::new(deg.to_radians().cos(), -deg.to_radians().sin());
-                    let foot = a + dir * (p - a).dot(dir);
-                    let dist = (p - foot).hypot();
-                    if dist <= r && (foot - a).hypot() > r && found.map_or(true, |f| dist < f.0) {
-                        found = Some((dist, foot, a));
+        let angles: Vec<f64> = s.dyn_angles.iter().filter(|a| a.1).map(|a| a.0).collect();
+        let mut rays: Vec<(Point, kurbo::Vec2)> = vec![];
+        for (b, c) in anchors_near(d, p, reach, exclude, false) {
+            for a in [c, Point::new(b.x0, b.y0), Point::new(b.x1, b.y0), Point::new(b.x1, b.y1), Point::new(b.x0, b.y1)] {
+                for deg in &angles {
+                    rays.push((a, kurbo::Vec2::new(deg.to_radians().cos(), -deg.to_radians().sin())));
+                }
+            }
+        }
+        if s.dyn_extend_segment {
+            for l in d.page_ref().layers.iter().filter(|l| l.visible) {
+                for o in l.objects.iter().filter(|o| o.visible && !exclude.contains(&o.id)) {
+                    let ObjKind::Path(np) = &o.kind else { continue };
+                    for sp in np.subpaths.iter().filter(|sp| !sp.closed && sp.nodes.len() > 1) {
+                        let n = sp.nodes.len();
+                        for (end, prev) in [(n - 1, n - 2), (0, 1)] {
+                            let a = o.transform * sp.nodes[end].p;
+                            let v = a - o.transform * sp.nodes[prev].p;
+                            if v.hypot() > 1e-9 && (a - p).hypot() <= reach {
+                                rays.push((a, v / v.hypot()));
+                            }
+                        }
                     }
                 }
+            }
+        }
+        let mut found: Option<(f64, Point, Point)> = None;
+        for (a, dir) in rays {
+            let mut t = (p - a).dot(dir);
+            if s.dyn_ticks {
+                let step = s.dyn_tick_spacing.max(0.01);
+                t = (t / step).round() * step;
+            }
+            let foot = a + dir * t;
+            let dist = (p - foot).hypot();
+            if dist <= r * if s.dyn_ticks { 1.5 } else { 1.0 } && (foot - a).hypot() > r && found.map_or(true, |f| dist < f.0) {
+                found = Some((dist, foot, a));
             }
         }
         if let Some((_, f, a)) = found {
             q = f;
             label = Some("Dynamic guide");
             let ext = (f - a) * (d.doc_len(40.0) / (f - a).hypot().max(1e-9));
-            lines.push((a, f + ext));
+            lines.push((a, f + ext, 2));
         }
     }
     // View ▸ Alignment Guides: line up with the edges and centers of nearby objects and the page
     if s.live_guides && label.is_none() {
-        let mut xs: Vec<(f64, Point)> = vec![];
-        let mut ys: Vec<(f64, Point)> = vec![];
-        let mut add = |b: kurbo::Rect, edges: bool, centers: bool| {
+        // (position, anchor, 0 alignment / 1 margin)
+        let mut xs: Vec<(f64, Point, u8)> = vec![];
+        let mut ys: Vec<(f64, Point, u8)> = vec![];
+        let margins = s.guide_margins;
+        let (mx, my) = (s.guide_margin[0], s.guide_margin[1]);
+        let (modex, modey) = (s.guide_margin_mode[0], s.guide_margin_mode[1]);
+        let mut add = |b: kurbo::Rect, edges: bool, centers: bool, margin: bool| {
             let c = b.center();
             if edges {
-                xs.extend([(b.x0, Point::new(b.x0, c.y)), (b.x1, Point::new(b.x1, c.y))]);
-                ys.extend([(b.y0, Point::new(c.x, b.y0)), (b.y1, Point::new(c.x, b.y1))]);
+                xs.extend([(b.x0, Point::new(b.x0, c.y), 0), (b.x1, Point::new(b.x1, c.y), 0)]);
+                ys.extend([(b.y0, Point::new(c.x, b.y0), 0), (b.y1, Point::new(c.x, b.y1), 0)]);
             }
             if centers {
-                xs.push((c.x, c));
-                ys.push((c.y, c));
+                xs.push((c.x, c, 0));
+                ys.push((c.y, c, 0));
+            }
+            // Margins: Offset (outside), Inset (inside), Offset and inset, No margin
+            if margin {
+                for (mode, m, horizontal) in [(modex, mx, true), (modey, my, false)] {
+                    let sides: &[f64] = match mode {
+                        0 => &[1.0],
+                        1 => &[-1.0],
+                        2 => &[1.0, -1.0],
+                        _ => &[],
+                    };
+                    for k in sides {
+                        if horizontal {
+                            xs.extend([(b.x0 - k * m, Point::new(b.x0, c.y), 1), (b.x1 + k * m, Point::new(b.x1, c.y), 1)]);
+                        } else {
+                            ys.extend([(b.y0 - k * m, Point::new(c.x, b.y0), 1), (b.y1 + k * m, Point::new(c.x, b.y1), 1)]);
+                        }
+                    }
+                }
             }
         };
-        for (b, _) in anchors_near(d, p, reach, exclude) {
-            add(b, s.live_guides_edges, s.live_guides_centers);
+        for (b, _) in anchors_near(d, p, reach, exclude, s.live_guides_groups) {
+            add(b, s.live_guides_edges, s.live_guides_centers, margins);
         }
         if s.live_guides_page {
-            add(page.rect(), true, true);
+            add(page.rect(), true, true, false);
         }
-        let near = |v: f64, list: &[(f64, Point)]| list.iter().filter(|(x, _)| (x - v).abs() <= r).min_by(|a, b| (a.0 - v).abs().total_cmp(&(b.0 - v).abs())).copied();
+        let near = |v: f64, list: &[(f64, Point, u8)]| list.iter().filter(|(x, _, _)| (x - v).abs() <= r).min_by(|a, b| (a.0 - v).abs().total_cmp(&(b.0 - v).abs()).then(a.2.cmp(&b.2))).copied();
         let bx = near(p.x, &xs);
         let by = near(p.y, &ys);
-        if let Some((x, _)) = bx {
+        if let Some((x, _, _)) = bx {
             q.x = x;
         }
-        if let Some((y, _)) = by {
+        if let Some((y, _, _)) = by {
             q.y = y;
         }
-        if let Some((_, a)) = bx {
-            lines.push((a, Point::new(q.x, q.y)));
-            label = Some("Alignment guide");
-        }
-        if let Some((_, a)) = by {
-            lines.push((a, Point::new(q.x, q.y)));
-            label = Some("Alignment guide");
+        for (a, k, horizontal) in [bx.map(|(_, a, k)| (a, k, true)), by.map(|(_, a, k)| (a, k, false))].into_iter().flatten() {
+            // a margin line runs at the margin, from the level of the anchor
+            let from = match (k, horizontal) {
+                (1, true) => Point::new(q.x, a.y),
+                (1, false) => Point::new(a.x, q.y),
+                _ => a,
+            };
+            lines.push((from, Point::new(q.x, q.y), k));
+            label = Some(if k == 1 { "Margin guide" } else { "Alignment guide" });
         }
     }
     // View ▸ Snap To ▸ Pixels (Pixels view): whole document pixels
