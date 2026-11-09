@@ -1,6 +1,6 @@
-# Vector 0.1.0 — plan
+# AnyVector 0.1.0 — plan
 
-Goal: make Vector match the CorelDRAW 2026 reference: menus, order, shortcuts, which items are enabled
+Goal: make AnyVector match the CorelDRAW 2026 reference: menus, order, shortcuts, which items are enabled
 for each selection, dialogs, dockers, tools, toolbars and right-click menus. Nothing is invented: what is not
 in the reference is not added.
 
@@ -13,11 +13,11 @@ in the reference is not added.
 | What each function does | `MAPEAMENTO\CORELDRAW_FUNCTIONALITIES_FROM_HELPER` |
 | Architecture reference | `C:\Users\anton\Documents\deepseek-harness\default-workspace\Vector\` |
 | Progress, item by item | `docs/COVERAGE.md` (from `cargo run -p xtask -- coverage`; statuses in `docs/coverage-status.tsv`) |
-| Vector renders next to the reference | `target/visual/compare.html` (from `cargo run -p xtask -- compare`; pairs in `docs/reference-map.tsv`) |
+| AnyVector renders next to the reference | `target/visual/compare.html` (from `cargo run -p xtask -- compare`; pairs in `docs/reference-map.tsv`) |
 
 ## Decisions
 
-- **Icons**: Vector draws its own icons, but each keeps the meaning of the reference icon (a pen stays a pen).
+- **Icons**: AnyVector draws its own icons, but each keeps the meaning of the reference icon (a pen stays a pen).
   Corel's artwork is never copied.
 - **Left out**: the Purchase menu, the hidden Debug menu, Corel Cloud (Open from Cloud, Save to Cloud, Sign out of
   Cloud), Corel accounts (Refresh your account, Account Settings, Restore Purchases), Corel Support, the Learn

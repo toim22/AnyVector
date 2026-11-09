@@ -431,7 +431,7 @@ impl Palette {
     }
 
     pub fn serialize(&self) -> String {
-        let mut s = format!("# Vector palette\nName: {}\n", self.name);
+        let mut s = format!("# AnyVector palette\nName: {}\n", self.name);
         for c in &self.colors {
             s.push_str(&format!("{};{}\n", c.name, c.color.to_hex()));
         }

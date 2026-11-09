@@ -55,7 +55,7 @@ pub fn run() -> Result<()> {
         *licenses.entry(l.clone()).or_default() += 1;
     }
     let mut s = String::new();
-    s.push_str("Vector is built with the open-source components listed below.\n");
+    s.push_str("AnyVector is built with the open-source components listed below.\n");
     s.push_str("Each one is used under the license shown next to it. The license texts\n");
     s.push_str("are published with each component at the address given.\n\n");
     s.push_str(&format!("{} components. Licenses used:\n", by_name.len()));

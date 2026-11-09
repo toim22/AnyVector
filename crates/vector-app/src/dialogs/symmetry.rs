@@ -866,7 +866,7 @@ fn new_ole(app: &mut VectorApp, kind: usize, as_icon: bool) -> Result<(), String
 }
 
 fn ole_dir() -> PathBuf {
-    std::env::temp_dir().join("Vector OLE")
+    std::env::temp_dir().join("AnyVector OLE")
 }
 
 /// What an object shows: the file's contents when Vector can read it, else an icon with its name.

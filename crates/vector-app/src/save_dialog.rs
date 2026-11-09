@@ -484,7 +484,7 @@ fn save_dialog_manual() {
     let r = show(SaveRequest {
         dir: dirs::document_dir(),
         file_name: "Untitled-1.cdr".into(),
-        types: vec![("CDR - CorelDRAW (*.cdr)".into(), "cdr".into()), ("VCT - Vector Drawing (*.vct)".into(), "vct".into())],
+        types: vec![("CDR - CorelDRAW (*.cdr)".into(), "cdr".into()), ("VCT - AnyVector Drawing (*.vct)".into(), "vct".into())],
         type_index: 0,
         title: String::new(),
         subject: String::new(),

@@ -3,7 +3,8 @@
 //! Calls the Claude Messages API (raw HTTP, there is no official Rust SDK) and asks for a
 //! self-contained SVG, which is imported as native Vector objects (paths, gradients, groups).
 //! The API key is read from the environment variable named in Settings (default
-//! `ANTHROPIC_API_KEY`); it is never stored in settings or documents.
+//! `ANTHROPIC_API_KEY`); it is never stored in settings or documents. Tools ▸ Options ▸ Global ▸
+//! Privacy can write the key into that variable of the user's Windows account.
 
 use crate::app::VectorApp;
 use std::sync::mpsc::{channel, Receiver};
@@ -36,6 +37,8 @@ pub struct AiState {
     pub busy: bool,
     pub status: String,
     pub error: Option<String>,
+    /// The error is the missing API key: the panel offers to open the AI settings.
+    pub error_no_key: bool,
     /// Quick AI Generate dialog visible.
     pub quick_open: bool,
     pub history: Vec<String>,
@@ -50,7 +53,7 @@ pub struct AiState {
 
 impl Default for AiState {
     fn default() -> Self {
-        AiState { prompt: String::new(), style: 0, colors: 6, busy: false, status: String::new(), error: None, quick_open: false, history: vec![], mode: 0, reference: None, rx: None, started: 0.0, pending: (0, None) }
+        AiState { prompt: String::new(), style: 0, colors: 6, busy: false, status: String::new(), error: None, error_no_key: false, quick_open: false, history: vec![], mode: 0, reference: None, rx: None, started: 0.0, pending: (0, None) }
     }
 }
 
@@ -63,9 +66,79 @@ fn system_prompt() -> &'static str {
      Keep it under 400 elements."
 }
 
+/// The environment variable that holds the API key.
+pub fn key_var(app: &VectorApp) -> String {
+    let v = app.settings.ai_api_key_env.trim();
+    if v.is_empty() { "ANTHROPIC_API_KEY".to_string() } else { v.to_string() }
+}
+
+/// The API key: the environment of this process, then the variable of the user's Windows account
+/// (so a key saved in Options, or with Windows' Environment Variables, works without a restart).
 pub fn api_key(app: &VectorApp) -> Option<String> {
-    let name = if app.settings.ai_api_key_env.trim().is_empty() { "ANTHROPIC_API_KEY".to_string() } else { app.settings.ai_api_key_env.trim().to_string() };
-    std::env::var(name).ok().filter(|k| !k.trim().is_empty())
+    let name = key_var(app);
+    std::env::var(&name).ok().or_else(|| user_env(&name)).filter(|k| !k.trim().is_empty())
+}
+
+/// Where the API key is set, for messages.
+pub const KEY_PLACE: &str = "Tools ▸ Options ▸ Global ▸ Privacy ▸ AI Generate";
+
+#[cfg(windows)]
+fn user_env(name: &str) -> Option<String> {
+    use windows::core::HSTRING;
+    use windows::Win32::System::Registry::{RegGetValueW, HKEY_CURRENT_USER, RRF_RT_REG_EXPAND_SZ, RRF_RT_REG_SZ};
+    let (sub, value) = (HSTRING::from("Environment"), HSTRING::from(name));
+    let flags = RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ;
+    let mut size = 0u32;
+    unsafe { RegGetValueW(HKEY_CURRENT_USER, &sub, &value, flags, None, None, Some(&mut size)) }.ok().ok()?;
+    let mut buf = vec![0u16; size as usize / 2 + 1];
+    let mut size = (buf.len() * 2) as u32;
+    unsafe { RegGetValueW(HKEY_CURRENT_USER, &sub, &value, flags, None, Some(buf.as_mut_ptr().cast()), Some(&mut size)) }.ok().ok()?;
+    let n = buf.iter().position(|c| *c == 0).unwrap_or(buf.len());
+    Some(String::from_utf16_lossy(&buf[..n]).trim().to_string())
+}
+
+#[cfg(not(windows))]
+fn user_env(_name: &str) -> Option<String> {
+    None
+}
+
+/// Write the API key into the environment variable `name` of the user's Windows account (an
+/// empty key removes it), and into this process's environment. Other programs see it when they
+/// next start.
+pub fn save_user_key(name: &str, key: &str) -> Result<(), String> {
+    let key = key.trim();
+    if name.trim().is_empty() {
+        return Err("Type the name of the environment variable first.".into());
+    }
+    #[cfg(windows)]
+    {
+        use windows::core::HSTRING;
+        use windows::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_SUCCESS, LPARAM, WPARAM};
+        use windows::Win32::System::Registry::{RegDeleteKeyValueW, RegSetKeyValueW, HKEY_CURRENT_USER, REG_SZ};
+        use windows::Win32::UI::WindowsAndMessaging::{SendMessageTimeoutW, HWND_BROADCAST, SMTO_ABORTIFHUNG, WM_SETTINGCHANGE};
+        let (sub, value) = (HSTRING::from("Environment"), HSTRING::from(name.trim()));
+        let r = if key.is_empty() {
+            let r = unsafe { RegDeleteKeyValueW(HKEY_CURRENT_USER, &sub, &value) };
+            if r == ERROR_FILE_NOT_FOUND { ERROR_SUCCESS } else { r }
+        } else {
+            let data: Vec<u16> = key.encode_utf16().chain(std::iter::once(0)).collect();
+            unsafe { RegSetKeyValueW(HKEY_CURRENT_USER, &sub, &value, REG_SZ.0, Some(data.as_ptr().cast()), (data.len() * 2) as u32) }
+        };
+        if r != ERROR_SUCCESS {
+            return Err(format!("Could not save the environment variable (error {}).", r.0));
+        }
+        // tell running programs (Explorer) that the environment changed, without waiting on them
+        std::thread::spawn(|| {
+            let env: Vec<u16> = "Environment".encode_utf16().chain(std::iter::once(0)).collect();
+            unsafe { SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, WPARAM(0), LPARAM(env.as_ptr() as isize), SMTO_ABORTIFHUNG, 2000, None) };
+        });
+    }
+    if key.is_empty() {
+        std::env::remove_var(name.trim());
+    } else {
+        std::env::set_var(name.trim(), key);
+    }
+    Ok(())
 }
 
 /// Start a generation request in the background.
@@ -74,8 +147,9 @@ pub fn start(app: &mut VectorApp) {
         return;
     }
     let Some(key) = api_key(app) else {
-        let var = if app.settings.ai_api_key_env.is_empty() { "ANTHROPIC_API_KEY" } else { app.settings.ai_api_key_env.as_str() };
-        app.ai.error = Some(format!("AI Generate needs an API key. Set the {var} environment variable and restart Vector."));
+        let var = key_var(app);
+        app.ai.error = Some(format!("AI Generate needs an API key. Add your key in {KEY_PLACE}: AnyVector keeps it in the {var} environment variable of your Windows account, never in its own files."));
+        app.ai.error_no_key = true;
         return;
     };
     let url = if app.settings.ai_provider_url.trim().is_empty() { DEFAULT_URL.to_string() } else { app.settings.ai_provider_url.trim().to_string() };
@@ -110,6 +184,7 @@ pub fn start(app: &mut VectorApp) {
     app.ai.rx = Some(rx);
     app.ai.busy = true;
     app.ai.error = None;
+    app.ai.error_no_key = false;
     app.ai.status = "Generating...".into();
     app.ai.started = app.time();
     if !app.ai.history.contains(&app.ai.prompt) {
@@ -312,7 +387,7 @@ fn terms(app: &mut VectorApp, ui: &mut egui::Ui) {
     ui.add_space(10.0);
     ui.label(egui::RichText::new("Generative AI Terms").font(crate::theme::bold(13.0)));
     ui.add_space(10.0);
-    ui.label("To use the AI features of Vector, you must be at least 18 years old and accept the Generative AI Policy. If you are under 18 or do not accept it, do not use these features.");
+    ui.label("To use the AI features of AnyVector, you must be at least 18 years old and accept the Generative AI Policy. If you are under 18 or do not accept it, do not use these features.");
     ui.add_space(10.0);
     ui.label("The AI features send your description, and any artwork you choose as a reference, to a third-party AI model (Claude, by Anthropic) to generate the result.");
     ui.add_space(14.0);
@@ -386,6 +461,12 @@ pub fn panel(app: &mut VectorApp, ui: &mut egui::Ui) {
     if let Some(e) = &app.ai.error {
         ui.add_space(4.0);
         ui.label(egui::RichText::new(e).color(egui::Color32::from_rgb(0xe8, 0x6a, 0x6a)));
+        if app.ai.error_no_key {
+            ui.add_space(4.0);
+            if ui.button("Open AI Settings...").on_hover_text(KEY_PLACE).clicked() {
+                app.open_options(crate::commands::OptionsPage::Global, Some("Privacy"));
+            }
+        }
     }
     if !app.ai.history.is_empty() {
         ui.add_space(8.0);

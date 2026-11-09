@@ -753,7 +753,7 @@ pub fn photococktail(app: &mut VectorApp, ui: &mut Ui) {
             if let Some(p) = rfd::FileDialog::new().set_title("Select Folder").pick_folder() {
                 let lib = load_library(&p);
                 if lib.is_empty() {
-                    app.flash("The folder has no pictures Vector can read.");
+                    app.flash("The folder has no pictures AnyVector can read.");
                 }
                 app.dockers.ui.fx.pc_library = lib;
                 app.dockers.ui.fx.pc_folder = Some(p);

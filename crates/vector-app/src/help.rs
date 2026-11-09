@@ -120,7 +120,7 @@ fn frame(title: &str, on: Page, body: &str, icons: &BTreeMap<&'static str, Strin
         defs.push_str("</svg>");
     }
     format!(
-        "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>{} - Vector {}</title><style>{STYLE}</style></head>\n<body>{defs}<header><b>Vector {}</b>{nav}</header><main>\n{body}\n</main></body></html>\n",
+        "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>{} - AnyVector {}</title><style>{STYLE}</style></head>\n<body>{defs}<header><b>Vector {}</b>{nav}</header><main>\n{body}\n</main></body></html>\n",
         esc(title),
         vector_core::APP_VERSION,
         vector_core::APP_VERSION
@@ -229,25 +229,25 @@ fn home() -> String {
     let mut b = String::new();
     let _ = write!(
         b,
-        r#"<h1>Vector Help</h1>
-<p>Vector is a vector drawing program: page layout, illustration, text and bitmaps, with the menus, tools and
-dockers organized as in CorelDRAW. These pages are part of Vector {v} and work without an internet connection.</p>
+        r#"<h1>AnyVector Help</h1>
+<p>AnyVector is a vector drawing program: page layout, illustration, text and bitmaps, with the menus, tools and
+dockers organized as in CorelDRAW. These pages are part of AnyVector {v} and work without an internet connection.</p>
 <div class="cards">
 <a class="card" href="quick-start.html"><b>Quick Start Guide</b>Your first drawing in ten steps: a document, shapes, color, text, and saving and exporting.</a>
 <a class="card" href="user-guide.html"><b>User Guide</b>The workspace, every tool of the toolbox, every menu command and every docker.</a>
 <a class="card" href="shortcuts.html"><b>Keyboard Shortcuts</b>All the keys of the menus and tools in one list.</a>
-<a class="card" href="release-notes.html"><b>What's New in This Version</b>The release notes of Vector {v}.</a>
+<a class="card" href="release-notes.html"><b>What's New in This Version</b>The release notes of AnyVector {v}.</a>
 </div>
 <h2>Getting help in the program</h2>
 <ul>
 <li>Point at a button or a tool to see its name and what it does. The status bar shows hints for the active tool.</li>
 <li>The <b>Help ▸ Welcome Screen</b> tab has the getting-started links and the workspaces.</li>
-<li><b>Help ▸ Report a Bug</b> sends a problem to the Vector team; <b>Help ▸ Submit Ideas and Feedback</b> suggests a feature.</li>
-<li><b>Help ▸ About Vector</b> shows the version, the build (Source ID) and System Info.</li>
+<li><b>Help ▸ Report a Bug</b> sends a problem to the AnyVector team; <b>Help ▸ Submit Ideas and Feedback</b> suggests a feature.</li>
+<li><b>Help ▸ About AnyVector</b> shows the version, the build (Source ID) and System Info.</li>
 </ul>"#,
         v = vector_core::APP_VERSION
     );
-    frame("Vector Help", Page::Home, &b, &icons)
+    frame("AnyVector Help", Page::Home, &b, &icons)
 }
 
 fn quick_start() -> String {
@@ -303,7 +303,7 @@ has ready-made settings for the web and for print. <b>File ▸ Print</b> (<kbd>C
 fn user_guide() -> String {
     let mut icons = BTreeMap::new();
     let mut b = String::new();
-    b.push_str("<h1>User Guide</h1>\n<p class=\"muted\">Built from the program itself: these are the tools, menus and dockers of this version of Vector, in the order the program shows them.</p>");
+    b.push_str("<h1>User Guide</h1>\n<p class=\"muted\">Built from the program itself: these are the tools, menus and dockers of this version of AnyVector, in the order the program shows them.</p>");
     b.push_str(r#"<p><input id="find" type="search" placeholder="Find a command or tool" oninput="find(this.value)"></p>"#);
     // contents
     b.push_str("<p><a href=\"#workspace\">The workspace</a> · <a href=\"#tools\">Tools</a> · <a href=\"#menus\">Menus</a> (");
@@ -365,7 +365,7 @@ fn shortcuts() -> String {
     let mut icons = BTreeMap::new();
     let (_, mut list) = menus(&mut icons);
     let icons = BTreeMap::new();
-    let mut b = String::from("<h1>Keyboard Shortcuts</h1><p class=\"muted\">Every key of this version of Vector. Tools ▸ Options ▸ Customization ▸ Commands changes them.</p>");
+    let mut b = String::from("<h1>Keyboard Shortcuts</h1><p class=\"muted\">Every key of this version of AnyVector. Tools ▸ Options ▸ Customization ▸ Commands changes them.</p>");
     b.push_str("<h2>Tools</h2><table><tr><th>Tool</th><th>Keys</th></tr>");
     for t in crate::tools::TOOLS.iter().filter(|t| !t.shortcut.is_empty()) {
         let _ = write!(b, "<tr><td>{}</td><td>{}</td></tr>", esc(t.name), keys(&[t.shortcut]));
