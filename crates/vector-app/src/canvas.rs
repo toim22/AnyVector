@@ -156,6 +156,7 @@ pub fn drawing_window(app: &mut VectorApp, ui: &mut Ui) {
             app.cursor_doc = pos.map(|p| app.docs[ai].to_doc(p));
         }
         tools::handle_text_keys(app, &ctx);
+        tools::handle_table_keys(app, &ctx);
         if app.rollover_live {
             let at = if hovered { pos.map(|p| app.docs[ai].to_doc(p)) } else { None };
             crate::dialogs::object::live_preview(app, at, down);

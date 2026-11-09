@@ -792,6 +792,104 @@ impl Document {
         changed
     }
 
+    /// Text ▸ Paragraph Text Frame ▸ Link: each frame after the first of a chain shows the text the frames
+    /// before it cannot hold. Also places the baseline grid in frames aligned to it (Text ▸ Align to
+    /// Baseline Grid).
+    pub fn update_text_flow(&mut self) {
+        use crate::text::{is_para_end, layout, Flow, Span, TextKind};
+        let sp = self.settings.baseline_spacing.max(0.1);
+        // links: (id, next, prev) of every text, to drop the ones whose other end is gone
+        let mut links: Vec<(ObjId, Option<ObjId>, Option<ObjId>)> = vec![];
+        for pg in &self.pages {
+            for o in pg.all_objects() {
+                o.walk(&mut |x| {
+                    if let ObjKind::Text(t) = &x.kind {
+                        links.push((x.id, t.link_next, t.link_prev));
+                    }
+                });
+            }
+        }
+        let next_of = |id: ObjId| links.iter().find(|l| l.0 == id).map(|l| l.1);
+        let prev_of = |id: ObjId| links.iter().find(|l| l.0 == id).map(|l| l.2);
+        let mut heads = vec![];
+        for pg in self.pages.iter_mut() {
+            for l in pg.layers.iter_mut() {
+                for o in l.objects.iter_mut() {
+                    o.walk_mut(&mut |x| {
+                        let c = x.transform.as_coeffs();
+                        let id = x.id;
+                        if let ObjKind::Text(t) = &mut x.kind {
+                            if let Some(n) = t.link_next {
+                                if prev_of(n) != Some(Some(id)) {
+                                    t.link_next = None;
+                                }
+                            }
+                            if let Some(p) = t.link_prev {
+                                if next_of(p) != Some(Some(id)) {
+                                    t.link_prev = None;
+                                    t.flow = Flow::default();
+                                }
+                            }
+                            if t.link_next.is_some() && t.link_prev.is_none() {
+                                heads.push(id);
+                            }
+                            let g = if t.align_grid && matches!(t.kind, TextKind::Paragraph { .. }) {
+                                let sy = c[3].abs().max(1e-6);
+                                let ty = c[5];
+                                let first = ((ty + 1e-6) / sp).ceil() * sp;
+                                Some((sp / sy, (first - ty) / sy))
+                            } else {
+                                None
+                            };
+                            if t.grid != g {
+                                t.grid = g;
+                            }
+                        }
+                    });
+                }
+            }
+        }
+        for head in heads {
+            let Some(ObjKind::Text(src)) = self.find(head).map(|o| o.kind.clone()) else { continue };
+            let n = src.char_count();
+            let chars: Vec<char> = src.content.chars().collect();
+            let mut fit = layout(&src).fit_end;
+            let mut seen = vec![head];
+            let (mut next, mut prev) = (src.link_next, head);
+            while let Some(id) = next {
+                if seen.contains(&id) {
+                    break;
+                }
+                seen.push(id);
+                let Some(ObjKind::Text(t)) = self.find_mut(id).map(|o| &mut o.kind) else { break };
+                let start = fit.min(n);
+                let mut nt = src.clone();
+                nt.content = chars[start..].iter().collect();
+                nt.spans = src.spans.iter().filter(|s| s.end > start).map(|s| Span { start: s.start.saturating_sub(start), end: s.end - start, format: s.format.clone() }).collect();
+                nt.flow = Flow { start, mid_para: start > 0 && !is_para_end(chars[start - 1]), para_index: chars[..start].iter().filter(|c| is_para_end(**c)).count() };
+                nt.link_prev = Some(prev);
+                // the frame keeps its own frame settings
+                nt.kind = t.kind.clone();
+                nt.vertical = t.vertical;
+                nt.columns = t.columns;
+                nt.column_gap = t.column_gap;
+                nt.column_widths = t.column_widths.clone();
+                nt.on_path = None;
+                nt.page_number = false;
+                nt.link_next = t.link_next;
+                nt.align_grid = t.align_grid;
+                nt.grid = t.grid;
+                nt.frame_shape = t.frame_shape.clone();
+                if *t != nt {
+                    *t = nt;
+                }
+                fit = start + layout(t).fit_end;
+                next = t.link_next;
+                prev = id;
+            }
+        }
+    }
+
     pub fn bounds_of(&self, o: &Object) -> Rect {
         o.bounds_with(&|id| self.symbol_bounds(id))
     }

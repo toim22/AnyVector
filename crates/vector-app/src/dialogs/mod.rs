@@ -12,6 +12,7 @@ pub mod object;
 pub mod options;
 pub mod print;
 pub mod table;
+pub mod text;
 
 use crate::app::VectorApp;
 use crate::theme;
@@ -86,6 +87,19 @@ pub struct Dialogs {
     pub pattern: Option<object::PatternState>,
     /// Object ▸ Insert ▸ Barcode.
     pub barcode: Option<object::BarcodeState>,
+    /// The Text menu dialogs.
+    pub tabs: Option<text::TabsState>,
+    pub columns: Option<text::ColumnsState>,
+    pub bullets: Option<text::BulletsState>,
+    pub drop_cap: Option<text::DropCapState>,
+    pub text_stats: Option<text::StatsState>,
+    pub hyphens: Option<text::HyphensState>,
+    pub writing: Option<text::WritingState>,
+    pub text_lang: Option<text::LanguageState>,
+    /// Change Case: the chosen row.
+    pub change_case: Option<usize>,
+    pub encode: Option<text::EncodeState>,
+    pub edit_text: Option<text::EditTextState>,
 }
 
 impl Dialogs {
@@ -123,6 +137,17 @@ impl Dialogs {
             || self.arrowhead.is_some()
             || self.pattern.is_some()
             || self.barcode.is_some()
+            || self.tabs.is_some()
+            || self.columns.is_some()
+            || self.bullets.is_some()
+            || self.drop_cap.is_some()
+            || self.text_stats.is_some()
+            || self.hyphens.is_some()
+            || self.writing.is_some()
+            || self.text_lang.is_some()
+            || self.change_case.is_some()
+            || self.encode.is_some()
+            || self.edit_text.is_some()
     }
 }
 
@@ -184,6 +209,17 @@ pub fn show(app: &mut VectorApp, ctx: &egui::Context) {
     if app.dialogs.barcode.is_some() {
         object::barcode(app, ctx);
     }
+    text::tabs(app, ctx);
+    text::columns(app, ctx);
+    text::bullets(app, ctx);
+    text::drop_cap(app, ctx);
+    text::text_stats(app, ctx);
+    text::hyphens(app, ctx);
+    text::writing_tools(app, ctx);
+    text::language(app, ctx);
+    text::change_case(app, ctx);
+    text::encode(app, ctx);
+    text::edit_text(app, ctx);
 }
 
 /// A dialog window in the application style: dark frame, title text at the top left and a

@@ -133,6 +133,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 
 [[package]]
+name = "adler32"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aae1277d39aeec15cb388266ecc24b11c80469deae6067e17a1a7aa9e5c1f234"
+
+[[package]]
 name = "ahash"
 version = "0.8.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -425,6 +431,15 @@ name = "base64"
 version = "0.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
+
+[[package]]
+name = "bincode"
+version = "1.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1f45e9417d87227c7a56d22e471c6206462cba514c7590c09aff4cf6d1ddcad"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "bit-set"
@@ -1394,6 +1409,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "fst"
+version = "0.4.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ab85b9b05e3978cc9a9cf8fea7f01b494e1a09ed3037e16ba39edc7a29eb61a"
+
+[[package]]
 name = "futures-core"
 version = "0.3.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1722,6 +1743,29 @@ name = "httparse"
 version = "1.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6dbf3de79e51f3d586ab4cb9d5c3e2c14aa28ed23d180cf89b4df0454a69cc87"
+
+[[package]]
+name = "hyphenation"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bcf4dd4c44ae85155502a52c48739c8a48185d1449fff1963cffee63c28a50f0"
+dependencies = [
+ "bincode",
+ "fst",
+ "hyphenation_commons",
+ "pocket-resources",
+ "serde",
+]
+
+[[package]]
+name = "hyphenation_commons"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5febe7a2ade5c7d98eb8b75f946c046b335324b06a14ea0998271504134c05bf"
+dependencies = [
+ "fst",
+ "serde",
+]
 
 [[package]]
 name = "i_float"
@@ -2078,6 +2122,26 @@ name = "libc"
 version = "0.2.191"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "65cd87c9a6d60536580b316ad985726104730a5151c99845f2490428ef91240a"
+
+[[package]]
+name = "libflate"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ff4ae71b685bbad2f2f391fe74f6b7659a34871c08b210fdc039e43bee07d18"
+dependencies = [
+ "adler32",
+ "crc32fast",
+ "libflate_lz77",
+]
+
+[[package]]
+name = "libflate_lz77"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a52d3a8bfc85f250440e4424db7d857e241a3aebbbe301f3eb606ab15c39acbf"
+dependencies = [
+ "rle-decode-fast",
+]
 
 [[package]]
 name = "libloading"
@@ -2930,6 +2994,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "pocket-resources"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c135f38778ad324d9e9ee68690bac2c1a51f340fdf96ca13e2ab3914eb2e51d8"
+
+[[package]]
 name = "poll-promise"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3272,6 +3342,12 @@ dependencies = [
  "untrusted",
  "windows-sys 0.52.0",
 ]
+
+[[package]]
+name = "rle-decode-fast"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3582f63211428f83597b51b2ddb88e2a91a9d52d12831f9d08f5e624e8977422"
 
 [[package]]
 name = "roxmltree"
@@ -3796,6 +3872,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "thesaurus-wordnet"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e0b5b98479fc7554a0cedad4c03264b1caeecc7af51b4e44945c759bab43e35"
+dependencies = [
+ "libflate",
+ "serde_json",
+]
+
+[[package]]
 name = "thin-vec"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4286,6 +4372,7 @@ dependencies = [
  "rhai",
  "serde",
  "serde_json",
+ "thesaurus-wordnet",
  "tiny-skia 0.12.0",
  "ureq",
  "usvg",
@@ -4302,6 +4389,7 @@ name = "vector-core"
 version = "0.1.0"
 dependencies = [
  "fontdb",
+ "hyphenation",
  "i_overlay",
  "kurbo",
  "parking_lot",

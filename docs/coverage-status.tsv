@@ -506,3 +506,61 @@ dialog	Table > Insert > Insert Columns	done	checked against the reference
 dialog	Table > Split into Rows	done	checked against the reference
 dialog	Table > Split into Columns	done	checked against the reference
 dialog	Table > Convert Text to Table	done	checked against the reference
+menu	Text > Tabs...	done	Tab Settings and Leader Settings as the reference; left, right, center and decimal tabs with leaders
+menu	Text > Columns...	done	Column Settings as the reference; equal or custom widths and gutters, frame width kept or adjusted
+menu	Text > Bullets and Numbering...	done	bullets (any glyph of a font) and the 16 numbering styles, nine levels, size and spacing
+menu	Text > Drop Cap...	done	lines dropped, space after, hanging indent
+menu	Text > Line-Breaking Rules...	omitted	East Asian line-breaking rules: the reference hides this item outside East Asian languages
+menu	Text > Text Statistics...	done	lines, words, characters and fonts of the selection or the whole document
+menu	Text > Edit Text...	done	Edit Text box: font, size, bold, italic, underline, alignment, non-printing characters, zoom, Import, Change Case
+menu	Text > Insert Formatting Code > Em Space	done	
+menu	Text > Insert Formatting Code > En Space	done	
+menu	Text > Insert Formatting Code > ¼ Em Space	done	
+menu	Text > Insert Formatting Code > Non-breaking Space	done	
+menu	Text > Insert Formatting Code > Tab	done	
+menu	Text > Insert Formatting Code > Column/Frame Break	done	the text after it goes to the next column or linked frame
+menu	Text > Insert Formatting Code > Em Dash	done	
+menu	Text > Insert Formatting Code > En Dash	done	
+menu	Text > Insert Formatting Code > Non-breaking Hyphen	done	
+menu	Text > Insert Formatting Code > Optional Hyphen	done	shown only where the line breaks
+menu	Text > Insert Formatting Code > Custom Optional Hyphens...	done	definitions applied when typing, pasting or with Apply to Selection
+menu	Text > Convert	done	artistic text to paragraph text and back
+menu	Text > Show Non-Printing Characters	done	spaces, non-breaking spaces, em/en spaces, tabs, paragraph ends, column breaks, optional hyphens
+menu	Text > Paragraph Text Frame > Show Text Frames	done	dashed frames, red when text does not fit
+menu	Text > Paragraph Text Frame > Fit Text To Frame	done	paragraph text and table text
+menu	Text > Paragraph Text Frame > Insert Placeholder Text	done	empty frames and table cells
+menu	Text > Paragraph Text Frame > Create Empty Text Frame	done	the frame takes the shape of the selected object
+menu	Text > Paragraph Text Frame > Link	done	text flows through linked frames; their own text goes to the end
+menu	Text > Paragraph Text Frame > Unlink	done	each frame keeps the text it shows
+menu	Text > Fit Text to Path	done	
+menu	Text > Straighten Text	done	
+menu	Text > Align to Baseline	done	
+menu	Text > Align to Baseline Grid	done	lines snap to the document baseline grid
+menu	Text > Use Hyphenation	done	automatic hyphenation (US English patterns), hot zone and capitals rules
+menu	Text > Writing Tools > Spell Check...	done	Windows spell checker: Replace, Auto Replace, Skip Once, Skip All, Add, Undo, options and language
+menu	Text > Writing Tools > Grammatik...	partial	rules: spelling, repeated words, capitals, a/an, spacing, punctuation; fewer rules than the reference
+menu	Text > Writing Tools > Thesaurus...	partial	synonyms (WordNet); antonyms and the other relations are not available
+menu	Text > Writing Tools > QuickCorrect...	done	Options > Text > QuickCorrect; corrections are made as you type
+menu	Text > Writing Tools > Language...	done	the 125 languages of the reference; tags the selected text
+menu	Text > Writing Tools > Settings...	done	Options > Text > Spelling
+menu	Text > Change Case...	done	
+menu	Text > Make Text Web-compatible	partial	the setting is kept with the text; Vector has no HTML export yet
+menu	Text > Encode...	done	all the code pages Windows has, with preview
+menu	Text > Text	partial	Text docker (batch 6)
+menu	Text > Glyphs	partial	Glyphs docker (batch 6)
+dialog	Text > Tabs	done	checked against the reference
+dialog	Text > Columns	done	checked against the reference
+dialog	Text > Bullets and Numbering	done	checked against the reference
+dialog	Text > Drop Cap	done	checked against the reference
+dialog	Text > Line-Breaking Rules	omitted	East Asian line-breaking rules: hidden in the reference outside East Asian languages
+dialog	Text > Text Statistics	done	checked against the reference
+dialog	Text > Insert Formatting Code > Custom Optional Hyphens	done	checked against the reference
+dialog	Text > Writing Tools > Thesaurus	partial	synonyms only (WordNet)
+dialog	Text > Writing Tools > QuickCorrect	done	Options > Text > QuickCorrect
+dialog	Text > Writing Tools > Settings	partial	Options > Text > Spelling; not every control of the reference screens is in place
+dialog	Text > Edit Text	done	checked against the reference
+dialog	Text > Writing Tools > Spell Check	done	checked against the reference
+dialog	Text > Writing Tools > Grammatik	partial	fewer grammar rules than the reference
+dialog	Text > Writing Tools > Language	done	checked against the reference
+dialog	Text > Change Case	done	checked against the reference
+dialog	Text > Encode	done	checked against the reference
