@@ -1296,7 +1296,7 @@ fn add_linked_file(app: &mut VectorApp) {
 }
 
 /// Sync linked file: read the linked images again from their files.
-fn sync_links(app: &mut VectorApp, ids: &[u64]) {
+pub(crate) fn sync_links(app: &mut VectorApp, ids: &[u64]) {
     let Some(d) = app.doc() else { return };
     let mut fresh = vec![];
     let mut failed = vec![];

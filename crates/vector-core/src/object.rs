@@ -910,16 +910,111 @@ pub struct TextWrap {
     pub offset: f64,
 }
 
+/// A value of a bitmap effect setting: a number (also check boxes, 0/1, and choices, their index),
+/// a color, a list of numbers (curves, meshes, kernels) or a text.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum BitmapEffect {
-    GaussianBlur { radius: f64 },
-    Glow { radius: f64, color: Color },
-    Emboss { depth: f64 },
-    Noise { amount: f64 },
-    Pixelate { size: f64 },
-    Grayscale,
-    Sepia,
-    Invert,
+#[serde(untagged)]
+pub enum FxValue {
+    Num(f64),
+    List(Vec<f64>),
+    Color(Color),
+    Text(String),
+}
+
+/// One effect of Effects ▸ <category> ▸ <effect> (the Bitmap Effects list of the Properties
+/// docker): the effect's id (the reference's effect name, "GaussianBlur"), whether it is on, and
+/// its settings by name ("Radius"). Settings that are missing take the effect's default.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct BitmapEffect {
+    pub id: String,
+    pub enabled: bool,
+    pub params: std::collections::BTreeMap<String, FxValue>,
+}
+
+impl BitmapEffect {
+    pub fn new(id: &str) -> Self {
+        BitmapEffect { id: id.to_string(), enabled: true, params: Default::default() }
+    }
+    pub fn with(mut self, key: &str, v: f64) -> Self {
+        self.params.insert(key.to_string(), FxValue::Num(v));
+        self
+    }
+    /// A number setting, or `def`.
+    pub fn num(&self, key: &str, def: f64) -> f64 {
+        match self.params.get(key) {
+            Some(FxValue::Num(v)) => *v,
+            _ => def,
+        }
+    }
+    pub fn flag(&self, key: &str, def: bool) -> bool {
+        self.num(key, if def { 1.0 } else { 0.0 }) != 0.0
+    }
+    pub fn color(&self, key: &str, def: Color) -> Color {
+        match self.params.get(key) {
+            Some(FxValue::Color(c)) => *c,
+            _ => def,
+        }
+    }
+    pub fn list(&self, key: &str) -> Option<&[f64]> {
+        match self.params.get(key) {
+            Some(FxValue::List(v)) => Some(v),
+            _ => None,
+        }
+    }
+    pub fn set(&mut self, key: &str, v: FxValue) {
+        self.params.insert(key.to_string(), v);
+    }
+}
+
+impl<'de> Deserialize<'de> for BitmapEffect {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        /// The effects Vector had before the reference's effects (kept so old drawings open).
+        #[derive(Deserialize)]
+        enum Old {
+            GaussianBlur { radius: f64 },
+            Glow { radius: f64, color: Color },
+            Emboss { depth: f64 },
+            Noise { amount: f64 },
+            Pixelate { size: f64 },
+            Grayscale,
+            Sepia,
+            Invert,
+        }
+        #[derive(Deserialize)]
+        struct New {
+            id: String,
+            #[serde(default = "yes")]
+            enabled: bool,
+            #[serde(default)]
+            params: std::collections::BTreeMap<String, FxValue>,
+        }
+        fn yes() -> bool {
+            true
+        }
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Any {
+            New(New),
+            Old(Old),
+        }
+        Ok(match Any::deserialize(d)? {
+            Any::New(n) => BitmapEffect { id: n.id, enabled: n.enabled, params: n.params },
+            Any::Old(o) => match o {
+                Old::GaussianBlur { radius } => BitmapEffect::new("GaussianBlur").with("Radius", radius),
+                Old::Glow { radius, color } => {
+                    let mut e = BitmapEffect::new("Glow").with("Radius", radius);
+                    e.set("Color", FxValue::Color(color));
+                    e
+                }
+                Old::Emboss { depth } => BitmapEffect::new("Emboss").with("Depth", depth),
+                Old::Noise { amount } => BitmapEffect::new("AddNoise").with("Level", amount),
+                Old::Pixelate { size } => BitmapEffect::new("Pixelate").with("Width", size).with("Height", size),
+                Old::Grayscale => BitmapEffect::new("Desaturate"),
+                Old::Sepia => BitmapEffect::new("Sepia"),
+                Old::Invert => BitmapEffect::new("Invert"),
+            },
+        })
+    }
 }
 
 /// Effects ▸ Bevel: a soft edge or an emboss lit from a direction.
