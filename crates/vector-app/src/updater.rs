@@ -1,6 +1,9 @@
 //! Product updates: AnyVector looks for a newer release of the project on GitHub, downloads its
 //! setup and installs it when the program closes.
 //!
+//! - Every start looks for a new version in the background (the start is not delayed) and shows
+//!   a message only when one is found: OK closes AnyVector, asking to save the drawings, installs
+//!   the new version and starts it again.
 //! - Tools ▸ Options ▸ Global ▸ General ▸ Allow product updates chooses how (Corel's three
 //!   choices): keep the product up to date (downloads by itself, asks before installing), check
 //!   and let the user choose when to install, or never check.
@@ -29,9 +32,6 @@ pub const MODE_NOTES: [&str; 3] = [
 pub const KEEP_UP_TO_DATE: u8 = 0;
 pub const NEVER: u8 = 2;
 
-/// How often the automatic check runs.
-const CHECK_EVERY_SECS: u64 = 20 * 3600;
-
 #[derive(Clone, Debug)]
 pub struct Release {
     /// "0.2.0"
@@ -45,6 +45,8 @@ pub struct Release {
     /// The setup file and its download address.
     pub asset_name: String,
     pub asset_url: String,
+    /// The setup's size in bytes (0 when unknown): a setup already downloaded is used again.
+    pub asset_size: u64,
     /// Read through the GitHub CLI (private repository): download with it too.
     pub via_gh: bool,
 }
@@ -78,7 +80,7 @@ pub struct UpdateState {
     /// The check was started by the program (not by Help ▸ Updates): failures stay quiet.
     quiet: bool,
     /// Install as soon as the download finishes.
-    install_when_ready: bool,
+    pub(crate) install_when_ready: bool,
     /// The setup to run when AnyVector closes.
     pub install_on_exit: Option<PathBuf>,
 }
@@ -102,10 +104,6 @@ pub fn is_newer(remote: &str, local: &str) -> bool {
     parse_version(remote) > parse_version(local)
 }
 
-fn now_secs() -> u64 {
-    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
-}
-
 /// The release described by GitHub's JSON, if it carries a setup for Windows.
 pub fn release_from_json(v: &serde_json::Value, via_gh: bool) -> Option<Release> {
     let tag = v["tag_name"].as_str()?.to_string();
@@ -116,6 +114,7 @@ pub fn release_from_json(v: &serde_json::Value, via_gh: bool) -> Option<Release>
         page: v["html_url"].as_str().map(str::to_string).unwrap_or_else(|| format!("https://github.com/{REPO}/releases")),
         asset_name: asset["name"].as_str().unwrap_or("AnyVector-setup.exe").to_string(),
         asset_url: asset["browser_download_url"].as_str().unwrap_or_default().to_string(),
+        asset_size: asset["size"].as_u64().unwrap_or(0),
         tag,
         via_gh,
     })
@@ -221,7 +220,6 @@ pub fn start_check(app: &mut VectorApp, quiet: bool) {
     }
     u.quiet = quiet;
     u.status = Status::Checking;
-    app.settings.update_last_check = now_secs();
     let (tx, rx) = channel();
     u.rx = Some(rx);
     std::thread::spawn(move || {
@@ -234,6 +232,15 @@ fn start_download(app: &mut VectorApp, r: Release) {
     if u.rx.is_some() {
         return;
     }
+    // the setup downloaded at an earlier start (the user chose Later) is used again
+    let path = download_dir().join(&r.asset_name);
+    if r.asset_size > 0 && std::fs::metadata(&path).is_ok_and(|m| m.len() == r.asset_size) {
+        u.status = Status::Ready(r, path.clone());
+        if std::mem::take(&mut u.install_when_ready) {
+            install(app, path);
+        }
+        return;
+    }
     u.status = Status::Downloading(r.clone(), 0.0);
     let (tx, rx) = channel();
     u.rx = Some(rx);
@@ -243,14 +250,13 @@ fn start_download(app: &mut VectorApp, r: Release) {
     });
 }
 
-/// The automatic check at start-up (not in tests, not more than once in `CHECK_EVERY_SECS`).
+/// The automatic check, at every start (not in tests). It runs on its own thread, so the start is
+/// not delayed, and it stays silent unless a new version is found (`poll` opens the message).
 pub fn startup(app: &mut VectorApp) {
     if cfg!(test) || app.settings.update_mode >= NEVER {
         return;
     }
-    if now_secs().saturating_sub(app.settings.update_last_check) >= CHECK_EVERY_SECS {
-        start_check(app, true);
-    }
+    start_check(app, true);
 }
 
 /// Help ▸ Updates.
@@ -299,21 +305,23 @@ pub fn poll(app: &mut VectorApp, ctx: &egui::Context) {
                 app.update.rx = None;
                 let quiet = app.update.quiet;
                 match res {
-                    Ok(None) => app.update.status = Status::UpToDate,
+                    Ok(None) => {
+                        app.update.status = Status::UpToDate;
+                        // the setup of the version now running is no longer needed
+                        let _ = std::fs::remove_dir_all(download_dir());
+                    }
                     Ok(Some(r)) => {
-                        let skipped = quiet && app.settings.update_skip == r.version;
                         app.update.status = Status::Available(r.clone());
-                        if quiet && !skipped {
+                        if quiet {
+                            // the message at start; keeping up to date downloads meanwhile, so OK installs at once
+                            app.update.prompt = true;
                             if app.settings.update_mode == KEEP_UP_TO_DATE {
                                 start_download(app, r);
-                            } else {
-                                app.update.prompt = true;
                             }
                         }
                     }
                     Err(e) => app.update.status = if quiet { Status::Idle } else { Status::Failed(e) },
                 }
-                app.settings.save();
             }
             Msg::Downloaded(res) => {
                 app.update.rx = None;
@@ -323,8 +331,6 @@ pub fn poll(app: &mut VectorApp, ctx: &egui::Context) {
                         app.update.status = Status::Ready(r, path.clone());
                         if std::mem::take(&mut app.update.install_when_ready) {
                             install(app, path);
-                        } else if !app.update.dialog {
-                            app.update.prompt = true;
                         }
                     }
                     Err(e) => {
@@ -337,7 +343,7 @@ pub fn poll(app: &mut VectorApp, ctx: &egui::Context) {
     }
 }
 
-/// Install Now: download first when needed.
+/// Install Now (or OK in the message): download first when needed, then close and install.
 fn install_now(app: &mut VectorApp) {
     match app.update.status.clone() {
         Status::Ready(_, path) => install(app, path),
@@ -345,6 +351,10 @@ fn install_now(app: &mut VectorApp) {
             app.update.install_when_ready = true;
             app.update.quiet = false;
             start_download(app, r);
+        }
+        Status::Downloading(..) => {
+            app.update.install_when_ready = true;
+            app.update.quiet = false;
         }
         _ => {}
     }
@@ -450,36 +460,62 @@ pub fn dialogs(app: &mut VectorApp, ctx: &egui::Context) {
         }
     }
     if app.update.prompt && !app.update.dialog {
-        let mut close = false;
-        let ready = matches!(app.update.status, Status::Ready(..));
-        let ((), dismissed) = window(ctx, "update_prompt", "Updates", vec2(480.0, 330.0), |ui| {
-            ui.add_space(8.0);
-            ui.spacing_mut().item_spacing.y = 6.0;
-            status_ui(app, ui);
-            ui.add_space((ui.available_height() - 34.0).max(0.0));
-            ui.horizontal(|ui| {
-                if !ready {
-                    if ui.link("Skip This Version").clicked() {
-                        if let Status::Available(r) = &app.update.status {
-                            app.settings.update_skip = r.version.clone();
-                            app.settings.save();
-                        }
-                        close = true;
-                    }
+        prompt(app, ctx);
+    }
+}
+
+/// The message shown when the check at start finds a new version. OK closes AnyVector (asking to
+/// save the drawings), installs the new version and starts it again; Later asks again at the next start.
+fn prompt(app: &mut VectorApp, ctx: &egui::Context) {
+    let mut close = false;
+    let release = match &app.update.status {
+        Status::Available(r) | Status::Downloading(r, _) | Status::Ready(r, _) => Some(r.clone()),
+        _ => None,
+    };
+    // after OK, while the setup downloads
+    let installing = app.update.install_when_ready;
+    let ((), dismissed) = window(ctx, "update_prompt", "Updates", vec2(460.0, 230.0), |ui| {
+        ui.add_space(8.0);
+        ui.spacing_mut().item_spacing.y = 8.0;
+        match (&release, &app.update.status) {
+            (_, Status::Failed(e)) => {
+                ui.colored_label(Color32::from_rgb(0xe0, 0x70, 0x60), format!("Error: {e}"));
+            }
+            (Some(r), Status::Downloading(_, p)) if installing => {
+                ui.label(format!("Downloading AnyVector {}...", r.version));
+                ui.add(egui::ProgressBar::new(*p).desired_width(ui.available_width()).show_percentage());
+                note(ui, "AnyVector closes to install it (it asks to save your drawings first) and starts again when it is done.");
+            }
+            (Some(r), _) => {
+                ui.label(RichText::new("There is a new version of AnyVector available.").strong().size(14.0));
+                ui.label(format!("New version: {}. Your version: {}.", r.version, current_version()));
+                ui.label("Click OK to install the new version.");
+                note(ui, "AnyVector closes to install it (it asks to save your drawings first) and starts again when it is done.");
+            }
+            (None, _) => close = true,
+        }
+        ui.add_space((ui.available_height() - 34.0).max(0.0));
+        ui.horizontal(|ui| {
+            if let Some(r) = &release {
+                if ui.link("Release Notes").clicked() {
+                    crate::bugreport::open_in_browser(&r.page);
                 }
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.add(egui::Button::new("Later").min_size(vec2(80.0, 24.0))).clicked() {
-                        close = true;
-                    }
-                    if ok_button(ui, "Install Now", app.update.rx.is_none()) {
-                        install_now(app);
-                    }
-                });
+            }
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                let failed = matches!(app.update.status, Status::Failed(_));
+                if ui.add(egui::Button::new(if failed { "Close" } else { "Later" }).min_size(vec2(80.0, 24.0))).clicked() {
+                    close = true;
+                }
+                if !failed && ok_button(ui, "OK", !installing) {
+                    install_now(app);
+                }
             });
         });
-        if close || dismissed {
-            app.update.prompt = false;
-        }
+    });
+    if close || dismissed {
+        app.update.prompt = false;
+        // the download may go on; the update is offered again at the next start
+        app.update.install_when_ready = false;
     }
 }
 
@@ -506,13 +542,14 @@ mod tests {
             "html_url": "https://github.com/toim22/Vector/releases/tag/v0.2.0",
             "assets": [
                 { "name": "notes.txt", "browser_download_url": "https://x/notes.txt" },
-                { "name": "AnyVector-0.2.0-setup.exe", "browser_download_url": "https://x/AnyVector-0.2.0-setup.exe" }
+                { "name": "AnyVector-0.2.0-setup.exe", "browser_download_url": "https://x/AnyVector-0.2.0-setup.exe", "size": 17972048 }
             ]
         });
         let r = release_from_json(&v, false).unwrap();
         assert_eq!(r.version, "0.2.0");
         assert_eq!(r.asset_name, "AnyVector-0.2.0-setup.exe");
         assert_eq!(r.asset_url, "https://x/AnyVector-0.2.0-setup.exe");
+        assert_eq!(r.asset_size, 17972048);
         let none = serde_json::json!({ "tag_name": "v0.2.0", "assets": [] });
         assert!(release_from_json(&none, false).is_none());
     }

@@ -64,13 +64,17 @@ thing. Corel's online services (Corel Cloud, accounts, Learn, Support and the co
 ## AnyVector name, languages and updates
 
 - The program is now called AnyVector (`anyvector.exe`). The banner, icon and logo are unchanged. Settings move
-  from `%APPDATA%\Vector` to `%APPDATA%\AnyVector` on the first start.
+  from `%APPDATA%\Vector` to `%APPDATA%\AnyVector` on the first start. Installing over Vector moves the program
+  from its `Vector` folder to an `AnyVector` folder and replaces the Vector shortcuts in the Start menu and on the
+  desktop.
 - The interface is available in English (United States) and Brazilian Portuguese. Choose the language in
   Tools ▸ Options ▸ Global ▸ General ▸ User interface language; it changes at once, without restarting. The
   installer asks which language AnyVector starts in.
-- Help ▸ Updates checks for a new version. Tools ▸ Options ▸ Global ▸ General ▸ Allow product updates chooses
-  between keeping the product up to date (downloads in the background and asks before installing), checking and
-  letting you choose, or never checking. The update installs when AnyVector closes and AnyVector starts again.
+- AnyVector looks for a new version each time it starts, in the background, without slowing the start. When one is
+  found, a message says so: OK closes AnyVector (asking you to save your drawings), installs the new version and
+  starts AnyVector again; Later asks again at the next start. Help ▸ Updates checks whenever you ask. Tools ▸
+  Options ▸ Global ▸ General ▸ Allow product updates chooses between keeping the product up to date (the update
+  downloads in the background, so OK installs at once), checking and letting you choose, or never checking.
 - The Welcome Screen tab has a close button like a document tab; Window ▸ Welcome Screen opens it again.
 - The AI Generate message about a missing API key says where to add it, and Open AI Settings goes straight to
   Tools ▸ Options ▸ Global ▸ Privacy, where Save Key stores the key in your Windows account's environment variable.

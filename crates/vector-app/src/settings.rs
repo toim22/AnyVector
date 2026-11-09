@@ -388,10 +388,6 @@ pub struct Settings {
     pub installer_lang_stamp: String,
     /// Allow product updates: 0 keep up to date, 1 check and let me choose, 2 never.
     pub update_mode: u8,
-    /// When updates were last checked (seconds since 1970).
-    pub update_last_check: u64,
-    /// A version the user chose to skip.
-    pub update_skip: String,
     /// Page presets saved with "+" in Create a New Document.
     pub custom_page_presets: Vec<CustomPagePreset>,
     /// Names of presets used most recently (newest first).
@@ -701,8 +697,6 @@ impl Default for Settings {
             ui_language_ask: false,
             installer_lang_stamp: String::new(),
             update_mode: crate::updater::KEEP_UP_TO_DATE,
-            update_last_check: 0,
-            update_skip: String::new(),
             custom_page_presets: Vec::new(),
             recent_page_presets: Vec::new(),
             save: SaveSettings::default(),
