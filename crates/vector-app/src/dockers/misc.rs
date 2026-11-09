@@ -270,27 +270,120 @@ pub fn export(app: &mut VectorApp, ui: &mut Ui) {
     if !app.has_doc() {
         return no_doc(ui);
     }
-    let formats = ["PNG", "JPG", "SVG", "PDF", "WEBP", "TIFF"];
-    egui::ComboBox::from_id_salt("dk_exp").selected_text(formats[app.dockers.ui.export_format]).show_ui(ui, |ui| {
-        for (i, f) in formats.iter().enumerate() {
-            ui.selectable_value(&mut app.dockers.ui.export_format, i, *f);
-        }
-    });
-    if matches!(app.dockers.ui.export_format, 0 | 1 | 4 | 5) {
-        ui.add(egui::Slider::new(&mut app.dockers.ui.export_dpi, 36.0..=1200.0).text("Resolution (dpi)"));
-    }
-    heading(ui, "Export");
-    let has_sel = app.has_selection();
+    use super::EXPORT_DOCKER_FORMATS as F;
     ui.horizontal(|ui| {
-        if primary(ui, "Export Page...", true) {
-            crate::exec::quick_export(app, formats[app.dockers.ui.export_format], app.dockers.ui.export_dpi, false);
+        ui.label("Default file format:");
+        egui::ComboBox::from_id_salt("dk_exp").selected_text(F[app.dockers.ui.export_format.min(F.len() - 1)]).width(80.0).show_ui(ui, |ui| {
+            for (i, f) in F.iter().enumerate() {
+                ui.selectable_value(&mut app.dockers.ui.export_format, i, *f);
+            }
+        });
+    });
+    ui.horizontal(|ui| {
+        let has_sel = app.has_selection();
+        if ui.add_enabled(has_sel, egui::Button::new("Add selection")).clicked() {
+            app.run(Cmd::ExportDockerAddSelection);
         }
-        if ui.add_enabled(has_sel, egui::Button::new("Export Selection...")).clicked() {
-            crate::exec::quick_export(app, formats[app.dockers.ui.export_format], app.dockers.ui.export_dpi, true);
+        if ui.button("Add current page").clicked() {
+            app.run(Cmd::ExportDockerAddPage);
+        }
+        if ui.button("Add all pages").clicked() {
+            app.run(Cmd::ExportDockerAddAllPages);
         }
     });
-    if ui.button("More options (Export dialog)...").clicked() {
-        app.run(Cmd::Export);
+    ui.separator();
+    let doc_pages: Vec<u64> = app.doc().map(|d| d.doc.pages.iter().map(|p| p.id).collect()).unwrap_or_default();
+    // items whose page or object no longer exists are removed
+    let alive: Vec<bool> = app
+        .dockers
+        .ui
+        .export_items
+        .iter()
+        .map(|it| match (it.page, it.object) {
+            (Some(p), _) => doc_pages.contains(&p),
+            (_, Some(o)) => app.doc().map(|d| d.doc.find(o).is_some()).unwrap_or(false),
+            _ => false,
+        })
+        .collect();
+    let mut k = 0;
+    app.dockers.ui.export_items.retain(|_| {
+        k += 1;
+        alive[k - 1]
+    });
+    if app.dockers.ui.export_items.is_empty() {
+        hint(ui, "Add the selection, the current page or all pages to export them as assets.");
+        return;
+    }
+    let mut run: Vec<usize> = vec![];
+    let mut delete: Vec<usize> = vec![];
+    egui::ScrollArea::vertical().id_salt("dk_exp_items").max_height(360.0).show(ui, |ui| {
+        for (i, it) in app.dockers.ui.export_items.iter_mut().enumerate() {
+            egui::Frame::new().stroke(egui::Stroke::new(1.0, crate::theme::SEP)).inner_margin(6.0).show(ui, |ui| {
+                ui.set_width(ui.available_width());
+                ui.horizontal(|ui| {
+                    ui.checkbox(&mut it.selected, "");
+                    ui.add(egui::TextEdit::singleline(&mut it.name).desired_width(120.0));
+                    ui.add(egui::TextEdit::singleline(&mut it.suffix).hint_text("suffix").desired_width(60.0));
+                });
+                ui.horizontal(|ui| {
+                    egui::ComboBox::from_id_salt(("dk_exp_fmt", i)).selected_text(F[it.format.min(F.len() - 1)]).width(64.0).show_ui(ui, |ui| {
+                        for (k, f) in F.iter().enumerate() {
+                            ui.selectable_value(&mut it.format, k, *f);
+                        }
+                    });
+                    if !matches!(F[it.format], "PDF" | "SVG") {
+                        ui.add(egui::DragValue::new(&mut it.dpi).range(36.0..=1200.0).suffix(" dpi"));
+                    }
+                });
+                let folder = it.folder.display().to_string();
+                ui.add(egui::Label::new(egui::RichText::new(&folder).small()).truncate()).on_hover_text(&folder);
+                ui.horizontal(|ui| {
+                    if ui.button("Folder...").on_hover_text("Destination folder").clicked() {
+                        if let Some(d) = rfd::FileDialog::new().set_directory(&it.folder).pick_folder() {
+                            it.folder = d;
+                        }
+                    }
+                    if ui.button("Export").clicked() {
+                        run.push(i);
+                    }
+                    if ui.button("Delete").clicked() {
+                        delete.push(i);
+                    }
+                });
+            });
+        }
+    });
+    ui.horizontal(|ui| {
+        let all = app.dockers.ui.export_items.iter().all(|i| i.selected);
+        if ui.button(if all { "Deselect all" } else { "Select all" }).clicked() {
+            app.dockers.ui.export_items.iter_mut().for_each(|i| i.selected = !all);
+        }
+        let any = app.dockers.ui.export_items.iter().any(|i| i.selected);
+        if ui.add_enabled(any, egui::Button::new("Export")).clicked() {
+            run.extend(app.dockers.ui.export_items.iter().enumerate().filter(|(_, i)| i.selected).map(|(k, _)| k));
+        }
+        if ui.add_enabled(any, egui::Button::new("Delete")).clicked() {
+            delete.extend(app.dockers.ui.export_items.iter().enumerate().filter(|(_, i)| i.selected).map(|(k, _)| k));
+        }
+    });
+    let mut done = 0;
+    for i in run {
+        let it = app.dockers.ui.export_items[i].clone();
+        match crate::exec::export_item(app, &it) {
+            Ok(_) => done += 1,
+            Err(e) => {
+                app.dialogs.message_box = Some(("Export".into(), format!("Could not export {}:\n{e}", it.name)));
+                break;
+            }
+        }
+    }
+    if done > 0 {
+        app.flash(format!("Exported {done} item(s)."));
+    }
+    delete.sort_unstable();
+    delete.dedup();
+    for i in delete.into_iter().rev() {
+        app.dockers.ui.export_items.remove(i);
     }
 }
 

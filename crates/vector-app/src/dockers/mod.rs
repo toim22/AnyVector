@@ -199,6 +199,22 @@ pub struct DockerState {
 }
 
 /// Transient values edited inside dockers (not saved with documents).
+/// One asset in the Export docker: a page or an object with its own format and folder.
+#[derive(Clone, Debug)]
+pub struct ExportItem {
+    pub page: Option<u64>,
+    pub object: Option<vector_core::ObjId>,
+    pub name: String,
+    pub suffix: String,
+    pub format: usize,
+    pub folder: std::path::PathBuf,
+    pub selected: bool,
+    pub dpi: f64,
+}
+
+/// File formats offered by the Export docker.
+pub const EXPORT_DOCKER_FORMATS: [&str; 8] = ["PDF", "JPG", "PNG", "SVG", "TIF", "GIF", "BMP", "WEBP"];
+
 pub struct DockerUi {
     pub transform_tab: usize,
     pub t_pos: [f64; 2],
@@ -244,7 +260,8 @@ pub struct DockerUi {
     pub view_name: String,
     pub style_name: String,
     pub export_format: usize,
-    pub export_dpi: f64,
+    /// Export docker items (pages first, then objects).
+    pub export_items: Vec<ExportItem>,
     pub script_error: Option<String>,
     pub link_url: String,
     pub fit_offset: f64,
@@ -304,7 +321,7 @@ impl Default for DockerUi {
             view_name: String::new(),
             style_name: String::new(),
             export_format: 0,
-            export_dpi: 300.0,
+            export_items: vec![],
             script_error: None,
             link_url: String::new(),
             fit_offset: 0.0,

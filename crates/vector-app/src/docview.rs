@@ -12,7 +12,6 @@ pub enum ViewMode {
     Normal,
     Enhanced,
     Pixels,
-    SimulateOverprint,
 }
 
 impl ViewMode {
@@ -53,12 +52,14 @@ pub struct DocView {
     pub origin: Vec2,
     pub needs_fit: bool,
     pub view_mode: ViewMode,
+    /// View ▸ Simulate Overprints.
+    pub simulate_overprint: bool,
     pub cache: RenderCache,
     /// Selected nodes: (object, subpath, node).
     pub node_sel: Vec<(ObjId, usize, usize)>,
     pub text_edit: Option<TextEdit>,
     /// PowerClip contents editing / focus mode container.
-    pub focus: Option<ObjId>,
+    pub focus: Vec<ObjId>,
     /// Pick tool shows rotate/skew handles.
     pub rotate_mode: bool,
     pub canvas_rect: ERect,
@@ -86,10 +87,11 @@ impl DocView {
             origin: Vec2::ZERO,
             needs_fit: true,
             view_mode: ViewMode::Enhanced,
+            simulate_overprint: false,
             cache: RenderCache::default(),
             node_sel: vec![],
             text_edit: None,
-            focus: None,
+            focus: vec![],
             rotate_mode: false,
             canvas_rect: ERect::NOTHING,
             show_page_sorter: false,

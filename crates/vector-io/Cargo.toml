@@ -14,3 +14,4 @@ image = { workspace = true }
 usvg = { workspace = true }
 zip = { workspace = true }
 flate2 = { workspace = true }
+weezl = "0.1"

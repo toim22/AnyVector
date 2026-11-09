@@ -49,6 +49,49 @@ its status in Vector.
   (the list now has all six in menu order); the size lock is off by default, as in the reference; Smart Drawing's
   Shape Recognition Level and Smart Smoothing Level lists now change how strokes are recognized and smoothed.
 
+**Batch 2 (File, Edit and View menus), done:**
+
+- Every File, Edit and View item now runs. Only View ▸ Pattern Preview and Snap To ▸ Perspective Lines / Symmetry
+  Lines are left: they appear with the pattern, perspective and symmetry modes (batches 3 and 5). File ▸ Document
+  Management is left out: it needs an enterprise document server, like Corel Cloud.
+- File:
+  - New from Template opens Create a New Document on its Templates tab. Save as Template writes `.cdrt`.
+  - Print has the General, Color, Composite, Layout, Prepress and Issues tabs, print styles, tiling and marks.
+    Print Preview and the Print Merge wizard work too: create or load fields, edit them, print, or make a merged
+    document.
+  - Publish to PDF has the PDF Settings tabs (General, Color, Document, Objects, Prepress, Security, Issues) and the
+    nine presets plus your own. It supports PDF/X-1a, PDF/X-3 and PDF/A-1b, LZW, ZIP and JPEG compression, ASCII85,
+    bookmarks, thumbnails, the start view, printer's marks and bleed, and 128-bit passwords with print, edit and copy
+    permissions.
+  - Export opens the format's own settings (PDF, SVG, PNG, JPEG and other bitmaps). Export For Office, Web (with a
+    preview and size estimate) and WordPress all work. WordPress uploads to the site's media library; the password
+    is asked for each time and never saved.
+  - The Export docker takes the selection, the current page or all pages.
+  - Send To ▸ Mail attaches the drawing to a new mail message. Send To Links lists the Windows Send To folder.
+  - Acquire Image scans from a WIA scanner or camera and imports the image.
+  - Document Properties shows all of the reference's sections.
+- Edit:
+  - Paste Special lets you choose the clipboard format.
+  - Paste in View pastes at the center of the window.
+  - Copy Properties From has the reference dialog: Outline Pen, Outline Color, Fill and Text Properties, then you
+    click the object to copy from.
+  - Bring into Focus and Exit Focus Mode dim everything else, and only the objects in focus can be picked.
+- View:
+  - Preview Selected Only shows the selection in the full-screen preview.
+  - Multipage View puts the pages side by side; clicking a page makes it current.
+  - Proof Colors shows colors as a U.S. Web Coated (SWOP) press would print them, or in grayscale.
+  - Simulate Overprints shows overprinting objects multiplied with what is below them.
+  - Rasterize Complex Effects is stored as a setting.
+  - Page ▸ Printable Area outlines what the default printer can print.
+  - Grid ▸ Pixel Grid and Snap To ▸ Pixels work in Pixels view. Grid ▸ Baseline Grid draws lines 14 pt apart, and
+    Snap To ▸ Baseline Grid snaps to them.
+  - Alignment Guides (Alt+Shift+A) line objects up with the edges and centers of other objects and the page.
+    Dynamic Guides (Alt+Shift+D) add 0°, 45°, 90° and 135° guides through nearby snap points.
+  - Document Navigator and Scrollbars can be hidden. The scrollbars have the Navigator at their corner: press it
+    to see the whole drawing and drag to move the view.
+  - Rulers, Snap Off, Snap To ▸ Document Grid and Snap To ▸ Objects got their reference shortcuts (Alt+Shift+R,
+    Alt+Q, Alt+Y, Alt+Z).
+
 ## Working (verified by build and tests)
 
 - Full workspace compiles. Unit tests pass for:

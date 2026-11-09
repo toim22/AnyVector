@@ -702,3 +702,69 @@ fn visual_property_bars() {
         shot(&mut h, name);
     }
 }
+
+/// View menu toggles: multipage view, baseline grid, printable area, proof colors, simulated
+/// overprints, alignment guides and Preview Selected Only.
+#[test]
+#[ignore]
+fn visual_view_toggles() {
+    let mut h = harness();
+    h.state_mut().new_default_document();
+    {
+        let app = h.state_mut();
+        let d = app.doc_mut().unwrap();
+        let (w, hh) = (d.page_ref().width, d.page_ref().height);
+        d.modify("pages", |doc, _| {
+            doc.add_page(1, w, hh);
+        });
+        let mut objs = vec![];
+        for (i, (x, c)) in [(72.0, Color::rgb(0x00, 0xae, 0xef)), (160.0, Color::rgb(0xff, 0xf2, 0x00))].into_iter().enumerate() {
+            let id = d.doc.new_id();
+            let mut st = Style::default();
+            st.fill = Fill::Solid(c);
+            st.overprint_fill = i == 1;
+            objs.push(Object::new(id, ObjKind::Rect(RectShape { w: 200.0, h: 150.0, radii: [0.0; 4], corner: CornerType::Round }), Affine::translate((x, 100.0)), st));
+        }
+        d.add_objects("test", objs);
+    }
+    for c in [Cmd::ToggleMultipageView, Cmd::ToggleBaselineGrid, Cmd::TogglePrintableArea, Cmd::ToggleSimulateOverprints, Cmd::ToggleProofColors] {
+        h.state_mut().run(c);
+    }
+    h.state_mut().run(Cmd::ZoomToAll);
+    save(&mut h, "40_view_toggles");
+    h.state_mut().run(Cmd::PreviewSelectedOnly);
+    save(&mut h, "41_preview_selected_only");
+}
+
+/// File and Edit dialogs: Publish to PDF (and its settings), Export, bitmap export, Document
+/// Properties, Copy Properties and Paste Special.
+#[test]
+#[ignore]
+fn visual_file_edit_dialogs() {
+    use crate::dialogs::{clipboard, export};
+    let mut h = harness();
+    h.state_mut().new_default_document();
+    h.state_mut().run(Cmd::PublishPdf);
+    save(&mut h, "50_publish_pdf");
+    if let Some(st) = h.state_mut().dialogs.pdf.as_mut() {
+        st.settings_open = true;
+    }
+    save(&mut h, "51_pdf_settings");
+    h.state_mut().dialogs.pdf = None;
+    let st = export::ExportState::new(h.state());
+    h.state_mut().dialogs.export = Some(st);
+    save(&mut h, "52_export");
+    h.state_mut().dialogs.export = None;
+    let st = export::BitmapState::new(h.state(), export::BitmapMode::Export, None, "png", vec![0], false);
+    h.state_mut().dialogs.bitmap = Some(st);
+    save(&mut h, "53_export_bitmap");
+    h.state_mut().dialogs.bitmap = None;
+    h.state_mut().run(Cmd::DocumentProperties);
+    save(&mut h, "54_document_properties");
+    h.state_mut().dialogs.doc_props = false;
+    h.state_mut().dialogs.copy_props = Some(clipboard::CopyPropsState { fill: true, ..Default::default() });
+    save(&mut h, "55_copy_properties");
+    h.state_mut().dialogs.copy_props = None;
+    h.state_mut().dialogs.paste_special = Some(clipboard::PasteSpecialState { source: "Unknown Source".into(), kinds: vec![clipboard::PasteKind::Text, clipboard::PasteKind::Bitmap], chosen: 0 });
+    save(&mut h, "56_paste_special");
+}

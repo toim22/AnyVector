@@ -13,145 +13,145 @@ The *Reference* column is a path inside the reference folder.
 
 | Area | Done | Partial | Todo | Omitted | Total |
 |---|---:|---:|---:|---:|---:|
-| [Menus](#menus) | 79 | 542 | 8 | 158 | 787 |
-| [Dialogs and screens](#dialogs-and-screens) | 2 | 89 | 1 | 0 | 92 |
+| [Menus](#menus) | 164 | 455 | 7 | 161 | 787 |
+| [Dialogs and screens](#dialogs-and-screens) | 11 | 80 | 1 | 0 | 92 |
 | [Bitmap effects (Properties docker)](#bitmap-effects-properties-docker) | 0 | 120 | 0 | 0 | 120 |
 | [Dockers](#dockers) | 0 | 44 | 0 | 1 | 45 |
 | [Tools](#tools) | 34 | 60 | 0 | 0 | 94 |
 | [Toolbars](#toolbars) | 12 | 0 | 0 | 0 | 12 |
 | [Right-click menus](#right-click-menus) | 24 | 0 | 0 | 3 | 27 |
-| **All** | **151** | **855** | **9** | **162** | **1177** |
+| **All** | **245** | **759** | **8** | **165** | **1177** |
 
 ## Menus
 
 ### File
 
-7 done · 35 partial · 1 todo · 2 omitted
+40 done · 0 partial · 0 todo · 5 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
 | File | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\01 File\001 File.png` |
-| File > New... | opens a window | 20 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\01 File\001 File ▸ New.png` |
-| File > New from Template... | opens a window | 28 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\01 File\002 File ▸ New from Template.png` |
-| File > Quick AI Generate... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\01 File\003 File ▸ Quick AI Generate.png` |
-| File > Open... | opens a window | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\01 File\004 File ▸ Open.png` |
+| File > New... | opens a window | 20 | ✅ done | Create a New Document dialog (Document Settings tab) | `03-telas\doc-vazio\01 File\001 File ▸ New.png` |
+| File > New from Template... | opens a window | 28 | ✅ done | Create a New Document dialog on its Templates tab; templates from the Templates folder | `03-telas\doc-vazio\01 File\002 File ▸ New from Template.png` |
+| File > Quick AI Generate... | opens a window | 1 | ✅ done | Quick AI Generate window | `03-telas\doc-vazio\01 File\003 File ▸ Quick AI Generate.png` |
+| File > Open... | opens a window | 3 | ✅ done | Windows open dialog with the supported formats | `03-telas\doc-vazio\01 File\004 File ▸ Open.png` |
 | File > Open from Cloud... | opens a window |  | ➖ omitted | Corel Cloud |  |
 | File > Open Recent | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\01 File\002 File ▸ Open Recent.png` |
-| File > Open Recent > Recent Files | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Document Management | submenu |  | ⬜ todo |  |  |
-| File > Document Management > Open | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Document Management > Save | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Close | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Close All | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Save... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Save As... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| File > Open Recent > Recent Files | command |  | ✅ done | recent files list filled at run time |  |
+| File > Document Management | submenu |  | ➖ omitted | document management servers (enterprise service, like Corel Cloud) |  |
+| File > Document Management > Open | command |  | ➖ omitted | document management servers (enterprise service, like Corel Cloud) |  |
+| File > Document Management > Save | command |  | ➖ omitted | document management servers (enterprise service, like Corel Cloud) |  |
+| File > Close | command |  | ✅ done | asks to save changes |  |
+| File > Close All | command |  | ✅ done | asks to save changes for each document |  |
+| File > Save... | opens a window |  | ✅ done | Save Drawing dialog |  |
+| File > Save As... | opens a window |  | ✅ done | Save Drawing dialog |  |
 | File > Save to Cloud... | opens a window |  | ➖ omitted | Corel Cloud |  |
-| File > Save as Template... | opens a window | 4 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\01 File\009 File ▸ Save as Template.png` |
-| File > Revert | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| File > Save as Template... | opens a window | 4 | ✅ done | Save Drawing dialog with CDRT/CDT - CorelDRAW Template | `03-telas\doc-vazio\01 File\009 File ▸ Save as Template.png` |
+| File > Revert | command |  | ✅ done | reloads the saved file (undoable) |  |
 | File > Acquire Image | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\01 File\003 File ▸ Acquire Image.png` |
-| File > Acquire Image > Select TWAIN Source... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Acquire Image > Select WIA Source... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Acquire Image > Acquire... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Import... | opens a window | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\01 File\013 File ▸ Import.png` |
-| File > Export... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| File > Acquire Image > Select TWAIN Source... | opens a window |  | ✅ done | TWAIN devices are reached through WIA on Windows |  |
+| File > Acquire Image > Select WIA Source... | opens a window |  | ✅ done | Windows WIA device chooser |  |
+| File > Acquire Image > Acquire... | opens a window |  | ✅ done | scans with the WIA device and imports the image |  |
+| File > Import... | opens a window | 3 | ✅ done | Windows open dialog, then click or drag to place | `03-telas\doc-vazio\01 File\013 File ▸ Import.png` |
+| File > Export... | opens a window |  | ✅ done | Export dialog, then the format settings (PDF, SVG, bitmaps, ...) |  |
 | File > Export For | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\01 File\004 File ▸ Export For.png` |
-| File > Export For > Office... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Export For > Web... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Export For > WordPress... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| File > Export For > Office... | opens a window |  | ✅ done | Export for Office: bitmap settings for Office |  |
+| File > Export For > Web... | opens a window |  | ✅ done | Export for Web: bitmap settings with preview and size estimate |  |
+| File > Export For > WordPress... | opens a window |  | ✅ done | uploads to the WordPress media library (password never saved) |  |
 | File > Export Docker | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\01 File\005 File ▸ Export Docker.png` |
-| File > Export Docker > Add Selection | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Export Docker > Add Current Page | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Export Docker > Add All Pages | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| File > Export Docker > Add Selection | command |  | ✅ done | adds an item to the Export docker |  |
+| File > Export Docker > Add Current Page | command |  | ✅ done | adds an item to the Export docker |  |
+| File > Export Docker > Add All Pages | command |  | ✅ done | adds an item per page to the Export docker |  |
 | File > Send To | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\01 File\006 File ▸ Send To.png` |
-| File > Send To > Send To Links | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Send To > Mail... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Publish to PDF | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| File > Send To > Send To Links | command |  | ✅ done | Windows Send To folder shortcuts |  |
+| File > Send To > Mail... | opens a window |  | ✅ done | MAPI mail with the drawing attached |  |
+| File > Publish to PDF | command |  | ✅ done | Publish to PDF and PDF Settings (all tabs, presets, security) |  |
 | File > Print Merge | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\01 File\007 File ▸ Print Merge.png` |
-| File > Print Merge > Create/load Print Merge | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Print Merge > Edit Print Merge | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Print Merge > Print Merged Document... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Print Merge > Create Merged Document | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Print... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Print Preview... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| File > Document Properties... | opens a window | 5 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\01 File\022 File ▸ Document Properties.png` |
-| File > Exit | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| File > Print Merge > Create/load Print Merge | command |  | ✅ done | Print Merge wizard |  |
+| File > Print Merge > Edit Print Merge | command |  | ✅ done | Print Merge wizard on the document fields |  |
+| File > Print Merge > Print Merged Document... | opens a window |  | ✅ done | Print dialog with the merge records |  |
+| File > Print Merge > Create Merged Document | command |  | ✅ done | new document with a page per record |  |
+| File > Print... | opens a window |  | ✅ done | Print dialog (General, Color, Composite, Layout, Prepress, Issues) |  |
+| File > Print Preview... | opens a window |  | ✅ done | Print Preview window |  |
+| File > Document Properties... | opens a window | 5 | ✅ done | Document Properties with all sections | `03-telas\doc-vazio\01 File\022 File ▸ Document Properties.png` |
+| File > Exit | command |  | ✅ done | asks to save changes |  |
 
 ### Edit
 
-2 done · 20 partial · 0 todo · 0 omitted
+22 done · 0 partial · 0 todo · 0 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
 | Edit | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\02 Edit\001 Edit.png` |
-| Edit > Undo Apply Preset Guidelines | command |  | 🟡 partial | Undo names the last action |  |
-| Edit > Redo | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Edit > Repeat Apply Preset Guidelines | command |  | 🟡 partial | Repeat names the last action |  |
-| Edit > Bring into Focus | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Edit > Exit Focus Mode | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Edit > Cut | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Edit > Copy | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Edit > Copy Properties From... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\selecao-multipla\02 Edit\001 Edit ▸ Copy Properties From.png` |
-| Edit > Paste | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Edit > Paste in View | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Edit > Paste Special... | opens a window | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\02 Edit\002 Edit ▸ Paste Special.png` |
-| Edit > Delete | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Edit > Duplicate | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Edit > Clone | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Edit > Undo Apply Preset Guidelines | command |  | ✅ done | Undo names the last action |  |
+| Edit > Redo | command |  | ✅ done | Redo names the action |  |
+| Edit > Repeat Apply Preset Guidelines | command |  | ✅ done | Repeat names the last action |  |
+| Edit > Bring into Focus | command |  | ✅ done | focus mode on the selection; other objects dimmed |  |
+| Edit > Exit Focus Mode | command |  | ✅ done | leaves focus mode |  |
+| Edit > Cut | command |  | ✅ done |  |  |
+| Edit > Copy | command |  | ✅ done |  |  |
+| Edit > Copy Properties From... | opens a window | 1 | ✅ done | Copy Properties dialog, then click the source object | `03-telas\selecao-multipla\02 Edit\001 Edit ▸ Copy Properties From.png` |
+| Edit > Paste | command |  | ✅ done | Vector objects, SVG, text or bitmap from the clipboard |  |
+| Edit > Paste in View | command |  | ✅ done | pastes centered in the window |  |
+| Edit > Paste Special... | opens a window | 1 | ✅ done | Paste Special dialog with the clipboard formats | `03-telas\doc-vazio\02 Edit\002 Edit ▸ Paste Special.png` |
+| Edit > Delete | command |  | ✅ done |  |  |
+| Edit > Duplicate | command |  | ✅ done |  |  |
+| Edit > Clone | command |  | ✅ done |  |  |
 | Edit > Select All | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\02 Edit\002 Edit ▸ Select All.png` |
-| Edit > Select All > Objects | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Edit > Select All > Text | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Edit > Select All > Guidelines | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Edit > Select All > Nodes | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Edit > Find and Replace | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Edit > Step and Repeat | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Edit > Select All > Objects | command |  | ✅ done |  |  |
+| Edit > Select All > Text | command |  | ✅ done |  |  |
+| Edit > Select All > Guidelines | command |  | ✅ done |  |  |
+| Edit > Select All > Nodes | command |  | ✅ done | Shape tool, one curve selected |  |
+| Edit > Find and Replace | command |  | ✅ done | opens the Find and Replace docker |  |
+| Edit > Step and Repeat | command |  | ✅ done | opens the Step and Repeat docker |  |
 
 ### View
 
-4 done · 34 partial · 3 todo · 0 omitted
+36 done · 2 partial · 3 todo · 0 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
 | View | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\03 View\001 View.png` |
-| View > Wireframe | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Normal | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Enhanced | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Pixels | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Pattern Preview | command |  | ⬜ todo |  |  |
-| View > Full-screen Preview | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Preview Selected Only | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| View > Wireframe | command |  | ✅ done |  |  |
+| View > Normal | command |  | ✅ done |  |  |
+| View > Enhanced | command |  | ✅ done |  |  |
+| View > Pixels | command |  | ✅ done | renders at the document resolution |  |
+| View > Pattern Preview | command |  | ⬜ todo | shown while editing a pattern: comes with Object > Create > Pattern Fill (batch 3) |  |
+| View > Full-screen Preview | command |  | ✅ done | F9; Page Up/Down change pages |  |
+| View > Preview Selected Only | command |  | ✅ done | full-screen preview of the selection only |  |
 | View > <placeHolder > | command |  | 🟡 partial | list filled at run time |  |
-| View > Multipage View | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Zoom In | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Zoom Out | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Zoom To Fit | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Proof Colors | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Simulate Overprints | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Rasterize Complex Effects | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| View > Multipage View | command |  | ✅ done | pages side by side; click a page to make it current |  |
+| View > Zoom In | command |  | ✅ done |  |  |
+| View > Zoom Out | command |  | ✅ done |  |  |
+| View > Zoom To Fit | command |  | ✅ done |  |  |
+| View > Proof Colors | command |  | ✅ done | press colors (U.S. Web Coated (SWOP)) or grayscale from the Color Proofing docker |  |
+| View > Simulate Overprints | command |  | ✅ done | overprinting fills and outlines multiply |  |
+| View > Rasterize Complex Effects | command |  | ✅ done | stored setting |  |
 | View > <placeHolder > | command |  | 🟡 partial | list filled at run time |  |
 | View > Page | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\03 View\002 View ▸ Page.png` |
-| View > Page > Page Border | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Page > Bleed | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Page > Printable Area | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| View > Page > Page Border | command |  | ✅ done |  |  |
+| View > Page > Bleed | command |  | ✅ done |  |  |
+| View > Page > Printable Area | command |  | ✅ done | default printer printable area, page centered on the paper |  |
 | View > Grid | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\03 View\003 View ▸ Grid.png` |
-| View > Grid > Document Grid | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Grid > Pixel Grid | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Grid > Baseline Grid | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Rulers | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Guidelines | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Alignment Guides | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Dynamic Guides | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| View > Grid > Document Grid | command |  | ✅ done |  |  |
+| View > Grid > Pixel Grid | command |  | ✅ done | Pixels view only |  |
+| View > Grid > Baseline Grid | command |  | ✅ done | every 14 pt from the top of the page |  |
+| View > Rulers | command |  | ✅ done | Alt+Shift+R |  |
+| View > Guidelines | command |  | ✅ done |  |  |
+| View > Alignment Guides | command |  | ✅ done | Alt+Shift+A; edges, centers and page as set in the Alignment and Dynamic Guides docker |  |
+| View > Dynamic Guides | command |  | ✅ done | Alt+Shift+D; 0, 45, 90 and 135 degree guides through nearby snap points |  |
 | View > Snap To | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\03 View\004 View ▸ Snap To.png` |
-| View > Snap To > Pixels | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Snap To > Document Grid | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Snap To > Baseline Grid | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Snap To > Guidelines | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Snap To > Perspective Lines | command |  | ⬜ todo |  |  |
-| View > Snap To > Symmetry Lines | command |  | ⬜ todo |  |  |
-| View > Snap To > Objects | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Snap To > Page | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Snap Off | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Document Navigator | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| View > Scrollbars | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| View > Snap To > Pixels | command |  | ✅ done | Pixels view only |  |
+| View > Snap To > Document Grid | command |  | ✅ done | Alt+Y |  |
+| View > Snap To > Baseline Grid | command |  | ✅ done |  |  |
+| View > Snap To > Guidelines | command |  | ✅ done |  |  |
+| View > Snap To > Perspective Lines | command |  | ⬜ todo | comes with the perspective drawing mode (batch 5) |  |
+| View > Snap To > Symmetry Lines | command |  | ⬜ todo | comes with the symmetry drawing mode (batch 5) |  |
+| View > Snap To > Objects | command |  | ✅ done | Alt+Z |  |
+| View > Snap To > Page | command |  | ✅ done |  |  |
+| View > Snap Off | command |  | ✅ done | Alt+Q |  |
+| View > Document Navigator | command |  | ✅ done | page navigator under the drawing |  |
+| View > Scrollbars | command |  | ✅ done | thin scrollbars with the Navigator at their corner |  |
 
 ### Layout
 
@@ -913,26 +913,26 @@ The *Reference* column is a path inside the reference folder.
 
 ### File
 
-0 done · 7 partial · 0 todo · 0 omitted
+7 done · 0 partial · 0 todo · 0 omitted
 
 | Opened from | Kind | Context | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|---|
-| File > New | dialog | doc-vazio | 48 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\01 File\001 File ▸ New.png` |
-| File > New from Template | dialog | doc-vazio | 28 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\01 File\002 File ▸ New from Template.png` |
-| File > Quick AI Generate | dialog | doc-vazio | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\01 File\003 File ▸ Quick AI Generate.png` |
-| File > Open | dialog | doc-vazio | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\01 File\004 File ▸ Open.png` |
-| File > Save as Template | dialog | doc-vazio | 4 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\01 File\009 File ▸ Save as Template.png` |
-| File > Import | dialog | doc-vazio | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\01 File\013 File ▸ Import.png` |
-| File > Document Properties | dialog | doc-vazio | 5 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\01 File\022 File ▸ Document Properties.png` |
+| File > New | dialog | doc-vazio | 48 | ✅ done | Create a New Document: Document Settings tab with presets, layout and color settings | `03-telas\doc-vazio\01 File\001 File ▸ New.png` |
+| File > New from Template | dialog | doc-vazio | 28 | ✅ done | Create a New Document: Templates tab with search, categories and details | `03-telas\doc-vazio\01 File\002 File ▸ New from Template.png` |
+| File > Quick AI Generate | dialog | doc-vazio | 1 | ✅ done | Quick AI Generate window | `03-telas\doc-vazio\01 File\003 File ▸ Quick AI Generate.png` |
+| File > Open | dialog | doc-vazio | 3 | ✅ done | Windows open dialog | `03-telas\doc-vazio\01 File\004 File ▸ Open.png` |
+| File > Save as Template | dialog | doc-vazio | 4 | ✅ done | Save Drawing dialog with CDRT/CDT - CorelDRAW Template | `03-telas\doc-vazio\01 File\009 File ▸ Save as Template.png` |
+| File > Import | dialog | doc-vazio | 3 | ✅ done | Windows open dialog with All File Formats | `03-telas\doc-vazio\01 File\013 File ▸ Import.png` |
+| File > Document Properties | dialog | doc-vazio | 5 | ✅ done | Document Properties with all sections | `03-telas\doc-vazio\01 File\022 File ▸ Document Properties.png` |
 
 ### Edit
 
-0 done · 2 partial · 0 todo · 0 omitted
+2 done · 0 partial · 0 todo · 0 omitted
 
 | Opened from | Kind | Context | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|---|
-| Edit > Paste Special | dialog | doc-vazio | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\02 Edit\002 Edit ▸ Paste Special.png` |
-| Edit > Copy Properties From | dialog | selecao-multipla | 1 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\selecao-multipla\02 Edit\001 Edit ▸ Copy Properties From.png` |
+| Edit > Paste Special | dialog | doc-vazio | 1 | ✅ done | Paste Special with the clipboard formats | `03-telas\doc-vazio\02 Edit\002 Edit ▸ Paste Special.png` |
+| Edit > Copy Properties From | dialog | selecao-multipla | 1 | ✅ done | Copy Properties: Outline Pen, Outline Color, Fill, Text Properties | `03-telas\selecao-multipla\02 Edit\001 Edit ▸ Copy Properties From.png` |
 
 ### Layout
 

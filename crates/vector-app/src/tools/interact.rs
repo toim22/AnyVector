@@ -389,12 +389,15 @@ impl<'a> Cx<'a> {
 
     fn hit(&self, p: Point) -> Option<ObjId> {
         let filled = self.s.treat_as_filled || self.d.doc.settings.treat_as_filled;
-        self.d.doc.hit_test(self.d.page, p, self.tol(), filled)
+        let id = self.d.doc.hit_test(self.d.page, p, self.tol(), filled)?;
+        // in focus mode only the objects in focus can be picked
+        (self.d.focus.is_empty() || self.d.focus.contains(&id)).then_some(id)
     }
 
     fn snap(&mut self, p: Point, exclude: &[ObjId]) -> Point {
-        let (q, label) = snap_point(self.d, self.s, p, exclude);
+        let (q, label, lines) = snap_point_ex(self.d, self.s, p, exclude);
         self.ts.snap_mark = label.map(|l| (q, l));
+        self.ts.guide_lines = lines;
         q
     }
 
@@ -412,6 +415,7 @@ impl<'a> Cx<'a> {
                 self.ts.cur = if use_snap && self.inp.hovered { self.snap(p, &excl) } else { p };
                 if !use_snap {
                     self.ts.snap_mark = None;
+                    self.ts.guide_lines.clear();
                 }
             }
         }
@@ -1484,14 +1488,14 @@ impl<'a> Cx<'a> {
                         }
                         Some(ObjKind::Path(_)) => self.out.tool = Some(Shape),
                         Some(ObjKind::Group(_)) | Some(ObjKind::PowerClip { .. }) if self.s.dblclick_focus_mode => {
-                            self.d.focus = Some(id);
+                            self.d.focus = vec![id];
                             self.d.cache.key = 0;
                         }
                         Some(ObjKind::Image(_)) if self.s.dblclick_bitmap_editor => {}
                         _ => {}
                     }
-                } else if self.d.focus.is_some() {
-                    self.d.focus = None;
+                } else if !self.d.focus.is_empty() {
+                    self.d.focus.clear();
                     self.d.cache.key = 0;
                 }
             }
@@ -1562,13 +1566,31 @@ impl<'a> Cx<'a> {
                     }
                 });
             }
-            PickTarget::CopyProperties => {
-                let st = self.d.doc.find(t).map(|o| o.style.clone());
-                if let Some(st) = st {
+            PickTarget::CopyProperties { pen, color, fill, text } => {
+                let src = self.d.doc.find(t).cloned();
+                if let Some(src) = src {
                     self.d.modify("Copy Properties", |doc, _| {
                         for id in &sel {
                             if let Some(o) = doc.find_mut(*id) {
-                                o.style = st.clone();
+                                if pen {
+                                    let c = o.style.outline.color;
+                                    o.style.outline = src.style.outline.clone();
+                                    o.style.outline.color = c;
+                                }
+                                if color {
+                                    o.style.outline.color = src.style.outline.color;
+                                }
+                                if fill {
+                                    o.style.fill = src.style.fill.clone();
+                                }
+                                if text {
+                                    if let (ObjKind::Text(dst), ObjKind::Text(from)) = (&mut o.kind, &src.kind) {
+                                        dst.format = from.format.clone();
+                                        dst.spans.clear();
+                                        dst.align = from.align.clone();
+                                        dst.line_spacing = from.line_spacing;
+                                    }
+                                }
                             }
                         }
                     });
@@ -2192,10 +2214,32 @@ fn sample_color(ts: &mut ToolState, d: &DocView, p: Point) -> Color {
 }
 
 /// Snap a document point to grid, guides, page and object points. Returns the label of the snap.
-pub fn snap_point(d: &DocView, s: &Settings, p: Point, exclude: &[ObjId]) -> (Point, Option<&'static str>) {
+/// The anchor points of the objects near `p`: bounding box corners, midpoints and centers.
+fn anchors_near(d: &DocView, p: Point, reach: f64, exclude: &[ObjId]) -> Vec<(kurbo::Rect, Point)> {
+    let mut out = vec![];
+    for l in d.page_ref().layers.iter().filter(|l| l.visible) {
+        for o in &l.objects {
+            if exclude.contains(&o.id) || !o.visible {
+                continue;
+            }
+            let b = d.doc.bounds_of(o);
+            if !b.inflate(reach, reach).contains(p) {
+                continue;
+            }
+            out.push((b, b.center()));
+            if out.len() > 500 {
+                return out;
+            }
+        }
+    }
+    out
+}
+
+/// Snap a point, also returning the alignment or dynamic guide lines it snapped to.
+pub fn snap_point_ex(d: &DocView, s: &Settings, p: Point, exclude: &[ObjId]) -> (Point, Option<&'static str>, Vec<(Point, Point)>) {
     let ds = &d.doc.settings;
     if ds.snap_off {
-        return (p, None);
+        return (p, None, vec![]);
     }
     let r = d.doc_len(s.snap_radius.max(2.0) as f32);
     let mut best: Option<(f64, Point, &'static str)> = None;
@@ -2252,10 +2296,11 @@ pub fn snap_point(d: &DocView, s: &Settings, p: Point, exclude: &[ObjId]) -> (Po
         }
     }
     if let Some((_, q, l)) = best {
-        return (q, Some(l));
+        return (q, Some(l), vec![]);
     }
     let mut q = p;
     let mut label = None;
+    let mut lines = vec![];
     if ds.snap_to_guides && ds.show_guides {
         for g in page.guides.iter().chain(d.doc.master_guides.iter()) {
             match g.kind {
@@ -2289,7 +2334,85 @@ pub fn snap_point(d: &DocView, s: &Settings, p: Point, exclude: &[ObjId]) -> (Po
             label = Some("Grid");
         }
     }
-    (q, label)
+    // View ▸ Snap To ▸ Baseline Grid: the lines from the top of the page
+    if ds.snap_to_baseline && label.is_none() {
+        let pr = page.rect();
+        let sp = ds.baseline_spacing.max(0.1);
+        let sy = ((p.y - pr.y0) / sp).round() * sp + pr.y0;
+        if (sy - p.y).abs() <= r {
+            q.y = sy;
+            label = Some("Baseline grid");
+        }
+    }
+    let reach = d.doc_len(400.0);
+    // View ▸ Dynamic Guides: lines at 0°, 45°, 90° and 135° through the snap points of nearby objects
+    if s.dynamic_guides && label.is_none() {
+        let mut found: Option<(f64, Point, Point)> = None;
+        for (b, c) in anchors_near(d, p, reach, exclude) {
+            let pts = [c, Point::new(b.x0, b.y0), Point::new(b.x1, b.y0), Point::new(b.x1, b.y1), Point::new(b.x0, b.y1)];
+            for a in pts {
+                for deg in [0.0f64, 45.0, 90.0, 135.0] {
+                    let dir = kurbo::Vec2::new(deg.to_radians().cos(), -deg.to_radians().sin());
+                    let foot = a + dir * (p - a).dot(dir);
+                    let dist = (p - foot).hypot();
+                    if dist <= r && (foot - a).hypot() > r && found.map_or(true, |f| dist < f.0) {
+                        found = Some((dist, foot, a));
+                    }
+                }
+            }
+        }
+        if let Some((_, f, a)) = found {
+            q = f;
+            label = Some("Dynamic guide");
+            let ext = (f - a) * (d.doc_len(40.0) / (f - a).hypot().max(1e-9));
+            lines.push((a, f + ext));
+        }
+    }
+    // View ▸ Alignment Guides: line up with the edges and centers of nearby objects and the page
+    if s.live_guides && label.is_none() {
+        let mut xs: Vec<(f64, Point)> = vec![];
+        let mut ys: Vec<(f64, Point)> = vec![];
+        let mut add = |b: kurbo::Rect, edges: bool, centers: bool| {
+            let c = b.center();
+            if edges {
+                xs.extend([(b.x0, Point::new(b.x0, c.y)), (b.x1, Point::new(b.x1, c.y))]);
+                ys.extend([(b.y0, Point::new(c.x, b.y0)), (b.y1, Point::new(c.x, b.y1))]);
+            }
+            if centers {
+                xs.push((c.x, c));
+                ys.push((c.y, c));
+            }
+        };
+        for (b, _) in anchors_near(d, p, reach, exclude) {
+            add(b, s.live_guides_edges, s.live_guides_centers);
+        }
+        if s.live_guides_page {
+            add(page.rect(), true, true);
+        }
+        let near = |v: f64, list: &[(f64, Point)]| list.iter().filter(|(x, _)| (x - v).abs() <= r).min_by(|a, b| (a.0 - v).abs().total_cmp(&(b.0 - v).abs())).copied();
+        let bx = near(p.x, &xs);
+        let by = near(p.y, &ys);
+        if let Some((x, _)) = bx {
+            q.x = x;
+        }
+        if let Some((y, _)) = by {
+            q.y = y;
+        }
+        if let Some((_, a)) = bx {
+            lines.push((a, Point::new(q.x, q.y)));
+            label = Some("Alignment guide");
+        }
+        if let Some((_, a)) = by {
+            lines.push((a, Point::new(q.x, q.y)));
+            label = Some("Alignment guide");
+        }
+    }
+    // View ▸ Snap To ▸ Pixels (Pixels view): whole document pixels
+    if ds.snap_to_pixels && d.view_mode == crate::docview::ViewMode::Pixels && label.is_none() {
+        let px = 72.0 / ds.dpi.max(1.0);
+        q = Point::new((q.x / px).round() * px, (q.y / px).round() * px);
+    }
+    (q, label, lines)
 }
 
 /// A guide under the pointer: (index into the page guides, vertical).
