@@ -69,10 +69,13 @@ The interface is written in English, and translations are looked up when text is
 ## Updates
 
 `updater.rs` reads the latest GitHub release of `toim22/Vector` (anonymously, or through `gh` when the repository
-is private) and looks for an asset ending in `-setup.exe`. Depending on Options ▸ Global ▸ General ▸ Allow product
-updates it downloads it in the background (at most once every 20 hours) and asks before installing, only tells
-you, or never checks on its own. Installing closes AnyVector normally (asking to save drawings), runs the setup
-with `/SILENT /CLOSEAPPLICATIONS /RELAUNCH=1`, and the setup starts AnyVector again.
+is private) and looks for an asset ending in `-setup.exe`. Every start checks on a background thread, so the start
+is not delayed, and nothing is shown unless a newer version is found. Then a message says so, and OK installs it
+(Later asks again at the next start). Options ▸ Global ▸ General ▸ Allow product updates chooses whether the setup
+also downloads in the background meanwhile (keep the product up to date: OK then installs at once), downloads only
+after OK (check and let me choose), or whether AnyVector never checks on its own. A setup already downloaded at an
+earlier start is used again when its size matches the release's. Installing closes AnyVector normally (asking to
+save drawings), runs the setup with `/SILENT /CLOSEAPPLICATIONS /RELAUNCH=1`, and the setup starts AnyVector again.
 
 ## Data flow
 
