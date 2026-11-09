@@ -28,6 +28,8 @@ pub struct RenderOptions {
     pub dim_others: Option<(Vec<ObjId>, f32)>,
     pub show_powerclip_frames: bool,
     pub antialias: bool,
+    /// Simulate overprints: objects set to overprint multiply with what is below them.
+    pub overprint: bool,
 }
 
 impl Default for RenderOptions {
@@ -42,6 +44,7 @@ impl Default for RenderOptions {
             dim_others: None,
             show_powerclip_frames: true,
             antialias: true,
+            overprint: false,
         }
     }
 }
@@ -207,8 +210,10 @@ impl Renderer {
             return;
         }
         let dimmed = ctx.opts.dim_others.as_ref().map(|(keep, a)| (!keep.contains(&o.id), *a)).filter(|x| x.0).map(|x| x.1);
+        let overprints = ctx.opts.overprint && (o.style.overprint_fill || o.style.overprint_outline);
         let needs_layer = !ctx.opts.wireframe
-            && (!matches!(o.style.transparency, Transparency::None)
+            && (overprints
+                || !matches!(o.style.transparency, Transparency::None)
                 || o.style.merge != MergeMode::Normal
                 || !o.effects.bitmap.is_empty()
                 || o.effects.bevel.is_some()
@@ -260,7 +265,7 @@ impl Renderer {
             }
             let mut pp = sk::PixmapPaint::default();
             pp.opacity = opacity;
-            pp.blend_mode = blend_mode(o.style.merge);
+            pp.blend_mode = if overprints && o.style.merge == MergeMode::Normal { sk::BlendMode::Multiply } else { blend_mode(o.style.merge) };
             pp.quality = sk::FilterQuality::Nearest;
             if let Some(m) = &mask {
                 // apply the gradient transparency mask to the layer itself

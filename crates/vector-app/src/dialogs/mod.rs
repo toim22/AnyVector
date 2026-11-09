@@ -2,14 +2,21 @@
 //! About, Palette Editor, page dialogs, confirmations and PowerTRACE.
 
 pub mod forms;
+pub mod clipboard;
+pub mod docprops;
+pub mod export;
+pub mod merge;
 pub mod new_doc;
 pub mod options;
+pub mod print;
 
 use crate::app::VectorApp;
 use crate::theme;
 use egui::{pos2, vec2, Color32, Frame, Id, Rect, Sense, Stroke, Ui, UiBuilder, Vec2};
 
-pub use forms::{ExportState, PaletteEditorState, PrintState, ScriptEditorState, TraceState};
+pub use export::ExportState;
+pub use forms::{PaletteEditorState, ScriptEditorState, TraceState};
+pub use print::PrintState;
 pub use new_doc::NewDocState;
 pub use options::OptionsState;
 
@@ -52,6 +59,16 @@ pub struct Dialogs {
     pub system_info: Option<crate::about::SystemInfoState>,
     /// Help > About > Legal Notices...
     pub legal_notices: bool,
+    /// File > Print Merge (the data source editor).
+    pub merge: Option<merge::MergeState>,
+    /// Publish to PDF / PDF Settings.
+    pub pdf: Option<export::PdfState>,
+    /// SVG Export options.
+    pub svg: Option<export::SvgState>,
+    /// Export to <bitmap>, Export For Office / Web / WordPress.
+    pub bitmap: Option<export::BitmapState>,
+    pub paste_special: Option<clipboard::PasteSpecialState>,
+    pub copy_props: Option<clipboard::CopyPropsState>,
 }
 
 impl Dialogs {
@@ -75,6 +92,12 @@ impl Dialogs {
             || self.bug_report.is_some()
             || self.system_info.is_some()
             || self.legal_notices
+            || self.merge.is_some()
+            || self.pdf.is_some()
+            || self.svg.is_some()
+            || self.bitmap.is_some()
+            || self.paste_special.is_some()
+            || self.copy_props.is_some()
     }
 }
 
@@ -96,6 +119,27 @@ pub fn show(app: &mut VectorApp, ctx: &egui::Context) {
     }
     if app.dialogs.legal_notices {
         crate::about::legal_notices(app, ctx);
+    }
+    if app.dialogs.merge.is_some() {
+        merge::show(app, ctx);
+    }
+    if app.dialogs.export.is_some() {
+        export::show_export(app, ctx);
+    }
+    if app.dialogs.pdf.is_some() {
+        export::show_pdf(app, ctx);
+    }
+    if app.dialogs.svg.is_some() {
+        export::show_svg(app, ctx);
+    }
+    if app.dialogs.bitmap.is_some() {
+        export::show_bitmap(app, ctx);
+    }
+    if app.dialogs.paste_special.is_some() {
+        clipboard::paste_special(app, ctx);
+    }
+    if app.dialogs.copy_props.is_some() {
+        clipboard::copy_properties(app, ctx);
     }
 }
 
@@ -186,4 +230,72 @@ pub fn heading(ui: &mut Ui, text: &str) {
 /// Dimmed explanatory text.
 pub fn note(ui: &mut Ui, text: &str) {
     ui.label(egui::RichText::new(text).color(theme::TEXT_DIM).size(12.0));
+}
+
+/// A row of tabs across the top of a dialog page; returns true when the tab changed.
+pub fn tabs(ui: &mut Ui, current: &mut usize, names: &[String]) -> bool {
+    let mut changed = false;
+    let (row, _) = ui.allocate_exact_size(vec2(ui.available_width(), 28.0), Sense::hover());
+    let font = egui::FontId::proportional(12.5);
+    let mut x = row.left();
+    for (i, n) in names.iter().enumerate() {
+        let w = ui.painter().layout_no_wrap(n.clone(), font.clone(), theme::TEXT).size().x + 22.0;
+        let r = Rect::from_min_size(pos2(x, row.top()), vec2(w, 28.0));
+        let resp = ui.interact(r, ui.scope_id().with(("tab", i)), Sense::click());
+        let on = *current == i;
+        if on {
+            ui.painter().rect_filled(r, 0.0, theme::FIELD);
+            ui.painter().hline(r.x_range(), r.bottom() - 1.0, Stroke::new(2.0, theme::ACCENT));
+        } else if resp.hovered() {
+            ui.painter().rect_filled(r, 0.0, theme::HOVER);
+        }
+        ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, n, font.clone(), if on { theme::TEXT } else { theme::TEXT_DIM });
+        if resp.clicked() && !on {
+            *current = i;
+            changed = true;
+        }
+        x += w;
+    }
+    ui.painter().hline(row.x_range(), row.bottom() - 0.5, Stroke::new(1.0, theme::SEP));
+    ui.add_space(8.0);
+    changed
+}
+
+/// A titled group box (the title on its top edge), as in the reference dialogs.
+pub fn group<R>(ui: &mut Ui, title: &str, body: impl FnOnce(&mut Ui) -> R) -> R {
+    ui.add_space(6.0);
+    let r = Frame::new().stroke(Stroke::new(1.0, theme::SEP)).corner_radius(3.0).inner_margin(egui::Margin { left: 10, right: 10, top: 12, bottom: 8 }).show(ui, |ui| {
+        ui.set_width(ui.available_width());
+        body(ui)
+    });
+    let at = r.response.rect.left_top() + vec2(10.0, 0.0);
+    let galley = ui.painter().layout_no_wrap(title.to_string(), egui::FontId::proportional(12.0), theme::TEXT);
+    let bg = Rect::from_min_size(at - vec2(3.0, galley.size().y / 2.0), galley.size() + vec2(6.0, 0.0));
+    ui.painter().rect_filled(bg, 0.0, theme::BG);
+    ui.painter().galley(at - vec2(0.0, galley.size().y / 2.0), galley, theme::TEXT);
+    r.inner
+}
+
+/// A label of fixed width followed by the widgets `body` adds, on one row.
+pub fn row<R>(ui: &mut Ui, label: &str, w: f32, body: impl FnOnce(&mut Ui) -> R) -> R {
+    ui.horizontal(|ui| {
+        ui.add_sized(vec2(w, 22.0), egui::Label::new(label).halign(egui::Align::Min));
+        body(ui)
+    })
+    .inner
+}
+
+/// A combo box over a list of names; returns true when the choice changed.
+pub fn combo(ui: &mut Ui, id: &str, current: &mut usize, names: &[&str], width: f32) -> bool {
+    let mut changed = false;
+    let sel = names.get(*current).copied().unwrap_or("");
+    egui::ComboBox::from_id_salt(id).selected_text(sel).width(width).show_ui(ui, |ui| {
+        for (i, n) in names.iter().enumerate() {
+            if ui.selectable_label(*current == i, *n).clicked() && *current != i {
+                *current = i;
+                changed = true;
+            }
+        }
+    });
+    changed
 }

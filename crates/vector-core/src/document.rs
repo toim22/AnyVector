@@ -113,6 +113,23 @@ pub struct DocSettings {
     /// Page view: false = single page, true = multipage.
     #[serde(default)]
     pub multipage_view: bool,
+    /// View ▸ Grid ▸ Baseline Grid, and the baseline spacing in points.
+    #[serde(default)]
+    pub show_baseline_grid: bool,
+    #[serde(default = "default_baseline_spacing")]
+    pub baseline_spacing: f64,
+    /// View ▸ Snap To ▸ Baseline Grid and ▸ Pixels.
+    #[serde(default)]
+    pub snap_to_baseline: bool,
+    #[serde(default)]
+    pub snap_to_pixels: bool,
+    /// View ▸ Page ▸ Printable Area.
+    #[serde(default)]
+    pub show_printable_area: bool,
+}
+
+fn default_baseline_spacing() -> f64 {
+    14.0
 }
 
 /// Rendering intent used when converting between color spaces.
@@ -205,6 +222,11 @@ impl Default for DocSettings {
             facing_pages: false,
             color: ColorSettings::default(),
             multipage_view: false,
+            show_baseline_grid: false,
+            baseline_spacing: default_baseline_spacing(),
+            snap_to_baseline: false,
+            snap_to_pixels: false,
+            show_printable_area: false,
         }
     }
 }
@@ -231,11 +253,154 @@ pub struct DocInfo {
     pub keywords: String,
     pub notes: String,
     pub rating: u8,
+    /// Document language (File ▸ Document Properties ▸ Language).
+    #[serde(default = "default_language")]
+    pub language: String,
+}
+
+fn default_language() -> String {
+    "English (United States)".into()
 }
 
 impl Default for DocInfo {
     fn default() -> Self {
-        DocInfo { title: String::new(), subject: String::new(), author: String::new(), copyright: String::new(), keywords: String::new(), notes: String::new(), rating: 0 }
+        DocInfo { title: String::new(), subject: String::new(), author: String::new(), copyright: String::new(), keywords: String::new(), notes: String::new(), rating: 0, language: default_language() }
+    }
+}
+
+/// The kind of a print merge column.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum MergeKind {
+    #[default]
+    Text,
+    Numeric,
+    /// A path to an image file.
+    Path,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MergeField {
+    pub name: String,
+    pub kind: MergeKind,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MergeRecord {
+    pub selected: bool,
+    pub values: Vec<String>,
+}
+
+/// Print merge data (File ▸ Print Merge): the columns and records of the data source. Text
+/// in the document marks a field with its column name in guillemets: «Name».
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+pub struct PrintMerge {
+    pub fields: Vec<MergeField>,
+    pub records: Vec<MergeRecord>,
+    /// The file the data was imported from, if any.
+    #[serde(default)]
+    pub source: Option<String>,
+}
+
+impl PrintMerge {
+    /// The field marker put in text: «Name».
+    pub fn marker(name: &str) -> String {
+        format!("\u{ab}{name}\u{bb}")
+    }
+
+    /// Text with each «field» replaced by the record's value.
+    pub fn fill(&self, text: &str, record: &MergeRecord) -> String {
+        let mut out = text.to_string();
+        for (i, f) in self.fields.iter().enumerate() {
+            out = out.replace(&Self::marker(&f.name), record.values.get(i).map(|s| s.as_str()).unwrap_or(""));
+        }
+        out
+    }
+
+    /// Read a data source: CSV (a header row, comma or tab separated) or the text format
+    /// (line 1 = number of fields, line 2 = `\Field1\\Field2\`, one record per line in the same
+    /// form). A field name starting with `@` is an image path column.
+    pub fn parse(text: &str) -> PrintMerge {
+        let text = text.trim_start_matches('\u{feff}');
+        let mut lines = text.lines().filter(|l| !l.trim().is_empty());
+        let mut pm = PrintMerge::default();
+        let Some(first) = lines.next() else { return pm };
+        let backslash = first.trim().parse::<usize>().is_ok();
+        let split = |l: &str| -> Vec<String> {
+            if backslash {
+                l.trim().trim_matches('\\').split("\\\\").map(|s| s.to_string()).collect()
+            } else {
+                let sep = if l.contains('\t') { '\t' } else { ',' };
+                split_csv(l, sep)
+            }
+        };
+        let header = if backslash { lines.next().map(split).unwrap_or_default() } else { split(first) };
+        for h in header {
+            let (name, kind) = match h.strip_prefix('@') {
+                Some(n) => (n.to_string(), MergeKind::Path),
+                None => (h.clone(), MergeKind::Text),
+            };
+            pm.fields.push(MergeField { name: name.trim().to_string(), kind });
+        }
+        for l in lines {
+            let mut values = split(l);
+            values.resize(pm.fields.len(), String::new());
+            pm.records.push(MergeRecord { selected: true, values });
+        }
+        pm
+    }
+
+    /// The data as CSV, with a header row and a byte order mark.
+    pub fn to_csv(&self, selected_only: bool) -> String {
+        let q = |s: &str| if s.contains([',', '"', '\n']) { format!("\"{}\"", s.replace('"', "\"\"")) } else { s.to_string() };
+        let mut out = String::from("\u{feff}");
+        let head: Vec<String> = self.fields.iter().map(|f| q(&if f.kind == MergeKind::Path { format!("@{}", f.name) } else { f.name.clone() })).collect();
+        out.push_str(&head.join(","));
+        out.push_str("\r\n");
+        for r in self.records.iter().filter(|r| r.selected || !selected_only) {
+            let v: Vec<String> = r.values.iter().map(|s| q(s)).collect();
+            out.push_str(&v.join(","));
+            out.push_str("\r\n");
+        }
+        out
+    }
+}
+
+fn split_csv(line: &str, sep: char) -> Vec<String> {
+    let mut out = vec![];
+    let mut cur = String::new();
+    let mut quoted = false;
+    let mut chars = line.chars().peekable();
+    while let Some(c) = chars.next() {
+        match c {
+            '"' if quoted && chars.peek() == Some(&'"') => {
+                cur.push('"');
+                chars.next();
+            }
+            '"' => quoted = !quoted,
+            c if c == sep && !quoted => out.push(std::mem::take(&mut cur)),
+            c => cur.push(c),
+        }
+    }
+    out.push(cur);
+    out
+}
+
+#[cfg(test)]
+mod merge_tests {
+    use super::*;
+
+    #[test]
+    fn csv_and_text_sources() {
+        let pm = PrintMerge::parse("Name,@Photo\r\n\"Smith, J\",a.png\r\nLee,b.png\r\n");
+        assert_eq!(pm.fields.len(), 2);
+        assert_eq!(pm.fields[1].kind, MergeKind::Path);
+        assert_eq!(pm.records[0].values[0], "Smith, J");
+        let t = PrintMerge::parse("2\n\\Name\\\\City\\\n\\Ann\\\\Rome\\\n");
+        assert_eq!(t.fields[1].name, "City");
+        assert_eq!(t.records[0].values, vec!["Ann", "Rome"]);
+        assert_eq!(t.fill("Hi «Name» from «City»", &t.records[0]), "Hi Ann from Rome");
+        let back = PrintMerge::parse(&pm.to_csv(false));
+        assert_eq!(back.records, pm.records);
     }
 }
 
@@ -290,6 +455,9 @@ pub struct Document {
     pub views: Vec<SavedView>,
     /// Object data field names (Object Data docker).
     pub data_fields: Vec<String>,
+    /// Print merge data (File ▸ Print Merge).
+    #[serde(default)]
+    pub print_merge: Option<PrintMerge>,
     next_id: u64,
 }
 
@@ -317,6 +485,7 @@ impl Document {
             comments: vec![],
             views: vec![],
             data_fields: vec!["Name".into(), "Cost".into(), "Comments".into(), "CDRStaticID".into()],
+            print_merge: None,
             next_id: 1,
         };
         let pid = d.new_id();

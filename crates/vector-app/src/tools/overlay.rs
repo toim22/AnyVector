@@ -76,6 +76,8 @@ pub fn draw_overlay(app: &mut VectorApp, painter: &Painter) {
     let s = &app.settings;
     let Some(d) = app.docs.get(ai) else { return };
     draw_grid(painter, d);
+    draw_pixel_grid(painter, d);
+    draw_baseline_grid(painter, d);
     draw_guides(painter, d, &ts.drag);
     draw_text_frames(painter, d);
 
@@ -110,6 +112,11 @@ pub fn draw_overlay(app: &mut VectorApp, painter: &Painter) {
             painter.circle_stroke(d.to_screen(h), (r * d.zoom) as f32 + 1.0, Stroke::new(1.0, Color32::from_black_alpha(120)));
         }
     }
+    // alignment and dynamic guides
+    for (a, b) in &ts.guide_lines {
+        let (a, b) = (d.to_screen(*a), d.to_screen(*b));
+        painter.extend(egui::Shape::dashed_line(&[a, b], Stroke::new(1.0, Color32::from_rgb(0xe8, 0x3f, 0xb8)), 4.0, 3.0));
+    }
     // snap mark
     if s.show_snap_marks {
         if let Some((p, label)) = ts.snap_mark {
@@ -119,6 +126,57 @@ pub fn draw_overlay(app: &mut VectorApp, painter: &Painter) {
                 painter.text(c + egui::vec2(9.0, -12.0), egui::Align2::LEFT_BOTTOM, label, egui::FontId::proportional(11.0), Color32::from_rgb(0x00, 0xb4, 0xff));
             }
         }
+    }
+}
+
+/// View ▸ Grid ▸ Baseline Grid: lines across the page from its top, one baseline apart.
+fn draw_baseline_grid(painter: &Painter, d: &DocView) {
+    let ds = &d.doc.settings;
+    let sp = ds.baseline_spacing.max(0.1);
+    if !ds.show_baseline_grid || sp * d.zoom < 3.0 {
+        return;
+    }
+    let pr = d.page_ref().rect();
+    let (x0, x1) = (d.to_screen(Point::new(pr.x0, 0.0)).x, d.to_screen(Point::new(pr.x1, 0.0)).x);
+    let col = Color32::from_rgba_unmultiplied(0x4d, 0xc3, 0xe6, 170);
+    let cr = d.canvas_rect;
+    let mut y = pr.y0 + sp;
+    while y < pr.y1 {
+        let sy = d.to_screen(Point::new(0.0, y)).y;
+        if sy > cr.bottom() {
+            break;
+        }
+        if sy >= cr.top() {
+            painter.line_segment([pos2(x0, sy), pos2(x1, sy)], Stroke::new(1.0, col));
+        }
+        y += sp;
+    }
+}
+
+/// View ▸ Grid ▸ Pixel Grid (Pixels view): the document pixels, once they are big enough to see.
+fn draw_pixel_grid(painter: &Painter, d: &DocView) {
+    let ds = &d.doc.settings;
+    if !ds.pixel_grid || d.view_mode != crate::docview::ViewMode::Pixels {
+        return;
+    }
+    let px = 72.0 / ds.dpi.max(1.0);
+    if px * d.zoom < 6.0 {
+        return;
+    }
+    let col = Color32::from_rgba_unmultiplied(0x80, 0x80, 0x80, 90);
+    let cr = d.canvas_rect;
+    let (tl, br) = (d.to_doc(cr.min), d.to_doc(cr.max));
+    let mut x = (tl.x / px).floor() * px;
+    while x <= br.x {
+        let sx = d.to_screen(Point::new(x, 0.0)).x;
+        painter.line_segment([pos2(sx, cr.top()), pos2(sx, cr.bottom())], Stroke::new(1.0, col));
+        x += px;
+    }
+    let mut y = (tl.y / px).floor() * px;
+    while y <= br.y {
+        let sy = d.to_screen(Point::new(0.0, y)).y;
+        painter.line_segment([pos2(cr.left(), sy), pos2(cr.right(), sy)], Stroke::new(1.0, col));
+        y += px;
     }
 }
 
