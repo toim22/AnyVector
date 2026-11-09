@@ -20,14 +20,13 @@ pub struct ExportState {
     pub transparent: bool,
     pub antialias: bool,
     pub quality: u8,
-    pub text_as_curves: bool,
     /// Pre-chosen destination (from Save As style flows).
     pub path: Option<std::path::PathBuf>,
 }
 
 impl Default for ExportState {
     fn default() -> Self {
-        ExportState { format: 2, range: 0, dpi: 300.0, transparent: true, antialias: true, quality: 85, text_as_curves: true, path: None }
+        ExportState { format: 2, range: 0, dpi: 300.0, transparent: true, antialias: true, quality: 85, path: None }
     }
 }
 

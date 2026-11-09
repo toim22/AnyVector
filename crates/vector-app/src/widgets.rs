@@ -79,13 +79,6 @@ pub fn vsep(ui: &mut Ui) {
     ui.painter().line_segment([pos2(x, rect.top() + 4.0), pos2(x, rect.bottom() - 4.0)], Stroke::new(1.0, theme::SEP));
 }
 
-/// Horizontal separator in a vertical bar.
-pub fn hsep(ui: &mut Ui, width: f32) {
-    let (rect, _) = ui.allocate_exact_size(vec2(width, 9.0), Sense::hover());
-    let y = rect.center().y;
-    ui.painter().line_segment([pos2(rect.left() + 3.0, y), pos2(rect.right() - 3.0, y)], Stroke::new(1.0, theme::SEP));
-}
-
 /// Numeric field with unit suffix and stacked up/down chevrons (property bar style).
 /// `value` is in points; displayed in `unit`. Returns true when changed (on Enter/focus loss or arrow click).
 pub fn unit_field(ui: &mut Ui, id: egui::Id, value: &mut f64, unit: Unit, dpi: f64, width: f32, enabled: bool) -> bool {
@@ -135,12 +128,6 @@ pub fn unit_field(ui: &mut Ui, id: egui::Id, value: &mut f64, unit: Unit, dpi: f
 
 /// Frame-less style marker for TextEdit::frame (true = framed).
 #[allow(non_upper_case_globals)]
-
-/// Plain numeric drag field with suffix.
-pub fn num_field(ui: &mut Ui, value: &mut f64, range: std::ops::RangeInclusive<f64>, suffix: &str, decimals: usize, width: f32) -> bool {
-    let r = ui.add_sized(vec2(width, 20.0), egui::DragValue::new(value).range(range).suffix(suffix).max_decimals(decimals).speed(0.1));
-    r.changed()
-}
 
 /// Color well (swatch) button; None = no color (white with red diagonal).
 pub fn color_well(ui: &mut Ui, color: Option<vector_core::Color>, size: egui::Vec2) -> Response {
@@ -223,11 +210,4 @@ pub fn dropdown_button(ui: &mut Ui, text: &str, width: f32, enabled: bool) -> Re
     p.text(pos2(rect.left() + 6.0, rect.center().y), egui::Align2::LEFT_CENTER, text, egui::FontId::proportional(12.5), c);
     chevron(p, pos2(rect.right() - 10.0, rect.center().y), 3.5, c);
     resp
-}
-
-/// Section header used in dialogs and dockers.
-pub fn section(ui: &mut Ui, text: &str) {
-    ui.add_space(4.0);
-    ui.label(egui::RichText::new(text).color(theme::TEXT).strong());
-    ui.add_space(2.0);
 }

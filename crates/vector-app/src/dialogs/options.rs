@@ -1544,7 +1544,8 @@ fn shortcut_from_input(ctx: &egui::Context) -> Option<String> {
 
 fn commands(app: &mut VectorApp, ui: &mut Ui) {
     let ctx = ui.ctx().clone();
-    let names: Vec<&str> = crate::menus::CATALOG_MENUS.iter().map(|m| m.0).collect();
+    let menus = crate::menus::catalog_menus();
+    let names: Vec<&str> = menus.iter().map(|m| m.0.as_str()).collect();
     let mut mi = app.dialogs.options.commands_menu.min(names.len() - 1);
     ui.horizontal(|ui| {
         if combo(ui, "cmd_menu", &mut mi, &names, 150.0) {
@@ -1554,7 +1555,7 @@ fn commands(app: &mut VectorApp, ui: &mut Ui) {
     });
     app.dialogs.options.commands_menu = mi;
     if !app.dialogs.options.catalog.iter().any(|(k, _)| *k == mi) {
-        let entries = crate::menus::catalog(app, ui, crate::menus::CATALOG_MENUS[mi].1);
+        let entries = crate::menus::catalog(menus[mi].1);
         app.dialogs.options.catalog.push((mi, entries));
     }
     let entries = app.dialogs.options.catalog.iter().find(|(k, _)| *k == mi).map(|(_, e)| e.clone()).unwrap_or_default();
@@ -2145,11 +2146,14 @@ fn privacy(app: &mut VectorApp, ui: &mut Ui) {
 // Workspaces
 // ------------------------------------------------------------------------------------------
 
-pub const WORKSPACES: [(&str, &str); 4] = [
-    ("Default", "The standard workspace with all toolbars, the toolbox and dockers."),
-    ("Lite", "A simplified workspace for new users with fewer tools and dockers."),
-    ("Touch", "A workspace optimized for tablets with larger buttons."),
-    ("Illustration", "A workspace for illustrators with the Objects and Properties dockers open."),
+/// The workspaces, in the order of Window ▸ Workspace (`Cmd::Workspace` takes the index).
+pub const WORKSPACES: [(&str, &str); 6] = [
+    ("Lite", "A reduced set of common tools for new users."),
+    ("Default", "The standard layout with all toolbars, the toolbox and dockers."),
+    ("Touch", "Large controls for touch, stylus and dial use."),
+    ("Illustration", "For book covers, ads, storyboards and illustration."),
+    ("Page Layout", "For business cards, branding, packaging and multipage brochures or newsletters."),
+    ("Adobe Illustrator", "Places features where Adobe Illustrator users expect them."),
 ];
 
 fn workspaces(app: &mut VectorApp, ui: &mut Ui) {

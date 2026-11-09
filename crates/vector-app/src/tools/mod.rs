@@ -80,8 +80,6 @@ pub struct ToolState {
     pub parallel_count: u32,
     pub parallel_distance: f64,
     pub default_outline_width: f64,
-    pub scale_outline_with_object: bool,
-    pub transform_fill_with_object: bool,
     pub lock_ratio: bool,
     pub lock_corners: bool,
     pub crop_rect: Option<Rect>,
@@ -146,9 +144,7 @@ impl Default for ToolState {
             parallel_count: 1,
             parallel_distance: 7.2,
             default_outline_width: 0.5669,
-            scale_outline_with_object: false,
-            transform_fill_with_object: true,
-            lock_ratio: true,
+            lock_ratio: false,
             lock_corners: true,
             crop_rect: None,
             common_shape: 0,
@@ -325,14 +321,6 @@ pub fn add_curve(ts: &ToolState, d: &mut DocView, np: NodePath, label: &str) {
     d.add_objects(label, objs);
 }
 
-/// Add a new object with the default style.
-pub fn add_shape(ts: &ToolState, d: &mut DocView, kind: ObjKind, transform: Affine, label: &str) -> ObjId {
-    let id = d.doc.new_id();
-    let o = Object::new(id, kind, transform, ts.new_style());
-    d.add_objects(label, vec![o]);
-    id
-}
-
 pub fn default_shadow(inner: bool) -> DropShadow {
     DropShadow { offset: Vec2::new(6.0, 6.0), feather: 8.0, color: Color::BLACK, opacity: 50.0, inner }
 }
@@ -341,7 +329,7 @@ pub fn default_shadow(inner: bool) -> DropShadow {
 // Node editing (Shape tool)
 // ------------------------------------------------------------------------------------------
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, serde::Serialize, serde::Deserialize)]
 pub enum NodeOp {
     Add,
     Delete,

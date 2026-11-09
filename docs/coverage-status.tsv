@@ -5,7 +5,225 @@
 # status: done | partial | todo | omitted
 menu	Help > About CorelDRAW...	done	Help > About Vector (same layout: banner, version, Source ID, System Info, Legal Notices)
 dialog	Help > About CorelDRAW	done	About Vector, with System Info (5 categories, Save) and Legal Notices
-toolbar	Standard	partial	exists; to be checked against the reference in batch 1
-toolbar	Status Bar	partial	exists; to be checked against the reference in batch 1
-toolbar	Color palette	partial	exists; to be checked against the reference in batch 1
-toolbar	Document palette	partial	exists; to be checked against the reference in batch 1
+# Batch 1: program frame
+menu	File	done	items, order and enabled states from the reference
+menu	File > Open Recent	done	items, order and enabled states from the reference
+menu	File > Acquire Image	done	items, order and enabled states from the reference
+menu	File > Export For	done	items, order and enabled states from the reference
+menu	File > Export Docker	done	items, order and enabled states from the reference
+menu	File > Send To	done	items, order and enabled states from the reference
+menu	File > Print Merge	done	items, order and enabled states from the reference
+menu	Edit	done	items, order and enabled states from the reference
+menu	Edit > Select All	done	items, order and enabled states from the reference
+menu	View	done	items, order and enabled states from the reference
+menu	View > Page	done	items, order and enabled states from the reference
+menu	View > Grid	done	items, order and enabled states from the reference
+menu	View > Snap To	done	items, order and enabled states from the reference
+menu	Layout	done	items, order and enabled states from the reference
+menu	Layout > Insert Page Number	done	items, order and enabled states from the reference
+menu	Object	done	items, order and enabled states from the reference
+menu	Object > Create	done	items, order and enabled states from the reference
+menu	Object > Insert	done	items, order and enabled states from the reference
+menu	Object > AI Generate	done	items, order and enabled states from the reference
+menu	Object > PowerClip	done	items, order and enabled states from the reference
+menu	Object > Symmetry	done	items, order and enabled states from the reference
+menu	Object > Symbol	done	items, order and enabled states from the reference
+menu	Object > Rollover	done	items, order and enabled states from the reference
+menu	Object > Copy Effect	done	items, order and enabled states from the reference
+menu	Object > Clone Effect	done	items, order and enabled states from the reference
+menu	Object > Align and Distribute	done	items, order and enabled states from the reference
+menu	Object > Order	done	items, order and enabled states from the reference
+menu	Object > Group	done	items, order and enabled states from the reference
+menu	Object > Hide	done	items, order and enabled states from the reference
+menu	Object > Lock	done	items, order and enabled states from the reference
+menu	Object > Shaping	done	items, order and enabled states from the reference
+menu	Object > Perspective	done	items, order and enabled states from the reference
+menu	Effects	done	items, order and enabled states from the reference
+menu	Effects > 3D Effects	done	items, order and enabled states from the reference
+menu	Effects > Adjust	done	items, order and enabled states from the reference
+menu	Effects > Art Strokes	done	items, order and enabled states from the reference
+menu	Effects > Blur	done	items, order and enabled states from the reference
+menu	Effects > Camera	done	items, order and enabled states from the reference
+menu	Effects > Color Transform	done	items, order and enabled states from the reference
+menu	Effects > Contour	done	items, order and enabled states from the reference
+menu	Effects > Correction	done	items, order and enabled states from the reference
+menu	Effects > Creative	done	items, order and enabled states from the reference
+menu	Effects > Custom	done	items, order and enabled states from the reference
+menu	Effects > Distort	done	items, order and enabled states from the reference
+menu	Effects > Noise	done	items, order and enabled states from the reference
+menu	Effects > Sharpen	done	items, order and enabled states from the reference
+menu	Effects > Texture	done	items, order and enabled states from the reference
+menu	Effects > Transform	done	items, order and enabled states from the reference
+menu	Bitmaps	done	items, order and enabled states from the reference
+menu	Bitmaps > Mode	done	items, order and enabled states from the reference
+menu	Bitmaps > Inflate Bitmap	done	items, order and enabled states from the reference
+menu	Bitmaps > Centerline Trace	done	items, order and enabled states from the reference
+menu	Bitmaps > Outline Trace	done	items, order and enabled states from the reference
+menu	Bitmaps > Plug-ins	done	items, order and enabled states from the reference
+menu	Text	done	items, order and enabled states from the reference
+menu	Text > Insert Formatting Code	done	items, order and enabled states from the reference
+menu	Text > Paragraph Text Frame	done	items, order and enabled states from the reference
+menu	Text > Writing Tools	done	items, order and enabled states from the reference
+menu	Table	done	items, order and enabled states from the reference
+menu	Table > Insert	done	items, order and enabled states from the reference
+menu	Table > Select	done	items, order and enabled states from the reference
+menu	Table > Delete	done	items, order and enabled states from the reference
+menu	Table > Distribute	done	items, order and enabled states from the reference
+menu	Tools	done	items, order and enabled states from the reference
+menu	Tools > Options	done	items, order and enabled states from the reference
+menu	Tools > Scripts	done	items, order and enabled states from the reference
+menu	Window	done	items, order and enabled states from the reference
+menu	Window > Workspace	done	items, order and enabled states from the reference
+menu	Window > Dockers	done	items, order and enabled states from the reference
+menu	Window > Dockers > Effects	done	items, order and enabled states from the reference
+menu	Window > Toolbars	done	items, order and enabled states from the reference
+menu	Window > Toolbars > Default Button Size	done	items, order and enabled states from the reference
+menu	Window > Color Palettes	done	items, order and enabled states from the reference
+menu	Window > Color Palettes > Recent	done	items, order and enabled states from the reference
+menu	Help	done	items, order and enabled states from the reference
+tool	Pick	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Freehand Pick	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Free Transform	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Shape	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Smooth	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Smear	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Twirl	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Attract and Repel	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Smudge	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Roughen	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Crop	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Knife	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Virtual Segment Delete	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Eraser	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Zoom	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Pan	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Freehand	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	2-Point Line	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Bézier	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Pen	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	B-Spline	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Polyline	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	3-Point Curve	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Painterly Brush	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Artistic Media	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	LiveSketch	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Smart Drawing	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Rectangle	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	3-Point Rectangle	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Ellipse	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	3-Point Ellipse	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Polygon	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Star	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Spiral	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Common Shapes	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Impact tool	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Graph Paper	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Text	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Table	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Parallel Dimension	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Horizontal or Vertical Dimension	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Angular Dimension	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Segment Dimension	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	2-Leg Callout	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Connector	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Anchor Editing	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Shadow	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Contour	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Blend	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Distort	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Envelope	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Extrude	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Block Shadow	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Transparency	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Color Eyedropper	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Attributes Eyedropper	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Interactive Fill	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Smart Fill	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Mesh Fill	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	Variable Outline	partial	property bar as the reference; fields Vector does not have yet are shown disabled; the tool itself is checked in batch 5
+tool	flyout: caixa de ferramentas	done	toolbox and flyout as the reference
+tool	flyout: flyout Pick (3 itens)	done	toolbox and flyout as the reference
+tool	flyout: flyout Shape (7 itens)	done	toolbox and flyout as the reference
+tool	flyout: flyout Crop (4 itens)	done	toolbox and flyout as the reference
+tool	flyout: flyout Zoom (2 itens)	done	toolbox and flyout as the reference
+tool	flyout: flyout Freehand (7 itens)	done	toolbox and flyout as the reference
+tool	flyout: flyout Painterly Brush (4 itens)	done	toolbox and flyout as the reference
+tool	flyout: flyout Rectangle (2 itens)	done	toolbox and flyout as the reference
+tool	flyout: flyout Ellipse (2 itens)	done	toolbox and flyout as the reference
+tool	flyout: flyout Polygon (6 itens)	done	toolbox and flyout as the reference
+tool	flyout: flyout Text (2 itens)	done	toolbox and flyout as the reference
+tool	flyout: flyout Parallel Dimension (5 itens)	done	toolbox and flyout as the reference
+tool	flyout: flyout Connector (2 itens)	done	toolbox and flyout as the reference
+tool	flyout: flyout Shadow (7 itens)	done	toolbox and flyout as the reference
+tool	flyout: flyout Color Eyedropper (2 itens)	done	toolbox and flyout as the reference
+tool	flyout: flyout Interactive Fill (3 itens)	done	toolbox and flyout as the reference
+tool	pick bar: Pick com doc-vazio	done	property bar as the reference for this selection
+tool	pick bar: Pick com retangulo	done	property bar as the reference for this selection
+tool	pick bar: Pick com elipse	done	property bar as the reference for this selection
+tool	pick bar: Pick com curva	done	property bar as the reference for this selection
+tool	pick bar: Pick com texto-artistico	done	property bar as the reference for this selection
+tool	pick bar: Pick com texto-paragrafo	done	property bar as the reference for this selection
+tool	pick bar: Pick com bitmap	done	property bar as the reference for this selection
+tool	pick bar: Pick com grupo	done	property bar as the reference for this selection
+tool	pick bar: Pick com selecao-multipla	done	property bar as the reference for this selection
+tool	pick bar: Pick com tabela	done	property bar as the reference for this selection
+tool	pick bar: Pick com tabela-celulas	done	property bar as the reference for this selection
+tool	pick bar: Pick com simbolo	done	property bar as the reference for this selection
+tool	pick bar: Pick com powerclip	done	property bar as the reference for this selection
+tool	pick bar: Pick com linha-de-cota	done	property bar as the reference for this selection
+tool	pick bar: Pick com conector	done	property bar as the reference for this selection
+tool	pick bar: Pick com varias-paginas	done	property bar as the reference for this selection
+tool	pick bar: Pick com rollover	done	property bar as the reference for this selection
+tool	pick bar: Pick com com-efeitos	done	property bar as the reference for this selection
+toolbar	Status Bar	done	items and order from the reference
+toolbar	Color palette	done	items and order from the reference
+toolbar	Document palette	done	items and order from the reference
+toolbar	Standard	done	items and order from the reference
+toolbar	Project Timer	done	items and order from the reference
+toolbar	Layout	done	items and order from the reference
+toolbar	Zoom	done	items and order from the reference
+toolbar	Internet	done	items and order from the reference
+toolbar	Macros	done	items and order from the reference
+toolbar	Parallel Lines	done	items and order from the reference
+toolbar	Text	done	items and order from the reference
+toolbar	Transform	done	items and order from the reference
+context-menu	Rectangle	done	items, order and enabled states from the reference
+context-menu	Ellipse	done	items, order and enabled states from the reference
+context-menu	Curve	done	items, order and enabled states from the reference
+context-menu	Artistic text	done	items, order and enabled states from the reference
+context-menu	Paragraph text	done	items, order and enabled states from the reference
+context-menu	Bitmap	done	items, order and enabled states from the reference
+context-menu	Group	done	items, order and enabled states from the reference
+context-menu	Multiple selection	done	items, order and enabled states from the reference
+context-menu	Table	done	items, order and enabled states from the reference
+context-menu	Symbol	done	items, order and enabled states from the reference
+context-menu	PowerClip	done	items, order and enabled states from the reference
+context-menu	Dimension line	done	items, order and enabled states from the reference
+context-menu	Connector	done	items, order and enabled states from the reference
+context-menu	Rollover	done	items, order and enabled states from the reference
+context-menu	Table cells	done	items, order and enabled states from the reference
+context-menu	Text being edited	done	items, order and enabled states from the reference
+context-menu	Curve nodes (Shape tool)	done	items, order and enabled states from the reference
+context-menu	Page	done	items, order and enabled states from the reference
+context-menu	Desktop (outside the page)	done	items, order and enabled states from the reference
+context-menu	Ruler	done	items, order and enabled states from the reference
+context-menu	Page tab	done	items, order and enabled states from the reference
+context-menu	Toolbar	done	items, order and enabled states from the reference
+context-menu	Status bar	done	items, order and enabled states from the reference
+context-menu	Toolbox	done	items, order and enabled states from the reference
+menu	Help > Welcome Screen	done	opens the Welcome Screen tab
+menu	Help > What's New?...	done	opens the Welcome Screen tab on What's New, as in the reference
+dialog	Help > What's New (aba Welcome Screen)	done	Welcome Screen: Get Started, Workspace and What's New; Corel's training, store, trial and support entries left out
+menu	Tools > Options > CorelDRAW...	partial	Tools > Options > Vector...
+dialog	Tools > Options > CorelDRAW	partial	Options > Vector
+effect	Effects > 3D Effects > Pinch_Punch	partial	Pinch/Punch
+effect	Effects > Adjust > Hue_Saturation_Lightness	partial	Hue/Saturation/Lightness
+menu	Edit > Undo Apply Preset Guidelines	partial	Undo names the last action
+menu	Edit > Repeat Apply Preset Guidelines	partial	Repeat names the last action
+menu	View > <placeHolder >	partial	list filled at run time
+menu	Effects > Adjust > <placeHolder >	partial	list filled at run time
+menu	Window > Workspace > <placeHolder a124f904>	partial	list filled at run time
+menu	Window > Color Palettes > Recent > <placeHolder cad5a5c3>	partial	list filled at run time
+menu	Window > Color Palettes > <placeHolder 60be24a7>	partial	list filled at run time
+menu	Window > Color Palettes > <placeHolder 866d09b5>	partial	list filled at run time
+menu	Window > Color Palettes > <placeHolder 78f112b4>	partial	list filled at run time

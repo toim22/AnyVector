@@ -3,3 +3,134 @@
 10_about.png	03-telas/doc-vazio/12 Help/012 Help ▸ About CorelDRAW.png	Help > About
 11_system_info.png	03-telas/doc-vazio/12 Help/012 Help ▸ About CorelDRAW/botoes/001 botao ▸ System Info.png	Help > About > System Info
 06_new_document.png	03-telas/doc-vazio/01 File/001 File ▸ New.png	File > New
+01_home_whats_new.png	03-telas/doc-vazio/12 Help/005 Help ▸ What's New (aba Welcome Screen).png	Help > What's New (Welcome Screen)
+20_menu_nodoc_01_file.png	02-menus/sem-documento/01 File/001 File.png	File menu without a document
+20_menu_nodoc_02_tools.png	02-menus/sem-documento/02 Tools/001 Tools.png	Tools menu without a document
+20_menu_nodoc_03_window.png	02-menus/sem-documento/03 Window/001 Window.png	Window menu without a document
+20_menu_nodoc_04_help.png	02-menus/sem-documento/04 Help/001 Help.png	Help menu without a document
+21_menu_01_file.png	02-menus/retangulo/01 File/001 File.png	File menu, rectangle selected
+21_menu_02_edit.png	02-menus/retangulo/02 Edit/001 Edit.png	Edit menu, rectangle selected
+21_menu_03_view.png	02-menus/retangulo/03 View/001 View.png	View menu, rectangle selected
+21_menu_05_object.png	02-menus/retangulo/05 Object/001 Object.png	Object menu, rectangle selected
+21_menu_06_effects.png	02-menus/retangulo/06 Effects/001 Effects.png	Effects menu, rectangle selected
+21_menu_07_bitmaps.png	02-menus/retangulo/07 Bitmaps/001 Bitmaps.png	Bitmaps menu, rectangle selected
+21_menu_08_text.png	02-menus/retangulo/08 Text/001 Text.png	Text menu, rectangle selected
+21_menu_11_window.png	02-menus/retangulo/11 Window/001 Window.png	Window menu, rectangle selected
+30_ctx_01_retangulo.png	07-menus-de-contexto/01 retangulo/001 retangulo.png	Right-click: retangulo
+30_ctx_02_elipse.png	07-menus-de-contexto/02 elipse/001 elipse.png	Right-click: elipse
+30_ctx_03_curva.png	07-menus-de-contexto/03 curva/001 curva.png	Right-click: curva
+30_ctx_04_texto-artistico.png	07-menus-de-contexto/04 texto-artistico/001 texto-artistico.png	Right-click: texto-artistico
+30_ctx_05_texto-paragrafo.png	07-menus-de-contexto/05 texto-paragrafo/001 texto-paragrafo.png	Right-click: texto-paragrafo
+30_ctx_06_bitmap.png	07-menus-de-contexto/06 bitmap/001 bitmap.png	Right-click: bitmap
+30_ctx_07_grupo.png	07-menus-de-contexto/07 grupo/001 grupo.png	Right-click: grupo
+30_ctx_08_selecao-multipla.png	07-menus-de-contexto/08 selecao-multipla/001 selecao-multipla.png	Right-click: selecao-multipla
+30_ctx_09_tabela.png	07-menus-de-contexto/09 tabela/001 tabela.png	Right-click: tabela
+30_ctx_10_simbolo.png	07-menus-de-contexto/10 simbolo/001 simbolo.png	Right-click: simbolo
+30_ctx_11_powerclip.png	07-menus-de-contexto/11 powerclip/001 powerclip.png	Right-click: powerclip
+30_ctx_12_linha-de-cota.png	07-menus-de-contexto/12 linha-de-cota/001 linha-de-cota.png	Right-click: linha-de-cota
+30_ctx_13_conector.png	07-menus-de-contexto/13 conector/001 conector.png	Right-click: conector
+30_ctx_15_tabela-celulas.png	07-menus-de-contexto/15 tabela-celulas/001 tabela-celulas.png	Right-click: tabela-celulas
+30_ctx_17_nos-da-curva.png	07-menus-de-contexto/17 nos-da-curva/001 nos-da-curva.png	Right-click: nos-da-curva
+30_ctx_19_area-de-trabalho.png	07-menus-de-contexto/19 area-de-trabalho/001 area-de-trabalho.png	Right-click: area-de-trabalho
+30_ctx_20_regua.png	07-menus-de-contexto/20 regua/001 regua.png	Right-click: regua
+30_ctx_23_aba-da-pagina.png	07-menus-de-contexto/23 aba-da-pagina/001 aba-da-pagina.png	Right-click: aba-da-pagina
+30_ctx_25_barra-de-ferramentas.png	07-menus-de-contexto/25 barra-de-ferramentas/001 barra-de-ferramentas.png	Right-click: barra-de-ferramentas
+30_ctx_26_barra-de-status.png	07-menus-de-contexto/26 barra-de-status/001 barra-de-status.png	Right-click: barra-de-status
+30_ctx_27_caixa-de-ferramentas.png	07-menus-de-contexto/27 caixa-de-ferramentas/001 caixa-de-ferramentas.png	Right-click: caixa-de-ferramentas
+40_toolbar_standard.png	06-barras/00 Standard (barra padrao).png	Standard toolbar
+42_toolbox.png	05-ferramentas/flyouts/000 caixa de ferramentas.png	Toolbox
+43_flyout_01_pick.png	05-ferramentas/flyouts/01 flyout Pick (3 itens).png	Flyout pick
+43_flyout_02_shape.png	05-ferramentas/flyouts/02 flyout Shape (7 itens).png	Flyout shape
+43_flyout_04_crop.png	05-ferramentas/flyouts/04 flyout Crop (4 itens).png	Flyout crop
+43_flyout_05_zoom.png	05-ferramentas/flyouts/05 flyout Zoom (2 itens).png	Flyout zoom
+43_flyout_07_freehand.png	05-ferramentas/flyouts/07 flyout Freehand (7 itens).png	Flyout freehand
+43_flyout_08_painterly.png	05-ferramentas/flyouts/08 flyout Painterly Brush (4 itens).png	Flyout painterly
+43_flyout_09_rectangle.png	05-ferramentas/flyouts/09 flyout Rectangle (2 itens).png	Flyout rectangle
+43_flyout_10_ellipse.png	05-ferramentas/flyouts/10 flyout Ellipse (2 itens).png	Flyout ellipse
+43_flyout_11_polygon.png	05-ferramentas/flyouts/11 flyout Polygon (6 itens).png	Flyout polygon
+43_flyout_13_text.png	05-ferramentas/flyouts/13 flyout Text (2 itens).png	Flyout text
+43_flyout_15_dimension.png	05-ferramentas/flyouts/15 flyout Parallel Dimension (5 itens).png	Flyout dimension
+43_flyout_16_connector.png	05-ferramentas/flyouts/16 flyout Connector (2 itens).png	Flyout connector
+43_flyout_18_shadow.png	05-ferramentas/flyouts/18 flyout Shadow (7 itens).png	Flyout shadow
+43_flyout_21_eyedropper.png	05-ferramentas/flyouts/21 flyout Color Eyedropper (2 itens).png	Flyout eyedropper
+43_flyout_22_fill.png	05-ferramentas/flyouts/22 flyout Interactive Fill (3 itens).png	Flyout fill
+pb/001 Pick.png	05-ferramentas/barra-de-propriedades/001 Pick (retangulo).png	Property bar: Pick
+pb/002 Freehand Pick.png	05-ferramentas/barra-de-propriedades/002 Freehand Pick (retangulo).png	Property bar: Freehand Pick
+pb/003 Free Transform.png	05-ferramentas/barra-de-propriedades/003 Free Transform (retangulo).png	Property bar: Free Transform
+pb/004 Shape.png	05-ferramentas/barra-de-propriedades/004 Shape (curva).png	Property bar: Shape
+pb/005 Smooth.png	05-ferramentas/barra-de-propriedades/005 Smooth (curva).png	Property bar: Smooth
+pb/006 Smear.png	05-ferramentas/barra-de-propriedades/006 Smear (curva).png	Property bar: Smear
+pb/007 Twirl.png	05-ferramentas/barra-de-propriedades/007 Twirl (curva).png	Property bar: Twirl
+pb/008 Attract and Repel.png	05-ferramentas/barra-de-propriedades/008 Attract and Repel (curva).png	Property bar: Attract and Repel
+pb/009 Smudge.png	05-ferramentas/barra-de-propriedades/009 Smudge (curva).png	Property bar: Smudge
+pb/010 Roughen.png	05-ferramentas/barra-de-propriedades/010 Roughen (curva).png	Property bar: Roughen
+pb/011 Crop.png	05-ferramentas/barra-de-propriedades/011 Crop (bitmap).png	Property bar: Crop
+pb/012 Knife.png	05-ferramentas/barra-de-propriedades/012 Knife (retangulo).png	Property bar: Knife
+pb/013 Virtual Segment Delete.png	05-ferramentas/barra-de-propriedades/013 Virtual Segment Delete (retangulo).png	Property bar: Virtual Segment Delete
+pb/014 Eraser.png	05-ferramentas/barra-de-propriedades/014 Eraser (retangulo).png	Property bar: Eraser
+pb/015 Zoom.png	05-ferramentas/barra-de-propriedades/015 Zoom (retangulo).png	Property bar: Zoom
+pb/016 Pan.png	05-ferramentas/barra-de-propriedades/016 Pan (retangulo).png	Property bar: Pan
+pb/017 Freehand.png	05-ferramentas/barra-de-propriedades/017 Freehand (retangulo).png	Property bar: Freehand
+pb/018 2-Point Line.png	05-ferramentas/barra-de-propriedades/018 2-Point Line (retangulo).png	Property bar: 2-Point Line
+pb/019 Bezier.png	05-ferramentas/barra-de-propriedades/019 Bézier (retangulo).png	Property bar: Bezier
+pb/020 Pen.png	05-ferramentas/barra-de-propriedades/020 Pen (retangulo).png	Property bar: Pen
+pb/021 B-Spline.png	05-ferramentas/barra-de-propriedades/021 B-Spline (retangulo).png	Property bar: B-Spline
+pb/022 Polyline.png	05-ferramentas/barra-de-propriedades/022 Polyline (retangulo).png	Property bar: Polyline
+pb/023 3-Point Curve.png	05-ferramentas/barra-de-propriedades/023 3-Point Curve (retangulo).png	Property bar: 3-Point Curve
+pb/024 Painterly Brush.png	05-ferramentas/barra-de-propriedades/024 Painterly Brush (retangulo).png	Property bar: Painterly Brush
+pb/025 Artistic Media.png	05-ferramentas/barra-de-propriedades/025 Artistic Media (retangulo).png	Property bar: Artistic Media
+pb/026 LiveSketch.png	05-ferramentas/barra-de-propriedades/026 LiveSketch (retangulo).png	Property bar: LiveSketch
+pb/027 Smart Drawing.png	05-ferramentas/barra-de-propriedades/027 Smart Drawing (retangulo).png	Property bar: Smart Drawing
+pb/028 Rectangle.png	05-ferramentas/barra-de-propriedades/028 Rectangle (retangulo).png	Property bar: Rectangle
+pb/029 3-Point Rectangle.png	05-ferramentas/barra-de-propriedades/029 3-Point Rectangle (retangulo).png	Property bar: 3-Point Rectangle
+pb/030 Ellipse.png	05-ferramentas/barra-de-propriedades/030 Ellipse (retangulo).png	Property bar: Ellipse
+pb/031 3-Point Ellipse.png	05-ferramentas/barra-de-propriedades/031 3-Point Ellipse (retangulo).png	Property bar: 3-Point Ellipse
+pb/032 Polygon.png	05-ferramentas/barra-de-propriedades/032 Polygon (retangulo).png	Property bar: Polygon
+pb/033 Star.png	05-ferramentas/barra-de-propriedades/033 Star (retangulo).png	Property bar: Star
+pb/034 Spiral.png	05-ferramentas/barra-de-propriedades/034 Spiral (retangulo).png	Property bar: Spiral
+pb/035 Common Shapes.png	05-ferramentas/barra-de-propriedades/035 Common Shapes (retangulo).png	Property bar: Common Shapes
+pb/037 Graph Paper.png	05-ferramentas/barra-de-propriedades/037 Graph Paper (retangulo).png	Property bar: Graph Paper
+pb/038 Text.png	05-ferramentas/barra-de-propriedades/038 Text (texto-artistico).png	Property bar: Text
+pb/039 Table.png	05-ferramentas/barra-de-propriedades/039 Table (tabela).png	Property bar: Table
+pb/040 Parallel Dimension.png	05-ferramentas/barra-de-propriedades/040 Parallel Dimension (linha-de-cota).png	Property bar: Parallel Dimension
+pb/041 Horizontal or Vertical Dimension.png	05-ferramentas/barra-de-propriedades/041 Horizontal or Vertical Dimension (linha-de-cota).png	Property bar: Horizontal or Vertical Dimension
+pb/042 Angular Dimension.png	05-ferramentas/barra-de-propriedades/042 Angular Dimension (linha-de-cota).png	Property bar: Angular Dimension
+pb/043 Segment Dimension.png	05-ferramentas/barra-de-propriedades/043 Segment Dimension (linha-de-cota).png	Property bar: Segment Dimension
+pb/044 2-Leg Callout.png	05-ferramentas/barra-de-propriedades/044 2-Leg Callout (linha-de-cota).png	Property bar: 2-Leg Callout
+pb/045 Connector.png	05-ferramentas/barra-de-propriedades/045 Connector (conector).png	Property bar: Connector
+pb/046 Anchor Editing.png	05-ferramentas/barra-de-propriedades/046 Anchor Editing (conector).png	Property bar: Anchor Editing
+pb/047 Shadow.png	05-ferramentas/barra-de-propriedades/047 Shadow (retangulo).png	Property bar: Shadow
+pb/048 Contour.png	05-ferramentas/barra-de-propriedades/048 Contour (retangulo).png	Property bar: Contour
+pb/049 Blend.png	05-ferramentas/barra-de-propriedades/049 Blend (retangulo).png	Property bar: Blend
+pb/050 Distort.png	05-ferramentas/barra-de-propriedades/050 Distort (retangulo).png	Property bar: Distort
+pb/051 Envelope.png	05-ferramentas/barra-de-propriedades/051 Envelope (retangulo).png	Property bar: Envelope
+pb/052 Extrude.png	05-ferramentas/barra-de-propriedades/052 Extrude (retangulo).png	Property bar: Extrude
+pb/053 Block Shadow.png	05-ferramentas/barra-de-propriedades/053 Block Shadow (retangulo).png	Property bar: Block Shadow
+pb/054 Transparency.png	05-ferramentas/barra-de-propriedades/054 Transparency (retangulo).png	Property bar: Transparency
+pb/055 Color Eyedropper.png	05-ferramentas/barra-de-propriedades/055 Color Eyedropper (retangulo).png	Property bar: Color Eyedropper
+pb/056 Attributes Eyedropper.png	05-ferramentas/barra-de-propriedades/056 Attributes Eyedropper (retangulo).png	Property bar: Attributes Eyedropper
+pb/057 Interactive Fill.png	05-ferramentas/barra-de-propriedades/057 Interactive Fill (retangulo).png	Property bar: Interactive Fill
+pb/058 Smart Fill.png	05-ferramentas/barra-de-propriedades/058 Smart Fill (retangulo).png	Property bar: Smart Fill
+pb/059 Mesh Fill.png	05-ferramentas/barra-de-propriedades/059 Mesh Fill (retangulo).png	Property bar: Mesh Fill
+pb/pick 01 doc-vazio.png	05-ferramentas/barra-pick-por-contexto/01 Pick com doc-vazio.png	Pick property bar: doc-vazio
+pb/pick 02 retangulo.png	05-ferramentas/barra-pick-por-contexto/02 Pick com retangulo.png	Pick property bar: retangulo
+pb/pick 03 elipse.png	05-ferramentas/barra-pick-por-contexto/03 Pick com elipse.png	Pick property bar: elipse
+pb/pick 04 curva.png	05-ferramentas/barra-pick-por-contexto/04 Pick com curva.png	Pick property bar: curva
+pb/pick 05 texto-artistico.png	05-ferramentas/barra-pick-por-contexto/05 Pick com texto-artistico.png	Pick property bar: texto-artistico
+pb/pick 06 texto-paragrafo.png	05-ferramentas/barra-pick-por-contexto/06 Pick com texto-paragrafo.png	Pick property bar: texto-paragrafo
+pb/pick 07 bitmap.png	05-ferramentas/barra-pick-por-contexto/07 Pick com bitmap.png	Pick property bar: bitmap
+pb/pick 08 grupo.png	05-ferramentas/barra-pick-por-contexto/08 Pick com grupo.png	Pick property bar: grupo
+pb/pick 09 selecao-multipla.png	05-ferramentas/barra-pick-por-contexto/09 Pick com selecao-multipla.png	Pick property bar: selecao-multipla
+pb/pick 10 tabela.png	05-ferramentas/barra-pick-por-contexto/10 Pick com tabela.png	Pick property bar: tabela
+pb/pick 11 tabela-celulas.png	05-ferramentas/barra-pick-por-contexto/11 Pick com tabela-celulas.png	Pick property bar: tabela-celulas
+pb/pick 12 simbolo.png	05-ferramentas/barra-pick-por-contexto/12 Pick com simbolo.png	Pick property bar: simbolo
+pb/pick 13 powerclip.png	05-ferramentas/barra-pick-por-contexto/13 Pick com powerclip.png	Pick property bar: powerclip
+pb/pick 14 linha-de-cota.png	05-ferramentas/barra-pick-por-contexto/14 Pick com linha-de-cota.png	Pick property bar: linha-de-cota
+pb/pick 15 conector.png	05-ferramentas/barra-pick-por-contexto/15 Pick com conector.png	Pick property bar: conector
+pb/pick 16 varias-paginas.png	05-ferramentas/barra-pick-por-contexto/16 Pick com varias-paginas.png	Pick property bar: varias-paginas
+pb/pick 17 rollover.png	05-ferramentas/barra-pick-por-contexto/17 Pick com rollover.png	Pick property bar: rollover
+pb/pick 18 com-efeitos.png	05-ferramentas/barra-pick-por-contexto/18 Pick com com-efeitos.png	Pick property bar: com-efeitos
+21_menu_04_layout.png	02-menus/doc-vazio/04 Layout/001 Layout.png	Layout menu (same with a selection)
+21_menu_09_table.png	02-menus/doc-vazio/09 Table/001 Table.png	Table menu (same with a selection)
+21_menu_10_tools.png	02-menus/doc-vazio/10 Tools/001 Tools.png	Tools menu (same with a selection)
+21_menu_12_help.png	02-menus/doc-vazio/12 Help/001 Help.png	Help menu (same with a selection)

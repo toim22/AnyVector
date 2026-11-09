@@ -98,6 +98,9 @@ pub enum Cmd {
     ZoomSet(f64),
     // Layout
     InsertPage,
+    /// Insert one page after / before the current page (page tab right-click menu).
+    InsertPageAfter,
+    InsertPageBefore,
     DuplicatePage,
     RenamePage,
     DeletePage,
@@ -108,6 +111,17 @@ pub enum Cmd {
     PageSetup,
     PageBackground,
     Landscape(bool),
+    /// A property bar option button (the first 8 hex digits of its reference id), run by
+    /// `crate::propbar::press`.
+    BarOption(u32),
+    /// Ruler right-click menu: the Grid, Rulers and Guidelines pages of Options.
+    GridSetup,
+    /// Options ▸ Customization ▸ Command Bars (a command bar's Properties…).
+    CommandBarsSetup,
+    /// Options ▸ Customization ▸ Commands (a toolbar item's Properties…).
+    CommandsSetup,
+    RulerSetup,
+    GuidelinesSetup,
     // Object
     Group,
     Ungroup,
@@ -126,6 +140,8 @@ pub enum Cmd {
     Distribute(Distribute),
     Shaping(Shaping),
     ConvertToCurves,
+    /// A Shape tool node command (Add, Delete, To Line, …) on the selected nodes.
+    Node(crate::tools::NodeOp),
     OutlineToObject,
     JoinCurves,
     PowerClipInside,
