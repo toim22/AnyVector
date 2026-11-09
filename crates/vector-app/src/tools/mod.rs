@@ -29,8 +29,12 @@ pub enum PickTarget {
     PowerClip,
     /// Copy Properties From: which properties to copy.
     CopyProperties { pen: bool, color: bool, fill: bool, text: bool },
-    CopyEffect,
+    /// Copy Effect / Clone Effect From: the effect (see `Cmd::CloneEffectFrom`), 255 = all.
+    CopyEffect { kind: u8, clone: bool },
     FitToPath,
+    /// Order ▸ In Front Of / Behind.
+    Order { in_front: bool },
+    CopyPowerClip,
 }
 
 /// Kind of interactive transform on the Pick tool.
@@ -49,6 +53,8 @@ pub enum Drag {
     #[default]
     None,
     Marquee { start: Point },
+    /// Object ▸ Create ▸ Pattern Fill: the area the pattern is made from.
+    PatternArea { start: Point },
     Lasso { points: Vec<Point> },
     Transform { kind: Xform, start: Point, bb: Rect, ids: Vec<ObjId>, center: Point },
     /// Two-point drags: shapes, text frames, tables, zoom area, crop, knife, effects.
@@ -67,6 +73,8 @@ pub enum Drag {
     ConnectorEnd { obj: ObjId, is_start: bool },
     Envelope { obj: ObjId, handle: usize, start: Point, orig: [Vec2; 8], moved: bool },
     BezierHandle { node: Point },
+    /// Table tool: dragging across the cells of a table.
+    TableCells { obj: ObjId },
 }
 
 impl Drag {
@@ -113,6 +121,10 @@ pub struct ToolState {
     pub stage: Vec<Point>,
     pub pick_target: Option<PickTarget>,
     pub table_cell: Option<(usize, usize)>,
+    /// The other corner of the selected block of cells (Table tool).
+    pub table_cell_to: Option<(usize, usize)>,
+    /// Object ▸ Create ▸ Pattern Fill waiting for its marquee: type and resolution.
+    pub pattern_area: Option<(u8, u8)>,
     /// Fill for new objects (`None` = no fill, as in the original's defaults).
     pub new_fill: Option<Color>,
     pub eyedrop_color: Option<Color>,
@@ -174,6 +186,8 @@ impl Default for ToolState {
             stage: vec![],
             pick_target: None,
             table_cell: None,
+            table_cell_to: None,
+            pattern_area: None,
             new_fill: None,
             eyedrop_color: None,
             eyedrop_attrs: None,
@@ -195,13 +209,27 @@ impl Default for ToolState {
 }
 
 impl ToolState {
+    /// The selected block of cells of table `t`.
+    pub fn table_range(&self, t: &vector_core::object::TableObj) -> Option<vector_core::object::CellRange> {
+        range_of(t, self.table_cell, self.table_cell_to)
+    }
+    /// Move the selected cells after rows or columns were inserted before them.
+    pub fn shift_cells(&mut self, (dr, dc): (usize, usize)) {
+        for c in [&mut self.table_cell, &mut self.table_cell_to].into_iter().flatten() {
+            c.0 += dr;
+            c.1 += dc;
+        }
+    }
     /// Status bar hint for a tool, adapted to what is in progress.
     pub fn hint(&self, t: ToolId) -> String {
         if let Some(p) = self.pick_target {
             return match p {
                 PickTarget::PowerClip => "Click the frame object to place the selection inside it (Esc to cancel)",
                 PickTarget::CopyProperties { .. } => "Click the object to copy properties from (Esc to cancel)",
-                PickTarget::CopyEffect => "Click the object to copy the effect from (Esc to cancel)",
+                PickTarget::CopyEffect { .. } => "Click the object to copy the effect from (Esc to cancel)",
+                PickTarget::Order { in_front: true } => "Click the object to place the selection in front of (Esc to cancel)",
+                PickTarget::Order { in_front: false } => "Click the object to place the selection behind (Esc to cancel)",
+                PickTarget::CopyPowerClip => "Click the PowerClip to copy the contents from (Esc to cancel)",
                 PickTarget::FitToPath => "Click the path to fit the text to (Esc to cancel)",
             }
             .into();
@@ -220,7 +248,7 @@ impl ToolState {
     }
 
     pub fn is_busy(&self) -> bool {
-        !self.drag.is_none() || !self.curve.is_empty() || self.crop_rect.is_some() || self.line_start.is_some() || !self.stage.is_empty() || self.pick_target.is_some() || self.pending_text.is_some()
+        !self.drag.is_none() || !self.curve.is_empty() || self.crop_rect.is_some() || self.line_start.is_some() || !self.stage.is_empty() || self.pick_target.is_some() || self.pending_text.is_some() || self.pattern_area.is_some()
     }
 
     pub fn cancel(&mut self) {
@@ -231,6 +259,7 @@ impl ToolState {
         self.stage.clear();
         self.pick_target = None;
         self.pending_text = None;
+        self.pattern_area = None;
         self.snap_mark = None;
         self.guide_lines.clear();
         self.press = None;
@@ -673,4 +702,11 @@ pub fn insert_text_at(app: &mut VectorApp, s: &str, font: Option<&str>, at: Opti
     let b = o.bounds();
     o.transform = Affine::translate(c - b.center());
     d.add_objects("Insert Text", vec![o]);
+}
+
+/// The block of cells from `a` to `b` (or the cell `a`), when they are in the table.
+pub fn range_of(t: &vector_core::object::TableObj, a: Option<(usize, usize)>, b: Option<(usize, usize)>) -> Option<vector_core::object::CellRange> {
+    let a = a.filter(|a| a.0 < t.rows && a.1 < t.cols)?;
+    let b = b.filter(|b| b.0 < t.rows && b.1 < t.cols).unwrap_or(a);
+    Some(t.range(a, b))
 }

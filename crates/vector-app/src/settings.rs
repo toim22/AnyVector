@@ -153,6 +153,8 @@ pub struct Settings {
     pub show_property_bar: bool,
     pub show_toolbox: bool,
     pub extra_toolbars: Vec<String>,
+    /// Arrowheads made with Object ▸ Create ▸ Arrowhead, listed in the Arrowhead selectors.
+    pub custom_arrowheads: Vec<vector_core::style::CustomArrow>,
     /// Toolbox items shown or hidden with Quick Customize: (first 8 characters of the item id, shown).
     pub toolbox_items: Vec<(String, bool)>,
     pub auto_update_doc_palette: bool,
@@ -396,6 +398,7 @@ impl Default for Settings {
             show_property_bar: true,
             show_toolbox: true,
             extra_toolbars: vec![],
+            custom_arrowheads: vec![],
             toolbox_items: vec![],
             auto_update_doc_palette: true,
             palette_rows: 1,

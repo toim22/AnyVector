@@ -63,13 +63,19 @@ pub fn show_all(app: &mut VectorApp, ctx: &egui::Context) {
         palette_editor(app, ctx);
     }
     if app.dialogs.rename_page.is_some() {
-        rename_page(app, ctx);
+        super::layout::rename_page(app, ctx);
     }
     if app.dialogs.goto_page.is_some() {
-        goto_page(app, ctx);
+        super::layout::goto_page(app, ctx);
     }
     if app.dialogs.insert_page.is_some() {
-        insert_page(app, ctx);
+        super::layout::insert_page(app, ctx);
+    }
+    if app.dialogs.duplicate_page.is_some() {
+        super::layout::duplicate_page(app, ctx);
+    }
+    if app.dialogs.delete_page.is_some() {
+        super::layout::delete_page(app, ctx);
     }
     if app.dialogs.resample.is_some() {
         resample(app, ctx);
@@ -446,101 +452,6 @@ fn palette_editor(app: &mut VectorApp, ctx: &egui::Context) {
 // ------------------------------------------------------------------------------------------
 // Pages
 // ------------------------------------------------------------------------------------------
-
-fn rename_page(app: &mut VectorApp, ctx: &egui::Context) {
-    let Some((i, mut name)) = app.dialogs.rename_page.clone() else { return };
-    let mut result = (false, false);
-    let ((), dismissed) = window(ctx, "rename_page", "Rename Page", vec2(380.0, 140.0), |ui| {
-        ui.add_space(14.0);
-        ui.horizontal(|ui| {
-            ui.label("Page name:");
-            let r = ui.add(egui::TextEdit::singleline(&mut name).desired_width(240.0));
-            r.request_focus();
-            if r.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-                result.0 = true;
-            }
-        });
-        let (ok, cancel) = ok_cancel_row(ui, "OK", true);
-        result.0 |= ok;
-        result.1 = cancel;
-    });
-    if result.0 {
-        if let Some(d) = app.doc_mut() {
-            if i < d.doc.pages.len() {
-                d.modify("Rename Page", |doc, _| doc.pages[i].name = name.clone());
-            }
-        }
-        app.dialogs.rename_page = None;
-    } else if result.1 || dismissed {
-        app.dialogs.rename_page = None;
-    } else {
-        app.dialogs.rename_page = Some((i, name));
-    }
-}
-
-fn goto_page(app: &mut VectorApp, ctx: &egui::Context) {
-    let Some(mut n) = app.dialogs.goto_page else { return };
-    let total = app.doc().map(|d| d.doc.pages.len()).unwrap_or(1);
-    let mut result = (false, false);
-    let ((), dismissed) = window(ctx, "goto_page", "Go To Page", vec2(300.0, 130.0), |ui| {
-        ui.add_space(14.0);
-        ui.horizontal(|ui| {
-            ui.label("Go to page:");
-            ui.add(egui::DragValue::new(&mut n).range(1..=total));
-            ui.label(format!("of {total}"));
-        });
-        result = ok_cancel_row(ui, "OK", true);
-    });
-    if result.0 {
-        if let Some(d) = app.doc_mut() {
-            d.page = (n - 1).min(total - 1);
-            d.selection.clear();
-            d.needs_fit = true;
-        }
-        app.dialogs.goto_page = None;
-    } else if result.1 || dismissed {
-        app.dialogs.goto_page = None;
-    } else {
-        app.dialogs.goto_page = Some(n);
-    }
-}
-
-fn insert_page(app: &mut VectorApp, ctx: &egui::Context) {
-    let Some((mut count, mut before)) = app.dialogs.insert_page else { return };
-    let mut result = (false, false);
-    let ((), dismissed) = window(ctx, "insert_page", "Insert Page", vec2(340.0, 170.0), |ui| {
-        ui.add_space(12.0);
-        ui.horizontal(|ui| {
-            ui.label("Number of pages:");
-            ui.add(egui::DragValue::new(&mut count).range(1..=999));
-        });
-        ui.horizontal(|ui| {
-            ui.radio_value(&mut before, true, "Before");
-            ui.radio_value(&mut before, false, "After");
-            ui.label("the current page");
-        });
-        result = ok_cancel_row(ui, "OK", true);
-    });
-    if result.0 {
-        app.dialogs.insert_page = None;
-        if let Some(d) = app.doc_mut() {
-            let (w, h) = (d.page_ref().width, d.page_ref().height);
-            let at = if before { d.page } else { d.page + 1 };
-            d.modify("Insert Page", |doc, sel| {
-                for k in 0..count {
-                    doc.add_page(at + k, w, h);
-                }
-                sel.clear();
-            });
-            d.page = at;
-            d.needs_fit = true;
-        }
-    } else if result.1 || dismissed {
-        app.dialogs.insert_page = None;
-    } else {
-        app.dialogs.insert_page = Some((count, before));
-    }
-}
 
 // ------------------------------------------------------------------------------------------
 // Resample

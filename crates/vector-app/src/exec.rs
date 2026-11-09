@@ -113,7 +113,7 @@ pub fn new_symbol(app: &mut VectorApp, name: &str) {
         }
         let sid = doc.new_id();
         let n = if name.trim().is_empty() { format!("Symbol {}", doc.symbols.len() + 1) } else { name.trim().to_string() };
-        doc.symbols.push(vector_core::document::SymbolDef { id: sid, name: n.clone(), objects: objs });
+        doc.symbols.push(vector_core::document::SymbolDef { id: sid, name: n.clone(), objects: objs, link: None });
         let iid = doc.new_id();
         let mut inst = Object::new(iid, ObjKind::Symbol(sid), Affine::translate(bb.origin().to_vec2()), Default::default());
         inst.name = n;
@@ -273,7 +273,7 @@ impl VectorApp {
 
     // -------------------------------------------------------------------------------- documents
 
-    fn push_doc(&mut self, dv: DocView) {
+    pub(crate) fn push_doc(&mut self, dv: DocView) {
         self.finish_tool();
         self.docs.push(dv);
         self.active = Some(self.docs.len() - 1);
@@ -920,28 +920,29 @@ impl VectorApp {
         });
     }
 
-    fn table_op(&mut self, f: impl Fn(&mut vector_core::object::TableObj, Option<(usize, usize)>)) {
-        let cell = self.ts.table_cell;
+    /// Change the selected tables; `f` gets the selected block of cells, if any.
+    pub(crate) fn table_op(&mut self, f: impl Fn(&mut vector_core::object::TableObj, Option<vector_core::object::CellRange>)) {
+        let (a, b) = (self.ts.table_cell, self.ts.table_cell_to);
         self.modify_sel("Edit Table", |doc, sel| {
             for id in sel.iter() {
                 if let Some(o) = doc.find_mut(*id) {
                     if let ObjKind::Table(t) = &mut o.kind {
-                        f(t, cell);
+                        let g = crate::tools::range_of(t, a, b);
+                        f(t, g);
                     }
                 }
             }
         });
     }
 
-    fn create_table(&mut self) {
-        let (rows, cols) = (self.settings.table_rows as usize, self.settings.table_cols as usize);
-        let Some(d) = self.doc_mut() else { return };
-        let pr = d.page_ref().rect();
-        let (w, h) = (pr.width() * 0.6, pr.height() * 0.25);
-        let id = d.doc.new_id();
-        let t = vector_core::object::TableObj::new(rows, cols, w, h);
-        let o = Object::new(id, ObjKind::Table(t), Affine::translate((pr.center().x - w / 2.0, pr.center().y - h / 2.0)), Default::default());
-        d.add_objects("Create Table", vec![o]);
+    /// The selected table and its selected block of cells.
+    fn table_sel(&self) -> Option<(ObjId, vector_core::object::TableObj, Option<vector_core::object::CellRange>)> {
+        let d = self.doc()?;
+        let [id] = d.selection.as_slice() else { return None };
+        match &d.doc.find(*id)?.kind {
+            ObjKind::Table(t) => Some((*id, t.clone(), self.ts.table_range(t))),
+            _ => None,
+        }
     }
 
     fn apply_workspace(&mut self, i: usize) {
@@ -1380,6 +1381,8 @@ impl VectorApp {
                     }
                 }
             }
+            Cmd::ExitFocusMode if self.doc().is_some_and(|d| d.symbol_edit.is_some()) => crate::dialogs::object::finish_symbol(self),
+            Cmd::ExitFocusMode if self.doc().is_some_and(|d| d.rollover_edit.is_some()) => crate::dialogs::object::finish_rollover(self),
             Cmd::ExitFocusMode => {
                 if let Some(d) = self.doc_mut() {
                     if !d.focus.is_empty() {
@@ -1418,11 +1421,26 @@ impl VectorApp {
                     self.dialogs.copy_props = Some(Default::default());
                 }
             }
-            Cmd::CopyEffectFrom => {
+            Cmd::CopyEffectFrom(kind) | Cmd::CloneEffectFrom(kind) => {
                 if self.has_selection() {
                     self.set_tool(ToolId::Pick);
-                    self.ts.pick_target = Some(PickTarget::CopyEffect);
+                    self.ts.pick_target = Some(PickTarget::CopyEffect { kind, clone: matches!(cmd, Cmd::CloneEffectFrom(_)) });
                     self.flash("Click the object to copy the effect from.");
+                }
+            }
+            Cmd::OrderInFrontOf | Cmd::OrderBehind => {
+                if self.has_selection() {
+                    self.set_tool(ToolId::Pick);
+                    let in_front = cmd == Cmd::OrderInFrontOf;
+                    self.ts.pick_target = Some(PickTarget::Order { in_front });
+                    self.flash(if in_front { "Click the object to place the selection in front of." } else { "Click the object to place the selection behind." });
+                }
+            }
+            Cmd::CopyPowerClipFrom => {
+                if self.has_selection() {
+                    self.set_tool(ToolId::Pick);
+                    self.ts.pick_target = Some(PickTarget::CopyPowerClip);
+                    self.flash("Click the PowerClip to copy the contents from.");
                 }
             }
             Cmd::SelectAll => {
@@ -1555,9 +1573,7 @@ impl VectorApp {
 
             // ------------------------------------------------------------------ Layout
             Cmd::InsertPage => {
-                if has_doc {
-                    self.dialogs.insert_page = Some((1, false));
-                }
+                self.dialogs.insert_page = crate::dialogs::layout::InsertPageState::new(self, false);
             }
             Cmd::InsertPageAfter | Cmd::InsertPageBefore => {
                 let before = cmd == Cmd::InsertPageBefore;
@@ -1578,21 +1594,8 @@ impl VectorApp {
             Cmd::RulerSetup => self.open_options(OptionsPage::Document, Some("Rulers")),
             Cmd::GuidelinesSetup => self.open_options(OptionsPage::Document, Some("Guidelines")),
             Cmd::DuplicatePage => {
-                if let Some(d) = self.doc_mut() {
-                    let cur = d.page;
-                    d.modify("Duplicate Page", |doc, sel| {
-                        let mut p = doc.pages[cur].clone();
-                        p.id = doc.new_id();
-                        for l in p.layers.iter_mut() {
-                            l.id = doc.new_id();
-                            for o in l.objects.iter_mut() {
-                                doc.reassign_ids(o);
-                            }
-                        }
-                        doc.pages.insert(cur + 1, p);
-                        sel.clear();
-                    });
-                    d.page = cur + 1;
+                if let Some(d) = self.doc() {
+                    self.dialogs.duplicate_page = Some(crate::dialogs::layout::DuplicatePageState { page: d.page, place: 1, contents: false });
                 }
             }
             Cmd::RenamePage => {
@@ -1601,6 +1604,13 @@ impl VectorApp {
                 }
             }
             Cmd::DeletePage => {
+                if let Some(d) = self.doc() {
+                    if d.doc.pages.len() > 1 {
+                        self.dialogs.delete_page = Some(crate::dialogs::layout::DeletePageState { from: d.page + 1, through: false, to: d.page + 1 });
+                    }
+                }
+            }
+            Cmd::DeletePageNow => {
                 if let Some(d) = self.doc_mut() {
                     if d.doc.pages.len() > 1 {
                         let cur = d.page;
@@ -1653,6 +1663,19 @@ impl VectorApp {
                 }
             }
             Cmd::PageSetup => self.open_options(OptionsPage::Document, Some("Page Size")),
+            Cmd::PageLayout => self.open_options(OptionsPage::Document, Some("Layout")),
+            Cmd::PageNumberSettings => {
+                if let Some(d) = self.doc() {
+                    let s = &d.doc.settings;
+                    self.dialogs.page_numbers = Some(crate::dialogs::layout::PageNumberState { start: s.page_number_start, from_page: s.page_number_from, style: s.page_number_style as usize });
+                }
+            }
+            Cmd::InsertPageNumber(which) => crate::dialogs::layout::insert_page_number(self, which),
+            Cmd::BorderGrommet => {
+                if self.doc().is_some() {
+                    self.dialogs.border_grommet = Some(crate::dialogs::layout::BorderGrommetState { opts: Default::default() });
+                }
+            }
             Cmd::PageBackground => self.open_options(OptionsPage::Document, Some("Background")),
 
             // ------------------------------------------------------------------ Object
@@ -1699,6 +1722,91 @@ impl VectorApp {
             Cmd::ReverseOrder => self.modify_sel("Reverse Order", |doc, sel| ops::reverse_order(doc, sel)),
             Cmd::Align(a) => self.align_cmd(a, false),
             Cmd::AlignTo(a) => self.align_cmd(a, true),
+            Cmd::CenterToPage => {
+                let use_outline = self.dockers.ui.use_outline;
+                if let Some(d) = self.doc_mut() {
+                    let ids = d.selection.clone();
+                    if !ids.is_empty() {
+                        let page = d.page;
+                        d.modify("Center to Page", |doc, _| {
+                            ops::align(doc, &ids, ops::Align::CenterH, AlignTo::Page, page, use_outline);
+                            ops::align(doc, &ids, ops::Align::CenterV, AlignTo::Page, page, use_outline);
+                        });
+                    }
+                }
+            }
+            Cmd::AlignPixelGrid => {
+                let px = self.doc().map(|d| 72.0 / d.doc.settings.dpi.max(1.0)).unwrap_or(1.0);
+                self.modify_sel("Align with Pixel Grid", move |doc, sel| ops::align_pixel_grid(doc, sel, px));
+            }
+            Cmd::ShowObjects => self.modify_sel("Show", |doc, sel| {
+                for id in sel.iter() {
+                    if let Some(o) = doc.find_mut(*id) {
+                        o.visible = true;
+                    }
+                }
+            }),
+            Cmd::OverprintFill | Cmd::OverprintOutline | Cmd::OverprintBitmap | Cmd::ObjectHinting => {
+                let get = |o: &Object| match cmd {
+                    Cmd::OverprintFill => o.style.overprint_fill,
+                    Cmd::OverprintOutline => o.style.overprint_outline,
+                    Cmd::OverprintBitmap => o.style.overprint_bitmap,
+                    _ => o.hinting,
+                };
+                let on = !self.doc().and_then(|d| d.selection.first().and_then(|id| d.doc.find(*id))).is_some_and(get);
+                let name = match cmd {
+                    Cmd::OverprintFill => "Overprint Fill",
+                    Cmd::OverprintOutline => "Overprint Outline",
+                    Cmd::OverprintBitmap => "Overprint Bitmap",
+                    _ => "Object Hinting",
+                };
+                self.modify_sel(name, move |doc, sel| {
+                    for id in sel.iter() {
+                        if let Some(o) = doc.find_mut(*id) {
+                            match cmd {
+                                Cmd::OverprintFill => o.style.overprint_fill = on,
+                                Cmd::OverprintOutline => o.style.overprint_outline = on,
+                                Cmd::OverprintBitmap => o.style.overprint_bitmap = on,
+                                _ => o.hinting = on,
+                            }
+                        }
+                    }
+                });
+            }
+            Cmd::PowerClipEmptyFrame => self.modify_sel("Create Empty PowerClip Frame", |doc, sel| {
+                let mut out = vec![];
+                for id in sel.clone() {
+                    let Some((p, l, i)) = doc.locate(id) else { continue };
+                    let o = doc.pages[p].layers[l].objects[i].clone();
+                    if matches!(o.kind, ObjKind::PowerClip { .. }) {
+                        out.push(id);
+                        continue;
+                    }
+                    let nid = doc.new_id();
+                    let mut w = Object::new(nid, ObjKind::PowerClip { frame: Box::new(o), contents: vec![] }, Affine::IDENTITY, Default::default());
+                    w.name = "PowerClip".into();
+                    doc.pages[p].layers[l].objects[i] = w;
+                    out.push(nid);
+                }
+                *sel = out;
+            }),
+            Cmd::PowerClipLock => self.modify_sel("Lock Contents to PowerClip", |doc, sel| {
+                for id in sel.iter() {
+                    if let Some(o) = doc.find_mut(*id) {
+                        if matches!(o.kind, ObjKind::PowerClip { .. }) {
+                            o.powerclip_unlocked = !o.powerclip_unlocked;
+                        }
+                    }
+                }
+            }),
+            Cmd::PowerClipPlace(m) => {
+                let name = ["Center Contents", "Fit Contents Proportionally", "Fill Frame Proportionally", "Stretch Contents to Fill Frame"][m.min(3) as usize];
+                self.modify_sel(name, move |doc, sel| {
+                    for id in sel.iter() {
+                        ops::powerclip_place(doc, *id, m);
+                    }
+                });
+            }
             Cmd::Distribute(how) => self.modify_sel("Distribute", |doc, sel| ops::distribute(doc, sel, how, None)),
             Cmd::Shaping(op) => {
                 let (ls, lt) = (self.ts.leave_source, self.ts.leave_target);
@@ -1754,6 +1862,8 @@ impl VectorApp {
                     }
                 }
             }
+            Cmd::PowerClipFinish if self.doc().is_some_and(|d| d.symbol_edit.is_some()) => crate::dialogs::object::finish_symbol(self),
+            Cmd::PowerClipFinish if self.doc().is_some_and(|d| d.rollover_edit.is_some()) => crate::dialogs::object::finish_rollover(self),
             Cmd::PowerClipFinish => {
                 if let Some(d) = self.doc_mut() {
                     if !d.focus.is_empty() {
@@ -1935,33 +2045,162 @@ impl VectorApp {
             }
 
             // ------------------------------------------------------------------ Table
-            Cmd::CreateTable => self.create_table(),
-            Cmd::TableInsertRow(above) => self.table_op(|t, cell| {
-                let r = cell.map(|c| c.0).unwrap_or(t.rows - 1);
-                t.insert_row(if above { r } else { r + 1 });
-            }),
-            Cmd::TableInsertCol(left) => self.table_op(|t, cell| {
-                let c = cell.map(|c| c.1).unwrap_or(t.cols - 1);
-                t.insert_col(if left { c } else { c + 1 });
-            }),
-            Cmd::TableDeleteRow => self.table_op(|t, cell| {
-                if t.rows > 1 {
-                    t.delete_row(cell.map(|c| c.0).unwrap_or(t.rows - 1).min(t.rows - 1));
+            Cmd::CreateTable => {
+                if self.doc().is_some() {
+                    let mm = 72.0 / 25.4;
+                    self.dialogs.table = Some(crate::dialogs::table::TableDialog::Create { rows: self.settings.table_rows.max(1) as usize, cols: self.settings.table_cols.max(1) as usize, height: 100.0 * mm, width: 75.0 * mm });
                 }
-            }),
-            Cmd::TableDeleteCol => self.table_op(|t, cell| {
-                if t.cols > 1 {
-                    t.delete_col(cell.map(|c| c.1).unwrap_or(t.cols - 1).min(t.cols - 1));
+            }
+            // Row Above / Below and Column Left / Right insert as many as are selected
+            Cmd::TableInsertRow(above) => {
+                let n = self.table_sel().and_then(|(_, _, g)| g).map(|g| g[2] - g[0] + 1).unwrap_or(1);
+                self.table_op(|t, g| {
+                    let at = match g {
+                        Some(g) if above => g[0],
+                        Some(g) => g[2] + 1,
+                        None => t.rows,
+                    };
+                    for _ in 0..n {
+                        t.insert_row(at);
+                    }
+                });
+                if above {
+                    self.ts.shift_cells((n, 0));
                 }
+            }
+            Cmd::TableInsertCol(left) => {
+                let n = self.table_sel().and_then(|(_, _, g)| g).map(|g| g[3] - g[1] + 1).unwrap_or(1);
+                self.table_op(|t, g| {
+                    let at = match g {
+                        Some(g) if left => g[1],
+                        Some(g) => g[3] + 1,
+                        None => t.cols,
+                    };
+                    for _ in 0..n {
+                        t.insert_col(at);
+                    }
+                });
+                if left {
+                    self.ts.shift_cells((0, n));
+                }
+            }
+            // deleting every row (or column) deletes the table
+            Cmd::TableDeleteRow | Cmd::TableDeleteCol => {
+                let cols = cmd == Cmd::TableDeleteCol;
+                let Some((_, t, g)) = self.table_sel() else { return };
+                let g = g.unwrap_or(if cols { [0, t.cols - 1, 0, t.cols - 1] } else { [t.rows - 1, 0, t.rows - 1, 0] });
+                let all = if cols { g[3] - g[1] + 1 >= t.cols } else { g[2] - g[0] + 1 >= t.rows };
+                if all {
+                    self.run(Cmd::Delete);
+                    self.ts.table_cell = None;
+                    self.ts.table_cell_to = None;
+                    return;
+                }
+                self.table_op(|t, _| {
+                    if cols {
+                        for c in (g[1]..=g[3]).rev() {
+                            t.delete_col(c);
+                        }
+                    } else {
+                        for r in (g[0]..=g[2]).rev() {
+                            t.delete_row(r);
+                        }
+                    }
+                });
+                self.ts.table_cell = Some(if cols { (g[0], g[1].min(t.cols - 1 - (g[3] - g[1] + 1))) } else { (g[0].min(t.rows - 1 - (g[2] - g[0] + 1)), g[1]) });
+                self.ts.table_cell_to = None;
+            }
+            // Distribute: the selected rows (columns) when more than one is selected, else all
+            Cmd::TableDistributeRows => self.table_op(|t, g| {
+                let (a, b) = g.filter(|g| g[2] > g[0]).map(|g| (g[0], g[2] + 1)).unwrap_or((0, t.rows));
+                let h: f64 = t.row_heights[a..b].iter().sum::<f64>() / (b - a) as f64;
+                t.row_heights[a..b].iter_mut().for_each(|x| *x = h);
             }),
-            Cmd::TableDistributeRows => self.table_op(|t, _| {
-                let h: f64 = t.row_heights.iter().sum::<f64>() / t.rows as f64;
-                t.row_heights.iter_mut().for_each(|x| *x = h);
+            Cmd::TableDistributeCols => self.table_op(|t, g| {
+                let (a, b) = g.filter(|g| g[3] > g[1]).map(|g| (g[1], g[3] + 1)).unwrap_or((0, t.cols));
+                let w: f64 = t.col_widths[a..b].iter().sum::<f64>() / (b - a) as f64;
+                t.col_widths[a..b].iter_mut().for_each(|x| *x = w);
             }),
-            Cmd::TableDistributeCols => self.table_op(|t, _| {
-                let w: f64 = t.col_widths.iter().sum::<f64>() / t.cols as f64;
-                t.col_widths.iter_mut().for_each(|x| *x = w);
-            }),
+            Cmd::TextToTable => {
+                if self.doc().is_some() {
+                    self.dialogs.table = Some(crate::dialogs::table::TableDialog::TextToTable { sep: 0, user: String::new() });
+                }
+            }
+            Cmd::TableToText => {
+                if self.table_sel().is_some() {
+                    self.dialogs.table = Some(crate::dialogs::table::TableDialog::TableToText { sep: 1, user: String::new() });
+                }
+            }
+            Cmd::TableInsertMany(cols) => {
+                if self.table_sel().is_some() {
+                    self.dialogs.table = Some(crate::dialogs::table::TableDialog::Insert { cols, count: 1, before: true });
+                }
+            }
+            Cmd::CreateArrowhead => self.dialogs.arrowhead = crate::dialogs::object::ArrowheadState::new(self),
+            Cmd::CreatePattern => self.dialogs.pattern = Some(crate::dialogs::object::PatternState { kind: 1, resolution: 1 }),
+            Cmd::InsertQrCode => crate::dialogs::object::insert_qr(self),
+            Cmd::InsertBarcode => {
+                self.dialogs.barcode = Some(crate::dialogs::object::BarcodeState { kind: 0, data: String::new(), height: 54.0, module: 1.0, show_text: true });
+            }
+            Cmd::ValidateBarcode => crate::dialogs::object::validate_barcode(self),
+            Cmd::AiGuided(mode) => crate::ai::guided(self, mode),
+            Cmd::AiMode(mode) => {
+                self.ai.mode = mode;
+                self.ai.reference = None;
+                self.dockers.show(DockerId::AiGenerate);
+            }
+            Cmd::SymbolEditMaster => crate::dialogs::object::edit_master(self),
+            Cmd::SymbolFinish => crate::dialogs::object::finish_symbol(self),
+            Cmd::SymbolBreakLink => crate::dialogs::object::break_link(self),
+            Cmd::SymbolUpdateLink => crate::dialogs::object::update_from_link(self),
+            Cmd::SymbolExportLibrary => crate::dialogs::object::export_library(self),
+            Cmd::RolloverCreate => crate::dialogs::object::create_rollover(self),
+            Cmd::RolloverExtract => crate::dialogs::object::extract_rollover(self),
+            Cmd::RolloverEdit => crate::dialogs::object::edit_rollover(self),
+            Cmd::RolloverFinish => crate::dialogs::object::finish_rollover(self),
+            Cmd::RolloverLivePreview => {
+                self.rollover_live = !self.rollover_live;
+                if !self.rollover_live {
+                    crate::dialogs::object::stop_live_preview(self);
+                }
+            }
+            Cmd::RolloverDuplicateState => crate::dialogs::object::state_contents(self, true),
+            Cmd::RolloverDeleteState => crate::dialogs::object::state_contents(self, false),
+            Cmd::TableSplit(cols) => {
+                if self.table_sel().is_some() {
+                    self.dialogs.table = Some(crate::dialogs::table::TableDialog::Split { cols, count: 2 });
+                }
+            }
+            Cmd::TableSelect(what) => {
+                let Some((_, t, g)) = self.table_sel() else { return };
+                self.set_tool(ToolId::Table);
+                let g = g.unwrap_or([0, 0, 0, 0]);
+                let (a, b) = match what {
+                    0 => ((g[0], g[1]), None),
+                    1 => ((g[0], 0), Some((g[2], t.cols - 1))),
+                    2 => ((0, g[1]), Some((t.rows - 1, g[3]))),
+                    _ => ((0, 0), Some((t.rows - 1, t.cols - 1))),
+                };
+                self.ts.table_cell = Some(a);
+                self.ts.table_cell_to = b;
+            }
+            Cmd::TableDeleteTable => {
+                if self.table_sel().is_some() {
+                    self.run(Cmd::Delete);
+                    self.ts.table_cell = None;
+                    self.ts.table_cell_to = None;
+                }
+            }
+            Cmd::TableMerge => {
+                let Some((_, _, Some(g))) = self.table_sel() else { return };
+                self.table_op(|t, _| t.merge(g));
+                self.ts.table_cell = Some((g[0], g[1]));
+                self.ts.table_cell_to = None;
+            }
+            Cmd::TableUnmerge => {
+                let Some((_, _, Some(g))) = self.table_sel() else { return };
+                self.table_op(|t, _| t.unmerge(g));
+            }
 
             // ------------------------------------------------------------------ Tools
             Cmd::Options(p) => self.open_options(p, None),

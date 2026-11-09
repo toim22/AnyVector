@@ -240,6 +240,30 @@ pub enum ArrowHead {
     Square,
     Diamond,
     Bar,
+    /// Object ▸ Create ▸ Arrowhead: an id in `Document::arrowheads`.
+    Custom(u64),
+}
+
+/// An arrowhead made from an object. The path has its tip at (0, 0), points along +x and is
+/// one unit long; `width` is its width in the same unit.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CustomArrow {
+    pub id: u64,
+    pub name: String,
+    /// SVG path data.
+    pub path: String,
+    pub width: f64,
+    /// Filled (closed shapes) or stroked.
+    pub filled: bool,
+}
+
+impl CustomArrow {
+    /// The arrowhead at the end of a line: `tip`, pointing along `dir`, for outline width `w`.
+    pub fn placed(&self, tip: kurbo::Point, dir: kurbo::Vec2, w: f64) -> kurbo::BezPath {
+        let s = (w * 4.0).max(4.0);
+        let a = kurbo::Affine::translate(tip.to_vec2()) * kurbo::Affine::rotate(dir.atan2()) * kurbo::Affine::scale(s);
+        a * kurbo::BezPath::from_svg(&self.path).unwrap_or_default()
+    }
 }
 
 impl ArrowHead {
@@ -253,6 +277,7 @@ impl ArrowHead {
             ArrowHead::Square => "Square",
             ArrowHead::Diamond => "Diamond",
             ArrowHead::Bar => "Bar",
+            ArrowHead::Custom(_) => "Custom",
         }
     }
 }
@@ -452,6 +477,8 @@ pub struct Style {
     pub overprint_fill: bool,
     #[serde(default)]
     pub overprint_outline: bool,
+    #[serde(default)]
+    pub overprint_bitmap: bool,
     /// Even-odd fill rule (combined curves with holes) vs non-zero.
     #[serde(default = "default_true")]
     pub even_odd: bool,
@@ -466,6 +493,7 @@ impl Default for Style {
             merge: MergeMode::Normal,
             overprint_fill: false,
             overprint_outline: false,
+            overprint_bitmap: false,
             even_odd: true,
         }
     }

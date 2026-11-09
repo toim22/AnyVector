@@ -126,6 +126,57 @@ pub struct DocSettings {
     /// View ▸ Page ▸ Printable Area.
     #[serde(default)]
     pub show_printable_area: bool,
+    /// Layout ▸ Page Number Settings: start at number, start on page (1-based) and style
+    /// (0 = 1, 2, 3; 1 = I, II, III; 2 = i, ii, iii; 3 = A, B, C; 4 = a, b, c).
+    #[serde(default = "one")]
+    pub page_number_start: u32,
+    #[serde(default = "one")]
+    pub page_number_from: u32,
+    #[serde(default)]
+    pub page_number_style: u8,
+}
+
+fn one() -> u32 {
+    1
+}
+
+fn roman(mut n: u32) -> String {
+    const T: [(u32, &str); 13] = [(1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"), (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")];
+    let mut s = String::new();
+    for (v, r) in T {
+        while n >= v {
+            s.push_str(r);
+            n -= v;
+        }
+    }
+    s
+}
+
+fn letters(mut n: u32) -> String {
+    let mut s = vec![];
+    while n > 0 {
+        n -= 1;
+        s.push(b'A' + (n % 26) as u8);
+        n /= 26;
+    }
+    s.reverse();
+    String::from_utf8(s).unwrap_or_default()
+}
+
+/// The page number shown on page `index` (0-based); empty before the "start on page" page.
+pub fn page_number_label(index: usize, start: u32, from: u32, style: u8) -> String {
+    let pos = index as u32 + 1;
+    if pos < from.max(1) {
+        return String::new();
+    }
+    let n = start.max(1) + (pos - from.max(1));
+    match style {
+        1 => roman(n),
+        2 => roman(n).to_lowercase(),
+        3 => letters(n),
+        4 => letters(n).to_lowercase(),
+        _ => n.to_string(),
+    }
 }
 
 fn default_baseline_spacing() -> f64 {
@@ -227,6 +278,9 @@ impl Default for DocSettings {
             snap_to_baseline: false,
             snap_to_pixels: false,
             show_printable_area: false,
+            page_number_start: 1,
+            page_number_from: 1,
+            page_number_style: 0,
         }
     }
 }
@@ -236,6 +290,16 @@ pub struct SymbolDef {
     pub id: u64,
     pub name: String,
     pub objects: Vec<Object>,
+    /// The symbol library file this symbol is linked to (Symbol ▸ Update from Link).
+    #[serde(default)]
+    pub link: Option<String>,
+}
+
+/// A pattern made with Object ▸ Create ▸ Pattern Fill.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct NamedPattern {
+    pub name: String,
+    pub fill: crate::style::PatternFill,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -458,6 +522,12 @@ pub struct Document {
     /// Print merge data (File ▸ Print Merge).
     #[serde(default)]
     pub print_merge: Option<PrintMerge>,
+    /// Arrowheads made with Object ▸ Create ▸ Arrowhead that this document uses.
+    #[serde(default)]
+    pub arrowheads: Vec<crate::style::CustomArrow>,
+    /// Patterns made with Object ▸ Create ▸ Pattern Fill.
+    #[serde(default)]
+    pub patterns: Vec<NamedPattern>,
     next_id: u64,
 }
 
@@ -486,6 +556,8 @@ impl Document {
             views: vec![],
             data_fields: vec!["Name".into(), "Cost".into(), "Comments".into(), "CDRStaticID".into()],
             print_merge: None,
+            arrowheads: vec![],
+            patterns: vec![],
             next_id: 1,
         };
         let pid = d.new_id();
@@ -689,6 +761,35 @@ impl Document {
     pub fn symbol_bounds(&self, id: u64) -> Option<Rect> {
         let s = self.symbols.iter().find(|s| s.id == id)?;
         Some(crate::object::union_bounds(s.objects.iter().map(|o| o.bounds())))
+    }
+
+    /// Refresh the page number text objects after pages were added, moved or deleted, or the
+    /// Page Number Settings changed. Returns true when a number changed.
+    pub fn update_page_numbers(&mut self) -> bool {
+        let (start, from, style) = (self.settings.page_number_start, self.settings.page_number_from, self.settings.page_number_style);
+        let mut changed = false;
+        for (i, pg) in self.pages.iter_mut().enumerate() {
+            let label = page_number_label(i, start, from, style);
+            for l in &mut pg.layers {
+                for o in &mut l.objects {
+                    o.walk_mut(&mut |x| {
+                        if let crate::object::ObjKind::Text(t) = &mut x.kind {
+                            if t.page_number && t.content != label {
+                                t.content = label.clone();
+                                let n = t.content.chars().count();
+                                for sp in &mut t.spans {
+                                    sp.start = sp.start.min(n);
+                                    sp.end = sp.end.min(n);
+                                }
+                                t.spans.retain(|sp| sp.start < sp.end);
+                                changed = true;
+                            }
+                        }
+                    });
+                }
+            }
+        }
+        changed
     }
 
     pub fn bounds_of(&self, o: &Object) -> Rect {

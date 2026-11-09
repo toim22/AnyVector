@@ -2,13 +2,16 @@
 //! About, Palette Editor, page dialogs, confirmations and PowerTRACE.
 
 pub mod forms;
+pub mod layout;
 pub mod clipboard;
 pub mod docprops;
 pub mod export;
 pub mod merge;
 pub mod new_doc;
+pub mod object;
 pub mod options;
 pub mod print;
+pub mod table;
 
 use crate::app::VectorApp;
 use crate::theme;
@@ -50,8 +53,10 @@ pub struct Dialogs {
     pub message_box: Option<(String, String)>,
     /// Resample bitmap: (width px, height px, keep ratio).
     pub resample: Option<(f64, f64, bool)>,
-    /// Insert page dialog: (count, before current).
-    pub insert_page: Option<(usize, bool)>,
+    /// Layout ▸ Insert Page, Duplicate Page and Delete Page.
+    pub insert_page: Option<layout::InsertPageState>,
+    pub duplicate_page: Option<layout::DuplicatePageState>,
+    pub delete_page: Option<layout::DeletePageState>,
     /// Docs still waiting for a decision while closing all / quitting.
     pub close_queue: Vec<usize>,
     pub bug_report: Option<crate::bugreport::BugReportState>,
@@ -69,6 +74,18 @@ pub struct Dialogs {
     pub bitmap: Option<export::BitmapState>,
     pub paste_special: Option<clipboard::PasteSpecialState>,
     pub copy_props: Option<clipboard::CopyPropsState>,
+    /// Layout ▸ Page Number Settings.
+    pub page_numbers: Option<layout::PageNumberState>,
+    /// Layout ▸ Border and Grommet.
+    pub border_grommet: Option<layout::BorderGrommetState>,
+    /// The Table menu dialogs.
+    pub table: Option<table::TableDialog>,
+    /// Object ▸ Create ▸ Arrowhead.
+    pub arrowhead: Option<object::ArrowheadState>,
+    /// Object ▸ Create ▸ Pattern Fill.
+    pub pattern: Option<object::PatternState>,
+    /// Object ▸ Insert ▸ Barcode.
+    pub barcode: Option<object::BarcodeState>,
 }
 
 impl Dialogs {
@@ -89,6 +106,8 @@ impl Dialogs {
             || self.message_box.is_some()
             || self.resample.is_some()
             || self.insert_page.is_some()
+            || self.duplicate_page.is_some()
+            || self.delete_page.is_some()
             || self.bug_report.is_some()
             || self.system_info.is_some()
             || self.legal_notices
@@ -98,6 +117,12 @@ impl Dialogs {
             || self.bitmap.is_some()
             || self.paste_special.is_some()
             || self.copy_props.is_some()
+            || self.page_numbers.is_some()
+            || self.border_grommet.is_some()
+            || self.table.is_some()
+            || self.arrowhead.is_some()
+            || self.pattern.is_some()
+            || self.barcode.is_some()
     }
 }
 
@@ -138,8 +163,26 @@ pub fn show(app: &mut VectorApp, ctx: &egui::Context) {
     if app.dialogs.paste_special.is_some() {
         clipboard::paste_special(app, ctx);
     }
+    if app.dialogs.page_numbers.is_some() {
+        layout::page_number_settings(app, ctx);
+    }
+    if app.dialogs.border_grommet.is_some() {
+        layout::border_grommet(app, ctx);
+    }
+    if app.dialogs.table.is_some() {
+        table::show(app, ctx);
+    }
     if app.dialogs.copy_props.is_some() {
         clipboard::copy_properties(app, ctx);
+    }
+    if app.dialogs.arrowhead.is_some() {
+        object::arrowhead(app, ctx);
+    }
+    if app.dialogs.pattern.is_some() {
+        object::pattern(app, ctx);
+    }
+    if app.dialogs.barcode.is_some() {
+        object::barcode(app, ctx);
     }
 }
 
@@ -195,12 +238,23 @@ pub fn button(ui: &mut Ui, text: &str, enabled: bool) -> bool {
 
 /// Bottom button row: `?` at the left; returns (ok, cancel) clicks for OK/Cancel at the right.
 pub fn ok_cancel_row(ui: &mut Ui, ok_text: &str, ok_enabled: bool) -> (bool, bool) {
+    ok_cancel_at_bottom(ui, ok_text, ok_enabled, true)
+}
+
+/// Bottom button row with OK and Cancel at the right only (dialogs without a Help button).
+pub fn ok_cancel_plain(ui: &mut Ui, ok_enabled: bool) -> (bool, bool) {
+    ok_cancel_at_bottom(ui, "OK", ok_enabled, false)
+}
+
+fn ok_cancel_at_bottom(ui: &mut Ui, ok_text: &str, ok_enabled: bool, help: bool) -> (bool, bool) {
     let mut ok = false;
     let mut cancel = false;
     let rect = Rect::from_min_max(pos2(ui.max_rect().left(), ui.max_rect().bottom() - 24.0), ui.max_rect().right_bottom());
     ui.scope_builder(UiBuilder::new().max_rect(rect), |ui| {
         ui.horizontal(|ui| {
-            ui.add(egui::Button::new("?").min_size(vec2(24.0, 24.0))).on_hover_text("Help");
+            if help {
+                ui.add(egui::Button::new("?").min_size(vec2(24.0, 24.0))).on_hover_text("Help");
+            }
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 cancel = button(ui, "Cancel", true);
                 ui.add_space(4.0);

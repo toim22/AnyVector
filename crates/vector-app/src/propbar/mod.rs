@@ -284,6 +284,22 @@ pub fn control(app: &mut VectorApp, ui: &mut Ui, it: &'static Item) -> bool {
         "97e5c8b9" | "8340f20d" => outline_width(app, ui, it),
         "6bd00383" => outline_style(app, ui, it),
         "76dd9e0c" | "40cc3adc" => arrowhead(app, ui, it, k == "76dd9e0c"),
+        // Internet toolbar: Active Rollover State
+        "bc13bc0e" => {
+            let cur = crate::dialogs::object::active_state(app);
+            let text = cur.map(|s| format!("[{}]", crate::dialogs::object::ROLLOVER_STATES[s as usize % 3].to_uppercase())).unwrap_or_else(|| "[NORMAL]".into());
+            let mut pick = None;
+            fields::combo(app, ui, Lead::None, &text, 82.0, cur.is_some(), &tip(it), |_, ui| {
+                for (i, n) in crate::dialogs::object::ROLLOVER_STATES.iter().enumerate() {
+                    if ui.selectable_label(cur == Some(i as u8), *n).clicked() {
+                        pick = Some(i as u8);
+                    }
+                }
+            });
+            if let Some(st) = pick {
+                crate::dialogs::object::show_state(app, st);
+            }
+        }
         // Smart Drawing
         "0f15674a" | "20e29071" => {
             let recognition = k == "0f15674a";
@@ -731,20 +747,22 @@ fn arrowhead(app: &mut VectorApp, ui: &mut Ui, it: &Item, start: bool) {
     let on = app.has_selection();
     let text = match cur {
         None => "—".to_string(),
-        Some(a) => a.name().to_string(),
+        Some(a) => crate::dialogs::object::arrow_name(app, a),
     };
     let mut pick: Option<Option<ArrowHead>> = None;
+    let choices = crate::dialogs::object::arrow_choices(app);
     fields::combo(app, ui, Lead::None, &text, 48.0, on, &tip(it), |_, ui| {
         if ui.selectable_label(cur.is_none(), "None").clicked() {
             pick = Some(None);
         }
-        for a in ArrowHead::ALL {
-            if ui.selectable_label(cur == Some(a), a.name()).clicked() {
-                pick = Some(Some(a));
+        for (a, name) in &choices {
+            if ui.selectable_label(cur == Some(*a), name).clicked() {
+                pick = Some(Some(*a));
             }
         }
     });
     if let Some(a) = pick {
+        crate::dialogs::object::ensure_arrow(app, a);
         edit_sel(app, "Arrowhead", |o| {
             if start {
                 o.style.outline.start_arrow = a;
