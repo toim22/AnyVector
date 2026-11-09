@@ -451,7 +451,7 @@ pub fn edit_master(app: &mut VectorApp) {
     }
     let Some(def) = d.doc.symbols.iter().find(|s| s.id == sid).cloned() else { return };
     let Some(tr) = d.doc.find(inst).map(|o| o.transform) else { return };
-    let (page, layer) = (d.page, d.layer);
+    let (page, layer) = d.active_loc();
     let mut ids = vec![];
     d.modify("Edit Symbol", |doc, sel| {
         if let Some(o) = doc.find_mut(inst) {

@@ -174,3 +174,47 @@ pb/pick 18 com-efeitos.png	05-ferramentas/barra-pick-por-contexto/18 Pick com co
 s1_symmetry_edit.png		Object > Symmetry > Create New Symmetry (no reference capture; follows the helper: 04-shaping-objects §21)
 s3_draw_in_perspective.png		Object > Perspective > Draw in Perspective (no reference capture; follows the helper: 04-shaping-objects §22)
 s5_insert_object.png	03-telas/doc-vazio/05 Object/003 Object ▸ Insert ▸ Object.png	Object > Insert > Object
+dk_001.png	04-dockers/retangulo/001 Properties.png	Docker: Properties
+dk_002.png	04-dockers/retangulo/002 Objects.png	Docker: Objects
+dk_003.png	04-dockers/retangulo/003 Pages.png	Docker: Pages
+dk_004.png	04-dockers/retangulo/004 Comments.png	Docker: Comments
+dk_005.png	04-dockers/retangulo/005 Object Data.png	Docker: Object Data
+dk_006.png	04-dockers/retangulo/006 Object Styles.png	Docker: Object Styles
+dk_007.png	04-dockers/retangulo/007 Symbols.png	Docker: Symbols
+dk_008.png	04-dockers/retangulo/008 Find and Replace.png	Docker: Find and Replace
+dk_009.png	04-dockers/retangulo/009 Export.png	Docker: Export
+dk_010.png	04-dockers/retangulo/010 AI Generate.png	Docker: AI Generate
+dk_011.png	04-dockers/retangulo/011 Transform.png	Docker: Transform
+dk_012.png	04-dockers/retangulo/012 Coordinates.png	Docker: Coordinates
+dk_013.png	04-dockers/retangulo/013 Live Guides.png	Docker: Live Guides
+dk_014.png	04-dockers/retangulo/014 Guidelines.png	Docker: Guidelines
+dk_015.png	04-dockers/retangulo/015 Align and Distribute.png	Docker: Align and Distribute
+dk_016.png	04-dockers/retangulo/016 Fit Objects to Path.png	Docker: Fit Objects to Path
+dk_017.png	04-dockers/retangulo/017 Step and Repeat.png	Docker: Step and Repeat
+dk_018.png	04-dockers/retangulo/018 Shape.png	Docker: Shape
+dk_019.png	04-dockers/retangulo/019 Corners.png	Docker: Corners
+dk_020.png	04-dockers/retangulo/020 Join Curves.png	Docker: Join Curves
+dk_021.png	04-dockers/retangulo/021 Text.png	Docker: Text
+dk_022.png	04-dockers/retangulo/022 Font Sampler.png	Docker: Font Sampler
+dk_023.png	04-dockers/retangulo/023 Glyphs.png	Docker: Glyphs
+dk_024.png	04-dockers/retangulo/024 Effects ▸ Artistic Media.png	Docker: Effects > Artistic Media
+dk_025.png	04-dockers/retangulo/025 Effects ▸ Bevel.png	Docker: Effects > Bevel
+dk_026.png	04-dockers/retangulo/026 Effects ▸ Bitmap Mask.png	Docker: Effects > Bitmap Mask
+dk_027.png	04-dockers/retangulo/027 Effects ▸ Blend.png	Docker: Effects > Blend
+dk_028.png	04-dockers/retangulo/028 Effects ▸ Contour.png	Docker: Effects > Contour
+dk_029.png	04-dockers/retangulo/029 Effects ▸ Envelope.png	Docker: Effects > Envelope
+dk_030.png	04-dockers/retangulo/030 Effects ▸ Extrude.png	Docker: Effects > Extrude
+dk_031.png	04-dockers/retangulo/031 Effects ▸ Lens.png	Docker: Effects > Lens
+dk_032.png	04-dockers/retangulo/032 Effects ▸ PhotoCocktail.png	Docker: Effects > PhotoCocktail
+dk_033.png	04-dockers/retangulo/033 Effects ▸ Pointillizer.png	Docker: Effects > Pointillizer
+dk_034.png	04-dockers/retangulo/034 Color.png	Docker: Color
+dk_035.png	04-dockers/retangulo/035 Palettes.png	Docker: Palettes
+dk_036.png	04-dockers/retangulo/036 Color Styles.png	Docker: Color Styles
+dk_037.png	04-dockers/retangulo/037 Color Proofing.png	Docker: Color Proofing
+dk_038.png	04-dockers/retangulo/038 Assets.png	Docker: Assets
+dk_039.png	04-dockers/retangulo/039 Tray.png	Docker: Tray
+dk_040.png	04-dockers/retangulo/040 Links and Rollovers.png	Docker: Links and Rollovers
+dk_041.png	04-dockers/retangulo/041 Sources.png	Docker: Sources
+dk_042.png	04-dockers/retangulo/042 Views.png	Docker: Views
+dk_043.png	04-dockers/retangulo/043 History.png	Docker: History
+dk_044.png	04-dockers/retangulo/044 Scripts.png	Docker: Scripts

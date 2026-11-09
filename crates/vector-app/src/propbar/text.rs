@@ -1,10 +1,8 @@
 //! The text fields of the property bar (font, size, style, alignment), also used by the Text
 //! docker.
 
-use super::{btn, edit_sel, fields, selected_kind};
+use super::{edit_sel, fields, selected_kind};
 use crate::app::VectorApp;
-use crate::commands::Cmd;
-use crate::widgets::vsep;
 use egui::Ui;
 use vector_core::text::{CharFormat, TextAlign, TextObj};
 use vector_core::ObjKind;
@@ -105,53 +103,6 @@ pub fn font_size(app: &mut VectorApp, ui: &mut Ui, lead: fields::Lead, tip: &str
     let typed = fields::edit_list(app, ui, id, lead, Some(size), fields::Fmt::Trim(" pt"), 84.0, true, tip, &list);
     if let Some(s) = typed.map(|v| v.clamp(0.5, 3000.0)).filter(|s| (s - size).abs() > 1e-9) {
         apply(app, "Font Size", &move |c: &mut CharFormat| c.size = s);
-    }
-}
-
-/// Font, size, style and alignment in a row (the Text docker).
-pub fn text_controls(app: &mut VectorApp, ui: &mut Ui) {
-    let text_obj = selected_kind(app, |k| if let ObjKind::Text(t) = k { Some(t.clone()) } else { None });
-    font_list(app, ui, fields::Lead::None, 170.0, "Font List");
-    font_size(app, ui, fields::Lead::None, "Font Size");
-    vsep(ui);
-    let fmt = format(app);
-    if btn(app, ui, "bold", "Bold (Ctrl+B)", true, fmt.bold).clicked() {
-        let v = !fmt.bold;
-        apply(app, "Bold", &move |c: &mut CharFormat| c.bold = v);
-    }
-    if btn(app, ui, "italic", "Italic (Ctrl+I)", true, fmt.italic).clicked() {
-        let v = !fmt.italic;
-        apply(app, "Italic", &move |c: &mut CharFormat| c.italic = v);
-    }
-    if btn(app, ui, "underline", "Underline (Ctrl+U)", true, fmt.underline).clicked() {
-        let v = !fmt.underline;
-        apply(app, "Underline", &move |c: &mut CharFormat| c.underline = v);
-    }
-    vsep(ui);
-    let cur = align(app);
-    for (icon, tip, a) in [
-        ("align_text_left", "Left", TextAlign::Left),
-        ("align_text_center", "Center", TextAlign::Center),
-        ("align_text_right", "Right", TextAlign::Right),
-        ("align_text_justify", "Full justify", TextAlign::Justify),
-    ] {
-        if btn(app, ui, icon, tip, true, cur == a).clicked() {
-            set_align(app, a);
-        }
-    }
-    vsep(ui);
-    if btn(app, ui, "text_docker", "Text Properties (Ctrl+T)", true, false).clicked() {
-        app.run(Cmd::Docker(crate::dockers::DockerId::Text));
-    }
-    let vertical = text_obj.as_ref().map(|t| t.vertical).unwrap_or(false);
-    for (icon, tip, v) in [("text_horizontal", "Horizontal text", false), ("text_vertical", "Vertical text", true)] {
-        if btn(app, ui, icon, tip, text_obj.is_some(), text_obj.is_some() && vertical == v).clicked() {
-            edit_sel(app, "Text Orientation", |o| {
-                if let ObjKind::Text(t) = &mut o.kind {
-                    t.vertical = v;
-                }
-            });
-        }
     }
 }
 

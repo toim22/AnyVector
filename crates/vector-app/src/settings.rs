@@ -159,6 +159,20 @@ pub struct Settings {
     pub custom_dashes: Vec<Vec<f64>>,
     /// Properties ▸ Summary ▸ Wrap Connector Line.
     pub wrap_connector_lines: bool,
+    /// Object Styles ▸ Set as New Document Defaults.
+    pub default_object_styles: Vec<vector_core::document::ObjectStyle>,
+    /// Color Styles ▸ Set as New Document Defaults: the color styles and harmonies of new documents.
+    pub default_color_styles: Vec<vector_core::NamedColor>,
+    pub default_color_harmonies: Vec<vector_core::document::ColorHarmony>,
+    /// Objects docker ▸ Options.
+    pub edit_across_layers: bool,
+    pub om_expand_to_selection: bool,
+    pub om_keep_desktop: bool,
+    pub om_select_activates_layer: bool,
+    pub om_show_properties: bool,
+    pub om_show_master_on_pages: bool,
+    /// View Layers and Objects (true) or View Pages, Layers, and Objects.
+    pub om_layers_view: bool,
     /// Text ▸ Show Non-Printing Characters.
     pub show_nonprinting: bool,
     /// Text ▸ Insert Formatting Code ▸ Custom Optional Hyphens: (word, hyphenated word) and when they apply.
@@ -283,6 +297,32 @@ pub struct Settings {
     pub sync_folder: Option<PathBuf>,
     pub ai_provider_url: String,
     pub ai_api_key_env: String,
+    /// AI Generate: the Generative AI terms were accepted.
+    pub ai_terms_accepted: bool,
+    /// Links and Rollovers: cross-hatch the Web links' hotspots on the page.
+    pub show_hotspots: bool,
+    /// Assets docker: the folders of local and network assets, the options, the favorite and
+    /// recent assets, the thumbnail size and the view (thumbnails instead of the list).
+    pub asset_folders: Vec<String>,
+    pub asset_single_folder: bool,
+    pub asset_recursive: bool,
+    pub asset_favorites: Vec<String>,
+    pub asset_recent: Vec<String>,
+    pub asset_thumb: f32,
+    pub asset_icon_view: bool,
+    /// Color Proofing: the gamut warning, its color and transparency.
+    pub proof_gamut: bool,
+    pub proof_gamut_color: vector_core::Color,
+    pub proof_gamut_transparency: u32,
+    /// Color Proofing: the simulated environment, its color space (0 CMYK, 1 RGB, 2 Grayscale),
+    /// Preserve numbers, the rendering intent, the presets and the current preset ("" Custom).
+    pub proof_env: String,
+    pub proof_env_kind: u8,
+    pub proof_preserve: bool,
+    pub proof_intent: u8,
+    pub proof_presets: Vec<ProofPreset>,
+    pub proof_preset: String,
+    pub proof_show_desc: bool,
     pub window_maximized: bool,
     pub last_export_dir: Option<PathBuf>,
     // Live guides
@@ -465,6 +505,16 @@ impl Default for Settings {
             custom_arrowheads: vec![],
             custom_dashes: vec![],
             wrap_connector_lines: true,
+            default_object_styles: vec![],
+            default_color_styles: vec![],
+            default_color_harmonies: vec![],
+            edit_across_layers: true,
+            om_expand_to_selection: true,
+            om_keep_desktop: true,
+            om_select_activates_layer: true,
+            om_show_properties: false,
+            om_show_master_on_pages: false,
+            om_layers_view: false,
             show_nonprinting: false,
             hyphen_defs: vec![],
             hyphen_when_typing: true,
@@ -570,6 +620,25 @@ impl Default for Settings {
             sync_folder: None,
             ai_provider_url: String::new(),
             ai_api_key_env: "ANTHROPIC_API_KEY".into(),
+            ai_terms_accepted: false,
+            show_hotspots: true,
+            asset_folders: vec![],
+            asset_single_folder: true,
+            asset_recursive: true,
+            asset_favorites: vec![],
+            asset_recent: vec![],
+            asset_thumb: 48.0,
+            asset_icon_view: false,
+            proof_gamut: false,
+            proof_gamut_color: vector_core::Color::rgb(0, 255, 0),
+            proof_gamut_transparency: 0,
+            proof_env: "U.S. Web Coated (SWOP) v2".into(),
+            proof_env_kind: 0,
+            proof_preserve: false,
+            proof_intent: 0,
+            proof_presets: vec![],
+            proof_preset: String::new(),
+            proof_show_desc: true,
             window_maximized: true,
             last_export_dir: None,
             live_guides: true,
@@ -639,6 +708,16 @@ pub fn format_time(t: std::time::SystemTime) -> String {
 
 /// File-format versions offered in Save Drawing ▸ Version and Options ▸ Save.
 pub const FILE_VERSIONS: &[&str] = &["0.1 (2026.0)"];
+
+/// A Color Proofing preset: the environment, its color space, Preserve numbers and the intent.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ProofPreset {
+    pub name: String,
+    pub env: String,
+    pub kind: u8,
+    pub preserve: bool,
+    pub intent: u8,
+}
 
 pub fn config_dir() -> PathBuf {
     let base = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));

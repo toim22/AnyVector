@@ -423,9 +423,29 @@ impl<'a> Cx<'a> {
 
     fn hit(&self, p: Point) -> Option<ObjId> {
         let filled = self.s.treat_as_filled || self.d.doc.settings.treat_as_filled;
-        let id = self.d.doc.hit_test(self.d.page, p, self.tol(), filled)?;
+        let id = if self.s.edit_across_layers {
+            self.d.doc.hit_test(self.d.page, p, self.tol(), filled)?
+        } else {
+            // Objects docker ▸ Options ▸ Edit Across Layers off: only the active layer is editable
+            let (pi, li) = self.d.active_loc();
+            let l = self.d.doc.pages.get(pi)?.layers.get(li)?;
+            if !l.visible || l.locked {
+                return None;
+            }
+            l.objects.iter().rev().find(|o| o.visible && self.d.doc.hit_object(o, p, self.tol(), filled)).map(|o| o.id)?
+        };
         // in focus mode only the objects in focus can be picked
         (self.d.focus.is_empty() || self.d.focus.contains(&id)).then_some(id)
+    }
+
+    /// The objects a marquee selects (only the active layer's without Edit Across Layers).
+    fn in_rect(&self, r: Rect, touching: bool) -> Vec<ObjId> {
+        let mut ids = self.d.doc.objects_in_rect(self.d.page, r, touching);
+        if !self.s.edit_across_layers {
+            let (pi, li) = self.d.active_loc();
+            ids.retain(|id| self.d.doc.locate(*id).is_some_and(|(p, l, _)| (p, l) == (pi, li)));
+        }
+        ids
     }
 
     fn snap(&mut self, p: Point, exclude: &[ObjId]) -> Point {
@@ -1678,7 +1698,7 @@ impl<'a> Cx<'a> {
                 if moved {
                     let r = Rect::from_points(start, p);
                     // Alt selects objects touched by the marquee
-                    let ids = self.d.doc.objects_in_rect(self.d.page, r, mods.alt);
+                    let ids = self.in_rect(r, mods.alt);
                     if mods.shift {
                         for id in ids {
                             if !self.d.selection.contains(&id) {
@@ -1699,9 +1719,7 @@ impl<'a> Cx<'a> {
                     let bb = points.iter().fold(Rect::from_points(points[0], points[0]), |r, q| r.union_pt(*q));
                     let poly = polyline(&points, true).to_bez();
                     let ids: Vec<ObjId> = self
-                        .d
-                        .doc
-                        .objects_in_rect(self.d.page, bb, true)
+                        .in_rect(bb, true)
                         .into_iter()
                         .filter(|id| self.d.doc.find(*id).map(|o| geom::contains(&poly, o.bounds().center(), false)).unwrap_or(false))
                         .collect();
@@ -1769,7 +1787,7 @@ impl<'a> Cx<'a> {
                     }
                     // marquee over unselected curves selects them first
                     if self.d.node_sel.is_empty() {
-                        let ids = self.d.doc.objects_in_rect(self.d.page, r, false);
+                        let ids = self.in_rect(r, false);
                         if !ids.is_empty() {
                             self.d.selection = ids;
                         }

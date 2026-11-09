@@ -14,7 +14,8 @@ pub struct ColorDrag(pub Option<Color>);
 
 pub struct PaletteState {
     pub palettes: Vec<Palette>,
-    pub scroll: usize,
+    /// The first shown swatch of each open palette.
+    pub scroll: Vec<usize>,
     pub recent: Vec<String>,
     /// Color being sampled with the palette eyedropper.
     pub eyedropper: bool,
@@ -29,7 +30,7 @@ impl PaletteState {
                 palettes.push(Palette::parse(&name, &t));
             }
         }
-        PaletteState { palettes, scroll: 0, recent: vec![], eyedropper: false }
+        PaletteState { palettes, scroll: vec![], recent: vec![], eyedropper: false }
     }
 
     pub fn open_by_name(&mut self, name: &str) {
@@ -43,10 +44,6 @@ impl PaletteState {
         if !self.palettes.iter().any(|x| x.name == p.name) {
             self.palettes.push(p);
         }
-    }
-
-    pub fn colors(&self) -> Vec<NamedColor> {
-        self.palettes.first().map(|p| p.colors.clone()).unwrap_or_default()
     }
 }
 
@@ -63,7 +60,11 @@ fn swatch_h(s: &Settings) -> f32 {
     }
 }
 
-pub fn palette_column(app: &mut VectorApp, ui: &mut Ui) {
+/// The `idx`-th open palette, docked on the right edge.
+pub fn palette_column(app: &mut VectorApp, ui: &mut Ui, idx: usize) {
+    if app.palettes.scroll.len() <= idx {
+        app.palettes.scroll.resize(idx + 1, 0);
+    }
     let full = ui.available_rect_before_wrap();
     let cols = app.settings.palette_rows.max(1) as usize;
     let sw = (full.width() - 2.0) / cols as f32;
@@ -93,9 +94,9 @@ pub fn palette_column(app: &mut VectorApp, ui: &mut Ui) {
     // scroll up
     let r = Rect::from_min_size(pos2(x0, y), vec2(full.width() - 2.0, 12.0));
     let up = ui.interact(r, ui.scope_id().with("pal_up"), Sense::click());
-    crate::widgets::chevron_up(&p, r.center(), 3.0, if app.palettes.scroll > 0 { theme::TEXT } else { theme::DISABLED });
-    if up.clicked() && app.palettes.scroll > 0 {
-        app.palettes.scroll -= cols;
+    crate::widgets::chevron_up(&p, r.center(), 3.0, if app.palettes.scroll[idx] > 0 { theme::TEXT } else { theme::DISABLED });
+    if up.clicked() && app.palettes.scroll[idx] > 0 {
+        app.palettes.scroll[idx] -= cols;
     }
     y += 13.0;
     let bottom_reserved = 30.0;
@@ -105,20 +106,20 @@ pub fn palette_column(app: &mut VectorApp, ui: &mut Ui) {
     if app.settings.show_no_color_well {
         colors.push(None);
     }
-    colors.extend(app.palettes.colors().into_iter().map(Some));
+    colors.extend(app.palettes.palettes.get(idx).map(|p| p.colors.clone()).unwrap_or_default().into_iter().map(Some));
     let total_rows = colors.len().div_ceil(cols);
     let max_scroll = total_rows.saturating_sub(rows_fit) * cols;
-    app.palettes.scroll = app.palettes.scroll.min(max_scroll);
+    app.palettes.scroll[idx] = app.palettes.scroll[idx].min(max_scroll);
     // wheel scroll over the palette
     if ui.rect_contains_pointer(Rect::from_min_max(pos2(full.left(), y), pos2(full.right(), full.bottom() - bottom_reserved))) {
         let d = ui.input(|i| i.smooth_scroll_delta.y);
         if d < -1.0 {
-            app.palettes.scroll = (app.palettes.scroll + cols).min(max_scroll);
+            app.palettes.scroll[idx] = (app.palettes.scroll[idx] + cols).min(max_scroll);
         } else if d > 1.0 {
-            app.palettes.scroll = app.palettes.scroll.saturating_sub(cols);
+            app.palettes.scroll[idx] = app.palettes.scroll[idx].saturating_sub(cols);
         }
     }
-    let start = app.palettes.scroll;
+    let start = app.palettes.scroll[idx];
     let mut clicked: Option<(Option<Color>, bool)> = None;
     for (k, c) in colors.iter().enumerate().skip(start).take(rows_fit * cols) {
         let i = k - start;
@@ -165,9 +166,9 @@ pub fn palette_column(app: &mut VectorApp, ui: &mut Ui) {
     let yb = full.bottom() - bottom_reserved + 2.0;
     let r = Rect::from_min_size(pos2(x0, yb), vec2(full.width() - 2.0, 12.0));
     let dn = ui.interact(r, ui.scope_id().with("pal_dn"), Sense::click());
-    crate::widgets::chevron(&p, r.center(), 3.0, if app.palettes.scroll < max_scroll { theme::TEXT } else { theme::DISABLED });
+    crate::widgets::chevron(&p, r.center(), 3.0, if app.palettes.scroll[idx] < max_scroll { theme::TEXT } else { theme::DISABLED });
     if dn.clicked() {
-        app.palettes.scroll = (app.palettes.scroll + cols).min(max_scroll);
+        app.palettes.scroll[idx] = (app.palettes.scroll[idx] + cols).min(max_scroll);
     }
     let r = Rect::from_min_size(pos2(x0, yb + 13.0), vec2(full.width() - 2.0, 12.0));
     let ex = ui.interact(r, ui.scope_id().with("pal_ex"), Sense::click()).on_hover_text("Expand palette");
@@ -190,7 +191,7 @@ fn palette_options_menu(app: &mut VectorApp, ui: &mut Ui) {
             };
             app.palettes.palettes.retain(|x| x.name != p.name);
             app.palettes.palettes.insert(0, p);
-            app.palettes.scroll = 0;
+            app.palettes.scroll.iter_mut().for_each(|s| *s = 0);
             if !app.palettes.recent.contains(&name.to_string()) {
                 app.palettes.recent.push(name.to_string());
             }

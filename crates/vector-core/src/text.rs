@@ -1761,6 +1761,16 @@ fn is_italic_face(db: &FontDb, id: fontdb::ID) -> bool {
 }
 
 /// Glyph coverage for the Glyphs docker: list of (char, gid) available in a font.
+/// The glyph of a character in a font: its id and its name (from the font's post table).
+pub fn glyph_info(family: &str, c: char) -> Option<(u16, Option<String>)> {
+    let mut db = fonts().lock();
+    let id = db.query(family, false, false)?;
+    let face = db.face(id)?;
+    let f = ttf_parser::Face::parse(&face.data, face.index).ok()?;
+    let g = f.glyph_index(c)?;
+    Some((g.0, f.glyph_name(g).map(|s| s.to_string())))
+}
+
 pub fn font_chars(family: &str, bold: bool, italic: bool, max: usize) -> Vec<char> {
     let mut db = fonts().lock();
     let Some(id) = db.query(family, bold, italic) else { return vec![] };
