@@ -255,7 +255,8 @@ pub fn show(app: &mut VectorApp, ctx: &egui::Context) {
 fn close(app: &mut VectorApp, restore: bool) {
     let st = std::mem::take(&mut app.dialogs.options);
     if restore {
-        if let Some(b) = st.backup {
+        if let Some(mut b) = st.backup {
+            crate::workspaces::keep_on_cancel(&mut b, &app.settings);
             app.settings = b;
             ctx_zoom_reset(app);
         }
@@ -326,8 +327,13 @@ fn body(app: &mut VectorApp, ui: &mut Ui, cat: OptionsPage, page: &str) -> (bool
     }
     // left list
     let list = Rect::from_min_max(pos2(r.left(), r.top() + 41.0), pos2(r.left() + 178.0, r.bottom() - 33.0));
-    ui.painter().rect_stroke(list, 0.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Inside);
-    for (i, (name, tool)) in pages(cat).iter().enumerate() {
+    if cat == OptionsPage::Workspaces {
+        super::workspace::options_list(app, ui, list);
+    } else {
+        ui.painter().rect_stroke(list, 0.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Inside);
+    }
+    let page_list: &[(&str, Option<ToolId>)] = if cat == OptionsPage::Workspaces { &[] } else { pages(cat) };
+    for (i, (name, tool)) in page_list.iter().enumerate() {
         let row = Rect::from_min_size(pos2(list.left() + 1.0, list.top() + 1.0 + 25.0 * i as f32), vec2(list.width() - 2.0, 25.0));
         let resp = ui.interact(row, Id::unique(("optpage", cat as u8, i)), Sense::click());
         if *name == page {
@@ -409,7 +415,7 @@ fn page_content(app: &mut VectorApp, ui: &mut Ui, cat: OptionsPage, page: &str) 
             "User ID" => user_id(app, ui),
             _ => privacy(app, ui),
         },
-        OptionsPage::Workspaces => workspaces(app, ui),
+        OptionsPage::Workspaces => super::workspace::options_page(app, ui),
     }
 }
 
@@ -2155,31 +2161,3 @@ pub const WORKSPACES: [(&str, &str); 6] = [
     ("Adobe Illustrator", "Places features where Adobe Illustrator users expect them."),
 ];
 
-fn workspaces(app: &mut VectorApp, ui: &mut Ui) {
-    let st = &mut app.dialogs.options;
-    let s = &mut app.settings;
-    ui.label("Workspaces:");
-    egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP)).inner_margin(4.0).show(ui, |ui| {
-        ui.set_width(ui.available_width());
-        ui.set_min_height(240.0);
-        egui::Grid::new("ws_grid").num_columns(2).striped(true).spacing(vec2(16.0, 4.0)).show(ui, |ui| {
-            for (i, (n, desc)) in WORKSPACES.iter().enumerate() {
-                let cur = s.workspace == *n;
-                if ui.selectable_label(st.workspace_sel == Some(i), format!("{}{n}", if cur { "● " } else { "   " })).clicked() {
-                    st.workspace_sel = Some(i);
-                }
-                ui.label(egui::RichText::new(*desc).color(theme::TEXT_DIM));
-                ui.end_row();
-            }
-        });
-    });
-    let mut set = None;
-    ui.horizontal(|ui| {
-        if ui.add_enabled(st.workspace_sel.is_some(), egui::Button::new("Set as current").min_size(vec2(100.0, 22.0))).clicked() {
-            set = st.workspace_sel;
-        }
-    });
-    if let Some(i) = set {
-        app.run(Cmd::Workspace(i as u8));
-    }
-}

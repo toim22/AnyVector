@@ -12,18 +12,20 @@ pub mod merge;
 pub mod new_doc;
 pub mod objdata;
 pub mod object;
+pub mod palette;
 pub mod options;
 pub mod print;
 pub mod symmetry;
 pub mod table;
 pub mod text;
+pub mod workspace;
 
 use crate::app::VectorApp;
 use crate::theme;
 use egui::{pos2, vec2, Color32, Frame, Id, Rect, Sense, Stroke, Ui, UiBuilder, Vec2};
 
 pub use export::ExportState;
-pub use forms::{PaletteEditorState, ScriptEditorState};
+pub use forms::ScriptEditorState;
 pub use print::PrintState;
 pub use new_doc::NewDocState;
 pub use options::OptionsState;
@@ -54,7 +56,8 @@ pub struct Dialogs {
     pub data_levels: usize,
     pub data_field_editor: Option<objdata::FieldEditorState>,
     pub about: bool,
-    pub palette_editor: Option<PaletteEditorState>,
+    /// Window ▸ Color Palettes ▸ Palette Editor (and its Select Color).
+    pub palette_editor: Option<palette::EditorState>,
     /// Rename page: (page index, edited name).
     pub rename_page: Option<(usize, String)>,
     /// Go to page: edited 1-based page number.
@@ -63,6 +66,8 @@ pub struct Dialogs {
     pub confirm_close: Option<usize>,
     /// The Bitmaps menu dialogs.
     pub bm: bitmaps::BitmapDialogs,
+    /// Window ▸ Workspace: New, Delete, Import and Export.
+    pub ws: workspace::WorkspaceDialogs,
     /// Simple message box (title, text).
     pub message_box: Option<(String, String)>,
     /// Layout ▸ Insert Page, Duplicate Page and Delete Page.
@@ -125,7 +130,7 @@ impl Dialogs {
             || self.doc_props
             || self.script_editor.is_some()
             || self.about
-            || self.palette_editor.is_some()
+            || self.palette_editor.as_ref().is_some_and(|e| !e.sampling())
             || self.rename_page.is_some()
             || self.goto_page.is_some()
             || self.confirm_close.is_some()
@@ -161,6 +166,7 @@ impl Dialogs {
             || self.change_case.is_some()
             || self.encode.is_some()
             || self.edit_text.is_some()
+            || self.ws.any_open()
     }
 }
 
@@ -172,6 +178,8 @@ pub fn show(app: &mut VectorApp, ctx: &egui::Context) {
     }
     forms::show_all(app, ctx);
     bitmaps::show(app, ctx);
+    workspace::show(app, ctx);
+    palette::show(app, ctx);
     if app.dialogs.bug_report.is_some() {
         crate::bugreport::dialog(app, ctx);
     }

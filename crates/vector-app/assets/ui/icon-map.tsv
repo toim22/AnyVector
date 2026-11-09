@@ -78,6 +78,7 @@ number_of_columns	columns
 comm_73	page_new
 comm_74	page_delete
 id:5f56e9cf	page_duplicate
+id:141c5d5e	pattern_preview
 drwbtn_335	page_goto
 drwbtn_518	page_rename
 drwbtn_580	page_orientation

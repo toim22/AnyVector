@@ -266,6 +266,71 @@ impl VectorApp {
         self.active = Some(self.docs.len() - 1);
     }
 
+    /// Window ▸ New Window: another window on the active document. Its changes show in every
+    /// window of the document.
+    fn new_window(&mut self) {
+        let Some(a) = self.active.filter(|a| *a < self.docs.len()) else { return };
+        let src = &self.docs[a];
+        let mut dv = DocView::new(src.doc.clone(), src.title.clone(), self.settings.undo_levels);
+        dv.history = src.history.clone();
+        dv.path = src.path.clone();
+        dv.group = src.group;
+        dv.page = src.page;
+        dv.view_mode = src.view_mode;
+        let g = src.group;
+        if self.docs[a].window_no == 0 {
+            self.docs[a].window_no = 1;
+        }
+        dv.window_no = self.docs.iter().filter(|d| d.group == g).map(|d| d.window_no).max().unwrap_or(1) + 1;
+        // the new window comes after the last window of its document
+        let at = self.docs.iter().rposition(|d| d.group == g).map(|p| p + 1).unwrap_or(self.docs.len());
+        self.finish_tool();
+        self.docs.insert(at, dv);
+        self.active = Some(at);
+    }
+
+    /// Window ▸ Cascade, Tile Horizontally, Tile Vertically, Combine Windows: the windows take
+    /// their new places and each one shows its whole page.
+    fn arrange_windows(&mut self, layout: u8) {
+        if self.doc_layout != layout {
+            self.doc_layout = layout;
+            for d in self.docs.iter_mut() {
+                d.needs_fit = true;
+            }
+        }
+    }
+
+    /// Keeps the windows of one document showing the same drawing: the active window's
+    /// document, history and file go to the others when they change.
+    pub fn sync_windows(&mut self) {
+        let Some(a) = self.active.filter(|a| *a < self.docs.len()) else { return };
+        let g = self.docs[a].group;
+        if self.docs.iter().filter(|d| d.group == g).count() < 2 {
+            return;
+        }
+        let (rev, saved, path) = (self.docs[a].history.revision, self.docs[a].history.saved_revision, self.docs[a].path.clone());
+        for i in 0..self.docs.len() {
+            if i == a || self.docs[i].group != g {
+                continue;
+            }
+            let b = &self.docs[i];
+            if b.history.revision == rev && b.history.saved_revision == saved && b.path == path {
+                continue;
+            }
+            let (doc, hist) = (self.docs[a].doc.clone(), self.docs[a].history.clone());
+            let b = &mut self.docs[i];
+            b.doc = doc;
+            b.history = hist;
+            b.path = path.clone();
+            b.page = b.page.min(b.doc.pages.len().saturating_sub(1));
+            let doc = &b.doc;
+            b.selection.retain(|id| doc.find(*id).is_some());
+            b.node_sel.clear();
+            b.text_edit = None;
+            b.cache.key = 0;
+        }
+    }
+
     pub fn new_default_document(&mut self) {
         self.untitled_counter += 1;
         let st = NewDocState::new(self.untitled_counter, self.unit_default());
@@ -566,7 +631,27 @@ impl VectorApp {
         if i >= self.docs.len() {
             return;
         }
-        if self.docs[i].history.is_modified() {
+        // a pattern document puts its changes into the pattern
+        if self.docs[i].pattern.is_some() {
+            crate::dialogs::object::apply_pattern_doc(self, i);
+            self.close_doc_now(i);
+            return;
+        }
+        // another window still shows the document: this one closes without asking
+        let g = self.docs[i].group;
+        let shared = self.docs.iter().enumerate().any(|(k, d)| k != i && d.group == g);
+        let mut i = i;
+        if !shared {
+            // the patterns of the document being edited go into it first
+            while let Some(k) = self.docs.iter().position(|d| d.pattern.as_ref().is_some_and(|l| l.group == g)) {
+                crate::dialogs::object::apply_pattern_doc(self, k);
+                self.close_doc_now(k);
+                if k < i {
+                    i -= 1;
+                }
+            }
+        }
+        if self.docs[i].history.is_modified() && !shared {
             self.active = Some(i);
             self.dialogs.confirm_close = Some(i);
         } else {
@@ -581,7 +666,14 @@ impl VectorApp {
         if self.active == Some(i) {
             self.finish_tool();
         }
-        self.docs.remove(i);
+        let gone = self.docs.remove(i);
+        // the windows left of the document are numbered again
+        let mut k = 0;
+        let left = self.docs.iter().filter(|d| d.group == gone.group).count();
+        for d in self.docs.iter_mut().filter(|d| d.group == gone.group) {
+            k += 1;
+            d.window_no = if left > 1 { k } else { 0 };
+        }
         for q in self.dialogs.close_queue.iter_mut() {
             if *q > i {
                 *q -= 1;
@@ -599,6 +691,11 @@ impl VectorApp {
     pub fn continue_close_queue(&mut self) {
         while let Some(i) = self.dialogs.close_queue.pop() {
             if i < self.docs.len() {
+                if self.docs[i].pattern.is_some() {
+                    crate::dialogs::object::apply_pattern_doc(self, i);
+                    self.close_doc_now(i);
+                    continue;
+                }
                 if self.docs[i].history.is_modified() {
                     self.active = Some(i);
                     self.dialogs.confirm_close = Some(i);
@@ -914,42 +1011,6 @@ impl VectorApp {
         }
     }
 
-    fn apply_workspace(&mut self, i: usize) {
-        let names = crate::dialogs::options::WORKSPACES;
-        let Some((name, _)) = names.get(i) else { return };
-        self.settings.workspace = name.to_string();
-        let s = &mut self.settings;
-        s.show_menu_bar = true;
-        s.show_status_bar = true;
-        s.show_standard = true;
-        s.show_property_bar = true;
-        s.show_toolbox = true;
-        s.extra_toolbars.clear();
-        s.button_size = crate::settings::ButtonSize::Small;
-        self.dockers.open.clear();
-        self.dockers.active = None;
-        match *name {
-            "Lite" => {
-                self.dockers.show(DockerId::Properties);
-            }
-            "Touch" => {
-                self.settings.button_size = crate::settings::ButtonSize::Large;
-                self.settings.show_property_bar = true;
-            }
-            "Illustration" | "Adobe Illustrator" => {
-                self.dockers.show(DockerId::Objects);
-                self.dockers.show(DockerId::Properties);
-            }
-            "Page Layout" => {
-                self.dockers.show(DockerId::Pages);
-                self.dockers.show(DockerId::Properties);
-            }
-            _ => {}
-        }
-        self.dockers.save(&mut self.settings);
-        self.flash(format!("Workspace: {name}"));
-    }
-
     fn toggle_toolbar(&mut self, t: Toolbar) {
         let s = &mut self.settings;
         match t {
@@ -998,13 +1059,7 @@ impl VectorApp {
                 }
             }
         } else {
-            let mut p = vector_core::Palette { name: format!("Palette {}", self.palettes.palettes.len() + 1), colors: vec![] };
-            for c in colors {
-                if !p.colors.iter().any(|n| n.color == c) {
-                    p.colors.push(vector_core::NamedColor::new(c.to_hex(), c));
-                }
-            }
-            self.dialogs.palette_editor = Some(crate::dialogs::PaletteEditorState { palette: p, selected: None, path: None });
+            crate::dialogs::palette::create_palette(self, colors);
         }
     }
 
@@ -2313,44 +2368,33 @@ impl VectorApp {
             }
 
             // ------------------------------------------------------------------ Window
-            Cmd::NewWindow => {
-                if let Some(d) = self.doc() {
-                    let mut dv = DocView::new(d.doc.clone(), format!("{} (copy)", d.display_name().trim_end_matches('*')), self.settings.undo_levels);
-                    dv.history.touch();
-                    self.push_doc(dv);
-                }
-            }
+            Cmd::NewWindow => self.new_window(),
             Cmd::RefreshWindow => {
                 for d in self.docs.iter_mut() {
                     d.cache.key = 0;
                 }
                 self.ts.texture_cache.clear();
             }
-            Cmd::Cascade | Cmd::TileH | Cmd::TileV | Cmd::CombineWindows | Cmd::DockWindow => self.flash("Documents are shown as tabs; drag a tab to reorder."),
-            Cmd::Workspace(i) => self.apply_workspace(i as usize),
-            Cmd::WorkspaceNew | Cmd::WorkspaceExport => {
-                self.dockers.save(&mut self.settings);
-                if let Some(p) = rfd::FileDialog::new().set_title("Export Workspace").add_filter("Vector workspace", &["vws"]).set_file_name("Workspace.vws").save_file() {
-                    if let Ok(b) = serde_json::to_vec_pretty(&self.settings) {
-                        let _ = std::fs::write(p, b);
-                        self.flash("Workspace exported");
-                    }
+            Cmd::TileH => self.arrange_windows(1),
+            Cmd::TileV => self.arrange_windows(2),
+            Cmd::Cascade => self.arrange_windows(3),
+            Cmd::CombineWindows | Cmd::DockWindow => self.arrange_windows(0),
+            Cmd::Workspace(i) => {
+                if let Some(n) = crate::workspaces::by_index(&self.settings, i as usize) {
+                    crate::workspaces::switch(self, &n);
                 }
             }
-            Cmd::WorkspaceImport => {
-                if let Some(p) = rfd::FileDialog::new().set_title("Import Workspace").add_filter("Vector workspace", &["vws"]).pick_file() {
-                    match std::fs::read(&p).ok().and_then(|b| serde_json::from_slice::<crate::settings::Settings>(&b).ok()) {
-                        Some(mut s) => {
-                            s.recent_files = std::mem::take(&mut self.settings.recent_files);
-                            self.settings = s;
-                            self.dockers = crate::dockers::DockerState::from_settings(&self.settings);
-                            self.flash("Workspace imported");
-                        }
-                        None => self.info_box("Import Workspace", "The file is not a Vector workspace."),
-                    }
+            Cmd::WorkspaceNew => crate::dialogs::workspace::open_new(self),
+            Cmd::WorkspaceExport => {
+                let n = self.settings.workspace.clone();
+                crate::dialogs::workspace::open_export(self, &n);
+            }
+            Cmd::WorkspaceImport => crate::dialogs::workspace::import(self),
+            Cmd::WorkspaceDelete => {
+                if crate::workspaces::is_custom(&self.settings, &self.settings.workspace) {
+                    self.dialogs.ws.delete = Some(self.settings.workspace.clone());
                 }
             }
-            Cmd::WorkspaceDelete => self.apply_workspace(0),
             Cmd::Docker(id) => self.dockers.toggle(id),
             Cmd::ToggleToolbar(t) => self.toggle_toolbar(t),
             Cmd::ButtonSize(s) => self.settings.button_size = s,
@@ -2359,26 +2403,15 @@ impl VectorApp {
             Cmd::AddColorsFromDocument => self.palette_from(false, true),
             Cmd::CreatePaletteFromSelection => self.palette_from(true, false),
             Cmd::CreatePaletteFromDocument => self.palette_from(false, false),
-            Cmd::OpenPalette => {
-                if let Some(p) = rfd::FileDialog::new().set_title("Open Palette").add_filter("Palettes", &["vpal", "txt", "gpl"]).pick_file() {
-                    if let Ok(t) = std::fs::read_to_string(&p) {
-                        let name = p.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
-                        let pal = vector_core::Palette::parse(&name, &t);
-                        self.palettes.recent.retain(|r| *r != name);
-                        self.palettes.recent.insert(0, name);
-                        self.palettes.palettes.push(pal);
-                        self.settings.default_palette_visible = true;
-                    }
-                }
-            }
+            Cmd::OpenPalette => crate::dialogs::palette::open_palette(self),
             Cmd::CloseAllPalettes => {
                 self.palettes.palettes.truncate(1);
+                self.settings.open_palettes.clear();
                 self.settings.default_palette_visible = false;
+                self.settings.doc_palette_visible = false;
+                self.settings.color_styles_palette_visible = false;
             }
-            Cmd::PaletteEditor => {
-                let p = self.palettes.palettes.first().cloned().unwrap_or_else(vector_core::Palette::default_palette);
-                self.dialogs.palette_editor = Some(crate::dialogs::PaletteEditorState { palette: p, selected: None, path: None });
-            }
+            Cmd::PaletteEditor => crate::dialogs::palette::open_editor(self),
             Cmd::ToggleDefaultPalette => self.settings.default_palette_visible = !self.settings.default_palette_visible,
             Cmd::ToggleDocumentPalette => self.settings.doc_palette_visible = !self.settings.doc_palette_visible,
             Cmd::ToggleColorStylesPalette => self.settings.color_styles_palette_visible = !self.settings.color_styles_palette_visible,
@@ -2390,7 +2423,17 @@ impl VectorApp {
             }
 
             // ------------------------------------------------------------------ Help
-            Cmd::ProductHelp | Cmd::UserGuide | Cmd::QuickStart => self.info_box("Vector Help", HELP_TEXT),
+            Cmd::ProductHelp | Cmd::UserGuide | Cmd::QuickStart | Cmd::Updates => {
+                let page = match cmd {
+                    Cmd::QuickStart => crate::help::Page::QuickStart,
+                    Cmd::UserGuide => crate::help::Page::UserGuide,
+                    Cmd::Updates => crate::help::Page::ReleaseNotes,
+                    _ => crate::help::Page::Home,
+                };
+                if let Err(e) = crate::help::open(page) {
+                    self.info_box("Vector Help", &e);
+                }
+            }
             Cmd::WelcomeScreen | Cmd::ShowHome => {
                 self.finish_tool();
                 self.active = None;
@@ -2401,9 +2444,11 @@ impl VectorApp {
                 self.active = None;
                 self.welcome_page = crate::welcome::Page::WhatsNew;
             }
-            Cmd::Updates => self.info_box("Updates", &format!("You are running Vector {}.", vector_core::APP_VERSION)),
             Cmd::MessageSettings | Cmd::RefreshAccount | Cmd::AccountSettings => self.info_box("Account", "Vector does not require an account. All your work stays on this computer."),
-            Cmd::Community | Cmd::Support | Cmd::Feedback => self.info_box("Vector Community", "Share ideas and report problems to your Vector administrator or team."),
+            Cmd::Feedback => {
+                crate::bugreport::open_in_browser(&crate::bugreport::feedback_url());
+            }
+            Cmd::Community | Cmd::Support => self.info_box("Vector Community", "Share ideas and report problems with Help > Submit Ideas and Feedback and Help > Report a Bug."),
             Cmd::ReportBug => self.dialogs.bug_report = Some(crate::bugreport::BugReportState::new()),
             Cmd::ViewReportedBugs => {
                 crate::bugreport::open_in_browser(&crate::bugreport::issues_url());
@@ -2481,7 +2526,6 @@ fn sentence_case(s: &str) -> String {
     out
 }
 
-const HELP_TEXT: &str = "Getting started\n\n• File > New (Ctrl+N) creates a drawing; File > Open (Ctrl+O) opens .cdr, .vct and .svg files.\n• Pick a tool from the toolbox on the left; the property bar above the drawing shows its options.\n• Click a color in the palette on the right to fill the selection; right-click to set the outline.\n• Hold Space to switch to the Pick tool temporarily; use the mouse wheel to zoom.\n• Window > Dockers opens panels such as Properties (Alt+Enter), Objects and Transform.\n• Tools > Options (Ctrl+J) holds all preferences.\n\nDrawings are saved as .cdr files by default. Use File > Export (Ctrl+E) for PDF, SVG, PNG, JPG and more.";
 
 #[cfg(test)]
 mod tests {

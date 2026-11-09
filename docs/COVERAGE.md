@@ -13,14 +13,14 @@ The *Reference* column is a path inside the reference folder.
 
 | Area | Done | Partial | Todo | Omitted | Total |
 |---|---:|---:|---:|---:|---:|
-| [Menus](#menus) | 519 | 105 | 1 | 162 | 787 |
-| [Dialogs and screens](#dialogs-and-screens) | 58 | 33 | 0 | 1 | 92 |
+| [Menus](#menus) | 551 | 73 | 0 | 163 | 787 |
+| [Dialogs and screens](#dialogs-and-screens) | 65 | 26 | 0 | 1 | 92 |
 | [Bitmap effects (Properties docker)](#bitmap-effects-properties-docker) | 109 | 11 | 0 | 0 | 120 |
 | [Dockers](#dockers) | 11 | 33 | 0 | 1 | 45 |
 | [Tools](#tools) | 94 | 0 | 0 | 0 | 94 |
 | [Toolbars](#toolbars) | 12 | 0 | 0 | 0 | 12 |
 | [Right-click menus](#right-click-menus) | 24 | 0 | 0 | 3 | 27 |
-| **All** | **827** | **182** | **1** | **167** | **1177** |
+| **All** | **866** | **143** | **0** | **168** | **1177** |
 
 ## Menus
 
@@ -107,7 +107,7 @@ The *Reference* column is a path inside the reference folder.
 
 ### View
 
-38 done · 2 partial · 1 todo · 0 omitted
+39 done · 2 partial · 0 todo · 0 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
@@ -116,7 +116,7 @@ The *Reference* column is a path inside the reference folder.
 | View > Normal | command |  | ✅ done |  |  |
 | View > Enhanced | command |  | ✅ done |  |  |
 | View > Pixels | command |  | ✅ done | renders at the document resolution |  |
-| View > Pattern Preview | command |  | ⬜ todo | shown while editing a pattern: comes with Object > Create > Pattern Fill (batch 3) |  |
+| View > Pattern Preview | command |  | ✅ done | shown in pattern documents (Properties > Vector Pattern > Edit fill): the page repeats as tiles; closing the document updates the pattern |  |
 | View > Full-screen Preview | command |  | ✅ done | F9; Page Up/Down change pages |  |
 | View > Preview Selected Only | command |  | ✅ done | full-screen preview of the selection only |  |
 | View > <placeHolder > | command |  | 🟡 partial | list filled at run time |  |
@@ -630,26 +630,26 @@ The *Reference* column is a path inside the reference folder.
 
 ### Window
 
-52 done · 35 partial · 0 todo · 1 omitted
+79 done · 8 partial · 0 todo · 1 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
 | Window | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\11 Window\001 Window.png` |
-| Window > New Window | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Refresh Window | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Close Window | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Close All | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Cascade | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Tile Horizontally | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Tile Vertically | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Combine Windows | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Dock Window | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Window > New Window | command |  | ✅ done | a second window on the same drawing (name.cdr:1, :2); every change shows in all its windows |  |
+| Window > Refresh Window | command |  | ✅ done | redraws every window |  |
+| Window > Close Window | command |  | ✅ done | closes the active window; asks to save only when it is the document's last window |  |
+| Window > Close All | command |  | ✅ done | closes every window, asking to save each changed document |  |
+| Window > Cascade | command |  | ✅ done | the document windows overlap, each showing its whole page |  |
+| Window > Tile Horizontally | command |  | ✅ done | the document windows stacked top to bottom |  |
+| Window > Tile Vertically | command |  | ✅ done | the document windows side by side |  |
+| Window > Combine Windows | command |  | ✅ done | back to one window with tabs |  |
+| Window > Dock Window | command |  | 🟡 partial | Vector's document windows never float, so Dock Window does what Combine Windows does |  |
 | Window > Workspace | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\11 Window\002 Window ▸ Workspace.png` |
 | Window > Workspace > <placeHolder a124f904> | command |  | 🟡 partial | list filled at run time |  |
-| Window > Workspace > New... | opens a window | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\11 Window\001 Window ▸ Workspace ▸ New.png` |
-| Window > Workspace > Delete | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Workspace > Import... | opens a window | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\11 Window\002 Window ▸ Workspace ▸ Import.png` |
-| Window > Workspace > Export... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Window > Workspace > New... | opens a window | 2 | ✅ done | New Workspace dialog: name, base on, description, set as current | `03-telas\doc-vazio\11 Window\001 Window ▸ Workspace ▸ New.png` |
+| Window > Workspace > Delete | command |  | ✅ done | Delete Workspace confirmation; enabled for your own workspaces only, then Default is current |  |
+| Window > Workspace > Import... | opens a window | 3 | 🟡 partial | Vector workspace files (*.cdws); workspace files saved by CorelDRAW cannot be read | `03-telas\doc-vazio\11 Window\002 Window ▸ Workspace ▸ Import.png` |
+| Window > Workspace > Export... | opens a window |  | ✅ done | Export Workspace: choose dockers, toolbars, menus and shortcut keys, saved as *.cdws |  |
 | Window > Dockers | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\11 Window\005 Window ▸ Dockers.png` |
 | Window > Dockers > Properties | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
 | Window > Dockers > Objects | command |  | ✅ done | opens the docker (its status is in the Dockers table) |  |
@@ -699,50 +699,50 @@ The *Reference* column is a path inside the reference folder.
 | Window > Dockers > Learn | command |  | ➖ omitted | Corel Learn content |  |
 | Window > Toolbars | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\11 Window\007 Window ▸ Toolbars.png` |
 | Window > Toolbars > Default Button Size | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\11 Window\008 Window ▸ Toolbars ▸ Default Button Size.png` |
-| Window > Toolbars > Default Button Size > Small | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Toolbars > Default Button Size > Medium | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Toolbars > Default Button Size > Large | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Window > Toolbars > Default Button Size > Small | command |  | ✅ done | toolbar buttons at the small size |  |
+| Window > Toolbars > Default Button Size > Medium | command |  | ✅ done | toolbar buttons at the medium size |  |
+| Window > Toolbars > Default Button Size > Large | command |  | ✅ done | toolbar buttons at the large size |  |
 | Window > Toolbars > Default Button Size > Custom | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Toolbars > Menu bar | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Toolbars > Status bar | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Toolbars > Toolbar List | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Toolbars > Lock Toolbars | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Window > Toolbars > Menu bar | command |  | ✅ done | shows or hides the menu bar |  |
+| Window > Toolbars > Status bar | command |  | ✅ done | shows or hides the status bar |  |
+| Window > Toolbars > Toolbar List | command |  | ✅ done | the toolbars, each with its check mark |  |
+| Window > Toolbars > Lock Toolbars | command |  | ✅ done | toolbars can no longer be moved |  |
 | Window > Color Palettes | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\11 Window\009 Window ▸ Color Palettes.png` |
-| Window > Color Palettes > Add Colors from Selection... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\11 Window\004 Window ▸ Color Palettes ▸ Add Colors from Selection (sem janela, tela principal).png` |
-| Window > Color Palettes > Add Colors from Document... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\11 Window\005 Window ▸ Color Palettes ▸ Add Colors from Document (sem janela, tela principal).png` |
-| Window > Color Palettes > Create Palette from Selection... | opens a window | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\11 Window\006 Window ▸ Color Palettes ▸ Create Palette from Selection.png` |
-| Window > Color Palettes > Create Palette from Document... | opens a window | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\11 Window\007 Window ▸ Color Palettes ▸ Create Palette from Document.png` |
-| Window > Color Palettes > Open Palette... | opens a window | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\11 Window\008 Window ▸ Color Palettes ▸ Open Palette.png` |
-| Window > Color Palettes > Close All Palettes | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Window > Color Palettes > Palette Editor... | opens a window | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\11 Window\009 Window ▸ Color Palettes ▸ Palette Editor.png` |
-| Window > Color Palettes > Palettes | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Window > Color Palettes > Add Colors from Selection... | opens a window |  | ✅ done | the selection's fill and outline colors go into the document palette | `03-telas\retangulo\11 Window\004 Window ▸ Color Palettes ▸ Add Colors from Selection (sem janela, tela principal).png` |
+| Window > Color Palettes > Add Colors from Document... | opens a window |  | ✅ done | every color of the drawing goes into the document palette | `03-telas\retangulo\11 Window\005 Window ▸ Color Palettes ▸ Add Colors from Document (sem janela, tela principal).png` |
+| Window > Color Palettes > Create Palette from Selection... | opens a window | 3 | ✅ done | saves the selection's colors as a new custom palette (*.xml) and opens it | `03-telas\retangulo\11 Window\006 Window ▸ Color Palettes ▸ Create Palette from Selection.png` |
+| Window > Color Palettes > Create Palette from Document... | opens a window | 3 | ✅ done | saves the drawing's colors as a new custom palette (*.xml) and opens it | `03-telas\retangulo\11 Window\007 Window ▸ Color Palettes ▸ Create Palette from Document.png` |
+| Window > Color Palettes > Open Palette... | opens a window | 3 | ✅ done | opens a custom palette (*.xml) at the window edge | `03-telas\doc-vazio\11 Window\008 Window ▸ Color Palettes ▸ Open Palette.png` |
+| Window > Color Palettes > Close All Palettes | command |  | ✅ done | closes the default, document, color styles and opened palettes |  |
+| Window > Color Palettes > Palette Editor... | opens a window | 3 | ✅ done | Palette Editor with Select Color; palettes saved as custom palettes (*.xml) | `03-telas\doc-vazio\11 Window\009 Window ▸ Color Palettes ▸ Palette Editor.png` |
+| Window > Color Palettes > Palettes | command |  | ✅ done | opens the Palettes docker |  |
 | Window > Color Palettes > Recent | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\11 Window\010 Window ▸ Color Palettes ▸ Recent.png` |
 | Window > Color Palettes > Recent > <placeHolder cad5a5c3> | command |  | 🟡 partial | list filled at run time |  |
 | Window > Color Palettes > <placeHolder 60be24a7> | command |  | 🟡 partial | list filled at run time |  |
 | Window > Color Palettes > <placeHolder 866d09b5> | command |  | 🟡 partial | list filled at run time |  |
 | Window > Color Palettes > <placeHolder 78f112b4> | command |  | 🟡 partial | list filled at run time |  |
-| Window > Window List | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Window > Window List | command |  | ✅ done | the open windows, the active one checked |  |
 
 ### Help
 
-4 done · 6 partial · 0 todo · 11 omitted
+8 done · 1 partial · 0 todo · 12 omitted
 
 | Menu path | Kind | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|
 | Help | menu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\12 Help\001 Help.png` |
-| Help > Product Help... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Help > Product Help... | opens a window |  | ✅ done | Vector Help in the browser (pages built into the program, no internet needed) |  |
 | Help > Welcome Screen | command |  | ✅ done | opens the Welcome Screen tab |  |
 | Help > Video Tutorials... | opens a window |  | ➖ omitted | Corel Learn content |  |
 | Help > Learn | command |  | ➖ omitted | Corel Learn content |  |
-| Help > Quick Start Guide... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Help > User Guide... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Help > Quick Start Guide... | opens a window |  | ✅ done | the Quick Start Guide page of Vector Help |  |
+| Help > User Guide... | opens a window |  | ✅ done | the User Guide page, built from the program's own tools, menus and dockers |  |
 | Help > What's New?... | opens a window |  | ✅ done | opens the Welcome Screen tab on What's New, as in the reference | `03-telas\doc-vazio\12 Help\005 Help ▸ What's New (aba Welcome Screen).png` |
-| Help > Updates... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
-| Help > Message Settings | command |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Help > Updates... | opens a window |  | 🟡 partial | shows this version's release notes; Vector has no online update service |  |
+| Help > Message Settings | command |  | ➖ omitted | Corel in-product messages |  |
 | Help > CorelDRAW Community | command |  | ➖ omitted | Corel online community |  |
 | Help > Corel Support... | opens a window |  | ➖ omitted | Corel Support |  |
 | Help > <placeHolder > | command |  | ➖ omitted | Corel account placeholder |  |
-| Help > Submit Ideas and Feedback... | opens a window |  | 🟡 partial | exists in Vector; not yet checked against the reference |  |
+| Help > Submit Ideas and Feedback... | opens a window |  | ✅ done | a new idea in the Vector issue tracker (GitHub) |  |
 | Help > Share Your Experience... | opens a window |  | ➖ omitted | Share Your Experience |  |
 | Help > Refresh your account | command |  | ➖ omitted | Corel account |  |
 | Help > Refresh your Account | command |  | ➖ omitted | Corel account |  |
@@ -1051,18 +1051,18 @@ The *Reference* column is a path inside the reference folder.
 
 ### Window
 
-0 done · 8 partial · 0 todo · 0 omitted
+7 done · 1 partial · 0 todo · 0 omitted
 
 | Opened from | Kind | Context | Inner prints | Status | Note | Reference |
 |---|---|---|---|---|---|---|
-| Window > Workspace > New | dialog | doc-vazio | 2 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\11 Window\001 Window ▸ Workspace ▸ New.png` |
-| Window > Workspace > Import | dialog | doc-vazio | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\11 Window\002 Window ▸ Workspace ▸ Import.png` |
-| Window > Color Palettes > Open Palette | dialog | doc-vazio | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\11 Window\008 Window ▸ Color Palettes ▸ Open Palette.png` |
-| Window > Color Palettes > Palette Editor | dialog | doc-vazio | 7 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\doc-vazio\11 Window\009 Window ▸ Color Palettes ▸ Palette Editor.png` |
-| Window > Color Palettes > Add Colors from Selection | mode (no window) | retangulo | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\11 Window\004 Window ▸ Color Palettes ▸ Add Colors from Selection (sem janela, tela principal).png` |
-| Window > Color Palettes > Add Colors from Document | mode (no window) | retangulo | 0 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\11 Window\005 Window ▸ Color Palettes ▸ Add Colors from Document (sem janela, tela principal).png` |
-| Window > Color Palettes > Create Palette from Selection | dialog | retangulo | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\11 Window\006 Window ▸ Color Palettes ▸ Create Palette from Selection.png` |
-| Window > Color Palettes > Create Palette from Document | dialog | retangulo | 3 | 🟡 partial | exists in Vector; not yet checked against the reference | `03-telas\retangulo\11 Window\007 Window ▸ Color Palettes ▸ Create Palette from Document.png` |
+| Window > Workspace > New | dialog | doc-vazio | 2 | ✅ done | same layout and wording; Duplicate shares it | `03-telas\doc-vazio\11 Window\001 Window ▸ Workspace ▸ New.png` |
+| Window > Workspace > Import | dialog | doc-vazio | 3 | 🟡 partial | file dialog (Workspace File (*.cdws)), then Import Workspace with the element tree, New or Current workspace; CorelDRAW workspace files cannot be read | `03-telas\doc-vazio\11 Window\002 Window ▸ Workspace ▸ Import.png` |
+| Window > Color Palettes > Open Palette | dialog | doc-vazio | 3 | ✅ done | file dialog with Custom palette (*.xml) | `03-telas\doc-vazio\11 Window\008 Window ▸ Color Palettes ▸ Open Palette.png` |
+| Window > Color Palettes > Palette Editor | dialog | doc-vazio | 7 | ✅ done | same layout: palette list, New/Open/Save/Save As, swatches, Edit/Add/Delete Color, Sort Colors, Reset Palette, Selected color; Select Color with viewers and palettes | `03-telas\doc-vazio\11 Window\009 Window ▸ Color Palettes ▸ Palette Editor.png` |
+| Window > Color Palettes > Add Colors from Selection | mode (no window) | retangulo | 0 | ✅ done | the colors go into the document palette (no window, as in the reference) | `03-telas\retangulo\11 Window\004 Window ▸ Color Palettes ▸ Add Colors from Selection (sem janela, tela principal).png` |
+| Window > Color Palettes > Add Colors from Document | mode (no window) | retangulo | 0 | ✅ done | the colors go into the document palette (no window, as in the reference) | `03-telas\retangulo\11 Window\005 Window ▸ Color Palettes ▸ Add Colors from Document (sem janela, tela principal).png` |
+| Window > Color Palettes > Create Palette from Selection | dialog | retangulo | 3 | ✅ done | save dialog with Custom palette (*.xml) | `03-telas\retangulo\11 Window\006 Window ▸ Color Palettes ▸ Create Palette from Selection.png` |
+| Window > Color Palettes > Create Palette from Document | dialog | retangulo | 3 | ✅ done | save dialog with Custom palette (*.xml) | `03-telas\retangulo\11 Window\007 Window ▸ Color Palettes ▸ Create Palette from Document.png` |
 
 ### Help
 

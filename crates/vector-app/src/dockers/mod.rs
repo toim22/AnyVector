@@ -21,7 +21,7 @@ pub(crate) mod misc;
 pub use misc::draw_hotspots;
 pub use proofing::gamut_overlay;
 mod objects;
-mod palettes;
+pub(crate) mod palettes;
 mod proofing;
 pub mod ostyles;
 pub mod props;
