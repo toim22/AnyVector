@@ -2169,7 +2169,7 @@ impl<'a> Cx<'a> {
                             self.d.focus = vec![id];
                             self.d.cache.key = 0;
                         }
-                        Some(ObjKind::Image(_)) if self.s.dblclick_bitmap_editor => {}
+                        Some(ObjKind::Image(_)) if self.s.dblclick_bitmap_editor => self.out.cmds.push(Cmd::EditBitmap),
                         _ => {}
                     }
                 } else if !self.d.focus.is_empty() {

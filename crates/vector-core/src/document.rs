@@ -615,6 +615,14 @@ pub struct Document {
     /// Externally linked images: image id → the source file (Sources docker).
     #[serde(default)]
     pub links: BTreeMap<u64, String>,
+    /// The color mode of bitmaps converted by Bitmaps ▸ Mode (image id → mode index; RGB when
+    /// absent).
+    #[serde(default)]
+    pub image_modes: BTreeMap<u64, u8>,
+    /// Bitmaps ▸ Inflate Bitmap ▸ Auto Inflate Bitmap turned off: a bitmap's effects stay
+    /// inside its edges.
+    #[serde(default)]
+    pub bitmap_no_inflate: bool,
     next_id: u64,
 }
 
@@ -647,6 +655,8 @@ impl Document {
             arrowheads: vec![],
             patterns: vec![],
             links: BTreeMap::new(),
+            image_modes: BTreeMap::new(),
+            bitmap_no_inflate: false,
             next_id: 1,
         };
         let pid = d.new_id();

@@ -2,28 +2,16 @@
 
 use crate::app::{Toolbar, VectorApp};
 use crate::commands::{Cmd, OptionsPage};
-use crate::dialogs::{NewDocState, PrintState, ScriptEditorState, TraceState};
+use crate::dialogs::bitmaps as bm;
+use crate::dialogs::{NewDocState, PrintState, ScriptEditorState};
 use crate::dockers::DockerId;
 use crate::docview::DocView;
 use crate::tools::{PickTarget, ToolId};
 use kurbo::{Affine, Point, Rect, Vec2};
 use std::path::{Path, PathBuf};
-use vector_core::object::{BitmapEffect, ImageAdjust, ObjKind};
+use vector_core::object::ObjKind;
 use vector_core::ops::{self, AlignTo};
 use vector_core::{Color, Document, Fill, ObjId, Object};
-
-pub fn bitmap_effect(i: usize, amount: f64) -> BitmapEffect {
-    match i {
-        0 => BitmapEffect::GaussianBlur { radius: amount },
-        1 => BitmapEffect::Glow { radius: amount, color: Color::rgb(255, 230, 120) },
-        2 => BitmapEffect::Emboss { depth: amount.max(0.5) },
-        3 => BitmapEffect::Noise { amount: (amount * 2.0).min(100.0) },
-        4 => BitmapEffect::Pixelate { size: amount.max(1.0) },
-        5 => BitmapEffect::Grayscale,
-        6 => BitmapEffect::Sepia,
-        _ => BitmapEffect::Invert,
-    }
-}
 
 /// Whether the system clipboard holds something pasteable (cached for a second).
 pub fn system_clipboard_has_content() -> bool {
@@ -747,75 +735,54 @@ impl VectorApp {
 
     // -------------------------------------------------------------------------------- bitmaps
 
-    pub fn selected_image_size(&self) -> Option<(u32, u32)> {
-        let d = self.doc()?;
-        let id = *d.selection.first()?;
-        match &d.doc.find(id)?.kind {
-            ObjKind::Image(i) => d.doc.images.get(&i.image).map(|im| (im.width, im.height)),
-            _ => None,
-        }
-    }
-
-    pub fn resample_selected(&mut self, w: u32, h: u32) {
-        let Some(d) = self.doc_mut() else { return };
-        let Some(id) = d.selection.first().copied() else { return };
-        let Some(ObjKind::Image(io)) = d.doc.find(id).map(|o| o.kind.clone()) else { return };
-        let Some(src) = d.doc.images.get(&io.image).cloned() else { return };
-        let Some(buf) = image::RgbaImage::from_raw(src.width, src.height, src.rgba.to_vec()) else { return };
-        let out = image::imageops::resize(&buf, w.max(1), h.max(1), image::imageops::FilterType::Lanczos3);
-        let data = vector_core::document::ImageData { width: out.width(), height: out.height(), rgba: std::sync::Arc::new(out.into_raw()), encoded: Default::default(), format: "png".into(), name: src.name.clone() };
-        d.modify("Resample", |doc, _| {
-            let nid = doc.add_image(data);
-            if let Some(o) = doc.find_mut(id) {
-                if let ObjKind::Image(i) = &mut o.kind {
-                    i.image = nid;
-                }
-            }
-        });
-    }
-
-    fn convert_to_bitmap(&mut self) {
-        let Some(d) = self.doc_mut() else { return };
-        let ids = d.selection.clone();
-        let Some(sd) = selection_document(&d.doc, &ids) else { return };
-        let bb = d.doc.selection_bounds(&ids).unwrap();
-        let dpi = 300.0;
-        let Some(pm) = vector_render::render_page_image(&sd, 0, dpi, None, None, true) else { return };
-        let rgba = vector_render::pixmap_to_rgba(&pm);
-        let data = vector_core::document::ImageData { width: pm.width(), height: pm.height(), rgba: std::sync::Arc::new(rgba), encoded: Default::default(), format: "png".into(), name: "Bitmap".into() };
-        d.modify("Convert to Bitmap", |doc, sel| {
-            let loc = doc.locate(ids[0]);
-            for id in &ids {
-                doc.remove(*id);
-            }
-            let mut o = vector_io::image_io::image_object(doc, data, dpi);
-            o.apply_transform(Affine::translate(bb.origin().to_vec2()));
-            let (p, l) = loc.map(|(p, l, _)| (p, l)).unwrap_or((0, 0));
-            *sel = vec![o.id];
-            doc.pages[p].layers[l].objects.push(o);
-        });
-    }
-
-    fn open_trace(&mut self, quick: bool) {
+    /// Effects ▸ Flatten Effects: each selected object with bitmap effects becomes a bitmap of
+    /// how it looks (a bitmap keeps its resolution, other objects get 300 dpi).
+    fn flatten_effects(&mut self) {
         let Some(d) = self.doc() else { return };
-        let Some(id) = d.selection.first().copied() else { return };
-        let Some(o) = d.doc.find(id) else { return };
-        let ObjKind::Image(io) = &o.kind else {
-            self.flash("Select a bitmap to trace.");
+        let ids: Vec<ObjId> = d.selection.iter().copied().filter(|id| d.doc.find(*id).is_some_and(|o| !o.effects.bitmap.is_empty())).collect();
+        if ids.is_empty() {
+            self.flash("The selection has no bitmap effects to flatten.");
             return;
-        };
-        let method = self.settings.quick_trace_method.clone();
-        let st = TraceState { params: crate::trace::preset(&method), method, delete_original: false, group: true, preview: None, tex: None, image_id: io.image, obj_id: id };
-        if quick {
-            let img = d.doc.images.get(&io.image).cloned();
-            let Some(img) = img else { return };
-            let to_doc = o.transform * Affine::scale_non_uniform(io.w / img.width as f64, io.h / img.height as f64);
-            let mut tmp = d.doc.clone();
-            let r = crate::trace::trace(img.width, img.height, &img.rgba, &st.params, to_doc, || tmp.new_id());
-            self.apply_trace(id, r.objects, false, true);
-        } else {
-            self.dialogs.trace = Some(st);
         }
+        let mut made = vec![];
+        for id in &ids {
+            let Some(o) = d.doc.find(*id) else { continue };
+            let dpi = match &o.kind {
+                ObjKind::Image(io) => d
+                    .doc
+                    .images
+                    .get(&io.image)
+                    .filter(|im| im.width > 0 && io.w > 0.0)
+                    .map(|im| {
+                        let c = o.transform.as_coeffs();
+                        let pts = io.w * c[0].hypot(c[1]) / (im.width as f64 * (io.crop[2] - io.crop[0]).max(1e-6));
+                        (72.0 / pts.max(1e-6)).clamp(30.0, 1200.0)
+                    })
+                    .unwrap_or(300.0),
+                _ => 300.0,
+            };
+            let (Some(sd), Some(bb)) = (selection_document(&d.doc, &[*id]), d.doc.selection_bounds(&[*id])) else { continue };
+            let Some(pm) = vector_render::render_page_image(&sd, 0, dpi, None, None, true) else { continue };
+            let rgba = vector_render::pixmap_to_rgba(&pm);
+            let name = if o.name.is_empty() { "Bitmap".to_string() } else { o.name.clone() };
+            let data = vector_core::document::ImageData { width: pm.width(), height: pm.height(), rgba: std::sync::Arc::new(rgba), encoded: Default::default(), format: "png".into(), name };
+            made.push((*id, data, dpi, bb));
+        }
+        let Some(d) = self.doc_mut() else { return };
+        d.modify("Flatten Effects", |doc, sel| {
+            let mut out = vec![];
+            for (id, data, dpi, bb) in made.iter().cloned() {
+                let loc = doc.locate(id);
+                doc.remove(id);
+                let mut o = vector_io::image_io::image_object(doc, data, dpi);
+                o.apply_transform(Affine::translate(bb.origin().to_vec2()));
+                out.push(o.id);
+                let (p, l, i) = loc.unwrap_or((0, 0, usize::MAX));
+                let list = &mut doc.pages[p].layers[l].objects;
+                list.insert(i.min(list.len()), o);
+            }
+            *sel = out;
+        });
     }
 
     pub fn apply_trace(&mut self, source: ObjId, mut objs: Vec<Object>, delete_original: bool, group: bool) {
@@ -1960,33 +1927,64 @@ impl VectorApp {
             Cmd::LensEffect => self.dockers.show(DockerId::Lens),
 
             // ------------------------------------------------------------------ Bitmaps
-            Cmd::ConvertToBitmap => self.convert_to_bitmap(),
-            Cmd::QuickTrace => self.open_trace(true),
-            Cmd::OutlineTrace => self.open_trace(false),
+            Cmd::ConvertToBitmap => bm::open_convert(self),
+            Cmd::StraightenImage => bm::open_straighten(self),
+            Cmd::ImageAdjustmentLab => bm::open_lab(self),
+            Cmd::RemoveJpegArtifacts => bm::remove_jpeg_artifacts(self),
+            Cmd::EditBitmap => bm::edit_bitmap(self),
+            Cmd::RemoveBackground => bm::remove_background(self),
+            Cmd::CropBitmap => bm::crop_bitmap(self),
+            Cmd::QuickTrace => {
+                let o = bm::TraceOpts::quick(&self.settings.quick_trace_method);
+                bm::trace_now(self, o);
+            }
+            Cmd::OutlineTrace(k) => bm::open_trace(self, bm::TraceOpts::profile(false, k as usize)),
+            Cmd::CenterlineTrace(k) => bm::open_trace(self, bm::TraceOpts::profile(true, k as usize)),
+            Cmd::RepeatLastTrace => {
+                if let Some(o) = self.dialogs.bm.last_trace.clone() {
+                    bm::trace_now(self, o);
+                }
+            }
+            Cmd::OpenLastTraceSettings => {
+                if let Some(o) = self.dialogs.bm.last_trace.clone() {
+                    bm::open_trace(self, o);
+                }
+            }
+            Cmd::BitmapMode(m) => bm::mode(self, m),
+            Cmd::AutoInflateBitmap => {
+                if let Some(d) = self.doc_mut() {
+                    d.modify("Auto Inflate Bitmap", |doc, _| doc.bitmap_no_inflate = !doc.bitmap_no_inflate);
+                }
+            }
+            Cmd::ManualInflateBitmap => bm::open_inflate(self),
+            Cmd::BitmapBreakLink => bm::break_link(self),
+            Cmd::BitmapUpdateLink => bm::update_link(self),
             Cmd::BitmapEffect(i) => {
-                let e = bitmap_effect(i as usize, 4.0);
-                self.modify_sel("Bitmap Effect", |doc, sel| {
+                let Some(def) = crate::fx::FX.get(i as usize) else { return };
+                if !self.doc().is_some_and(|d| !d.selection.is_empty()) {
+                    self.flash("Select an object to apply the effect to.");
+                    return;
+                }
+                let e = def.create();
+                self.modify_sel(def.name, |doc, sel| {
                     for id in sel.iter() {
                         if let Some(o) = doc.find_mut(*id) {
                             o.effects.bitmap.push(e.clone());
                         }
                     }
                 });
+                // the Properties docker shows the page of the last effect of the list
+                self.dockers.show(DockerId::Properties);
+                let pr = &mut self.dockers.ui.pr;
+                pr.tab = 3;
+                pr.jump = true;
+                pr.folded[3] = false;
+                pr.fx_sel = None;
+                pr.fx_pick = None;
             }
-            Cmd::AutoAdjust => self.modify_sel("Auto Adjust", |doc, sel| {
-                for id in sel.iter() {
-                    if let Some(o) = doc.find_mut(*id) {
-                        if let ObjKind::Image(i) = &mut o.kind {
-                            i.adjust = ImageAdjust { brightness: 4.0, contrast: 12.0, saturation: 8.0, ..i.adjust.clone() };
-                        }
-                    }
-                }
-            }),
-            Cmd::ResampleBitmap => {
-                if let Some((w, h)) = self.selected_image_size() {
-                    self.dialogs.resample = Some((w as f64, h as f64, true));
-                }
-            }
+            Cmd::FlattenEffects => self.flatten_effects(),
+            Cmd::AutoAdjust => bm::auto_adjust(self),
+            Cmd::ResampleBitmap => bm::open_resample(self),
 
             // ------------------------------------------------------------------ Text
             Cmd::EditText => match crate::dialogs::text::EditTextState::new(self) {

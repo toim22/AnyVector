@@ -18,11 +18,21 @@ pub struct TraceParams {
     pub remove_background: bool,
     /// Max side of the working bitmap (larger images are downsampled).
     pub max_side: u32,
+    /// Centerline: open strokes along the middle of the lines instead of filled shapes.
+    pub centerline: bool,
+    /// Remove overlap: each color covers only its own pixels (no stacking under the colors above).
+    pub remove_overlap: bool,
+    /// Merge adjacent shapes: the shapes of one color form one object.
+    pub merge_adjacent: bool,
+    /// The trace colors chosen in PowerTRACE (merged or edited); else found in the image.
+    pub palette: Option<Vec<[u8; 3]>>,
+    /// Colors left out of the result (Remove ▸ Specify color, Delete color).
+    pub remove_colors: Vec<[u8; 3]>,
 }
 
 impl Default for TraceParams {
     fn default() -> Self {
-        TraceParams { colors: 8, smoothing: 50.0, min_area: 12, remove_background: true, max_side: 900 }
+        TraceParams { colors: 8, smoothing: 50.0, min_area: 12, remove_background: true, max_side: 900, centerline: false, remove_overlap: false, merge_adjacent: true, palette: None, remove_colors: vec![] }
     }
 }
 
@@ -54,10 +64,12 @@ pub fn preset(method: &str) -> TraceParams {
             p.min_area = 4;
             p.max_side = 1400;
         }
-        "Centerline" => {
+        "Centerline" | "Technical Illustration" | "Line drawing" => {
             p.colors = 2;
             p.smoothing = 20.0;
             p.min_area = 4;
+            p.centerline = true;
+            p.remove_background = true;
         }
         _ => {}
     }
@@ -90,9 +102,20 @@ pub fn trace(width: u32, height: u32, rgba: &[u8], params: &TraceParams, to_doc:
 
     // quantize (k-means on samples)
     let k = params.colors.clamp(2, 64);
-    let centers = kmeans(&px, k);
+    let centers = match &params.palette {
+        Some(p) if !p.is_empty() => p.iter().take(254).copied().collect(),
+        _ => kmeans(&px, k),
+    };
     const NONE: u8 = 255;
     let mut labels: Vec<u8> = px.iter().map(|p| if p[3] < 128 { NONE } else { nearest(&centers, p) as u8 }).collect();
+    for rc in &params.remove_colors {
+        let gone = nearest(&centers, &[rc[0], rc[1], rc[2], 255]) as u8;
+        for l in labels.iter_mut() {
+            if *l == gone {
+                *l = NONE;
+            }
+        }
+    }
 
     // mode filter to remove isolated pixels
     labels = mode_filter(&labels, w, h);
@@ -136,24 +159,128 @@ pub fn trace(width: u32, height: u32, rgba: &[u8], params: &TraceParams, to_doc:
         rank[*c] = r;
     }
 
+    if params.centerline {
+        return centerline(&labels, w, h, &order, &centers, params, pixel_to_doc, next_id);
+    }
     let mut objects = vec![];
     let mut palette = vec![];
     let mut node_count = 0;
     for (r, c) in order.iter().enumerate() {
-        let above = |l: u8| l != NONE && rank[l as usize] > r;
+        let stack = !params.remove_overlap;
+        let above = |l: u8| stack && l != NONE && rank[l as usize] > r;
         let mask = layer_mask(&labels, w, h, *c as u8, &above);
         let loops = boundaries(&mask, w, h);
-        let mut np = NodePath::new();
+        // each outer loop with the holes inside it (one object each unless merged)
+        let mut shapes: Vec<(f64, NodePath)> = vec![];
+        let mut holes: Vec<(Point, NodePath)> = vec![];
         for lp in loops {
             if lp.len() < 4 {
                 continue;
             }
+            let area = signed_area(&lp);
             let pts = simplify_loop(&lp, 0.75);
             if pts.len() < 3 {
                 continue;
             }
             let docpts: Vec<Point> = pts.iter().map(|p| pixel_to_doc * *p).collect();
             let fitted = if params.smoothing <= 0.5 { vector_core::path::polyline(&docpts, true) } else { fit_freehand(&docpts, params.smoothing * 0.35, true) };
+            if area >= 0.0 {
+                shapes.push((area, fitted));
+            } else {
+                holes.push((lp[0], fitted));
+            }
+        }
+        let col = centers[*c];
+        let color = Color::rgb(col[0], col[1], col[2]);
+        let mut made = vec![];
+        if params.merge_adjacent {
+            let mut np = NodePath::new();
+            for s in shapes.into_iter().map(|s| s.1).chain(holes.into_iter().map(|h| h.1)) {
+                np.subpaths.extend(s.subpaths);
+            }
+            made.push(np);
+        } else {
+            // a hole goes with the smallest outer shape around it
+            shapes.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+            let mut parts: Vec<NodePath> = shapes.iter().map(|s| s.1.clone()).collect();
+            for (at, hole) in holes {
+                let dp = pixel_to_doc * (at + kurbo::Vec2::new(0.5, 0.5));
+                if let Some(k) = parts.iter().position(|p| kurbo::Shape::contains(&p.to_bez(), dp)) {
+                    parts[k].subpaths.extend(hole.subpaths);
+                }
+            }
+            made.extend(parts);
+        }
+        let mut any = false;
+        for np in made {
+            if np.is_empty() {
+                continue;
+            }
+            any = true;
+            node_count += np.node_count();
+            let mut style = Style::filled(color);
+            style.outline = Outline::none();
+            style.fill = Fill::Solid(color);
+            style.even_odd = true;
+            let mut o = Object::new(next_id(), ObjKind::Path(np), Affine::IDENTITY, style);
+            o.name = format!("Traced {}", color.to_hex());
+            objects.push(o);
+        }
+        if any {
+            palette.push(color);
+        }
+    }
+    TraceResult { objects, palette, node_count }
+}
+
+/// Twice the signed area of a pixel-crack loop (positive for outer boundaries).
+fn signed_area(pts: &[Point]) -> f64 {
+    let n = pts.len();
+    (0..n).map(|i| pts[i].x * pts[(i + 1) % n].y - pts[(i + 1) % n].x * pts[i].y).sum()
+}
+
+/// Centerline trace: each color but the background is thinned to one-pixel lines (Zhang-Suen),
+/// the lines are followed between their ends and junctions and fitted as open curves whose
+/// outline is as thick as the lines were.
+#[allow(clippy::too_many_arguments)]
+fn centerline(labels: &[u8], w: usize, h: usize, order: &[usize], centers: &[[u8; 3]], params: &TraceParams, pixel_to_doc: Affine, mut next_id: impl FnMut() -> u64) -> TraceResult {
+    let mut objects = vec![];
+    let mut palette = vec![];
+    let mut node_count = 0;
+    let px_size = pixel_to_doc.as_coeffs()[0].hypot(pixel_to_doc.as_coeffs()[1]);
+    for c in order {
+        let mask: Vec<bool> = labels.iter().map(|l| *l as usize == *c).collect();
+        let area = mask.iter().filter(|m| **m).count();
+        if area == 0 {
+            continue;
+        }
+        let skel = thin(&mask, w, h);
+        let mut lines = skeleton_lines(&skel, w, h);
+        let length: f64 = lines.iter().map(|l| l.windows(2).map(|p| (p[1] - p[0]).hypot()).sum::<f64>()).sum::<f64>().max(1.0);
+        let mut thickness = (area as f64 / length).clamp(1.0, 40.0);
+        // an area rather than a line: its edge becomes a thin line, as centerline tracing does
+        let side = w.min(h) as f64;
+        if thickness > (side * 0.05).max(12.0) {
+            lines = boundaries(&mask, w, h).into_iter().filter(|l| l.len() > 3).map(|mut l| {
+                l.push(l[0]);
+                l
+            }).collect();
+            thickness = 1.0;
+        }
+        let min_len = (params.min_area as f64).sqrt() * 2.0;
+        let mut np = NodePath::new();
+        for l in lines {
+            let len: f64 = l.windows(2).map(|p| (p[1] - p[0]).hypot()).sum();
+            if len < min_len {
+                continue;
+            }
+            let closed = l.len() > 3 && (l[0] - l[l.len() - 1]).hypot() < 1.5;
+            let pts = rdp(&l, 0.6);
+            let docpts: Vec<Point> = pts.iter().map(|p| pixel_to_doc * (*p + kurbo::Vec2::new(0.5, 0.5))).collect();
+            if docpts.len() < 2 {
+                continue;
+            }
+            let fitted = if params.smoothing <= 0.5 || docpts.len() < 3 { vector_core::path::polyline(&docpts, closed) } else { fit_freehand(&docpts, params.smoothing * 0.25, closed) };
             np.subpaths.extend(fitted.subpaths);
         }
         if np.is_empty() {
@@ -163,15 +290,114 @@ pub fn trace(width: u32, height: u32, rgba: &[u8], params: &TraceParams, to_doc:
         let col = centers[*c];
         let color = Color::rgb(col[0], col[1], col[2]);
         palette.push(color);
-        let mut style = Style::filled(color);
-        style.outline = Outline::none();
-        style.fill = Fill::Solid(color);
-        style.even_odd = true;
+        let mut style = Style::default();
+        style.fill = Fill::None;
+        style.outline = Outline { width: thickness * px_size, color: Some(color), cap: vector_core::style::LineCap::Round, join: vector_core::style::LineJoin::Round, ..Outline::default() };
         let mut o = Object::new(next_id(), ObjKind::Path(np), Affine::IDENTITY, style);
-        o.name = format!("Traced {}", color.to_hex());
+        o.name = format!("Centerline {}", color.to_hex());
         objects.push(o);
     }
     TraceResult { objects, palette, node_count }
+}
+
+/// Zhang-Suen thinning of a binary mask.
+fn thin(mask: &[bool], w: usize, h: usize) -> Vec<bool> {
+    let mut m = mask.to_vec();
+    let at = |m: &[bool], x: i64, y: i64| x >= 0 && y >= 0 && (x as usize) < w && (y as usize) < h && m[y as usize * w + x as usize];
+    loop {
+        let mut changed = false;
+        for pass in 0..2 {
+            let mut del = vec![];
+            for y in 0..h as i64 {
+                for x in 0..w as i64 {
+                    if !at(&m, x, y) {
+                        continue;
+                    }
+                    // p2..p9 clockwise from north
+                    let n = [at(&m, x, y - 1), at(&m, x + 1, y - 1), at(&m, x + 1, y), at(&m, x + 1, y + 1), at(&m, x, y + 1), at(&m, x - 1, y + 1), at(&m, x - 1, y), at(&m, x - 1, y - 1)];
+                    let b = n.iter().filter(|v| **v).count();
+                    if !(2..=6).contains(&b) {
+                        continue;
+                    }
+                    let a = (0..8).filter(|i| !n[*i] && n[(i + 1) % 8]).count();
+                    if a != 1 {
+                        continue;
+                    }
+                    let (p2, p4, p6, p8) = (n[0], n[2], n[4], n[6]);
+                    let ok = if pass == 0 { !(p2 && p4 && p6) && !(p4 && p6 && p8) } else { !(p2 && p4 && p8) && !(p2 && p6 && p8) };
+                    if ok {
+                        del.push(y as usize * w + x as usize);
+                    }
+                }
+            }
+            if !del.is_empty() {
+                changed = true;
+                for i in del {
+                    m[i] = false;
+                }
+            }
+        }
+        if !changed {
+            return m;
+        }
+    }
+}
+
+/// The lines of a one-pixel skeleton, from end or junction to end or junction (closed loops
+/// whole), as pixel positions.
+fn skeleton_lines(sk: &[bool], w: usize, h: usize) -> Vec<Vec<Point>> {
+    let on = |x: i64, y: i64| x >= 0 && y >= 0 && (x as usize) < w && (y as usize) < h && sk[y as usize * w + x as usize];
+    let nbrs = |i: usize| -> Vec<usize> {
+        let (x, y) = ((i % w) as i64, (i / w) as i64);
+        let mut v = vec![];
+        for (dx, dy) in [(1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (-1, 1), (-1, -1), (1, -1)] {
+            if on(x + dx, y + dy) {
+                v.push((y + dy) as usize * w + (x + dx) as usize);
+            }
+        }
+        v
+    };
+    let degree: Vec<usize> = (0..w * h).map(|i| if sk[i] { nbrs(i).len() } else { 0 }).collect();
+    let node = |i: usize| degree[i] != 2;
+    let key = |a: usize, b: usize| if a < b { (a, b) } else { (b, a) };
+    let pt = |i: usize| Point::new((i % w) as f64, (i / w) as f64);
+    let mut used: std::collections::HashSet<(usize, usize)> = Default::default();
+    let walk = |start: usize, first: usize, used: &mut std::collections::HashSet<(usize, usize)>| -> Vec<Point> {
+        let mut line = vec![pt(start)];
+        let (mut prev, mut cur) = (start, first);
+        used.insert(key(prev, cur));
+        loop {
+            line.push(pt(cur));
+            if node(cur) || cur == start {
+                break;
+            }
+            let Some(next) = nbrs(cur).into_iter().find(|n| *n != prev && !used.contains(&key(cur, *n))) else { break };
+            used.insert(key(cur, next));
+            prev = cur;
+            cur = next;
+        }
+        line
+    };
+    let mut lines = vec![];
+    for i in 0..w * h {
+        if sk[i] && node(i) {
+            for n in nbrs(i) {
+                if !used.contains(&key(i, n)) {
+                    lines.push(walk(i, n, &mut used));
+                }
+            }
+        }
+    }
+    // loops without ends or junctions
+    for i in 0..w * h {
+        if sk[i] && !node(i) {
+            if let Some(n) = nbrs(i).into_iter().find(|n| !used.contains(&key(i, *n))) {
+                lines.push(walk(i, n, &mut used));
+            }
+        }
+    }
+    lines.retain(|l| l.len() >= 2);
+    lines
 }
 
 /// The pixels of one color, plus holes filled entirely by colors drawn above it, plus a one
@@ -536,7 +762,7 @@ mod tests {
             }
         }
         let mut id = 0;
-        let p = TraceParams { colors: 3, smoothing: 0.0, min_area: 2, remove_background: true, max_side: 100 };
+        let p = TraceParams { colors: 3, smoothing: 0.0, min_area: 2, remove_background: true, max_side: 100, ..Default::default() };
         let r = trace(w, h, &rgba, &p, Affine::IDENTITY, || {
             id += 1;
             id
@@ -546,5 +772,27 @@ mod tests {
             let b = o.bounds();
             assert!(b.width() > 8.0 && b.width() < 11.0, "{b:?}");
         }
+    }
+
+    #[test]
+    fn centerline_traces_a_thick_line_as_one_stroke() {
+        let (w, h) = (60u32, 30u32);
+        let mut rgba = vec![255u8; (w * h * 4) as usize];
+        for y in 12..18 {
+            for x in 8..52 {
+                let i = ((y * w + x) * 4) as usize;
+                rgba[i..i + 3].copy_from_slice(&[0, 0, 0]);
+            }
+        }
+        let mut id = 0;
+        let p = TraceParams { max_side: 100, ..preset("Technical Illustration") };
+        let r = trace(w, h, &rgba, &p, Affine::IDENTITY, || {
+            id += 1;
+            id
+        });
+        assert_eq!(r.objects.len(), 1);
+        let o = &r.objects[0];
+        assert!(o.style.outline.width > 3.0 && o.style.outline.width < 9.0, "{}", o.style.outline.width);
+        assert!(o.bounds().width() > 30.0, "{:?}", o.bounds());
     }
 }

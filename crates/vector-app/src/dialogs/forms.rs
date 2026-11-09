@@ -1,7 +1,7 @@
 //! The smaller dialogs: Document Properties,
-//! Script Editor, About, Palette Editor, page dialogs, confirmations, Resample and PowerTRACE.
+//! Script Editor, About, Palette Editor, page dialogs and confirmations.
 
-use super::{heading, note, ok_cancel_row, separator, window};
+use super::{ok_cancel_row, separator, window};
 use crate::app::VectorApp;
 use crate::theme;
 use egui::{vec2, Color32};
@@ -26,17 +26,6 @@ pub struct PaletteEditorState {
     pub path: Option<std::path::PathBuf>,
 }
 
-#[derive(Clone)]
-pub struct TraceState {
-    pub params: crate::trace::TraceParams,
-    pub method: String,
-    pub delete_original: bool,
-    pub group: bool,
-    pub preview: Option<(u64, Vec<vector_core::Object>, usize, usize)>,
-    pub tex: Option<egui::TextureHandle>,
-    pub image_id: u64,
-    pub obj_id: u64,
-}
 
 // ------------------------------------------------------------------------------------------
 
@@ -85,12 +74,6 @@ pub fn show_all(app: &mut VectorApp, ctx: &egui::Context) {
     }
     if app.dialogs.delete_page.is_some() {
         super::layout::delete_page(app, ctx);
-    }
-    if app.dialogs.resample.is_some() {
-        resample(app, ctx);
-    }
-    if app.dialogs.trace.is_some() {
-        trace(app, ctx);
     }
     if app.dialogs.message_box.is_some() {
         message_box(app, ctx);
@@ -455,177 +438,5 @@ fn palette_editor(app: &mut VectorApp, ctx: &egui::Context) {
         app.dialogs.palette_editor = None;
     } else {
         app.dialogs.palette_editor = Some(st);
-    }
-}
-
-// ------------------------------------------------------------------------------------------
-// Pages
-// ------------------------------------------------------------------------------------------
-
-// ------------------------------------------------------------------------------------------
-// Resample
-// ------------------------------------------------------------------------------------------
-
-fn resample(app: &mut VectorApp, ctx: &egui::Context) {
-    let Some((mut w, mut h, mut keep)) = app.dialogs.resample else { return };
-    let orig = app.selected_image_size();
-    let mut result = (false, false);
-    let ((), dismissed) = window(ctx, "resample", "Resample", vec2(360.0, 210.0), |ui| {
-        ui.add_space(12.0);
-        if let Some((ow, oh)) = orig {
-            note(ui, &format!("Original size: {ow} × {oh} pixels"));
-            ui.horizontal(|ui| {
-                ui.label("Width:");
-                if ui.add(egui::DragValue::new(&mut w).range(1.0..=20000.0).suffix(" px")).changed() && keep {
-                    h = (w * oh as f64 / ow as f64).round();
-                }
-            });
-            ui.horizontal(|ui| {
-                ui.label("Height:");
-                if ui.add(egui::DragValue::new(&mut h).range(1.0..=20000.0).suffix(" px")).changed() && keep {
-                    w = (h * ow as f64 / oh as f64).round();
-                }
-            });
-            ui.checkbox(&mut keep, "Maintain aspect ratio");
-        } else {
-            note(ui, "Select a bitmap.");
-        }
-        result = ok_cancel_row(ui, "OK", orig.is_some());
-    });
-    if result.0 {
-        app.dialogs.resample = None;
-        app.resample_selected(w as u32, h as u32);
-    } else if result.1 || dismissed {
-        app.dialogs.resample = None;
-    } else {
-        app.dialogs.resample = Some((w, h, keep));
-    }
-}
-
-// ------------------------------------------------------------------------------------------
-// PowerTRACE
-// ------------------------------------------------------------------------------------------
-
-fn trace(app: &mut VectorApp, ctx: &egui::Context) {
-    let Some(mut st) = app.dialogs.trace.take() else { return };
-    let Some(d) = app.doc() else { return };
-    let Some(obj) = d.doc.find(st.obj_id).cloned() else { return };
-    let Some(img) = d.doc.images.get(&st.image_id).cloned() else { return };
-    // source preview texture
-    if st.tex.is_none() {
-        let ci = egui::ColorImage::from_rgba_unmultiplied([img.width as usize, img.height as usize], &img.rgba);
-        st.tex = Some(ctx.load_texture("trace_src", ci, egui::TextureOptions::LINEAR));
-    }
-    // (re)compute the trace preview when parameters change
-    let key = {
-        let p = &st.params;
-        vector_render::hash_str(&format!("{}-{}-{}-{}", p.colors, p.smoothing as i64, p.min_area, p.remove_background))
-    };
-    if st.preview.as_ref().map(|p| p.0) != Some(key) {
-        let (iw, ih) = match &obj.kind {
-            vector_core::ObjKind::Image(i) => (i.w, i.h),
-            _ => (1.0, 1.0),
-        };
-        let to_doc = obj.transform * kurbo::Affine::scale_non_uniform(iw / img.width as f64, ih / img.height as f64);
-        let mut next = 1u64 << 40;
-        let r = crate::trace::trace(img.width, img.height, &img.rgba, &st.params, to_doc, || {
-            next += 1;
-            next
-        });
-        let colors = r.palette.len();
-        st.preview = Some((key, r.objects, r.node_count, colors));
-    }
-    let mut result = (false, false);
-    let ((), dismissed) = window(ctx, "trace", "PowerTRACE", vec2(900.0, 600.0), |ui| {
-        ui.add_space(8.0);
-        ui.horizontal_top(|ui| {
-            ui.vertical(|ui| {
-                ui.set_width(260.0);
-                ui.spacing_mut().item_spacing.y = 8.0;
-                ui.horizontal(|ui| {
-                    ui.label("Trace type:");
-                    let methods = ["Clipart", "Line Art", "Logo", "Detailed Logo", "Low Quality Image", "High Quality Image", "Centerline"];
-                    egui::ComboBox::from_id_salt("tr_m").selected_text(st.method.as_str()).width(160.0).show_ui(ui, |ui| {
-                        for m in methods {
-                            if ui.selectable_label(st.method == m, m).clicked() {
-                                st.method = m.to_string();
-                                st.params = crate::trace::preset(m);
-                            }
-                        }
-                    });
-                });
-                separator(ui);
-                heading(ui, "Settings");
-                ui.add(egui::Slider::new(&mut st.params.colors, 2..=64).text("Colors"));
-                ui.add(egui::Slider::new(&mut st.params.smoothing, 0.0..=100.0).text("Smoothing"));
-                ui.add(egui::Slider::new(&mut st.params.min_area, 1..=200).text("Remove spots (px)"));
-                ui.checkbox(&mut st.params.remove_background, "Remove background");
-                separator(ui);
-                heading(ui, "Options");
-                ui.checkbox(&mut st.delete_original, "Delete original image");
-                ui.checkbox(&mut st.group, "Group objects when finished");
-                separator(ui);
-                if let Some((_, objs, nodes, colors)) = &st.preview {
-                    heading(ui, "Trace result details");
-                    note(ui, &format!("Curves: {}\nNodes: {}\nColors: {}", objs.len(), nodes, colors));
-                }
-            });
-            ui.separator();
-            // before / after preview
-            let avail = vec2(ui.available_width(), 500.0);
-            let (r, _) = ui.allocate_exact_size(avail, egui::Sense::hover());
-            let half = egui::Rect::from_min_size(r.min, vec2(r.width() / 2.0 - 4.0, r.height()));
-            let half2 = half.translate(vec2(r.width() / 2.0 + 4.0, 0.0));
-            for h in [half, half2] {
-                ui.painter().rect_filled(h, 0.0, Color32::WHITE);
-            }
-            ui.painter().text(half.left_top() + vec2(6.0, 4.0), egui::Align2::LEFT_TOP, "Before", egui::FontId::proportional(11.0), Color32::DARK_GRAY);
-            ui.painter().text(half2.left_top() + vec2(6.0, 4.0), egui::Align2::LEFT_TOP, "After", egui::FontId::proportional(11.0), Color32::DARK_GRAY);
-            let sz = vec2(img.width as f32, img.height as f32);
-            let s = ((half.width() - 20.0) / sz.x).min((half.height() - 30.0) / sz.y);
-            let ir = egui::Rect::from_center_size(half.center() + vec2(0.0, 8.0), sz * s);
-            if let Some(t) = &st.tex {
-                ui.painter().image(t.id(), ir, egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)), Color32::WHITE);
-            }
-            if let Some((_, objs, _, _)) = &st.preview {
-                let tex_key = format!("trace_prev_{}", st.preview.as_ref().map(|p| p.0).unwrap_or(0));
-                let tex = match app.ts.texture_cache.get(&tex_key) {
-                    Some(t) => Some(t.clone()),
-                    None => {
-                        let ob = obj.bounds();
-                        let px = (ir.width() as f64 * ctx.pixels_per_point() as f64).max(16.0);
-                        let mut pm = tiny_skia::Pixmap::new(px as u32, (px * ob.height() / ob.width().max(1e-6)).max(16.0) as u32);
-                        pm.as_mut().map(|p| p.fill(tiny_skia::Color::WHITE));
-                        let doc = &app.doc().unwrap().doc;
-                        let view = kurbo::Affine::scale(px / ob.width().max(1e-6)) * kurbo::Affine::translate((-ob.x0, -ob.y0));
-                        let opts = vector_render::RenderOptions { draw_page: false, ..Default::default() };
-                        let t = pm.map(|mut pm| {
-                            vector_render::Renderer::new().render_objects(doc, objs, view, &mut pm, &opts);
-                            let ci = egui::ColorImage::from_rgba_premultiplied([pm.width() as usize, pm.height() as usize], pm.data());
-                            ctx.load_texture(&tex_key, ci, egui::TextureOptions::LINEAR)
-                        });
-                        if let Some(t) = &t {
-                            app.ts.texture_cache.retain(|k, _| !k.starts_with("trace_prev_"));
-                            app.ts.texture_cache.insert(tex_key, t.clone());
-                        }
-                        t
-                    }
-                };
-                if let Some(t) = tex {
-                    let ir2 = egui::Rect::from_center_size(half2.center() + vec2(0.0, 8.0), sz * s);
-                    ui.painter().image(t.id(), ir2, egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)), Color32::WHITE);
-                }
-            }
-        });
-        result = ok_cancel_row(ui, "OK", st.preview.as_ref().map(|p| !p.1.is_empty()).unwrap_or(false));
-    });
-    if result.0 {
-        let objs = st.preview.take().map(|p| p.1).unwrap_or_default();
-        app.apply_trace(st.obj_id, objs, st.delete_original, st.group);
-        app.ts.texture_cache.retain(|k, _| !k.starts_with("trace_"));
-    } else if result.1 || dismissed {
-        app.ts.texture_cache.retain(|k, _| !k.starts_with("trace_"));
-    } else {
-        app.dialogs.trace = Some(st);
     }
 }

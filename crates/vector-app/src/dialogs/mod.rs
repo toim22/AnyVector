@@ -1,6 +1,7 @@
 //! Modal dialogs: Options, New Document, Export, Print, Document Properties, Script Editor,
-//! About, Palette Editor, page dialogs, confirmations and PowerTRACE.
+//! About, Palette Editor, page dialogs, confirmations and the Bitmaps menu (PowerTRACE).
 
+pub mod bitmaps;
 pub mod forms;
 pub mod layout;
 pub mod linestyle;
@@ -22,7 +23,7 @@ use crate::theme;
 use egui::{pos2, vec2, Color32, Frame, Id, Rect, Sense, Stroke, Ui, UiBuilder, Vec2};
 
 pub use export::ExportState;
-pub use forms::{PaletteEditorState, ScriptEditorState, TraceState};
+pub use forms::{PaletteEditorState, ScriptEditorState};
 pub use print::PrintState;
 pub use new_doc::NewDocState;
 pub use options::OptionsState;
@@ -60,11 +61,10 @@ pub struct Dialogs {
     pub goto_page: Option<usize>,
     /// Confirm closing a modified document (doc index).
     pub confirm_close: Option<usize>,
-    pub trace: Option<TraceState>,
+    /// The Bitmaps menu dialogs.
+    pub bm: bitmaps::BitmapDialogs,
     /// Simple message box (title, text).
     pub message_box: Option<(String, String)>,
-    /// Resample bitmap: (width px, height px, keep ratio).
-    pub resample: Option<(f64, f64, bool)>,
     /// Layout ▸ Insert Page, Duplicate Page and Delete Page.
     pub insert_page: Option<layout::InsertPageState>,
     pub duplicate_page: Option<layout::DuplicatePageState>,
@@ -129,9 +129,8 @@ impl Dialogs {
             || self.rename_page.is_some()
             || self.goto_page.is_some()
             || self.confirm_close.is_some()
-            || self.trace.is_some()
+            || self.bm.any_open()
             || self.message_box.is_some()
-            || self.resample.is_some()
             || self.insert_page.is_some()
             || self.duplicate_page.is_some()
             || self.delete_page.is_some()
@@ -172,6 +171,7 @@ pub fn show(app: &mut VectorApp, ctx: &egui::Context) {
         options::show(app, ctx);
     }
     forms::show_all(app, ctx);
+    bitmaps::show(app, ctx);
     if app.dialogs.bug_report.is_some() {
         crate::bugreport::dialog(app, ctx);
     }
