@@ -968,7 +968,7 @@ impl BitmapEffect {
 
 impl<'de> Deserialize<'de> for BitmapEffect {
     fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        /// The effects Vector had before the reference's effects (kept so old drawings open).
+        /// The effects AnyVector had before the reference's effects (kept so old drawings open).
         #[derive(Deserialize)]
         enum Old {
             GaussianBlur { radius: f64 },

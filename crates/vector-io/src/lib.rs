@@ -1,4 +1,4 @@
-//! File input/output for Vector: `.cdr` drawings (default), legacy `.vct`, SVG, PDF and raster formats.
+//! File input/output for AnyVector: `.cdr` drawings (default), legacy `.vct`, SVG, PDF and raster formats.
 
 pub mod cdr;
 pub mod flat;

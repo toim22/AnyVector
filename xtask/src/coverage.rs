@@ -1,10 +1,10 @@
 //! `docs/COVERAGE.md`: every menu item, dialog, docker, tool, toolbar and context menu of the
-//! CorelDRAW reference, with Vector's status for each one.
+//! CorelDRAW reference, with AnyVector's status for each one.
 //!
 //! Status comes from two places:
 //! - `docs/coverage-status.tsv` (section, key, status, note), kept by hand as batches land. It
 //!   always wins.
-//! - Otherwise, a name that already appears as a string in Vector's UI code counts as `partial`
+//! - Otherwise, a name that already appears as a string in AnyVector's UI code counts as `partial`
 //!   (it exists, but has not been checked against the reference yet), and anything else as `todo`.
 
 use crate::{reference, root, Result};
@@ -87,10 +87,10 @@ fn norm(s: &str) -> String {
     s.replace('&', "").trim().trim_end_matches("...").trim_end_matches('…').trim().to_lowercase()
 }
 
-/// Every string literal in Vector's app code, normalized (the names the UI already shows).
+/// Every string literal in AnyVector's app code, normalized (the names the UI already shows).
 fn ui_strings() -> Result<HashSet<String>> {
     let mut set = HashSet::new();
-    let mut stack = vec![root().join("crates/vector-app/src")];
+    let mut stack = vec![root().join("crates/anyvector/src")];
     while let Some(dir) = stack.pop() {
         for e in std::fs::read_dir(dir)? {
             let p = e?.path();
@@ -450,7 +450,7 @@ fn counts(rows: &[&Row]) -> [usize; 4] {
 pub fn run() -> Result<()> {
     let refdir = reference();
     if !refdir.is_dir() {
-        return Err(format!("reference folder not found: {} (set VECTOR_REFERENCE)", refdir.display()).into());
+        return Err(format!("reference folder not found: {} (set ANYVECTOR_REFERENCE)", refdir.display()).into());
     }
     let mut cx = Ctx { ui: ui_strings()?, over: overrides()?, used: HashSet::new() };
     let (dlg, fx) = dialogs(&mut cx)?;

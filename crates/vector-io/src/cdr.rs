@@ -1,4 +1,4 @@
-//! `.cdr` drawings: the default document format of Vector.
+//! `.cdr` drawings: the default document format of AnyVector.
 //!
 //! Following the container design in the reverse-engineering notes
 //! (`docs/03-dll-core-document.md`, "O que reimplementar"), a drawing is a ZIP container with
@@ -17,7 +17,7 @@
 //!   previews/thumbnail.png      preview of the first page (optional)
 //! ```
 //!
-//! This is Vector's own container. Drawings saved by CorelDRAW itself use a different,
+//! This is AnyVector's own container. Drawings saved by CorelDRAW itself use a different,
 //! undocumented internal format (a `content/riffData.cdr` RIFF stream); those are detected and
 //! reported as not supported rather than misread.
 
@@ -254,8 +254,8 @@ fn write_zip<W: Write + Seek>(doc: &Document, opts: &SaveOptions, w: &mut W) -> 
 /// What kind of `.cdr` a file is.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CdrKind {
-    /// Vector's container.
-    Vector,
+    /// AnyVector's container.
+    AnyVector,
     /// A `.vct`-style archive that was renamed to `.cdr`.
     LegacyVector,
     /// Written by CorelDRAW (RIFF stream, bare or zipped).
@@ -269,7 +269,7 @@ pub fn detect(bytes: &[u8]) -> CdrKind {
     }
     let Ok(mut z) = zip::ZipArchive::new(std::io::Cursor::new(bytes)) else { return CdrKind::Unknown };
     if z.by_name("content/document.json").is_ok() {
-        CdrKind::Vector
+        CdrKind::AnyVector
     } else if z.by_name("document.json").is_ok() {
         CdrKind::LegacyVector
     } else if z.by_name("content/riffData.cdr").is_ok() || z.by_name("content/root.dat").is_ok() {
@@ -286,10 +286,10 @@ pub fn load(path: &Path) -> Result<Document> {
 
 pub fn load_from_bytes(bytes: &[u8]) -> Result<Document> {
     match detect(bytes) {
-        CdrKind::Vector => {}
+        CdrKind::AnyVector => {}
         CdrKind::LegacyVector => return crate::native::load_from_bytes(bytes),
         CdrKind::CorelDraw => {
-            return Err(IoError::Unsupported("this .cdr drawing was created by CorelDRAW. AnyVector reads and writes its own .cdr drawings, but cannot open files saved by CorelDRAW yet. In CorelDRAW, export the drawing as SVG or PDF and open that in Vector.".into()))
+            return Err(IoError::Unsupported("this .cdr drawing was created by CorelDRAW. AnyVector reads and writes its own .cdr drawings, but cannot open files saved by CorelDRAW yet. In CorelDRAW, export the drawing as SVG or PDF and open that in AnyVector.".into()))
         }
         CdrKind::Unknown => return Err(IoError::Format("not a .cdr drawing".into())),
     }
@@ -353,7 +353,7 @@ mod tests {
         doc.settings.color.cmyk = false;
         let opts = SaveOptions { fonts: vec![EmbeddedFile { name: "x.ttf".into(), data: Arc::new(vec![1, 2, 3]) }], ..Default::default() };
         let bytes = save_to_bytes(&doc, &opts).unwrap();
-        assert_eq!(detect(&bytes), CdrKind::Vector);
+        assert_eq!(detect(&bytes), CdrKind::AnyVector);
         let back = load_from_bytes(&bytes).unwrap();
         assert_eq!(back.info.title, doc.info.title);
         assert_eq!(back.info.rating, 4);

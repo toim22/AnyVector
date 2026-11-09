@@ -199,6 +199,36 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
+name = "anyvector"
+version = "0.1.0"
+dependencies = [
+ "arboard",
+ "dirs",
+ "eframe",
+ "egui",
+ "egui_kittest",
+ "image",
+ "kurbo",
+ "log",
+ "resvg",
+ "rfd",
+ "rhai",
+ "serde",
+ "serde_json",
+ "thesaurus-wordnet",
+ "tiny-skia 0.12.0",
+ "ureq",
+ "usvg",
+ "vector-core",
+ "vector-io",
+ "vector-render",
+ "windows",
+ "windows-core",
+ "winresource",
+ "zip",
+]
+
+[[package]]
 name = "arboard"
 version = "3.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4351,36 +4381,6 @@ dependencies = [
  "js-sys",
  "serde_core",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "vector-app"
-version = "0.1.0"
-dependencies = [
- "arboard",
- "dirs",
- "eframe",
- "egui",
- "egui_kittest",
- "image",
- "kurbo",
- "log",
- "resvg",
- "rfd",
- "rhai",
- "serde",
- "serde_json",
- "thesaurus-wordnet",
- "tiny-skia 0.12.0",
- "ureq",
- "usvg",
- "vector-core",
- "vector-io",
- "vector-render",
- "windows",
- "windows-core",
- "winresource",
- "zip",
 ]
 
 [[package]]

@@ -3,8 +3,8 @@
 # section: menu, dialog, effect, docker, tool, toolbar, context-menu
 # key: exactly as the first column of COVERAGE.md shows it (menu path, dialog path, docker name...)
 # status: done | partial | todo | omitted
-menu	Help > About CorelDRAW...	done	Help > About Vector (same layout: banner, version, Source ID, System Info, Legal Notices)
-dialog	Help > About CorelDRAW	done	About Vector, with System Info (5 categories, Save) and Legal Notices
+menu	Help > About CorelDRAW...	done	Help > About AnyVector (same layout: banner, version, Source ID, System Info, Legal Notices)
+dialog	Help > About CorelDRAW	done	About AnyVector, with System Info (5 categories, Save) and Legal Notices
 # Batch 1: program frame
 menu	File	done	items, order and enabled states from the reference
 menu	File > Open Recent	done	items, order and enabled states from the reference
@@ -214,8 +214,8 @@ context-menu	Toolbox	done	items, order and enabled states from the reference
 menu	Help > Welcome Screen	done	opens the Welcome Screen tab
 menu	Help > What's New?...	done	opens the Welcome Screen tab on What's New, as in the reference
 dialog	Help > What's New (aba Welcome Screen)	done	Welcome Screen: Get Started, Workspace and What's New; Corel's training, store, trial and support entries left out
-menu	Tools > Options > CorelDRAW...	partial	Tools > Options > Vector...
-dialog	Tools > Options > CorelDRAW	partial	Options > Vector
+menu	Tools > Options > CorelDRAW...	partial	Tools > Options > AnyVector...
+dialog	Tools > Options > CorelDRAW	partial	Options > AnyVector
 effect	Effects > 3D Effects > Pinch_Punch	done	page as the reference: fields, order, ranges and lists
 effect	Effects > Adjust > Hue_Saturation_Lightness	done	page as the reference: fields, order, ranges and lists
 menu	Edit > Undo Apply Preset Guidelines	done	Undo names the last action
@@ -269,7 +269,7 @@ menu	Edit > Exit Focus Mode	done	leaves focus mode
 menu	Edit > Cut	done	
 menu	Edit > Copy	done	
 menu	Edit > Copy Properties From...	done	Copy Properties dialog, then click the source object
-menu	Edit > Paste	done	Vector objects, SVG, text or bitmap from the clipboard
+menu	Edit > Paste	done	AnyVector objects, SVG, text or bitmap from the clipboard
 menu	Edit > Paste in View	done	pastes centered in the window
 menu	Edit > Paste Special...	done	Paste Special dialog with the clipboard formats
 menu	Edit > Delete	done	
@@ -725,7 +725,7 @@ menu	Effects > Correction > Tune Sharpen...	done	opens the effect page in the Pr
 menu	Effects > Creative > Art Style...	partial	page as the reference; the styles are local filters, not AI
 menu	Effects > Creative > Crystalize...	done	opens the effect page in the Properties docker, as the reference
 menu	Effects > Creative > Fabric...	done	opens the effect page in the Properties docker, as the reference
-menu	Effects > Creative > Frame...	partial	page as the reference; the frames are drawn by Vector (no CorelDRAW frame files)
+menu	Effects > Creative > Frame...	partial	page as the reference; the frames are drawn by AnyVector (no CorelDRAW frame files)
 menu	Effects > Creative > Glass Block...	done	opens the effect page in the Properties docker, as the reference
 menu	Effects > Creative > Mosaic...	done	opens the effect page in the Properties docker, as the reference
 menu	Effects > Creative > Scatter...	done	opens the effect page in the Properties docker, as the reference
@@ -734,10 +734,10 @@ menu	Effects > Creative > Stained Glass...	done	opens the effect page in the Pro
 menu	Effects > Creative > Vignette...	done	opens the effect page in the Properties docker, as the reference
 menu	Effects > Creative > Vortex...	done	opens the effect page in the Properties docker, as the reference
 menu	Effects > Custom > Band Pass...	done	opens the effect page in the Properties docker, as the reference
-menu	Effects > Custom > Bump Map...	partial	page as the reference; the maps are drawn by Vector
+menu	Effects > Custom > Bump Map...	partial	page as the reference; the maps are drawn by AnyVector
 menu	Effects > Custom > User Defined...	done	opens the effect page in the Properties docker, as the reference
 menu	Effects > Distort > Blocks...	done	opens the effect page in the Properties docker, as the reference
-menu	Effects > Distort > Displace...	partial	page as the reference; the displacement maps are drawn by Vector
+menu	Effects > Distort > Displace...	partial	page as the reference; the displacement maps are drawn by AnyVector
 menu	Effects > Distort > Mesh Warp...	done	opens the effect page in the Properties docker, as the reference
 menu	Effects > Distort > Offset...	done	opens the effect page in the Properties docker, as the reference
 menu	Effects > Distort > Pixelate...	done	opens the effect page in the Properties docker, as the reference
@@ -763,7 +763,7 @@ menu	Effects > Sharpen > Sharpen...	done	opens the effect page in the Properties
 menu	Effects > Sharpen > Unsharp Mask...	done	opens the effect page in the Properties docker, as the reference
 menu	Effects > Texture > Brick Wall...	done	opens the effect page in the Properties docker, as the reference
 menu	Effects > Texture > Bubbles...	done	opens the effect page in the Properties docker, as the reference
-menu	Effects > Texture > Canvas...	partial	page as the reference; the canvas textures are drawn by Vector
+menu	Effects > Texture > Canvas...	partial	page as the reference; the canvas textures are drawn by AnyVector
 menu	Effects > Texture > Cobblestone...	done	opens the effect page in the Properties docker, as the reference
 menu	Effects > Texture > Elephant Skin...	done	opens the effect page in the Properties docker, as the reference
 menu	Effects > Texture > Etching...	done	opens the effect page in the Properties docker, as the reference
@@ -789,7 +789,7 @@ menu	Bitmaps > Convert to Bitmap...	done	Convert To Bitmap dialog: resolution, c
 menu	Bitmaps > Straighten Image...	done	lens distortion, rotation, vertical and horizontal perspective, grid, crop
 menu	Bitmaps > Image Adjustment Lab...	done	temperature, tint, saturation, brightness, contrast, highlights, shadows, midtones, auto adjust, white and black points, rotation, snapshots, undo
 menu	Bitmaps > Remove JPEG Artifacts	done	smooths the 8×8 block edges
-menu	Bitmaps > Edit Bitmap...	done	opens the bitmap in the default image editor; saving it there updates it in Vector
+menu	Bitmaps > Edit Bitmap...	done	opens the bitmap in the default image editor; saving it there updates it in AnyVector
 menu	Bitmaps > Remove Background	partial	removes the background color found at the borders; no AI
 menu	Bitmaps > Crop Bitmap	done	drops the pixels outside the crop
 menu	Bitmaps > Resample...	done	size, resolution, units, bicubic or nearest neighbor; the AI modes are disabled as in the reference
@@ -900,7 +900,7 @@ effect	Effects > Correction > Tune Sharpen	done	page as the reference: fields, o
 effect	Effects > Creative > Art Style	partial	page as the reference; the styles are local filters, not AI
 effect	Effects > Creative > Crystalize	done	page as the reference: fields, order, ranges and lists
 effect	Effects > Creative > Fabric	done	page as the reference: fields, order, ranges and lists
-effect	Effects > Creative > Frame	partial	page as the reference; the frames are drawn by Vector (no CorelDRAW frame files)
+effect	Effects > Creative > Frame	partial	page as the reference; the frames are drawn by AnyVector (no CorelDRAW frame files)
 effect	Effects > Creative > Glass Block	done	page as the reference: fields, order, ranges and lists
 effect	Effects > Creative > Mosaic	done	page as the reference: fields, order, ranges and lists
 effect	Effects > Creative > Scatter	done	page as the reference: fields, order, ranges and lists
@@ -909,10 +909,10 @@ effect	Effects > Creative > Stained Glass	done	page as the reference: fields, or
 effect	Effects > Creative > Vignette	done	page as the reference: fields, order, ranges and lists
 effect	Effects > Creative > Vortex	done	page as the reference: fields, order, ranges and lists
 effect	Effects > Custom > Band Pass	done	page as the reference: fields, order, ranges and lists
-effect	Effects > Custom > Bump Map	partial	page as the reference; the maps are drawn by Vector
+effect	Effects > Custom > Bump Map	partial	page as the reference; the maps are drawn by AnyVector
 effect	Effects > Custom > User Defined	done	page as the reference: fields, order, ranges and lists
 effect	Effects > Distort > Blocks	done	page as the reference: fields, order, ranges and lists
-effect	Effects > Distort > Displace	partial	page as the reference; the displacement maps are drawn by Vector
+effect	Effects > Distort > Displace	partial	page as the reference; the displacement maps are drawn by AnyVector
 effect	Effects > Distort > Mesh Warp	done	page as the reference: fields, order, ranges and lists
 effect	Effects > Distort > Offset	done	page as the reference: fields, order, ranges and lists
 effect	Effects > Distort > Pixelate	done	page as the reference: fields, order, ranges and lists
@@ -938,7 +938,7 @@ effect	Effects > Sharpen > Sharpen	done	page as the reference: fields, order, ra
 effect	Effects > Sharpen > Unsharp Mask	done	page as the reference: fields, order, ranges and lists
 effect	Effects > Texture > Brick Wall	done	page as the reference: fields, order, ranges and lists
 effect	Effects > Texture > Bubbles	done	page as the reference: fields, order, ranges and lists
-effect	Effects > Texture > Canvas	partial	page as the reference; the canvas textures are drawn by Vector
+effect	Effects > Texture > Canvas	partial	page as the reference; the canvas textures are drawn by AnyVector
 effect	Effects > Texture > Cobblestone	done	page as the reference: fields, order, ranges and lists
 effect	Effects > Texture > Elephant Skin	done	page as the reference: fields, order, ranges and lists
 effect	Effects > Texture > Etching	done	page as the reference: fields, order, ranges and lists
@@ -960,10 +960,10 @@ menu	Window > Cascade	done	the document windows overlap, each showing its whole 
 menu	Window > Tile Horizontally	done	the document windows stacked top to bottom
 menu	Window > Tile Vertically	done	the document windows side by side
 menu	Window > Combine Windows	done	back to one window with tabs
-menu	Window > Dock Window	partial	Vector's document windows never float, so Dock Window does what Combine Windows does
+menu	Window > Dock Window	partial	AnyVector's document windows never float, so Dock Window does what Combine Windows does
 menu	Window > Workspace > New...	done	New Workspace dialog: name, base on, description, set as current
 menu	Window > Workspace > Delete	done	Delete Workspace confirmation; enabled for your own workspaces only, then Default is current
-menu	Window > Workspace > Import...	partial	Vector workspace files (*.cdws); workspace files saved by CorelDRAW cannot be read
+menu	Window > Workspace > Import...	partial	AnyVector workspace files (*.cdws); workspace files saved by CorelDRAW cannot be read
 menu	Window > Workspace > Export...	done	Export Workspace: choose dockers, toolbars, menus and shortcut keys, saved as *.cdws
 menu	Window > Toolbars > Default Button Size > Small	done	toolbar buttons at the small size
 menu	Window > Toolbars > Default Button Size > Medium	done	toolbar buttons at the medium size
@@ -981,11 +981,11 @@ menu	Window > Color Palettes > Close All Palettes	done	closes the default, docum
 menu	Window > Color Palettes > Palette Editor...	done	Palette Editor with Select Color; palettes saved as custom palettes (*.xml)
 menu	Window > Color Palettes > Palettes	done	opens the Palettes docker
 menu	Window > Window List	done	the open windows, the active one checked
-menu	Help > Product Help...	done	Vector Help in the browser (pages built into the program, no internet needed)
-menu	Help > Quick Start Guide...	done	the Quick Start Guide page of Vector Help
+menu	Help > Product Help...	done	AnyVector Help in the browser (pages built into the program, no internet needed)
+menu	Help > Quick Start Guide...	done	the Quick Start Guide page of AnyVector Help
 menu	Help > User Guide...	done	the User Guide page, built from the program's own tools, menus and dockers
-menu	Help > Updates...	partial	shows this version's release notes; Vector has no online update service
-menu	Help > Submit Ideas and Feedback...	done	a new idea in the Vector issue tracker (GitHub)
+menu	Help > Updates...	done	checks GitHub for a new version and installs it; AnyVector also checks at every start and offers it
+menu	Help > Submit Ideas and Feedback...	done	a new idea in the AnyVector issue tracker (GitHub)
 dialog	Window > Workspace > New	done	same layout and wording; Duplicate shares it
 dialog	Window > Workspace > Import	partial	file dialog (Workspace File (*.cdws)), then Import Workspace with the element tree, New or Current workspace; CorelDRAW workspace files cannot be read
 dialog	Window > Color Palettes > Open Palette	done	file dialog with Custom palette (*.xml)

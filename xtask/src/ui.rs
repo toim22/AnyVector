@@ -1,17 +1,17 @@
-//! `crates/vector-app/src/ui/data.rs`: every menu, right-click menu, toolbar, toolbox flyout and
+//! `crates/anyvector/src/ui/data.rs`: every menu, right-click menu, toolbar, toolbox flyout and
 //! property bar of the program, item by item, in the reference order.
 //!
 //! The order, separators, captions (with their `&` access keys), shortcut keys, tooltips and item
 //! kinds come from the CorelDRAW 2026 user-interface definition the reference was captured from
 //! (`<CorelDRAW>\Draw\UIConfig`, `<CorelDRAW>\Resources`, `<CorelDRAW>\Languages\EN\Data\strings.xml`;
 //! the folder defaults to `C:\Program Files\Corel\CorelDRAW Graphics Suite\27` and can be changed
-//! with `VECTOR_COREL`). Which items are enabled for each kind of selection comes from the
-//! reference's `90-relatorios\matriz_contextos.csv`. Icons are Vector's own drawings, chosen by
-//! meaning in `crates/vector-app/assets/ui/icon-map.tsv`.
+//! with `ANYVECTOR_COREL`). Which items are enabled for each kind of selection comes from the
+//! reference's `90-relatorios\matriz_contextos.csv`. Icons are AnyVector's own drawings, chosen by
+//! meaning in `crates/anyvector/assets/ui/icon-map.tsv`.
 //!
 //! The run also writes `target/ui-report.txt`: each reference menu's height checked against the
-//! items Vector shows (a wrong count means an item is shown that the reference hides, or the other
-//! way round), and the icons that still have no Vector drawing.
+//! items AnyVector shows (a wrong count means an item is shown that the reference hides, or the other
+//! way round), and the icons that still have no AnyVector drawing.
 
 use crate::{reference, root, Result};
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
@@ -83,8 +83,8 @@ const VISIBILITY: &[(&str, bool)] = &[
     ("FarEastRulesGeneralUIEnabled", false),
 ];
 
-/// `visible` bindings Vector decides at run time: the item is kept with flag 16 and shows only
-/// when Vector's state says so (the reference captures show it hidden).
+/// `visible` bindings AnyVector decides at run time: the item is kept with flag 16 and shows only
+/// when AnyVector's state says so (the reference captures show it hidden).
 const RUNTIME_VISIBILITY: &[&str] = &[
     // View ▸ Pattern Preview: only while a pattern is open as its own document
     "IsPatternDocument",
@@ -113,12 +113,12 @@ const FORCE_HIDDEN: &[&str] = &[
     "c0698e4b-3b68-4b39-bf4c-5aebe6b22952", // right-click > Convert to Empty Masking Frame (in no capture)
 ];
 
-/// Captions set at run time in the reference (bindings), as Vector shows them.
+/// Captions set at run time in the reference (bindings), as AnyVector shows them.
 const CAPTIONS: &[(&str, &str)] = &[
     ("1eaa019d-6dff-4c53-bbd3-5abbb970c53e", "&About AnyVector..."),
 ];
 
-/// Vector's own additions, asked for by the user: (insert after this item, id, caption, kind, submenu items).
+/// AnyVector's own additions, asked for by the user: (insert after this item, id, caption, kind, submenu items).
 const EXTRAS: &[(&str, &str, &str, &[(&str, &str)])] = &[(
     "fafd28e8-21db-45b7-8e5b-97ec22322e85", // Help > Submit Ideas and Feedback...
     "vector:report-bug",
@@ -128,7 +128,7 @@ const EXTRAS: &[(&str, &str, &str, &[(&str, &str)])] = &[(
 const FORCE_VISIBLE: &[&str] = &[];
 
 /// Object > AI Generate: the plain items show with nothing selected and their "Guided by
-/// Selection" twins with a selection (the `SelectReferenceEnabled` binding). Vector picks at run
+/// Selection" twins with a selection (the `SelectReferenceEnabled` binding). AnyVector picks at run
 /// time, so a menu shows half of these.
 const BY_SELECTION: &[&str] = &[
     "9c0ccd48-7a5f-43c7-aff0-f59be1bb1595",
@@ -199,7 +199,7 @@ const MENU_MODE_DOC: &str = "76d73481-9076-44c9-821c-52de9408cce2";
 const MENU_MODE_NO_DOC: &str = "6d1d9e94-13f3-4517-a976-ba9154671db4";
 
 pub fn corel() -> PathBuf {
-    std::env::var_os("VECTOR_COREL").map(PathBuf::from).unwrap_or_else(|| PathBuf::from(r"C:\Program Files\Corel\CorelDRAW Graphics Suite\27"))
+    std::env::var_os("ANYVECTOR_COREL").map(PathBuf::from).unwrap_or_else(|| PathBuf::from(r"C:\Program Files\Corel\CorelDRAW Graphics Suite\27"))
 }
 
 fn key(g: &str) -> String {
@@ -283,7 +283,7 @@ fn format_key(n: roxmltree::Node) -> String {
 
 fn load() -> Result<Defs> {
     let c = corel();
-    let read = |p: PathBuf| std::fs::read_to_string(&p).map_err(|e| format!("{}: {e} (set VECTOR_COREL to the CorelDRAW folder)", p.display()));
+    let read = |p: PathBuf| std::fs::read_to_string(&p).map_err(|e| format!("{}: {e} (set ANYVECTOR_COREL to the CorelDRAW folder)", p.display()));
     let ui_s = read(c.join(r"Draw\UIConfig\DrawUI.xml"))?;
     let items_s = read(c.join(r"Draw\UIConfig\DrawUI.items.xml"))?;
     let strings_s = read(c.join(r"Languages\EN\Data\strings.xml"))?;
@@ -666,7 +666,7 @@ impl Gen<'_> {
                 // 4 = no reference capture shows when the item is enabled
                 flags: (self.d.attr(&r.guid, "hideDisabledPrefillItems") == Some("true")) as u8 | (((self.d.attr(&r.guid, "addSeparator") == Some("true")) as u8) << 1) | ((known.is_none() as u8) << 2)
                     | (((r.attrs.get("excluded").map(|s| s.as_str()) == Some("true")) as u8) << 3)
-                    // 16 = shown only when Vector's state says so (hidden in the reference captures)
+                    // 16 = shown only when AnyVector's state says so (hidden in the reference captures)
                     | ((runtime_visible(self.d, r) as u8) << 4),
             });
             if let Some((_, id, text, subs)) = EXTRAS.iter().find(|(after, ..)| after.eq_ignore_ascii_case(&r.guid)) {
@@ -702,7 +702,7 @@ fn rust_str(s: &str) -> String {
 pub fn run() -> Result<()> {
     let d = load()?;
     let r = load_reference()?;
-    let map_path = root().join("crates/vector-app/assets/ui/icon-map.tsv");
+    let map_path = root().join("crates/anyvector/assets/ui/icon-map.tsv");
     let icon_map: HashMap<String, String> = std::fs::read_to_string(&map_path)
         .unwrap_or_default()
         .lines()
@@ -773,7 +773,7 @@ pub fn run() -> Result<()> {
         s.push_str("    ] },\n");
     }
     s.push_str("];\n");
-    let out = root().join("crates/vector-app/src/ui/data.rs");
+    let out = root().join("crates/anyvector/src/ui/data.rs");
     std::fs::create_dir_all(out.parent().unwrap())?;
     std::fs::write(&out, s)?;
     let n_items: usize = g.bars.iter().map(|b| b.items.iter().filter(|i| i.kind != "Omitted").count()).sum();
@@ -790,7 +790,7 @@ pub fn run() -> Result<()> {
     Ok(())
 }
 
-/// Checks each captured reference menu's height against the items Vector shows in it:
+/// Checks each captured reference menu's height against the items AnyVector shows in it:
 /// 22 px per item, 7 px per separator, 3 px border top and bottom.
 fn report_heights(g: &Gen, rep: &mut String) -> Result<()> {
     writeln!(rep, "# Menu heights (reference rectangle vs. items shown)\n")?;
@@ -827,7 +827,7 @@ fn report_heights(g: &Gen, rep: &mut String) -> Result<()> {
             let n = n - g.bars[bar].items.iter().filter(|i| BY_SELECTION.iter().any(|b| b.eq_ignore_ascii_case(&i.id))).count() as i64 / 2;
             let want = 6 + 22 * n + 7 * s;
             if g.bars[bar].items.iter().any(|i| i.kind == "Placeholder") {
-                writeln!(rep, "  ~~ {ctx}: {path}: reference {h} px, Vector {want} px before its run-time list")?;
+                writeln!(rep, "  ~~ {ctx}: {path}: reference {h} px, AnyVector {want} px before its run-time list")?;
                 continue;
             }
             if (want - h).abs() <= 2 {
@@ -835,7 +835,7 @@ fn report_heights(g: &Gen, rep: &mut String) -> Result<()> {
             } else {
                 bad += 1;
                 let diff = (h - want) as f32;
-                writeln!(rep, "  !! {ctx}: {path}: reference {h} px, Vector {want} px ({} items, {} separators; {:+.1} rows)", n, s, diff / 22.0)?;
+                writeln!(rep, "  !! {ctx}: {path}: reference {h} px, AnyVector {want} px ({} items, {} separators; {:+.1} rows)", n, s, diff / 22.0)?;
             }
             let _ = i;
         }
@@ -922,10 +922,10 @@ fn report_icons(g: &Gen, rep: &mut String) -> Result<()> {
         }
     }
     std::fs::write(root().join("target/ui-icons.tsv"), tsv)?;
-    writeln!(rep, "# Icons without a Vector drawing: {} of {}\n", missing.len(), total.len())?;
+    writeln!(rep, "# Icons without an AnyVector drawing: {} of {}\n", missing.len(), total.len())?;
     for (stem, (n, labels)) in &missing {
         writeln!(rep, "{stem}\t{n}\t{}", labels.join(" | "))?;
     }
-    println!("icons: {} of {} still need a Vector drawing", missing.len(), total.len());
+    println!("icons: {} of {} still need an AnyVector drawing", missing.len(), total.len());
     Ok(())
 }
