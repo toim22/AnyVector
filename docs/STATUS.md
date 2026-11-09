@@ -2,6 +2,27 @@
 
 Last updated: 2026-11-08.
 
+## Version 0.1.0 (in progress)
+
+Vector 0.1.0 is being built to match the CorelDRAW 2026 reference, in batches (see `docs/PLAN-0.1.0.md`).
+`docs/COVERAGE.md` lists every menu item, dialog, docker, tool, toolbar and right-click menu of the reference with
+its status in Vector.
+
+**Batch 0 (foundation and branding), done:**
+
+- The version is 0.1.0 everywhere (program, file version label "0.1 (2026.0)", installer).
+- New icon and logo from the brand SVGs: the exe and window icon, shortcuts and file types use the icon; the splash
+  screen, the About box and the installer's side picture use the logo.
+- Help ▸ About Vector follows the reference: logo banner, version and release, copyright, Source ID (the commit the
+  program was built from), System Info... and Legal Notices....
+  - System Info has the reference's five categories (System, Display, Printing, Vector EXEs & DLLs, System DLLs),
+    read from Windows, and Save writes them to a text file.
+  - Legal Notices lists the 278 open-source components in vector.exe and their licenses.
+- The installer (`dist/Vector-0.1.0-setup.exe`) has the Windows 11 wizard style with light and dark pictures,
+  installs per user or for all users, adds Vector to "Open with" for `.cdr` (default program only if chosen), opens
+  `.vct` and optionally SVG, and keeps the folder and choices on updates.
+- Build helpers (`xtask`): brand assets, the coverage report, the comparison page and the Legal Notices list.
+
 ## Working (verified by build and tests)
 
 - Full workspace compiles. Unit tests pass for:
