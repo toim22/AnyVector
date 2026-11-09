@@ -20,6 +20,11 @@ pub fn issues_url() -> String {
     format!("https://github.com/{REPO}/issues")
 }
 
+/// Help ▸ Submit Ideas and Feedback: a new issue marked as an idea.
+pub fn feedback_url() -> String {
+    format!("https://github.com/{REPO}/issues/new?labels=enhancement&title={}", url_encode("Idea: "))
+}
+
 #[derive(Debug)]
 pub enum Sent {
     /// Created directly; the issue URL.

@@ -48,6 +48,9 @@ pub const ADD_SEPARATOR: u8 = 2;
 pub const UNKNOWN_STATE: u8 = 4;
 /// Item flag: the bar leaves the item out until the user adds it back (Quick Customize).
 pub const EXCLUDED: u8 = 8;
+/// Item flag: shown only when Vector's state says so ([`bind::visible`]); hidden in the
+/// reference captures.
+pub const RUNTIME_VISIBLE: u8 = 16;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Kind {

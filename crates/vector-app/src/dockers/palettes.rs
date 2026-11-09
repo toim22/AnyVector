@@ -313,7 +313,7 @@ fn user_entries(dir: &Path) -> Vec<(PathBuf, bool)> {
                     let p = e.path();
                     let is_dir = p.is_dir();
                     let ext = p.extension().map(|x| x.to_string_lossy().to_lowercase()).unwrap_or_default();
-                    (is_dir || ["vpal", "gpl", "txt"].contains(&ext.as_str())).then_some((p, is_dir))
+                    (is_dir || ["xml", "vpal", "gpl", "txt"].contains(&ext.as_str())).then_some((p, is_dir))
                 })
                 .collect()
         })
@@ -608,10 +608,10 @@ fn run(app: &mut VectorApp, c: &str, sel: Option<&str>, user_sel: Option<PathBuf
         }
         "blank" => {
             let dir = target_dir(user_sel);
-            let p = unique(&dir, "Untitled Palette", ".vpal");
+            let p = unique(&dir, "Untitled Palette", ".xml");
             let name = p.file_stem().unwrap_or_default().to_string_lossy().to_string();
             let pal = Palette { name: name.clone(), colors: vec![] };
-            if std::fs::write(&p, pal.serialize()).is_ok() {
+            if std::fs::write(&p, pal.to_xml()).is_ok() {
                 expand(app, &dir);
                 set_open(app, Some(pal), &name, true, Some(&p));
                 app.dockers.ui.pm.sel = Some(format!("my:{}", p.display()));
@@ -622,7 +622,15 @@ fn run(app: &mut VectorApp, c: &str, sel: Option<&str>, user_sel: Option<PathBuf
         "from_doc" => app.run(Cmd::CreatePaletteFromDocument),
         "edit" => {
             if let Some((palette, path)) = sel.and_then(|k| palette_of(app, k)) {
-                app.dialogs.palette_editor = Some(crate::dialogs::PaletteEditorState { palette, selected: None, path });
+                use crate::dialogs::palette::Source;
+                let _ = palette;
+                let s = match (sel, path) {
+                    (_, Some(p)) => Source::File(p),
+                    (Some("doc"), None) => Source::Document,
+                    (Some("styles"), None) => Source::ColorStyles,
+                    _ => Source::Default,
+                };
+                crate::dialogs::palette::open_editor_for(app, s);
             }
         }
         "cut" | "copy" => {
@@ -642,8 +650,8 @@ fn run(app: &mut VectorApp, c: &str, sel: Option<&str>, user_sel: Option<PathBuf
                     app.dockers.ui.pm.clip = None;
                 }
             } else if let Some((pal, _)) = palette_of(app, &k) {
-                let to = unique(&dir, &pal.name, ".vpal");
-                let _ = std::fs::write(&to, pal.serialize());
+                let to = unique(&dir, &pal.name, ".xml");
+                let _ = std::fs::write(&to, pal.to_xml());
             }
             expand(app, &dir);
         }

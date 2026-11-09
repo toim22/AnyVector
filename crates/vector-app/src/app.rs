@@ -91,6 +91,9 @@ pub struct VectorApp {
     pub last_cmd: Option<Cmd>,
     /// Object ▸ Rollover ▸ Rollover Live Preview.
     pub rollover_live: bool,
+    /// Window ▸ Cascade / Tile Horizontally / Tile Vertically: 0 tabs (Combine Windows, Dock
+    /// Window), 1 tiled one above another, 2 tiled side by side, 3 cascaded.
+    pub doc_layout: u8,
     /// The rollover under the pointer during the live preview, and the state it shows.
     pub rollover_hot: Option<(vector_core::ObjId, u8)>,
     pub recording: Option<crate::scripting::Recorder>,
@@ -151,6 +154,7 @@ impl VectorApp {
             allow_close: false,
             last_cmd: None,
             rollover_live: false,
+            doc_layout: 0,
             rollover_hot: None,
             recording: None,
             temp_script: String::new(),
@@ -336,16 +340,21 @@ impl VectorApp {
             });
         }
         egui::CentralPanel::default().frame(Frame::new().fill(theme::BG)).show(ui, |ui| {
-            crate::tabs::tab_strip(self, ui);
-            if self.active.is_some() {
-                crate::canvas::drawing_window(self, ui);
+            if self.doc_layout != 0 && self.docs.len() > 1 && self.active.is_some() {
+                crate::canvas::arranged_windows(self, ui);
             } else {
-                crate::welcome::welcome(self, ui);
+                crate::tabs::tab_strip(self, ui);
+                if self.active.is_some() {
+                    crate::canvas::drawing_window(self, ui);
+                } else {
+                    crate::welcome::welcome(self, ui);
+                }
             }
         });
         crate::dialogs::show(self, &ctx);
         self.show_message(&ctx);
         self.process_pending(&ctx);
+        self.sync_windows();
         self.autosave_tick();
         // window title
         let title = match self.doc() {

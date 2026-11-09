@@ -12,6 +12,15 @@ pub enum ViewMode {
     Normal,
     Enhanced,
     Pixels,
+    /// View ▸ Pattern Preview (pattern documents): the page repeated as tiles around it.
+    PatternPreview,
+}
+
+/// A pattern document: the document whose pattern (the tile image `image`) it edits.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PatternLink {
+    pub group: u64,
+    pub image: u64,
 }
 
 impl ViewMode {
@@ -76,6 +85,12 @@ pub struct DocView {
     /// Object ▸ Perspective: the perspective group being drawn or edited.
     pub persp_edit: Option<crate::dialogs::symmetry::PerspEdit>,
     pub last_saved_backup: f64,
+    /// Window ▸ New Window: the windows showing the same document share a group (the first
+    /// window's uid) and are numbered 1, 2, ... (0 while the document has one window).
+    pub group: u64,
+    pub window_no: usize,
+    /// Properties ▸ Vector Pattern ▸ Edit fill: this document is that pattern's tile.
+    pub pattern: Option<PatternLink>,
 }
 
 pub fn view_affine(zoom: f64, origin: Vec2) -> Affine {
@@ -85,8 +100,12 @@ pub fn view_affine(zoom: f64, origin: Vec2) -> Affine {
 impl DocView {
     pub fn new(doc: Document, title: String, undo_levels: usize) -> DocView {
         static UID: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+        let uid = UID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         DocView {
-            uid: UID.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+            uid,
+            group: uid,
+            window_no: 0,
+            pattern: None,
             doc,
             history: History::new(undo_levels),
             path: None,
@@ -119,11 +138,15 @@ impl DocView {
     pub fn stem(&self) -> String {
         let n = self.display_name();
         let n = n.trim_end_matches('*');
+        let n = if self.window_no > 0 { n.rsplit_once(':').map(|(a, _)| a).unwrap_or(n) } else { n };
         n.strip_suffix(".cdr").or_else(|| n.strip_suffix(".vct")).unwrap_or(n).to_string()
     }
 
     pub fn display_name(&self) -> String {
-        let n = self.path.as_ref().and_then(|p| p.file_name()).map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| self.title.clone());
+        let mut n = self.path.as_ref().and_then(|p| p.file_name()).map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| self.title.clone());
+        if self.window_no > 0 {
+            n = format!("{n}:{}", self.window_no);
+        }
         if self.history.is_modified() {
             format!("{n}*")
         } else {
