@@ -66,12 +66,36 @@ fn tree(c: &Container) -> Result<Chunk> {
 
 /// Open a drawing saved by CorelDRAW.
 pub fn load_from_bytes(bytes: &[u8]) -> Result<Document> {
-    build::document(&root(bytes)?)
+    let root = root(bytes)?;
+    color::with_profile(cmyk_profile(bytes).as_deref(), || build::document(&root))
 }
 
 /// Open a drawing and also list the object types that were left out: (type, count).
 pub fn load_with_report(bytes: &[u8]) -> Result<(Document, Vec<(u32, usize)>)> {
-    build::document_with_report(&root(bytes)?)
+    let root = root(bytes)?;
+    color::with_profile(cmyk_profile(bytes).as_deref(), || build::document_with_report(&root))
+}
+
+/// The CMYK color profile the drawing was made with, from the metadata of X4 and later files:
+/// `CmykProfileName="..."` (X6 and later) or `<Cmyk><Name>...</Name>` (X4 and X5).
+fn cmyk_profile(bytes: &[u8]) -> Option<String> {
+    if bytes.len() < 4 || &bytes[0..2] != b"PK" {
+        return None;
+    }
+    let mut z = zip::ZipArchive::new(std::io::Cursor::new(bytes)).ok()?;
+    let xml = read_entry(&mut z, "META-INF/metadata.xml").or_else(|| read_entry(&mut z, "metadata/metadata.xml"))?;
+    let xml = String::from_utf8_lossy(&xml);
+    let after = |s: &str, start: &str, end: &str| -> Option<String> {
+        let i = s.find(start)? + start.len();
+        let n = s[i..].find(end)?;
+        Some(s[i..i + n].to_string())
+    };
+    let name = after(&xml, "CmykProfileName=\"", "\"").or_else(|| {
+        let i = xml.find("<Cmyk>")?;
+        after(&xml[i..], "<Name>", "</Name>")
+    })?;
+    let name = name.replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&apos;", "'").replace("&amp;", "&");
+    (!name.trim().is_empty()).then_some(name)
 }
 
 /// The version of CorelDRAW that saved the drawing, times 100 (X5 = 1500).
