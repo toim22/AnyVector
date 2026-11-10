@@ -381,9 +381,12 @@ kurbo 0.13.1
 libc 0.2.191
     License: MIT OR Apache-2.0
     https://github.com/rust-lang/libc
-libcdr colour palette tables (crates/vector-io/src/corel/palettes.rs)
+libcdr colour palette tables
     License: MPL-2.0
-    https://git.libreoffice.org/libcdr
+    Taken from https://git.libreoffice.org/libcdr. The source as AnyVector uses it is
+    legal\palettes.rs in the install folder, and
+    https://github.com/toim22/AnyVector/blob/main/crates/vector-io/src/corel/palettes.rs
+    The license text is legal\MPL-2.0.txt in the install folder.
 libflate 1.4.0
     License: MIT
     https://github.com/sile/libflate

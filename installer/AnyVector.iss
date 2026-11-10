@@ -142,6 +142,9 @@ Type: dirifempty; Name: "{autoprograms}\Vector"; Check: UpdatingVector
 [Files]
 Source: "..\target\release\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\crates\anyvector\assets\anyvector.ico"; DestDir: "{app}"; Flags: ignoreversion
+; the source of AnyVector's one MPL-2.0 file (CorelDRAW palette tables from libcdr), and that license
+Source: "..\crates\vector-io\src\corel\palettes.rs"; DestDir: "{app}\legal"; Flags: ignoreversion
+Source: "..\crates\anyvector\assets\legal\MPL-2.0.txt"; DestDir: "{app}\legal"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExe}"; Comment: "Vector graphics editor"
