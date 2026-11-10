@@ -2259,6 +2259,7 @@ pub fn edit_text(app: &mut AnyVectorApp, ctx: &egui::Context) {
             });
             if al != cur_al {
                 st.t.align = aligns[al];
+                st.t.clear_paragraph_styles();
             }
             if toggle(ui, egui::RichText::new("¶").size(16.0), st.show_np) {
                 st.show_np = !st.show_np;
