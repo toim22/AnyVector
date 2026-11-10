@@ -1890,6 +1890,24 @@ impl Ctx<'_> {
     pub fn note(&mut self, note: ImportNote) {
         *self.notes.entry(note).or_default() += 1;
     }
+
+    /// One note per font the drawing's text uses that isn't installed, naming the font shown
+    /// instead (see `FontDb::resolve`). Once per font, however many texts use it.
+    fn note_font_substitutions(&mut self) {
+        let mut families: Vec<String> = self.doc.used_fonts().into_iter().map(|f| f.0).filter(|f| !f.trim().is_empty()).collect();
+        families.sort();
+        families.dedup();
+        if families.is_empty() {
+            return;
+        }
+        let substituted: Vec<(String, String)> = {
+            let db = vector_core::text::fonts().lock();
+            families.into_iter().filter_map(|f| db.substitute(&f).map(|used| (f, used))).collect()
+        };
+        for (missing, used) in substituted {
+            self.note(ImportNote::FontSubstituted { missing, used });
+        }
+    }
 }
 
 /// CorelDRAW 4 paragraph text that flows through frames (`chains`: the text's id and its frames'
@@ -1976,9 +1994,10 @@ pub(super) fn document_with_report(root: &Chunk) -> Result<(Document, Report)> {
     if let Some(left_first) = cx.facing4(root) {
         out = split_spreads(out, left_first, &mut cx.doc);
     }
+    cx.doc.pages = out;
+    cx.note_font_substitutions();
     let skipped: Vec<(u32, usize)> = cx.skipped.iter().map(|(k, v)| (*k, *v)).collect();
     let mut doc = cx.doc;
-    doc.pages = out;
     for (a, z) in &cx.text_paths {
         let (Some(&a), Some(&z)) = (cx.by_spnd.get(a), cx.by_spnd.get(z)) else { continue };
         let is_text = |doc: &Document, id| doc.find(id).is_some_and(|o| matches!(o.kind, ObjKind::Text(_)));
@@ -2051,6 +2070,40 @@ pub(crate) mod tests {
         assert_eq!(cx.notes.get(&ImportNote::MissingFontId { id: 7 }), Some(&2));
         let report = Report { skipped: vec![(0x20, 3)], notes: vec![(ImportNote::SkippedObjects { kind: 0x20 }, 3)] };
         assert_eq!(report.lines(), vec!["Left out: 3 object(s) of a kind AnyVector doesn't read yet (type 32)".to_string()]);
+    }
+
+    #[test]
+    fn a_missing_font_is_reported_once_with_its_substitute() {
+        use vector_core::text::{CharFormat, TextObj};
+        let installed = vector_core::text::fonts().lock().families().first().cloned();
+        let mut cx = ctx(500);
+        let mut page = Page::new(cx.doc.new_id(), 0, 100.0, 100.0);
+        let mut layer = Layer::new(cx.doc.new_id(), "Layer 1");
+        let fonts = ["Bedrock", "Bedrock", "No Such Font 12345"].into_iter().map(String::from).chain(installed.clone());
+        for font in fonts {
+            let t = TextObj::artistic("ON THE RIGHT TRACK!", CharFormat { font, ..Default::default() });
+            layer.objects.push(Object::new(cx.doc.new_id(), ObjKind::Text(t), Affine::IDENTITY, Style::default()));
+        }
+        page.layers.push(layer);
+        cx.doc.pages = vec![page];
+        cx.note_font_substitutions();
+        let missing: Vec<(&str, usize)> = cx
+            .notes
+            .iter()
+            .filter_map(|(n, c)| match n {
+                ImportNote::FontSubstituted { missing, used } => {
+                    assert!(!used.is_empty());
+                    Some((missing.as_str(), *c))
+                }
+                _ => None,
+            })
+            .collect();
+        let bedrock_installed = vector_core::text::fonts().lock().substitute("Bedrock").is_none();
+        let mut want = vec![("No Such Font 12345", 1)];
+        if !bedrock_installed {
+            want.insert(0, ("Bedrock", 1));
+        }
+        assert_eq!(missing, want);
     }
 
     #[test]
