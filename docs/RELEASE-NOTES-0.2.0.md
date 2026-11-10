@@ -37,6 +37,8 @@ Import with a .cdr file is enough. The original file is never saved over; File â
     shadows with the same offset, feathering, color and opacity. Files that hold a picture of the shadow instead
     (CorelDRAW X5, for example) keep that picture.
   - Contours come in as the shapes CorelDRAW stored for each step.
+- Guidelines come in as AnyVector guides: horizontal, vertical and angled, on the master page or on their own
+  page (CorelDRAW 6 and later).
 - Arrowheads on lines keep their exact CorelDRAW shape and size. They are added to the document's arrowheads, so
   you can use them on other lines too. This includes CorelDRAW 2 drawings.
 
@@ -46,7 +48,6 @@ Import with a .cdr file is enough. The original file is never saved over; File â
 - Bitmap, vector pattern and texture fills of files older than CorelDRAW X3 come in as a gray tone.
 - Vector pattern and texture fills come in as a picture of their tile, so their objects and texture settings
   can't be edited.
-- Guidelines are not imported.
 - Overlined text comes in without the line over it. Columns of paragraph text saved by CorelDRAW X5 or older
   come in as a single column.
 - CMYK colors always use CorelDRAW's default color settings, even in a drawing saved with another CMYK color

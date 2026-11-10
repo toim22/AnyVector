@@ -502,3 +502,26 @@ fn underlined_and_struck_text() {
         assert_eq!((f.underline, f.strike), (under, strike), "{n}");
     }
 }
+
+/// Guidelines on the master page: a horizontal one 25 mm and a vertical one 50 mm from the
+/// page's corner, and one at 30 degrees through (120, 50) mm (the page is 200 by 100 mm).
+#[test]
+fn guidelines() {
+    use vector_core::document::GuideKind;
+    let mm = |v: f64| v * 72.0 / 25.4;
+    for name in ["guides-x5.cdr", "guides-2026.cdr"] {
+        let doc = open(name);
+        let g = &doc.master_guides;
+        assert_eq!(g.len(), 3, "{name}");
+        let h = g.iter().find(|g| g.kind == GuideKind::Horizontal).unwrap();
+        assert!((h.pos.y - mm(75.0)).abs() < 0.05, "{name}: {h:?}");
+        let v = g.iter().find(|g| g.kind == GuideKind::Vertical).unwrap();
+        assert!((v.pos.x - mm(50.0)).abs() < 0.05, "{name}: {v:?}");
+        let a = g.iter().find(|g| matches!(g.kind, GuideKind::Angled(_))).unwrap();
+        let GuideKind::Angled(deg) = a.kind else { unreachable!() };
+        assert!((deg - 30.0).abs() < 0.01, "{name}: {deg}");
+        // (120, 50) mm lies on it
+        let (dx, dy) = (mm(120.0) - a.pos.x, a.pos.y - mm(50.0));
+        assert!((dy - dx * deg.to_radians().tan()).abs() < 0.05, "{name}: {a:?}");
+    }
+}

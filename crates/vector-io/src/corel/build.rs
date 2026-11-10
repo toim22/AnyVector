@@ -8,7 +8,7 @@ use crate::{IoError, Result};
 use kurbo::{Affine, BezPath, Point, Shape};
 use std::collections::HashMap;
 use vector_core::color::Color;
-use vector_core::document::{Document, Layer, Page};
+use vector_core::document::{Document, Guide, GuideKind, Layer, Page};
 use vector_core::object::{BlendObj, CornerType, DropShadow, ExtrudeEffect, EllipseKind, EllipseShape, ObjKind, Object, RectShape};
 use vector_core::path::NodePath;
 use vector_core::style::*;
@@ -41,6 +41,8 @@ const T_GRID_LAYER: u32 = 0x0b;
 const T_GUIDES_LAYER: u32 = 0x0c;
 const T_DESKTOP_LAYER: u32 = 0x11;
 const T_POLYGON: u32 = 0x14;
+const T_GUIDE: u32 = 0x16;
+const ARG_GUIDE: u32 = 0x3e80;
 const T_PATH: u32 = 0x25;
 
 /// A fill as stored, before it is fitted to an object.
@@ -1050,6 +1052,40 @@ impl<'a> Ctx<'a> {
         out
     }
 
+    /// The guidelines on a guides layer. Each keeps its angle (millionths of a degree,
+    /// counterclockwise) and two points on it, after twelve bytes CorelDRAW 9 to 2026 agree on.
+    /// Each guide's point is the one nearest `center`.
+    fn guides(&self, page: &Chunk, to_page: Affine, center: Point) -> Vec<Guide> {
+        let mut out = vec![];
+        if self.ver < 600 {
+            return out;
+        }
+        let Some(gobj) = page.list_child(b"gobj") else { return out };
+        let layers = gobj.lists(b"layr").filter(|l| Self::record(l).is_some_and(|r| self.loda(&r.data).kind == T_GUIDES_LAYER));
+        for o in layers.flat_map(|l| l.lists(b"obj ")) {
+            let Some(rec) = Self::record(o) else { continue };
+            let l = self.loda(&rec.data);
+            let Some(a) = l.arg(ARG_GUIDE).filter(|_| l.kind == T_GUIDE) else { continue };
+            if a.len() < 32 {
+                continue;
+            }
+            let mut r = Rd::at(a, 12);
+            let angle = (r.i32() as f64 / 1e6).rem_euclid(180.0);
+            let p = to_page * Point::new(r.i32() as f64, r.i32() as f64);
+            let (kind, p) = if angle.abs() < 1e-3 || (angle - 180.0).abs() < 1e-3 {
+                (GuideKind::Horizontal, Point::new(0.0, p.y))
+            } else if (angle - 90.0).abs() < 1e-3 {
+                (GuideKind::Vertical, Point::new(p.x, 0.0))
+            } else {
+                // along the line, y down
+                let d = kurbo::Vec2::new(angle.to_radians().cos(), -angle.to_radians().sin());
+                (GuideKind::Angled(angle), p + d * (center - p).dot(d))
+            };
+            out.push(Guide { kind, pos: p, locked: false, color: Color::rgb(0, 153, 255) });
+        }
+        out
+    }
+
     // ---------------------------------------------------------------- objects
 
     /// Convert one `obj `/`grp ` list (or any list holding objects) and push the result.
@@ -1588,9 +1624,11 @@ pub(super) fn document_with_report(root: &Chunk) -> Result<(Document, Vec<(u32, 
         };
         let to_page = Affine::translate((-corner.0, h + corner.1)) * Affine::scale_non_uniform(k, -k);
         let mut layers = cx.layers(p, to_page, false);
+        let page_guides = cx.guides(p, to_page, Point::new(w / 2.0, h / 2.0));
         if out.is_empty() {
             if let Some(m) = master {
                 let mut ml = cx.layers(pages[m], to_page, true);
+                cx.doc.master_guides = cx.guides(pages[m], to_page, Point::new(w / 2.0, h / 2.0));
                 ml.append(&mut layers);
                 layers = ml;
             }
@@ -1602,6 +1640,7 @@ pub(super) fn document_with_report(root: &Chunk) -> Result<(Document, Vec<(u32, 
         let pid = cx.doc.new_id();
         let mut page = Page::new(pid, 0, w, h);
         page.layers = layers;
+        page.guides = page_guides;
         out.push(page);
     }
     let skipped = cx.skipped.iter().map(|(k, v)| (*k, *v)).collect();
