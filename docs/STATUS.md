@@ -1,8 +1,23 @@
 # AnyVector — Status
 
-Last updated: 2026-11-09.
+Last updated: 2026-11-10.
 
-## Version 0.1.0 (release candidate)
+## Version history
+
+| Version | Date | What it brings |
+| --- | --- | --- |
+| [0.2.0](RELEASE-NOTES-0.2.0.md) | 2026-11-10 | Opens CorelDRAW drawings natively, from CorelDRAW 1 to 2026: pages, layers, shapes, fills (uniform, fountain, bitmap, two-color, texture, vector pattern, PostScript), outlines and arrowheads, text with its layout, bitmaps, lenses, perspective, envelopes, PowerLines, blends, extrusions, drop shadows, contours, guidelines and CMYK through the drawing's profile. |
+| [0.1.0](RELEASE-NOTES-0.1.0.md) | 2026-11-09 | The CorelDRAW 2026 interface item by item: menus, toolbars, tools, property bars, dockers and dialogs; the AnyVector name; Brazilian Portuguese; the installer. |
+
+## Version 0.2.0 (released)
+
+AnyVector 0.2.0 is the CorelDRAW import release (pull requests #16 to #31). Every version of the .cdr format
+opens as an ordinary AnyVector document; the full list and the known limits are in
+`docs/RELEASE-NOTES-0.2.0.md`. Open items for a later version: texture fills drawn exactly as CorelDRAW does,
+vector pattern fills of CorelDRAW 5 to X2, CorelDRAW 1 arrowheads, CorelDRAW 3 font widths, and the few objects
+still left out of CorelDRAW 5 to 10 files.
+
+## Version 0.1.0 (released)
 
 AnyVector 0.1.0 is being built to match the CorelDRAW 2026 reference, in batches (see `docs/PLAN-0.1.0.md`).
 `docs/COVERAGE.md` lists every menu item, dialog, docker, tool, toolbar and right-click menu of the reference with
