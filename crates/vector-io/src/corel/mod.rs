@@ -12,6 +12,7 @@ mod psfill;
 mod persp;
 mod riff;
 mod text;
+mod tiff;
 mod waldo;
 
 use crate::{IoError, Result};
@@ -133,13 +134,25 @@ mod tests {
         let Ok(list) = std::env::var("ANYVECTOR_CDR") else { return };
         for path in list.split(';') {
             let bytes = std::fs::read(path).unwrap();
-            let doc = match super::load_from_bytes(&bytes) {
+            let mut doc = match super::load_from_bytes(&bytes) {
                 Ok(d) => d,
                 Err(e) => {
                     println!("{path}: ERROR {e}");
                     continue;
                 }
             };
+            // with ANYVECTOR_CDR_ALL the pages grow to show the whole drawing
+            if std::env::var("ANYVECTOR_CDR_ALL").is_ok() {
+                for p in &mut doc.pages {
+                    let b = p.layers.iter().flat_map(|l| &l.objects).map(|o| o.bounds()).filter(|b| b.width() < 10.0 * p.width && b.height() < 10.0 * p.height).reduce(|a, b| a.union(b));
+                    let Some(b) = b else { continue };
+                    let b = b.union(kurbo::Rect::new(0.0, 0.0, p.width, p.height));
+                    for l in &mut p.layers {
+                        l.objects.iter_mut().for_each(|o| o.apply_transform(kurbo::Affine::translate((-b.x0, -b.y0))));
+                    }
+                    (p.width, p.height) = (b.width(), b.height());
+                }
+            }
             println!("{path}: {} page(s), {} arrowheads", doc.pages.len(), doc.arrowheads.len());
             for (i, p) in doc.pages.iter().enumerate() {
                 println!(" page {} {:.1}x{:.1} pt", i + 1, p.width, p.height);
