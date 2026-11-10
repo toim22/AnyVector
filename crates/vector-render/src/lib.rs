@@ -364,8 +364,7 @@ impl Renderer {
                 // front extrusions come toward the viewer: drawn over the object, capped with its fill
                 self.render_extrude(ctx, o, e, target);
                 let cap = extrude_back(o.world_path().bounding_box(), e) * o.world_path();
-                let c = o.style.fill.main_color().unwrap_or(e.color);
-                self.fill_path_simple(&cap, c, ctx.view, target, ctx.opts.antialias);
+                self.fill_path_simple(&cap, extrude_far_color(o, e), ctx.view, target, ctx.opts.antialias);
             }
             if e.bevel.is_some() && !e.bevel_only {
                 self.render_bevel(ctx, o, &o.world_path(), e, target);
@@ -1087,8 +1086,12 @@ impl Renderer {
         }
         let back_m = extrude_back(path.bounding_box(), e);
         let polys = geom::flatten_polylines(&path, 0.5);
-        let mut quads: Vec<([Point; 4], f64)> = vec![];
+        // each side: its corners, its light and its outward normal
+        let mut quads: Vec<([Point; 4], f64, Vec2)> = vec![];
         let light = extrude_light(e);
+        // with every light off the sides are not lit, as in CorelDRAW: one color, or the
+        // shading from the extrusion's color at the object to the shade color at the far end
+        let lit = e.lights.iter().any(|l| l.0 < 27);
         let base = match e.color_mode {
             0 => o.style.fill.main_color().unwrap_or(e.color),
             _ => e.color,
@@ -1096,6 +1099,9 @@ impl Renderer {
         for (pts, closed) in &polys {
             let n = pts.len();
             let m = if *closed { n } else { n - 1 };
+            // counterclockwise (y up) outlines have their outside on the right of each edge
+            let area: f64 = (0..n).map(|k| pts[k].x * pts[(k + 1) % n].y - pts[(k + 1) % n].x * pts[k].y).sum();
+            let out_sign = if area > 0.0 { 1.0 } else { -1.0 };
             for k in 0..m {
                 let a = pts[k];
                 let b = pts[(k + 1) % n];
@@ -1105,26 +1111,28 @@ impl Renderer {
                 }
                 let normal = Vec2::new(edge.y, -edge.x).normalize();
                 let shade = (normal.dot(light.0) * 0.5 + 0.5).clamp(0.0, 1.0) * light.1;
-                quads.push(([a, b, back_m * b, back_m * a], shade));
+                quads.push(([a, b, back_m * b, back_m * a], shade, normal * out_sign));
             }
         }
-        // painter's order: draw faces farther along the depth first
+        // painter's order: the sides turned away from the viewer first (their outside faces
+        // along the depth of a back extrusion, against it for a front one), then the faces
+        // farther along the depth
         let depth = (back_m * path.bounding_box().center()) - path.bounding_box().center();
         let dir = depth.normalize();
+        let toward = if matches!(e.kind, 1 | 3 | 5) { -1.0 } else { 1.0 };
+        let shown = |q: &([Point; 4], f64, Vec2)| q.2.dot(dir) * toward > 1e-9;
         quads.sort_by(|x, y| {
             let dx = (x.0[0].to_vec2() + x.0[1].to_vec2()).dot(dir);
             let dy = (y.0[0].to_vec2() + y.0[1].to_vec2()).dot(dir);
-            dy.partial_cmp(&dx).unwrap_or(std::cmp::Ordering::Equal)
+            shown(x).cmp(&shown(y)).then(dy.partial_cmp(&dx).unwrap_or(std::cmp::Ordering::Equal))
         });
+        // the sides are outlined with the object's outline, as CorelDRAW draws them
+        let edge = o.style.outline.color.filter(|_| o.style.outline.width > 0.0).map(|c| (c, o.style.outline.width.min(2.0)));
         // back face
         let back = back_m * path.clone();
-        let back_c = match e.color_mode {
-            1 => base,
-            0 => Color::lerp(Color::BLACK, base, 0.55),
-            _ => e.shade,
-        };
+        let back_c = extrude_far_color(o, e);
         self.fill_path_simple(&back, back_c, ctx.view, target, ctx.opts.antialias);
-        for (q, shade) in quads {
+        for (q, shade, _) in quads {
             let mut bp = BezPath::new();
             bp.move_to(q[0]);
             bp.line_to(q[1]);
@@ -1133,17 +1141,35 @@ impl Renderer {
             bp.close_path();
             let c = match e.color_mode {
                 1 => base,
+                0 if !lit => base,
                 // draped: the fill runs over the sides, lightly shaded
                 0 if e.drape => Color::lerp(Color::lerp(Color::BLACK, base, 0.8), base, shade),
                 0 => Color::lerp(Color::lerp(Color::BLACK, base, 0.45), base, shade),
                 _ => Color::lerp(e.shade, e.color, shade),
             };
             if let Some(sp) = to_sk_path(&bp) {
-                let p = paint_solid(c, ctx.opts.antialias);
+                let mut p = paint_solid(c, ctx.opts.antialias);
+                if e.color_mode == 2 && !lit {
+                    // straight back from the object's edge
+                    let near = q[0].midpoint(q[1]);
+                    let across = (q[1] - q[0]).normalize();
+                    let back = q[3].midpoint(q[2]) - near;
+                    let far = near + (back - across * back.dot(across));
+                    let stops = vec![sk::GradientStop::new(0.0, sk_color(e.color)), sk::GradientStop::new(1.0, sk_color(e.shade))];
+                    if let Some(sh) = sk::LinearGradient::new(sk::Point::from_xy(near.x as f32, near.y as f32), sk::Point::from_xy(far.x as f32, far.y as f32), stops, sk::SpreadMode::Pad, sk::Transform::identity()) {
+                        p.shader = sh;
+                    }
+                }
                 target.fill_path(&sp, &p, sk::FillRule::Winding, to_sk(ctx.view), None);
                 let mut st = sk::Stroke::default();
                 st.width = 0.6;
                 target.stroke_path(&sp, &p, &st, to_sk(ctx.view), None);
+                if let Some((c, w)) = edge {
+                    let mut st = sk::Stroke::default();
+                    st.width = w as f32;
+                    st.line_join = sk::LineJoin::Round;
+                    target.stroke_path(&sp, &paint_solid(c, ctx.opts.antialias), &st, to_sk(ctx.view), None);
+                }
             }
         }
     }
@@ -1854,6 +1880,20 @@ pub fn extrude_back(bb: Rect, e: &ExtrudeEffect) -> Affine {
     });
     let c = bb.center();
     Affine::translate(d) * Affine::translate(c.to_vec2()) * Affine::scale(scale) * Affine::translate(-c.to_vec2())
+}
+
+/// The color of an extrusion's far face (the back, or the front of a front extrusion): the
+/// shade color when shaded, the extrusion's or object's color otherwise (darkened under lights).
+fn extrude_far_color(o: &Object, e: &ExtrudeEffect) -> Color {
+    let lit = e.lights.iter().any(|l| l.0 < 27);
+    match e.color_mode {
+        1 => e.color,
+        0 => {
+            let base = o.style.fill.main_color().unwrap_or(e.color);
+            if lit { Color::lerp(Color::BLACK, base, 0.55) } else { base }
+        }
+        _ => e.shade,
+    }
 }
 
 /// The extrusion's light: direction (toward the light) and intensity factor.

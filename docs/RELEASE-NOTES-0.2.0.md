@@ -32,7 +32,8 @@ Import with a .cdr file is enough. The original file is never saved over; File â
 - **Effects:**
   - Blends come in as live AnyVector blends between their two ends, with the same number of steps.
   - Extrusions come in as live extrusions toward the same vanishing point and to the same depth, with their
-    colors. This covers all six kinds: small and big, back and front, and parallel.
+    colors and CorelDRAW's shading of their sides. This covers all six kinds: small and big, back and front,
+    and parallel.
   - Drop shadows that recent CorelDRAW versions save as a live effect (CorelDRAW 2026, for example) come in as live
     shadows with the same offset, feathering, color and opacity. Files that hold a picture of the shadow instead
     (CorelDRAW X5, for example) keep that picture.
@@ -52,7 +53,6 @@ Import with a .cdr file is enough. The original file is never saved over; File â
   profile.
 - In CorelDRAW 1 and 2 files, text and bitmaps are left out. Arrowheads come in from CorelDRAW 2 files, but
   not from CorelDRAW 1 files.
-- The sides of extrusions use AnyVector's own lighting, which can look different from CorelDRAW's shading.
 
 ## Legal notices
 
