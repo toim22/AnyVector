@@ -114,6 +114,27 @@ pub fn open(path: &Path) -> Result<Document> {
     }
 }
 
+/// Open a document file and say what could not be brought in exactly, one line each (see
+/// [`cdr::load_with_notes`]). Formats that never approximate give no lines.
+pub fn open_with_notes(path: &Path) -> Result<(Document, Vec<String>)> {
+    match extension(path).as_str() {
+        "cdr" | "cdt" | "cdrt" => cdr::load_with_notes(&std::fs::read(path)?),
+        _ => open(path).map(|d| (d, vec![])),
+    }
+}
+
+/// Import a file into an existing document, like [`import`], and say what could not be brought
+/// in exactly.
+pub fn import_with_notes(doc: &mut Document, path: &Path) -> Result<(Vec<Object>, Vec<String>)> {
+    match extension(path).as_str() {
+        "cdr" | "cdt" | "cdrt" => {
+            let (other, notes) = cdr::load_with_notes(&std::fs::read(path)?)?;
+            Ok((merge_document(doc, other), notes))
+        }
+        _ => import(doc, path).map(|o| (o, vec![])),
+    }
+}
+
 /// The preview stored in a drawing (`.cdr` or `.vct`), as RGBA pixels.
 pub fn read_thumbnail(path: &Path) -> Option<(u32, u32, Vec<u8>)> {
     match extension(path).as_str() {

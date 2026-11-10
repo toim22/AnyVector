@@ -5546,3 +5546,8 @@ not a CorelDRAW drawing	não é um desenho do CorelDRAW
 the CorelDRAW drawing is empty or damaged	o desenho do CorelDRAW está vazio ou danificado
 the CorelDRAW drawing has no pages	o desenho do CorelDRAW não tem páginas
 CDT - CorelDRAW Template (*.cdt;*.cdrt)	CDT - Modelo do CorelDRAW (*.cdt;*.cdrt)
+{} came in with these differences from the original:	{} foi aberto com estas diferenças em relação ao original:
+Left out: {} object(s) of a kind AnyVector doesn't read yet (type {})	Deixado de fora: {} objeto(s) de um tipo que o AnyVector ainda não lê (tipo {})
+Texture "{}" isn't in CorelDRAW's texture library, so it's shown as a plain texture ({} fill(s))	A textura "{}" não está na biblioteca de texturas do CorelDRAW, então aparece como uma textura simples ({} preenchimento(s))
+Text uses a font the drawing doesn't list (font {}), so it's shown in the default font ({} text(s))	Há texto com uma fonte que o desenho não lista (fonte {}), então ele aparece na fonte padrão ({} texto(s))
+The font "{}" isn't installed, so its text is shown in "{}"	A fonte "{}" não está instalada, então o texto dela aparece em "{}"

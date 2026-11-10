@@ -17,6 +17,21 @@ opens as an ordinary AnyVector document; the full list and the known limits are 
 vector pattern fills of CorelDRAW 5 to X2, CorelDRAW 1 arrowheads, CorelDRAW 3 font widths, and the few objects
 still left out of CorelDRAW 5 to 10 files.
 
+## CorelDRAW import: known issues to review later
+
+These are outside the current round of work and stay as they are until they are picked up again. The research
+behind each one is in `C:\Projetos\Vector\issues\` (not part of the repository).
+
+- **Texture fills drawn exactly as CorelDRAW does (research issue 1).** Files older than X3 keep only a texture's
+  settings, and AnyVector draws soft clouds in the texture's colors. An exact drawing needs CorelDRAW's texture
+  generators, and the only source for them is CorelDRAW's own program: a licensing decision comes first.
+- **CorelDRAW 1 arrowheads (issue 5).** No CorelDRAW 1 file with an arrow has been found to settle the record.
+- **Linked bitmaps (issue 7a)** and **object types 0x20 and 0x0a (issue 7c)** in CorelDRAW 5 to 10 files: each needs a
+  sample file that has one. AnyVector now names these when a drawing opens.
+- **Sample 33.cdr's black ovals (issue 8).** Needs the file; the research has the steps to diagnose it.
+- **CMYK of files older than X4, or made with a profile CorelDRAW 2026 doesn't ship (issue 12).** Older files carry no
+  profile, so the colors depend on a choice; a profile embedded in the file (`iccd`) is not read yet.
+
 ## Version 0.1.0 (released)
 
 AnyVector 0.1.0 is being built to match the CorelDRAW 2026 reference, in batches (see `docs/PLAN-0.1.0.md`).
