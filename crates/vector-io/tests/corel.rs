@@ -508,19 +508,20 @@ fn x5_paragraph_columns() {
 }
 
 #[test]
-fn underlined_and_struck_text() {
+fn underlined_struck_and_overlined_text() {
     let doc = open("decorations-x5.cdr");
-    for (n, under, strike) in [
-        ("plain", false, false),
-        ("under-single", true, false),
-        ("under-thick", true, false),
-        ("under-double", true, false),
-        ("strike", false, true),
-        ("over", false, false),
+    for (n, under, strike, over) in [
+        ("plain", false, false, false),
+        ("under-single", true, false, false),
+        ("under-thick", true, false, false),
+        ("under-double", true, false, false),
+        ("strike", false, true, false),
+        ("over", false, false, true),
     ] {
         let f = &text(&doc, n).format;
-        assert_eq!((f.underline, f.strike), (under, strike), "{n}");
+        assert_eq!((f.underline, f.strike, f.overline), (under, strike, over), "{n}");
     }
+    assert!(text(&open("overline-2026.cdr"), "over").format.overline);
 }
 
 /// Guidelines on the master page: a horizontal one 25 mm and a vertical one 50 mm from the
