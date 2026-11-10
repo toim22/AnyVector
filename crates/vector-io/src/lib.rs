@@ -7,6 +7,7 @@ pub mod flat;
 pub mod image_io;
 pub mod native;
 pub mod pdf;
+pub mod patterns;
 pub mod pdf_crypt;
 pub mod svg_export;
 pub mod svg_import;

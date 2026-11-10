@@ -1773,7 +1773,7 @@ fn visual_pattern_preview() {
     use kurbo::Shape;
     let mut h = harness();
     h.state_mut().new_default_document();
-    let image = {
+    let fill = {
         let d = h.state_mut().doc_mut().unwrap();
         let mut objs = vec![];
         for (c, r) in [(Color::rgb(0xe5, 0x39, 0x35), kurbo::Rect::new(200.0, 200.0, 240.0, 240.0)), (Color::rgb(0x1e, 0x88, 0xe5), kurbo::Rect::new(230.0, 225.0, 270.0, 255.0))] {
@@ -1786,17 +1786,19 @@ fn visual_pattern_preview() {
         let page = d.page;
         let name = crate::dialogs::object::make_pattern(&mut d.doc, page, kurbo::Rect::new(190.0, 190.0, 280.0, 265.0), 0, 1).unwrap();
         let np = d.doc.patterns.iter().find(|p| p.name == name).unwrap().clone();
-        assert_eq!(np.source.len(), 2, "the pattern keeps the objects it was made from");
+        let Some(vector_core::style::PatternSource::Tile(tile)) = np.fill.source else { panic!("a vector pattern keeps its objects in a tile") };
+        assert_eq!(d.doc.pattern_tiles[&tile].objects.len(), 2, "the pattern keeps the objects it was made from");
         let mut st = Style::default();
         st.fill = Fill::Pattern(vector_core::style::PatternFill { tile: 30.0, ..np.fill.clone() });
         let r = kurbo::Rect::new(300.0, 450.0, 520.0, 620.0).to_path(0.1);
         let o = Object::new(d.doc.new_id(), ObjKind::Path(vector_core::path::NodePath::from_bez(&r)), Affine::IDENTITY, st);
         d.add_objects("Patterned", vec![o]);
-        np.fill.image.unwrap()
+        np.fill.clone()
     };
+    let image = fill.image.unwrap();
     let src_view = h.state_mut().active.unwrap();
     assert!(!crate::ui::bind::visible(h.state_mut(), "141c5d5e-1b88-9cac-4187-9ca1d4f7b9a9"), "Pattern Preview shows only in pattern documents");
-    crate::dialogs::object::edit_pattern(h.state_mut(), image);
+    crate::dialogs::object::edit_pattern(h.state_mut(), &fill);
     for _ in 0..3 {
         h.step();
     }
@@ -1828,7 +1830,9 @@ fn visual_pattern_preview() {
         assert_eq!(a.docs.len(), 1);
         let d = &a.docs[0];
         assert_ne!(std::sync::Arc::as_ptr(&d.doc.images[&image].rgba) as usize, old_ptr, "the tile was made again");
-        assert_eq!(d.doc.patterns.iter().find(|p| p.fill.image == Some(image)).unwrap().source.len(), 3);
+        let Some(vector_core::style::PatternSource::Tile(tile)) = fill.source else { unreachable!() };
+        assert_eq!(d.doc.pattern_tiles[&tile].objects.len(), 3);
+        assert_eq!(d.doc.pattern_tiles[&tile].revision, 1);
         assert!(d.history.is_modified());
     }
     save(&mut h, "pat_03_pattern_applied");

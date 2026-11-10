@@ -21,6 +21,9 @@ pub enum ViewMode {
 pub struct PatternLink {
     pub group: u64,
     pub image: u64,
+    /// The pattern tile whose objects the document shows (`Document::pattern_tiles`); `None`
+    /// for a pattern known only by its picture.
+    pub tile: Option<u64>,
 }
 
 impl ViewMode {

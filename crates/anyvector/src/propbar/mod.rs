@@ -1700,7 +1700,7 @@ pub fn press(app: &mut AnyVectorApp, key: &str) {
                 "9818dc53" => Fill::None,
                 "6eba3892" => Fill::Solid(base),
                 "57d25bb7" => Fill::Gradient(vector_core::style::Gradient::linear(base, Color::WHITE)),
-                _ => Fill::Pattern(vector_core::style::PatternFill { kind: vector_core::style::PatternKind::ALL[0], fg: base, bg: Color::WHITE, tile: 18.0, angle: 0.0, image: None, transform_with_object: true, vector: false, mirror: 0 }),
+                _ => Fill::Pattern(vector_core::style::PatternFill { kind: vector_core::style::PatternKind::ALL[0], fg: base, bg: Color::WHITE, tile: 18.0, angle: 0.0, image: None, transform_with_object: true, vector: false, mirror: 0, source: None }),
             };
             edit_sel(app, "Fill", move |o| o.style.fill = f.clone());
         }

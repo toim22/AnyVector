@@ -20,6 +20,7 @@ mod waldo;
 
 use crate::{IoError, Result};
 pub use build::{ImportNote, Report};
+pub use texture::recipe_tile as texture_tile;
 use riff::{Chunk, External};
 use std::io::Read;
 use vector_core::document::Document;
