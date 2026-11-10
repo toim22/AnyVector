@@ -19,8 +19,9 @@ Import with a .cdr file is enough. The original file is never saved over; File â
   again from their settings: frequency, line width, grays and angle. The other PostScript fills take the average
   tone they have in CorelDRAW.
 - Colors in RGB, CMYK, HSB, HLS, Lab, grayscale and registration, and colors of the fixed palettes (PANTONE,
-  TRUMATCH, Focoltone and the others), with their tints. CMYK colors look as they do on screen in CorelDRAW
-  with its default color settings.
+  TRUMATCH, Focoltone and the others), with their tints. CMYK colors look as they do on screen in CorelDRAW,
+  through the drawing's own CMYK color profile when it is one of the 32 that CorelDRAW 2026 comes with (X4
+  and later files record it).
 - Artistic and paragraph text with its fonts, sizes, styles, colors, underline, strikethrough and overline, in every
   character set CorelDRAW used, including the one-byte Windows and Mac sets of old files.
 - Paragraph text keeps its frame layout: each paragraph's own alignment and indents, and the frame's columns
@@ -49,8 +50,8 @@ Import with a .cdr file is enough. The original file is never saved over; File â
 - Bitmap, vector pattern and texture fills of files older than CorelDRAW X3 come in as a gray tone.
 - Vector pattern and texture fills come in as a picture of their tile, so their objects and texture settings
   can't be edited.
-- CMYK colors always use CorelDRAW's default color settings, even in a drawing saved with another CMYK color
-  profile.
+- CMYK colors of files older than X4, and of drawings made with a CMYK profile CorelDRAW 2026 doesn't come with,
+  use CorelDRAW's default color settings.
 - In CorelDRAW 1 and 2 files, text and bitmaps are left out. Arrowheads come in from CorelDRAW 2 files, but
   not from CorelDRAW 1 files.
 
