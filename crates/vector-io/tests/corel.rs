@@ -487,6 +487,26 @@ fn paragraph_frames_keep_their_layout() {
     assert!((t.column_gap / column - 0.125).abs() < 1e-3, "{} {column}", t.column_gap);
 }
 
+/// Columns of paragraph frames saved by CorelDRAW X5, which keeps them in the text stream.
+#[test]
+fn x5_paragraph_columns() {
+    let doc = open("columns-x5.cdr");
+    let mm = |v: f64| v * 72.0 / 25.4;
+    assert_eq!(text(&doc, "one").columns, 1);
+    // two equal columns 85 mm wide, 10 mm apart
+    let t = text(&doc, "two");
+    assert_eq!(t.columns, 2);
+    assert!((t.column_gap - mm(10.0)).abs() < 0.05, "{}", t.column_gap);
+    // three of their own widths: 40, 80 and 40 mm, gutters of 5 and 15 mm
+    let t = text(&doc, "three");
+    assert_eq!(t.columns, 3);
+    let want = [(40.0, 5.0), (80.0, 15.0), (40.0, 0.0)];
+    assert_eq!(t.column_widths.len(), 3);
+    for ((w, g), (ww, wg)) in t.column_widths.iter().zip(want) {
+        assert!((w - mm(ww)).abs() < 0.05 && (g - mm(wg)).abs() < 0.05, "{:?}", t.column_widths);
+    }
+}
+
 #[test]
 fn underlined_and_struck_text() {
     let doc = open("decorations-x5.cdr");
