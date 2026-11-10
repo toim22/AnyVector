@@ -636,13 +636,19 @@ fn paragraph(app: &mut AnyVectorApp, ui: &mut Ui, o: &Option<Object>, st: &mut T
     };
     let pv = |f: fn(&TextObj) -> f64| t.as_ref().filter(|_| para).map(f);
     ui.horizontal(|ui| {
-        field(app, ui, "tx_li", "tx_lindent", "Left indent", pv(|t| t.left_indent), |t, v| t.left_indent = v);
+        field(app, ui, "tx_li", "tx_lindent", "Left indent", pv(|t| t.left_indent), |t, v| {
+            t.left_indent = v;
+            t.clear_paragraph_styles();
+        });
         lead(app, ui, "tx_before", "Before Paragraph Spacing", false);
         opt_spin(ui, None, 0.0..=1.0, 1.0, 0, "", half);
         end_ind(app, ui, i);
     });
     ui.horizontal(|ui| {
-        field(app, ui, "tx_fi", "tx_findent", "First Line", pv(|t| t.first_indent), |t, v| t.first_indent = v);
+        field(app, ui, "tx_fi", "tx_findent", "First Line", pv(|t| t.first_indent), |t, v| {
+            t.first_indent = v;
+            t.clear_paragraph_styles();
+        });
         lead(app, ui, "tx_after", "After Paragraph Spacing", has);
         if let Some(x) = opt_spin(ui, t.as_ref().map(|t| t.para_spacing), 0.0..=2000.0, 1.0, 1, " %", half) {
             edit_text(app, "After Paragraph Spacing", |t| t.para_spacing = x);
@@ -650,7 +656,10 @@ fn paragraph(app: &mut AnyVectorApp, ui: &mut Ui, o: &Option<Object>, st: &mut T
         end_ind(app, ui, i);
     });
     ui.horizontal(|ui| {
-        field(app, ui, "tx_ri", "tx_rindent", "Right indent", pv(|t| t.right_indent), |t, v| t.right_indent = v);
+        field(app, ui, "tx_ri", "tx_rindent", "Right indent", pv(|t| t.right_indent), |t, v| {
+            t.right_indent = v;
+            t.clear_paragraph_styles();
+        });
     });
     ui.add_space(4.0);
     fold(ui, &mut st.more[1]);

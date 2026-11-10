@@ -3,12 +3,12 @@
 use super::build::{Ctx, Loda, ARG_STYLE, ARG_STYLE_JSON};
 use super::color;
 use super::riff::{Chunk, Rd};
-use kurbo::Affine;
+use kurbo::{Affine, Point};
 use std::collections::HashMap;
 use vector_core::color::Color;
 use vector_core::object::{ObjKind, Object};
 use vector_core::style::{Fill, Outline, Style};
-use vector_core::text::{CharFormat, Span, TextAlign, TextObj};
+use vector_core::text::{CharFormat, ParaStyle, Span, TextAlign, TextObj};
 
 /// Windows-1252, the encoding of one-byte text in drawings saved on Western systems.
 pub(super) fn cp1252(b: u8) -> char {
@@ -149,6 +149,10 @@ struct Look {
     /// Shift up from the baseline, share of the character height.
     shift: Option<f64>,
     words: Option<f64>,
+    /// Indents of the first line, the other lines and the right side, points from the frame.
+    indents: [Option<f64>; 3],
+    /// A paragraph frame's columns: (width, gutter after), in shares of the frame's width.
+    columns: Option<Vec<(f64, f64)>>,
 }
 
 impl Look {
@@ -168,6 +172,8 @@ impl Look {
             tracking: self.tracking.or(base.tracking),
             shift: self.shift.or(base.shift),
             words: self.words.or(base.words),
+            indents: std::array::from_fn(|i| self.indents[i].or(base.indents[i])),
+            columns: self.columns.clone().or_else(|| base.columns.clone()),
         }
     }
     fn format(&self) -> CharFormat {
@@ -197,6 +203,7 @@ struct Run {
 struct Para {
     runs: Vec<Run>,
     align: Option<TextAlign>,
+    indents: [Option<f64>; 3],
 }
 
 // ---------------------------------------------------------------- tables
@@ -307,7 +314,7 @@ fn stlt_tables(cx: &Ctx, b: &[u8], set11: bool) -> Option<Styles> {
         if cx.ver >= 1000 {
             r.skip(8); // the sizes for right-to-left and East Asian text
         }
-        let flags = r.u32() & 0xffff;
+        let flags = r.u32();
         r.skip(8);
         if size > 0.1 && size < 5000.0 {
             out.fonts.insert(id, (font, size, flags, charset));
@@ -413,6 +420,11 @@ fn stlt_tables(cx: &Ctx, b: &[u8], set11: bool) -> Option<Styles> {
 
 impl Styles {
     /// A style with what it inherits from its parents filled in.
+    /// A style of the table, or any style when the drawing has no table.
+    fn known(&self, style: u32) -> bool {
+        self.styles.is_empty() || self.styles.contains_key(&style)
+    }
+
     fn resolve(&self, style: u32) -> StyleRec {
         let mut out = StyleRec::default();
         let mut id = style;
@@ -441,8 +453,18 @@ impl Styles {
         let mut l = match rec.and_then(|id| self.fonts.get(&id)) {
             Some((font, size, flags, charset)) => {
                 let (bold, italic) = weight(*flags);
+                let (underline, strike) = decorations(*flags);
                 let charset = Some(*charset).filter(|c| *c != 0).or_else(|| cx.charsets.get(font).copied());
-                Look { font: cx.fonts.get(font).cloned(), size: Some(*size), bold: Some(bold), italic: Some(italic), charset, ..Default::default() }
+                Look {
+                    font: cx.fonts.get(font).cloned(),
+                    size: Some(*size),
+                    bold: Some(bold),
+                    italic: Some(italic),
+                    underline: Some(underline),
+                    strike: Some(strike),
+                    charset,
+                    ..Default::default()
+                }
             }
             None => Look::default(),
         };
@@ -490,6 +512,18 @@ fn json_color(s: &str) -> Option<Color> {
 
 fn json_look(v: &serde_json::Value, k: f64) -> Look {
     let mut l = Look::default();
+    // "width,gutter|width,gutter": only the proportions count, CorelDRAW fits them to the frame
+    l.columns = v.get("frame").and_then(|f| f.get("columns")).and_then(|c| c.as_str()).and_then(|c| {
+        let cols: Vec<(f64, f64)> = c
+            .split('|')
+            .map(|col| {
+                let mut n = col.split(',').map(|x| x.trim().parse::<f64>().unwrap_or(0.0));
+                (n.next().unwrap_or(0.0).max(0.0), n.next().unwrap_or(0.0).max(0.0))
+            })
+            .collect();
+        let total: f64 = cols.iter().map(|(w, g)| w + g).sum::<f64>() - cols.last().map_or(0.0, |c| c.1);
+        (cols.len() > 1 && total > 0.0).then(|| cols.iter().map(|(w, g)| (w / total, g / total)).collect())
+    });
     let Some(c) = v.get("character") else { return l };
     if let Some(latin) = c.get("latin") {
         l.font = latin.get("font").and_then(|f| f.as_str()).filter(|s| !s.is_empty()).map(str::to_string);
@@ -505,6 +539,7 @@ fn json_look(v: &serde_json::Value, k: f64) -> Look {
     }
     if let Some(p) = v.get("paragraph") {
         l.align = p.get("justify").and_then(json_num).and_then(align);
+        l.indents = ["firstLineIndent", "leftMargin", "rightMargin"].map(|key| p.get(key).and_then(json_num).map(|v| v * k));
         // spacing in millionths of the character height when the method is 0
         if p.get("spacingMethod").and_then(json_num).unwrap_or(0.0) == 0.0 {
             l.line = p.get("interLineSpacing").and_then(json_num).map(|v| v / 10_000.0).filter(|v| *v > 1.0 && *v < 2000.0);
@@ -518,9 +553,16 @@ fn json_look(v: &serde_json::Value, k: f64) -> Look {
     l
 }
 
+/// Underline and strikethrough from the high half of a font's flags: three bits each, from bit 18
+/// and from bit 24 (1 single, 3 single thick, 5 double); overline (from bit 21) has no equal here.
+fn decorations(flags: u32) -> (bool, bool) {
+    ((flags >> 18) & 7 != 0, (flags >> 24) & 7 != 0)
+}
+
 /// Weight and slant flags: one bit per face, upright on even bits and italic on odd ones;
 /// 0x40 regular, 0x80 italic, 0x1000 bold, 0x2000 bold italic.
 fn weight(flags: u32) -> (bool, bool) {
+    let flags = flags & 0xffff;
     if flags == 0 {
         return (false, false);
     }
@@ -651,7 +693,10 @@ fn paragraphs_json(cx: &Ctx, b: &[u8]) -> Vec<Para> {
                 Run { text: decode(&text, look.charset), look }
             })
             .collect();
-        out.push(Para { runs, align: base.align });
+        // a paragraph's style lists every setting but a left alignment, the default
+        let left = v.get("paragraph").is_some_and(|p| p.get("justify").is_none());
+        let align = base.align.or(left.then_some(TextAlign::Left));
+        out.push(Para { runs, align, indents: base.indents });
         pos = end;
     }
     out
@@ -660,15 +705,16 @@ fn paragraphs_json(cx: &Ctx, b: &[u8]) -> Vec<Para> {
 /// Text streams of versions 7 to X5: each paragraph is a style id, a list of style overrides
 /// and the characters. The header before the first paragraph changed often, so the first
 /// paragraph is found by trying each offset until the whole stream reads cleanly.
-fn paragraphs_binary(cx: &Ctx, b: &[u8], artistic: bool) -> Vec<Para> {
+/// `placed`: text whose characters can be followed by the place of each one (text fitted to a path,
+/// characters moved one by one).
+fn paragraphs_binary(cx: &Ctx, b: &[u8], artistic: bool, placed: bool) -> Vec<Para> {
     let descr = if cx.ver >= 1200 { 8 } else { 4 };
     let counted = cx.ver >= 1200;
     // bytes between the style id and the override count, and after the characters
     let gap = if cx.ver >= 1300 && artistic { 2 } else { 1 };
-    let read_all = |(start, tail): (usize, usize)| -> Option<Vec<Para>> {
-        let mut out = vec![];
-        let mut p = start;
-        while p + 12 <= b.len() {
+    // one paragraph at `p`, where the next one starts and whether its style is in the table
+    let one = |p: usize, tail: usize| -> Option<(Para, usize, bool)> {
+        {
             let mut r = Rd::at(b, p);
             let style = r.u32();
             r.skip(gap);
@@ -695,17 +741,52 @@ fn paragraphs_binary(cx: &Ctx, b: &[u8], artistic: bool) -> Vec<Para> {
                     Run { text: decode(&text, look.charset), look }
                 })
                 .collect();
-            out.push(Para { runs, align: base.align });
-            p = end + tail;
+            Some((Para { runs, align: base.align, indents: base.indents }, end + tail, cx.styles.known(style)))
+        }
+    };
+    // the paragraphs from `start`, and whether all their styles are in the table
+    let read_all = |(start, tail): (usize, usize), lenient: bool| -> Option<(Vec<Para>, bool)> {
+        let mut out = vec![];
+        let mut known = true;
+        let mut p = start;
+        while p + 12 <= b.len() {
+            match one(p, tail) {
+                Some((para, next, k)) => {
+                    out.push(para);
+                    known &= k;
+                    p = next;
+                }
+                None if lenient && out.iter().any(|p: &Para| !p.runs.is_empty()) => return Some((out, known)),
+                None => return None,
+            }
         }
         // nothing but padding may remain
         if out.is_empty() || b[p.min(b.len())..].iter().any(|x| *x != 0) {
             return None;
         }
-        Some(out)
+        Some((out, known))
     };
     let tails: &[usize] = if cx.ver >= 1300 { &[1] } else { &[0, 1] };
-    (0x20..b.len().saturating_sub(12)).flat_map(|s| tails.iter().map(move |t| (s, *t))).find_map(read_all).unwrap_or_default()
+    let starts = || (0x20..b.len().saturating_sub(12)).flat_map(|s| tails.iter().map(move |t| (s, *t)));
+    let chars = |ps: &Vec<Para>| ps.iter().flat_map(|p| &p.runs).map(|r| r.text.chars().count()).sum::<usize>();
+    // a start a byte early can read just as cleanly, with a style id that is not in the table:
+    // the first reading whose styles are all known, else the first one
+    let mut first = None;
+    for (ps, known) in starts().filter_map(|st| read_all(st, false)).filter(|(ps, _)| chars(ps) > 0) {
+        if known {
+            return ps;
+        }
+        first.get_or_insert(ps);
+    }
+    if let Some(ps) = first {
+        return ps;
+    }
+    if placed {
+        // the places of the characters follow them, so a wrong start can read a few of their
+        // bytes as text: take the reading with the most characters, known styles first
+        return starts().filter_map(|st| read_all(st, true)).max_by_key(|(ps, known)| (*known, chars(ps))).map(|(ps, _)| ps).unwrap_or_default();
+    }
+    vec![]
 }
 
 /// One style override inside a text stream: flag bytes say which fields follow.
@@ -721,10 +802,14 @@ fn override_look(cx: &Ctx, r: &mut Rd) -> Look {
         l.charset = Some(charset).filter(|c| *c != 0).or_else(|| cx.charsets.get(&font).copied());
     }
     if fl2 & 0x02 != 0 {
-        // weight and slant
-        let (bold, italic) = weight(r.u32());
+        // weight and slant, and the lines
+        let flags = r.u32();
+        let (bold, italic) = weight(flags);
+        let (underline, strike) = decorations(flags);
         l.bold = Some(bold);
         l.italic = Some(italic);
+        l.underline = Some(underline);
+        l.strike = Some(strike);
     }
     if fl2 & 0x04 != 0 {
         let s = cx.coord(r) * cx.k;
@@ -747,7 +832,8 @@ fn override_look(cx: &Ctx, r: &mut Rd) -> Look {
         if let Some(super::build::RawFill::Solid(c)) = cx.fills.get(&fill) {
             l.color = Some(*c);
         }
-        if cx.ver >= 1500 {
+        // and the fill's matrix, six doubles
+        if cx.ver >= 1300 {
             r.skip(48);
         }
     }
@@ -784,11 +870,14 @@ fn stream<'a>(obj: &'a Chunk) -> Option<&'a [u8]> {
     find(obj).map(|c| &c.data[..])
 }
 
+/// Artistic text whose characters have places of their own: fitted to a path, or moved one by one.
+const ARG_PLACED: u32 = 0x3e8f;
+
 pub(super) fn object(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Option<Object> {
     let paragraph = l.kind == 6;
     let k = cx.k;
     let data = stream(obj)?;
-    let mut paras = if cx.ver >= 1600 { paragraphs_json(cx, data) } else if cx.ver >= 700 { paragraphs_binary(cx, data, !paragraph) } else { vec![] };
+    let mut paras = if cx.ver >= 1600 { paragraphs_json(cx, data) } else if cx.ver >= 700 { paragraphs_binary(cx, data, !paragraph, l.arg(ARG_PLACED).is_some()) } else { vec![] };
     if paras.is_empty() {
         return None;
     }
@@ -841,6 +930,17 @@ pub(super) fn object(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Opti
         let w = cx.coord(&mut r).abs() * k;
         let h = cx.coord(&mut r).abs() * k;
         t = TextObj::paragraph(&content, w.max(1.0), h.max(1.0), format);
+        if let Some(cols) = &own.columns {
+            let w = w.max(1.0);
+            t.columns = cols.len() as u32;
+            let n = cols.len() - 1;
+            let equal = cols.iter().all(|c| (c.0 - cols[0].0).abs() < 1e-3) && cols[..n].iter().all(|c| (c.1 - cols[0].1).abs() < 1e-3);
+            if equal {
+                t.column_gap = cols[0].1 * w;
+            } else {
+                t.column_widths = cols.iter().map(|(cw, g)| (cw * w, g * w)).collect();
+            }
+        }
         xf = world * Affine::scale_non_uniform(1.0 / k, -1.0 / k);
     } else {
         t = TextObj::artistic(&content, format);
@@ -859,6 +959,36 @@ pub(super) fn object(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Opti
     if let Some(a) = paras[0].align.or(first.align).or(own.align) {
         t.align = a;
     }
+    // indents: CorelDRAW measures the first line's from the frame, AnyVector from the left indent
+    let indents = |p: &Para| {
+        let [first, left, right]: [Option<f64>; 3] = std::array::from_fn(|i| p.indents[i].or(own.indents[i]));
+        let left = left.unwrap_or(0.0);
+        (first.map(|f| f - left), left, right.unwrap_or(0.0))
+    };
+    if paragraph {
+        let (f0, l0, r0) = indents(&paras[0]);
+        t.first_indent = f0.unwrap_or(0.0);
+        t.left_indent = l0;
+        t.right_indent = r0;
+        // the paragraphs that differ from the first
+        let styles: Vec<ParaStyle> = paras
+            .iter()
+            .map(|p| {
+                let (f, l, r) = indents(p);
+                // a paragraph without an alignment of its own is left aligned
+                let a = p.align.or(own.align).or(Some(TextAlign::Left));
+                ParaStyle {
+                    align: a.filter(|a| *a != t.align),
+                    first_indent: Some(f.unwrap_or(0.0)).filter(|v| (v - t.first_indent).abs() > 0.01),
+                    left_indent: Some(l).filter(|v| (v - t.left_indent).abs() > 0.01),
+                    right_indent: Some(r).filter(|v| (v - t.right_indent).abs() > 0.01),
+                }
+            })
+            .collect();
+        if styles.iter().any(|s| *s != ParaStyle::default()) {
+            t.paragraphs = styles;
+        }
+    }
     let mut st = Style::text_default();
     if let Fill::Solid(c) = cx.style_of(l, kurbo::Rect::new(0.0, 0.0, 1.0, 1.0), Affine::IDENTITY).fill {
         st.fill = Fill::Solid(c);
@@ -867,7 +997,76 @@ pub(super) fn object(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Opti
     if let Some(c) = first.color {
         st.fill = Fill::Solid(c);
     }
-    Some(Object::new(cx.doc.new_id(), ObjKind::Text(t), xf, st))
+    let id = cx.doc.new_id();
+    if l.arg(ARG_PLACED).is_some() {
+        if let Some(place) = path_place(data, k) {
+            cx.path_places.insert(id, place);
+        }
+    }
+    Some(Object::new(id, ObjKind::Text(t), xf, st))
+}
+
+/// Where text fitted to a path sits on it.
+#[derive(Clone, Copy, Debug)]
+pub(super) struct PathPlace {
+    /// Where the text starts, as a share of the path's length from its first node.
+    pub start: f64,
+    /// Distance from the path in points.
+    pub distance: f64,
+    /// On the other side of the path, running from its end.
+    pub flip: bool,
+    /// The placement: 1 to 3 on an open path (left, right, center), and on an ellipse the side the
+    /// text is centered on (1 top, 2 left, 3 bottom, 4 right).
+    pub placement: i32,
+}
+
+/// Put text that `fit_text_to_path` fitted to a path where CorelDRAW has it. `ellipse`: the path
+/// is a whole ellipse, its width and height and the map from its space to the text's.
+pub(super) fn place_on_path(t: &mut TextObj, place: PathPlace, ellipse: Option<(f64, f64, Affine)>) {
+    let Some(tp) = &mut t.on_path else { return };
+    tp.distance = place.distance;
+    tp.flip = place.flip;
+    if let Some((w, h, m)) = ellipse.filter(|_| (1..=4).contains(&place.placement)) {
+        // CorelDRAW centers the text on one side of an ellipse (top, left, bottom, right) and goes
+        // round it clockwise: start across from that side and center the text half-way round
+        let (c, r) = (Point::new(w / 2.0, h / 2.0), kurbo::Vec2::new(w / 2.0, h / 2.0));
+        let at = |a: f64| m * Point::new(c.x + r.x * a.cos(), c.y + r.y * a.sin());
+        let key = |p: Point| match place.placement {
+            1 => p.y,
+            2 => p.x,
+            3 => -p.y,
+            _ => -p.x,
+        };
+        let start = (0..720).map(|i| i as f64 * std::f64::consts::PI / 360.0).max_by(|a, b| key(at(*a)).total_cmp(&key(at(*b)))).unwrap_or(0.0);
+        // clockwise on the page (y down) is a growing angle, unless the map mirrors
+        let sweep = if m.determinant() < 0.0 { -std::f64::consts::TAU } else { std::f64::consts::TAU };
+        let mut bp = kurbo::BezPath::new();
+        bp.move_to(at(start));
+        kurbo::Arc::new(c, r, start, sweep, 0.0).to_cubic_beziers(0.01, |p1, p2, p3| bp.curve_to(m * p1, m * p2, m * p3));
+        tp.path = vector_core::path::NodePath::from_bez(&bp);
+        t.align = TextAlign::Center;
+        tp.offset = vector_core::path::bez_length(&bp) / 2.0;
+        return;
+    }
+    let len = vector_core::path::bez_length(&tp.path.to_bez());
+    tp.offset = if place.flip { (1.0 - place.start) * len } else { place.start * len };
+}
+
+
+/// The stream starts with the text's matrix (six doubles), then: a number, the other-side flag, two
+/// numbers, the start on the path in ten-thousandths of its length, the offset, a number, the
+/// distance from the path and the placement (1 to 4). The start already takes the offset and the
+/// placement into account. Recent versions put the matrix 4 bytes further.
+fn path_place(b: &[u8], k: f64) -> Option<PathPlace> {
+    [0x31, 0x2d].into_iter().find_map(|m| {
+        let at = m + 48;
+        if at + 36 > b.len() {
+            return None;
+        }
+        let f: Vec<i32> = (0..9).map(|i| Rd::at(b, at + 4 * i).i32()).collect();
+        let ok = (0..=1).contains(&f[1]) && (0..=10_000).contains(&f[4]) && (1..=4).contains(&f[8]);
+        ok.then(|| PathPlace { start: f[4] as f64 / 10_000.0, distance: f[7] as f64 * k, flip: f[1] == 1, placement: f[8] })
+    })
 }
 
 #[cfg(test)]

@@ -2347,6 +2347,7 @@ impl<'a> Cx<'a> {
                                         dst.format = from.format.clone();
                                         dst.spans.clear();
                                         dst.align = from.align.clone();
+                                        dst.paragraphs = from.paragraphs.clone();
                                         dst.line_spacing = from.line_spacing;
                                     }
                                 }

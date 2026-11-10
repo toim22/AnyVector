@@ -59,6 +59,7 @@ pub fn set_align(app: &mut AnyVectorApp, a: TextAlign) {
         edit_sel(app, "Alignment", |o| {
             if let ObjKind::Text(t) = &mut o.kind {
                 t.align = a;
+                t.clear_paragraph_styles();
             }
         });
     } else {
