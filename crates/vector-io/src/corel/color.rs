@@ -9,9 +9,45 @@ use vector_core::color::Color;
 /// Index: ((c * 9 + m) * 9 + y) * 9 + k.
 const CMYK_GRID: &[u8; 9 * 9 * 9 * 9 * 3] = include_bytes!("cmyk9.bin");
 const LEVELS: usize = 9;
+const GRID_LEN: usize = 9 * 9 * 9 * 9 * 3;
+
+/// The same grid for each of the other CMYK profiles CorelDRAW 2026 comes with: the profile's
+/// name (a length byte, then UTF-8), then its grid.
+const PROFILE_GRIDS: &[u8] = include_bytes!("cmyk-profiles.bin");
+
+thread_local! {
+    /// The grid of the drawing being read.
+    static GRID: std::cell::Cell<&'static [u8]> = const { std::cell::Cell::new(CMYK_GRID) };
+}
+
+/// The grid of a CMYK profile, by the name CorelDRAW gives it.
+fn profile_grid(name: &str) -> Option<&'static [u8]> {
+    let mut at = 0;
+    while at < PROFILE_GRIDS.len() {
+        let n = PROFILE_GRIDS[at] as usize;
+        let here = PROFILE_GRIDS.get(at + 1..at + 1 + n)?;
+        let grid = PROFILE_GRIDS.get(at + 1 + n..at + 1 + n + GRID_LEN)?;
+        if here.eq_ignore_ascii_case(name.trim().as_bytes()) {
+            return Some(grid);
+        }
+        at += 1 + n + GRID_LEN;
+    }
+    None
+}
+
+/// Run `f` with CMYK shown through the named profile (the drawing's own), or the default one
+/// when it is not known.
+pub fn with_profile<T>(name: Option<&str>, f: impl FnOnce() -> T) -> T {
+    let grid = name.and_then(profile_grid).unwrap_or(CMYK_GRID);
+    let before = GRID.with(|g| g.replace(grid));
+    let out = f();
+    GRID.with(|g| g.set(before));
+    out
+}
 
 /// CMYK (each 0..1) to display RGB, interpolating the sampled grid.
 pub fn cmyk(c: f64, m: f64, y: f64, k: f64) -> Color {
+    let grid = GRID.with(|g| g.get());
     // pure white paper stays white
     if c <= 0.0 && m <= 0.0 && y <= 0.0 && k <= 0.0 {
         return Color::WHITE;
@@ -30,7 +66,7 @@ pub fn cmyk(c: f64, m: f64, y: f64, k: f64) -> Color {
         }
         if w > 0.0 {
             for (ch, v) in rgb.iter_mut().enumerate() {
-                *v += w * CMYK_GRID[idx * 3 + ch] as f64;
+                *v += w * grid[idx * 3 + ch] as f64;
             }
         }
     }

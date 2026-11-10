@@ -546,3 +546,17 @@ fn guidelines() {
         assert!((dy - dx * deg.to_radians().tan()).abs() < 0.05, "{name}: {a:?}");
     }
 }
+
+/// A drawing made with another CMYK profile (Coated FOGRA39) shows its CMYK as CorelDRAW does
+/// with that profile: 100% cyan is (0, 160, 227) there, (0, 175, 239) with the default one.
+#[test]
+fn cmyk_follows_the_drawings_color_profile() {
+    for name in ["cmyk-fogra39-2026.cdr", "cmyk-fogra39-x5.cdr"] {
+        let doc = open(name);
+        let o = doc.pages[0].all_objects().next().unwrap_or_else(|| panic!("{name}: no object"));
+        match &o.style.fill {
+            Fill::Solid(c) => assert_eq!((c.r, c.g, c.b), (0, 160, 227), "{name}"),
+            f => panic!("{name}: {f:?}"),
+        }
+    }
+}
