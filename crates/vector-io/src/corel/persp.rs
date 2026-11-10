@@ -1,8 +1,8 @@
-//! Perspective effects. CorelDRAW keeps the object as drawn and stores the effect as a
-//! transform record that maps the object's box onto a four-sided shape. AnyVector has no
-//! live perspective, so the importer bakes it into the curves.
+//! Perspective and envelope effects. CorelDRAW keeps the object as drawn and stores the effect
+//! next to its transform: a perspective maps the object's box onto a four-sided shape, an
+//! envelope onto a shape with curved sides. The importer bakes both into the curves.
 
-use kurbo::{Affine, BezPath, CubicBez, ParamCurve, PathEl, Point};
+use kurbo::{Affine, BezPath, CubicBez, ParamCurve, PathEl, PathSeg, Point, Rect};
 use vector_core::object::{ObjKind, Object};
 use vector_core::path::NodePath;
 
@@ -51,27 +51,117 @@ impl Persp {
     }
 }
 
-/// One perspective and the transform from its space to the page.
-#[derive(Clone, Copy, Debug)]
+/// An envelope: the box of the object and the four sides it is mapped onto, each a run of
+/// segments from one corner to the next (bottom and top left to right, left and right bottom
+/// to top). Inside, points are placed by blending the sides (a Coons patch).
+#[derive(Clone, Debug)]
+pub(super) struct Envelope {
+    from: Rect,
+    sides: [Vec<PathSeg>; 4],
+}
+
+impl Envelope {
+    /// The envelope of an object whose box is `from`, given the closed outline of the envelope
+    /// (all in the same space).
+    pub fn new(from: Rect, outline: &BezPath) -> Option<Envelope> {
+        if from.width() < 1e-6 || from.height() < 1e-6 {
+            return None;
+        }
+        let segs: Vec<PathSeg> = outline.segments().filter(|s| (s.start() - s.end()).hypot() > 1e-9 || matches!(s, PathSeg::Cubic(_))).collect();
+        let n = segs.len();
+        if n < 4 {
+            return None;
+        }
+        // the nodes nearest to the box's corners: lower-left, lower-right, upper-right, upper-left
+        let corners = [Point::new(from.x0, from.y0), Point::new(from.x1, from.y0), Point::new(from.x1, from.y1), Point::new(from.x0, from.y1)];
+        let mut at = [0usize; 4];
+        for (k, c) in corners.iter().enumerate() {
+            at[k] = (0..n).min_by(|a, b| (segs[*a].start() - *c).hypot().total_cmp(&(segs[*b].start() - *c).hypot()))?;
+        }
+        if (0..4).any(|i| (0..i).any(|j| at[i] == at[j])) {
+            return None;
+        }
+        // the run from corner a to corner b that passes no other corner (segment i joins node i
+        // to node i + 1)
+        let run = |a: usize, b: usize| -> Option<Vec<PathSeg>> {
+            let fwd = (b + n - a) % n;
+            if (1..fwd).all(|i| !at.contains(&((a + i) % n))) {
+                return Some((0..fwd).map(|i| segs[(a + i) % n]).collect());
+            }
+            let back = (a + n - b) % n;
+            if (1..back).all(|i| !at.contains(&((a + n - i) % n))) {
+                return Some((0..back).map(|i| segs[(a + 2 * n - 1 - i) % n].reverse()).collect());
+            }
+            None
+        };
+        let [ll, lr, ur, ul] = at;
+        Some(Envelope { from, sides: [run(ll, lr)?, run(ul, ur)?, run(ll, ul)?, run(lr, ur)?] })
+    }
+
+    fn side(&self, k: usize, t: f64) -> Point {
+        let s = &self.sides[k];
+        let x = t.clamp(0.0, 1.0) * s.len() as f64;
+        let i = (x.floor() as usize).min(s.len() - 1);
+        s[i].eval(x - i as f64)
+    }
+
+    pub fn apply(&self, p: Point) -> Point {
+        let u = (p.x - self.from.x0) / self.from.width();
+        let v = (p.y - self.from.y0) / self.from.height();
+        let (b, t, l, r) = (self.side(0, u), self.side(1, u), self.side(2, v), self.side(3, v));
+        let (p00, p10, p01, p11) = (self.side(0, 0.0), self.side(0, 1.0), self.side(1, 0.0), self.side(1, 1.0));
+        let ruled = |a: Point, b: Point, t: f64| a.to_vec2() * (1.0 - t) + b.to_vec2() * t;
+        let c = ruled(b, t, v) + ruled(l, r, u) - (ruled(p00, p10, u) * (1.0 - v) + ruled(p01, p11, u) * v);
+        c.to_point()
+    }
+}
+
+/// How a warp moves points.
+#[derive(Clone, Debug)]
+pub(super) enum Map {
+    Persp(Persp),
+    Envelope(Envelope),
+}
+
+/// One warp and the transform from its space to the page.
+#[derive(Clone, Debug)]
 pub(super) struct Warp {
-    pub persp: Persp,
+    pub map: Map,
     pub space: Affine,
+}
+
+impl Warp {
+    fn apply(&self, q: Point) -> Point {
+        let p = self.space.inverse() * q;
+        self.space
+            * match &self.map {
+                Map::Persp(m) => m.apply(p),
+                Map::Envelope(m) => m.apply(p),
+            }
+    }
 }
 
 /// Apply `warps` (innermost first) to a page-space path.
 fn warp_path(p: &BezPath, warps: &[Warp]) -> BezPath {
-    let map = |q: Point| warps.iter().fold(q, |q, w| w.space * w.persp.apply(w.space.inverse() * q));
+    let map = |q: Point| warps.iter().fold(q, |q, w| w.apply(q));
+    let straight = warps.iter().all(|w| matches!(w.map, Map::Persp(_)));
     let mut out = BezPath::new();
     let mut last = Point::ZERO;
+    let mut first = Point::ZERO;
     for el in p.elements() {
         match *el {
             PathEl::MoveTo(a) => {
                 out.move_to(map(a));
                 last = a;
+                first = a;
             }
-            // straight lines stay straight under a perspective
-            PathEl::LineTo(a) => {
+            // straight lines stay straight under a perspective, not under an envelope
+            PathEl::LineTo(a) if straight => {
                 out.line_to(map(a));
+                last = a;
+            }
+            PathEl::LineTo(a) => {
+                cubic(&mut out, line(last, a), &map);
                 last = a;
             }
             PathEl::QuadTo(a, b) => {
@@ -83,10 +173,21 @@ fn warp_path(p: &BezPath, warps: &[Warp]) -> BezPath {
                 cubic(&mut out, CubicBez::new(last, a, b, c), &map);
                 last = c;
             }
-            PathEl::ClosePath => out.close_path(),
+            PathEl::ClosePath => {
+                // the closing side bends too
+                if !straight && (last - first).hypot() > 1e-9 {
+                    cubic(&mut out, line(last, first), &map);
+                }
+                last = first;
+                out.close_path();
+            }
         }
     }
     out
+}
+
+fn line(a: Point, b: Point) -> CubicBez {
+    CubicBez::new(a, a.lerp(b, 1.0 / 3.0), a.lerp(b, 2.0 / 3.0), b)
 }
 
 /// A curve is not mapped exactly; mapping the control points of short pieces is close.

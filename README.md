@@ -18,7 +18,7 @@
 <p align="center">
   <a href="https://github.com/toim22/AnyVector/releases/latest"><strong>Download AnyVector 0.1.0</strong></a>
   ·
-  <a href="docs/RELEASE-NOTES-0.1.0.md">What's new</a>
+  <a href="docs/RELEASE-NOTES-0.2.0.md">What's new</a>
   ·
   <a href="https://github.com/toim22/AnyVector/issues">Report a bug or share an idea</a>
 </p>
