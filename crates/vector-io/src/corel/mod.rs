@@ -1,4 +1,5 @@
-//! Import of drawings saved by CorelDRAW (`.cdr`, `.cdt`, `.cdrt`).
+//! Import of drawings saved by CorelDRAW (`.cdr`, `.cdt`, `.cdrt`) and of Corel metafiles
+//! (`.cmx`, also found named `.cdr`; see [`cmx`]).
 //!
 //! The reader is written from the observed layout of files saved by CorelDRAW itself; every
 //! record it does not understand is skipped, so an unknown feature costs that feature only, never
@@ -6,6 +7,7 @@
 
 mod bitmap;
 mod build;
+pub mod cmx;
 mod color;
 mod palettes;
 mod psfill;
@@ -67,14 +69,20 @@ fn tree(c: &Container) -> Result<Chunk> {
     out.into_iter().find(|c| c.list.is_some()).ok_or_else(|| IoError::Format("the CorelDRAW drawing is empty or damaged".into()))
 }
 
-/// Open a drawing saved by CorelDRAW.
+/// Open a drawing saved by CorelDRAW, or a Corel metafile (CMX).
 pub fn load_from_bytes(bytes: &[u8]) -> Result<Document> {
+    if cmx::is_cmx(bytes) {
+        return cmx::load_from_bytes(bytes);
+    }
     let root = root(bytes)?;
     color::with_profile(cmyk_profile(bytes).as_deref(), || build::document(&root))
 }
 
 /// Open a drawing and also say what was left out or approximated.
 pub fn load_with_report(bytes: &[u8]) -> Result<(Document, Report)> {
+    if cmx::is_cmx(bytes) {
+        return cmx::load_with_report(bytes);
+    }
     let root = root(bytes)?;
     color::with_profile(cmyk_profile(bytes).as_deref(), || build::document_with_report(&root))
 }
@@ -101,7 +109,8 @@ fn cmyk_profile(bytes: &[u8]) -> Option<String> {
     (!name.trim().is_empty()).then_some(name)
 }
 
-/// The version of CorelDRAW that saved the drawing, times 100 (X5 = 1500).
+/// The version of CorelDRAW that saved the drawing, times 100 (X5 = 1500); 0 when the file does
+/// not say (a Corel metafile).
 pub fn version(bytes: &[u8]) -> Result<u32> {
     Ok(build::version(&root(bytes)?))
 }
@@ -194,7 +203,7 @@ mod tests {
     #[ignore]
     fn corel_batch() {
         let Ok(dir) = std::env::var("ANYVECTOR_CDR_DIR") else { return };
-        let mut files: Vec<_> = std::fs::read_dir(dir).unwrap().flatten().map(|e| e.path()).filter(|p| matches!(crate::extension(p).as_str(), "cdr" | "cdt" | "cdrt")).collect();
+        let mut files: Vec<_> = std::fs::read_dir(dir).unwrap().flatten().map(|e| e.path()).filter(|p| matches!(crate::extension(p).as_str(), "cdr" | "cdt" | "cdrt" | "cmx")).collect();
         files.sort();
         for path in files {
             let bytes = std::fs::read(&path).unwrap();
