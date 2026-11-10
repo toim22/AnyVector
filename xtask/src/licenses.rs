@@ -6,6 +6,13 @@ use crate::{root, Result};
 use serde_json::Value;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
+/// Parts of other projects kept inside AnyVector's own crates: (name, license, source).
+const BUNDLED: [(&str, &str, &str); 1] = [(
+    "libcdr colour palette tables (crates/vector-io/src/corel/palettes.rs)",
+    "MPL-2.0",
+    "https://git.libreoffice.org/libcdr",
+)];
+
 pub fn run() -> Result<()> {
     let out = std::process::Command::new(env!("CARGO"))
         .current_dir(root())
@@ -49,6 +56,11 @@ pub fn run() -> Result<()> {
         let repo = p["repository"].as_str().or(p["homepage"].as_str()).unwrap_or_default().to_string();
         let key = format!("{name} {version}");
         by_name.insert(key.to_lowercase(), (key, license, repo));
+    }
+
+    // code taken from other projects into the workspace's own crates
+    for (key, license, repo) in BUNDLED {
+        by_name.insert(key.to_lowercase(), (key.to_string(), license.to_string(), repo.to_string()));
     }
 
     let mut licenses: BTreeMap<String, usize> = BTreeMap::new();

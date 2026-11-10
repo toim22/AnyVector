@@ -1,4 +1,5 @@
 //! Colors of a CorelDRAW drawing: the stored color models, converted to display RGB.
+use super::palettes::Kind;
 
 use super::riff::Rd;
 use vector_core::color::Color;
@@ -118,6 +119,32 @@ pub fn convert(model: u16, v: u32) -> Color {
     }
 }
 
+/// A color of one of CorelDRAW's fixed palettes (Pantone and the like): the drawing stores the
+/// palette, the color's index (low word) and its tint in percent (high word).
+fn fixed_palette(model: u16, palette: u16, v: u32) -> Color {
+    let (ix, tint) = ((v & 0xffff) as usize, ((v >> 16) as u32).min(100));
+    let row = super::palettes::table(model, palette).and_then(|(kind, from_zero, rows)| {
+        let i = if from_zero { Some(ix) } else { ix.checked_sub(1) };
+        i.and_then(|i| rows.get(i)).map(|row| (kind, *row))
+    });
+    let Some((kind, [a, b, c, d])) = row else {
+        // a palette not known: show the tint as gray
+        let g = (255.0 - tint as f64 * 1.28).round().clamp(0.0, 255.0) as u8;
+        return Color::rgb(g, g, g);
+    };
+    let pack = |x: [u32; 4]| x[0] | x[1] << 8 | x[2] << 16 | x[3] << 24;
+    match kind {
+        // the inks scaled by the tint
+        Kind::Cmyk => convert(0x02, pack([a, b, c, d].map(|x| x as u32 * tint / 100))),
+        // the color mixed with white by the tint
+        Kind::Rgb => {
+            let mix = |x: u8| ((x as u32 * tint + 255 * (100 - tint)) / 100) as u8;
+            Color::rgb(mix(a), mix(b), mix(c))
+        }
+        Kind::Lab => convert(0x12, pack([a as u32, b as u32, c as u32, 0])),
+    }
+}
+
 /// Read a color record. Its layout depends on the file version.
 pub fn read(r: &mut Rd, ver: u32) -> Color {
     if ver >= 500 {
@@ -125,18 +152,18 @@ pub fn read(r: &mut Rd, ver: u32) -> Color {
         if model == 0x01 && ver >= 1300 {
             model = 0x19;
         }
-        if model == 0x19 || model == 0x1e {
-            // a spot color of a fixed palette: the palette, the color's index and its tint. The
-            // inks of the fixed palettes are not stored in the drawing; show the tint as gray.
-            let _palette = r.u16();
-            r.skip(4);
-            let _index = r.u16();
-            let tint = r.u16().min(100) as f64;
-            let g = (255.0 - tint * 1.28).round().clamp(0.0, 255.0) as u8;
-            return Color::rgb(g, g, g);
+        // CorelDRAW X7 can write a color of palette 0x1e with that palette as its model
+        if model == 0x1e {
+            let v = r.u32();
+            r.skip(6);
+            return fixed_palette(0x19, 0x1e, v);
         }
-        r.skip(6);
+        let palette = r.u16();
+        r.skip(4);
         let v = r.u32();
+        if model == 0x19 || model == 0x0e {
+            return fixed_palette(model, palette, v);
+        }
         convert(model, v)
     } else if ver >= 400 {
         let model = r.u16();
@@ -156,6 +183,21 @@ pub fn read(r: &mut Rd, ver: u32) -> Color {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn fixed_palette_colors_come_from_the_tables() {
+        // palette 0x23, first color, full and half tint
+        let row = super::super::palettes::table(0x19, 0x23).unwrap().2[0];
+        let full = fixed_palette(0x19, 0x23, 1 | 100 << 16);
+        assert_eq!(full, convert(0x02, u32::from_le_bytes(row)));
+        let half = fixed_palette(0x19, 0x23, 1 | 50 << 16);
+        assert!(half.r >= full.r && half.g >= full.g && half.b >= full.b && half != full);
+        // palettes numbered from 0, and RGB palettes mixed with white
+        assert_ne!(fixed_palette(0x19, 0x1a, 0 | 100 << 16), Color::rgb(128, 128, 128));
+        assert_eq!(fixed_palette(0x19, 0x1e, 1), Color::WHITE);
+        // an unknown palette keeps the gray of its tint
+        assert_eq!(fixed_palette(0x19, 0x7f, 1 | 100 << 16), Color::rgb(127, 127, 127));
+    }
 
     #[test]
     fn cmyk_matches_the_sampled_grid() {
