@@ -1281,6 +1281,8 @@ fn v4_placed(cx: &mut Ctx, a: &[u8], t: &TextObj, xf: Affine, st: &Style) -> Opt
         return None;
     }
     let lay = vector_core::text::layout(t);
+    let caret = |i: usize| lay.carets.get(i).map(|c| (c.0, c.1)).unwrap_or((0.0, 0.0));
+    let widths = advance_scale(&chars, &shifts, |i| caret(i), |i| t.format_at(i).size);
     let mut kids = vec![];
     for (i, (c, (_, shift))) in chars.iter().zip(&shifts).enumerate() {
         if c.is_whitespace() {
@@ -1288,8 +1290,9 @@ fn v4_placed(cx: &mut Ctx, a: &[u8], t: &TextObj, xf: Affine, st: &Style) -> Opt
         }
         let f = t.format_at(i).clone();
         let (dx, dy, angle) = shift.unwrap_or((0.0, 0.0, 0.0));
-        let (x, y) = lay.carets.get(i).map(|c| (c.0, c.1)).unwrap_or((0.0, 0.0));
-        let at = Affine::translate((x + dx * f.size, y - dy * f.size)) * Affine::rotate(-angle.to_radians());
+        let (x, y) = caret(i);
+        // each character as wide as CorelDRAW's font had it, so they don't run into each other
+        let at = Affine::translate((x * widths + dx * f.size, y - dy * f.size)) * Affine::rotate(-angle.to_radians()) * Affine::scale_non_uniform(widths, 1.0);
         let mut one = TextObj::artistic(&c.to_string(), f);
         one.align = TextAlign::Left;
         let mut s = st.clone();
@@ -1299,6 +1302,40 @@ fn v4_placed(cx: &mut Ctx, a: &[u8], t: &TextObj, xf: Affine, st: &Style) -> Opt
         kids.push(Object::new(cx.doc.new_id(), ObjKind::Text(one), xf * at, s));
     }
     Some(Object::new(cx.doc.new_id(), ObjKind::Group(kids), Affine::IDENTITY, Style::default()))
+}
+
+/// How much wider or narrower CorelDRAW's font was than the one the text is shown in. The shifts
+/// of characters fitted to a curve are measured from where CorelDRAW's own font put them, so
+/// with another font the curve straightens or bends too much. Two characters next to each other
+/// on a curve are one advance apart along their angle: from the shifts and the angles, the
+/// advance CorelDRAW used is found (least squares over all such pairs) and compared with ours.
+/// 1 when the characters aren't turned enough to tell.
+fn advance_scale(chars: &[char], shifts: &[(u8, Option<(f64, f64, f64)>)], caret: impl Fn(usize) -> (f64, f64), size: impl Fn(usize) -> f64) -> f64 {
+    let (mut num, mut den, mut all) = (0.0, 0.0, 0.0);
+    for i in 0..chars.len().saturating_sub(1) {
+        let j = i + 1;
+        let (Some((dx0, dy0, a0)), Some((dx1, dy1, a1))) = (shifts[i].1, shifts[j].1) else { continue };
+        if chars[i].is_whitespace() || chars[j].is_whitespace() {
+            continue;
+        }
+        let ((x0, y0), (x1, y1)) = (caret(i), caret(j));
+        let u = x1 - x0;
+        if (y1 - y0).abs() > 1e-6 || u <= 0.0 {
+            continue;
+        }
+        let s = size(i);
+        let (ddx, ddy) = ((dx1 - dx0) * s, (dy1 - dy0) * s);
+        let a = ((a0 + a1) / 2.0).to_radians();
+        let (p, q) = (u * (1.0 - a.cos()), u * a.sin());
+        num += -ddx * p + ddy * q;
+        den += p * p + q * q;
+        all += u * u;
+    }
+    // turned less than about 15 degrees on the whole: the shifts say little about the advance
+    if den < 0.07 * all || den <= 0.0 {
+        return 1.0;
+    }
+    (num / den).clamp(0.2, 3.0)
 }
 
 /// One style override inside a text stream: flag bytes say which fields follow.
@@ -1670,6 +1707,29 @@ mod tests {
         assert_eq!(end, b.len());
         assert_eq!(cp1252(0xe7), '\u{e7}');
         assert_eq!(cp1252(0x80), '\u{20ac}');
+    }
+
+    #[test]
+    fn fitted_text_finds_the_advance_coreldraw_used() {
+        // five characters on a circle 400 (hundredths of the size) across, 40 apart along it:
+        // CorelDRAW's font advanced 0.4 of the size, ours advances 0.8
+        let (size, r, step) = (10.0, 200.0, 40.0);
+        let chars: Vec<char> = "ABCDE".chars().collect();
+        let mut shifts = vec![];
+        for i in 0..5 {
+            let a = 1.2 - i as f64 * step / r;
+            let (x, y) = (r * a.cos(), r * a.sin());
+            let caret = i as f64 * 0.4 * size;
+            let dx = (x * size / 100.0 - caret) / size;
+            let dy = y * size / 100.0 / size;
+            let angle = (a - std::f64::consts::FRAC_PI_2).to_degrees();
+            shifts.push((b'A' + i as u8, Some((dx, dy, angle))));
+        }
+        let f = advance_scale(&chars, &shifts, |i| (i as f64 * 0.8 * size, 0.0), |_| size);
+        assert!((f - 0.5).abs() < 0.02, "{f}");
+        // characters in a straight line: nothing to tell
+        let flat: Vec<_> = chars.iter().map(|c| (*c as u8, Some((0.0, 0.0, 0.0)))).collect();
+        assert_eq!(advance_scale(&chars, &flat, |i| (i as f64 * 8.0, 0.0), |_| size), 1.0);
     }
 
     #[test]
