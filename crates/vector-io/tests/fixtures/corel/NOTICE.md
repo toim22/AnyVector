@@ -9,3 +9,7 @@ here only as test data for the CorelDRAW importer.
 under the same licence and for the same use.
 
 The other fixtures in this folder were drawn for AnyVector in CorelDRAW 2026 (see `tests/corel.rs`).
+
+`vector-pattern-x5.cdr`, `vector-pattern-2026.cdr` and `vector-pattern-2026.cmx` hold a full-color pattern fill whose
+pattern was drawn for AnyVector from simple shapes (rectangles, ellipses, a curve and a line) in CorelDRAW 2026 and
+saved by CorelDRAW. They contain nothing from CorelDRAW's own pattern library or clipart.

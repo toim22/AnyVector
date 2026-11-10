@@ -8,6 +8,7 @@
 mod bitmap;
 mod build;
 pub mod cmx;
+mod cmx3;
 mod color;
 mod palettes;
 mod psfill;

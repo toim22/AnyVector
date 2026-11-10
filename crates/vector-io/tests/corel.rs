@@ -9,7 +9,9 @@
 //! seven PostScript fills. `text-*` holds text fitted to an ellipse and to a curve and paragraph
 //! frames with paragraphs of their own alignment and indents, a centered heading and two
 //! columns; `textpath-*` text at each place on a curve and on each side of an ellipse;
-//! `decorations-x5` underlined, struck and overlined text. The 2026 files had their embedded
+//! `decorations-x5` underlined, struck and overlined text. `vector-pattern-*` fills a rectangle
+//! with a full-color pattern drawn from simple shapes, saved as X5, 2026 and CMX (CorelDRAW 2026's
+//! CMX 6 export). The 2026 files had their embedded
 //! fonts and previews taken out.
 
 use std::path::PathBuf;
@@ -611,6 +613,48 @@ fn cmyk_follows_the_drawings_color_profile() {
         match &o.style.fill {
             Fill::Solid(c) => assert_eq!((c.r, c.g, c.b), (0, 160, 227), "{name}"),
             f => panic!("{name}: {f:?}"),
+        }
+    }
+}
+
+/// `vector-pattern-*` holds a rectangle 4 by 3 inches filled with a vector ("full color")
+/// pattern drawn for it in CorelDRAW 2026: a cream square, a red rectangle turned 30 degrees, a
+/// blue ellipse, a green curve, a yellow pentagon and a group of a black square and a circle in a
+/// red to blue fountain, 2 inches across, repeated as tiles of 1.5 inches. X5 and 2026 keep the
+/// drawing as a `CMX3` document in a `vpat` chunk; the `.cmx` is the same drawing exported as a
+/// Corel metafile, where it is a procedure.
+#[test]
+fn vector_patterns_keep_their_drawing() {
+    for name in ["vector-pattern-x5.cdr", "vector-pattern-2026.cdr", "vector-pattern-2026.cmx"] {
+        let doc = open(name);
+        let o = doc.pages[0].all_objects().next().expect("the rectangle");
+        let Fill::Pattern(p) = &o.style.fill else { panic!("{name}: not a pattern: {:?}", o.style.fill) };
+        assert!((p.tile - 108.0).abs() < 0.5, "{name}: tile {} pt", p.tile);
+        assert!(p.vector, "{name}");
+        let Some(vector_core::style::PatternSource::Tile(tid)) = p.source else { panic!("{name}: {:?}", p.source) };
+        // the tile keeps the pattern's objects, fitted to it
+        let tile = &doc.pattern_tiles[&tid];
+        assert_eq!((tile.width.round(), tile.height.round()), (108.0, 108.0), "{name}");
+        let mut fills = vec![];
+        for t in &tile.objects {
+            t.walk(&mut |x| {
+                if !matches!(x.kind, ObjKind::Group(_)) {
+                    fills.push(x.style.fill.clone());
+                    let b = x.bounds();
+                    assert!(b.x0 > -2.0 && b.y0 > -2.0 && b.x1 < 110.0 && b.y1 < 110.0, "{name}: {b:?} outside the tile");
+                }
+            });
+        }
+        assert_eq!(fills.len(), 7, "{name}: {fills:?}");
+        for c in [Color::rgb(250, 240, 200), Color::rgb(220, 30, 30), Color::rgb(30, 30, 220), Color::rgb(240, 200, 0), Color::BLACK] {
+            assert!(fills.contains(&Fill::Solid(c)), "{name}: no {c:?} in {fills:?}");
+        }
+        assert!(fills.iter().any(|f| matches!(f, Fill::Gradient(_))), "{name}: no fountain fill");
+        // the picture of the tile: cream most, then the shapes' colors
+        let c = tile_colors(&doc, o);
+        assert_eq!(c[0], Color::rgb(250, 240, 200), "{name}");
+        for want in [Color::rgb(220, 30, 30), Color::rgb(30, 30, 220), Color::rgb(240, 200, 0)] {
+            assert!(c[..12].contains(&want), "{name}: {want:?} not among {:?}", &c[..12]);
         }
     }
 }
