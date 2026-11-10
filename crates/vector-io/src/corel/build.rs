@@ -9,7 +9,7 @@ use kurbo::{Affine, BezPath, Point, Shape};
 use std::collections::HashMap;
 use vector_core::color::Color;
 use vector_core::document::{Document, Layer, Page};
-use vector_core::object::{CornerType, EllipseKind, EllipseShape, ObjKind, Object, RectShape};
+use vector_core::object::{BlendObj, CornerType, DropShadow, ExtrudeEffect, EllipseKind, EllipseShape, ObjKind, Object, RectShape};
 use vector_core::path::NodePath;
 use vector_core::style::*;
 
@@ -25,6 +25,10 @@ const ARG_POLYGON: u32 = 0x2af8;
 const ARG_PAGE_SIZE: u32 = 0x4aba;
 const ARG_POWERCLIP: u32 = 0x1f45;
 const ARG_CLIP_ID: u32 = 0xdac;
+/// Blend and contour settings, on their link group.
+const ARG_BLEND: u32 = 0xbb8;
+/// Points of blur per unit of CorelDRAW's shadow feathering.
+const SHADOW_FEATHER: f64 = 0.5;
 
 // loda object types
 const T_RECT: u32 = 1;
@@ -72,6 +76,8 @@ pub(super) struct Ctx<'a> {
     pub clip_owners: HashMap<u32, &'a Chunk>,
     /// Versions 5 and 6: style id to the (fill, outline) ids its objects take.
     pub graphic_styles: HashMap<u32, (u32, u32)>,
+    /// Arrowheads: the drawing's id to the document's custom arrowhead.
+    pub arrows: HashMap<u32, u64>,
     /// Object types that were not converted, with how many of each.
     pub skipped: std::collections::BTreeMap<u32, usize>,
     /// Perspectives of the groups being converted, innermost last.
@@ -252,6 +258,153 @@ impl<'a> Ctx<'a> {
         None
     }
 
+    /// The outline of an envelope (an `envd` record next to the transform), in the space of the
+    /// object's parent: its node count, then the node types and the points at the end.
+    fn envelope_outline(&self, lgob: &Chunk) -> Option<BezPath> {
+        let d = &lgob.list_child(b"trfl")?.child(b"envd")?.data;
+        let n = Rd::at(d, 0x10).u32() as usize;
+        let w = if self.wide() { 8 } else { 4 };
+        let need = n.checked_mul(w + 1)?;
+        if n < 4 || need > d.len() {
+            return None;
+        }
+        let points = &d[d.len() - n * w..];
+        let types = &d[d.len() - need..d.len() - n * w];
+        // as a curve record: count, two spare bytes, the points, the types
+        let mut b = (n as u16).to_le_bytes().to_vec();
+        b.extend([0, 0]);
+        b.extend(points);
+        b.extend(types);
+        let p = self.curve(&b);
+        (p.elements().len() > 4).then_some(p)
+    }
+
+    /// An extrusion (transform record type 4, CorelDRAW X3 and later): the vanishing point in
+    /// file units, the far face's size in percent, flags and the colors. CorelDRAW keeps only
+    /// the geometry: "big back" is saved as "small front" and "big front" as "small back".
+    fn extrude(&self, lgob: &Chunk, to_page: Affine, o: &Object) -> Option<ExtrudeEffect> {
+        if self.ver < 1300 {
+            return None;
+        }
+        let trfl = lgob.list_child(b"trfl")?;
+        for c in trfl.children.iter().filter(|c| c.is(b"trfd")) {
+            let b = &c.data[..];
+            let mut r = Rd::new(b);
+            let _len = r.u32();
+            let n = r.u32() as usize;
+            let start_args = r.u32() as usize;
+            for i in 0..n.min(64) {
+                let off = Rd::at(b, start_args + i * 4).u32() as usize;
+                if off + 0xf0 > b.len() || Rd::at(b, off + 8).u16() != 4 {
+                    continue;
+                }
+                let mut r = Rd::at(b, off + 0x54);
+                let vp = kurbo::Point::new(r.i32() as f64, r.i32() as f64);
+                let far = Rd::at(b, off + 0x60).u16() as f64 / 100.0;
+                let flags = b[off + 0xea];
+                let color = color::read(&mut Rd::at(b, off + 0x6e), self.ver);
+                let shade = color::read(&mut Rd::at(b, off + 0xc4), self.ver);
+                let perspective = flags & 1 != 0;
+                let front = flags & 0x20 != 0;
+                let c = o.world_path().bounding_box().center();
+                let to_vp = to_page * vp - c;
+                let (shift, scale) = if perspective { (to_vp * (1.0 - far), far) } else { (to_vp, 1.0) };
+                if !(0.01..=10.0).contains(&scale) {
+                    return None;
+                }
+                let kind = match (perspective, front) {
+                    (true, false) => 0,
+                    (true, true) => 1,
+                    (false, false) => 4,
+                    (false, true) => 5,
+                };
+                let color_mode = if flags & 4 != 0 { 2 } else if flags & 2 != 0 { 1 } else { 0 };
+                return Some(ExtrudeEffect { depth: if front { -shift } else { shift }, color, shade, kind, color_mode, scale: Some(scale), ..Default::default() });
+            }
+        }
+        None
+    }
+
+    /// A blend's link group (type 7) whose steps are not stored: the number of steps.
+    fn blend_steps(&self, c: &Chunk) -> Option<u32> {
+        if !c.is_list(b"lnkg") || c.children.iter().any(|k| k.list.is_some() && !k.is_list(b"lgob")) {
+            return None;
+        }
+        let l = self.loda(&Self::record(c)?.data);
+        if l.kind != 7 {
+            return None;
+        }
+        let steps = Rd::new(l.arg(ARG_BLEND)?).u32();
+        (1..=999).contains(&steps).then_some(steps)
+    }
+
+    /// A drop shadow's link group (type 23, seen in CorelDRAW 2026 files): the shadow of the
+    /// object above it, with its offset in file units.
+    fn shadow(&self, c: &Chunk) -> Option<(kurbo::Vec2, DropShadow)> {
+        if !c.is_list(b"lnkg") || c.children.iter().any(|k| k.list.is_some() && !k.is_list(b"lgob")) {
+            return None;
+        }
+        let l = self.loda(&Self::record(c)?.data);
+        if l.kind != 23 {
+            return None;
+        }
+        let d = l.arg(ARG_BLEND)?;
+        if d.len() < 0x49 {
+            return None;
+        }
+        let mut r = Rd::at(d, 8);
+        let (dx, dy) = (r.i32() as f64, r.i32() as f64);
+        let opacity = (r.u32() as f64 / 2.5).clamp(0.0, 100.0);
+        let feather = r.u32() as f64;
+        let color = color::read(&mut Rd::at(d, 0x3d), self.ver);
+        let s = DropShadow { feather, color, opacity, ..Default::default() };
+        Some((kurbo::Vec2::new(dx, dy), s))
+    }
+
+    /// Convert the objects of a list, bottom first. A blend comes as its start object, a link
+    /// group and its end object; the steps between are made by AnyVector's live blend.
+    fn children(&mut self, list: &Chunk, to_page: Affine, parent: Affine, out: &mut Vec<Object>) {
+        let kids: Vec<&Chunk> = list.children.iter().rev().collect();
+        // where the object made by the previous chunk is, when it made exactly one
+        let mut single: Option<usize> = None;
+        let mut i = 0;
+        while i < kids.len() {
+            if let (Some(steps), Some(si), Some(next)) = (self.blend_steps(kids[i]), single, kids.get(i + 1)) {
+                if si + 1 == out.len() {
+                    let mut end = vec![];
+                    self.object(next, to_page, parent, &mut end);
+                    if end.len() == 1 {
+                        let (start, end) = (out.pop().unwrap_or_else(|| end[0].clone()), end.remove(0));
+                        let b = BlendObj { start: Box::new(start), end: Box::new(end), steps, ..Default::default() };
+                        out.push(Object::new(self.doc.new_id(), ObjKind::Blend(b), Affine::IDENTITY, Style::default()));
+                    } else {
+                        out.extend(end);
+                    }
+                    single = None;
+                    i += 2;
+                    continue;
+                }
+            }
+            if let (Some((v, mut s)), Some(next)) = (self.shadow(kids[i]), kids.get(i + 1)) {
+                let before = out.len();
+                self.object(next, to_page, parent, out);
+                if out.len() == before + 1 {
+                    let m = to_page;
+                    s.offset = m * kurbo::Point::new(v.x, v.y) - m * kurbo::Point::ORIGIN;
+                    s.feather *= SHADOW_FEATHER;
+                    out[before].effects.drop_shadow = Some(s);
+                }
+                single = (out.len() == before + 1).then_some(before);
+                i += 2;
+                continue;
+            }
+            let before = out.len();
+            self.object(kids[i], to_page, parent, out);
+            single = (out.len() == before + 1).then_some(before);
+            i += 1;
+        }
+    }
+
     // ---------------------------------------------------------------- document resources
 
     fn collect(&mut self, c: &'a Chunk) {
@@ -279,6 +432,7 @@ impl<'a> Ctx<'a> {
         }
         match &c.tag {
             b"fild" | b"fill" => self.fild(&c.data),
+            b"arrx" | b"arrw" => self.arrow(&c.tag, &c.data),
             b"outl" => self.outl(&c.data),
             b"font" => text::font(self, &c.data),
             b"stlt" => text::stlt(self, &c.data),
@@ -413,6 +567,69 @@ impl<'a> Ctx<'a> {
         RawFill::Gradient { kind, angle, cx: cx / 100.0, cy: cy / 100.0, pad: (edge / 100.0).clamp(0.0, 0.49), stops }
     }
 
+    /// An arrowhead: its id, then its points. `arrx` (X5 and later) also has a name; its points
+    /// run along the line, the tip at the line's end. `arrw` stores each point's y first.
+    fn arrow(&mut self, tag: &[u8; 4], b: &[u8]) {
+        let id = Rd::new(b).u32();
+        let (mut r, name, spare) = if tag == b"arrx" {
+            let u: Vec<u16> = b.get(0x0c..0x10c).unwrap_or_default().chunks_exact(2).map(|c| u16::from_le_bytes([c[0], c[1]])).take_while(|c| *c != 0).collect();
+            let mut r = Rd::at(b, 0x10c);
+            let n = r.u16();
+            r.skip(4);
+            (r, (String::from_utf16_lossy(&u), n), false)
+        } else {
+            let mut r = Rd::at(b, 4);
+            r.skip(if self.ver < 600 { 2 } else { 4 });
+            let n = r.u16();
+            r.skip(4);
+            (r, (String::new(), n), true)
+        };
+        let n = name.1 as usize;
+        let w = if self.wide() { 8 } else { 4 };
+        if n < 2 || n > r.left() / (w + 1) {
+            return;
+        }
+        let types = r.bytes(n).to_vec();
+        // `arrw` has a spare byte after the node types
+        if spare {
+            r.skip(1);
+        }
+        // x along the line, the tip at the origin
+        let pts: Vec<Point> = (0..n)
+            .map(|_| {
+                let x = self.coord(&mut r);
+                Point::new(x, self.coord(&mut r))
+            })
+            .collect();
+        // as a curve record
+        let mut rec = (n as u16).to_le_bytes().to_vec();
+        rec.extend([0, 0]);
+        for p in &pts {
+            for v in [p.x, p.y] {
+                if self.wide() {
+                    rec.extend((v as i32).to_le_bytes());
+                } else {
+                    rec.extend((v as i16).to_le_bytes());
+                }
+            }
+        }
+        rec.extend(&types);
+        // a unit of the arrowhead is half an inch for an outline one point wide; AnyVector's
+        // arrowheads are drawn at four times the outline width
+        let unit = 4.0 * 36.0 / self.k;
+        // (CorelDRAW's y axis points up, AnyVector's down)
+        let path = Affine::scale_non_uniform(1.0 / unit, -1.0 / unit) * self.curve(&rec);
+        if path.elements().len() < 2 {
+            return;
+        }
+        let bb = path.bounding_box();
+        let filled = path.elements().iter().any(|e| matches!(e, kurbo::PathEl::ClosePath));
+        let aid = self.doc.new_id();
+        let name = if name.0.is_empty() { format!("CorelDRAW arrowhead {id}") } else { name.0 };
+        self.doc.arrowheads.push(CustomArrow { id: aid, name, path: path.to_svg(), width: bb.height(), filled });
+        self.arrows.insert(id, aid);
+    }
+
     fn outl(&mut self, b: &[u8]) {
         let mut r = Rd::new(b);
         let id = r.u32();
@@ -443,6 +660,11 @@ impl<'a> Ctx<'a> {
         let c = color::read(&mut r, self.ver);
         r.skip(if self.ver < 600 { 10 } else { 16 });
         let n = r.u16() as usize;
+        // the arrowheads come a fixed distance after the dash count (22 bytes in versions 6 to
+        // X3, 20 before and after)
+        let mut ra = Rd::at(r.b, r.p + if (600..1300).contains(&self.ver) { 22 } else { 20 });
+        let arrow = |id: u32| self.arrows.get(&id).map(|a| ArrowHead::Custom(*a));
+        let (start_arrow, end_arrow) = (arrow(ra.u32()), arrow(ra.u32()));
         let mut dash = vec![];
         if line_type & 0x04 != 0 {
             for _ in 0..n.min(32) {
@@ -463,6 +685,8 @@ impl<'a> Ctx<'a> {
                 _ => LineJoin::Miter,
             },
             dash,
+            start_arrow,
+            end_arrow,
             scale_with_object: line_type & 0x20 != 0,
             behind_fill: line_type & 0x10 != 0,
             ..Default::default()
@@ -652,9 +876,7 @@ impl<'a> Ctx<'a> {
                 continue;
             }
             let mut objects = vec![];
-            for c in layr.children.iter().rev() {
-                self.object(c, to_page, Affine::IDENTITY, &mut objects);
-            }
+            self.children(layr, to_page, Affine::IDENTITY, &mut objects);
             if objects.is_empty() && (master || kind == T_DESKTOP_LAYER) {
                 continue;
             }
@@ -696,7 +918,15 @@ impl<'a> Ctx<'a> {
         let name = loda.as_ref().and_then(|l| l.arg(ARG_NAME)).map(|n| self.string(n)).unwrap_or_default();
         let has_children = c.children.iter().any(|k| k.list.is_some() && !k.is_list(b"lgob"));
         let kind = loda.as_ref().map(|l| l.kind).unwrap_or(0);
-        let own = lgob.and_then(|l| self.perspective(l)).map(|p| persp::Warp { persp: p, space: to_page * parent });
+        let space = to_page * parent;
+        let own = lgob.and_then(|l| self.perspective(l)).map(|p| persp::Warp { map: persp::Map::Persp(p), space });
+        let envelope = lgob.and_then(|l| self.envelope_outline(l));
+        // an envelope maps the box of what it holds, in its parent's space
+        let envelope_warp = |objs: &[Object]| -> Option<persp::Warp> {
+            let inv = space.inverse();
+            let b = objs.iter().map(|o| (inv * o.world_path()).bounding_box()).reduce(|a, b| a.union(b))?;
+            persp::Envelope::new(b, envelope.as_ref()?).map(|e| persp::Warp { map: persp::Map::Envelope(e), space })
+        };
         let shape = match (&loda, &lt) {
             (Some(l), b"obj ") => self.shape(c, l, to_page * t),
             _ => None,
@@ -706,13 +936,14 @@ impl<'a> Ctx<'a> {
             if let Some(lens) = loda.as_ref().and_then(|l| l.arg(ARG_LENS)).and_then(|a| self.lens(a)) {
                 o.effects.lens = Some(lens);
             }
+            if let Some(e) = lgob.and_then(|l| self.extrude(l, to_page, &o)) {
+                o.effects.extrude = Some(e);
+            }
             // a PowerClip frame: its contents are a group of the clip table
             if let Some(a) = loda.as_ref().and_then(|l| l.arg(ARG_POWERCLIP)) {
                 let mut contents = vec![];
                 if let Some(clip) = self.clip(a) {
-                    for k in clip.children.iter().rev() {
-                        self.object(k, to_page, Affine::IDENTITY, &mut contents);
-                    }
+                    self.children(clip, to_page, Affine::IDENTITY, &mut contents);
                 }
                 {
                     let style = o.style.clone();
@@ -722,19 +953,28 @@ impl<'a> Ctx<'a> {
                     o = pc;
                 }
             }
-            let warps: Vec<persp::Warp> = own.into_iter().chain(self.warps.iter().rev().copied()).collect();
+            let own = own.or_else(|| envelope_warp(std::slice::from_ref(&o)));
+            let warps: Vec<persp::Warp> = own.into_iter().chain(self.warps.iter().rev().cloned()).collect();
             persp::bake(&mut o, &warps);
             out.push(o);
             return;
         }
         if has_children {
             let mut kids = vec![];
-            let pushed = own.map(|w| self.warps.push(w)).is_some();
-            for k in c.children.iter().rev() {
-                self.object(k, to_page, t, &mut kids);
-            }
-            if pushed {
-                self.warps.pop();
+            if envelope.is_some() && own.is_none() {
+                // the envelope needs the box of the contents: make them without the outer warps,
+                // then apply the envelope and the outer warps in that order
+                let outer = std::mem::take(&mut self.warps);
+                self.children(c, to_page, t, &mut kids);
+                self.warps = outer;
+                let warps: Vec<persp::Warp> = envelope_warp(&kids).into_iter().chain(self.warps.iter().rev().cloned()).collect();
+                kids.iter_mut().for_each(|k| persp::bake(k, &warps));
+            } else {
+                let pushed = own.map(|w| self.warps.push(w)).is_some();
+                self.children(c, to_page, t, &mut kids);
+                if pushed {
+                    self.warps.pop();
+                }
             }
             if kids.is_empty() {
                 return;
@@ -1157,7 +1397,7 @@ pub(super) fn document(root: &Chunk) -> Result<Document> {
 pub(super) fn document_with_report(root: &Chunk) -> Result<(Document, Vec<(u32, usize)>)> {
     let ver = version(root);
     let k = if ver >= 600 { 72.0 / 254_000.0 } else { 72.0 / 1000.0 };
-    let mut cx = Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), skipped: Default::default(), warps: vec![], doc: Document::new(612.0, 792.0) };
+    let mut cx = Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), skipped: Default::default(), warps: vec![], doc: Document::new(612.0, 792.0) };
     cx.collect(root);
     let default_size = cx.default_page_size(root);
     let origin = cx.origin(root);
