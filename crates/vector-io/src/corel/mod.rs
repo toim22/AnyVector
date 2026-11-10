@@ -159,7 +159,16 @@ mod tests {
                 for l in &p.layers {
                     println!("  layer {:?} master={} visible={} objects={}", l.name, l.master, l.visible, l.objects.len());
                     if std::env::var("ANYVECTOR_CDR_LIST").is_ok() {
-                        for o in &l.objects {
+                        // with ANYVECTOR_CDR_DEEP the objects inside groups too
+                        let mut all: Vec<&vector_core::object::Object> = vec![];
+                        let mut todo: Vec<&vector_core::object::Object> = l.objects.iter().rev().collect();
+                        while let Some(o) = todo.pop() {
+                            all.push(o);
+                            if let (vector_core::object::ObjKind::Group(kids), true) = (&o.kind, std::env::var("ANYVECTOR_CDR_DEEP").is_ok()) {
+                                todo.extend(kids.iter().rev());
+                            }
+                        }
+                        for o in all {
                             let b = o.bounds();
                             println!("   {:<10} {:<24} [{:.1} {:.1} {:.1} {:.1}] mm", o.kind.type_name(), o.name, b.x0 * 25.4 / 72.0, (p.height - b.y1) * 25.4 / 72.0, b.width() * 25.4 / 72.0, b.height() * 25.4 / 72.0);
                             if std::env::var("ANYVECTOR_CDR_STYLE").is_ok() {

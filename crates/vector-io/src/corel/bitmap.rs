@@ -128,7 +128,21 @@ pub(super) fn tiff(cx: &mut Ctx, b: &[u8]) {
 /// A `bmp ` record: the image and, when it has one, its transparency mask.
 pub(super) fn bitmap(cx: &mut Ctx, b: &[u8]) {
     let mut r = Rd::new(b);
-    let id = r.u32();
+    // CorelDRAW 4: a 16-bit id, then the bitmap file
+    if cx.ver < 500 && b.get(2..4) == Some(b"BM") {
+        let id = r.u16() as u32;
+        if let Ok(img) = image::load_from_memory_with_format(&b[2..], image::ImageFormat::Bmp) {
+            let rgba = img.to_rgba8();
+            let (w, h) = rgba.dimensions();
+            let rgba = rgba.into_raw();
+            let encoded = crate::image_io::encode_png(w, h, &rgba);
+            let data = ImageData { width: w, height: h, rgba: Arc::new(rgba), encoded: Arc::new(encoded), format: "png".into(), name: format!("bitmap{id}") };
+            let iid = cx.doc.add_image(data);
+            cx.images.insert(id, (iid, w, h));
+        }
+        return;
+    }
+    let (id, at) = (r.u32(), 4);
     let head = if cx.ver < 500 {
         14
     } else if cx.ver < 600 {
@@ -136,7 +150,7 @@ pub(super) fn bitmap(cx: &mut Ctx, b: &[u8]) {
     } else {
         50
     };
-    let Some(main) = block(b, 4 + head, false) else { return };
+    let Some(main) = block(b, at + head, false) else { return };
     // offset of the mask block, when present
     let mask_at = if cx.ver >= 600 { Rd::at(b, 0x18).u32() as usize } else { 0 };
     let mask = if mask_at > 0 && b.get(mask_at + 8..mask_at + 10) == Some(b"RI") { block(b, mask_at + 8 + 0x0e, true) } else { None };
@@ -162,10 +176,14 @@ pub(super) fn object(cx: &mut Ctx, l: &Loda, world: Affine) -> Option<Object> {
     let mut r = Rd::new(a);
     let x1 = cx.coord(&mut r);
     let y1 = cx.coord(&mut r);
-    let x2 = cx.coord(&mut r);
-    let y2 = cx.coord(&mut r);
+    // CorelDRAW 4: one corner (the other is the origin), two words, the size in pixels and
+    // the bitmap's id
+    let v4 = (400..500).contains(&cx.ver);
+    let (x2, y2) = if v4 { (0.0, 0.0) } else { (cx.coord(&mut r), cx.coord(&mut r)) };
     let image_id = if cx.wide() {
         Rd::at(a, 0x30).u32()
+    } else if v4 {
+        Rd::at(a, 12).u16() as u32
     } else {
         Rd::at(a, 0x18).u16() as u32
     };
