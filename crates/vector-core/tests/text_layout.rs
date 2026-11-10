@@ -104,3 +104,17 @@ fn linked_frames_flow() {
     let Some(ObjKind::Text(ft)) = doc.find(f).map(|o| &o.kind) else { panic!() };
     assert!(ft.link_prev.is_none());
 }
+
+#[test]
+fn overline_sits_above_the_capitals() {
+    let mut t = TextObj::artistic("Over", CharFormat { overline: true, ..fmt(20.0) });
+    let lay = vt::layout(&t);
+    assert_eq!(lay.decorations.len(), 4);
+    let top = lay.glyphs.iter().map(|g| g.transform.transform_rect_bbox(kurbo::Shape::bounding_box(&*g.path)).y0).fold(f64::MAX, f64::min);
+    for (r, _) in &lay.decorations {
+        // above the tallest letter, by less than half the size
+        assert!(r.y1 <= top + 0.5 && r.y0 > top - 10.0, "{r:?} over {top}");
+    }
+    t.format.overline = false;
+    assert!(vt::layout(&t).decorations.is_empty());
+}

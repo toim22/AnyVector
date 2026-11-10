@@ -461,8 +461,10 @@ fn character(app: &mut AnyVectorApp, ui: &mut Ui, o: &Option<Object>, st: &mut T
         lead(app, ui, "tx_hoff", "Horizontal Character Offset", false);
         opt_spin(ui, None, 0.0..=1.0, 1.0, 0, "", 90.0);
         ind(app, ui, i);
-        lead(app, ui, "tx_overline", "Character Overline", false);
-        ui.add_enabled_ui(false, |ui| combo(ui, "tx_over_t", 0, &LINE_TYPES, 86.0, &|_| true, "Apply a line above the selected text."));
+        lead(app, ui, "tx_overline", "Character Overline", true);
+        if let Some(k) = combo(ui, "tx_over_t", f.overline as usize, &LINE_TYPES, 86.0, &|k| k <= 1, "Apply a line above the selected text.") {
+            pt::apply(app, "Overline", &move |c| c.overline = k == 1);
+        }
         end_ind(app, ui, i);
     });
     ui.horizontal(|ui| {
