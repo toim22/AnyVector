@@ -17,6 +17,42 @@ opens as an ordinary AnyVector document; the full list and the known limits are 
 vector pattern fills of CorelDRAW 5 to X2, CorelDRAW 1 arrowheads, CorelDRAW 3 font widths, and the few objects
 still left out of CorelDRAW 5 to 10 files.
 
+## Next version (not released yet): CorelDRAW import, second round
+
+Merged to `main` on 2026-11-10 (pull requests #35 to #43). The plan and research behind it are in
+`C:\Projetos\Vector` (not part of the repository).
+
+- **Import notes (#35).** File > Open and File > Import say what a CorelDRAW drawing came in without: objects left
+  out by type, texture styles that aren't in CorelDRAW's library, fonts the drawing doesn't list, fonts shown in a
+  substitute. Before this, the count of left-out objects was kept but never shown.
+- **CorelDRAW as a reference again (#36).** `xtask/corel_render.py` renders drawings with the installed CorelDRAW
+  2026. Its automation had refused to open files because CorelDRAW sat on its Welcome screen with no document.
+  CorelDRAW 2026 doesn't open CorelDRAW 3 and older files, so those are compared with their stored previews.
+- **Textures (#37).** CorelDRAW 12 texture fills come in as textures instead of gray (their names are stored in
+  UTF-16), with the tile size from the file. Cosmic Clouds and Cosmic Minerals come in as gray textures instead of a
+  flat tone; styles that aren't in CorelDRAW's library keep their name and are drawn as a neutral texture.
+- **Text (#38).** Empty paragraph frames are kept (36 frames came back in the CorelDRAW 5 templates). CorelDRAW 3 text
+  no longer takes the drawing's first font when its font number isn't in the font list: a drawing that uses one font
+  family gets that family, others get the default font and a note.
+- **Font substitution (#39).** A missing font gets a look-alike: CorelDRAW's own font names (Bedrock, Switzerland,
+  Dutch, Avant Garde...) map to the installed fonts they copy, narrow names get a narrow font, and the import notes
+  say which font was used. "Arial Narrow" now really uses Arial Narrow.
+- **CMX (#40).** Corel clipart saved as CMX (often named `.cdr`, form `CDRX`) and `.cmx` files open: shapes, groups,
+  layers, solid and gradient fills, outlines, simple text and bitmaps.
+- **Fills keep what they are made of (#41).** Vector pattern tiles keep their objects and can be edited (the change
+  reaches every object using the tile); old texture fills keep their style and settings, editable in the Properties
+  docker; PostScript fills keep their number and settings. Object > Create > Pattern Fill keeps its objects too.
+  "Convert to bitmap pattern" flattens a fill on purpose.
+- **PostScript fills (#42).** 37 of the 38 fills that came in as a plain tone are drawn by AnyVector's own code, sized to
+  each object as CorelDRAW does. The random ones are always the same for a file but differ from CorelDRAW's scatter
+  and colors. One Motifs setting, the Corel company logo, stays a tone.
+- **Vector patterns (#43).** Full-color pattern fills come in with their drawing in CorelDRAW X5 to 2026 files (they
+  were gray) and in CMX clipart. CorelDRAW 6 to X4 files use the same code but are not verified: no such file exists
+  here, and CorelDRAW 2026 can't save older than X5.
+
+Checked on all samples at hand: 216 of 218 drawings open (CorelDRAW 1/2, 3, 5, 12, CMX clipart and the test
+fixtures); the two that don't are damaged CorelDRAW 3 files that 0.2.0 refused as well.
+
 ## CorelDRAW import: known issues to review later
 
 These are outside the current round of work and stay as they are until they are picked up again. The research
@@ -31,6 +67,13 @@ behind each one is in `C:\Projetos\Vector\issues\` (not part of the repository).
 - **Sample 33.cdr's black ovals (issue 8).** Needs the file; the research has the steps to diagnose it.
 - **CMYK of files older than X4, or made with a profile CorelDRAW 2026 doesn't ship (issue 12).** Older files carry no
   profile, so the colors depend on a choice; a profile embedded in the file (`iccd`) is not read yet.
+- **Left over from the second round:**
+  - Texture fills of CorelDRAW 7 to 11 and vector patterns of CorelDRAW 5 to X4 are not verified on a real file; vector
+    patterns of CorelDRAW 5 files stay gray.
+  - What CorelDRAW 3's text font numbers point to is unknown; drawings with several fonts get the default font.
+  - The "ON THE RIGHT TRACK!" drawing (Bedrock) was not measured; text is not stretched to the missing font's widths.
+  - PostScript fill settings are read-only in the Properties docker; CMX texture, PostScript and bitmap fills, arrowheads
+    and lenses come in gray or are left out; copying a pattern-filled object to another document drops its pattern.
 
 ## Version 0.1.0 (released)
 
