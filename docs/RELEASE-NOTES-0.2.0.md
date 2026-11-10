@@ -19,7 +19,8 @@ Import with a .cdr file is enough. The original file is never saved over; File â
   again from their settings: frequency, line width, grays and angle. The other PostScript fills take the average
   tone they have in CorelDRAW.
 - Colors in RGB, CMYK, HSB, HLS, Lab, grayscale and registration, and colors of the fixed palettes (PANTONE,
-  TRUMATCH, Focoltone and the others), with their tints.
+  TRUMATCH, Focoltone and the others), with their tints. CMYK colors look as they do on screen in CorelDRAW
+  with its default color settings.
 - Artistic and paragraph text with its fonts, sizes, styles, colors, underline and strikethrough, in every
   character set CorelDRAW used, including the one-byte Windows and Mac sets of old files.
 - Paragraph text keeps its frame layout: each paragraph's own alignment and indents, and the frame's columns
@@ -48,8 +49,8 @@ Import with a .cdr file is enough. The original file is never saved over; File â
 - Guidelines are not imported.
 - Overlined text comes in without the line over it. Columns of paragraph text saved by CorelDRAW X5 or older
   come in as a single column.
-- CMYK colors are converted without CorelDRAW's color profile, so they can look a little more saturated than in
-  CorelDRAW.
+- CMYK colors always use CorelDRAW's default color settings, even in a drawing saved with another CMYK color
+  profile.
 - In CorelDRAW 1 and 2 files, only shapes, fills and outlines come in. Their bitmaps, text and arrowheads are
   left out.
 - The sides of extrusions use AnyVector's own lighting, which can look different from CorelDRAW's shading.
