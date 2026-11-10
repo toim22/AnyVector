@@ -5,23 +5,19 @@ use super::riff::Rd;
 use vector_core::color::Color;
 
 /// How CMYK looks on screen with CorelDRAW's default color management (U.S. Web Coated SWOP to
-/// sRGB), sampled at 0, 50 and 100 percent of each ink. Index: ((c * 3 + m) * 3 + y) * 3 + k.
-const CMYK_GRID: [[u8; 3]; 81] = [
-    [254, 254, 254], [150, 152, 154], [55, 52, 53], [255, 247, 155], [152, 147, 98], [52, 51, 40], [255, 242, 18], [153, 144, 36], [50, 50, 31],
-    [244, 156, 194], [147, 96, 120], [55, 37, 43], [246, 153, 126], [147, 95, 80], [54, 38, 35], [247, 150, 51], [147, 93, 40], [53, 38, 30],
-    [236, 38, 143], [143, 31, 90], [55, 26, 36], [237, 46, 98], [142, 37, 63], [54, 29, 31], [237, 50, 55], [142, 41, 41], [54, 31, 29],
-    [113, 208, 246], [73, 128, 151], [34, 47, 54], [133, 202, 158], [81, 125, 100], [33, 47, 42], [143, 199, 74], [85, 122, 53], [33, 47, 33],
-    [139, 133, 191], [88, 85, 119], [40, 35, 45], [146, 132, 129], [91, 84, 82], [39, 36, 36], [150, 131, 71], [92, 83, 49], [38, 37, 31],
-    [148, 57, 147], [94, 38, 92], [42, 25, 39], [151, 60, 103], [94, 42, 67], [41, 29, 33], [153, 62, 66], [94, 45, 45], [41, 30, 30],
-    [0, 175, 239], [0, 110, 148], [17, 45, 55], [0, 171, 159], [0, 108, 101], [19, 46, 42], [0, 168, 89], [0, 107, 62], [19, 46, 34],
-    [0, 119, 189], [6, 75, 118], [29, 33, 46], [0, 117, 131], [20, 76, 84], [28, 35, 37], [22, 116, 80], [28, 75, 54], [28, 37, 32],
-    [62, 64, 149], [47, 43, 96], [34, 25, 41], [66, 66, 107], [48, 45, 69], [33, 29, 34], [68, 68, 70], [48, 47, 48], [32, 30, 30],
-];
+/// sRGB), as CorelDRAW 2026 converts it: RGB bytes at every eighth of each ink, 9 levels each.
+/// Index: ((c * 9 + m) * 9 + y) * 9 + k.
+const CMYK_GRID: &[u8; 9 * 9 * 9 * 9 * 3] = include_bytes!("cmyk9.bin");
+const LEVELS: usize = 9;
 
 /// CMYK (each 0..1) to display RGB, interpolating the sampled grid.
 pub fn cmyk(c: f64, m: f64, y: f64, k: f64) -> Color {
-    let ink = [c, m, y, k].map(|v| v.clamp(0.0, 1.0) * 2.0);
-    let lo = ink.map(|v| (v.floor() as usize).min(1));
+    // pure white paper stays white
+    if c <= 0.0 && m <= 0.0 && y <= 0.0 && k <= 0.0 {
+        return Color::WHITE;
+    }
+    let ink = [c, m, y, k].map(|v| v.clamp(0.0, 1.0) * (LEVELS - 1) as f64);
+    let lo = ink.map(|v| (v.floor() as usize).min(LEVELS - 2));
     let t = [0, 1, 2, 3].map(|i| ink[i] - lo[i] as f64);
     let mut rgb = [0.0f64; 3];
     for corner in 0..16usize {
@@ -30,17 +26,13 @@ pub fn cmyk(c: f64, m: f64, y: f64, k: f64) -> Color {
         for i in 0..4 {
             let hi = (corner >> i) & 1;
             w *= if hi == 1 { t[i] } else { 1.0 - t[i] };
-            idx = idx * 3 + lo[i] + hi;
+            idx = idx * LEVELS + lo[i] + hi;
         }
         if w > 0.0 {
-            for ch in 0..3 {
-                rgb[ch] += w * CMYK_GRID[idx][ch] as f64;
+            for (ch, v) in rgb.iter_mut().enumerate() {
+                *v += w * CMYK_GRID[idx * 3 + ch] as f64;
             }
         }
-    }
-    // pure white paper stays white
-    if c <= 0.0 && m <= 0.0 && y <= 0.0 && k <= 0.0 {
-        return Color::WHITE;
     }
     Color::rgb(rgb[0].round() as u8, rgb[1].round() as u8, rgb[2].round() as u8)
 }
@@ -206,6 +198,30 @@ mod tests {
         assert_eq!(cmyk(1.0, 0.0, 0.0, 0.0), Color::rgb(0, 175, 239));
         assert_eq!(cmyk(0.0, 0.0, 0.0, 1.0), Color::rgb(55, 52, 53));
         assert_eq!(cmyk(0.5, 0.5, 0.5, 0.5), Color::rgb(91, 84, 82));
+    }
+
+    #[test]
+    fn cmyk_between_the_samples_is_close_to_coreldraw() {
+        // inks in percent, and the RGB CorelDRAW 2026 shows for them
+        let seen: [([u8; 4], [u8; 3]); 12] = [
+            ([41, 19, 50, 83], [60, 69, 59]),
+            ([6, 9, 68, 12], [216, 198, 108]),
+            ([46, 74, 7, 64], [82, 56, 85]),
+            ([27, 4, 11, 55], [106, 126, 129]),
+            ([53, 8, 30, 11], [114, 173, 169]),
+            ([70, 54, 7, 72], [52, 59, 84]),
+            ([15, 28, 80, 80], [83, 72, 44]),
+            ([74, 7, 73, 74], [37, 80, 59]),
+            ([50, 6, 28, 5], [125, 186, 182]),
+            ([71, 17, 37, 53], [51, 102, 102]),
+            ([18, 69, 15, 73], [93, 56, 73]),
+            ([39, 71, 87, 23], [140, 89, 65]),        ];
+        for (ink, rgb) in seen {
+            let [c, m, y, k] = ink.map(|v| v as f64 / 100.0);
+            let got = cmyk(c, m, y, k);
+            let off = [got.r.abs_diff(rgb[0]), got.g.abs_diff(rgb[1]), got.b.abs_diff(rgb[2])];
+            assert!(off.iter().all(|d| *d <= 6), "{ink:?}: {got:?} against {rgb:?}");
+        }
     }
 
     #[test]
