@@ -9,12 +9,15 @@ Import with a .cdr file is enough. The original file is never saved over; File â
 - Every version of the format: CorelDRAW 1 and 2, the RIFF files of CorelDRAW 3 to X3, the compressed files of
   X4 to X7, and the zipped files of 2017 to 2026.
 - Pages with their sizes, layers with their visible, printable and locked states, and master layers.
+  CorelDRAW 4 facing pages come in as separate pages, with each master layer shown on the left or the right
+  pages as in CorelDRAW.
 - Rectangles with round, scalloped and chamfered corners, ellipses, arcs and pies, polygons, stars, curves,
   groups and PowerClips, in the position, size, rotation and skew CorelDRAW gave them.
 - Uniform, fountain and bitmap fills; outlines with their width, color, dashes, line caps,
   corners and scaling; transparency.
 - Two-color pattern fills with their own pattern, tile size and two colors.
 - Texture fills and vector pattern fills, shown with the picture of the tile that CorelDRAW stored in the file.
+  CorelDRAW 4 vector pattern fills are drawn from the pattern's own objects.
 - PostScript fills. Bricks, Circle Grid, Crosshatching, Fishscale, Hatching, Hexagons, Octagons, Squares, Star of David,
   Triangle and Waves, and the color Hatching, Crosshatching and Fishscale, are drawn
   again from their settings: frequency, line width, grays and angle. The other PostScript fills take the average
@@ -27,7 +30,8 @@ Import with a .cdr file is enough. The original file is never saved over; File â
   character set CorelDRAW used, including the one-byte Windows and Mac sets of old files. This goes back to
   CorelDRAW 1: the old CorelDRAW fonts are shown in the Windows font that looks most like them.
 - CorelDRAW 4 paragraph text flows through its linked frames, and CorelDRAW 4 text fitted to a path, or with
-  characters moved and turned one by one, keeps each character where CorelDRAW put it.
+  characters moved and turned one by one, keeps each character where CorelDRAW put it, also when it is shown
+  in another font.
 - Paragraph text keeps its frame layout: each paragraph's own alignment and indents, and the frame's columns
   with their widths and gutters.
 - Text fitted to a path stays live on its path: on curves at the same place (left, right, centered or at an
@@ -35,6 +39,7 @@ Import with a .cdr file is enough. The original file is never saved over; File â
 - Embedded bitmaps, and lenses. This includes the TIFF bitmaps of CorelDRAW 1 and 2 drawings, fax-compressed
   ones too.
 - Perspective and envelopes, applied to the shapes they hold.
+- PowerLines of CorelDRAW 4 to 6, as the shapes CorelDRAW drew for them.
 - **Effects:**
   - Blends come in as live AnyVector blends between their two ends, with the same number of steps.
   - Extrusions come in as live extrusions toward the same vanishing point and to the same depth, with their
@@ -53,7 +58,8 @@ Import with a .cdr file is enough. The original file is never saved over; File â
 
 - The other PostScript fills (Birds, Leaves, Spokes and the rest that don't repeat) come in as a plain tone. The color
   fills use a fixed set of colors where CorelDRAW picks them at random.
-- Vector pattern and texture fills of files older than CorelDRAW X3 come in as a gray tone.
+- Texture fills of files older than CorelDRAW X3, and vector pattern fills of CorelDRAW 5 to X2 files, come in
+  as a gray tone: those files keep no picture of the tile.
 - Vector pattern and texture fills come in as a picture of their tile, so their objects and texture settings
   can't be edited.
 - CMYK colors of files older than X4, and of drawings made with a CMYK profile CorelDRAW 2026 doesn't come with,

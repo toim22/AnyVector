@@ -44,6 +44,7 @@ const T_POLYGON: u32 = 0x14;
 const T_GUIDE: u32 = 0x16;
 const ARG_GUIDE: u32 = 0x3e80;
 const T_PATH: u32 = 0x25;
+const T_POWERLINE4: u32 = 0x0e;
 
 /// A fill as stored, before it is fitted to an object.
 #[derive(Clone, Debug)]
@@ -60,6 +61,9 @@ pub(super) enum RawFill {
     TwoColor { pattern: u32, tile: f64, fg: Color, bg: Color },
     /// A PostScript fill: its number in CorelDRAW's library and its settings.
     PostScript { number: u16, params: Vec<i32> },
+    /// A CorelDRAW 4 vector pattern: the `spnd` of the group in `vect` that draws the tile, and
+    /// the tile's width and height in points.
+    Vector { pattern: u32, w: f64, h: f64 },
 }
 
 pub(super) struct Ctx<'a> {
@@ -79,6 +83,8 @@ pub(super) struct Ctx<'a> {
     pub images: HashMap<u32, (u64, u32, u32)>,
     /// PowerClip contents: the groups of the clip table, by id.
     pub clips: HashMap<u32, &'a Chunk>,
+    /// CorelDRAW 4 vector patterns: the group that draws each, by its `spnd`.
+    pub vects: HashMap<u32, &'a Chunk>,
     /// The same groups by the frame that owns them (their `spnd`).
     pub clip_owners: HashMap<u32, &'a Chunk>,
     /// Versions 5 and 6: style id to the (fill, outline) ids its objects take.
@@ -274,7 +280,14 @@ impl<'a> Ctx<'a> {
                 if r.u16() != 0x02 {
                     continue;
                 }
-                r.skip(if self.wide() { 10 } else { 6 });
+                // CorelDRAW 4 has two bytes fewer before the box
+                r.skip(if self.wide() {
+                    10
+                } else if self.ver < 500 {
+                    4
+                } else {
+                    6
+                });
                 let l = self.coord(&mut r);
                 let t = self.coord(&mut r);
                 let rt = self.coord(&mut r);
@@ -441,6 +454,14 @@ impl<'a> Ctx<'a> {
     fn collect(&mut self, c: &'a Chunk) {
         if c.list.is_some() {
             if c.is_list(b"page") {
+                return;
+            }
+            if c.is_list(b"vect") {
+                for g in c.children.iter().filter(|k| k.is_list(b"grp ")) {
+                    if let Some(id) = g.child(b"spnd").map(|s| spnd(&s.data)) {
+                        self.vects.insert(id, g);
+                    }
+                }
                 return;
             }
             if c.is_list(b"clpt") {
@@ -617,6 +638,14 @@ impl<'a> Ctx<'a> {
                 r.skip(4 + 4 + 2 + 1 + 21);
                 RawFill::Image { bitmap: r.u32(), tile, angle: 0.0 }
             }
+            // CorelDRAW 4 vector patterns: the group that draws the tile, and the tile's size
+            10 if self.ver < 500 => {
+                r.skip(2);
+                let pattern = r.u16() as u32;
+                let w = self.coord(&mut r).abs() * self.k;
+                let h = self.coord(&mut r).abs() * self.k;
+                RawFill::Vector { pattern, w, h }
+            }
             // vector pattern and texture fills before X3 keep no bitmap (CorelDRAW draws a
             // texture from its settings): shown as a neutral tone
             _ => RawFill::Solid(Color::rgb(200, 200, 200)),
@@ -695,6 +724,21 @@ impl<'a> Ctx<'a> {
                 self.fills.insert(id, fill);
                 continue;
             }
+            if let Some(RawFill::Vector { pattern, w, h }) = self.fills.get(&id).cloned() {
+                let fill = match self.vector_tile(pattern, w, h) {
+                    Some((rgba, pw, ph)) => {
+                        let encoded = crate::image_io::encode_png(pw, ph, &rgba);
+                        let data = vector_core::document::ImageData { width: pw, height: ph, rgba: std::sync::Arc::new(rgba), encoded: std::sync::Arc::new(encoded), format: "png".into(), name: format!("vector pattern {pattern}") };
+                        let iid = self.doc.add_image(data);
+                        next += 1;
+                        self.images.insert(next, (iid, pw, ph));
+                        RawFill::Image { bitmap: next, tile: w, angle: 0.0 }
+                    }
+                    None => RawFill::Solid(Color::rgb(200, 200, 200)),
+                };
+                self.fills.insert(id, fill);
+                continue;
+            }
             let Some(RawFill::TwoColor { pattern, tile, fg, bg }) = self.fills.get(&id).cloned() else { continue };
             let Some((w, h, bits)) = self.patterns.get(&pattern) else {
                 self.fills.insert(id, RawFill::Solid(Color::lerp(fg, bg, 0.5)));
@@ -717,6 +761,37 @@ impl<'a> Ctx<'a> {
             };
             self.fills.insert(id, RawFill::Image { bitmap, tile: if tile > 0.1 { tile } else { 36.0 }, angle: 0.0 });
         }
+    }
+
+    /// The tile of a CorelDRAW 4 vector pattern: the group's objects, fitted to a tile of `w` by
+    /// `h` points, drawn into pixels (about 4 per point, at most 512 on a side).
+    fn vector_tile(&mut self, pattern: u32, w: f64, h: f64) -> Option<(Vec<u8>, u32, u32)> {
+        let group = *self.vects.get(&pattern)?;
+        if w < 0.1 || h < 0.1 {
+            return None;
+        }
+        let mut objects = vec![];
+        let flip = Affine::scale_non_uniform(self.k, -self.k);
+        for c in group.children.iter().filter(|c| c.list.is_some()) {
+            self.object(c, flip, Affine::IDENTITY, &mut objects);
+        }
+        let b = objects.iter().map(|o| o.bounds()).reduce(|a, b| a.union(b))?;
+        if b.width() <= 0.0 || b.height() <= 0.0 {
+            return None;
+        }
+        let fit = Affine::scale_non_uniform(w / b.width(), h / b.height()) * Affine::translate((-b.x0, -b.y0));
+        for o in &mut objects {
+            o.apply_transform(fit);
+        }
+        let mut tile = Document::new(w, h);
+        tile.images = self.doc.images.clone();
+        if let Some(l) = tile.pages[0].layers.first_mut() {
+            l.objects = objects;
+        }
+        let scale = (512.0 / w.max(h)).min(4.0);
+        let size = ((w * scale).round().max(1.0) as u32, (h * scale).round().max(1.0) as u32);
+        let opts = crate::image_io::RasterOptions { size: Some(size), background: Some(Color::rgb(255, 255, 255)), ..Default::default() };
+        crate::image_io::render_rgba(&tile, 0, &opts).map(|(pw, ph, rgba)| (rgba, pw, ph))
     }
 
     fn gradient(&self, r: &mut Rd, new_stops: bool) -> RawFill {
@@ -1053,6 +1128,16 @@ impl<'a> Ctx<'a> {
         (x.abs() < 20_000.0 && y.abs() < 20_000.0).then_some((x, y))
     }
 
+    /// CorelDRAW 4 facing pages (byte 24 of the page setup), and whether the document starts on
+    /// a left page (byte 26).
+    fn facing4(&self, root: &Chunk) -> Option<bool> {
+        if !(400..500).contains(&self.ver) {
+            return None;
+        }
+        let m = root.list_child(b"doc ")?.child(b"mcfg")?;
+        (m.data.len() >= 28 && m.data[24] == 1).then(|| m.data[26] == 1)
+    }
+
     fn page_size(&self, page: &Chunk) -> Option<(f64, f64)> {
         for lgob in page.lists(b"lgob") {
             for c in lgob.children.iter().filter(|c| c.is(b"loda")) {
@@ -1250,7 +1335,10 @@ impl<'a> Ctx<'a> {
             g.name = name;
             out.push(g);
         }
-        if !has_children && &lt == b"obj " {
+        // a CorelDRAW 4 PowerLine is the outline of the shapes CorelDRAW drew for it, which the
+        // group next to it holds: nothing is left out (CorelDRAW 5 and 6 keep only the PowerLine)
+        let powerline = kind == T_POWERLINE4 && self.ver < 500;
+        if !has_children && &lt == b"obj " && !powerline {
             *self.skipped.entry(kind).or_default() += 1;
         }
     }
@@ -1489,7 +1577,11 @@ impl<'a> Ctx<'a> {
                 let st = self.style_of(l, bounds, xf);
                 Some(Object::new(self.doc.new_id(), ObjKind::Ellipse(shape), xf, st))
             }
-            T_CURVE | T_PATH => {
+            // PowerLines of CorelDRAW 5 and 6 (0x0e): the outline CorelDRAW drew, as a curve
+            T_CURVE | T_PATH | T_POWERLINE4 => {
+                if l.kind == T_POWERLINE4 && self.ver < 500 {
+                    return None;
+                }
                 let path = world * self.curve(l.arg(ARG_COORDS)?);
                 self.path_object(l, path)
             }
@@ -1650,6 +1742,65 @@ pub(super) fn version(root: &Chunk) -> u32 {
     }
 }
 
+/// CorelDRAW 4 facing pages: each page record holds a spread, the left page left of the origin
+/// and the right page right of it; the master layers hold what left and right pages show the
+/// same way. The spreads become pages of their own, and each master layer two: one for the
+/// odd pages and one for the even pages. The first spread has only its right page unless the
+/// document starts on a left page; the last right page goes when it is empty.
+fn split_spreads(spreads: Vec<Page>, left_first: bool, doc: &mut Document) -> Vec<Page> {
+    let Some(w) = spreads.first().map(|p| p.width) else { return spreads };
+    let n = spreads.len();
+    let mut out: Vec<Page> = vec![];
+    let mut masters: Vec<Layer> = vec![];
+    for (i, spread) in spreads.into_iter().enumerate() {
+        let mut halves = [Page::new(doc.new_id(), 0, spread.width, spread.height), Page::new(doc.new_id(), 0, spread.width, spread.height)];
+        for p in &mut halves {
+            p.guides = spread.guides.clone();
+            p.layers.clear();
+        }
+        for layer in spread.layers {
+            let mut sides = [Layer { id: doc.new_id(), objects: vec![], ..layer.clone() }, Layer { id: layer.id, objects: vec![], ..layer.clone() }];
+            for mut o in layer.objects {
+                let b = o.bounds();
+                // left of the spine: the left page
+                let right = (b.x0 + b.x1) / 2.0 >= w / 2.0;
+                o.apply_transform(Affine::translate((if right { -w / 2.0 } else { w / 2.0 }, 0.0)));
+                sides[right as usize].objects.push(o);
+            }
+            if layer.master != 0 {
+                // the odd pages are the right ones unless the document starts on a left page
+                for (side, mut l) in sides.into_iter().enumerate().filter(|(_, l)| !l.objects.is_empty()) {
+                    let odd = (side == 1) != left_first;
+                    l.master = if odd { 2 } else { 3 };
+                    masters.push(l);
+                }
+            } else {
+                for (side, l) in sides.into_iter().enumerate() {
+                    halves[side].layers.push(l);
+                }
+            }
+        }
+        let [left, right] = halves;
+        let empty = |p: &Page| p.layers.iter().all(|l| l.objects.is_empty());
+        if i > 0 || left_first {
+            out.push(left);
+        }
+        if i + 1 < n || !empty(&right) {
+            out.push(right);
+        }
+    }
+    for p in &mut out {
+        if p.layers.is_empty() {
+            p.layers.push(Layer::new(doc.new_id(), "Layer 1"));
+        }
+    }
+    if let Some(first) = out.first_mut() {
+        masters.append(&mut first.layers);
+        first.layers = masters;
+    }
+    out
+}
+
 pub(super) fn document(root: &Chunk) -> Result<Document> {
     document_with_report(root).map(|r| r.0)
 }
@@ -1658,7 +1809,7 @@ pub(super) fn document(root: &Chunk) -> Result<Document> {
 pub(super) fn document_with_report(root: &Chunk) -> Result<(Document, Vec<(u32, usize)>)> {
     let ver = version(root);
     let k = if ver >= 600 { 72.0 / 254_000.0 } else { 72.0 / 1000.0 };
-    let mut cx = Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], doc: Document::new(612.0, 792.0) };
+    let mut cx = Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), vects: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], doc: Document::new(612.0, 792.0) };
     cx.collect(root);
     cx.pattern_images();
     let default_size = cx.default_page_size(root);
@@ -1711,6 +1862,9 @@ pub(super) fn document_with_report(root: &Chunk) -> Result<(Document, Vec<(u32, 
         page.guides = page_guides;
         out.push(page);
     }
+    if let Some(left_first) = cx.facing4(root) {
+        out = split_spreads(out, left_first, &mut cx.doc);
+    }
     let skipped = cx.skipped.iter().map(|(k, v)| (*k, *v)).collect();
     let mut doc = cx.doc;
     doc.pages = out;
@@ -1760,7 +1914,49 @@ pub(crate) mod tests {
 
     pub(crate) fn ctx(ver: u32) -> Ctx<'static> {
         let k = if ver >= 600 { 72.0 / 254_000.0 } else { 72.0 / 1000.0 };
-        Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], doc: Document::new(612.0, 792.0) }
+        Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), vects: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], doc: Document::new(612.0, 792.0) }
+    }
+
+    #[test]
+    fn coreldraw_4_spreads_become_pages() {
+        let mut doc = Document::new(100.0, 50.0);
+        let rect = |doc: &mut Document, x: f64| {
+            let shape = RectShape { w: 10.0, h: 10.0, radii: [0.0; 4], corner: CornerType::Round };
+            Object::new(doc.new_id(), ObjKind::Rect(shape), Affine::translate((x, 20.0)), Style::default())
+        };
+        // the spine is at x = 50: the first spread has only a right page, the second both
+        let spread = |doc: &mut Document, xs: &[f64], master: bool| {
+            let mut p = Page::new(doc.new_id(), 0, 100.0, 50.0);
+            let mut l = Layer::new(doc.new_id(), if master { "Master" } else { "Layer" });
+            l.master = master as u8;
+            l.objects = xs.iter().map(|x| rect(doc, *x)).collect();
+            p.layers = vec![l];
+            p
+        };
+        let mut first = spread(&mut doc, &[60.0], false);
+        let master = spread(&mut doc, &[5.0, 85.0], true).layers.remove(0);
+        first.layers.insert(0, master);
+        let second = spread(&mut doc, &[10.0, 70.0], false);
+        let pages = split_spreads(vec![first, second], false, &mut doc);
+        assert_eq!(pages.len(), 3);
+        let xs = |p: &Page| p.layers.iter().filter(|l| l.master == 0).flat_map(|l| &l.objects).map(|o| o.bounds().x0.round()).collect::<Vec<_>>();
+        assert_eq!(xs(&pages[0]), vec![10.0]);
+        assert_eq!(xs(&pages[1]), vec![60.0]);
+        assert_eq!(xs(&pages[2]), vec![20.0]);
+        // the master's left object shows on even pages, its right one on odd pages
+        let masters: Vec<(u8, f64)> = pages[0].layers.iter().filter(|l| l.master != 0).map(|l| (l.master, l.objects[0].bounds().x0.round())).collect();
+        assert_eq!(masters, vec![(3, 55.0), (2, 35.0)]);
+    }
+
+    #[test]
+    fn coreldraw_4_bitmaps_are_bmp_files() {
+        let mut bmp = std::io::Cursor::new(vec![]);
+        image::RgbImage::from_pixel(3, 2, image::Rgb([200, 10, 10])).write_to(&mut bmp, image::ImageFormat::Bmp).unwrap();
+        let mut b = 7u16.to_le_bytes().to_vec();
+        b.extend(bmp.into_inner());
+        let mut cx = ctx(400);
+        super::super::bitmap::bitmap(&mut cx, &b);
+        assert_eq!(cx.images.get(&7).map(|i| (i.1, i.2)), Some((3, 2)));
     }
 
     #[test]
