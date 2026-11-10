@@ -28,6 +28,9 @@ pub(super) struct Found {
     pub known: bool,
     /// The names are UTF-16 in 64-byte fields (CorelDRAW 12), not one byte per character.
     pub wide: bool,
+    /// The settings, as `texture_of` reads them: their kinds and their values.
+    pub kinds: String,
+    pub params: Vec<i32>,
 }
 
 /// A place in the record where a style's name could start, with the setting count after it.
@@ -88,23 +91,56 @@ pub(super) fn read(b: &[u8]) -> Option<Found> {
     }
     let word = |at: usize, i: usize, n: usize| i16::from_le_bytes([b[at + 8 * i + 2 * n], b[at + 8 * i + 2 * n + 1]]);
     let Some((c, kinds)) = exact.or(known) else {
+        // a style we don't know: each setting's number, kind `u`
         let c = unknown?;
-        let texture = Texture { seed: word(c.at, 0, 0) as u16, colors: vec![[80; 3], [208; 3]] };
-        return Some(Found { texture, style: c.name, known: false, wide: c.wide });
+        let kinds = "u".repeat(c.count);
+        let params: Vec<i32> = (0..c.count).map(|i| word(c.at, i, 0) as i32).collect();
+        let texture = texture_of(&kinds, &params)?;
+        return Some(Found { texture, style: c.name, known: false, wide: c.wide, kinds, params });
     };
     let at = c.at;
-    let brightness = kinds.bytes().position(|k| k == b'b').map_or(0, |i| word(at, i, 0)).clamp(-100, 100) as f64 / 100.0;
-    let channel = |v: i16| {
+    // the settings: one value per number, three per color
+    let mut params = vec![];
+    for (i, k) in kinds.bytes().enumerate() {
+        params.push(word(at, i, 0) as i32);
+        if k == b'c' {
+            params.push(word(at, i, 1) as i32);
+            params.push(word(at, i, 2) as i32);
+        }
+    }
+    let texture = texture_of(kinds, &params)?;
+    Some(Found { texture, style: c.name, known: true, wide: c.wide, kinds: kinds.to_string(), params })
+}
+
+/// What a texture's settings draw: `kinds` says what each setting is (`n` a number, `c` a
+/// color, `b` the brightness, `u` a setting of a style we don't know), `params` holds one
+/// value per setting and three per color, as `Found` has them.
+pub(super) fn texture_of(kinds: &str, params: &[i32]) -> Option<Texture> {
+    let settings = vector_core::style::PatternSource::texture_settings(kinds, params);
+    let seed = settings.first().map_or(0, |s| s.1[0]) as i16 as u16;
+    if kinds.contains('u') {
+        // a style we don't know: a neutral grey tile from the first setting, so that two
+        // unknown textures still look different
+        return Some(Texture { seed, colors: vec![[80; 3], [208; 3]] });
+    }
+    let brightness = settings.iter().find(|s| s.0 == b'b').map_or(0, |s| s.1[0]).clamp(-100, 100) as f64 / 100.0;
+    let channel = |v: i32| {
         let v = v.clamp(0, 100) as f64 / 100.0;
         let v = if brightness >= 0.0 { v + (1.0 - v) * brightness } else { v * (1.0 + brightness) };
         (v * 255.0).round() as u8
     };
-    let mut colors: Vec<[u8; 3]> = kinds.bytes().enumerate().filter(|(_, k)| *k == b'c').map(|(i, _)| [channel(word(at, i, 0)), channel(word(at, i, 1)), channel(word(at, i, 2))]).collect();
+    let mut colors: Vec<[u8; 3]> = settings.iter().filter(|s| s.0 == b'c').map(|s| [channel(s.1[0]), channel(s.1[1]), channel(s.1[2])]).collect();
     if colors.is_empty() {
         // a style with no colors draws in greys: black to white, with the brightness applied
         colors = vec![[channel(0); 3], [channel(100); 3]];
     }
-    Some(Found { texture: Texture { seed: word(at, 0, 0) as u16, colors }, style: c.name, known: true, wide: c.wide })
+    Some(Texture { seed, colors })
+}
+
+/// A texture's tile drawn from its recipe (`kinds` and `params` as `texture_of` takes them):
+/// the pixels (RGBA) and the tile's width and height in pixels.
+pub fn recipe_tile(kinds: &str, params: &[i32]) -> Option<(Vec<u8>, u32, u32)> {
+    tile(&texture_of(kinds, params)?)
 }
 
 /// A one-byte name at `o` in a 32-byte field, then the count.
