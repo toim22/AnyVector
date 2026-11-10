@@ -839,6 +839,10 @@ pub struct ExtrudeEffect {
     /// The bevel's color (None: the object's fill).
     #[serde(default)]
     pub bevel_color: Option<Color>,
+    /// Size of the far face against the object (None: from the kind). Imported CorelDRAW
+    /// extrusions scale it toward their vanishing point.
+    #[serde(default)]
+    pub scale: Option<f64>,
 }
 
 /// The position of an extrusion light that is turned off.
@@ -850,7 +854,7 @@ fn two() -> u8 {
 
 impl Default for ExtrudeEffect {
     fn default() -> Self {
-        ExtrudeEffect { depth: Vec2::new(18.0, -18.0), color: Color::rgb(128, 128, 128), shade: Color::BLACK, steps: 24, kind: 0, vp_page: false, rotation: [0.0; 3], color_mode: 2, bevel: None, bevel_only: false, lights: vec![], drape: false, bevel_fill: false, bevel_color: None }
+        ExtrudeEffect { depth: Vec2::new(18.0, -18.0), color: Color::rgb(128, 128, 128), shade: Color::BLACK, steps: 24, kind: 0, vp_page: false, rotation: [0.0; 3], color_mode: 2, bevel: None, bevel_only: false, lights: vec![], drape: false, bevel_fill: false, bevel_color: None, scale: None }
     }
 }
 

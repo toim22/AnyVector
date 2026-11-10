@@ -1847,11 +1847,11 @@ pub fn extrude_back(bb: Rect, e: &ExtrudeEffect) -> Affine {
     if front {
         d = -d;
     }
-    let scale = match e.kind {
+    let scale = e.scale.unwrap_or(match e.kind {
         0 | 1 => 0.7,
         2 | 3 => 1.4,
         _ => 1.0,
-    };
+    });
     let c = bb.center();
     Affine::translate(d) * Affine::translate(c.to_vec2()) * Affine::scale(scale) * Affine::translate(-c.to_vec2())
 }

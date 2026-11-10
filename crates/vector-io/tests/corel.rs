@@ -3,13 +3,15 @@
 //! The fixtures were drawn in CorelDRAW 2026 through its automation interface and saved in
 //! several file versions; the expected positions are the ones CorelDRAW reported for them.
 //! `shapes-*` holds the basic shapes on two pages of different sizes, `mixed-*` bitmaps,
-//! formatted text, fountain fills, a PowerClip and layers in every state.
+//! formatted text, fountain fills, a PowerClip and layers in every state. `effects-*` holds a
+//! drop shadow, a blend, two contours, an envelope, an extrusion and lines with arrowheads;
+//! `extrude-x5` the six kinds of extrusion.
 
 use std::path::PathBuf;
 use vector_core::color::Color;
 use vector_core::document::Document;
 use vector_core::object::{ObjKind, Object};
-use vector_core::style::{Fill, GradientKind, LineCap, LineJoin, Transparency};
+use vector_core::style::{ArrowHead, Fill, GradientKind, LineCap, LineJoin, Transparency};
 use vector_core::text::TextAlign;
 
 fn fixture(name: &str) -> PathBuf {
@@ -309,4 +311,58 @@ fn older_layouts_never_panic() {
             let _ = vector_io::corel::load_from_bytes(&d);
         }
     }
+}
+
+fn blends(doc: &Document) -> Vec<&vector_core::object::BlendObj> {
+    let mut out = vec![];
+    for o in doc.pages[0].all_objects() {
+        o.walk(&mut |x| {
+            if let ObjKind::Blend(b) = &x.kind {
+                out.push(b);
+            }
+        });
+    }
+    out
+}
+
+#[test]
+fn effects_come_in_live() {
+    for name in ["effects-x5.cdr", "effects-2026.cdr"] {
+        let doc = open(name);
+        // the blend: its two ends and the steps between, made again by AnyVector
+        let b = blends(&doc);
+        assert_eq!(b.len(), 1, "{name}");
+        assert_eq!(b[0].steps, 6, "{name}");
+        // the extrusion: toward its vanishing point, 20 % deep
+        let e = find(&doc, 0, "extrude").effects.extrude.as_ref().unwrap_or_else(|| panic!("{name}: no extrusion"));
+        assert_eq!((e.kind, e.color_mode), (0, 2), "{name}");
+        assert!((e.scale.unwrap() - 0.8).abs() < 1e-6, "{name}");
+        assert_eq!(e.color, Color::rgb(0, 150, 220), "{name}");
+        // lines keep their arrowheads, as shapes of the document
+        let o = &find(&doc, 0, "arrow0").style.outline;
+        assert!(matches!(o.start_arrow, Some(ArrowHead::Custom(_))) && matches!(o.end_arrow, Some(ArrowHead::Custom(_))), "{name}: {:?} {:?}", o.start_arrow, o.end_arrow);
+        // the envelope bends the rectangle into curves, inside the same box
+        let env = find(&doc, 0, "envelope");
+        assert!(!matches!(env.kind, ObjKind::Rect(_)), "{name}");
+    }
+    // CorelDRAW 2026 keeps the shadow as a live effect (X5 stores a picture of it)
+    let doc = open("effects-2026.cdr");
+    let s = find(&doc, 0, "shadow").effects.drop_shadow.as_ref().expect("no shadow");
+    assert!((s.opacity - 60.0).abs() < 0.5, "{}", s.opacity);
+    let k = 25.4 / 72.0;
+    assert!((s.offset.x * k - 3.0).abs() < 0.01 && (s.offset.y * k - 3.0).abs() < 0.01, "{:?}", s.offset);
+    assert_eq!(s.color, Color::rgb(0, 0, 80));
+}
+
+#[test]
+fn every_kind_of_extrusion() {
+    let doc = open("extrude-x5.cdr");
+    let mut got = vec![];
+    for i in 0..6 {
+        let e = find(&doc, 0, &format!("ex{i}")).effects.extrude.clone().expect("no extrusion");
+        got.push((e.kind, (e.scale.unwrap() * 100.0).round() as i32));
+    }
+    // small back, small front, big back (saved as small front), big front (saved as small
+    // back), back parallel, front parallel
+    assert_eq!(got, [(0, 80), (1, 80), (1, 80), (0, 80), (4, 100), (5, 100)]);
 }
