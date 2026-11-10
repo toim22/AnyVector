@@ -26,6 +26,9 @@ pub struct CharFormat {
     pub italic: bool,
     pub underline: bool,
     pub strike: bool,
+    /// A line over the characters.
+    #[serde(default)]
+    pub overline: bool,
     /// None = use the object's fill.
     pub color: Option<Color>,
     /// Extra spacing between characters, % of space width.
@@ -53,6 +56,7 @@ impl Default for CharFormat {
             italic: false,
             underline: false,
             strike: false,
+            overline: false,
             color: None,
             tracking: 0.0,
             baseline_shift: 0.0,
@@ -1657,7 +1661,7 @@ pub fn layout_with(db: &mut FontDb, t: &TextObj) -> TextLayout {
                     }
                 }
                 // decorations
-                if (sc.fmt.underline || sc.fmt.strike) && !matches!(sc.ch, SOFT_HYPHEN) {
+                if (sc.fmt.underline || sc.fmt.strike || sc.fmt.overline) && !matches!(sc.ch, SOFT_HYPHEN) {
                     let scale = sc.fmt.size / sc.face.units_per_em;
                     let th = (sc.face.underline_thick * scale).max(0.5);
                     if sc.fmt.underline {
@@ -1667,6 +1671,11 @@ pub fn layout_with(db: &mut FontDb, t: &TextObj) -> TextLayout {
                     if sc.fmt.strike {
                         let sy = by - sc.fmt.size * 0.28;
                         out.decorations.push((Rect::new(x, sy, x + a, sy + th), sc.fmt.color));
+                    }
+                    if sc.fmt.overline {
+                        // as far above the capitals as an underline is below the baseline
+                        let oy = by - sc.face.cap_height * scale + sc.face.underline_pos * scale - th;
+                        out.decorations.push((Rect::new(x, oy, x + a, oy + th), sc.fmt.color));
                     }
                 }
             }
