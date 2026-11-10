@@ -16,6 +16,9 @@ What makes it work (CorelDRAW refuses to open files otherwise):
   with "Failed to open document". The script creates a blank one when there is none.
 - pywin32 doesn't pass "Nothing" for optional object arguments, so Export gets both option structs.
 
+CorelDRAW 2026 doesn't open CorelDRAW 3 and older drawings ("Failed to open document"); compare those with
+the preview stored in the file instead.
+
 Requires pywin32 (`python -m pip install pywin32`). Only one script should drive CorelDRAW at a time.
 """
 import argparse
