@@ -70,6 +70,9 @@ Import with a .cdr file is enough. The original file is never saved over; File â
 - Arrowheads come in from CorelDRAW 2 files, but not from CorelDRAW 1 files.
 - Text in a font that isn't installed is shown in a font that is, so its lines can come out wider or narrower
   than in CorelDRAW.
+- Some CorelDRAW 3 text uses fonts the file doesn't name, so it can come out wider or narrower than in CorelDRAW.
+- A few objects of CorelDRAW 5 to 10 files are left out: some linked bitmaps, empty paragraph frames and two
+  rare kinds of object.
 
 ## Legal notices
 
