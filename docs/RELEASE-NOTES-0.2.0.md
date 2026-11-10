@@ -15,7 +15,8 @@ Import with a .cdr file is enough. The original file is never saved over; File â
   corners and scaling; transparency.
 - Two-color pattern fills with their own pattern, tile size and two colors.
 - Texture fills and vector pattern fills, shown with the picture of the tile that CorelDRAW stored in the file.
-- PostScript fills. Bricks, Crosshatching, Fishscale, Hatching, Hexagons, Squares, Triangle and Waves are drawn
+- PostScript fills. Bricks, Circle Grid, Crosshatching, Fishscale, Hatching, Hexagons, Octagons, Squares, Star of David,
+  Triangle and Waves, and the color Hatching, Crosshatching and Fishscale, are drawn
   again from their settings: frequency, line width, grays and angle. The other PostScript fills take the average
   tone they have in CorelDRAW.
 - Colors in RGB, CMYK, HSB, HLS, Lab, grayscale and registration, and colors of the fixed palettes (PANTONE,
@@ -46,7 +47,8 @@ Import with a .cdr file is enough. The original file is never saved over; File â
 
 ## Known limits
 
-- Most PostScript fills (Birds, Leaves, Spokes and the other non-repeating ones) come in as a plain tone.
+- The other PostScript fills (Birds, Leaves, Spokes and the rest that don't repeat) come in as a plain tone. The color
+  fills use a fixed set of colors where CorelDRAW picks them at random.
 - Bitmap, vector pattern and texture fills of files older than CorelDRAW X3 come in as a gray tone.
 - Vector pattern and texture fills come in as a picture of their tile, so their objects and texture settings
   can't be edited.
