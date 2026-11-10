@@ -52,7 +52,12 @@ pub(super) enum RawFill {
     /// kind, angle (degrees), center offset (fractions of the box), edge pad (0..0.5), stops
     Gradient { kind: GradientKind, angle: f64, cx: f64, cy: f64, pad: f64, stops: Vec<GradientStop> },
     /// A bitmap, full-color or texture fill: the bitmap id and the tile width in points.
-    Image { bitmap: u32, tile: f64 },
+    Image { bitmap: u32, tile: f64, angle: f64 },
+    /// A two-color pattern: the pattern's id, the tile width in points, and the colors of its
+    /// 0 bits (foreground) and 1 bits (background).
+    TwoColor { pattern: u32, tile: f64, fg: Color, bg: Color },
+    /// A PostScript fill: its number in CorelDRAW's library and its settings.
+    PostScript { number: u16, params: Vec<i32> },
 }
 
 pub(super) struct Ctx<'a> {
@@ -78,6 +83,8 @@ pub(super) struct Ctx<'a> {
     pub graphic_styles: HashMap<u32, (u32, u32)>,
     /// Arrowheads: the drawing's id to the document's custom arrowhead.
     pub arrows: HashMap<u32, u64>,
+    /// Two-color patterns (`bmpf`): id to width, height and one bit per pixel, top row first.
+    pub patterns: HashMap<u32, (usize, usize, Vec<bool>)>,
     /// Object types that were not converted, with how many of each.
     pub skipped: std::collections::BTreeMap<u32, usize>,
     /// Perspectives of the groups being converted, innermost last.
@@ -437,6 +444,7 @@ impl<'a> Ctx<'a> {
             b"font" => text::font(self, &c.data),
             b"stlt" => text::stlt(self, &c.data),
             b"bmp " => super::bitmap::bitmap(self, &c.data),
+            b"bmpf" => self.pattern(&c.data),
             _ => {}
         }
     }
@@ -486,32 +494,130 @@ impl<'a> Ctx<'a> {
                 r.skip(if self.ver >= 1300 { 8 } else { 2 });
                 self.two_color(&mut r)
             }
+            // bitmap, vector pattern and texture fills: a list of properties; the one tagged
+            // 1300 holds the tile size and, at 0x20, the bitmap CorelDRAW rendered the tile into
             9 | 10 | 11 if self.ver >= 1300 => {
-                // tile size, then the bitmap that holds the tile
-                let b = r.b;
-                let tile = Rd::at(b, r.p + 16).i32().abs() as f64 * self.k;
-                RawFill::Image { bitmap: Rd::at(b, r.p + 48).u32(), tile }
+                let mut list = r.clone();
+                let body = self.property(&mut list, 0x514).and_then(|mut o| self.property(&mut o, 0x514));
+                match body {
+                    Some(d) if d.b.len() >= 0x24 => {
+                        let tile = Rd::at(d.b, 0).i32().abs() as f64 * self.k;
+                        RawFill::Image { bitmap: Rd::at(d.b, 0x20).u32(), tile, angle: 0.0 }
+                    }
+                    _ => RawFill::Solid(Color::rgb(200, 200, 200)),
+                }
             }
+            // a PostScript fill: its number in CorelDRAW's library and its settings
+            6 => {
+                if self.ver >= 1300 {
+                    r.skip(8);
+                } else {
+                    r.skip(2);
+                }
+                let number = super::psfill::number(r.u16());
+                let n = (r.u16() as usize).min(5);
+                let params = (0..n).map(|_| r.i16() as i32).collect();
+                RawFill::PostScript { number, params }
+            }
+            // bitmap, vector pattern and texture fills before X3: not read yet
             _ => RawFill::Solid(Color::rgb(200, 200, 200)),
         };
         self.fills.insert(id, fill);
     }
 
-    /// A two-color pattern: use its background and foreground mixed.
+    /// A two-color pattern: its id, the tile size and offsets, then the two colors.
     fn two_color(&self, r: &mut Rd) -> RawFill {
-        let _pattern = r.u32();
-        let skip = if self.wide() { 8 } else { 4 };
-        r.skip(skip); // tile width and height
-        r.skip(if self.wide() { 6 } else { 4 });
+        let pattern = r.u32();
+        let tile = self.coord(r).abs() * self.k;
+        self.coord(r); // tile height
         if self.ver >= 1300 {
-            r.skip(5);
+            // from X3 each color comes after a 01 and its length (12)
+            let color_after = |r: &mut Rd| {
+                let from = r.p;
+                let at = (from..from + 40).find(|&i| r.b.get(i..i + 5) == Some(&[1, 12, 0, 0, 0][..]))?;
+                r.p = at + 5;
+                let c = color::read(r, self.ver);
+                r.p = at + 5 + 12;
+                Some(c)
+            };
+            let (Some(fg), Some(bg)) = (color_after(r), color_after(r)) else { return RawFill::Solid(Color::rgb(200, 200, 200)) };
+            return RawFill::TwoColor { pattern, tile, fg, bg };
         }
-        let a = color::read(r, self.ver);
-        if self.ver >= 1300 {
-            r.skip(31);
+        // the tile's offsets
+        r.skip(if self.wide() { 8 } else { 4 });
+        let fg = color::read(r, self.ver);
+        let bg = color::read(r, self.ver);
+        RawFill::TwoColor { pattern, tile, fg, bg }
+    }
+
+    /// A two-color pattern's bits (`bmpf`): its id, then a one-bit Windows bitmap (header,
+    /// two palette entries, rows bottom up).
+    fn pattern(&mut self, b: &[u8]) {
+        let mut r = Rd::new(b);
+        let id = r.u32();
+        let head = r.u32() as usize;
+        let (w, h) = (r.u32() as usize, r.u32() as usize);
+        r.skip(2);
+        let bpp = r.u16();
+        if bpp != 1 || !(1..=1024).contains(&w) || !(1..=1024).contains(&h) {
+            return;
         }
-        let b = color::read(r, self.ver);
-        RawFill::Solid(Color::lerp(a, b, 0.5))
+        let stride = w.div_ceil(32) * 4;
+        let start = 4 + head + 8;
+        if start + stride * h > b.len() {
+            return;
+        }
+        let mut bits = Vec::with_capacity(w * h);
+        for y in 0..h {
+            let row = &b[start + (h - 1 - y) * stride..];
+            bits.extend((0..w).map(|x| row[x / 8] & (0x80 >> (x % 8)) != 0));
+        }
+        self.patterns.insert(id, (w, h, bits));
+    }
+
+    /// Give the two-color pattern and PostScript fills their tile image.
+    pub(super) fn pattern_images(&mut self) {
+        let mut made: HashMap<(u32, [u8; 4], [u8; 4]), u32> = HashMap::new();
+        let mut next = 0xff00_0000u32;
+        let ids: Vec<u32> = self.fills.keys().copied().collect();
+        for id in ids {
+            if let Some(RawFill::PostScript { number, params }) = self.fills.get(&id) {
+                let fill = match super::psfill::draw(*number, params) {
+                    super::psfill::Drawn::Tone(c) => RawFill::Solid(c),
+                    super::psfill::Drawn::Tile { rgba, w, h, width, angle } => {
+                        let encoded = crate::image_io::encode_png(w, h, &rgba);
+                        let data = vector_core::document::ImageData { width: w, height: h, rgba: std::sync::Arc::new(rgba), encoded: std::sync::Arc::new(encoded), format: "png".into(), name: format!("PostScript fill {number}") };
+                        let iid = self.doc.add_image(data);
+                        next += 1;
+                        self.images.insert(next, (iid, w, h));
+                        RawFill::Image { bitmap: next, tile: width, angle }
+                    }
+                };
+                self.fills.insert(id, fill);
+                continue;
+            }
+            let Some(RawFill::TwoColor { pattern, tile, fg, bg }) = self.fills.get(&id).cloned() else { continue };
+            let Some((w, h, bits)) = self.patterns.get(&pattern) else {
+                self.fills.insert(id, RawFill::Solid(Color::lerp(fg, bg, 0.5)));
+                continue;
+            };
+            let key = (pattern, [fg.r, fg.g, fg.b, fg.a], [bg.r, bg.g, bg.b, bg.a]);
+            let bitmap = match made.get(&key) {
+                Some(b) => *b,
+                None => {
+                    let rgba: Vec<u8> = bits.iter().flat_map(|&one| { let c = if one { bg } else { fg }; [c.r, c.g, c.b, c.a] }).collect();
+                    let (w, h) = (*w as u32, *h as u32);
+                    let encoded = crate::image_io::encode_png(w, h, &rgba);
+                    let data = vector_core::document::ImageData { width: w, height: h, rgba: std::sync::Arc::new(rgba), encoded: std::sync::Arc::new(encoded), format: "png".into(), name: format!("pattern{pattern}") };
+                    let iid = self.doc.add_image(data);
+                    next += 1;
+                    self.images.insert(next, (iid, w, h));
+                    made.insert(key, next);
+                    next
+                }
+            };
+            self.fills.insert(id, RawFill::Image { bitmap, tile: if tile > 0.1 { tile } else { 36.0 }, angle: 0.0 });
+        }
     }
 
     fn gradient(&self, r: &mut Rd, new_stops: bool) -> RawFill {
@@ -1017,13 +1123,13 @@ impl<'a> Ctx<'a> {
             st.fill = match fill3.as_ref().or_else(|| self.fills.get(&id)) {
                 Some(RawFill::Solid(c)) => Fill::Solid(*c),
                 Some(RawFill::Gradient { kind, angle, cx, cy, pad, stops }) => fit_gradient(*kind, *angle, *cx, *cy, *pad, stops, bounds, world),
-                Some(RawFill::Image { bitmap, tile }) => match self.images.get(bitmap) {
+                Some(RawFill::Image { bitmap, tile, angle }) => match self.images.get(bitmap) {
                     Some((image, _, _)) => Fill::Pattern(PatternFill {
                         kind: PatternKind::Checker,
                         fg: Color::BLACK,
                         bg: Color::WHITE,
                         tile: if *tile > 0.1 { *tile } else { 36.0 },
-                        angle: 0.0,
+                        angle: *angle,
                         image: Some(*image),
                         transform_with_object: true,
                         vector: false,
@@ -1397,8 +1503,9 @@ pub(super) fn document(root: &Chunk) -> Result<Document> {
 pub(super) fn document_with_report(root: &Chunk) -> Result<(Document, Vec<(u32, usize)>)> {
     let ver = version(root);
     let k = if ver >= 600 { 72.0 / 254_000.0 } else { 72.0 / 1000.0 };
-    let mut cx = Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), skipped: Default::default(), warps: vec![], doc: Document::new(612.0, 792.0) };
+    let mut cx = Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), skipped: Default::default(), warps: vec![], doc: Document::new(612.0, 792.0) };
     cx.collect(root);
+    cx.pattern_images();
     let default_size = cx.default_page_size(root);
     let origin = cx.origin(root);
     let mut first_size: Option<(f64, f64)> = None;
