@@ -29,7 +29,7 @@ use vector_core::color::Color;
 use vector_core::document::{Document, ImageData, Layer, Page};
 use vector_core::object::{EllipseKind, EllipseShape, ImageAdjust, ImageObj, ObjKind, Object, RectShape};
 use vector_core::path::NodePath;
-use vector_core::style::{Fill, Gradient, GradientKind, GradientStop, LineCap, LineJoin, Outline, SpreadMode, Style, Transparency};
+use vector_core::style::{Fill, Gradient, GradientKind, GradientStop, LineCap, LineJoin, Outline, PatternFill, PatternKind, PatternSource, SpreadMode, Style, Transparency};
 use vector_core::text::{CharFormat, TextObj};
 
 /// Whether the bytes are a CMX metafile (`RIFF`/`RIFX` with a `CMX?` or `CDRX` form type).
@@ -237,6 +237,7 @@ fn cp1252(c: u16) -> char {
 // ------------------------------------------------------------------------------------------
 
 const SEC_PAGES: u16 = 2;
+const SEC_PROCEDURES: u16 = 4;
 const SEC_FONTS: u16 = 7;
 const SEC_EMBEDDED: u16 = 8;
 const SEC_OUTLINES: u16 = 15;
@@ -251,6 +252,7 @@ const BEGIN_LAYER: i32 = 11;
 const END_LAYER: i32 = 12;
 const BEGIN_GROUP: i32 = 13;
 const END_GROUP: i32 = 14;
+const END_PROCEDURE: i32 = 18;
 const DRAW_CHARS: i32 = 65;
 const ELLIPSE: i32 = 66;
 const POLYCURVE: i32 = 67;
@@ -283,6 +285,10 @@ enum RawFill {
     Solid(Color),
     /// kind, angle (degrees), center offset (fractions of the box), edge pad (0..0.5), stops
     Gradient { kind: GradientKind, angle: f64, cx: f64, cy: f64, pad: f64, stops: Vec<GradientStop> },
+    /// A full-color (vector) pattern: the procedure that draws it, the tile's width and height
+    /// (points, or fractions of the object's size when `relative`), and the box of the
+    /// procedure's drawing (file units) that the tile repeats.
+    Vector { proc: u16, w: f64, h: f64, relative: bool, frame: Rect },
 }
 
 /// The rendering attributes of a drawing instruction.
@@ -319,6 +325,12 @@ struct Cmx<'a> {
     fonts: Vec<String>,
     /// Embedded bitmap number to the document's image and its pixel size.
     images: HashMap<u16, (u64, u32, u32)>,
+    /// Procedures (drawings that full-color pattern fills repeat): number to their `proc` chunk.
+    procs: HashMap<u16, usize>,
+    /// The tiles made of procedures, by procedure and tile size: the document's image and tile.
+    pattern_tiles: HashMap<(u16, u64, u64), Option<(u64, u64)>>,
+    /// The procedures being drawn, innermost last.
+    drawing: Vec<u16>,
     tally: Tally,
 }
 
@@ -375,8 +387,10 @@ impl<'a> Cmx<'a> {
         // the box is 32-bit in either variant
         let (x0, y0, x1, y1) = (r.i32() as f64, r.i32() as f64, r.i32() as f64, r.i32() as f64);
         let bbox = Rect::new(x0.min(x1), y0.min(y1), x0.max(x1), y0.max(y1));
+        // the scale is in inches (unit 64, the clipart CDs: 0.001) or in metres (unit 35:
+        // CorelDRAW 2026 writes 1e-7, a 254000th of an inch)
         let per = match unit {
-            35 => 72.0 / 25.4,
+            35 => 72.0 / 0.0254,
             _ => 72.0,
         };
         let fallback = if wide { 72.0 / 254_000.0 } else { 72.0 / 1000.0 };
@@ -395,6 +409,9 @@ impl<'a> Cmx<'a> {
             outlines: vec![],
             fonts: vec![],
             images: HashMap::new(),
+            procs: HashMap::new(),
+            pattern_tiles: HashMap::new(),
+            drawing: vec![],
             tally: Tally::default(),
         };
         // the master index: section number to offset
@@ -530,6 +547,33 @@ impl<'a> Cmx<'a> {
         }
         self.fonts = self.read_fonts();
         self.read_images(doc);
+        self.procs = self.read_procedures();
+    }
+
+    /// The procedure index (`ixpc`): per procedure (numbered from 1; 32-bit records start with
+    /// their size) the offset of its reference list, then of its `proc` chunk.
+    fn read_procedures(&self) -> HashMap<u16, usize> {
+        let mut out = HashMap::new();
+        let Some(&at) = self.sections.get(&SEC_PROCEDURES) else { return out };
+        if self.b.get(at..at + 4) != Some(b"ixpc") {
+            return out;
+        }
+        let mut r = self.rd(at + 8);
+        let n = r.u16() as usize;
+        for j in 1..=n.min(self.b.len() / 8).min(u16::MAX as usize) {
+            let start = r.p;
+            let size = if self.wide { r.u16() as usize } else { 8 };
+            if size < 8 {
+                break;
+            }
+            let _refs = r.u32();
+            let proc = r.u32() as usize;
+            r.p = start + if self.wide { size + 2 } else { 8 };
+            if self.b.get(proc..proc + 4) == Some(b"proc") {
+                out.insert(j as u16, proc);
+            }
+        }
+        out
     }
 
     /// A table of `count` records; in the 32-bit variant each sits in its first tagged field.
@@ -970,8 +1014,42 @@ impl<'a> Cmx<'a> {
                 };
                 Some(RawFill::Solid(Color::lerp(self.color(fg), self.color(bg), 0.5)))
             }
-            // bitmap, full-color (vector) pattern, texture and PostScript fills: a neutral tone
-            6 | 9 | 10 | 11 => {
+            // full-color (vector) patterns: the procedure that draws the tile, the tile's size
+            // (thousandths of an inch, or a 254000th in the 32-bit variant, in its own tagged
+            // field there), its offsets, flags (4: a size relative to the object, in percent),
+            // and the box of the procedure's drawing
+            10 => {
+                let (proc, w, h, flags, frame) = if self.wide {
+                    let tags = tagged(self, r);
+                    let (_, body, _) = *tags.iter().find(|t| t.0 == 1)?;
+                    let mut t = self.rd(body);
+                    let proc = t.u16();
+                    // the tile in a tagged field of its own: its id and size, then the record
+                    t.skip(3);
+                    let (w, h) = (t.i32().unsigned_abs() as f64, t.i32().unsigned_abs() as f64);
+                    t.skip(6);
+                    let flags = t.u16();
+                    t.skip(1);
+                    (proc, w / 254_000.0 * 72.0, h / 254_000.0 * 72.0, flags, self.bbox(&mut t))
+                } else {
+                    let proc = r.u16();
+                    let (w, h) = (r.u16() as f64, r.u16() as f64);
+                    r.skip(6);
+                    let flags = r.u16();
+                    (proc, w / 1000.0 * 72.0, h / 1000.0 * 72.0, flags, self.bbox(r))
+                };
+                // a size relative to the object is in percent of it
+                let relative = flags & 0x04 != 0;
+                let (w, h) = if relative {
+                    let unit = if self.wide { 254_000.0 } else { 1000.0 } / 72.0;
+                    (w * unit / 100.0, h * unit / 100.0)
+                } else {
+                    (w, h)
+                };
+                Some(RawFill::Vector { proc, w, h, relative, frame })
+            }
+            // bitmap, texture and PostScript fills: a neutral tone
+            6 | 9 | 11 => {
                 if !self.wide {
                     match kind {
                         6 => {
@@ -980,7 +1058,7 @@ impl<'a> Cmx<'a> {
                             r.skip(n * 2);
                             let _ = r.string();
                         }
-                        9 | 10 => r.skip(14 + 8),
+                        9 => r.skip(14 + 8),
                         _ => {
                             r.skip(14 + 8 + 1 + 4 + 2);
                             for _ in 0..3 {
@@ -1075,11 +1153,29 @@ impl<'a> Cmx<'a> {
 
     /// The style of an object whose shape covers `bounds` (page points); `world` takes its own
     /// coordinates to the page.
-    fn style(&self, a: &Attrs, bounds: Rect, world: Affine) -> Style {
+    fn style(&mut self, a: &Attrs, bounds: Rect, world: Affine, doc: &mut Document) -> Style {
         let mut st = Style::default();
         st.fill = match &a.fill {
             Some(RawFill::Solid(c)) => Fill::Solid(*c),
             Some(RawFill::Gradient { kind, angle, cx, cy, pad, stops }) => fit_gradient(*kind, *angle, *cx, *cy, *pad, stops, bounds, world),
+            &Some(RawFill::Vector { proc, w, h, relative, frame }) => {
+                let (w, h) = if relative { (w * bounds.width(), h * bounds.height()) } else { (w, h) };
+                match self.pattern_tile(proc, w, h, frame, doc) {
+                    Some((image, tile)) => Fill::Pattern(PatternFill {
+                        kind: PatternKind::Checker,
+                        fg: Color::BLACK,
+                        bg: Color::WHITE,
+                        tile: w,
+                        angle: 0.0,
+                        image: Some(image),
+                        transform_with_object: true,
+                        vector: true,
+                        mirror: 0,
+                        source: Some(PatternSource::Tile(tile)),
+                    }),
+                    None => Fill::Solid(GRAY),
+                }
+            }
             _ => Fill::None,
         };
         st.outline = a.outline.clone().unwrap_or_else(Outline::none);
@@ -1189,15 +1285,30 @@ impl Build {
 impl<'a> Cmx<'a> {
     /// Run the instructions of the `page` chunk at `at`.
     fn page(&mut self, at: usize, doc: &mut Document) -> Option<Drawing> {
+        // without a box: a letter-size page around the origin
+        let (hw, hh) = (306.0 / self.k, 396.0 / self.k);
+        let box_ = self.bbox.unwrap_or(Rect::new(-hw, -hh, hw, hh));
+        let mut b = Build { to_page: Affine::IDENTITY, layers: vec![], layer: None, groups: vec![], text: None };
+        let box_ = self.run(at, &mut b, Some(box_), doc).unwrap_or(box_);
+        if b.layers.is_empty() {
+            b.layers.push(Layer::new(doc.new_id(), "Layer 1"));
+        }
+        Some(Drawing { width: box_.width() * self.k, height: box_.height() * self.k, layers: b.layers })
+    }
+
+    /// Run the instructions of the `page` or `proc` chunk at `at` into `b`. A page places its
+    /// box's top-left corner at the origin (`page_box`, which a begin-page instruction can
+    /// change; the box in use is returned); a procedure keeps `b`'s placement and ends at its
+    /// end-of-procedure instruction.
+    fn run(&mut self, at: usize, b: &mut Build, page_box: Option<Rect>, doc: &mut Document) -> Option<Rect> {
         let size = self.rd(at + 4).u32() as usize;
         let mut end = (at + 8).saturating_add(size).min(self.b.len());
         let mut c = at + 8;
-        // without a box: a letter-size page around the origin
-        let (hw, hh) = (306.0 / self.k, 396.0 / self.k);
-        let mut box_ = self.bbox.unwrap_or(Rect::new(-hw, -hh, hw, hh));
-        let mut b = Build { to_page: Affine::IDENTITY, layers: vec![], layer: None, groups: vec![], text: None };
+        let mut box_ = page_box;
         let set_box = |b: &mut Build, r: Rect, k: f64| b.to_page = Affine::new([k, 0.0, 0.0, -k, -r.x0 * k, r.y1 * k]);
-        set_box(&mut b, box_, self.k);
+        if let Some(r) = box_ {
+            set_box(b, r, self.k);
+        }
         let mut jumps = HashSet::new();
         let mut steps = 0usize;
         while c + 4 <= end && steps < 20_000_000 {
@@ -1214,13 +1325,14 @@ impl<'a> Cmx<'a> {
             let stop = (c + size).min(end);
             let mut next = c + size;
             match code {
-                BEGIN_PAGE => {
+                BEGIN_PAGE if page_box.is_some() => {
                     if let Some(page_box) = self.begin_page(&mut r, stop) {
-                        box_ = page_box;
-                        set_box(&mut b, box_, self.k);
+                        box_ = Some(page_box);
+                        set_box(b, page_box, self.k);
                     }
                 }
                 END_PAGE => break,
+                END_PROCEDURE if page_box.is_none() => break,
                 BEGIN_LAYER => {
                     b.end_layer(doc);
                     let (name, matrix) = self.begin_layer(&mut r, stop);
@@ -1231,10 +1343,10 @@ impl<'a> Cmx<'a> {
                 END_GROUP => b.end_group(doc),
                 POLYCURVE | RECTANGLE | ELLIPSE | DRAW_IMAGE => {
                     let o = match code {
-                        POLYCURVE => self.polycurve(&mut r, stop, &b, doc),
-                        RECTANGLE => self.rectangle(&mut r, stop, &b, doc),
-                        ELLIPSE => self.ellipse(&mut r, stop, &b, doc),
-                        _ => self.draw_image(&mut r, stop, &b, doc),
+                        POLYCURVE => self.polycurve(&mut r, stop, b, doc),
+                        RECTANGLE => self.rectangle(&mut r, stop, b, doc),
+                        ELLIPSE => self.ellipse(&mut r, stop, b, doc),
+                        _ => self.draw_image(&mut r, stop, b, doc),
                     };
                     match o {
                         Some(o) => b.push(o),
@@ -1244,7 +1356,7 @@ impl<'a> Cmx<'a> {
                 BEGIN_TEXT_GROUP => b.text = self.begin_text(&mut r, stop),
                 END_TEXT_GROUP => b.text = None,
                 SET_CHAR_STYLE => self.char_style(&mut r, stop, &mut b.text),
-                DRAW_CHARS => match self.draw_chars(&mut r, stop, &b, doc) {
+                DRAW_CHARS => match self.draw_chars(&mut r, stop, b, doc) {
                     Some(Some(o)) => b.push(o),
                     Some(None) => {}
                     None => self.skip(code),
@@ -1267,10 +1379,36 @@ impl<'a> Cmx<'a> {
         }
         b.text = None;
         b.end_layer(doc);
-        if b.layers.is_empty() {
-            b.layers.push(Layer::new(doc.new_id(), "Layer 1"));
+        box_
+    }
+
+    /// The tile of a full-color (vector) pattern fill: the drawing of procedure `proc`, its box
+    /// `frame` (file units) fitted to a tile of `w` by `h` points, kept as a pattern tile of
+    /// `doc` and drawn into an image of it. Made once for each procedure and size.
+    fn pattern_tile(&mut self, proc: u16, w: f64, h: f64, frame: Rect, doc: &mut Document) -> Option<(u64, u64)> {
+        let key = (proc, w.to_bits(), h.to_bits());
+        if let Some(made) = self.pattern_tiles.get(&key) {
+            return *made;
         }
-        Some(Drawing { width: box_.width() * self.k, height: box_.height() * self.k, layers: b.layers })
+        // a procedure that uses itself is drawn without its own pattern
+        if self.drawing.contains(&proc) || frame.width() <= 0.0 || frame.height() <= 0.0 || w < 0.1 || h < 0.1 {
+            return None;
+        }
+        let &at = self.procs.get(&proc)?;
+        self.drawing.push(proc);
+        let k = self.k;
+        let mut b = Build { to_page: Affine::new([k, 0.0, 0.0, -k, -frame.x0 * k, frame.y1 * k]), layers: vec![], layer: None, groups: vec![], text: None };
+        self.run(at, &mut b, None, doc);
+        self.drawing.pop();
+        let objects: Vec<Object> = b.layers.into_iter().flat_map(|l| l.objects).collect();
+        let from = Rect::new(0.0, 0.0, frame.width() * k, frame.height() * k);
+        let made = super::build::fitted_tile(doc, objects, w, h, format!("Vector pattern {proc}"), Some(from), true).map(|(tile, rgba, pw, ph)| {
+            let encoded = crate::image_io::encode_png(pw, ph, &rgba);
+            let image = doc.add_image(ImageData { width: pw, height: ph, rgba: Arc::new(rgba), encoded: Arc::new(encoded), format: "png".into(), name: format!("vector pattern {proc}") });
+            (image, doc.add_pattern_tile(tile))
+        });
+        self.pattern_tiles.insert(key, made);
+        made
     }
 
     /// Count an instruction that could not be converted.
@@ -1347,7 +1485,7 @@ impl<'a> Cmx<'a> {
         if path.elements().len() < 2 {
             return None;
         }
-        let mut st = self.style(&attrs, path.bounding_box(), Affine::IDENTITY);
+        let mut st = self.style(&attrs, path.bounding_box(), Affine::IDENTITY, doc);
         // CorelDRAW never fills an open curve, though the metafile may still name a fill for it.
         if !path.elements().iter().any(|e| matches!(e, kurbo::PathEl::ClosePath)) {
             st.fill = Fill::None;
@@ -1369,7 +1507,7 @@ impl<'a> Cmx<'a> {
         let shape = RectShape { w: w * k, h: h * k, radii: [rad; 4], corner: Default::default() };
         let xf = b.world() * Affine::translate((cx, cy)) * Affine::rotate(angle.to_radians()) * Affine::scale_non_uniform(1.0 / k, -1.0 / k) * Affine::translate((-shape.w / 2.0, -shape.h / 2.0));
         let bounds = (xf * Rect::new(0.0, 0.0, shape.w, shape.h).to_path(0.1)).bounding_box();
-        let st = self.style(&attrs, bounds, xf);
+        let st = self.style(&attrs, bounds, xf, doc);
         Some(Object::new(doc.new_id(), ObjKind::Rect(shape), xf, st))
     }
 
@@ -1401,7 +1539,7 @@ impl<'a> Cmx<'a> {
         };
         let xf = b.world() * Affine::translate((cx, cy)) * Affine::rotate(rot.to_radians()) * Affine::scale_non_uniform(1.0 / k, -1.0 / k) * Affine::translate((-shape.w / 2.0, -shape.h / 2.0));
         let bounds = (xf * Rect::new(0.0, 0.0, shape.w, shape.h).to_path(0.1)).bounding_box();
-        let st = self.style(&attrs, bounds, xf);
+        let st = self.style(&attrs, bounds, xf, doc);
         Some(Object::new(doc.new_id(), ObjKind::Ellipse(shape), xf, st))
     }
 
@@ -1515,7 +1653,7 @@ impl<'a> Cmx<'a> {
         }
         let xf = b.world() * t.matrix * Affine::translate((x, y)) * Affine::scale_non_uniform(1.0 / k, -1.0 / k) * Affine::scale_non_uniform(stretch, 1.0);
         let bounds = (xf * Rect::new(0.0, -t.size * k, t.size * k * n as f64 * 0.5, 0.0).to_path(0.1)).bounding_box();
-        let st = self.style(&t.attrs, bounds, xf);
+        let st = self.style(&t.attrs, bounds, xf, doc);
         Some(Some(Object::new(doc.new_id(), ObjKind::Text(text), xf, st)))
     }
 }
@@ -1523,7 +1661,7 @@ impl<'a> Cmx<'a> {
 /// A curve: points and one flag byte per point. The two high bits say what the point is (00
 /// the start of a subpath, 01 a line's end, 10 a curve's end, 11 a control point); 0x08 closes
 /// the subpath at that point.
-fn curve(pts: &[Point], kinds: &[u8]) -> BezPath {
+pub(super) fn curve(pts: &[Point], kinds: &[u8]) -> BezPath {
     let mut bp = BezPath::new();
     let mut ctrl: Vec<Point> = vec![];
     let mut open = false;
