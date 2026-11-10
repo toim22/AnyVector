@@ -10,6 +10,7 @@ mod color;
 mod persp;
 mod riff;
 mod text;
+mod waldo;
 
 use crate::{IoError, Result};
 use riff::{Chunk, External};
@@ -33,9 +34,6 @@ fn container(bytes: &[u8]) -> Result<Container> {
     if bytes.len() >= 12 && &bytes[0..4] == b"RIFF" {
         return Ok(Container { main: bytes.to_vec(), streams: None });
     }
-    if bytes.len() >= 2 && &bytes[0..2] == b"WL" {
-        return Err(IoError::Unsupported("this drawing was saved by CorelDRAW 1 or 2, a format older than AnyVector can read. Open it in CorelDRAW 3 or later and save it again.".into()));
-    }
     let mut z = zip::ZipArchive::new(std::io::Cursor::new(bytes)).map_err(|_| IoError::Format("not a CorelDRAW drawing".into()))?;
     if let Some(main) = read_entry(&mut z, "content/riffData.cdr") {
         return Ok(Container { main, streams: None });
@@ -49,6 +47,14 @@ fn container(bytes: &[u8]) -> Result<Container> {
     Ok(Container { main, streams: Some(streams) })
 }
 
+/// The chunk tree of any drawing: CorelDRAW 1 and 2 files are rewritten as one.
+fn root(bytes: &[u8]) -> Result<Chunk> {
+    if waldo::is_waldo(bytes) {
+        return waldo::tree(bytes).ok_or_else(|| IoError::Format("the CorelDRAW 1 or 2 drawing is damaged".into()));
+    }
+    tree(&container(bytes)?)
+}
+
 fn tree(c: &Container) -> Result<Chunk> {
     let mut out = vec![];
     let ext = c.streams.as_ref().map(|s| External { streams: s });
@@ -58,21 +64,17 @@ fn tree(c: &Container) -> Result<Chunk> {
 
 /// Open a drawing saved by CorelDRAW.
 pub fn load_from_bytes(bytes: &[u8]) -> Result<Document> {
-    let c = container(bytes)?;
-    let root = tree(&c)?;
-    build::document(&root)
+    build::document(&root(bytes)?)
 }
 
 /// Open a drawing and also list the object types that were left out: (type, count).
 pub fn load_with_report(bytes: &[u8]) -> Result<(Document, Vec<(u32, usize)>)> {
-    let c = container(bytes)?;
-    build::document_with_report(&tree(&c)?)
+    build::document_with_report(&root(bytes)?)
 }
 
 /// The version of CorelDRAW that saved the drawing, times 100 (X5 = 1500).
 pub fn version(bytes: &[u8]) -> Result<u32> {
-    let c = container(bytes)?;
-    Ok(build::version(&tree(&c)?))
+    Ok(build::version(&root(bytes)?))
 }
 
 /// A readable outline of the file's chunk tree (for tests and diagnosis).
@@ -89,8 +91,7 @@ pub fn describe(bytes: &[u8]) -> Result<String> {
             None => out.push_str(&format!("{}{} {}\n", "  ".repeat(depth), name(&c.tag), c.data.len())),
         }
     }
-    let c = container(bytes)?;
-    let root = tree(&c)?;
+    let root = root(bytes)?;
     let mut s = String::new();
     walk(&root, 0, &mut s);
     Ok(s)
@@ -122,6 +123,12 @@ mod tests {
                         for o in &l.objects {
                             let b = o.bounds();
                             println!("   {:<10} {:<24} [{:.1} {:.1} {:.1} {:.1}] mm", o.kind.type_name(), o.name, b.x0 * 25.4 / 72.0, (p.height - b.y1) * 25.4 / 72.0, b.width() * 25.4 / 72.0, b.height() * 25.4 / 72.0);
+                            if std::env::var("ANYVECTOR_CDR_STYLE").is_ok() {
+                                println!("      fill={:?} outline={:?} w={:.2}", o.style.fill, o.style.outline.color, o.style.outline.width);
+                            }
+                            if let vector_core::object::ObjKind::Text(t) = &o.kind {
+                                println!("      {:?} font={:?} size={:.1} xf={:?}", t.content.chars().take(30).collect::<String>(), t.format.font, t.format.size, o.transform.as_coeffs());
+                            }
                         }
                     }
                 }

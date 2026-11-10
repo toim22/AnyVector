@@ -22,16 +22,111 @@ pub(super) fn cp1252(b: u8) -> char {
     }
 }
 
+/// One-byte characters are kept as U+F000 + byte until the run's character set is known.
+const RAW: u32 = 0xF000;
+
+/// The text encoding of a Windows character set (the `lfCharSet` of a font).
+fn encoding(charset: u16) -> Option<&'static encoding_rs::Encoding> {
+    use encoding_rs::*;
+    Some(match charset {
+        0xee => WINDOWS_1250,
+        0xcc => WINDOWS_1251,
+        0xa1 => WINDOWS_1253,
+        0xa2 => WINDOWS_1254,
+        0xb1 => WINDOWS_1255,
+        0xb2 => WINDOWS_1256,
+        0xba => WINDOWS_1257,
+        0xa3 => WINDOWS_1258,
+        0xde => WINDOWS_874,
+        0x80 => SHIFT_JIS,
+        0x81 => EUC_KR,
+        0x86 => GBK,
+        0x88 => BIG5,
+        _ => return None,
+    })
+}
+
+/// Turn the one-byte characters of `text` into Unicode with the character set.
+fn decode(text: &str, charset: Option<u16>) -> String {
+    let enc = charset.and_then(encoding);
+    let mut out = String::with_capacity(text.len());
+    let mut bytes: Vec<u8> = vec![];
+    let flush = |bytes: &mut Vec<u8>, out: &mut String| {
+        if bytes.is_empty() {
+            return;
+        }
+        match enc {
+            Some(e) => out.push_str(&e.decode_without_bom_handling(bytes).0),
+            None => out.extend(bytes.iter().map(|b| cp1252(*b))),
+        }
+        bytes.clear();
+    };
+    for c in text.chars() {
+        let u = c as u32;
+        if (RAW..RAW + 0x100).contains(&u) {
+            bytes.push((u - RAW) as u8);
+        } else {
+            flush(&mut bytes, &mut out);
+            out.push(c);
+        }
+    }
+    flush(&mut bytes, &mut out);
+    out
+}
+
+/// Font names that end in a script name ("Arial Cyr") pick that character set.
+fn charset_of_name(name: &str) -> Option<(String, u16)> {
+    const SUFFIXES: [(&str, u16); 11] = [
+        (" CE", 0xee),
+        (" Cyrillic", 0xcc),
+        (" Cyr", 0xcc),
+        (" CYR", 0xcc),
+        (" Baltic", 0xba),
+        (" Greek", 0xa1),
+        (" Tur", 0xa2),
+        (" TUR", 0xa2),
+        (" Hebrew", 0xb1),
+        (" Arabic", 0xb2),
+        (" Thai", 0xde),
+    ];
+    SUFFIXES.iter().find(|(s, _)| name.ends_with(s)).map(|(s, c)| (name[..name.len() - s.len()].to_string(), *c))
+}
+
 /// What the style table says about text styles.
 #[derive(Default)]
 pub(super) struct Styles {
-    /// Font records: record id to (font id, size in points, weight and slant flags).
-    fonts: HashMap<u32, (u32, f64, u32)>,
+    /// Font records: record id to (font id, size in points, weight and slant flags, charset).
+    fonts: HashMap<u32, (u32, f64, u32, u16)>,
     /// Alignment records.
     aligns: HashMap<u32, u32>,
-    /// Style id to its font record and alignment record.
-    by_style: HashMap<u32, (u32, u32)>,
+    /// Spacing records.
+    spacings: HashMap<u32, Spacing>,
+    /// Fill records of the table: id to the `fild` id.
+    fills: HashMap<u32, u32>,
+    /// The styles, by id.
+    styles: HashMap<u32, StyleRec>,
     first_font: Option<u32>,
+}
+
+/// One text style: its parent and the records it uses (0: inherited).
+#[derive(Clone, Copy, Debug, Default)]
+struct StyleRec {
+    parent: u32,
+    fill: u32,
+    font: u32,
+    align: u32,
+    spacing: u32,
+}
+
+/// Spacing between characters, words, lines and paragraphs.
+#[derive(Clone, Copy, Debug, Default)]
+struct Spacing {
+    /// Percent of the character height, when the record gives shares rather than lengths.
+    line: Option<f64>,
+    para: Option<f64>,
+    /// Percent of a space's width.
+    chars: f64,
+    words: f64,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -47,6 +142,13 @@ struct Look {
     /// Line spacing and extra paragraph spacing, percent of the character height.
     line: Option<f64>,
     para: Option<f64>,
+    /// Windows character set of one-byte characters.
+    charset: Option<u16>,
+    /// Extra space between characters, percent of a space's width; word spacing, percent.
+    tracking: Option<f64>,
+    /// Shift up from the baseline, share of the character height.
+    shift: Option<f64>,
+    words: Option<f64>,
 }
 
 impl Look {
@@ -62,6 +164,10 @@ impl Look {
             align: self.align.or(base.align),
             line: self.line.or(base.line),
             para: self.para.or(base.para),
+            charset: self.charset.or(base.charset),
+            tracking: self.tracking.or(base.tracking),
+            shift: self.shift.or(base.shift),
+            words: self.words.or(base.words),
         }
     }
     fn format(&self) -> CharFormat {
@@ -76,6 +182,8 @@ impl Look {
         f.italic = self.italic.unwrap_or(false);
         f.underline = self.underline.unwrap_or(false);
         f.strike = self.strike.unwrap_or(false);
+        f.tracking = self.tracking.unwrap_or(0.0);
+        f.baseline_shift = self.shift.unwrap_or(0.0) * f.size;
         f
     }
 }
@@ -97,96 +205,257 @@ struct Para {
 pub(super) fn font(cx: &mut Ctx, b: &[u8]) {
     let mut r = Rd::new(b);
     let id = r.u16() as u32;
-    let _encoding = r.u16();
-    r.skip(14);
-    let name = cx.string(r.bytes(r.left()));
-    if !name.is_empty() {
-        cx.fonts.insert(id, name);
+    // CorelDRAW 4 has the name right after the id
+    let mut charset = 0;
+    if cx.ver >= 500 {
+        charset = r.u16();
+        r.skip(14);
+    }
+    // version 5 gave the East Asian sets for fonts whose text is not stored that way
+    if cx.ver < 600 && matches!(charset, 0x80 | 0x81 | 0x86 | 0x88) {
+        charset = 0;
+    }
+    let mut name = cx.string(r.bytes(r.left()));
+    let mut named = false;
+    if let Some((base, c)) = charset_of_name(&name) {
+        name = base;
+        charset = c;
+        named = true;
+    }
+    if name.is_empty() {
+        return;
+    }
+    // A font is listed once per script it is used with. The first entry names the font; its
+    // character set holds only when the entries agree or the name gives it.
+    match cx.fonts.get(&id) {
+        None => {
+            cx.fonts.insert(id, name);
+            cx.charsets.insert(id, charset);
+            if named {
+                cx.named_charsets.insert(id);
+            }
+        }
+        Some(_) if !cx.named_charsets.contains(&id) && cx.charsets.get(&id) != Some(&charset) => {
+            cx.charsets.insert(id, 0);
+        }
+        _ => {}
     }
 }
 
-/// The style table. Only the font records and the styles that point at them are read.
+/// The style table (versions 7 to X5): the records styles are made of, then the styles.
 pub(super) fn stlt(cx: &mut Ctx, b: &[u8]) {
-    if cx.ver < 700 || cx.ver >= 1600 {
+    if cx.ver < 700 {
+        stlt5(cx, b);
         return;
     }
-    let mut r = Rd::new(b);
-    let _records = r.u32();
-    let fills = r.u32() as usize;
-    let mut fill_ids = vec![];
-    for _ in 0..fills.min(10_000) {
-        fill_ids.push(r.u32());
-        r.skip(if cx.ver >= 1300 { 56 } else { 8 });
+    if cx.ver >= 1600 {
+        return;
     }
-    let outlines = r.u32() as usize;
-    r.skip(outlines.min(10_000) * 12);
-    let fonts = r.u32() as usize;
-    let lead = if cx.ver >= 1000 { 20 } else { 12 };
-    for _ in 0..fonts.min(10_000) {
-        if r.eof() {
+    // version 8 files come in two layouts; the later one has one more table before the styles
+    let read = |extra: bool| stlt_tables(cx, b, extra);
+    let styles = match read(cx.ver > 800) {
+        Some(t) => t,
+        None if cx.ver == 800 => match read(true) {
+            Some(t) => t,
+            None => return,
+        },
+        None => return,
+    };
+    cx.styles = styles;
+}
+
+/// Versions 5 and 6: a list of styles, each an argument table like an object's (0xcd: the
+/// fill id, 0xd2: the outline id).
+fn stlt5(cx: &mut Ctx, b: &[u8]) {
+    let mut chunks = vec![];
+    super::riff::parse(b, 0, b.len(), None, None, 0, &mut chunks);
+    for styl in chunks.iter().filter(|c| c.is_list(b"styl")) {
+        let Some(d) = styl.child(b"styd") else { continue };
+        let mut r = Rd::new(&d.data);
+        let id = cx.uint(&mut r);
+        let Some(rest) = d.data.get(r.p..) else { continue };
+        let l = cx.loda(rest);
+        let arg = |t: u32| l.arg(t).map(|a| Rd::new(a).u32()).unwrap_or(0);
+        let ids = (arg(0xcd), arg(0xd2));
+        cx.graphic_styles.insert(id, ids);
+    }
+}
+
+fn stlt_tables(cx: &Ctx, b: &[u8], set11: bool) -> Option<Styles> {
+    let mut out = Styles::default();
+    let mut r = Rd::new(b);
+    let records = r.u32() as usize;
+    let count = |r: &mut Rd, size: usize| (r.u32() as usize).min(r.left() / size.max(1));
+    for _ in 0..count(&mut r, 12) {
+        let id = r.u32();
+        r.skip(4);
+        out.fills.insert(id, r.u32());
+        if cx.ver >= 1300 {
+            r.skip(48);
+        }
+    }
+    let outlines = count(&mut r, 12);
+    r.skip(outlines * 12);
+    let coord = if cx.wide() { 4 } else { 2 };
+    for _ in 0..count(&mut r, 4 + 4 + 8 + coord + if cx.ver < 1000 { 24 } else { 40 }) {
+        let id = r.u32();
+        r.skip(if cx.ver < 1000 { 12 } else { 20 });
+        let font = r.u16() as u32;
+        let charset = r.u16();
+        r.skip(8);
+        let size = cx.coord(&mut r) * cx.k;
+        if cx.ver >= 1000 {
+            r.skip(8); // the sizes for right-to-left and East Asian text
+        }
+        let flags = r.u32() & 0xffff;
+        r.skip(8);
+        if size > 0.1 && size < 5000.0 {
+            out.fonts.insert(id, (font, size, flags, charset));
+            out.first_font.get_or_insert(id);
+        }
+    }
+    for _ in 0..count(&mut r, 12) {
+        let id = r.u32();
+        r.skip(4);
+        out.aligns.insert(id, r.u32());
+    }
+    for _ in 0..count(&mut r, 52) {
+        let id = r.u32();
+        r.skip(8);
+        let chars = r.i32() as f64;
+        r.skip(4);
+        let words = r.i32() as f64;
+        let line = r.i32() as f64;
+        let before = r.i32() as f64;
+        let after = r.i32() as f64;
+        r.skip(12);
+        // shares of the character height (1 000 000: 100%), or lengths when the unit is set
+        let shares = r.u32() <= 1 && line > 0.0 && before >= 0.0 && after >= 0.0;
+        out.spacings.insert(
+            id,
+            Spacing {
+                line: shares.then_some(line / 10_000.0),
+                // space before is a share of the line (100%: none extra), space after is added
+                para: shares.then_some((before + after) / 10_000.0 - 100.0),
+                chars: chars / 10_000.0,
+                words: if words >= 0.0 { words / 10_000.0 } else { 100.0 },
+            },
+        );
+    }
+    let set5 = count(&mut r, 152);
+    r.skip(set5 * 152);
+    let tabs = count(&mut r, 784);
+    r.skip(tabs * 784);
+    let bullets = count(&mut r, 16);
+    for _ in 0..bullets {
+        r.skip(40);
+        if cx.ver > 1300 {
+            r.skip(4);
+        }
+        if cx.ver >= 1300 {
+            let more = r.u32() != 0;
+            r.skip(if more { 68 } else { 12 });
+        } else {
+            r.skip(if cx.ver >= 1000 { 28 } else { 20 });
+            if r.u32() != 0 {
+                r.skip(8);
+            }
+            r.skip(8);
+        }
+    }
+    let indents = count(&mut r, 16 + 3 * coord);
+    r.skip(indents * (16 + 3 * coord));
+    let hyphens = count(&mut r, 36);
+    r.skip(hyphens * if cx.ver >= 1300 { 36 } else { 32 });
+    let dropcaps = count(&mut r, 28);
+    r.skip(dropcaps * 28);
+    if set11 {
+        let n = count(&mut r, 12);
+        r.skip(n * 12);
+    }
+    let name_unit = if cx.ver >= 1200 { 2 } else { 1 };
+    for _ in 0..records.min(100_000) {
+        if r.left() < 32 {
             break;
         }
+        let num = r.u32();
         let id = r.u32();
-        r.skip(lead);
-        let font = r.u16() as u32;
-        r.skip(if cx.ver >= 1500 { 10 } else { 8 });
-        let size = cx.coord(&mut r) * cx.k;
-        // X5: two more sizes (other scripts), then the weight and slant of each script
-        let flags = if cx.ver >= 1500 { Rd::at(b, r.p + 8).u32() } else { 0 };
-        r.skip(lead);
-        if size > 0.1 && size < 5000.0 {
-            cx.styles.fonts.insert(id, (font, size, flags));
-            cx.styles.first_font.get_or_insert(id);
+        let parent = r.u32();
+        r.skip(8);
+        let name_len = r.u32() as usize;
+        if num == 0 || num > 3 || name_len > 1024 {
+            return None;
         }
-    }
-    let aligns = r.u32() as usize;
-    for _ in 0..aligns.min(10_000) {
-        let id = r.u32();
-        let a = r.u32();
-        let b2 = r.u32();
-        cx.styles.aligns.insert(id, a.max(b2));
-    }
-    // Styles sit at the end, after tables whose sizes changed between versions; find them by
-    // their shape: field count, style id, parent, name, fill and outline, then the font record.
-    let name_unit = if cx.ver >= 1200 { 2 } else { 1 };
-    let mut p = r.p;
-    while p + 40 <= b.len() {
-        let mut q = Rd::at(b, p);
-        let count = q.u32();
-        let style = q.u32();
-        let _parent = q.u32();
-        q.skip(8);
-        let name_len = q.u32() as usize;
-        if (2..=3).contains(&count) && name_len < 128 {
-            q.skip(name_len * name_unit);
-            let fill = q.u32();
-            let _outline = q.u32();
-            let font = q.u32();
-            let align_id = q.u32();
-            if cx.styles.fonts.contains_key(&font) && (fill_ids.is_empty() || fill_ids.contains(&fill) || fill == 0) {
-                cx.styles.by_style.insert(style, (font, align_id));
-                p = q.p;
-                continue;
-            }
+        r.skip(name_len * name_unit);
+        let mut st = StyleRec { parent, fill: r.u32(), ..Default::default() };
+        let _outline = r.u32();
+        if num > 1 {
+            st.font = r.u32();
+            st.align = r.u32();
+            st.spacing = r.u32();
+            r.skip(if set11 { 8 } else { 4 });
         }
-        p += 1;
+        if num > 2 {
+            r.skip(20);
+        }
+        if r.eof() && r.p > b.len() {
+            return None;
+        }
+        out.styles.insert(id, st);
     }
+    // a table read with the wrong layout points its styles at records it does not have
+    let bad = out.styles.values().any(|s| (s.font != 0 && !out.fonts.contains_key(&s.font)) || (s.parent != 0 && !out.styles.contains_key(&s.parent)));
+    if bad || r.p > b.len() {
+        return None;
+    }
+    Some(out)
 }
 
 impl Styles {
-    fn look(&self, style: u32, fonts: &HashMap<u32, String>) -> Look {
-        let (rec, align_id) = match self.by_style.get(&style) {
-            Some((f, a)) => (Some(f), Some(a)),
-            None => (self.first_font.as_ref(), None),
-        };
-        let mut l = match rec.and_then(|id| self.fonts.get(id)) {
-            Some((font, size, flags)) => {
+    /// A style with what it inherits from its parents filled in.
+    fn resolve(&self, style: u32) -> StyleRec {
+        let mut out = StyleRec::default();
+        let mut id = style;
+        for _ in 0..32 {
+            let Some(s) = self.styles.get(&id) else { break };
+            let take = |a: &mut u32, b: u32| {
+                if *a == 0 {
+                    *a = b;
+                }
+            };
+            take(&mut out.fill, s.fill);
+            take(&mut out.font, s.font);
+            take(&mut out.align, s.align);
+            take(&mut out.spacing, s.spacing);
+            if s.parent == 0 || s.parent == id {
+                break;
+            }
+            id = s.parent;
+        }
+        out
+    }
+
+    fn look(&self, style: u32, cx: &Ctx) -> Look {
+        let st = self.resolve(style);
+        let rec = if st.font != 0 { Some(st.font) } else { self.first_font };
+        let mut l = match rec.and_then(|id| self.fonts.get(&id)) {
+            Some((font, size, flags, charset)) => {
                 let (bold, italic) = weight(*flags);
-                Look { font: fonts.get(font).cloned(), size: Some(*size), bold: Some(bold), italic: Some(italic), ..Default::default() }
+                let charset = Some(*charset).filter(|c| *c != 0).or_else(|| cx.charsets.get(font).copied());
+                Look { font: cx.fonts.get(font).cloned(), size: Some(*size), bold: Some(bold), italic: Some(italic), charset, ..Default::default() }
             }
             None => Look::default(),
         };
-        l.align = align_id.and_then(|a| self.aligns.get(a)).and_then(|v| align(*v as f64));
+        l.align = self.aligns.get(&st.align).and_then(|v| align(*v as f64));
+        if let Some(sp) = self.spacings.get(&st.spacing) {
+            l.line = sp.line.filter(|v| *v > 1.0 && *v < 2000.0);
+            l.para = sp.para.filter(|v| *v > 0.01 && *v < 2000.0);
+            l.tracking = Some(sp.chars).filter(|v| v.abs() > 0.01);
+            l.words = Some(sp.words).filter(|v| (*v - 100.0).abs() > 0.01);
+        }
+        if let Some(super::build::RawFill::Solid(c)) = self.fills.get(&st.fill).and_then(|f| cx.fills.get(f)) {
+            l.color = Some(*c);
+        }
         l
     }
 }
@@ -323,7 +592,13 @@ fn characters(b: &[u8], at: usize, descr: usize, counted: bool) -> Option<(Vec<(
     let mut runs: Vec<(usize, String)> = vec![];
     let mut tr = Rd::new(t);
     for c in d.chunks_exact(descr) {
-        let ch = if c[0] & 1 != 0 { char::from_u32(tr.u16() as u32).unwrap_or('\u{fffd}') } else { cp1252(tr.u8()) };
+        let ch = if c[0] & 1 != 0 { char::from_u32(tr.u16() as u32).unwrap_or('\u{fffd}') } else {
+            // ASCII is the same in every character set; the rest waits for the run's set
+            match tr.u8() {
+                c @ 0..=0x7f => c as char,
+                c => char::from_u32(RAW + c as u32).unwrap_or('?'),
+            }
+        };
         let ch = match ch {
             '\r' => '\n',
             '\0' => continue,
@@ -369,7 +644,13 @@ fn paragraphs_json(cx: &Ctx, b: &[u8]) -> Vec<Para> {
             continue;
         }
         let Some((runs, end)) = characters(b, p, 8, true) else { continue };
-        let runs = runs.into_iter().map(|(i, text)| Run { text, look: looks.get(i).cloned().unwrap_or_else(|| base.clone()) }).collect();
+        let runs = runs
+            .into_iter()
+            .map(|(i, text)| {
+                let look = looks.get(i).cloned().unwrap_or_else(|| base.clone());
+                Run { text: decode(&text, look.charset), look }
+            })
+            .collect();
         out.push(Para { runs, align: base.align });
         pos = end;
     }
@@ -395,7 +676,7 @@ fn paragraphs_binary(cx: &Ctx, b: &[u8], artistic: bool) -> Vec<Para> {
             if n > 512 {
                 return None;
             }
-            let base = cx.styles.look(style, &cx.fonts);
+            let base = cx.styles.look(style, cx);
             let mut looks = vec![];
             for _ in 0..n {
                 looks.push(override_look(cx, &mut r).over(&base));
@@ -407,7 +688,13 @@ fn paragraphs_binary(cx: &Ctx, b: &[u8], artistic: bool) -> Vec<Para> {
             if runs.is_empty() && n == 0 {
                 return None;
             }
-            let runs = runs.into_iter().map(|(i, text)| Run { text, look: looks.get(i).cloned().unwrap_or_else(|| base.clone()) }).collect();
+            let runs = runs
+                .into_iter()
+                .map(|(i, text)| {
+                    let look = looks.get(i).cloned().unwrap_or_else(|| base.clone());
+                    Run { text: decode(&text, look.charset), look }
+                })
+                .collect();
             out.push(Para { runs, align: base.align });
             p = end + tail;
         }
@@ -424,16 +711,14 @@ fn paragraphs_binary(cx: &Ctx, b: &[u8], artistic: bool) -> Vec<Para> {
 /// One style override inside a text stream: flag bytes say which fields follow.
 fn override_look(cx: &Ctx, r: &mut Rd) -> Look {
     let mut l = Look::default();
-    let _fl0 = r.u8();
-    if cx.ver >= 800 {
-        r.skip(1);
-    }
+    let _chars = r.u16();
     let fl2 = r.u8();
     let fl3 = if cx.ver >= 800 { r.u8() } else { 0 };
     if fl2 & 0x01 != 0 {
         let font = r.u16() as u32;
-        let _encoding = r.u16();
+        let charset = r.u16();
         l.font = cx.fonts.get(&font).cloned();
+        l.charset = Some(charset).filter(|c| *c != 0).or_else(|| cx.charsets.get(&font).copied());
     }
     if fl2 & 0x02 != 0 {
         // weight and slant
@@ -454,7 +739,8 @@ fn override_look(cx: &Ctx, r: &mut Rd) -> Look {
         r.skip(4);
     }
     if fl2 & 0x20 != 0 {
-        r.skip(4);
+        // shift up from the baseline, in hundredths of the character height
+        l.shift = Some(r.i32() as f64 / 100.0);
     }
     if fl2 & 0x40 != 0 {
         let fill = r.u32();
@@ -477,8 +763,8 @@ fn override_look(cx: &Ctx, r: &mut Rd) -> Look {
         }
     }
     if fl3 & 0x20 != 0 {
-        let flag = r.u8();
-        if flag != 0 {
+        // a zero byte alone, else a fill and its 48-byte settings
+        if r.u8() != 0 {
             r.skip(52);
         }
     }
@@ -513,7 +799,7 @@ pub(super) fn object(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Opti
             find_json(a, 0, wide).and_then(|(s, n)| decode_json(&a[s..s + n], wide)).map(|v| json_look(&v, k)).unwrap_or_default()
         }
         _ => match l.arg(ARG_STYLE) {
-            Some(a) => cx.styles.look(Rd::new(a).u32(), &cx.fonts),
+            Some(a) => cx.styles.look(Rd::new(a).u32(), cx),
             None => Look::default(),
         },
     };
@@ -567,6 +853,9 @@ pub(super) fn object(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Opti
     if let Some(v) = first.para {
         t.para_spacing = v;
     }
+    if let Some(v) = first.words {
+        t.word_spacing = v;
+    }
     if let Some(a) = paras[0].align.or(first.align).or(own.align) {
         t.align = a;
     }
@@ -584,6 +873,14 @@ pub(super) fn object(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Opti
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn one_byte_text_takes_the_fonts_character_set() {
+        let raw: String = [0xcf, 0xf0, 0xe8].iter().map(|b| char::from_u32(RAW + *b as u32).unwrap()).collect();
+        assert_eq!(decode(&format!("A{raw}"), Some(0xcc)), "A\u{41f}\u{440}\u{438}");
+        assert_eq!(decode(&raw, None), "\u{cf}\u{f0}\u{e8}");
+        assert_eq!(charset_of_name("Arial Cyr"), Some(("Arial".to_string(), 0xcc)));
+    }
 
     #[test]
     fn finds_length_prefixed_json() {
