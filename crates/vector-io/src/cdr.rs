@@ -380,7 +380,8 @@ mod tests {
         assert_eq!(detect(&riff), CdrKind::CorelDraw);
         // a CorelDRAW file with nothing in it is reported as damaged, not as unsupported
         assert!(matches!(load_from_bytes(&riff), Err(IoError::Format(_))));
-        assert!(matches!(load_from_bytes(b"WL some old drawing"), Err(IoError::Unsupported(_))));
+        // CorelDRAW 1 and 2 files open; a cut-off one is reported as damaged
+        assert!(matches!(load_from_bytes(b"WL some old drawing"), Err(IoError::Format(_))));
         // a .vct archive renamed to .cdr still opens
         let v = crate::native::save_to_bytes(&Document::new(100.0, 100.0)).unwrap();
         assert_eq!(detect(&v), CdrKind::LegacyVector);

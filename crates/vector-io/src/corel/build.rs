@@ -59,11 +59,19 @@ pub(super) struct Ctx<'a> {
     pub fills: HashMap<u32, RawFill>,
     pub outlines: HashMap<u32, Outline>,
     pub fonts: HashMap<u32, String>,
+    /// Font id to the Windows character set of its one-byte text.
+    pub charsets: HashMap<u32, u16>,
+    /// Fonts whose character set comes from their name ("Arial CYR").
+    pub named_charsets: std::collections::HashSet<u32>,
     pub styles: text::Styles,
     /// Bitmap id to the document's image id and its pixel size.
     pub images: HashMap<u32, (u64, u32, u32)>,
     /// PowerClip contents: the groups of the clip table, by id.
     pub clips: HashMap<u32, &'a Chunk>,
+    /// The same groups by the frame that owns them (their `spnd`).
+    pub clip_owners: HashMap<u32, &'a Chunk>,
+    /// Versions 5 and 6: style id to the (fill, outline) ids its objects take.
+    pub graphic_styles: HashMap<u32, (u32, u32)>,
     /// Object types that were not converted, with how many of each.
     pub skipped: std::collections::BTreeMap<u32, usize>,
     /// Perspectives of the groups being converted, innermost last.
@@ -131,7 +139,12 @@ impl<'a> Ctx<'a> {
         let n = self.uint(&mut r) as usize;
         let start_args = self.uint(&mut r) as usize;
         let start_types = self.uint(&mut r) as usize;
-        let kind = self.uint(&mut r);
+        let mut kind = self.uint(&mut r);
+        // CorelDRAW 3 numbers its object types from 0: rectangle, ellipse, curve, artistic
+        // text, bitmap, paragraph text
+        if self.ver < 400 && kind <= 5 {
+            kind += 1;
+        }
         let w = if self.wide() { 4 } else { 2 };
         let mut args = vec![];
         if n > b.len() / w {
@@ -145,6 +158,26 @@ impl<'a> Ctx<'a> {
             args.push((t, &b[s..e]));
         }
         Loda { kind, args }
+    }
+
+    /// A 16.16 fixed-point matrix with whole-unit offsets: a, b, x0, c, d, y0.
+    fn fixed_matrix(r: &mut Rd) -> Affine {
+        let fixed = |r: &mut Rd| r.i32() as f64 / 65536.0;
+        let v0 = fixed(r);
+        let v1 = fixed(r);
+        let x0 = r.i32() as f64;
+        let v3 = fixed(r);
+        let v4 = fixed(r);
+        let y0 = r.i32() as f64;
+        Affine::new([v0, v3, v1, v4, x0, y0])
+    }
+
+    /// CorelDRAW 3 keeps an object's transform in its own record (argument 0x64): a header
+    /// whose word at 0x0a points at the matrix.
+    fn transform3(&self, l: &Loda) -> Option<Affine> {
+        let a = l.arg(0x64)?;
+        let off = Rd::at(a, 0x0a).u16() as usize;
+        (off + 24 <= a.len()).then(|| Self::fixed_matrix(&mut Rd::at(a, off)))
     }
 
     /// The transform of a `trfl` list, in file units: the product of its records.
@@ -167,19 +200,16 @@ impl<'a> Ctx<'a> {
                 if r.u16() != 0x08 {
                     continue;
                 }
-                let m = if self.wide() {
-                    r.skip(6);
+                // doubles from version 5 (after six more bytes from version 6), 16.16 fixed
+                // point before
+                let m = if self.ver >= 500 {
+                    if self.ver >= 600 {
+                        r.skip(6);
+                    }
                     let v: [f64; 6] = std::array::from_fn(|_| r.f64());
                     Affine::new([v[0], v[3], v[1], v[4], v[2], v[5]])
                 } else {
-                    let fixed = |r: &mut Rd| r.i32() as f64 / 65536.0;
-                    let v0 = fixed(&mut r);
-                    let v1 = fixed(&mut r);
-                    let x0 = r.i32() as f64;
-                    let v3 = fixed(&mut r);
-                    let v4 = fixed(&mut r);
-                    let y0 = r.i32() as f64;
-                    Affine::new([v0, v3, v1, v4, x0, y0])
+                    Self::fixed_matrix(&mut r)
                 };
                 t = m * t;
             }
@@ -231,9 +261,13 @@ impl<'a> Ctx<'a> {
             }
             if c.is_list(b"clpt") {
                 for k in c.children.iter().filter(|k| k.list.is_some()) {
-                    let id = k.list_child(b"lgob").and_then(|l| l.child(b"loda")).and_then(|l| self.loda(&l.data).arg(ARG_CLIP_ID).map(|a| Rd::new(a).u32()));
+                    let id = Self::record(k).and_then(|l| self.loda(&l.data).arg(ARG_CLIP_ID).map(|a| Rd::new(a).u32()));
                     if let Some(id) = id {
                         self.clips.insert(id, k);
+                    }
+                    // the group's `spnd` names the frame it belongs to
+                    if let Some(owner) = k.child(b"spnd").map(|s| Rd::new(&s.data).u32()) {
+                        self.clip_owners.insert(owner, k);
                     }
                 }
                 return;
@@ -244,7 +278,7 @@ impl<'a> Ctx<'a> {
             return;
         }
         match &c.tag {
-            b"fild" => self.fild(&c.data),
+            b"fild" | b"fill" => self.fild(&c.data),
             b"outl" => self.outl(&c.data),
             b"font" => text::font(self, &c.data),
             b"stlt" => text::stlt(self, &c.data),
@@ -443,6 +477,81 @@ impl<'a> Ctx<'a> {
         self.outlines.insert(id, o);
     }
 
+    /// A CorelDRAW 3 fill, stored in the object: its type, then colors or a gradient.
+    fn fill3(&self, a: &[u8]) -> RawFill {
+        let mut r = Rd::new(a);
+        match r.u8() {
+            0 => RawFill::None,
+            1 => RawFill::Solid(color::read(&mut r, self.ver)),
+            t @ (2 | 4) => {
+                let angle = self.angle(&mut r);
+                let c1 = color::read(&mut r, self.ver);
+                let c2 = color::read(&mut r, self.ver);
+                let (mut edge, mut cx, mut cy) = (0.0, 0.0, 0.0);
+                if self.ver >= 200 {
+                    r.skip(7);
+                    edge = r.i16() as f64;
+                    cx = self.int(&mut r) as f64;
+                    cy = self.int(&mut r) as f64;
+                }
+                let kind = if t == 4 { GradientKind::Elliptical } else { GradientKind::Linear };
+                let stops = vec![GradientStop { pos: 0.0, color: c1 }, GradientStop { pos: 1.0, color: c2 }];
+                RawFill::Gradient { kind, angle, cx: cx / 100.0, cy: cy / 100.0, pad: (edge / 100.0).clamp(0.0, 0.49), stops }
+            }
+            // a two-color pattern: its id, tile size and offsets, then the two colors
+            7 => {
+                r.skip(if self.ver < 300 { 2 } else { 4 } + 4 + 6 + 1);
+                let c1 = color::read(&mut r, self.ver);
+                let c2 = color::read(&mut r, self.ver);
+                RawFill::Solid(Color::lerp(c1, c2, 0.5))
+            }
+            _ => RawFill::Solid(Color::rgb(200, 200, 200)),
+        }
+    }
+
+    /// A CorelDRAW 3 outline, stored in the object (type 0: none).
+    fn outline3(&self, a: &[u8]) -> Outline {
+        let mut r = Rd::new(a);
+        let line_type = r.u8();
+        if line_type == 0 {
+            return Outline::none();
+        }
+        let width = self.coord(&mut r) * self.k;
+        let stretch = r.u16() as f64;
+        let nib = self.angle(&mut r);
+        let c = color::read(&mut r, self.ver);
+        r.skip(7);
+        let n = r.u8() as usize;
+        let dash_at = r.p;
+        let dash: Vec<f64> = if line_type & 0x02 != 0 { (0..n.min(10)).map(|_| r.u8() as f64).collect() } else { vec![] };
+        let mut r = Rd::at(a, dash_at + 10);
+        let join = r.u16();
+        let caps = r.u16();
+        let mut o = Outline {
+            width: width.max(0.0),
+            color: Some(c),
+            cap: match caps {
+                1 => LineCap::Round,
+                2 => LineCap::Square,
+                _ => LineCap::Butt,
+            },
+            join: match join {
+                1 => LineJoin::Round,
+                2 => LineJoin::Bevel,
+                _ => LineJoin::Miter,
+            },
+            dash,
+            scale_with_object: line_type & 0x10 != 0,
+            behind_fill: line_type & 0x08 != 0,
+            ..Default::default()
+        };
+        if stretch > 0.0 && stretch <= 100.0 {
+            o.stretch = stretch;
+            o.nib_angle = nib;
+        }
+        o
+    }
+
     // ---------------------------------------------------------------- pages
 
     fn default_page_size(&self, root: &Chunk) -> (f64, f64) {
@@ -463,8 +572,14 @@ impl<'a> Ctx<'a> {
             0
         };
         let mut r = Rd::at(&m.data, off);
-        let w = self.coord(&mut r).abs() * self.k;
-        let h = self.coord(&mut r).abs() * self.k;
+        // before version 4: the page's corners
+        let (w, h) = if self.ver < 400 {
+            r.skip(2);
+            let (x0, y0, x1, y1) = (self.coord(&mut r), self.coord(&mut r), self.coord(&mut r), self.coord(&mut r));
+            ((x1 - x0).abs() * self.k, (y1 - y0).abs() * self.k)
+        } else {
+            (self.coord(&mut r).abs() * self.k, self.coord(&mut r).abs() * self.k)
+        };
         if w > 1.0 && h > 1.0 {
             (w, h)
         } else {
@@ -506,6 +621,11 @@ impl<'a> Ctx<'a> {
         None
     }
 
+    /// An object's argument record: `lgob/loda`, or a `lobj` in CorelDRAW 3.
+    fn record(c: &Chunk) -> Option<&Chunk> {
+        c.list_child(b"lgob").and_then(|l| l.child(b"loda")).or_else(|| c.child(b"lobj"))
+    }
+
     fn flags(c: &Chunk) -> u32 {
         c.child(b"flgs").map(|f| Rd::new(&f.data).u32()).unwrap_or(0)
     }
@@ -520,7 +640,7 @@ impl<'a> Ctx<'a> {
             if is_master_layer != master {
                 continue;
             }
-            let loda = layr.list_child(b"lgob").and_then(|l| l.child(b"loda"));
+            let loda = Self::record(layr);
             let (kind, name) = match loda {
                 Some(l) => {
                     let l = self.loda(&l.data);
@@ -563,9 +683,16 @@ impl<'a> Ctx<'a> {
             return;
         }
         let lgob = c.list_child(b"lgob");
-        let loda = lgob.and_then(|l| l.child(b"loda")).map(|l| self.loda(&l.data));
+        let loda = Self::record(c).map(|l| self.loda(&l.data));
         let is_group = &lt == b"grp ";
-        let t = if is_group { parent } else { parent * lgob.map(|l| self.transform(l)).unwrap_or(Affine::IDENTITY) };
+        // from version 4 a group's transform is repeated in each of its objects
+        let t = if self.ver < 400 {
+            parent * loda.as_ref().and_then(|l| self.transform3(l)).unwrap_or(Affine::IDENTITY)
+        } else if is_group {
+            parent
+        } else {
+            parent * lgob.map(|l| self.transform(l)).unwrap_or(Affine::IDENTITY)
+        };
         let name = loda.as_ref().and_then(|l| l.arg(ARG_NAME)).map(|n| self.string(n)).unwrap_or_default();
         let has_children = c.children.iter().any(|k| k.list.is_some() && !k.is_list(b"lgob"));
         let kind = loda.as_ref().map(|l| l.kind).unwrap_or(0);
@@ -576,6 +703,9 @@ impl<'a> Ctx<'a> {
         };
         if let Some(mut o) = shape {
             o.name = name;
+            if let Some(lens) = loda.as_ref().and_then(|l| l.arg(ARG_LENS)).and_then(|a| self.lens(a)) {
+                o.effects.lens = Some(lens);
+            }
             // a PowerClip frame: its contents are a group of the clip table
             if let Some(a) = loda.as_ref().and_then(|l| l.arg(ARG_POWERCLIP)) {
                 let mut contents = vec![];
@@ -624,19 +754,27 @@ impl<'a> Ctx<'a> {
         }
     }
 
-    /// The clip-table group of a PowerClip frame: the group's id follows the frame's.
+    /// The clip-table group of a PowerClip frame: the group whose `spnd` names the frame, or
+    /// the group whose id follows the frame's.
     fn clip(&self, a: &[u8]) -> Option<&'a Chunk> {
         let n = Rd::new(a).u32();
-        self.clips.get(&n.wrapping_add(1)).copied()
+        self.clip_owners.get(&n).or_else(|| self.clips.get(&n.wrapping_add(1))).copied()
     }
 
     pub(super) fn style_of(&self, l: &Loda, bounds: kurbo::Rect, world: Affine) -> Style {
         let mut st = Style::default();
         st.fill = Fill::None;
         st.outline = Outline::none();
-        if let Some(a) = l.arg(ARG_FILL) {
-            let id = Rd::new(a).u32();
-            st.fill = match self.fills.get(&id) {
+        // CorelDRAW 3 keeps the fill and outline in the object itself
+        let fill3 = if self.ver < 400 { l.arg(ARG_FILL).map(|a| self.fill3(a)) } else { None };
+        // CorelDRAW 5 and 6 objects without their own fill or outline take their style's
+        let (style_fill, style_outline) = match l.arg(ARG_STYLE) {
+            Some(a) if self.ver < 700 => self.graphic_styles.get(&self.uint(&mut Rd::new(a))).copied().unwrap_or_default(),
+            _ => (0, 0),
+        };
+        let fill_id = l.arg(ARG_FILL).map(|a| Rd::new(a).u32()).or((style_fill != 0).then_some(style_fill));
+        if let Some(id) = fill_id {
+            st.fill = match fill3.as_ref().or_else(|| self.fills.get(&id)) {
                 Some(RawFill::Solid(c)) => Fill::Solid(*c),
                 Some(RawFill::Gradient { kind, angle, cx, cy, pad, stops }) => fit_gradient(*kind, *angle, *cx, *cy, *pad, stops, bounds, world),
                 Some(RawFill::Image { bitmap, tile }) => match self.images.get(bitmap) {
@@ -656,8 +794,9 @@ impl<'a> Ctx<'a> {
                 _ => Fill::None,
             };
         }
-        if let Some(a) = l.arg(ARG_OUTLINE) {
-            let id = Rd::new(a).u32();
+        if let (Some(a), true) = (l.arg(ARG_OUTLINE), self.ver < 400) {
+            st.outline = self.outline3(a);
+        } else if let Some(id) = l.arg(ARG_OUTLINE).map(|a| Rd::new(a).u32()).or((style_outline != 0).then_some(style_outline)) {
             if let Some(o) = self.outlines.get(&id) {
                 st.outline = o.clone();
             }
@@ -668,6 +807,71 @@ impl<'a> Ctx<'a> {
             }
         }
         st
+    }
+
+    /// A lens (X3 and later): class, id, then for color lenses the kind, the rate in tenths
+    /// and the colors.
+    fn lens(&self, a: &[u8]) -> Option<vector_core::object::LensEffect> {
+        use vector_core::object::{LensEffect, LensKind};
+        if self.ver < 1300 {
+            return None;
+        }
+        let mut r = Rd::at(a, 8);
+        let class = r.u8();
+        let _id = r.u32();
+        let color_at = |r: &mut Rd| {
+            r.skip(5);
+            color::read(r, self.ver)
+        };
+        let lens = match class {
+            1 => {
+                let kind = r.u8();
+                let rate = r.i16() as f64 / 10.0;
+                let c1 = color_at(&mut r);
+                r.skip(26);
+                let c2 = color_at(&mut r);
+                let (kind, rate) = match kind {
+                    0 => (LensKind::Transparency, 100.0 - rate),
+                    1 => (LensKind::ColorLimit, rate),
+                    2 => (LensKind::ColorAdd, rate),
+                    3 => (LensKind::Invert, rate),
+                    4 => (LensKind::Brighten, rate),
+                    5 => (LensKind::TintedGrayscale, rate),
+                    6 => (LensKind::CustomColorMap, rate),
+                    7 => (LensKind::HeatMap, rate),
+                    _ => return None,
+                };
+                let mut l = LensEffect::new(kind);
+                l.rate = rate;
+                l.color = c1;
+                l.color2 = c2;
+                if kind == LensKind::HeatMap {
+                    l.rotation = rate;
+                }
+                l
+            }
+            2 => {
+                let mut l = LensEffect::new(LensKind::Magnify);
+                l.amount = r.u16() as f64 / 10.0;
+                l
+            }
+            3 => {
+                let mut l = LensEffect::new(LensKind::FishEye);
+                l.rate = r.i16() as f64;
+                l
+            }
+            4 => {
+                let mut l = LensEffect::new(LensKind::Wireframe);
+                let _outline_mode = r.u32();
+                l.outline = Some(color_at(&mut r));
+                r.skip(26);
+                let _fill_mode = r.u32();
+                l.fill = Some(color_at(&mut r));
+                l
+            }
+            _ => return None,
+        };
+        Some(lens)
     }
 
     /// Uniform transparency stored as a lens.
@@ -723,8 +927,11 @@ impl<'a> Ctx<'a> {
                 } else {
                     x0 = self.coord(&mut r);
                     y0 = self.coord(&mut r);
-                    for rad in radii.iter_mut() {
-                        *rad = (false, self.coord(&mut r).abs() * k);
+                    // before version 9 one radius serves all four corners
+                    let first = self.coord(&mut r).abs() * k;
+                    for (i, rad) in radii.iter_mut().enumerate() {
+                        let v = if i == 0 || self.ver < 900 { first } else { self.coord(&mut r).abs() * k };
+                        *rad = (false, v);
                     }
                 }
                 if x0 == 0.0 || y0 == 0.0 {
@@ -950,7 +1157,7 @@ pub(super) fn document(root: &Chunk) -> Result<Document> {
 pub(super) fn document_with_report(root: &Chunk) -> Result<(Document, Vec<(u32, usize)>)> {
     let ver = version(root);
     let k = if ver >= 600 { 72.0 / 254_000.0 } else { 72.0 / 1000.0 };
-    let mut cx = Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), skipped: Default::default(), warps: vec![], doc: Document::new(612.0, 792.0) };
+    let mut cx = Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), skipped: Default::default(), warps: vec![], doc: Document::new(612.0, 792.0) };
     cx.collect(root);
     let default_size = cx.default_page_size(root);
     let origin = cx.origin(root);
