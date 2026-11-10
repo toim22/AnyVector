@@ -24,12 +24,16 @@ Import with a .cdr file is enough. The original file is never saved over; File â
   through the drawing's own CMYK color profile when it is one of the 32 that CorelDRAW 2026 comes with (X4
   and later files record it).
 - Artistic and paragraph text with its fonts, sizes, styles, colors, underline, strikethrough and overline, in every
-  character set CorelDRAW used, including the one-byte Windows and Mac sets of old files.
+  character set CorelDRAW used, including the one-byte Windows and Mac sets of old files. This goes back to
+  CorelDRAW 1: the old CorelDRAW fonts are shown in the Windows font that looks most like them.
+- CorelDRAW 4 paragraph text flows through its linked frames, and CorelDRAW 4 text fitted to a path, or with
+  characters moved and turned one by one, keeps each character where CorelDRAW put it.
 - Paragraph text keeps its frame layout: each paragraph's own alignment and indents, and the frame's columns
   with their widths and gutters.
 - Text fitted to a path stays live on its path: on curves at the same place (left, right, centered or at an
   offset), distance and side, and on ellipses centered on the same side.
-- Embedded bitmaps, and lenses.
+- Embedded bitmaps, and lenses. This includes the TIFF bitmaps of CorelDRAW 1 and 2 drawings, fax-compressed
+  ones too.
 - Perspective and envelopes, applied to the shapes they hold.
 - **Effects:**
   - Blends come in as live AnyVector blends between their two ends, with the same number of steps.
@@ -49,13 +53,14 @@ Import with a .cdr file is enough. The original file is never saved over; File â
 
 - The other PostScript fills (Birds, Leaves, Spokes and the rest that don't repeat) come in as a plain tone. The color
   fills use a fixed set of colors where CorelDRAW picks them at random.
-- Bitmap, vector pattern and texture fills of files older than CorelDRAW X3 come in as a gray tone.
+- Vector pattern and texture fills of files older than CorelDRAW X3 come in as a gray tone.
 - Vector pattern and texture fills come in as a picture of their tile, so their objects and texture settings
   can't be edited.
 - CMYK colors of files older than X4, and of drawings made with a CMYK profile CorelDRAW 2026 doesn't come with,
   use CorelDRAW's default color settings.
-- In CorelDRAW 1 and 2 files, text and bitmaps are left out. Arrowheads come in from CorelDRAW 2 files, but
-  not from CorelDRAW 1 files.
+- Arrowheads come in from CorelDRAW 2 files, but not from CorelDRAW 1 files.
+- Text in a font that isn't installed is shown in a font that is, so its lines can come out wider or narrower
+  than in CorelDRAW.
 
 ## Legal notices
 

@@ -104,6 +104,27 @@ impl Block {
     }
 }
 
+/// A bitmap of CorelDRAW 1 and 2: its id, then a whole TIFF file.
+pub(super) fn tiff(cx: &mut Ctx, b: &[u8]) {
+    let Some(file) = b.get(4..) else { return };
+    let id = Rd::new(b).u32();
+    // the TIFF reader of the image crate, else ours for what it doesn't read (4-bit grays, fax
+    // compression, strip sizes before compression)
+    let decoded = match image::load_from_memory_with_format(file, image::ImageFormat::Tiff) {
+        Ok(img) => {
+            let rgba = img.to_rgba8();
+            let (w, h) = rgba.dimensions();
+            Some((w, h, rgba.into_raw()))
+        }
+        Err(_) => super::tiff::decode(file),
+    };
+    let Some((w, h, rgba)) = decoded else { return };
+    let encoded = crate::image_io::encode_png(w, h, &rgba);
+    let data = ImageData { width: w, height: h, rgba: Arc::new(rgba), encoded: Arc::new(encoded), format: "png".into(), name: format!("bitmap{id}") };
+    let iid = cx.doc.add_image(data);
+    cx.images.insert(id, (iid, w, h));
+}
+
 /// A `bmp ` record: the image and, when it has one, its transparency mask.
 pub(super) fn bitmap(cx: &mut Ctx, b: &[u8]) {
     let mut r = Rd::new(b);
