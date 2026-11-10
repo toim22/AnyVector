@@ -17,6 +17,7 @@ mod tiff;
 mod waldo;
 
 use crate::{IoError, Result};
+pub use build::{ImportNote, Report};
 use riff::{Chunk, External};
 use std::io::Read;
 use vector_core::document::Document;
@@ -72,8 +73,8 @@ pub fn load_from_bytes(bytes: &[u8]) -> Result<Document> {
     color::with_profile(cmyk_profile(bytes).as_deref(), || build::document(&root))
 }
 
-/// Open a drawing and also list the object types that were left out: (type, count).
-pub fn load_with_report(bytes: &[u8]) -> Result<(Document, Vec<(u32, usize)>)> {
+/// Open a drawing and also say what was left out or approximated.
+pub fn load_with_report(bytes: &[u8]) -> Result<(Document, Report)> {
     let root = root(bytes)?;
     color::with_profile(cmyk_profile(bytes).as_deref(), || build::document_with_report(&root))
 }
@@ -204,7 +205,8 @@ mod tests {
             match r {
                 Err(_) => println!("{name} v{ver} PANIC"),
                 Ok(Err(e)) => println!("{name} v{ver} ERROR {e}"),
-                Ok(Ok((doc, skipped))) => {
+                Ok(Ok((doc, report))) => {
+                    let skipped = &report.skipped;
                     let mut kinds: std::collections::BTreeMap<&str, usize> = Default::default();
                     for p in &doc.pages {
                         for o in p.all_objects() {
@@ -215,6 +217,9 @@ mod tests {
                     println!("{name} v{ver} pages={} objects={total} {:?} images={} {:.0}ms", doc.pages.len(), kinds, doc.images.len(), t.elapsed().as_secs_f64() * 1000.0);
                     if !skipped.is_empty() {
                         println!("   skipped {skipped:x?}");
+                    }
+                    for line in report.lines() {
+                        println!("   note: {line}");
                     }
                     if std::env::var("ANYVECTOR_CDR_PNG").is_ok() {
                         let opts = crate::image_io::RasterOptions { dpi: 72.0, ..Default::default() };

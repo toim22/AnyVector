@@ -407,8 +407,8 @@ impl AnyVectorApp {
             self.active = Some(i);
             return true;
         }
-        match vector_io::open(p) {
-            Ok(mut doc) => {
+        match vector_io::open_with_notes(p) {
+            Ok((mut doc, notes)) => {
                 doc.ensure_next_id();
                 let title = p.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
                 let mut dv = DocView::new(doc, title, self.settings.undo_levels);
@@ -423,6 +423,7 @@ impl AnyVectorApp {
                 self.settings.add_recent(p);
                 self.settings.last_dir = p.parent().map(|x| x.to_path_buf());
                 self.push_doc(dv);
+                self.show_import_notes("Open", p, &notes);
                 true
             }
             Err(e) => {
@@ -430,6 +431,21 @@ impl AnyVectorApp {
                 false
             }
         }
+    }
+
+    /// Tell the user what a drawing that just opened or was imported differs in from the original
+    /// (`notes` from the importer, in English, translated here line by line).
+    fn show_import_notes(&mut self, title: &str, p: &Path, notes: &[String]) {
+        if notes.is_empty() {
+            return;
+        }
+        let name = p.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+        let mut text = crate::i18n::t(&format!("{} came in with these differences from the original:", name));
+        for n in notes {
+            text.push_str("\n• ");
+            text.push_str(&crate::i18n::t(n));
+        }
+        self.dialogs.message_box = Some((title.into(), text));
     }
 
     fn import_dialog(&mut self) {
@@ -451,8 +467,8 @@ impl AnyVectorApp {
         }
         let warn_large = self.settings.warnings.iter().any(|(t, on)| *on && t.contains("large bitmap"));
         let Some(d) = self.doc_mut() else { return };
-        match vector_io::import(&mut d.doc, p) {
-            Ok(mut objs) => {
+        match vector_io::import_with_notes(&mut d.doc, p) {
+            Ok((mut objs, notes)) => {
                 if objs.is_empty() {
                     return;
                 }
@@ -477,6 +493,7 @@ impl AnyVectorApp {
                 } else {
                     self.flash(format!("Imported {name}"));
                 }
+                self.show_import_notes("Import", p, &notes);
             }
             Err(e) => self.dialogs.message_box = Some(("Import".into(), format!("Could not import {}:\n{e}", p.display()))),
         }

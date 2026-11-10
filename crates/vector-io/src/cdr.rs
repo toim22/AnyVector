@@ -288,6 +288,16 @@ pub fn load(path: &Path) -> Result<Document> {
     load_from_bytes(&bytes)
 }
 
+/// Open a `.cdr` and say what could not be brought in exactly (CorelDRAW drawings only), one
+/// line each, in English: the lines are keys of the app's translation file.
+pub fn load_with_notes(bytes: &[u8]) -> Result<(Document, Vec<String>)> {
+    if detect(bytes) == CdrKind::CorelDraw {
+        let (doc, report) = crate::corel::load_with_report(bytes)?;
+        return Ok((doc, report.lines()));
+    }
+    load_from_bytes(bytes).map(|d| (d, vec![]))
+}
+
 pub fn load_from_bytes(bytes: &[u8]) -> Result<Document> {
     match detect(bytes) {
         CdrKind::AnyVector => {}
