@@ -18,6 +18,7 @@ Import with a .cdr file is enough. The original file is never saved over; File â
 - Two-color pattern fills with their own pattern, tile size and two colors.
 - Texture fills and vector pattern fills, shown with the picture of the tile that CorelDRAW stored in the file.
   CorelDRAW 4 vector pattern fills are drawn from the pattern's own objects.
+- Texture fills of files older than CorelDRAW X3, in the texture's own colors and brightness.
 - PostScript fills. Bricks, Circle Grid, Crosshatching, Fishscale, Hatching, Hexagons, Octagons, Squares, Star of David,
   Triangle and Waves, and the color Hatching, Crosshatching and Fishscale, are drawn
   again from their settings: frequency, line width, grays and angle. The other PostScript fills take the average
@@ -58,8 +59,10 @@ Import with a .cdr file is enough. The original file is never saved over; File â
 
 - The other PostScript fills (Birds, Leaves, Spokes and the rest that don't repeat) come in as a plain tone. The color
   fills use a fixed set of colors where CorelDRAW picks them at random.
-- Texture fills of files older than CorelDRAW X3, and vector pattern fills of CorelDRAW 5 to X2 files, come in
-  as a gray tone: those files keep no picture of the tile.
+- Texture fills of files older than CorelDRAW X3 come in as soft clouds in the texture's colors, not as
+  CorelDRAW's exact drawing: those files keep the texture's settings, not its picture. A texture of a style
+  that isn't in CorelDRAW's library comes in as a gray tone.
+- Vector pattern fills of CorelDRAW 5 to X2 files come in as a gray tone.
 - Vector pattern and texture fills come in as a picture of their tile, so their objects and texture settings
   can't be edited.
 - CMYK colors of files older than X4, and of drawings made with a CMYK profile CorelDRAW 2026 doesn't come with,

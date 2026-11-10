@@ -12,6 +12,7 @@ mod psfill;
 mod persp;
 mod riff;
 mod text;
+mod texture;
 mod tiff;
 mod waldo;
 
