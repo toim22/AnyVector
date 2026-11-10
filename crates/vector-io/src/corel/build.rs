@@ -1817,11 +1817,15 @@ pub(super) fn version(root: &Chunk) -> u32 {
             return n;
         }
     }
-    // the form type ends with the version: "CDR5".."CDR9", then letters from "CDRA" (10)
-    let c = root.list.map(|l| l[3]).unwrap_or(b' ');
-    match c {
-        b'0'..=b'9' => (c - b'0') as u32 * 100,
-        b'A'..=b'Z' => (c - b'A') as u32 * 100 + 1000,
+    // the form type ends with the version: "CDR5".."CDR9", then letters from "CDRA" (10); a form
+    // of another kind ("CDRX" and "CMX1" are Corel metafiles) names no version
+    let Some(form) = root.list else { return 0 };
+    if !matches!(&form[..3], b"CDR" | b"CDT" | b"cdr") || form == *b"CDRX" {
+        return 0;
+    }
+    match form[3] {
+        c @ b'0'..=b'9' => (c - b'0') as u32 * 100,
+        c @ b'A'..=b'Z' => (c - b'A') as u32 * 100 + 1000,
         _ => 300,
     }
 }
