@@ -281,15 +281,85 @@ fn stlt5(cx: &mut Ctx, b: &[u8]) {
     super::riff::parse(b, 0, b.len(), None, None, 0, &mut chunks);
     for styl in chunks.iter().filter(|c| c.is_list(b"styl")) {
         let Some(d) = styl.child(b"styd") else { continue };
+        // a 16-bit id, in version 6 too
         let mut r = Rd::new(&d.data);
-        let id = cx.uint(&mut r);
+        let id = r.u16() as u32;
         let Some(rest) = d.data.get(r.p..) else { continue };
         let l = cx.loda(rest);
         let arg = |t: u32| l.arg(t).map(|a| Rd::new(a).u32()).unwrap_or(0);
         let ids = (arg(0xcd), arg(0xd2));
         cx.graphic_styles.insert(id, ids);
+        // the text settings: font, alignment and spacing records of the style's own
+        let mut rec = StyleRec { parent: l.kind, ..Default::default() };
+        if let Some(a) = l.arg(STYD_FONTS) {
+            let mut r = Rd::new(a);
+            if cx.ver >= 600 {
+                r.skip(4);
+            }
+            // the font, its character set (version 6) and the size
+            let font = r.u16() as u32;
+            let charset = if cx.ver >= 600 { r.u16() } else { 0 };
+            if cx.ver >= 600 {
+                r.skip(8);
+            }
+            let size = cx.coord(&mut r) * cx.k;
+            // the weight and slant: CorelDRAW 4 numbers them 1 normal, 2 bold, 4 italic;
+            // CorelDRAW 5 has the flags of the later versions
+            let flags = match (cx.ver < 500, r.u16() as u32) {
+                (true, 2) => 0x1000,
+                (true, 4) => 0x80,
+                (true, _) => 0x40,
+                (false, f @ (0x40 | 0x80 | 0x1000 | 0x2000)) if cx.ver < 600 => f,
+                _ => 0x40,
+            };
+            cx.styles.fonts.insert(id, (font, size, flags, charset));
+            rec.font = id;
+        }
+        if let Some(a) = l.arg(STYD_ALIGN) {
+            cx.styles.aligns.insert(id, cx.uint(&mut Rd::new(a)));
+            rec.align = id;
+        }
+        if let Some(a) = l.arg(STYD_INTERVALS).filter(|a| cx.ver >= 600 && a.len() >= 40) {
+            // version 6: the spacing record of version 7 without its first 12 bytes; shares of
+            // the character height (1 000 000: 100%) unless the unit says lengths
+            let at = |o: usize| Rd::at(a, o).i32() as f64;
+            let shares = Rd::at(a, 36).u32() <= 1 && at(12) > 0.0 && at(16) >= 0.0 && at(20) >= 0.0;
+            cx.styles.spacings.insert(
+                id,
+                Spacing {
+                    line: shares.then_some(at(12) / 10_000.0),
+                    para: shares.then_some((at(16) + at(20)) / 10_000.0 - 100.0),
+                    chars: at(0) / 10_000.0,
+                    words: if at(8) >= 0.0 { at(8) / 10_000.0 } else { 100.0 },
+                },
+            );
+            rec.spacing = id;
+        } else if let Some(a) = l.arg(STYD_INTERVALS).filter(|_| cx.ver < 600) {
+            // percents: characters (of a space), words, lines, before and after a paragraph
+            let mut r = Rd::new(a);
+            let chars = r.i16() as f64;
+            let words = r.u16() as f64;
+            let line = r.u16() as f64;
+            let before = r.u16() as f64;
+            let after = r.u16() as f64;
+            let sane = |v: f64| v < 10_000.0;
+            if sane(words) && sane(line) && sane(before) && sane(after) {
+                cx.styles.spacings.insert(id, Spacing { line: (line > 0.0).then_some(line), para: Some(before + after - 100.0), chars, words });
+                rec.spacing = id;
+            }
+        }
+        if ids.0 != 0 {
+            cx.styles.fills.insert(id, ids.0);
+            rec.fill = id;
+        }
+        cx.styles.styles.insert(id, rec);
     }
 }
+
+/// The text settings of a style record (versions 4 to 6).
+const STYD_FONTS: u32 = 0xdc;
+const STYD_ALIGN: u32 = 0xe1;
+const STYD_INTERVALS: u32 = 0xeb;
 
 fn stlt_tables(cx: &Ctx, b: &[u8], set11: bool) -> Option<Styles> {
     let mut out = Styles::default();
@@ -795,6 +865,429 @@ fn paragraphs_binary(cx: &Ctx, b: &[u8], artistic: bool, placed: bool) -> Vec<Pa
     vec![]
 }
 
+/// The characters of one old paragraph as runs of one style each: (style index, byte, ...).
+/// CR LF is one line break, a leading break is dropped.
+fn old_runs(chars: impl Iterator<Item = (usize, u8)>) -> Vec<(usize, String)> {
+    let mut runs: Vec<(usize, String)> = vec![];
+    let mut prev = 0u8;
+    for (style, c) in chars {
+        let was = prev;
+        prev = c;
+        let ch = match c {
+            0 => continue,
+            b'\n' if was == b'\r' => continue,
+            b'\r' | b'\n' => '\n',
+            c @ 0..=0x7f => c as char,
+            c => char::from_u32(RAW + c as u32).unwrap_or('?'),
+        };
+        if ch == '\n' && runs.iter().all(|r| r.1.is_empty()) {
+            continue;
+        }
+        match runs.last_mut() {
+            Some((s, text)) if *s == style => text.push(ch),
+            _ => runs.push((style, ch.to_string())),
+        }
+    }
+    runs
+}
+
+fn old_para(runs: Vec<(usize, String)>, looks: &[Look], base: &Look) -> Para {
+    let runs = runs
+        .into_iter()
+        .map(|(i, text)| {
+            let look = looks.get(i).cloned().unwrap_or_else(|| base.clone());
+            Run { text: decode(&text, look.charset), look }
+        })
+        .collect();
+    Para { runs, align: base.align, indents: base.indents }
+}
+
+/// A character's own font, by font id and character set (0: the font's).
+fn old_font(cx: &Ctx, l: &mut Look, font: u32, charset: u16) {
+    l.font = cx.fonts.get(&font).cloned();
+    l.charset = Some(charset).filter(|c| *c != 0).or_else(|| cx.charsets.get(&font).copied());
+}
+
+/// Text streams of CorelDRAW 5: the frames, then each paragraph's style, its styles (36 bytes
+/// each, flag bits say which fields hold) and its characters (8 bytes each).
+fn paragraphs_v5(cx: &Ctx, b: &[u8]) -> Vec<Para> {
+    let mut r = Rd::new(b);
+    r.skip(2);
+    let frames = r.u16() as usize;
+    r.skip(frames * 4);
+    let n = r.u16() as usize;
+    let mut out = vec![];
+    for _ in 0..n.min(4096) {
+        let style = r.u16() as u32;
+        let count = r.u16() as usize;
+        if count > r.left() / 36 {
+            break;
+        }
+        let base = cx.styles.look(style, cx);
+        let mut looks = vec![];
+        for _ in 0..count {
+            let start = r.p;
+            let flag = r.u8();
+            r.skip(1);
+            let mut l = Look::default();
+            let (font, charset) = (r.u8() as u32, r.u8() as u16);
+            if flag & 0x01 != 0 {
+                old_font(cx, &mut l, font, if matches!(charset, 0x80 | 0x81 | 0x86 | 0x88) { 0 } else { charset });
+            }
+            let face = r.u16() as u32;
+            if flag & 0x02 != 0 && matches!(face, 0x40 | 0x80 | 0x1000 | 0x2000) {
+                let (bold, italic) = weight(face);
+                l.bold = Some(bold);
+                l.italic = Some(italic);
+            }
+            r.skip(4);
+            let size = cx.coord(&mut r) * cx.k;
+            if flag & 0x04 != 0 && size > 0.1 {
+                l.size = Some(size);
+            }
+            r.skip(2);
+            let fill = r.u32();
+            if flag & 0x10 != 0 {
+                if let Some(super::build::RawFill::Solid(c)) = cx.fills.get(&fill) {
+                    l.color = Some(*c);
+                }
+            }
+            r.p = start + 36;
+            looks.push(l.over(&base));
+        }
+        let chars = r.u16() as usize;
+        if chars > r.left() / 8 {
+            break;
+        }
+        let at = r.p;
+        r.skip(chars * 8);
+        let runs = old_runs((0..chars).map(|i| {
+            let c = &b[at + i * 8..at + i * 8 + 8];
+            (((u16::from_le_bytes([c[6], c[7]]) >> 4) & 0x7f) as usize, c[4])
+        }));
+        out.push(old_para(runs, &looks, &base));
+    }
+    out
+}
+
+/// Text streams of CorelDRAW 6: as in version 5 with 32-bit counts, styles whose last fields
+/// are there only when their flags are set, and 12 bytes a character.
+fn paragraphs_v6(cx: &Ctx, b: &[u8]) -> Vec<Para> {
+    let mut r = Rd::new(b);
+    let frame_flag = r.u32();
+    r.skip(0x18);
+    if r.u32() == 1 {
+        // fitted to a path: where it sits on the path
+        r.skip(32);
+    }
+    let frames = r.u32() as usize;
+    if frames > 256 {
+        return vec![];
+    }
+    r.skip(frames * (4 + 48 + if frame_flag == 0 { 8 } else { 0 }));
+    let n = r.u32() as usize;
+    let mut out = vec![];
+    for _ in 0..n.min(4096) {
+        let style = r.u32();
+        let count = r.u32() as usize;
+        if count > r.left() / 60 {
+            break;
+        }
+        let base = cx.styles.look(style, cx);
+        let mut looks = vec![];
+        for _ in 0..count {
+            let flag = r.u8();
+            r.skip(3);
+            let mut l = Look::default();
+            let (font, charset) = (r.u16() as u32, r.u16());
+            if flag & 0x01 != 0 {
+                old_font(cx, &mut l, font, charset);
+            }
+            let face = r.u32();
+            if flag & 0x02 != 0 && matches!(face & 0xffff, 0x40 | 0x80 | 0x1000 | 0x2000) {
+                let (bold, italic) = weight(face);
+                l.bold = Some(bold);
+                l.italic = Some(italic);
+            }
+            let size = cx.coord(&mut r) * cx.k;
+            if flag & 0x04 != 0 && size > 0.1 {
+                l.size = Some(size);
+            }
+            r.skip(44);
+            if flag & 0x10 != 0 {
+                if let Some(super::build::RawFill::Solid(c)) = cx.fills.get(&r.u32()) {
+                    l.color = Some(*c);
+                }
+            }
+            if flag & 0x20 != 0 {
+                r.skip(4);
+            }
+            looks.push(l.over(&base));
+        }
+        let chars = r.u32() as usize;
+        r.skip(4);
+        if chars > r.left() / 12 {
+            break;
+        }
+        let at = r.p;
+        r.skip(chars * 12);
+        let runs = old_runs((0..chars).map(|i| {
+            let c = &b[at + i * 12..at + i * 12 + 12];
+            (c[6] as usize, c[0])
+        }));
+        out.push(old_para(runs, &looks, &base));
+    }
+    out
+}
+
+/// CorelDRAW 4 keeps an artistic text's characters in the object: a spare field, the count, the
+/// field's length, then a flag byte, the character and a spare byte each; with flag bit 0 the
+/// character's own 22-byte style follows (not read: the text's style holds).
+fn paragraphs_v4(cx: &Ctx, a: &[u8], style: u32) -> Vec<Para> {
+    let mut r = Rd::new(a);
+    r.skip(2);
+    let n = (r.u16() as usize).min(a.len() / 3);
+    r.skip(2);
+    let mut chars = vec![];
+    for _ in 0..n {
+        if r.left() < 3 {
+            break;
+        }
+        let flags = r.u8();
+        chars.push((0, r.u8()));
+        r.skip(if flags & 1 != 0 { 23 } else { 1 });
+    }
+    let base = cx.styles.look(style, cx);
+    vec![old_para(old_runs(chars.into_iter()), &[], &base)]
+}
+
+/// The paragraphs of a CorelDRAW 4 text: a lone carriage return is where CorelDRAW wrapped a
+/// line, one followed by a line feed is a new line.
+fn paragraphs4(cx: &Ctx, text: &[(u32, Vec<u16>)]) -> Vec<Para> {
+    let mut out = vec![];
+    for (style, chars) in text {
+        let base = cx.styles.look(*style, cx);
+        let mut lines = vec![String::new()];
+        for (i, &c) in chars.iter().enumerate() {
+            match c {
+                13 => {}
+                10 if i > 0 && chars[i - 1] == 13 => lines.push(String::new()),
+                0 => {}
+                c @ 0..=0xff => lines.last_mut().unwrap().push(cp1252(c as u8)),
+                c => lines.last_mut().unwrap().extend(char::from_u32(c as u32)),
+            }
+        }
+        for line in lines {
+            out.push(Para { align: base.align, indents: base.indents, runs: vec![Run { text: line, look: base.clone() }] });
+        }
+    }
+    out
+}
+
+/// A CorelDRAW 4 paragraph text frame: its size (arg 0x1e) and the text whose chain it is in
+/// (`lnkt`). The first frame of a chain holds the text; the others start empty and are linked
+/// to it once all objects are read.
+fn paragraph4(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Option<Object> {
+    let k = cx.k;
+    let mut r = Rd::new(l.arg(0x1e)?);
+    r.skip(2);
+    let w = cx.coord(&mut r).abs() * k;
+    let h = cx.coord(&mut r).abs() * k;
+    let id = obj.child(b"spnd").map(|s| super::build::spnd(&s.data));
+    let chain = id.and_then(|id| cx.chains4.iter().find_map(|(t, f)| f.iter().position(|x| *x == id).map(|i| (*t, i))));
+    let paras = match chain {
+        Some((text, 0)) => paragraphs4(cx, cx.texts4.get(&text).map(|t| &t[..]).unwrap_or(&[])),
+        Some(_) => vec![],
+        None => return None,
+    };
+    let own = l.arg(ARG_STYLE).map(|a| cx.styles.look(cx.uint(&mut Rd::new(a)), cx)).unwrap_or_default();
+    let first = paras.first().and_then(|p| p.runs.first()).map(|r| r.look.over(&own)).unwrap_or_else(|| own.clone());
+    let content = paras.iter().map(|p| p.runs.iter().map(|r| r.text.as_str()).collect::<String>()).collect::<Vec<_>>().join("\n");
+    let mut t = TextObj::paragraph(content.trim_end_matches('\n'), w.max(1.0), h.max(1.0), first.format());
+    if let Some(v) = first.line {
+        t.line_spacing = v;
+    }
+    if let Some(v) = first.para {
+        t.para_spacing = v;
+    }
+    if let Some(v) = first.words {
+        t.word_spacing = v;
+    }
+    if let Some(a) = first.align {
+        t.align = a;
+    }
+    let mut st = Style::text_default();
+    let fill = cx.style_of(l, kurbo::Rect::new(0.0, 0.0, 1.0, 1.0), Affine::IDENTITY).fill;
+    if fill != Fill::None {
+        st.fill = fill;
+    } else if let Some(c) = first.color {
+        st.fill = Fill::Solid(c);
+    }
+    st.outline = Outline::none();
+    let xf = world * Affine::scale_non_uniform(1.0 / k, -1.0 / k);
+    Some(Object::new(cx.doc.new_id(), ObjKind::Text(t), xf, st))
+}
+
+/// Text of CorelDRAW 3: a header (the character count at 11, the font at 15, the size in
+/// thousandths of an inch at 19, character and line spacing in percent, the alignment at 25), the
+/// tab stops and indents, then the characters from byte 132: a flag byte and the character, then
+/// 18 bytes of the character's own settings when the flag's low bit is set, else one byte.
+fn paragraphs_v3(cx: &Ctx, t: &[u8]) -> Vec<Para> {
+    let n = Rd::at(t, 11).u16() as usize;
+    let font = Rd::at(t, 15).u16() as u32;
+    let size = Rd::at(t, 19).u16() as f64 * cx.k;
+    let line = Rd::at(t, 23).u16() as f64;
+    let mut look = Look { size: Some(size).filter(|s| *s > 0.1), line: (line > 0.0 && line < 10_000.0).then_some(line), ..Default::default() };
+    // a font the drawing lists, else its first one
+    look.font = cx.fonts.get(&font).or_else(|| cx.fonts.get(&u32::MAX)).cloned();
+    look.align = Some(match Rd::at(t, 25).u8() {
+        2 => TextAlign::Center,
+        3 => TextAlign::Right,
+        _ => TextAlign::Left,
+    });
+    let mut r = Rd::at(t, 132);
+    let mut chars = vec![];
+    for _ in 0..n.min(t.len() / 3) {
+        if r.left() < 3 {
+            break;
+        }
+        let flags = r.u8();
+        chars.push((0, r.u8()));
+        r.skip(if flags & 1 != 0 { 18 } else { 1 });
+    }
+    let mut p = old_para(old_runs(chars.into_iter()), &[], &look);
+    p.align = look.align;
+    vec![p]
+}
+
+/// The font table of CorelDRAW 3 (`ftbl`): a count, a blank name, then per font two words (the
+/// second its id) and its name in 32 bytes. The first font is also kept as the drawing's
+/// default (id `u32::MAX`).
+pub(super) fn ftbl(cx: &mut Ctx, b: &[u8]) {
+    let n = Rd::new(b).u16() as usize;
+    for i in 0..n.min(256) {
+        let at = 34 + 36 * i;
+        let Some(e) = b.get(at..at + 36) else { break };
+        let id = Rd::at(e, 2).u16() as u32;
+        let name: String = e[4..].iter().take_while(|c| **c != 0).map(|c| *c as char).collect();
+        let name = name.trim();
+        if name.is_empty() {
+            continue;
+        }
+        let family = super::waldo::font_family(name);
+        cx.fonts.entry(id).or_insert_with(|| family.clone());
+        cx.fonts.entry(u32::MAX).or_insert(family);
+    }
+}
+
+/// Text of CorelDRAW 1 and 2: the font's id, the style (1 normal, 2 bold, 4 italic), the size in
+/// thousandths of an inch, the alignment (1 left, 2 centered, 3 right of the text's origin) and
+/// the characters. CorelDRAW 2 also has the line spacing (percent) and keeps a second byte after
+/// each character (cut off after the last one). Empty lines at the start are kept.
+fn paragraphs_waldo(cx: &Ctx, t: &[u8]) -> Vec<Para> {
+    let mut r = Rd::new(t);
+    let (font, style, size, line, align, units): (u32, u8, f64, Option<f64>, u8, Vec<u8>);
+    if cx.ver < 200 {
+        r.skip(8);
+        font = r.u16() as u32;
+        style = r.u8();
+        size = r.u16() as f64;
+        align = r.u8();
+        let n = r.u16() as usize;
+        line = None;
+        units = t.get(26..).unwrap_or(&[]).iter().take(n).copied().collect();
+    } else {
+        font = r.u16() as u32;
+        style = r.u8();
+        size = r.u16() as f64;
+        r.skip(4);
+        let l = r.u16() as f64;
+        line = (l > 0.0 && l < 10_000.0).then_some(l);
+        align = Rd::at(t, 0x15).u8();
+        let n = Rd::at(t, 0x1f).u32() as usize;
+        units = t.get(0x24..).unwrap_or(&[]).iter().step_by(2).take(n).copied().collect();
+    }
+    let mut look = Look { size: Some(size * cx.k).filter(|s| *s > 0.1), line, ..Default::default() };
+    old_font(cx, &mut look, font, 0);
+    look.bold = Some(matches!(style, 2 | 8));
+    look.italic = Some(matches!(style, 4 | 8));
+    look.align = Some(match align {
+        2 => TextAlign::Center,
+        3 => TextAlign::Right,
+        _ => TextAlign::Left,
+    });
+    let mut text = String::new();
+    let mut prev = 0;
+    for &u in &units {
+        let was = prev;
+        prev = u;
+        match u {
+            0 => {}
+            10 if was == 13 => {}
+            10 | 13 => text.push('\n'),
+            u => text.push(cp1252(u)),
+        }
+    }
+    vec![Para { align: look.align, indents: look.indents, runs: vec![Run { text, look }] }]
+}
+
+/// The shift and angle of each character of CorelDRAW 4 artistic text (None for a character in
+/// its own place): fitted to a path, or moved one by one. The shifts are in hundredths of the
+/// point size, the angle in tenths of a degree.
+fn v4_shifts(a: &[u8]) -> Vec<(u8, Option<(f64, f64, f64)>)> {
+    let mut r = Rd::new(a);
+    r.skip(2);
+    let n = (r.u16() as usize).min(a.len() / 3);
+    r.skip(2);
+    let mut out = vec![];
+    for _ in 0..n {
+        if r.left() < 3 {
+            break;
+        }
+        let flags = r.u8();
+        let c = r.u8();
+        if flags & 1 != 0 {
+            r.skip(9);
+            let (dx, dy, angle) = (r.i16() as f64, r.i16() as f64, r.i16() as f64);
+            r.skip(8);
+            out.push((c, Some((dx / 100.0, dy / 100.0, angle / 10.0))));
+        } else {
+            r.skip(1);
+            out.push((c, None));
+        }
+    }
+    out
+}
+
+/// CorelDRAW 4 artistic text whose characters were moved or turned one by one: a group of
+/// characters, each where CorelDRAW drew it (AnyVector text has no shift or angle per character).
+fn v4_placed(cx: &mut Ctx, a: &[u8], t: &TextObj, xf: Affine, st: &Style) -> Option<Object> {
+    let shifts: Vec<_> = v4_shifts(a).into_iter().filter(|(c, _)| !matches!(c, 0 | 13 | 10)).collect();
+    let chars: Vec<char> = t.content.chars().collect();
+    if shifts.iter().all(|s| s.1.is_none()) || shifts.len() != chars.len() {
+        return None;
+    }
+    let lay = vector_core::text::layout(t);
+    let mut kids = vec![];
+    for (i, (c, (_, shift))) in chars.iter().zip(&shifts).enumerate() {
+        if c.is_whitespace() {
+            continue;
+        }
+        let f = t.format_at(i).clone();
+        let (dx, dy, angle) = shift.unwrap_or((0.0, 0.0, 0.0));
+        let (x, y) = lay.carets.get(i).map(|c| (c.0, c.1)).unwrap_or((0.0, 0.0));
+        let at = Affine::translate((x + dx * f.size, y - dy * f.size)) * Affine::rotate(-angle.to_radians());
+        let mut one = TextObj::artistic(&c.to_string(), f);
+        one.align = TextAlign::Left;
+        let mut s = st.clone();
+        if let Some(col) = one.format.color.take() {
+            s.fill = Fill::Solid(col);
+        }
+        kids.push(Object::new(cx.doc.new_id(), ObjKind::Text(one), xf * at, s));
+    }
+    Some(Object::new(cx.doc.new_id(), ObjKind::Group(kids), Affine::IDENTITY, Style::default()))
+}
+
 /// One style override inside a text stream: flag bytes say which fields follow.
 fn override_look(cx: &Ctx, r: &mut Rd) -> Look {
     let mut l = Look::default();
@@ -883,8 +1376,23 @@ const ARG_PLACED: u32 = 0x3e8f;
 pub(super) fn object(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Option<Object> {
     let paragraph = l.kind == 6;
     let k = cx.k;
-    let data = stream(obj)?;
-    let mut paras = if cx.ver >= 1600 { paragraphs_json(cx, data) } else if cx.ver >= 700 { paragraphs_binary(cx, data, !paragraph, l.arg(ARG_PLACED).is_some()) } else { vec![] };
+    // CorelDRAW 4 keeps an artistic text's characters in the object
+    let v4 = cx.ver < 500 && !paragraph;
+    // CorelDRAW 4 paragraph text: the text the frame's chain shows, all in its first frame
+    if paragraph && cx.ver < 500 {
+        return paragraph4(cx, obj, l, world);
+    }
+    let data = if v4 { l.arg(0x1e)? } else { stream(obj)? };
+    let mut paras = match cx.ver {
+        1600.. => paragraphs_json(cx, data),
+        700.. => paragraphs_binary(cx, data, !paragraph, l.arg(ARG_PLACED).is_some()),
+        600.. => paragraphs_v6(cx, data),
+        500.. => paragraphs_v5(cx, data),
+        ..300 => paragraphs_waldo(cx, data),
+        ..400 => paragraphs_v3(cx, data),
+        _ if v4 => paragraphs_v4(cx, data, l.arg(ARG_STYLE).map(|a| cx.uint(&mut Rd::new(a))).unwrap_or(0)),
+        _ => vec![],
+    };
     if paras.is_empty() {
         return None;
     }
@@ -895,7 +1403,7 @@ pub(super) fn object(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Opti
             find_json(a, 0, wide).and_then(|(s, n)| decode_json(&a[s..s + n], wide)).map(|v| json_look(&v, k)).unwrap_or_default()
         }
         _ => match l.arg(ARG_STYLE) {
-            Some(a) => cx.styles.look(Rd::new(a).u32(), cx),
+            Some(a) => cx.styles.look(cx.uint(&mut Rd::new(a)), cx),
             None => Look::default(),
         },
     };
@@ -998,12 +1506,20 @@ pub(super) fn object(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Opti
         }
     }
     let mut st = Style::text_default();
-    if let Fill::Solid(c) = cx.style_of(l, kurbo::Rect::new(0.0, 0.0, 1.0, 1.0), Affine::IDENTITY).fill {
-        st.fill = Fill::Solid(c);
+    let fill = cx.style_of(l, kurbo::Rect::new(0.0, 0.0, 1.0, 1.0), Affine::IDENTITY).fill;
+    // CorelDRAW 4 text's own fill (a fountain fill too) wins over its style's color
+    let own_fill = v4 && l.arg(0x14).is_some() && fill != Fill::None;
+    if matches!(fill, Fill::Solid(_)) || own_fill {
+        st.fill = fill;
     }
     st.outline = Outline::none();
-    if let Some(c) = first.color {
+    if let Some(c) = first.color.filter(|_| !own_fill) {
         st.fill = Fill::Solid(c);
+    }
+    if v4 && cx.ver >= 300 {
+        if let Some(g) = v4_placed(cx, data, &t, xf, &st) {
+            return Some(g);
+        }
     }
     let id = cx.doc.new_id();
     if l.arg(ARG_PLACED).is_some() {
@@ -1138,6 +1654,62 @@ mod tests {
         assert_eq!(end, b.len());
         assert_eq!(cp1252(0xe7), '\u{e7}');
         assert_eq!(cp1252(0x80), '\u{20ac}');
+    }
+
+    #[test]
+    fn coreldraw_4_character_shifts() {
+        // two characters: "A" in its place, "B" moved by half the size right, a fifth down,
+        // and turned 90 degrees
+        let mut a = vec![0, 0, 2, 0, 0, 0];
+        a.extend([0, b'A', 0]);
+        let mut own = vec![0u8; 23];
+        own[9..11].copy_from_slice(&50i16.to_le_bytes());
+        own[11..13].copy_from_slice(&(-20i16).to_le_bytes());
+        own[13..15].copy_from_slice(&900i16.to_le_bytes());
+        a.extend([1, b'B']);
+        a.extend(own);
+        assert_eq!(v4_shifts(&a), vec![(b'A', None), (b'B', Some((0.5, -0.2, 90.0)))]);
+    }
+
+    #[test]
+    fn coreldraw_3_text_and_fonts() {
+        let mut cx = super::super::build::tests::ctx(300);
+        // the font table: one font, id 10
+        let mut f = 1u16.to_le_bytes().to_vec();
+        f.extend([0u8; 32]);
+        let mut e = vec![0u8; 36];
+        e[2..4].copy_from_slice(&10u16.to_le_bytes());
+        e[4..10].copy_from_slice(b"avalon");
+        f.extend(e);
+        ftbl(&mut cx, &f);
+        // two characters in font 10, a fifth of an inch, centered; the second with settings
+        // of its own
+        let mut t = vec![0u8; 132];
+        t[11..13].copy_from_slice(&2u16.to_le_bytes());
+        t[15..17].copy_from_slice(&10u16.to_le_bytes());
+        t[19..21].copy_from_slice(&200u16.to_le_bytes());
+        t[23..25].copy_from_slice(&100u16.to_le_bytes());
+        t[25] = 2;
+        t.extend([0, b'H', 0, 1, b'i']);
+        t.extend([0u8; 18]);
+        let p = paragraphs_v3(&cx, &t);
+        assert_eq!(p.len(), 1);
+        let text: String = p[0].runs.iter().map(|r| r.text.as_str()).collect();
+        assert_eq!(text, "Hi");
+        let look = &p[0].runs[0].look;
+        assert_eq!(look.font.as_deref(), Some(super::super::waldo::font_family("avalon").as_str()));
+        assert!((look.size.unwrap() - 14.4).abs() < 0.01);
+        assert_eq!(p[0].align, Some(TextAlign::Center));
+    }
+
+    #[test]
+    fn coreldraw_4_paragraphs() {
+        let cx = super::super::build::tests::ctx(400);
+        // a wrapped line (a lone carriage return), then a line break
+        let text = vec![(0, vec![b'A' as u16, 13, b'B' as u16, 13, 10, 0x20ac])];
+        let p = paragraphs4(&cx, &text);
+        let lines: Vec<String> = p.iter().map(|p| p.runs.iter().map(|r| r.text.as_str()).collect()).collect();
+        assert_eq!(lines, vec!["AB".to_string(), "\u{20ac}".to_string()]);
     }
 
     #[test]

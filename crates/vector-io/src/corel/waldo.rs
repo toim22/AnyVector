@@ -91,6 +91,22 @@ pub(super) fn tree(b: &[u8]) -> Option<Chunk> {
     if let Some(m) = b.get(offsets[0]..offsets[0].saturating_add(10)) {
         doc.push(leaf(b"mcfg", m.to_vec()));
     }
+    // the fonts the text uses
+    let fonts = font_table(b, offsets[2]);
+    if !fonts.is_empty() {
+        doc.push(list(b"fntt", fonts));
+    }
+    // the bitmaps: whole TIFF files, in records of their own
+    let mut tiffs: Vec<(u32, usize)> = records.iter().filter(|((t, _), _)| *t == 3).map(|((_, id), off)| (*id, *off)).collect();
+    tiffs.sort();
+    for (id, off) in tiffs {
+        let n = Rd::at(b, off).u32() as usize;
+        if let Some(file) = b.get(off + 4..(off + 4).saturating_add(n)).filter(|f| f.starts_with(b"II*\0") || f.starts_with(b"MM\0*")) {
+            let mut v = id.to_le_bytes().to_vec();
+            v.extend(file);
+            doc.push(leaf(b"tiff", v));
+        }
+    }
     let mut arrows: Vec<(u32, usize)> = records.iter().filter(|((t, _), _)| *t == 8).map(|((_, id), off)| (*id, *off)).collect();
     arrows.sort();
     doc.extend(arrows.into_iter().filter_map(|(id, off)| arrow(b, id, off)));
@@ -163,8 +179,8 @@ impl Rewrite<'_> {
         let shape = r.u16() as usize;
         let outline = r.u16() as usize;
         let fill = r.u16() as usize;
-        // text (3) is not read: CorelDRAW 1 and 2 keep it in a layout not known yet
-        if kind > 4 || kind == 3 || shape == 0 || shape >= body.len() {
+        // text (3) keeps its characters and their settings in its shape part
+        if kind > 4 || shape == 0 || shape >= body.len() {
             return None;
         }
         // each part runs to the next one
@@ -172,13 +188,110 @@ impl Rewrite<'_> {
             let e = [shape, outline, fill].into_iter().filter(|x| *x > o).min().unwrap_or(body.len()).min(body.len());
             body.get(o..e).map(|s| s.to_vec()).unwrap_or_default()
         };
-        let mut args = vec![(ARG_COORDS, part(shape)), (ARG_TRANSFORM, transform_arg(t))];
+        let coords = if kind == 4 { bitmap_arg(&part(shape)) } else { part(shape) };
+        let mut args = vec![(ARG_COORDS, coords), (ARG_TRANSFORM, transform_arg(t))];
         // no outline record: no outline, as CorelDRAW 1 draws it
         args.push((ARG_OUTLINE, if outline != 0 { part(outline) } else { vec![0] }));
         if fill != 0 {
             args.push((ARG_FILL, part(fill)));
         }
         Some(list(b"obj ", vec![leaf(b"lobj", loda(kind, &args))]))
+    }
+}
+
+/// A bitmap's shape (its width and height from its lower left corner, a few words, its size in
+/// pixels and the id of its TIFF record) as version 3 has it: the corners, then the id at 0x18.
+fn bitmap_arg(shape: &[u8]) -> Vec<u8> {
+    let mut r = Rd::new(shape);
+    let (w, h) = (r.i16(), r.i16());
+    let id = Rd::at(shape, 14).u16();
+    let mut v = vec![0u8; 0x1a];
+    v[4..6].copy_from_slice(&w.to_le_bytes());
+    v[6..8].copy_from_slice(&h.to_le_bytes());
+    v[0x18..0x1a].copy_from_slice(&id.to_le_bytes());
+    v
+}
+
+/// The font table: a count, then 84 bytes per font: its id, a word and the name of its font
+/// file (CorelDRAW's own .wfn fonts), or CorelDRAW's name for it. Rewritten as `font` records
+/// that name a font Windows has.
+fn font_table(b: &[u8], at: usize) -> Vec<Chunk> {
+    let Some(n) = b.get(at..at + 2).map(|n| u16::from_le_bytes([n[0], n[1]]) as usize) else { return vec![] };
+    let mut out = vec![];
+    for i in 0..n.min(256) {
+        let Some(e) = b.get(at + 2 + i * 84..at + 2 + (i + 1) * 84) else { break };
+        // the first name in the entry
+        let Some(s) = (0..e.len()).find(|&j| e[j..].iter().take(3).all(|c| c.is_ascii_alphabetic() || *c == b'_') && e.len() - j >= 3) else { continue };
+        let name: String = e[s..].iter().take_while(|c| c.is_ascii_graphic() || **c == b' ').map(|c| *c as char).collect();
+        let family = font_family(&name);
+        let mut v = e[0..2].to_vec();
+        v.extend(family.bytes());
+        v.push(0);
+        out.push(leaf(b"font", v));
+    }
+    out
+}
+
+/// The font Windows has for one of CorelDRAW 1 and 2's fonts (by its file or its name): the
+/// typeface CorelDRAW's is a copy of, else CorelDRAW's name.
+pub(super) fn font_family(name: &str) -> String {
+    // font file, CorelDRAW's name, the Windows font
+    const FONTS: &[(&str, &str, &str)] = &[
+        ("antique", "ProseAntique", "Book Antiqua"),
+        ("avalon", "Avalon", "Century Gothic"),
+        ("bahamahy", "BahamasHeavy", "Bauhaus 93"),
+        ("bahamalt", "BahamasLight", "Bauhaus 93"),
+        ("bahamas", "Bahamas", "Bauhaus 93"),
+        ("banff", "Banff", "Brush Script MT"),
+        ("bodnoff", "Bodnoff", "Bodoni MT Black"),
+        ("brooklyn", "Brooklyn", "Bookman Old Style"),
+        ("brunswik", "NewBrunswick", "Century Schoolbook"),
+        ("casablca", "Casablanca", "Garamond"),
+        ("centold", "CenturionOld", "Century"),
+        ("cuprtino", "Cupertino", "Cooper Black"),
+        ("erie", "Erie", "Eras Medium ITC"),
+        ("erieblak", "ErieBlack", "Eras Demi ITC"),
+        ("erielite", "ErieLight", "Eras Light ITC"),
+        ("frankgo", "FrankfurtGothic", "Franklin Gothic Book"),
+        ("frankgoh", "FrankfurtGothicHeavy", "Franklin Gothic Heavy"),
+        ("frankstn", "Frankenstein", "Old English Text MT"),
+        ("freeport", "Freeport", "Freestyle Script"),
+        ("fuji", "Fujiyama", "Tw Cen MT Condensed"),
+        ("fuji2", "Fujiyama2", "Tw Cen MT"),
+        ("fujibold", "FujiyamaExtraBold", "Tw Cen MT Condensed Extra Bold"),
+        ("fujilite", "FujiyamaLight", "Tw Cen MT Condensed"),
+        ("gatineau", "Gatineau", "Garamond"),
+        ("lincoln", "Lincoln", "Old English Text MT"),
+        ("memorand", "Memorandum", "Courier New"),
+        ("monspace", "Monospaced", "Courier New"),
+        ("mystical", "Mystical", "Mistral"),
+        ("nebraska", "Nebraska", "Baskerville Old Face"),
+        ("palmsprn", "PalmSprings", "Palatino Linotype"),
+        ("stamp", "Stamp", "Stencil"),
+        ("swz", "Switzerland", "Arial"),
+        ("swzblack", "SwitzerlandBlack", "Arial Black"),
+        ("swzconbk", "SwitzerlandCondBlack", "Arial Narrow"),
+        ("swzcond", "SwitzerlandCondensed", "Arial Narrow"),
+        ("swzconlt", "SwitzerlandCondLight", "Arial Narrow"),
+        ("swzinsrt", "SwitzerlandInserat", "Impact"),
+        ("swzlight", "SwitzerlandLight", "Arial"),
+        ("swznarrw", "SwitzerlandNarrow", "Arial Narrow"),
+        ("symbols", "GreekMathSymbols", "Symbol"),
+        ("toronto", "Toronto", "Times New Roman"),
+        ("usablack", "USABlack", "Arial Black"),
+        ("usalight", "USALight", "Arial"),
+    ];
+    let lower = name.to_ascii_lowercase();
+    let stem = lower.strip_suffix(".wfn").unwrap_or(&lower);
+    let squeeze = |s: &str| s.chars().filter(|c| c.is_ascii_alphanumeric()).collect::<String>().to_ascii_lowercase();
+    match FONTS.iter().find(|f| f.0 == stem || squeeze(f.1) == squeeze(stem)) {
+        Some(f) => f.2.to_string(),
+        None if stem.len() < lower.len() => {
+            // a font file without a known copy: its name as CorelDRAW gave it, capitalized
+            let mut c = stem.chars();
+            c.next().map(|f| f.to_ascii_uppercase().to_string() + c.as_str()).unwrap_or_default()
+        }
+        None => name.to_string(),
     }
 }
 
@@ -326,7 +439,7 @@ mod tests {
     /// A CorelDRAW 2 file with one line, an inch long, that ends in a triangle arrowhead.
     fn one_arrow() -> Vec<u8> {
         let mut b = vec![0u8; 77];
-        b[0..4].copy_from_slice(b"WLf ");
+        b[0..4].copy_from_slice(b"WLf\0");
         let put32 = |b: &mut Vec<u8>, at: usize, v: u32| b[at..at + 4].copy_from_slice(&v.to_le_bytes());
         let mcfg = b.len();
         for v in [1i16, -4250, 5500, 4250, -5500] {
@@ -382,6 +495,132 @@ mod tests {
         put32(&mut b, 4, mcfg as u32);
         put32(&mut b, 4 + 3 * 4, dir as u32);
         b
+    }
+
+    /// A CorelDRAW 2 file with one object of `kind` whose shape part is `shape`, a red fill, and
+    /// the extra records (type, id, bytes) given; `fonts` names the font table's fonts.
+    fn one_object(kind: u8, shape: &[u8], fonts: &[(u16, &str)], extra: &[(u8, u32, Vec<u8>)]) -> Vec<u8> {
+        let mut b = vec![0u8; 77];
+        b[0..4].copy_from_slice(b"WLf\0");
+        let put32 = |b: &mut Vec<u8>, at: usize, v: u32| b[at..at + 4].copy_from_slice(&v.to_le_bytes());
+        let mcfg = b.len();
+        for v in [1i16, -4250, 5500, 4250, -5500] {
+            b.extend(v.to_le_bytes());
+        }
+        let ftab = b.len();
+        b.extend((fonts.len() as u16).to_le_bytes());
+        for (id, name) in fonts {
+            let mut e = id.to_le_bytes().to_vec();
+            e.extend([0, 0]);
+            e.extend(name.bytes());
+            e.resize(84, 0);
+            b.extend(e);
+        }
+        let mut rec: Vec<u8> = vec![];
+        rec.extend([0u8; 4]);
+        for v in [65536i32, 0, 0, 0, 65536, 0] {
+            rec.extend(v.to_le_bytes());
+        }
+        rec.push(kind);
+        let fill = 35u16;
+        let shape_at = fill + 6;
+        for v in [shape_at, 0, fill] {
+            rec.extend(v.to_le_bytes());
+        }
+        rec.extend([1, 1, 0, 100, 100, 0]);
+        rec.extend(shape);
+        let rec_at = b.len();
+        b.extend((rec.len() as u32).to_le_bytes());
+        b.extend(&rec);
+        let mut dirs: Vec<(u8, u32, usize)> = vec![];
+        for (t, id, data) in extra {
+            dirs.push((*t, *id, b.len()));
+            b.extend((data.len() as u32).to_le_bytes());
+            b.extend(data);
+        }
+        let node = |next: u16, child: u16, flags: u16| {
+            let mut n = 0x18u32.to_le_bytes().to_vec();
+            for v in [next, 0, child, 0, 0, 0, 0] {
+                n.extend(v.to_le_bytes());
+            }
+            n.extend([0u8; 8]);
+            n.extend(flags.to_le_bytes());
+            n
+        };
+        let page_at = b.len();
+        b.extend(node(0, 5, 1));
+        let obj_at = b.len();
+        b.extend(node(0, 10, 0));
+        dirs.extend([(1u8, 0u32, page_at), (1, 5, obj_at), (2, 10, rec_at)]);
+        let dir = b.len();
+        b.extend((dirs.len() as u16).to_le_bytes());
+        for (t, id, at) in dirs {
+            b.push(t);
+            b.extend(id.to_le_bytes());
+            b.extend((at as u32).to_le_bytes());
+        }
+        put32(&mut b, 4, mcfg as u32);
+        put32(&mut b, 4 + 2 * 4, ftab as u32);
+        put32(&mut b, 4 + 3 * 4, dir as u32);
+        b
+    }
+
+    fn objects(doc: &vector_core::document::Document) -> Vec<&vector_core::object::Object> {
+        doc.pages[0].layers.iter().flat_map(|l| l.objects.iter()).collect()
+    }
+
+    #[test]
+    fn coreldraw_2_text() {
+        // font 1, bold, half an inch, 100 % line spacing, centered, two lines of one character
+        let mut t = vec![0u8; 0x24];
+        t[0..2].copy_from_slice(&1u16.to_le_bytes());
+        t[2] = 2;
+        t[3..5].copy_from_slice(&500u16.to_le_bytes());
+        t[9..11].copy_from_slice(&100u16.to_le_bytes());
+        t[0x15] = 2;
+        t[0x1f..0x23].copy_from_slice(&4u32.to_le_bytes());
+        t.extend([b'H', 0, 13, 0, 10, 0, 0xe9]);
+        let doc = super::super::load_from_bytes(&one_object(3, &t, &[(1, "swz.wfn")], &[])).unwrap();
+        let objects = objects(&doc);
+        assert_eq!(objects.len(), 1);
+        let ObjKind::Text(t) = &objects[0].kind else { panic!("{:?}", objects[0].kind.type_name()) };
+        assert_eq!(t.content, "H\n\u{e9}");
+        assert_eq!(t.format.font, "Arial");
+        assert!((t.format.size - 36.0).abs() < 0.01, "{}", t.format.size);
+        assert!(t.format.bold && !t.format.italic);
+        assert_eq!(t.align, vector_core::text::TextAlign::Center);
+        assert!(matches!(&objects[0].style.fill, vector_core::style::Fill::Solid(c) if c.r > 200 && c.g < 60));
+    }
+
+    #[test]
+    fn coreldraw_2_bitmap() {
+        // a 2 by 2 pixel, 1-bit TIFF, uncompressed: black, white / white, black
+        let mut tif = b"II*\0".to_vec();
+        tif.extend(8u32.to_le_bytes());
+        let entries: [(u16, u16, u32); 8] = [(256, 3, 2), (257, 3, 2), (258, 3, 1), (259, 3, 1), (262, 3, 0), (273, 4, 0), (277, 3, 1), (278, 3, 2)];
+        let data_at = 8 + 2 + entries.len() * 12 + 4;
+        tif.extend((entries.len() as u16).to_le_bytes());
+        for (tag, ty, v) in entries {
+            let v = if tag == 273 { data_at as u32 } else { v };
+            tif.extend(tag.to_le_bytes());
+            tif.extend(ty.to_le_bytes());
+            tif.extend(1u32.to_le_bytes());
+            tif.extend(v.to_le_bytes());
+        }
+        tif.extend(0u32.to_le_bytes());
+        // WhiteIsZero: a set bit is black
+        tif.extend([0b1000_0000, 0b0100_0000]);
+        // an inch by half an inch; 3 words; 2 by 2 pixels; TIFF record 7
+        let mut shape = vec![];
+        for v in [1000i16, 500, 0, 0, 0, 2, 2, 7] {
+            shape.extend(v.to_le_bytes());
+        }
+        let doc = super::super::load_from_bytes(&one_object(4, &shape, &[], &[(3, 7, tif)])).unwrap();
+        let objects = objects(&doc);
+        assert_eq!(objects.len(), 1);
+        assert!(matches!(objects[0].kind, ObjKind::Image(_)), "{:?}", objects[0].kind.type_name());
+        let bb = objects[0].bounds();
+        assert!((bb.width() - 72.0).abs() < 0.01 && (bb.height() - 36.0).abs() < 0.01, "{bb:?}");
     }
 
     #[test]

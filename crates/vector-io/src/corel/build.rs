@@ -97,7 +97,23 @@ pub(super) struct Ctx<'a> {
     pub by_spnd: HashMap<u32, u64>,
     /// Perspectives of the groups being converted, innermost last.
     pub warps: Vec<persp::Warp>,
+    /// CorelDRAW 4 paragraph texts (`btxt`) by their id: each paragraph's style and characters.
+    pub texts4: HashMap<u32, Vec<(u32, Vec<u16>)>>,
+    /// The text whose records are being read.
+    pub text4: Option<u32>,
+    /// CorelDRAW 4 paragraph text frames (`lnkt`): the text's id, then the `spnd` ids of the
+    /// frames it flows through.
+    pub chains4: Vec<(u32, Vec<u32>)>,
     pub doc: Document,
+}
+
+/// An object's `spnd` id: 16 bits before CorelDRAW 6, 32 from then on.
+pub(super) fn spnd(b: &[u8]) -> u32 {
+    if b.len() < 4 {
+        Rd::new(b).u16() as u32
+    } else {
+        Rd::new(b).u32()
+    }
 }
 
 pub(super) struct Loda<'a> {
@@ -450,10 +466,31 @@ impl<'a> Ctx<'a> {
             b"arrx" | b"arrw" => self.arrow(&c.tag, &c.data),
             b"outl" => self.outl(&c.data),
             b"font" => text::font(self, &c.data),
+            b"ftbl" => text::ftbl(self, &c.data),
             b"stlt" => text::stlt(self, &c.data),
             b"bmp " => super::bitmap::bitmap(self, &c.data),
+            b"tiff" => super::bitmap::tiff(self, &c.data),
             b"bmpf" => self.pattern(&c.data),
+            b"lnkt" if self.ver < 500 => self.links4(&c.data),
             b"lnkt" => self.links(&c.data),
+            // CorelDRAW 4 paragraph text: the text's id, then per paragraph its style and count,
+            // and the characters (plain ones 4 bytes each, styled ones 24 bytes each)
+            b"btid" => {
+                let id = Rd::new(&c.data).u16() as u32;
+                self.texts4.insert(id, vec![]);
+                self.text4 = Some(id);
+            }
+            b"para" => {
+                if let Some(t) = self.text4.and_then(|id| self.texts4.get_mut(&id)) {
+                    t.push((Rd::new(&c.data).u16() as u32, vec![]));
+                }
+            }
+            b"bnch" | b"bsch" => {
+                let step = if &c.tag == b"bnch" { 4 } else { 24 };
+                if let Some((_, chars)) = self.text4.and_then(|id| self.texts4.get_mut(&id)).and_then(|t| t.last_mut()) {
+                    chars.extend(c.data.chunks(step).filter(|r| r.len() >= 4).map(|r| u16::from_le_bytes([r[2], r[3]])));
+                }
+            }
             _ => {}
         }
     }
@@ -476,6 +513,27 @@ impl<'a> Ctx<'a> {
             if r.u32() == 0x40 {
                 let (a, z) = (r.u32(), r.u32());
                 self.text_paths.push((a, z));
+            }
+        }
+    }
+
+    /// CorelDRAW 4 links (`lnkt`): their count and where each starts; a link is its kind, its count of
+    /// objects, ten spare bytes, then for paragraph text (kind 0x61) the text's id and its frames.
+    fn links4(&mut self, b: &[u8]) {
+        let n = Rd::at(b, 2).u16() as usize;
+        let start = Rd::at(b, 4).u16() as usize;
+        for i in 0..n.min(10_000) {
+            let off = Rd::at(b, start + 2 * i).u16() as usize;
+            let mut r = Rd::at(b, off);
+            if r.u16() != 0x61 {
+                continue;
+            }
+            let count = (r.u16() as usize).min(1000);
+            r.skip(10);
+            let text = r.u16() as u32;
+            let frames: Vec<u32> = (0..count).map(|_| r.u16() as u32).filter(|f| *f != 0).collect();
+            if !frames.is_empty() {
+                self.chains4.push((text, frames));
             }
         }
     }
@@ -550,7 +608,17 @@ impl<'a> Ctx<'a> {
                 let params = (0..n).map(|_| r.i16() as i32).collect();
                 RawFill::PostScript { number, params }
             }
-            // bitmap, vector pattern and texture fills before X3: not read yet
+            // bitmap fills of CorelDRAW 6 to 12: the pattern's id, the tile's size, its offsets
+            // and flags, then the bitmap
+            9 if self.ver >= 600 => {
+                r.skip(2);
+                let _pattern = r.u32();
+                let tile = r.i32().abs() as f64 * self.k;
+                r.skip(4 + 4 + 2 + 1 + 21);
+                RawFill::Image { bitmap: r.u32(), tile, angle: 0.0 }
+            }
+            // vector pattern and texture fills before X3 keep no bitmap (CorelDRAW draws a
+            // texture from its settings): shown as a neutral tone
             _ => RawFill::Solid(Color::rgb(200, 200, 200)),
         };
         self.fills.insert(id, fill);
@@ -1147,7 +1215,7 @@ impl<'a> Ctx<'a> {
             let warps: Vec<persp::Warp> = own.into_iter().chain(self.warps.iter().rev().cloned()).collect();
             persp::bake(&mut o, &warps);
             if let Some(s) = c.child(b"spnd") {
-                self.by_spnd.insert(Rd::new(&s.data).u32(), o.id);
+                self.by_spnd.insert(spnd(&s.data), o.id);
             }
             out.push(o);
             return;
@@ -1590,7 +1658,7 @@ pub(super) fn document(root: &Chunk) -> Result<Document> {
 pub(super) fn document_with_report(root: &Chunk) -> Result<(Document, Vec<(u32, usize)>)> {
     let ver = version(root);
     let k = if ver >= 600 { 72.0 / 254_000.0 } else { 72.0 / 1000.0 };
-    let mut cx = Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), warps: vec![], doc: Document::new(612.0, 792.0) };
+    let mut cx = Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], doc: Document::new(612.0, 792.0) };
     cx.collect(root);
     cx.pattern_images();
     let default_size = cx.default_page_size(root);
@@ -1666,6 +1734,53 @@ pub(super) fn document_with_report(root: &Chunk) -> Result<(Document, Vec<(u32, 
             }
         }
     }
+    // CorelDRAW 4 paragraph text that flows through frames: the first frame holds it, the others
+    // follow it
+    let mut linked = false;
+    for (_, frames) in &cx.chains4 {
+        let ids: Vec<u64> = frames.iter().filter_map(|f| cx.by_spnd.get(f).copied()).filter(|id| doc.find(*id).is_some_and(|o| matches!(o.kind, ObjKind::Text(_)))).collect();
+        for (i, id) in ids.iter().enumerate() {
+            if let Some(ObjKind::Text(t)) = doc.find_mut(*id).map(|o| &mut o.kind) {
+                t.link_prev = i.checked_sub(1).map(|p| ids[p]);
+                t.link_next = ids.get(i + 1).copied();
+                linked |= ids.len() > 1;
+            }
+        }
+    }
+    if linked {
+        doc.update_text_flow();
+    }
     doc.ensure_next_id();
     Ok((doc, skipped))
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
+
+    pub(crate) fn ctx(ver: u32) -> Ctx<'static> {
+        let k = if ver >= 600 { 72.0 / 254_000.0 } else { 72.0 / 1000.0 };
+        Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], doc: Document::new(612.0, 792.0) }
+    }
+
+    #[test]
+    fn bitmap_fills_before_x3_point_at_their_bitmap() {
+        // a CorelDRAW 7 bitmap fill (as 7effects.cdr has it): id, type 9, two spare bytes, the
+        // pattern's id, a tile 4 inches square, offsets, flags, then the bitmap's id
+        let mut b = 7u32.to_le_bytes().to_vec();
+        b.extend(9u16.to_le_bytes());
+        b.extend([0, 0]);
+        b.extend(1u32.to_le_bytes());
+        b.extend((4 * 254_000i32).to_le_bytes());
+        b.extend((4 * 254_000i32).to_le_bytes());
+        b.extend([0; 4 + 2 + 1 + 21]);
+        b.extend(23u32.to_le_bytes());
+        b.extend([0; 8]);
+        let mut cx = ctx(700);
+        cx.fild(&b);
+        match cx.fills.get(&7) {
+            Some(RawFill::Image { bitmap: 23, tile, .. }) => assert!((tile - 288.0).abs() < 1e-6, "{tile}"),
+            f => panic!("{f:?}"),
+        }
+    }
 }
