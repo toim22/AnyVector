@@ -1103,6 +1103,7 @@ fn paragraph4(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Option<Obje
     let own = l.arg(ARG_STYLE).map(|a| cx.styles.look(cx.uint(&mut Rd::new(a)), cx)).unwrap_or_default();
     let first = paras.first().and_then(|p| p.runs.first()).map(|r| r.look.over(&own)).unwrap_or_else(|| own.clone());
     let content = paras.iter().map(|p| p.runs.iter().map(|r| r.text.as_str()).collect::<String>()).collect::<Vec<_>>().join("\n");
+    let (w, h, xf) = unscaled_frame(world * Affine::scale_non_uniform(1.0 / k, -1.0 / k), w, h);
     let mut t = TextObj::paragraph(content.trim_end_matches('\n'), w.max(1.0), h.max(1.0), first.format());
     if let Some(v) = first.line {
         t.line_spacing = v;
@@ -1124,8 +1125,20 @@ fn paragraph4(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Option<Obje
         st.fill = Fill::Solid(c);
     }
     st.outline = Outline::none();
-    let xf = world * Affine::scale_non_uniform(1.0 / k, -1.0 / k);
     Some(Object::new(cx.doc.new_id(), ObjKind::Text(t), xf, st))
+}
+
+/// A paragraph text frame stretched with the pick tool keeps its old size and a scale in its
+/// transform, and CorelDRAW lays the text out unscaled in the stretched frame. This makes the
+/// scale part of the frame's size: the frame's width and height, and its transform without
+/// the scale.
+fn unscaled_frame(xf: Affine, w: f64, h: f64) -> (f64, f64, Affine) {
+    let [a, b, c, d, _, _] = xf.as_coeffs();
+    let (sx, sy) = (a.hypot(b), c.hypot(d));
+    if sx < 1e-6 || sy < 1e-6 {
+        return (w, h, xf);
+    }
+    (w * sx, h * sy, xf * Affine::scale_non_uniform(1.0 / sx, 1.0 / sy))
 }
 
 /// Text of CorelDRAW 3: a header (the character count at 11, the font at 15, the size in
@@ -1442,10 +1455,13 @@ pub(super) fn object(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Opti
         let a = l.arg(0x1e).unwrap_or(&[]);
         let mut r = Rd::new(a);
         r.skip(if cx.wide() { 4 } else { 2 });
-        let w = cx.coord(&mut r).abs() * k;
-        let h = cx.coord(&mut r).abs() * k;
+        let mut w = cx.coord(&mut r).abs() * k;
+        let mut h = cx.coord(&mut r).abs() * k;
+        let stored = w;
+        let frame;
+        (w, h, frame) = unscaled_frame(world * Affine::scale_non_uniform(1.0 / k, -1.0 / k), w, h);
         t = TextObj::paragraph(&content, w.max(1.0), h.max(1.0), format);
-        let binary = if cx.ver < 1600 { binary_columns(data, w / k) } else { None };
+        let binary = if cx.ver < 1600 { binary_columns(data, stored / k) } else { None };
         if let Some(cols) = binary.as_ref().or(own.columns.as_ref()) {
             let w = w.max(1.0);
             t.columns = cols.len() as u32;
@@ -1457,7 +1473,7 @@ pub(super) fn object(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Opti
                 t.column_widths = cols.iter().map(|(cw, g)| (cw * w, g * w)).collect();
             }
         }
-        xf = world * Affine::scale_non_uniform(1.0 / k, -1.0 / k);
+        xf = frame;
     } else {
         t = TextObj::artistic(&content, format);
         xf = world * Affine::scale_non_uniform(1.0 / k, -1.0 / k);
@@ -1654,6 +1670,16 @@ mod tests {
         assert_eq!(end, b.len());
         assert_eq!(cp1252(0xe7), '\u{e7}');
         assert_eq!(cp1252(0x80), '\u{20ac}');
+    }
+
+    #[test]
+    fn stretched_frames_keep_their_text_unscaled() {
+        // a 100 by 50 frame stretched 1.5 times wide and 4 times high, and turned
+        let xf = Affine::translate((10.0, 20.0)) * Affine::rotate(0.3) * Affine::scale_non_uniform(1.5, 4.0);
+        let (w, h, frame) = unscaled_frame(xf, 100.0, 50.0);
+        assert!((w - 150.0).abs() < 1e-9 && (h - 200.0).abs() < 1e-9, "{w} {h}");
+        let want = Affine::translate((10.0, 20.0)) * Affine::rotate(0.3);
+        assert!(frame.as_coeffs().iter().zip(want.as_coeffs()).all(|(a, b)| (a - b).abs() < 1e-9), "{frame:?}");
     }
 
     #[test]
