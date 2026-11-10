@@ -8,7 +8,7 @@ use crate::app::AnyVectorApp;
 use crate::propbar::edit_sel;
 use crate::theme;
 use egui::{pos2, vec2, Color32, Rect, Sense, Stroke, Ui};
-use vector_core::style::{ArrowHead, Gradient, GradientKind, GradientStop, LineCap, LineJoin, MergeMode, OutlinePosition, PatternFill, PatternKind, SpreadMode, VarWidth, WidthProfile};
+use vector_core::style::{ArrowHead, Gradient, GradientKind, GradientStop, LineCap, LineJoin, MergeMode, OutlinePosition, PatternFill, PatternKind, PatternSource, SpreadMode, VarWidth, WidthProfile};
 use vector_core::{Color, Fill, ObjKind, Object, Transparency, Unit};
 
 /// The state of the Properties docker.
@@ -102,7 +102,7 @@ pub fn transparency_kind(t: &Transparency) -> u8 {
 /// The pattern a new pattern fill or transparency of `kind` (3, 4, 5) starts with: the
 /// document's first pattern of that kind, else a built-in one.
 fn default_pattern(app: &mut AnyVectorApp, kind: u8, fg: Color, bg: Color) -> PatternFill {
-    let base = PatternFill { kind: PatternKind::Dots, fg, bg, tile: 36.0, angle: 0.0, image: None, transform_with_object: true, vector: false, mirror: 0 };
+    let base = PatternFill { kind: PatternKind::Dots, fg, bg, tile: 36.0, angle: 0.0, image: None, transform_with_object: true, vector: false, mirror: 0, source: None };
     let named = app.doc().map(|d| d.doc.patterns.clone()).unwrap_or_default();
     match kind {
         3 => named.iter().find(|n| n.fill.vector).map(|n| n.fill.clone()).unwrap_or(PatternFill { kind: PatternKind::Diamonds, vector: true, ..base }),
@@ -1617,13 +1617,13 @@ fn pattern(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, p: PatternFill, kind
             match kind {
                 5 => {
                     for k in PatternKind::ALL {
-                        list.push(PatternFill { kind: k, image: None, vector: false, ..p.clone() });
+                        list.push(PatternFill { kind: k, image: None, vector: false, source: None, ..p.clone() });
                     }
                 }
                 3 => {
                     list.extend(named.iter().filter(|n| n.fill.vector).map(|n| n.fill.clone()));
                     for k in [PatternKind::Diamonds, PatternKind::Bricks, PatternKind::Waves, PatternKind::Grid] {
-                        list.push(PatternFill { kind: k, image: None, vector: true, ..p.clone() });
+                        list.push(PatternFill { kind: k, image: None, vector: true, source: None, ..p.clone() });
                     }
                 }
                 _ => list.extend(named.iter().filter(|n| !n.fill.vector && n.fill.image.is_some()).map(|n| n.fill.clone())),
@@ -1657,11 +1657,14 @@ fn pattern(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, p: PatternFill, kind
         ui.painter().line_segment([sr.center_top(), sr.center_bottom()], Stroke::new(1.0, theme::SEP));
         ui.vertical(|ui| {
             // a vector pattern opens as its own document (with View ▸ Pattern Preview)
-            let editable = kind == 3 && !transp && p.image.is_some_and(|id| named.iter().any(|n| n.fill.image == Some(id)));
+            // (its objects when the fill keeps them, else the picture of a named pattern)
+            let tiled = match p.source {
+                Some(PatternSource::Tile(t)) => app.doc().is_some_and(|d| d.doc.pattern_tiles.contains_key(&t)),
+                _ => false,
+            };
+            let editable = kind == 3 && !transp && p.image.is_some() && (tiled || p.image.is_some_and(|id| named.iter().any(|n| n.fill.image == Some(id))));
             if super::icon_button(app, ui, if transp { "edit_transparency" } else { "edit_fill" }, if transp { "Edit transparency" } else { "Edit fill" }, editable) {
-                if let Some(id) = p.image {
-                    crate::dialogs::object::edit_pattern(app, id);
-                }
+                crate::dialogs::object::edit_pattern(app, &p);
             }
             if kind != 5 {
                 let r = super::icon_button_resp(app, ui, "new_source", "New source", true);
@@ -1676,6 +1679,7 @@ fn pattern(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, p: PatternFill, kind
                             if let Some(id) = load_pattern_image(app, &path) {
                                 p.image = Some(id);
                                 p.vector = false;
+                                p.source = None;
                                 ch = true;
                             }
                         }
@@ -1686,6 +1690,9 @@ fn pattern(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, p: PatternFill, kind
         });
         mark(ui);
     });
+    if let Some(src) = p.source.clone() {
+        ch |= pattern_source(app, ui, &mut p, &src, !transp);
+    }
     if transp {
         ui.add_space(6.0);
         ui.horizontal(|ui| {
@@ -1847,6 +1854,96 @@ fn pattern(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, p: PatternFill, kind
     }
 }
 
+/// What a pattern's tile is made of: a texture's style and settings (which can be changed: the
+/// tile is drawn again), a PostScript fill's number and settings (shown only), or the objects
+/// of a vector pattern. "Convert to bitmap pattern" keeps the picture and forgets the rest.
+/// `editable` is false for transparencies. True when the fill changed.
+fn pattern_source(app: &mut AnyVectorApp, ui: &mut Ui, p: &mut PatternFill, src: &PatternSource, editable: bool) -> bool {
+    let mut ch = false;
+    gap(ui);
+    match src {
+        PatternSource::Tile(t) => {
+            let name = app.doc().and_then(|d| d.doc.pattern_tiles.get(t).map(|t| (t.name.clone(), t.objects.len())));
+            match name {
+                Some((name, n)) => label(ui, &format!("Vector pattern \"{name}\": {n} object(s)"), true),
+                None => label(ui, "Vector pattern: its objects are missing", true),
+            }
+        }
+        PatternSource::Texture { style, kinds, params } => {
+            label(ui, &format!("Texture fill: {style}"), true);
+            let settings = PatternSource::texture_settings(kinds, params);
+            // a style we don't know is drawn grey: its settings change nothing, so they are shown only
+            let known = !kinds.contains('u');
+            let mut new = settings.clone();
+            let (mut num, mut col) = (0, 0);
+            for (i, (k, v)) in settings.iter().enumerate() {
+                row(ui, |ui| match k {
+                    b'c' => {
+                        col += 1;
+                        rlabel(ui, &format!("Color {col}:"), 86.0, true);
+                        let pc = |x: i32| (x.clamp(0, 100) as f64 * 2.55).round() as u8;
+                        let mut c = Some(Color::rgb(pc(v[0]), pc(v[1]), pc(v[2])));
+                        if color_pick_w(ui, &format!("pr_tex_{i}"), &mut c, false, editable && known, 64.0) {
+                            if let Some(c) = c {
+                                let back = |x: u8| (x as f64 / 2.55).round() as i32;
+                                new[i].1 = vec![back(c.r), back(c.g), back(c.b)];
+                            }
+                        }
+                    }
+                    b'b' => {
+                        rlabel(ui, "Brightness:", 86.0, true);
+                        let mut x = v[0] as f64;
+                        ui.add_enabled_ui(editable && known, |ui| {
+                            if plus_field(ui, &mut x, -100.0..=100.0, " %", 64.0) {
+                                new[i].1 = vec![x.round() as i32];
+                            }
+                        });
+                    }
+                    _ => {
+                        num += 1;
+                        rlabel(ui, &if num == 1 { "Texture #:".to_string() } else { format!("Setting {num}:") }, 86.0, true);
+                        let mut x = v[0] as f64;
+                        ui.add_enabled_ui(editable && known, |ui| {
+                            if plus_field(ui, &mut x, -32768.0..=32767.0, "", 64.0) {
+                                new[i].1 = vec![x.round() as i32];
+                            }
+                        });
+                    }
+                });
+            }
+            if !known {
+                label(ui, "This style isn't in CorelDRAW's texture library: its settings are shown only.", false);
+            }
+            if new != settings {
+                let recipe = PatternSource::Texture { style: style.clone(), kinds: kinds.clone(), params: new.into_iter().flat_map(|s| s.1).collect() };
+                // a new picture for this fill: others drawn from the same settings keep theirs
+                if let Some(img) = vector_io::patterns::texture_image(&recipe) {
+                    if let Some(d) = app.doc_mut() {
+                        p.image = Some(d.doc.add_image(img));
+                        p.source = Some(recipe);
+                        ch = true;
+                    }
+                }
+            }
+        }
+        PatternSource::PostScript { number, params } => {
+            label(ui, &format!("PostScript fill {number}"), true);
+            let list: Vec<String> = params.iter().map(|v| v.to_string()).collect();
+            row(ui, |ui| {
+                rlabel(ui, "Settings:", 86.0, true);
+                label(ui, &if list.is_empty() { "none".to_string() } else { list.join(", ") }, true);
+            });
+            label(ui, "Its settings are shown only: AnyVector can't redraw a PostScript fill yet.", false);
+        }
+    }
+    if editable && ui.button("Convert to bitmap pattern").on_hover_text("Keep the tile's picture and forget what it is made of").clicked() {
+        p.source = None;
+        p.vector = false;
+        ch = true;
+    }
+    ch
+}
+
 /// An image file as a bitmap pattern of the document.
 fn load_pattern_image(app: &mut AnyVectorApp, path: &std::path::Path) -> Option<u64> {
     let bytes = std::fs::read(path).ok()?;
@@ -1856,7 +1953,7 @@ fn load_pattern_image(app: &mut AnyVectorApp, path: &std::path::Path) -> Option<
     let ext = path.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_else(|| "png".into());
     let d = app.doc_mut()?;
     let id = d.doc.add_image(vector_core::document::ImageData { width: w, height: h, rgba: std::sync::Arc::new(img.into_raw()), encoded: std::sync::Arc::new(bytes), format: ext, name: name.clone() });
-    let fill = PatternFill { kind: PatternKind::Checker, fg: Color::BLACK, bg: Color::WHITE, tile: 72.0, angle: 0.0, image: Some(id), transform_with_object: true, vector: false, mirror: 0 };
+    let fill = PatternFill { kind: PatternKind::Checker, fg: Color::BLACK, bg: Color::WHITE, tile: 72.0, angle: 0.0, image: Some(id), transform_with_object: true, vector: false, mirror: 0, source: None };
     d.doc.patterns.push(vector_core::document::NamedPattern { name, fill, source: vec![] });
     Some(id)
 }

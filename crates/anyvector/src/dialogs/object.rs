@@ -11,7 +11,7 @@ use std::sync::Arc;
 use vector_core::codes::{self, BarcodeKind, Special};
 use vector_core::document::{ImageData, NamedPattern, SymbolDef};
 use vector_core::path::NodePath;
-use vector_core::style::{ArrowHead, CustomArrow, PatternFill, PatternKind};
+use vector_core::style::{ArrowHead, CustomArrow, PatternFill, PatternKind, PatternSource};
 use vector_core::{Color, Document, Fill, ObjId, ObjKind, Object, Outline, Style};
 
 /// Every leaf of an object as one path, in page coordinates.
@@ -274,46 +274,62 @@ pub fn make_pattern(doc: &mut Document, page: usize, area: Rect, kind: u8, resol
     let name = format!("Pattern {n}");
     let img = ImageData { width: pm.width(), height: pm.height(), rgba: Arc::new(rgba), encoded: Arc::new(vec![]), format: "png".into(), name: name.clone() };
     let iid = doc.add_image(img);
-    let fill = PatternFill { kind: PatternKind::Checker, fg: Color::BLACK, bg: Color::WHITE, tile: area.width().max(area.height()), angle: 0.0, image: Some(iid), transform_with_object: true, vector: true, mirror: 0 };
-    // the objects in the area, kept to edit the pattern later
-    let mut source = vec![];
+    let mut fill = PatternFill { kind: PatternKind::Checker, fg: Color::BLACK, bg: Color::WHITE, tile: area.width().max(area.height()), angle: 0.0, image: Some(iid), transform_with_object: true, vector: true, mirror: 0, source: None };
+    // a vector pattern keeps the objects in the area as its tile, to edit the pattern later
     if kind == 0 {
+        let mut objects = vec![];
         for layer in &doc.pages[page].layers {
             for o in &layer.objects {
                 if doc.bounds_of(o).intersect(area).area() > 0.0 {
                     let mut c = o.clone();
                     c.apply_transform(Affine::translate((-area.x0, -area.y0)));
-                    source.push(c);
+                    objects.push(c);
                 }
             }
         }
+        let tile = vector_core::document::PatternTile { name: name.clone(), objects, width: area.width(), height: area.height(), background: None, revision: 0 };
+        fill.source = Some(PatternSource::Tile(doc.add_pattern_tile(tile)));
     }
-    doc.patterns.push(NamedPattern { name: name.clone(), fill, source });
+    doc.patterns.push(NamedPattern { name: name.clone(), fill, source: vec![] });
     Some(name)
 }
 
 /// Properties ▸ Vector Pattern ▸ Edit fill: the pattern opens as its own document, one tile on
 /// the page, in View ▸ Pattern Preview. Closing it puts the changes into the pattern.
-pub fn edit_pattern(app: &mut AnyVectorApp, image: u64) {
+pub fn edit_pattern(app: &mut AnyVectorApp, fill: &PatternFill) {
+    let Some(image) = fill.image else { return };
+    let tile = match fill.source {
+        Some(PatternSource::Tile(t)) => Some(t),
+        _ => None,
+    };
     let Some(a) = app.active.filter(|a| *a < app.docs.len()) else { return };
     let group = app.docs[a].group;
     // already open: show it
-    if let Some(i) = app.docs.iter().position(|d| d.pattern.as_ref().is_some_and(|l| l.image == image && l.group == group)) {
+    if let Some(i) = app.docs.iter().position(|d| d.pattern.as_ref().is_some_and(|l| l.group == group && if tile.is_some() { l.tile == tile } else { l.image == image })) {
         app.active = Some(i);
         return;
     }
     let src = &app.docs[a];
-    let Some(np) = src.doc.patterns.iter().find(|n| n.fill.image == Some(image)).cloned() else { return };
-    let Some(img) = src.doc.images.get(&image).cloned() else { return };
-    let big = img.width.max(img.height).max(1) as f64;
-    let (w, h) = (np.fill.tile * img.width as f64 / big, np.fill.tile * img.height as f64 / big);
+    // a pattern made of objects: the tile's objects, on a page the tile's size
+    let tiled = tile.and_then(|t| src.doc.pattern_tiles.get(&t)).map(|t| (t.name.clone(), t.width, t.height, t.objects.clone()));
+    let (name, w, h, source) = match tiled {
+        Some((name, w, h, objects)) => (if name.is_empty() { "Pattern".to_string() } else { name }, w, h, objects),
+        None => {
+            let Some(np) = src.doc.patterns.iter().find(|n| n.fill.image == Some(image)).cloned() else { return };
+            let Some(img) = src.doc.images.get(&image).cloned() else { return };
+            let big = img.width.max(img.height).max(1) as f64;
+            (np.name, np.fill.tile * img.width as f64 / big, np.fill.tile * img.height as f64 / big, np.source)
+        }
+    };
     let mut doc = Document::new(w.max(1.0), h.max(1.0));
     doc.settings.unit = src.doc.settings.unit;
-    // the bitmaps of the source document, so the pattern's objects find theirs; new ids stay
-    // clear of the ids the source document gives out meanwhile
+    // the bitmaps and pattern tiles of the source document, so the pattern's objects find
+    // theirs; new ids stay clear of the ids the source document gives out meanwhile
     doc.images = src.doc.images.clone();
+    doc.pattern_tiles = src.doc.pattern_tiles.clone();
     doc.reserve_ids_below(src.doc.next_id_value() + 1_000_000);
-    let objs = if np.source.is_empty() {
+    let np = NamedPattern { name, fill: fill.clone(), source };
+    let objs = if np.source.is_empty() && tile.is_none() {
         // a pattern without its objects: the tile itself
         let mut st = Style::default();
         st.fill = Fill::None;
@@ -329,7 +345,7 @@ pub fn edit_pattern(app: &mut AnyVectorApp, image: u64) {
         l.objects = objs;
     }
     let mut dv = crate::docview::DocView::new(doc, np.name.clone(), app.settings.undo_levels);
-    dv.pattern = Some(crate::docview::PatternLink { group, image });
+    dv.pattern = Some(crate::docview::PatternLink { group, image, tile });
     dv.view_mode = crate::docview::ViewMode::PatternPreview;
     app.push_doc(dv);
 }
@@ -342,6 +358,31 @@ pub fn apply_pattern_doc(app: &mut AnyVectorApp, i: usize) {
         return;
     }
     let pd = &app.docs[i].doc;
+    if let Some(tile) = link.tile {
+        // a pattern made of objects: they go back into its tile, which draws every fill
+        // that uses it again
+        let objects: Vec<Object> = pd.pages[0].layers.iter().flat_map(|l| l.objects.iter().cloned()).collect();
+        let images = pd.images.clone();
+        let tiles = pd.pattern_tiles.clone();
+        let Some(s) = app.docs.iter().position(|d| d.group == link.group && d.pattern.is_none()) else { return };
+        let prev = app.active;
+        app.active = Some(s);
+        if let Some(d) = app.doc_mut() {
+            d.modify("Edit Pattern", |doc, _| {
+                for (id, im) in images {
+                    doc.images.entry(id).or_insert(im);
+                }
+                for (id, t) in tiles {
+                    doc.pattern_tiles.entry(id).or_insert(t);
+                }
+                vector_io::patterns::set_tile_objects(doc, tile, objects);
+            });
+            d.cache.key = 0;
+        }
+        app.sync_windows();
+        app.active = prev;
+        return;
+    }
     let area = pd.pages[0].rect();
     let Some(pm) = vector_render::render_page_image(pd, 0, 600.0, None, Some(area), true) else { return };
     let mut rgba: Vec<u8> = Vec::with_capacity((pm.width() * pm.height() * 4) as usize);
