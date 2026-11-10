@@ -118,6 +118,9 @@ pub(super) struct Ctx<'a> {
     /// Points per file unit.
     pub k: f64,
     pub fills: HashMap<u32, RawFill>,
+    /// What the tile of a pattern fill is made of, by the fill's id: the objects of a vector
+    /// pattern, a texture's or a PostScript fill's settings. The fill keeps its picture too.
+    pub sources: HashMap<u32, PatternSource>,
     pub outlines: HashMap<u32, Outline>,
     pub fonts: HashMap<u32, String>,
     /// Font id to the Windows character set of its one-byte text.
@@ -705,6 +708,7 @@ impl<'a> Ctx<'a> {
                     // older layouts are not known, so they keep the usual tile
                     let width = if found.wide && self.ver >= 1200 && b.len() >= 0x14 { Rd::at(b, 0x0c).i32().unsigned_abs() as f64 * self.k } else { 0.0 };
                     let tile = if (1.0..=7200.0).contains(&width) { width } else { super::texture::TILE };
+                    self.sources.insert(id, PatternSource::Texture { style: found.style, kinds: found.kinds, params: found.params });
                     RawFill::Texture(found.texture, tile)
                 }
                 None => RawFill::Solid(Color::rgb(200, 200, 200)),
@@ -770,6 +774,7 @@ impl<'a> Ctx<'a> {
     pub(super) fn pattern_images(&mut self) {
         let mut made: HashMap<(u32, [u8; 4], [u8; 4]), u32> = HashMap::new();
         let mut textures: HashMap<super::texture::Texture, u32> = HashMap::new();
+        let mut vectors: HashMap<(u32, u64, u64), (u32, u64)> = HashMap::new();
         let mut next = 0xff00_0000u32;
         let ids: Vec<u32> = self.fills.keys().copied().collect();
         for id in ids {
@@ -782,6 +787,7 @@ impl<'a> Ctx<'a> {
                         let iid = self.doc.add_image(data);
                         next += 1;
                         self.images.insert(next, (iid, w, h));
+                        self.sources.insert(id, PatternSource::PostScript { number: *number, params: params.clone() });
                         RawFill::Image { bitmap: next, tile: width, angle }
                     }
                 };
@@ -789,14 +795,26 @@ impl<'a> Ctx<'a> {
                 continue;
             }
             if let Some(RawFill::Vector { pattern, w, h }) = self.fills.get(&id).cloned() {
-                let fill = match self.vector_tile(pattern, w, h) {
-                    Some((rgba, pw, ph)) => {
+                // the pattern's objects become a tile of the document, drawn once for every
+                // fill of the same pattern and size
+                let key = (pattern, w.to_bits(), h.to_bits());
+                let made = match vectors.get(&key) {
+                    Some(m) => Some(*m),
+                    None => self.vector_tile(pattern, w, h).map(|(tile, rgba, pw, ph)| {
                         let encoded = crate::image_io::encode_png(pw, ph, &rgba);
                         let data = vector_core::document::ImageData { width: pw, height: ph, rgba: std::sync::Arc::new(rgba), encoded: std::sync::Arc::new(encoded), format: "png".into(), name: format!("vector pattern {pattern}") };
                         let iid = self.doc.add_image(data);
+                        let tid = self.doc.add_pattern_tile(tile);
                         next += 1;
                         self.images.insert(next, (iid, pw, ph));
-                        RawFill::Image { bitmap: next, tile: w, angle: 0.0 }
+                        vectors.insert(key, (next, tid));
+                        (next, tid)
+                    }),
+                };
+                let fill = match made {
+                    Some((bitmap, tid)) => {
+                        self.sources.insert(id, PatternSource::Tile(tid));
+                        RawFill::Image { bitmap, tile: w, angle: 0.0 }
                     }
                     None => RawFill::Solid(Color::rgb(200, 200, 200)),
                 };
@@ -848,8 +866,8 @@ impl<'a> Ctx<'a> {
     }
 
     /// The tile of a CorelDRAW 4 vector pattern: the group's objects, fitted to a tile of `w` by
-    /// `h` points, drawn into pixels (about 4 per point, at most 512 on a side).
-    fn vector_tile(&mut self, pattern: u32, w: f64, h: f64) -> Option<(Vec<u8>, u32, u32)> {
+    /// `h` points, and the tile drawn into pixels.
+    fn vector_tile(&mut self, pattern: u32, w: f64, h: f64) -> Option<(vector_core::document::PatternTile, Vec<u8>, u32, u32)> {
         let group = *self.vects.get(&pattern)?;
         if w < 0.1 || h < 0.1 {
             return None;
@@ -859,6 +877,12 @@ impl<'a> Ctx<'a> {
         for c in group.children.iter().filter(|c| c.list.is_some()) {
             self.object(c, flip, Affine::IDENTITY, &mut objects);
         }
+        self.fitted_tile(objects, w, h, format!("Vector pattern {pattern}"))
+    }
+
+    /// Objects fitted to a tile of `w` by `h` points on white, as CorelDRAW 4 draws its vector
+    /// patterns, and the tile drawn into pixels (about 4 per point, at most 512 on a side).
+    fn fitted_tile(&self, mut objects: Vec<Object>, w: f64, h: f64, name: String) -> Option<(vector_core::document::PatternTile, Vec<u8>, u32, u32)> {
         let b = objects.iter().map(|o| o.bounds()).reduce(|a, b| a.union(b))?;
         if b.width() <= 0.0 || b.height() <= 0.0 {
             return None;
@@ -867,15 +891,11 @@ impl<'a> Ctx<'a> {
         for o in &mut objects {
             o.apply_transform(fit);
         }
-        let mut tile = Document::new(w, h);
-        tile.images = self.doc.images.clone();
-        if let Some(l) = tile.pages[0].layers.first_mut() {
-            l.objects = objects;
-        }
+        let tile = vector_core::document::PatternTile { name, objects, width: w, height: h, background: Some(Color::rgb(255, 255, 255)), revision: 0 };
         let scale = (512.0 / w.max(h)).min(4.0);
         let size = ((w * scale).round().max(1.0) as u32, (h * scale).round().max(1.0) as u32);
-        let opts = crate::image_io::RasterOptions { size: Some(size), background: Some(Color::rgb(255, 255, 255)), ..Default::default() };
-        crate::image_io::render_rgba(&tile, 0, &opts).map(|(pw, ph, rgba)| (rgba, pw, ph))
+        let (pw, ph, rgba) = crate::patterns::tile_pixels(&self.doc, &tile, size)?;
+        Some((tile, rgba, pw, ph))
     }
 
     fn gradient(&self, r: &mut Rd, new_stops: bool) -> RawFill {
@@ -1451,16 +1471,20 @@ impl<'a> Ctx<'a> {
                 Some(RawFill::Solid(c)) => Fill::Solid(*c),
                 Some(RawFill::Gradient { kind, angle, cx, cy, pad, stops }) => fit_gradient(*kind, *angle, *cx, *cy, *pad, stops, bounds, world),
                 Some(RawFill::Image { bitmap, tile, angle }) => match self.images.get(bitmap) {
-                    Some((image, _, _)) => Fill::Pattern(PatternFill {
-                        kind: PatternKind::Checker,
-                        fg: Color::BLACK,
-                        bg: Color::WHITE,
-                        tile: if *tile > 0.1 { *tile } else { 36.0 },
-                        angle: *angle,
-                        image: Some(*image),
-                        transform_with_object: true,
-                        vector: false,
-                        mirror: 0,
+                    Some((image, _, _)) => Fill::Pattern({
+                        let source = if fill3.is_none() { self.sources.get(&id).cloned() } else { None };
+                        PatternFill {
+                            kind: PatternKind::Checker,
+                            fg: Color::BLACK,
+                            bg: Color::WHITE,
+                            tile: if *tile > 0.1 { *tile } else { 36.0 },
+                            angle: *angle,
+                            image: Some(*image),
+                            transform_with_object: true,
+                            vector: matches!(source, Some(PatternSource::Tile(_))),
+                            mirror: 0,
+                            source,
+                        }
                     }),
                     None => Fill::Solid(Color::rgb(200, 200, 200)),
                 },
@@ -1900,7 +1924,7 @@ pub(super) fn document(root: &Chunk) -> Result<Document> {
 pub(super) fn document_with_report(root: &Chunk) -> Result<(Document, Report)> {
     let ver = version(root);
     let k = if ver >= 600 { 72.0 / 254_000.0 } else { 72.0 / 1000.0 };
-    let mut cx = Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), vects: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), notes: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], doc: Document::new(612.0, 792.0) };
+    let mut cx = Ctx { ver, k, fills: HashMap::new(), sources: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), vects: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), notes: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], doc: Document::new(612.0, 792.0) };
     cx.collect(root);
     cx.pattern_images();
     let default_size = cx.default_page_size(root);
@@ -2006,7 +2030,7 @@ pub(crate) mod tests {
 
     pub(crate) fn ctx(ver: u32) -> Ctx<'static> {
         let k = if ver >= 600 { 72.0 / 254_000.0 } else { 72.0 / 1000.0 };
-        Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), vects: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), notes: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], doc: Document::new(612.0, 792.0) }
+        Ctx { ver, k, fills: HashMap::new(), sources: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), vects: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), notes: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], doc: Document::new(612.0, 792.0) }
     }
 
     #[test]
@@ -2118,5 +2142,84 @@ pub(crate) mod tests {
         cx.pattern_images();
         assert!(matches!(cx.fills.get(&1), Some(RawFill::Image { tile, .. }) if (tile - 72.0).abs() < 1e-6));
         assert!(matches!(cx.fills.get(&2), Some(RawFill::Image { .. })));
+        // and keep their recipe: the style and every setting
+        match cx.sources.get(&1) {
+            Some(PatternSource::Texture { style, kinds, params }) => {
+                assert_eq!(style, "Cosmic Clouds");
+                assert_eq!(params.len(), PatternSource::texture_settings(kinds, params).iter().map(|s| s.1.len()).sum::<usize>());
+                assert_eq!(params[0], 9);
+                // the recipe draws the same tile as the import did
+                let Some(RawFill::Image { bitmap, .. }) = cx.fills.get(&1) else { unreachable!() };
+                let iid = cx.images[bitmap].0;
+                let (rgba, _, _) = super::super::texture::recipe_tile(kinds, params).unwrap();
+                assert_eq!(*cx.doc.images[&iid].rgba, rgba);
+            }
+            s => panic!("{s:?}"),
+        }
+        assert!(matches!(cx.sources.get(&2), Some(PatternSource::Texture { style, kinds, .. }) if style == "Somebody's Style" && kinds == "uuuu"));
+    }
+
+    #[test]
+    fn postscript_fills_keep_their_number_and_settings() {
+        let mut cx = ctx(1200);
+        for n in 0..300u16 {
+            cx.fills.insert(n as u32, RawFill::PostScript { number: n, params: vec![] });
+        }
+        cx.pattern_images();
+        let mut drawn = 0;
+        for n in 0..300u16 {
+            match cx.fills.get(&(n as u32)) {
+                // drawn as a tile: the fill keeps what it was drawn from
+                Some(RawFill::Image { .. }) => {
+                    drawn += 1;
+                    assert_eq!(cx.sources.get(&(n as u32)), Some(&PatternSource::PostScript { number: n, params: vec![] }));
+                }
+                _ => assert_eq!(cx.sources.get(&(n as u32)), None),
+            }
+        }
+        assert!(drawn > 0);
+    }
+
+    #[test]
+    fn vector_pattern_tiles_keep_their_objects_and_draw_as_before() {
+        let mut cx = ctx(400);
+        let rect = |cx: &mut Ctx, x: f64, color: Color| {
+            let mut st = Style::default();
+            st.fill = Fill::Solid(color);
+            st.outline = Outline::none();
+            let shape = RectShape { w: 10.0, h: 20.0, radii: [0.0; 4], corner: CornerType::Round };
+            Object::new(cx.doc.new_id(), ObjKind::Rect(shape), Affine::translate((x, 100.0)), st)
+        };
+        let objects = vec![rect(&mut cx, 50.0, Color::rgb(200, 0, 0)), rect(&mut cx, 70.0, Color::rgb(0, 0, 200))];
+        let (tile, rgba, pw, ph) = cx.fitted_tile(objects.clone(), 36.0, 18.0, "Vector pattern 3".into()).unwrap();
+        // the objects are kept, fitted to the tile
+        assert_eq!(tile.objects.len(), 2);
+        let b = tile.objects.iter().map(|o| o.bounds()).reduce(|a, b| a.union(b)).unwrap();
+        assert!((b.x0.abs() + b.y0.abs() + (b.x1 - 36.0).abs() + (b.y1 - 18.0).abs()) < 1e-9, "{b:?}");
+        assert_eq!((tile.width, tile.height, tile.background), (36.0, 18.0, Some(Color::rgb(255, 255, 255))));
+        // the picture is the one the importer drew before it kept the objects: the fitted
+        // objects on a white page the tile's size, at 4 pixels a point
+        let mut page = Document::new(36.0, 18.0);
+        page.pages[0].layers[0].objects = tile.objects.clone();
+        let opts = crate::image_io::RasterOptions { size: Some((144, 72)), background: Some(Color::rgb(255, 255, 255)), ..Default::default() };
+        let (w, h, before) = crate::image_io::render_rgba(&page, 0, &opts).unwrap();
+        assert_eq!((pw, ph), (w, h));
+        assert!(rgba == before);
+        // a tile of the document, which the object's fill names next to its picture
+        let tid = cx.doc.add_pattern_tile(tile);
+        let iid = cx.doc.add_image(vector_core::document::ImageData { width: pw, height: ph, rgba: std::sync::Arc::new(rgba), encoded: Default::default(), format: "png".into(), name: String::new() });
+        cx.images.insert(0xff00_0001, (iid, pw, ph));
+        cx.fills.insert(5, RawFill::Image { bitmap: 0xff00_0001, tile: 36.0, angle: 0.0 });
+        cx.sources.insert(5, PatternSource::Tile(tid));
+        let arg = 5u32.to_le_bytes();
+        let l = Loda { kind: 3, args: vec![(ARG_FILL, &arg[..])] };
+        match cx.style_of(&l, kurbo::Rect::new(0.0, 0.0, 10.0, 10.0), Affine::IDENTITY).fill {
+            Fill::Pattern(p) => {
+                assert_eq!(p.image, Some(iid));
+                assert_eq!(p.source, Some(PatternSource::Tile(tid)));
+                assert!(p.vector);
+            }
+            f => panic!("{f:?}"),
+        }
     }
 }

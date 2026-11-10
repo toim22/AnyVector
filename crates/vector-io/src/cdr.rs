@@ -332,6 +332,8 @@ pub fn load_from_bytes(bytes: &[u8]) -> Result<Document> {
         }
     }
     doc.ensure_next_id();
+    // vector patterns saved before pattern tiles existed keep their objects in a tile now
+    doc.upgrade_pattern_tiles();
     Ok(doc)
 }
 

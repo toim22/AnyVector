@@ -190,6 +190,43 @@ pub struct PatternFill {
     /// Mirror alternate tiles: bit 0 horizontally, bit 1 vertically.
     #[serde(default)]
     pub mirror: u8,
+    /// What the tile is made of, when it is more than a picture. `image` is still the drawn
+    /// tile that the renderer and every export use; the source is what it is drawn again from
+    /// when the pattern changes. `None` for plain bitmap and two-color patterns.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<PatternSource>,
+}
+
+/// What a pattern fill's tile is made of.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum PatternSource {
+    /// Objects: an id in the document's `pattern_tiles`, shared by every fill that uses the
+    /// same pattern.
+    Tile(u64),
+    /// A CorelDRAW texture fill: the style's name and its settings, in the record's order.
+    /// `kinds` says what each setting is (`n` a number, `c` a color, `b` the brightness);
+    /// `params` holds one value per number and three per color (red, green and blue, 0 to 100).
+    Texture { style: String, kinds: String, params: Vec<i32> },
+    /// A CorelDRAW PostScript fill: its number in CorelDRAW's library and its settings.
+    PostScript { number: u16, params: Vec<i32> },
+}
+
+impl PatternSource {
+    /// A texture's settings one by one: the kind (`n`, `c`, `b`) and the values (one, or three
+    /// for a color).
+    pub fn texture_settings(kinds: &str, params: &[i32]) -> Vec<(u8, Vec<i32>)> {
+        let mut out = vec![];
+        let mut at = 0;
+        for k in kinds.bytes() {
+            let n = if k == b'c' { 3 } else { 1 };
+            if at + n > params.len() {
+                break;
+            }
+            out.push((k, params[at..at + n].to_vec()));
+            at += n;
+        }
+        out
+    }
 }
 
 fn default_true() -> bool {
