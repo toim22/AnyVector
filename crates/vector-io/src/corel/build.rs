@@ -61,9 +61,12 @@ pub(super) enum RawFill {
     TwoColor { pattern: u32, tile: f64, fg: Color, bg: Color },
     /// A PostScript fill: its number in CorelDRAW's library and its settings.
     PostScript { number: u16, params: Vec<i32> },
-    /// A CorelDRAW 4 vector pattern: the `spnd` of the group in `vect` that draws the tile, and
-    /// the tile's width and height in points.
-    Vector { pattern: u32, w: f64, h: f64 },
+    /// A vector ("full color") pattern: its id, the tile's width and height in points, and the
+    /// box of the pattern's drawing (points, y down) that is fitted to the tile when the fill
+    /// names one (otherwise the drawing's own bounds). CorelDRAW 4 draws the tile with the group
+    /// in `vect` whose `spnd` is the id; later versions with the CMX document of the `vpat`
+    /// chunk that carries the id.
+    Vector { pattern: u32, w: f64, h: f64, frame: Option<kurbo::Rect> },
     /// A texture fill of a file older than X3: its colors, read from the texture's settings,
     /// and the tile's width in points.
     Texture(super::texture::Texture, f64),
@@ -134,6 +137,9 @@ pub(super) struct Ctx<'a> {
     pub clips: HashMap<u32, &'a Chunk>,
     /// CorelDRAW 4 vector patterns: the group that draws each, by its `spnd`.
     pub vects: HashMap<u32, &'a Chunk>,
+    /// Vector patterns of CorelDRAW 5 and later (`vpat`): the CMX document that draws each, by
+    /// the pattern's id.
+    pub vpats: HashMap<u32, &'a [u8]>,
     /// The same groups by the frame that owns them (their `spnd`).
     pub clip_owners: HashMap<u32, &'a Chunk>,
     /// Versions 5 and 6: style id to the (fill, outline) ids its objects take.
@@ -516,6 +522,10 @@ impl<'a> Ctx<'a> {
                         self.vects.insert(id, g);
                     }
                 }
+                // X3 and later keep the `vpat` chunks of their vector patterns here
+                for k in c.children.iter().filter(|k| k.is(b"vpat")) {
+                    self.vpat(k);
+                }
                 return;
             }
             if c.is_list(b"clpt") {
@@ -546,6 +556,7 @@ impl<'a> Ctx<'a> {
             b"bmp " => super::bitmap::bitmap(self, &c.data),
             b"tiff" => super::bitmap::tiff(self, &c.data),
             b"bmpf" => self.pattern(&c.data),
+            b"vpat" => self.vpat(c),
             b"lnkt" if self.ver < 500 => self.links4(&c.data),
             b"lnkt" => self.links(&c.data),
             // CorelDRAW 4 paragraph text: the text's id, then per paragraph its style and count,
@@ -567,6 +578,14 @@ impl<'a> Ctx<'a> {
                 }
             }
             _ => {}
+        }
+    }
+
+    /// A vector pattern's drawing (`vpat`): the pattern's id, then a CMX document (a RIFF one
+    /// before X3, a `CMX3` one from then on).
+    fn vpat(&mut self, c: &'a Chunk) {
+        if c.data.len() > 16 {
+            self.vpats.insert(Rd::new(&c.data).u32(), &c.data[4..]);
         }
     }
 
@@ -631,7 +650,7 @@ impl<'a> Ctx<'a> {
         None
     }
 
-    fn fild(&mut self, b: &[u8]) {
+    pub(super) fn fild(&mut self, b: &[u8]) {
         let mut r = Rd::new(b);
         let id = r.u32();
         let mut new_stops = false;
@@ -658,9 +677,25 @@ impl<'a> Ctx<'a> {
                 r.skip(if self.ver >= 1300 { 8 } else { 2 });
                 self.two_color(&mut r)
             }
-            // bitmap, vector pattern and texture fills: a list of properties; the one tagged
-            // 1300 holds the tile size and, at 0x20, the bitmap CorelDRAW rendered the tile into
-            9 | 10 | 11 if self.ver >= 1300 => {
+            // vector patterns from X3 on: a list of properties; the one tagged 1300 holds the
+            // tile's width and height, two words, the box of the pattern's drawing and, at 0x20,
+            // the id of the `vpat` chunk that draws it (read from files of X5 and 2026)
+            10 if self.ver >= 1300 => {
+                let mut list = r.clone();
+                match self.property(&mut list, 0x514) {
+                    Some(d) if d.b.len() >= 0x24 => {
+                        let mut t = Rd::new(d.b);
+                        let (w, h) = (t.i32().unsigned_abs() as f64 * self.k, t.i32().unsigned_abs() as f64 * self.k);
+                        t.skip(8);
+                        let frame = self.frame(&mut t);
+                        RawFill::Vector { pattern: t.u32(), w, h, frame }
+                    }
+                    _ => RawFill::Solid(Color::rgb(200, 200, 200)),
+                }
+            }
+            // bitmap and texture fills from X3 on: a list of properties; the one tagged 1300
+            // holds the tile size and, at 0x20, the bitmap CorelDRAW rendered the tile into
+            9 | 11 if self.ver >= 1300 => {
                 let mut list = r.clone();
                 let body = self.property(&mut list, 0x514).and_then(|mut o| self.property(&mut o, 0x514));
                 match body {
@@ -698,7 +733,28 @@ impl<'a> Ctx<'a> {
                 let pattern = r.u16() as u32;
                 let w = self.coord(&mut r).abs() * self.k;
                 let h = self.coord(&mut r).abs() * self.k;
-                RawFill::Vector { pattern, w, h }
+                RawFill::Vector { pattern, w, h, frame: None }
+            }
+            // vector patterns of CorelDRAW 6 to 12, laid out as libcdr reads them (no file of
+            // these versions with a vector pattern was at hand): the pattern's id, the tile's
+            // width and height, its offsets, flags, the drawing's box, then the id of the `vpat`
+            // chunk. A fill whose `vpat` is not found stays a neutral tone.
+            10 if (600..1300).contains(&self.ver) => {
+                r.skip(2);
+                let _pattern = r.u32();
+                let (w, h) = (r.i32().unsigned_abs() as f64 * self.k, r.i32().unsigned_abs() as f64 * self.k);
+                r.skip(4 + 2);
+                let flags = r.u8();
+                r.skip(1);
+                let frame = self.frame(&mut r);
+                r.skip(4);
+                let pattern = r.u32();
+                // a size relative to the object (flag 4, before CorelDRAW 9) is not read
+                if flags & 0x04 != 0 && self.ver < 900 {
+                    RawFill::Solid(Color::rgb(200, 200, 200))
+                } else {
+                    RawFill::Vector { pattern, w, h, frame }
+                }
             }
             // texture fills before X3 keep no bitmap, CorelDRAW draws them from their settings:
             // we draw a tile in the texture's colors (greys for a style we don't know)
@@ -721,6 +777,14 @@ impl<'a> Ctx<'a> {
             _ => RawFill::Solid(Color::rgb(200, 200, 200)),
         };
         self.fills.insert(id, fill);
+    }
+
+    /// A box as four 32-bit coordinates (x0, y0, x1, y1, y up), in points with y down; `None`
+    /// when it is empty.
+    fn frame(&self, r: &mut Rd) -> Option<kurbo::Rect> {
+        let (x0, y0, x1, y1) = (r.i32() as f64 * self.k, r.i32() as f64 * self.k, r.i32() as f64 * self.k, r.i32() as f64 * self.k);
+        let b = kurbo::Rect::new(x0.min(x1), -y0.max(y1), x0.max(x1), -y0.min(y1));
+        (b.width() > 0.0 && b.height() > 0.0).then_some(b)
     }
 
     /// A two-color pattern: its id, the tile size and offsets, then the two colors.
@@ -801,13 +865,13 @@ impl<'a> Ctx<'a> {
                 self.fills.insert(id, fill);
                 continue;
             }
-            if let Some(RawFill::Vector { pattern, w, h }) = self.fills.get(&id).cloned() {
+            if let Some(RawFill::Vector { pattern, w, h, frame }) = self.fills.get(&id).cloned() {
                 // the pattern's objects become a tile of the document, drawn once for every
                 // fill of the same pattern and size
                 let key = (pattern, w.to_bits(), h.to_bits());
                 let made = match vectors.get(&key) {
                     Some(m) => Some(*m),
-                    None => self.vector_tile(pattern, w, h).map(|(tile, rgba, pw, ph)| {
+                    None => self.vector_tile(pattern, w, h, frame).map(|(tile, rgba, pw, ph)| {
                         let encoded = crate::image_io::encode_png(pw, ph, &rgba);
                         let data = vector_core::document::ImageData { width: pw, height: ph, rgba: std::sync::Arc::new(rgba), encoded: std::sync::Arc::new(encoded), format: "png".into(), name: format!("vector pattern {pattern}") };
                         let iid = self.doc.add_image(data);
@@ -872,37 +936,32 @@ impl<'a> Ctx<'a> {
         }
     }
 
-    /// The tile of a CorelDRAW 4 vector pattern: the group's objects, fitted to a tile of `w` by
-    /// `h` points, and the tile drawn into pixels.
-    fn vector_tile(&mut self, pattern: u32, w: f64, h: f64) -> Option<(vector_core::document::PatternTile, Vec<u8>, u32, u32)> {
-        let group = *self.vects.get(&pattern)?;
+    /// The tile of a vector pattern: its objects (the group in `vect` for CorelDRAW 4, the CMX
+    /// document of its `vpat` later), fitted to a tile of `w` by `h` points, and the tile drawn
+    /// into pixels.
+    fn vector_tile(&mut self, pattern: u32, w: f64, h: f64, frame: Option<kurbo::Rect>) -> Option<(vector_core::document::PatternTile, Vec<u8>, u32, u32)> {
         if w < 0.1 || h < 0.1 {
             return None;
         }
-        let mut objects = vec![];
-        let flip = Affine::scale_non_uniform(self.k, -self.k);
-        for c in group.children.iter().filter(|c| c.list.is_some()) {
-            self.object(c, flip, Affine::IDENTITY, &mut objects);
+        let name = format!("Vector pattern {pattern}");
+        if self.ver < 500 {
+            let group = *self.vects.get(&pattern)?;
+            let mut objects = vec![];
+            let flip = Affine::scale_non_uniform(self.k, -self.k);
+            for c in group.children.iter().filter(|c| c.list.is_some()) {
+                self.object(c, flip, Affine::IDENTITY, &mut objects);
+            }
+            return fitted_tile(&self.doc, objects, w, h, name, None, false);
         }
-        self.fitted_tile(objects, w, h, format!("Vector pattern {pattern}"))
-    }
-
-    /// Objects fitted to a tile of `w` by `h` points on white, as CorelDRAW 4 draws its vector
-    /// patterns, and the tile drawn into pixels (about 4 per point, at most 512 on a side).
-    fn fitted_tile(&self, mut objects: Vec<Object>, w: f64, h: f64, name: String) -> Option<(vector_core::document::PatternTile, Vec<u8>, u32, u32)> {
-        let b = objects.iter().map(|o| o.bounds()).reduce(|a, b| a.union(b))?;
-        if b.width() <= 0.0 || b.height() <= 0.0 {
-            return None;
+        let bytes = *self.vpats.get(&pattern)?;
+        if super::cmx::is_cmx(bytes) {
+            // a RIFF metafile: its first page, placed with the page's corner at the origin, so
+            // the drawing's own bounds are fitted
+            let drawing = super::cmx::first_page(bytes, &mut self.doc).ok()?;
+            return fitted_tile(&self.doc, drawing.objects(), w, h, name, None, true);
         }
-        let fit = Affine::scale_non_uniform(w / b.width(), h / b.height()) * Affine::translate((-b.x0, -b.y0));
-        for o in &mut objects {
-            o.apply_transform(fit);
-        }
-        let tile = vector_core::document::PatternTile { name, objects, width: w, height: h, background: Some(Color::rgb(255, 255, 255)), revision: 0 };
-        let scale = (512.0 / w.max(h)).min(4.0);
-        let size = ((w * scale).round().max(1.0) as u32, (h * scale).round().max(1.0) as u32);
-        let (pw, ph, rgba) = crate::patterns::tile_pixels(&self.doc, &tile, size)?;
-        Some((tile, rgba, pw, ph))
+        let objects = super::cmx3::objects(bytes, self)?;
+        fitted_tile(&self.doc, objects, w, h, name, frame, true)
     }
 
     fn gradient(&self, r: &mut Rd, new_stops: bool) -> RawFill {
@@ -1021,7 +1080,7 @@ impl<'a> Ctx<'a> {
         self.arrows.insert(id, aid);
     }
 
-    fn outl(&mut self, b: &[u8]) {
+    pub(super) fn outl(&mut self, b: &[u8]) {
         let mut r = Rd::new(b);
         let id = r.u32();
         if self.ver >= 1300 {
@@ -1818,6 +1877,39 @@ impl<'a> Ctx<'a> {
 }
 
 /// A polygon or star: the stored side, repeated around the center.
+/// Objects fitted to a tile of `w` by `h` points on white, and the tile drawn into pixels
+/// (about 4 per point, at most 512 on a side). `from` is the box (points) that becomes the tile,
+/// the objects' bounds when `None`: CorelDRAW 4 fits the pattern's objects, later versions the
+/// box the fill names, which leaves room for the outlines. With `picture` the outlines scale with
+/// the drawing, as CorelDRAW draws the patterns of version 5 and later (a pattern of the clipart
+/// CDs shrunk six times shows hairlines).
+pub(super) fn fitted_tile(doc: &Document, mut objects: Vec<Object>, w: f64, h: f64, name: String, from: Option<kurbo::Rect>, picture: bool) -> Option<(vector_core::document::PatternTile, Vec<u8>, u32, u32)> {
+    let b = match from {
+        Some(b) => b,
+        None => objects.iter().map(|o| o.bounds()).reduce(|a, b| a.union(b))?,
+    };
+    if b.width() <= 0.0 || b.height() <= 0.0 || objects.is_empty() {
+        return None;
+    }
+    let fit = Affine::scale_non_uniform(w / b.width(), h / b.height()) * Affine::translate((-b.x0, -b.y0));
+    let widths = ((w / b.width()) * (h / b.height())).sqrt();
+    for o in &mut objects {
+        if picture {
+            o.walk_mut(&mut |o| {
+                if !o.style.outline.scale_with_object {
+                    o.style.outline.width *= widths;
+                }
+            });
+        }
+        o.apply_transform(fit);
+    }
+    let tile = vector_core::document::PatternTile { name, objects, width: w, height: h, background: Some(Color::rgb(255, 255, 255)), revision: 0 };
+    let scale = (512.0 / w.max(h)).min(4.0);
+    let size = ((w * scale).round().max(1.0) as u32, (h * scale).round().max(1.0) as u32);
+    let (pw, ph, rgba) = crate::patterns::tile_pixels(doc, &tile, size)?;
+    Some((tile, rgba, pw, ph))
+}
+
 fn polygon(side: &BezPath, n: usize, step: usize) -> BezPath {
     let mut bp = BezPath::new();
     let turn = -2.0 * std::f64::consts::PI * step as f64 / n as f64;
@@ -1857,7 +1949,7 @@ fn roll(rgba: &[u8], w: u32, h: u32, dx: i64, dy: i64) -> Vec<u8> {
     out
 }
 
-fn fit_gradient(kind: GradientKind, angle: f64, cx: f64, cy: f64, pad: f64, stops: &[GradientStop], bounds: kurbo::Rect, world: Affine) -> Fill {
+pub(super) fn fit_gradient(kind: GradientKind, angle: f64, cx: f64, cy: f64, pad: f64, stops: &[GradientStop], bounds: kurbo::Rect, world: Affine) -> Fill {
     let (w, h) = (bounds.width().max(1e-6), bounds.height().max(1e-6));
     let c = bounds.center();
     let a = angle.to_radians();
@@ -2032,7 +2124,7 @@ pub(super) fn document(root: &Chunk) -> Result<Document> {
 pub(super) fn document_with_report(root: &Chunk) -> Result<(Document, Report)> {
     let ver = version(root);
     let k = if ver >= 600 { 72.0 / 254_000.0 } else { 72.0 / 1000.0 };
-    let mut cx = Ctx { ver, k, fills: HashMap::new(), sources: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), vects: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), notes: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], ps_boxes: HashMap::new(), doc: Document::new(612.0, 792.0) };
+    let mut cx = Ctx { ver, k, fills: HashMap::new(), sources: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), vects: HashMap::new(), vpats: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), notes: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], ps_boxes: HashMap::new(), doc: Document::new(612.0, 792.0) };
     cx.collect(root);
     cx.pattern_images();
     let default_size = cx.default_page_size(root);
@@ -2124,7 +2216,7 @@ pub(crate) mod tests {
 
     pub(crate) fn ctx(ver: u32) -> Ctx<'static> {
         let k = if ver >= 600 { 72.0 / 254_000.0 } else { 72.0 / 1000.0 };
-        Ctx { ver, k, fills: HashMap::new(), sources: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), vects: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), notes: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], ps_boxes: HashMap::new(), doc: Document::new(612.0, 792.0) }
+        Ctx { ver, k, fills: HashMap::new(), sources: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), vects: HashMap::new(), vpats: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), notes: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], ps_boxes: HashMap::new(), doc: Document::new(612.0, 792.0) }
     }
 
     #[test]
@@ -2337,6 +2429,45 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn a_coreldraw_9_vector_pattern_draws_its_vpat() {
+        // a fill record as libcdr reads CorelDRAW 6 to X2 vector patterns (no such file at hand)
+        let record = |id: u32, vpat: u32| {
+            let mut b = id.to_le_bytes().to_vec();
+            b.extend_from_slice(&10u16.to_le_bytes());
+            b.extend_from_slice(&[0, 0]);
+            b.extend_from_slice(&7u32.to_le_bytes());
+            b.extend_from_slice(&(254_000i32 / 2).to_le_bytes());
+            b.extend_from_slice(&(254_000i32 / 2).to_le_bytes());
+            b.extend_from_slice(&[0; 6]);
+            b.extend_from_slice(&[0, 0]);
+            for v in [0i32, 0, 254_000, 254_000] {
+                b.extend_from_slice(&v.to_le_bytes());
+            }
+            b.extend_from_slice(&[0; 4]);
+            b.extend_from_slice(&vpat.to_le_bytes());
+            b
+        };
+        let cmx: &'static [u8] = Box::leak(std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/corel/vector-pattern-2026.cmx")).unwrap().into_boxed_slice());
+        let mut cx = ctx(900);
+        cx.vpats.insert(3, cmx);
+        cx.fild(&record(1, 3));
+        cx.fild(&record(2, 99));
+        match cx.fills.get(&1) {
+            Some(RawFill::Vector { w, h, frame: Some(f), .. }) => {
+                assert!((w - 36.0).abs() < 1e-6 && (h - 36.0).abs() < 1e-6);
+                assert!((f.width() - 72.0).abs() < 1e-6);
+            }
+            f => panic!("{f:?}"),
+        }
+        cx.pattern_images();
+        assert!(matches!(cx.fills.get(&1), Some(RawFill::Image { .. })));
+        assert!(matches!(cx.sources.get(&1), Some(PatternSource::Tile(_))));
+        // a pattern whose drawing is missing stays a neutral tone
+        assert!(matches!(cx.fills.get(&2), Some(RawFill::Solid(_))));
+        assert_eq!(cx.sources.get(&2), None);
+    }
+
+    #[test]
     fn vector_pattern_tiles_keep_their_objects_and_draw_as_before() {
         let mut cx = ctx(400);
         let rect = |cx: &mut Ctx, x: f64, color: Color| {
@@ -2347,7 +2478,7 @@ pub(crate) mod tests {
             Object::new(cx.doc.new_id(), ObjKind::Rect(shape), Affine::translate((x, 100.0)), st)
         };
         let objects = vec![rect(&mut cx, 50.0, Color::rgb(200, 0, 0)), rect(&mut cx, 70.0, Color::rgb(0, 0, 200))];
-        let (tile, rgba, pw, ph) = cx.fitted_tile(objects.clone(), 36.0, 18.0, "Vector pattern 3".into()).unwrap();
+        let (tile, rgba, pw, ph) = fitted_tile(&cx.doc, objects.clone(), 36.0, 18.0, "Vector pattern 3".into(), None, false).unwrap();
         // the objects are kept, fitted to the tile
         assert_eq!(tile.objects.len(), 2);
         let b = tile.objects.iter().map(|o| o.bounds()).reduce(|a, b| a.union(b)).unwrap();
