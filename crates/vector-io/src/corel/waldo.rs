@@ -86,9 +86,16 @@ pub(super) fn tree(b: &[u8]) -> Option<Chunk> {
 
     let mut root = Chunk { tag: *b"RIFF", list: Some(if ver == 100 { *b"CDR1" } else { *b"CDR2" }), data: vec![], children: vec![] };
     root.children.push(leaf(b"vrsn", ver.to_le_bytes().to_vec()));
-    // the page setup: the page's corners
+    // the page setup: the page's corners; the arrowheads
+    let mut doc = vec![];
     if let Some(m) = b.get(offsets[0]..offsets[0].saturating_add(10)) {
-        root.children.push(list(b"doc ", vec![leaf(b"mcfg", m.to_vec())]));
+        doc.push(leaf(b"mcfg", m.to_vec()));
+    }
+    let mut arrows: Vec<(u32, usize)> = records.iter().filter(|((t, _), _)| *t == 8).map(|((_, id), off)| (*id, *off)).collect();
+    arrows.sort();
+    doc.extend(arrows.into_iter().filter_map(|(id, off)| arrow(b, id, off)));
+    if !doc.is_empty() {
+        root.children.push(list(b"doc ", doc));
     }
     root.children.push(page);
     Some(root)
@@ -176,6 +183,29 @@ impl Rewrite<'_> {
 }
 
 const IDENTITY: [f64; 6] = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0];
+
+/// An arrowhead record (a check word, the point count, where the points are, counted from
+/// the third byte, and the node types) as the `arrw` record version 3 has: id, point count,
+/// node types, a spare byte and the points.
+fn arrow(b: &[u8], id: u32, off: usize) -> Option<Chunk> {
+    let mut r = Rd::at(b, off);
+    r.skip(2);
+    let n = r.u16() as usize;
+    let at = off + 2 + r.u32() as usize;
+    if !(2..=256).contains(&n) {
+        return None;
+    }
+    let types = b.get(off + 8..off + 8 + n)?;
+    let points = b.get(at..at.checked_add(4 * n)?)?;
+    let mut v = id.to_le_bytes().to_vec();
+    v.extend([0, 0]);
+    v.extend((n as u16).to_le_bytes());
+    v.extend([0; 4]);
+    v.extend(types);
+    v.push(0);
+    v.extend(points);
+    Some(leaf(b"arrw", v))
+}
 
 /// A 16.16 fixed-point number.
 fn fixed(r: &mut Rd) -> f64 {
@@ -291,6 +321,81 @@ mod tests {
         put32(&mut b, 4, mcfg as u32);
         put32(&mut b, 4 + 3 * 4, dir as u32);
         b
+    }
+
+    /// A CorelDRAW 2 file with one line, an inch long, that ends in a triangle arrowhead.
+    fn one_arrow() -> Vec<u8> {
+        let mut b = vec![0u8; 77];
+        b[0..4].copy_from_slice(b"WLf ");
+        let put32 = |b: &mut Vec<u8>, at: usize, v: u32| b[at..at + 4].copy_from_slice(&v.to_le_bytes());
+        let mcfg = b.len();
+        for v in [1i16, -4250, 5500, 4250, -5500] {
+            b.extend(v.to_le_bytes());
+        }
+        let mut rec: Vec<u8> = vec![];
+        rec.extend([0u8; 4]);
+        for v in [65536i32, 0, 0, 0, 65536, 0] {
+            rec.extend(v.to_le_bytes());
+        }
+        rec.push(2); // curve
+        let (outline, shape) = (35u16, 73u16);
+        for v in [shape, outline, 0] {
+            rec.extend(v.to_le_bytes());
+        }
+        // outline: solid, 0.01 inch, black; no dashes; miter join, butt caps; arrowheads
+        // none at the start, 1 at the end
+        let mut o = vec![1u8, 10, 0, 100, 0, 0, 0, 1, 0, 0, 0, 100];
+        o.resize(30, 0);
+        o.extend([0, 0, 0, 0, 0, 0, 1, 0]);
+        rec.extend(&o);
+        // the line: two points, then their node types
+        rec.extend([2, 0, 0, 0, 0, 0, 0, 0, 0xe8, 0x03, 0, 0, 0x04, 0x44]);
+        let rec_at = b.len();
+        b.extend((rec.len() as u32).to_le_bytes());
+        b.extend(&rec);
+        // the arrowhead: check word, point count, where the points are, node types, points
+        let arrow_at = b.len();
+        b.extend([0, 0, 4, 0, 11, 0, 0, 0, 0x0c, 0x44, 0x44, 0x48, 0]);
+        for v in [0i16, 0, -3000, 1500, -3000, -1500, 0, 0] {
+            b.extend(v.to_le_bytes());
+        }
+        let node = |next: u16, child: u16, flags: u16| {
+            let mut n = 0x18u32.to_le_bytes().to_vec();
+            for v in [next, 0, child, 0, 0, 0, 0] {
+                n.extend(v.to_le_bytes());
+            }
+            n.extend([0u8; 8]);
+            n.extend(flags.to_le_bytes());
+            n
+        };
+        let page_at = b.len();
+        b.extend(node(0, 5, 1));
+        let obj_at = b.len();
+        b.extend(node(0, 10, 0));
+        let dir = b.len();
+        b.extend(4u16.to_le_bytes());
+        for (t, id, at) in [(1u8, 0u32, page_at), (1, 5, obj_at), (2, 10, rec_at), (8, 1, arrow_at)] {
+            b.push(t);
+            b.extend(id.to_le_bytes());
+            b.extend((at as u32).to_le_bytes());
+        }
+        put32(&mut b, 4, mcfg as u32);
+        put32(&mut b, 4 + 3 * 4, dir as u32);
+        b
+    }
+
+    #[test]
+    fn coreldraw_2_arrowheads() {
+        let doc = super::super::load_from_bytes(&one_arrow()).unwrap();
+        assert_eq!(doc.arrowheads.len(), 1);
+        let a = &doc.arrowheads[0];
+        assert!(a.filled);
+        let objects: Vec<_> = doc.pages[0].layers.iter().flat_map(|l| l.objects.iter()).collect();
+        assert_eq!(objects.len(), 1);
+        let o = &objects[0].style.outline;
+        assert!(o.start_arrow.is_none());
+        assert_eq!(o.end_arrow, Some(vector_core::style::ArrowHead::Custom(a.id)));
+        assert!((o.width - 0.72).abs() < 0.01, "{}", o.width);
     }
 
     #[test]
