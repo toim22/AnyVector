@@ -264,7 +264,11 @@ pub enum CdrKind {
 }
 
 pub fn detect(bytes: &[u8]) -> CdrKind {
-    if bytes.len() >= 12 && &bytes[0..4] == b"RIFF" && &bytes[8..11] == b"CDR" {
+    // CorelDRAW drawings ("CDR") and templates ("CDT"); versions 1 and 2 start with "WL"
+    if bytes.len() >= 12 && &bytes[0..4] == b"RIFF" && (&bytes[8..11] == b"CDR" || &bytes[8..11] == b"CDT" || &bytes[8..11] == b"cdr") {
+        return CdrKind::CorelDraw;
+    }
+    if bytes.len() >= 2 && &bytes[0..2] == b"WL" {
         return CdrKind::CorelDraw;
     }
     let Ok(mut z) = zip::ZipArchive::new(std::io::Cursor::new(bytes)) else { return CdrKind::Unknown };
@@ -288,9 +292,7 @@ pub fn load_from_bytes(bytes: &[u8]) -> Result<Document> {
     match detect(bytes) {
         CdrKind::AnyVector => {}
         CdrKind::LegacyVector => return crate::native::load_from_bytes(bytes),
-        CdrKind::CorelDraw => {
-            return Err(IoError::Unsupported("this .cdr drawing was created by CorelDRAW. AnyVector reads and writes its own .cdr drawings, but cannot open files saved by CorelDRAW yet. In CorelDRAW, export the drawing as SVG or PDF and open that in AnyVector.".into()))
-        }
+        CdrKind::CorelDraw => return crate::corel::load_from_bytes(bytes),
         CdrKind::Unknown => return Err(IoError::Format("not a .cdr drawing".into())),
     }
     let mut z = zip::ZipArchive::new(std::io::Cursor::new(bytes)).map_err(zerr)?;
@@ -376,7 +378,10 @@ mod tests {
         let mut riff = b"RIFF\0\0\0\0CDRvvers".to_vec();
         riff.extend_from_slice(&[0; 16]);
         assert_eq!(detect(&riff), CdrKind::CorelDraw);
-        assert!(matches!(load_from_bytes(&riff), Err(IoError::Unsupported(_))));
+        // a CorelDRAW file with nothing in it is reported as damaged, not as unsupported
+        assert!(matches!(load_from_bytes(&riff), Err(IoError::Format(_))));
+        // CorelDRAW 1 and 2 files open; a cut-off one is reported as damaged
+        assert!(matches!(load_from_bytes(b"WL some old drawing"), Err(IoError::Format(_))));
         // a .vct archive renamed to .cdr still opens
         let v = crate::native::save_to_bytes(&Document::new(100.0, 100.0)).unwrap();
         assert_eq!(detect(&v), CdrKind::LegacyVector);

@@ -459,7 +459,7 @@ impl AnyVectorApp {
             let p = f.path().to_path_buf();
             if !p.as_os_str().is_empty() {
                 let ext = vector_io::extension(&p);
-                if self.has_doc() && !matches!(ext.as_str(), "cdr" | "vct") {
+                if self.has_doc() && !matches!(ext.as_str(), "cdr" | "cdt" | "cdrt" | "vct") {
                     self.import_path(&p, None);
                 } else {
                     self.open_path(&p);
