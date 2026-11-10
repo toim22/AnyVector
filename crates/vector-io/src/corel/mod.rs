@@ -115,7 +115,7 @@ mod tests {
                     continue;
                 }
             };
-            println!("{path}: {} page(s)", doc.pages.len());
+            println!("{path}: {} page(s), {} arrowheads", doc.pages.len(), doc.arrowheads.len());
             for (i, p) in doc.pages.iter().enumerate() {
                 println!(" page {} {:.1}x{:.1} pt", i + 1, p.width, p.height);
                 for l in &p.layers {
@@ -125,7 +125,7 @@ mod tests {
                             let b = o.bounds();
                             println!("   {:<10} {:<24} [{:.1} {:.1} {:.1} {:.1}] mm", o.kind.type_name(), o.name, b.x0 * 25.4 / 72.0, (p.height - b.y1) * 25.4 / 72.0, b.width() * 25.4 / 72.0, b.height() * 25.4 / 72.0);
                             if std::env::var("ANYVECTOR_CDR_STYLE").is_ok() {
-                                println!("      fill={:?} outline={:?} w={:.2}", o.style.fill, o.style.outline.color, o.style.outline.width);
+                                println!("      fill={:?} outline={:?} w={:.2} arrows={:?}/{:?}", o.style.fill, o.style.outline.color, o.style.outline.width, o.style.outline.start_arrow, o.style.outline.end_arrow);
                             }
                             if let vector_core::object::ObjKind::Text(t) = &o.kind {
                                 println!("      {:?} font={:?} size={:.1} xf={:?}", t.content.chars().take(30).collect::<String>(), t.format.font, t.format.size, o.transform.as_coeffs());
