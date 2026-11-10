@@ -64,8 +64,9 @@ pub(super) enum RawFill {
     /// A CorelDRAW 4 vector pattern: the `spnd` of the group in `vect` that draws the tile, and
     /// the tile's width and height in points.
     Vector { pattern: u32, w: f64, h: f64 },
-    /// A texture fill of a file older than X3: its colors, read from the texture's settings.
-    Texture(super::texture::Texture),
+    /// A texture fill of a file older than X3: its colors, read from the texture's settings,
+    /// and the tile's width in points.
+    Texture(super::texture::Texture, f64),
 }
 
 /// Something in a drawing that the importer could not bring in exactly. The user sees these when
@@ -694,10 +695,19 @@ impl<'a> Ctx<'a> {
                 RawFill::Vector { pattern, w, h }
             }
             // texture fills before X3 keep no bitmap, CorelDRAW draws them from their settings:
-            // we draw a tile in the texture's colors
+            // we draw a tile in the texture's colors (greys for a style we don't know)
             11 => match super::texture::read(b) {
-                Some(t) if !t.colors.is_empty() => RawFill::Texture(t),
-                _ => RawFill::Solid(Color::rgb(200, 200, 200)),
+                Some(found) => {
+                    if !found.known {
+                        self.note(ImportNote::UnknownTextureStyle { name: found.style.clone() });
+                    }
+                    // CorelDRAW 12 keeps the tile's width at 0x0c (its height follows); the
+                    // older layouts are not known, so they keep the usual tile
+                    let width = if found.wide && self.ver >= 1200 && b.len() >= 0x14 { Rd::at(b, 0x0c).i32().unsigned_abs() as f64 * self.k } else { 0.0 };
+                    let tile = if (1.0..=7200.0).contains(&width) { width } else { super::texture::TILE };
+                    RawFill::Texture(found.texture, tile)
+                }
+                None => RawFill::Solid(Color::rgb(200, 200, 200)),
             },
             // vector pattern fills of CorelDRAW 5 to X2, and textures of an unknown style:
             // shown as a neutral tone
@@ -793,7 +803,7 @@ impl<'a> Ctx<'a> {
                 self.fills.insert(id, fill);
                 continue;
             }
-            if let Some(RawFill::Texture(t)) = self.fills.get(&id).cloned() {
+            if let Some(RawFill::Texture(t, tile)) = self.fills.get(&id).cloned() {
                 let bitmap = match textures.get(&t) {
                     Some(b) => Some(*b),
                     None => super::texture::tile(&t).map(|(rgba, w, h)| {
@@ -807,7 +817,7 @@ impl<'a> Ctx<'a> {
                     }),
                 };
                 let fill = match bitmap {
-                    Some(bitmap) => RawFill::Image { bitmap, tile: super::texture::TILE, angle: 0.0 },
+                    Some(bitmap) => RawFill::Image { bitmap, tile, angle: 0.0 },
                     None => RawFill::Solid(Color::rgb(200, 200, 200)),
                 };
                 self.fills.insert(id, fill);
@@ -1877,7 +1887,6 @@ fn split_spreads(spreads: Vec<Page>, left_first: bool, doc: &mut Document) -> Ve
 
 impl Ctx<'_> {
     /// Record something to tell the user; the same note twice counts twice.
-    #[allow(dead_code)] // used by the texture, text and font readers
     pub fn note(&mut self, note: ImportNote) {
         *self.notes.entry(note).or_default() += 1;
     }
@@ -2072,5 +2081,42 @@ pub(crate) mod tests {
             Some(RawFill::Image { bitmap: 23, tile, .. }) => assert!((tile - 288.0).abs() < 1e-6, "{tile}"),
             f => panic!("{f:?}"),
         }
+    }
+
+    /// A CorelDRAW 12 texture fill record: id, type 11, the tile's size, three UTF-16 names in
+    /// 64-byte fields from 0x3c, the count at 0xfc and the settings.
+    fn texture12(id: u32, inches: i32, style: &str, slots: usize) -> Vec<u8> {
+        let mut b = vec![0u8; 0xfe + 8 * slots + 30];
+        b[..4].copy_from_slice(&id.to_le_bytes());
+        b[4] = 11;
+        b[0x0c..0x10].copy_from_slice(&(inches * 254_000).to_le_bytes());
+        b[0x10..0x14].copy_from_slice(&(inches * 254_000).to_le_bytes());
+        for (i, u) in style.encode_utf16().enumerate() {
+            b[0xbc + 2 * i..][..2].copy_from_slice(&u.to_le_bytes());
+        }
+        b[0xfc..0xfe].copy_from_slice(&(slots as u16).to_le_bytes());
+        b[0xfe] = 9; // the first setting, the seed
+        b
+    }
+
+    #[test]
+    fn texture_fills_take_their_tile_and_tell_of_unknown_styles() {
+        let mut cx = ctx(1200);
+        cx.fild(&texture12(1, 1, "Cosmic Clouds", 6));
+        cx.fild(&texture12(2, 3, "Somebody's Style", 4));
+        match cx.fills.get(&1) {
+            Some(RawFill::Texture(t, tile)) => {
+                assert!((tile - 72.0).abs() < 1e-6, "{tile}");
+                assert_eq!(t.colors, vec![[0; 3], [255; 3]]);
+            }
+            f => panic!("{f:?}"),
+        }
+        assert!(matches!(cx.fills.get(&2), Some(RawFill::Texture(_, tile)) if (tile - 216.0).abs() < 1e-6));
+        assert_eq!(cx.notes.len(), 1);
+        assert_eq!(cx.notes.get(&ImportNote::UnknownTextureStyle { name: "Somebody's Style".into() }), Some(&1));
+        // both get a tile image
+        cx.pattern_images();
+        assert!(matches!(cx.fills.get(&1), Some(RawFill::Image { tile, .. }) if (tile - 72.0).abs() < 1e-6));
+        assert!(matches!(cx.fills.get(&2), Some(RawFill::Image { .. })));
     }
 }
