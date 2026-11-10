@@ -930,7 +930,8 @@ pub(super) fn object(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Opti
         let w = cx.coord(&mut r).abs() * k;
         let h = cx.coord(&mut r).abs() * k;
         t = TextObj::paragraph(&content, w.max(1.0), h.max(1.0), format);
-        if let Some(cols) = &own.columns {
+        let binary = if cx.ver < 1600 { binary_columns(data, w / k) } else { None };
+        if let Some(cols) = binary.as_ref().or(own.columns.as_ref()) {
             let w = w.max(1.0);
             t.columns = cols.len() as u32;
             let n = cols.len() - 1;
@@ -1057,6 +1058,29 @@ pub(super) fn place_on_path(t: &mut TextObj, place: PathPlace, ellipse: Option<(
 /// numbers, the start on the path in ten-thousandths of its length, the offset, a number, the
 /// distance from the path and the placement (1 to 4). The start already takes the offset and the
 /// placement into account. Recent versions put the matrix 4 bytes further.
+/// The columns of a paragraph frame in the text stream of X5 and older: a count, then each
+/// column's width and the gutter after it, in file units, near the stream's start (the count
+/// at 0x71 in X5, then a 16-bit word, then the pairs). Found by their sum, which is the frame's
+/// width (`width`, file units). One column gives
+/// `None`. Returned as shares of the width, as the JSON of later versions has them.
+fn binary_columns(b: &[u8], width: f64) -> Option<Vec<(f64, f64)>> {
+    if width < 1.0 {
+        return None;
+    }
+    let head = &b[..b.len().min(0x200)];
+    (0..head.len().saturating_sub(4)).flat_map(|at| [(at, 6), (at, 4)]).find_map(|(at, gap)| {
+        let n = Rd::at(head, at).u32() as usize;
+        if !(2..=16).contains(&n) || at + gap + 8 * n > head.len() {
+            return None;
+        }
+        let mut r = Rd::at(head, at + gap);
+        let cols: Vec<(f64, f64)> = (0..n).map(|_| (r.i32() as f64, r.i32() as f64)).collect();
+        let sum: f64 = cols.iter().map(|c| c.0 + c.1).sum();
+        let sane = cols.iter().all(|c| c.0 > 0.0 && c.1 >= 0.0) && cols[n - 1].1 == 0.0;
+        (sane && (sum - width).abs() <= width * 0.01).then(|| cols.iter().map(|(cw, g)| (cw / width, g / width)).collect())
+    })
+}
+
 fn path_place(b: &[u8], k: f64) -> Option<PathPlace> {
     [0x31, 0x2d].into_iter().find_map(|m| {
         let at = m + 48;

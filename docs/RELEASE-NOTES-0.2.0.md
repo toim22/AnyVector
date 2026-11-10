@@ -48,8 +48,7 @@ Import with a .cdr file is enough. The original file is never saved over; File â
 - Bitmap, vector pattern and texture fills of files older than CorelDRAW X3 come in as a gray tone.
 - Vector pattern and texture fills come in as a picture of their tile, so their objects and texture settings
   can't be edited.
-- Overlined text comes in without the line over it. Columns of paragraph text saved by CorelDRAW X5 or older
-  come in as a single column.
+- Overlined text comes in without the line over it.
 - CMYK colors always use CorelDRAW's default color settings, even in a drawing saved with another CMYK color
   profile.
 - In CorelDRAW 1 and 2 files, text and bitmaps are left out. Arrowheads come in from CorelDRAW 2 files, but
