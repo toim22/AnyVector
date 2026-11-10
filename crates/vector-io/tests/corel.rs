@@ -6,14 +6,18 @@
 //! formatted text, fountain fills, a PowerClip and layers in every state. `effects-*` holds a
 //! drop shadow, a blend, two contours, an envelope, an extrusion and lines with arrowheads;
 //! `extrude-x5` the six kinds of extrusion. `fills-*` holds two-color patterns, a texture and
-//! seven PostScript fills.
+//! seven PostScript fills. `text-*` holds text fitted to an ellipse and to a curve and paragraph
+//! frames with paragraphs of their own alignment and indents, a centered heading and two
+//! columns; `textpath-*` text at each place on a curve and on each side of an ellipse;
+//! `decorations-x5` underlined, struck and overlined text. The 2026 files had their embedded
+//! fonts and previews taken out.
 
 use std::path::PathBuf;
 use vector_core::color::Color;
 use vector_core::document::Document;
 use vector_core::object::{ObjKind, Object};
 use vector_core::style::{ArrowHead, Fill, GradientKind, LineCap, LineJoin, Transparency};
-use vector_core::text::TextAlign;
+use vector_core::text::{TextAlign, TextObj};
 
 fn fixture(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/corel").join(name)
@@ -402,5 +406,99 @@ fn pattern_texture_and_postscript_fills() {
         assert_eq!(h.angle, -45.0, "{name}");
         // the others take the tone they have in CorelDRAW
         assert_eq!(find(&doc, 0, "ps-Grass").style.fill, Fill::Solid(Color::rgb(164, 164, 164)), "{name}");
+    }
+}
+
+fn text<'a>(doc: &'a Document, name: &str) -> &'a TextObj {
+    match &find(doc, 0, name).kind {
+        ObjKind::Text(t) => t,
+        _ => panic!("{name} is not text"),
+    }
+}
+
+/// Where text fitted to a path starts, as a share of the path's length.
+fn path_start(t: &TextObj) -> f64 {
+    let tp = t.on_path.as_ref().expect("on a path");
+    tp.offset / vector_core::path::bez_length(&tp.path.to_bez())
+}
+
+#[test]
+fn text_fitted_to_a_path() {
+    for name in ["text-x5.cdr", "text-2026.cdr"] {
+        let doc = open(name);
+        // on a curve: 10 mm from its start and 3 mm away from it
+        let wave = text(&doc, "on-wave");
+        let tp = wave.on_path.as_ref().unwrap_or_else(|| panic!("{name}: not on the wave"));
+        assert!((tp.distance - 3.0 * 72.0 / 25.4).abs() < 0.01, "{name} {}", tp.distance);
+        assert!((path_start(wave) - 0.0871).abs() < 1e-3, "{name}");
+        assert!(!tp.flip, "{name}");
+        // on an ellipse: centered on its top, going clockwise from its bottom
+        let circle = text(&doc, "on-circle");
+        let tp = circle.on_path.as_ref().unwrap_or_else(|| panic!("{name}: not on the circle"));
+        assert_eq!(circle.align, TextAlign::Center, "{name}");
+        let bp = tp.path.to_bez();
+        let b = kurbo::Shape::bounding_box(&bp);
+        let start = bp.elements()[0].end_point().unwrap();
+        assert!((start.y - b.y1).abs() < 0.5 && (start.x - b.center().x).abs() < 0.5, "{name} {start:?} {b:?}");
+        assert!((tp.offset - vector_core::path::bez_length(&bp) / 2.0).abs() < 0.01, "{name}");
+    }
+    for name in ["textpath-x5.cdr", "textpath-2026.cdr"] {
+        let doc = open(name);
+        // left, right and centered on a curve
+        for (n, start) in [("place0", 0.0), ("place1", 0.8336), ("place2", 0.4168)] {
+            assert!((path_start(text(&doc, n)) - start).abs() < 1e-3, "{name} {n}");
+        }
+        // each side of an ellipse: the path starts across from it
+        for (n, side) in [("q1", "right"), ("q2", "top"), ("q3", "bottom")] {
+            let tp = text(&doc, n).on_path.as_ref().unwrap();
+            let bp = tp.path.to_bez();
+            let b = kurbo::Shape::bounding_box(&bp);
+            let s = bp.elements()[0].end_point().unwrap();
+            let across = match side {
+                "right" => (s.x - b.x0).abs(),
+                "top" => (s.y - b.y1).abs(),
+                _ => (s.y - b.y0).abs(),
+            };
+            assert!(across < 0.5, "{name} {n} {s:?} {b:?}");
+        }
+    }
+    // the other side of a path, in the version that keeps the setting
+    assert!(text(&open("textpath-2026.cdr"), "flip").on_path.as_ref().unwrap().flip);
+}
+
+#[test]
+fn paragraph_frames_keep_their_layout() {
+    let doc = open("text-2026.cdr");
+    // each paragraph keeps its own alignment, and the first line its indent
+    let t = text(&doc, "para-frame");
+    assert_eq!(t.align, TextAlign::Left);
+    assert!((t.first_indent - 6.0 * 72.0 / 25.4).abs() < 0.01, "{}", t.first_indent);
+    let aligns: Vec<_> = t.paragraphs.iter().map(|p| p.align).collect();
+    assert_eq!(aligns, [None, Some(TextAlign::Justify), Some(TextAlign::Right)]);
+    // a paragraph without an alignment of its own is left aligned, under a centered heading
+    let t = text(&doc, "para-center");
+    assert_eq!(t.align, TextAlign::Center);
+    assert_eq!(t.paragraphs.get(1).and_then(|p| p.align), Some(TextAlign::Left));
+    // two equal columns over the frame's width, with a gutter an eighth of a column
+    let t = text(&doc, "para-columns");
+    assert_eq!(t.columns, 2);
+    let vector_core::text::TextKind::Paragraph { width, .. } = t.kind else { panic!("not a frame") };
+    let column = (width - t.column_gap) / 2.0;
+    assert!((t.column_gap / column - 0.125).abs() < 1e-3, "{} {column}", t.column_gap);
+}
+
+#[test]
+fn underlined_and_struck_text() {
+    let doc = open("decorations-x5.cdr");
+    for (n, under, strike) in [
+        ("plain", false, false),
+        ("under-single", true, false),
+        ("under-thick", true, false),
+        ("under-double", true, false),
+        ("strike", false, true),
+        ("over", false, false),
+    ] {
+        let f = &text(&doc, n).format;
+        assert_eq!((f.underline, f.strike), (under, strike), "{n}");
     }
 }

@@ -87,6 +87,12 @@ pub(super) struct Ctx<'a> {
     pub patterns: HashMap<u32, (usize, usize, Vec<bool>)>,
     /// Object types that were not converted, with how many of each.
     pub skipped: std::collections::BTreeMap<u32, usize>,
+    /// Text fitted to a path (`lnkt`): the `spnd` ids of the two objects, in either order.
+    pub text_paths: Vec<(u32, u32)>,
+    /// Where each text fitted to a path sits on it, by the text's id.
+    pub path_places: HashMap<u64, text::PathPlace>,
+    /// Converted objects by their `spnd` id.
+    pub by_spnd: HashMap<u32, u64>,
     /// Perspectives of the groups being converted, innermost last.
     pub warps: Vec<persp::Warp>,
     pub doc: Document,
@@ -445,7 +451,30 @@ impl<'a> Ctx<'a> {
             b"stlt" => text::stlt(self, &c.data),
             b"bmp " => super::bitmap::bitmap(self, &c.data),
             b"bmpf" => self.pattern(&c.data),
+            b"lnkt" => self.links(&c.data),
             _ => {}
+        }
+    }
+
+    /// The link table: its length, the number of links, where their offsets start, then each link
+    /// as its kind and the `spnd` ids of the objects it joins. Kind 0x40 is text fitted to a path.
+    fn links(&mut self, b: &[u8]) {
+        let n = Rd::at(b, 4).u32() as usize;
+        let start = Rd::at(b, 8).u32() as usize;
+        for i in 0..n.min(10_000) {
+            let at = start + 4 * i;
+            if at + 4 > b.len() {
+                break;
+            }
+            let off = Rd::at(b, at).u32() as usize;
+            if off + 12 > b.len() {
+                continue;
+            }
+            let mut r = Rd::at(b, off);
+            if r.u32() == 0x40 {
+                let (a, z) = (r.u32(), r.u32());
+                self.text_paths.push((a, z));
+            }
         }
     }
 
@@ -1062,6 +1091,9 @@ impl<'a> Ctx<'a> {
             let own = own.or_else(|| envelope_warp(std::slice::from_ref(&o)));
             let warps: Vec<persp::Warp> = own.into_iter().chain(self.warps.iter().rev().cloned()).collect();
             persp::bake(&mut o, &warps);
+            if let Some(s) = c.child(b"spnd") {
+                self.by_spnd.insert(Rd::new(&s.data).u32(), o.id);
+            }
             out.push(o);
             return;
         }
@@ -1503,7 +1535,7 @@ pub(super) fn document(root: &Chunk) -> Result<Document> {
 pub(super) fn document_with_report(root: &Chunk) -> Result<(Document, Vec<(u32, usize)>)> {
     let ver = version(root);
     let k = if ver >= 600 { 72.0 / 254_000.0 } else { 72.0 / 1000.0 };
-    let mut cx = Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), skipped: Default::default(), warps: vec![], doc: Document::new(612.0, 792.0) };
+    let mut cx = Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), warps: vec![], doc: Document::new(612.0, 792.0) };
     cx.collect(root);
     cx.pattern_images();
     let default_size = cx.default_page_size(root);
@@ -1556,6 +1588,26 @@ pub(super) fn document_with_report(root: &Chunk) -> Result<(Document, Vec<(u32, 
     let skipped = cx.skipped.iter().map(|(k, v)| (*k, *v)).collect();
     let mut doc = cx.doc;
     doc.pages = out;
+    for (a, z) in &cx.text_paths {
+        let (Some(&a), Some(&z)) = (cx.by_spnd.get(a), cx.by_spnd.get(z)) else { continue };
+        let is_text = |doc: &Document, id| doc.find(id).is_some_and(|o| matches!(o.kind, ObjKind::Text(_)));
+        let (text, path) = if is_text(&doc, a) { (a, z) } else { (z, a) };
+        if is_text(&doc, text) && !is_text(&doc, path) {
+            vector_core::ops::fit_text_to_path(&mut doc, text, path);
+            // a whole ellipse in the text's space
+            let ellipse = match (doc.find(path), doc.find(text)) {
+                (Some(p), Some(t)) => match &p.kind {
+                    ObjKind::Ellipse(e) if e.kind == EllipseKind::Ellipse => Some((e.w, e.h, t.transform.inverse() * p.transform)),
+                    _ => None,
+                },
+                _ => None,
+            };
+            let place = cx.path_places.get(&text).copied();
+            if let Some((ObjKind::Text(t), place)) = doc.find_mut(text).map(|o| &mut o.kind).zip(place) {
+                text::place_on_path(t, place, ellipse);
+            }
+        }
+    }
     doc.ensure_next_id();
     Ok((doc, skipped))
 }
