@@ -598,6 +598,12 @@ pub fn char_to_byte(s: &str, ci: usize) -> usize {
 pub struct FontDb {
     pub db: fontdb::Database,
     families: Vec<String>,
+    /// Every family name a face answers to, by its lowercase form.
+    by_lower: HashMap<String, String>,
+    /// Families already resolved (see `resolve`).
+    resolved: std::cell::RefCell<HashMap<String, crate::fontsub::Resolved>>,
+    /// See `legacy`.
+    legacy: std::cell::OnceCell<Vec<(String, String, fontdb::Stretch, fontdb::Weight)>>,
     face_cache: HashMap<fontdb::ID, Arc<FaceData>>,
     glyph_cache: HashMap<(fontdb::ID, u16, u64), Arc<BezPath>>,
 }
@@ -620,13 +626,7 @@ pub fn fonts() -> &'static Mutex<FontDb> {
     FONTS.get_or_init(|| {
         let mut db = fontdb::Database::new();
         db.load_system_fonts();
-        let mut fam: Vec<String> = db
-            .faces()
-            .filter_map(|f| f.families.first().map(|(n, _)| n.clone()))
-            .collect();
-        fam.sort_by_key(|s| s.to_lowercase());
-        fam.dedup();
-        Mutex::new(FontDb { db, families: fam, face_cache: HashMap::new(), glyph_cache: HashMap::new() })
+        Mutex::new(FontDb::new(db))
     })
 }
 
@@ -673,17 +673,146 @@ pub fn preload_fonts() {
 }
 
 impl FontDb {
+    pub fn new(db: fontdb::Database) -> FontDb {
+        let mut fam: Vec<String> = db.faces().filter_map(|f| f.families.first().map(|(n, _)| n.clone())).collect();
+        fam.sort_by_key(|s| s.to_lowercase());
+        fam.dedup();
+        let mut by_lower = HashMap::new();
+        for f in db.faces() {
+            for (n, _) in &f.families {
+                by_lower.entry(n.to_lowercase()).or_insert_with(|| n.clone());
+            }
+        }
+        FontDb { db, families: fam, by_lower, resolved: Default::default(), legacy: Default::default(), face_cache: HashMap::new(), glyph_cache: HashMap::new() }
+    }
+
     pub fn families(&self) -> &[String] {
         &self.families
     }
 
+    /// The installed family that shows `family`: the family itself (ignoring case), else a
+    /// look-alike from `fontsub::ALIASES`, else an installed face of the width its name asks
+    /// for, else the generic sans-serif face. Always the same answer for the same fonts.
+    pub fn resolve(&self, family: &str) -> crate::fontsub::Resolved {
+        if let Some(r) = self.resolved.borrow().get(family) {
+            return r.clone();
+        }
+        let r = self.resolve_uncached(family);
+        self.resolved.borrow_mut().insert(family.to_string(), r.clone());
+        r
+    }
+
+    /// The family's installed name, when a face answers to it: its family (ignoring case), or
+    /// the name Windows lists for a width or weight of a family (fontdb files "Arial Narrow"
+    /// under "Arial" with a condensed width).
+    fn installed(&self, family: &str) -> Option<crate::fontsub::Resolved> {
+        use crate::fontsub::{How, Resolved};
+        if let Some(f) = self.by_lower.get(&family.to_lowercase()) {
+            return Some(Resolved { family: f.clone(), name: f.clone(), stretch: fontdb::Stretch::Normal, weight: None, how: How::Installed });
+        }
+        let lower = family.to_lowercase();
+        self.legacy().iter().find(|l| l.0.to_lowercase() == lower).map(|l| Resolved { family: l.1.clone(), name: l.0.clone(), stretch: l.2, weight: Some(l.3), how: How::Installed })
+    }
+
+    /// The faces of a family's other widths and weights, under the family name their files give
+    /// them for older programs (name id 1): (that name, family, width, weight). Read once.
+    fn legacy(&self) -> &[(String, String, fontdb::Stretch, fontdb::Weight)] {
+        self.legacy.get_or_init(|| {
+            let mut out: Vec<(String, String, fontdb::Stretch, fontdb::Weight, (bool, i32))> = vec![];
+            for f in self.db.faces() {
+                if f.stretch == fontdb::Stretch::Normal && matches!(f.weight.0, 400 | 700) {
+                    continue;
+                }
+                let Some((family, _)) = f.families.first() else { continue };
+                let name = self
+                    .db
+                    .with_face_data(f.id, |data, index| {
+                        let face = ttf_parser::Face::parse(data, index).ok()?;
+                        let names: Vec<_> = face.names().into_iter().filter(|n| n.name_id == ttf_parser::name_id::FAMILY && n.is_unicode()).collect();
+                        // the English name, as drawings give it
+                        names.iter().find(|n| n.language_id == 0x0409).or(names.first()).and_then(|n| n.to_string())
+                    })
+                    .flatten();
+                if let Some(name) = name.filter(|n| n != family) {
+                    // one entry per name: its upright face nearest to a regular weight (bold and
+                    // italic faces of "Arial Narrow" carry the same name)
+                    let rank = |s: fontdb::Style, w: fontdb::Weight| (s != fontdb::Style::Normal, (w.0 as i32 - 400).abs());
+                    match out.iter_mut().find(|o| o.0 == name) {
+                        Some(o) if rank(f.style, f.weight) < o.4 => *o = (name, family.clone(), f.stretch, f.weight, rank(f.style, f.weight)),
+                        Some(_) => {}
+                        None => out.push((name, family.clone(), f.stretch, f.weight, rank(f.style, f.weight))),
+                    }
+                }
+            }
+            out.sort_by(|a, b| a.0.cmp(&b.0));
+            out.into_iter().map(|o| (o.0, o.1, o.2, o.3)).collect()
+        })
+    }
+
+    fn resolve_uncached(&self, family: &str) -> crate::fontsub::Resolved {
+        use crate::fontsub::{aliases, width_hint, How, Resolved, Width, CONDENSED};
+        if self.db.faces().any(|f| f.families.iter().any(|(n, _)| n == family)) {
+            return Resolved { family: family.to_string(), name: family.to_string(), stretch: fontdb::Stretch::Normal, weight: None, how: How::Installed };
+        }
+        if let Some(r) = self.installed(family) {
+            return r;
+        }
+        let with = |r: Resolved, how| Resolved { how, ..r };
+        let alias = aliases(family);
+        if let Some(r) = alias.iter().find_map(|a| self.installed(a)) {
+            return with(r, How::Alias);
+        }
+        // the width the name asks for, or the width of the look-alike that isn't installed
+        let want = match width_hint(family) {
+            Width::Normal => alias.first().map(|a| width_hint(a)).unwrap_or(Width::Normal),
+            w => w,
+        };
+        if want == Width::Condensed {
+            if let Some(r) = CONDENSED.iter().find_map(|a| self.installed(a)) {
+                return with(r, How::Width);
+            }
+        }
+        if want != Width::Normal {
+            // the installed upright face nearest to the width and to a regular weight, then the
+            // first by name
+            let target = if want == Width::Condensed { fontdb::Stretch::Condensed } else { fontdb::Stretch::Expanded };
+            let side = |s: fontdb::Stretch| (s.to_number() as i32 - 5).signum();
+            let best = self
+                .db
+                .faces()
+                .filter(|f| f.style == fontdb::Style::Normal && side(f.stretch) == side(target))
+                .filter_map(|f| f.families.first().map(|(n, _)| ((f.stretch.to_number() as i32 - target.to_number() as i32).abs(), (f.weight.0 as i32 - 400).abs(), n.to_lowercase(), n, f.stretch)))
+                .min();
+            if let Some((.., n, stretch)) = best {
+                let name = self.legacy().iter().find(|l| &l.1 == n && l.2 == stretch).map(|l| l.0.clone()).unwrap_or_else(|| n.clone());
+                return Resolved { family: n.clone(), name, stretch, weight: None, how: How::Width };
+            }
+        }
+        let sans = self.db.query(&fontdb::Query { families: &[fontdb::Family::SansSerif], ..Default::default() }).or_else(|| self.db.faces().next().map(|f| f.id));
+        let name = sans.and_then(|id| self.db.face(id)).and_then(|f| f.families.first().map(|(n, _)| n.clone())).unwrap_or_default();
+        Resolved { family: name.clone(), name, stretch: fontdb::Stretch::Normal, weight: None, how: How::Fallback }
+    }
+
+    /// The font that stands in for `family` when it isn't installed (None when it is), by the
+    /// name the user knows it by.
+    pub fn substitute(&self, family: &str) -> Option<String> {
+        let r = self.resolve(family);
+        r.substituted().then_some(r.name)
+    }
+
     pub fn query(&self, family: &str, bold: bool, italic: bool) -> Option<fontdb::ID> {
-        let fams = [fontdb::Family::Name(family), fontdb::Family::SansSerif];
+        let r = self.resolve(family);
+        let fams = [fontdb::Family::Name(&r.family), fontdb::Family::SansSerif];
         let q = fontdb::Query {
             families: &fams,
-            weight: if bold { fontdb::Weight::BOLD } else { fontdb::Weight::NORMAL },
+            // a font listed under a weight of its own ("Segoe UI Semibold") keeps it unless bold
+            weight: match (bold, r.weight) {
+                (true, w) => fontdb::Weight(w.map_or(700, |w| w.0.max(700))),
+                (false, Some(w)) => w,
+                (false, None) => fontdb::Weight::NORMAL,
+            },
             style: if italic { fontdb::Style::Italic } else { fontdb::Style::Normal },
-            stretch: fontdb::Stretch::Normal,
+            stretch: r.stretch,
         };
         self.db.query(&q).or_else(|| self.db.faces().next().map(|f| f.id))
     }

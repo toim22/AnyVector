@@ -3,6 +3,7 @@
 pub mod codes;
 pub mod color;
 pub mod document;
+pub mod fontsub;
 pub mod geom;
 pub mod history;
 pub mod object;

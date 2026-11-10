@@ -1,4 +1,5 @@
-//! File input/output for AnyVector: `.cdr` drawings (default), legacy `.vct`, SVG, PDF and raster formats.
+//! File input/output for AnyVector: `.cdr` drawings (default), legacy `.vct`, SVG, PDF and raster formats,
+//! and import of Corel metafiles (`.cmx`).
 
 pub mod cdr;
 pub mod corel;
@@ -6,6 +7,7 @@ pub mod flat;
 pub mod image_io;
 pub mod native;
 pub mod pdf;
+pub mod patterns;
 pub mod pdf_crypt;
 pub mod svg_export;
 pub mod svg_import;
@@ -58,6 +60,7 @@ pub const SAVE_TYPES: &[FileType] = &[
 pub const OPEN_TYPES: &[FileType] = &[
     FileType { name: "CDR - CorelDRAW (*.cdr)", extensions: &["cdr"], vector: true },
     FileType { name: "CDT - CorelDRAW Template (*.cdt;*.cdrt)", extensions: &["cdt", "cdrt"], vector: true },
+    FileType { name: "CMX - Corel Presentation Exchange (*.cmx)", extensions: &["cmx"], vector: true },
     FileType { name: "AnyVector Drawing (*.vct)", extensions: &["vct"], vector: true },
     FileType { name: "Scalable Vector Graphics (*.svg)", extensions: &["svg", "svgz"], vector: true },
 ];
@@ -65,6 +68,7 @@ pub const OPEN_TYPES: &[FileType] = &[
 pub const IMPORT_TYPES: &[FileType] = &[
     FileType { name: "CDR - CorelDRAW (*.cdr)", extensions: &["cdr"], vector: true },
     FileType { name: "CDT - CorelDRAW Template (*.cdt;*.cdrt)", extensions: &["cdt", "cdrt"], vector: true },
+    FileType { name: "CMX - Corel Presentation Exchange (*.cmx)", extensions: &["cmx"], vector: true },
     FileType { name: "AnyVector Drawing (*.vct)", extensions: &["vct"], vector: true },
     FileType { name: "SVG - Scalable Vector Graphics (*.svg;*.svgz)", extensions: &["svg", "svgz"], vector: true },
     FileType { name: "PNG - Portable Network Graphics (*.png)", extensions: &["png"], vector: false },
@@ -96,6 +100,7 @@ pub fn extension(path: &Path) -> String {
 pub fn open(path: &Path) -> Result<Document> {
     match extension(path).as_str() {
         "cdr" | "cdt" | "cdrt" => cdr::load(path),
+        "cmx" => corel::cmx::load_from_bytes(&std::fs::read(path)?),
         "vct" => native::load(path),
         "svg" | "svgz" => {
             let data = std::fs::read(path)?;
@@ -119,6 +124,7 @@ pub fn open(path: &Path) -> Result<Document> {
 pub fn open_with_notes(path: &Path) -> Result<(Document, Vec<String>)> {
     match extension(path).as_str() {
         "cdr" | "cdt" | "cdrt" => cdr::load_with_notes(&std::fs::read(path)?),
+        "cmx" => corel::cmx::load_with_report(&std::fs::read(path)?).map(|(d, r)| (d, r.lines())),
         _ => open(path).map(|d| (d, vec![])),
     }
 }
@@ -131,6 +137,10 @@ pub fn import_with_notes(doc: &mut Document, path: &Path) -> Result<(Vec<Object>
             let (other, notes) = cdr::load_with_notes(&std::fs::read(path)?)?;
             Ok((merge_document(doc, other), notes))
         }
+        "cmx" => {
+            let (other, report) = corel::cmx::load_with_report(&std::fs::read(path)?)?;
+            Ok((merge_document(doc, other), report.lines()))
+        }
         _ => import(doc, path).map(|o| (o, vec![])),
     }
 }
@@ -138,7 +148,8 @@ pub fn import_with_notes(doc: &mut Document, path: &Path) -> Result<(Vec<Object>
 /// The preview stored in a drawing (`.cdr` or `.vct`), as RGBA pixels.
 pub fn read_thumbnail(path: &Path) -> Option<(u32, u32, Vec<u8>)> {
     match extension(path).as_str() {
-        "cdr" | "cdt" | "cdrt" => cdr::read_thumbnail(path).or_else(|| native::read_thumbnail(path)),
+        "cdr" | "cdt" | "cdrt" => cdr::read_thumbnail(path).or_else(|| native::read_thumbnail(path)).or_else(|| corel::cmx::thumbnail(&std::fs::read(path).ok()?)),
+        "cmx" => corel::cmx::thumbnail(&std::fs::read(path).ok()?),
         _ => native::read_thumbnail(path),
     }
 }
@@ -165,6 +176,10 @@ pub fn import(doc: &mut Document, path: &Path) -> Result<Vec<Object>> {
     match ext.as_str() {
         "cdr" | "cdt" | "cdrt" => {
             let other = cdr::load_from_bytes(&bytes)?;
+            Ok(merge_document(doc, other))
+        }
+        "cmx" => {
+            let other = corel::cmx::load_from_bytes(&bytes)?;
             Ok(merge_document(doc, other))
         }
         "vct" => {

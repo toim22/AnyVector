@@ -258,7 +258,7 @@ pub enum CdrKind {
     AnyVector,
     /// A `.vct`-style archive that was renamed to `.cdr`.
     LegacyVector,
-    /// Written by CorelDRAW (RIFF stream, bare or zipped).
+    /// Written by CorelDRAW (RIFF stream, bare or zipped), or a Corel metafile (CMX).
     CorelDraw,
     Unknown,
 }
@@ -269,6 +269,10 @@ pub fn detect(bytes: &[u8]) -> CdrKind {
         return CdrKind::CorelDraw;
     }
     if bytes.len() >= 2 && &bytes[0..2] == b"WL" {
+        return CdrKind::CorelDraw;
+    }
+    // Corel metafiles: clipart CDs ship them named .cdr
+    if crate::corel::cmx::is_cmx(bytes) {
         return CdrKind::CorelDraw;
     }
     let Ok(mut z) = zip::ZipArchive::new(std::io::Cursor::new(bytes)) else { return CdrKind::Unknown };
@@ -332,6 +336,8 @@ pub fn load_from_bytes(bytes: &[u8]) -> Result<Document> {
         }
     }
     doc.ensure_next_id();
+    // vector patterns saved before pattern tiles existed keep their objects in a tile now
+    doc.upgrade_pattern_tiles();
     Ok(doc)
 }
 
@@ -396,5 +402,13 @@ mod tests {
         let v = crate::native::save_to_bytes(&Document::new(100.0, 100.0)).unwrap();
         assert_eq!(detect(&v), CdrKind::LegacyVector);
         assert!(load_from_bytes(&v).is_ok());
+        // Corel metafiles (CMX), little- or big-endian: one that cannot be read says what it is
+        for head in [&b"RIFF    CDRXcont"[..], b"RIFF    CMX1cont", b"RIFX    CMX1cont"] {
+            assert_eq!(detect(head), CdrKind::CorelDraw);
+            match load_from_bytes(head) {
+                Err(IoError::Format(why)) => assert!(why.contains("Corel metafile (CMX)"), "{why}"),
+                other => panic!("{:?}", other.map(|_| ())),
+            }
+        }
     }
 }

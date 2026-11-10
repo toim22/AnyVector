@@ -413,6 +413,8 @@ fn a_coreldraw_12_postscript_fill_is_drawn() {
     let (doc, _) = vector_io::corel::load_with_report(&bytes).unwrap();
     let o = doc.pages[0].all_objects().next().expect("the square");
     let Fill::Pattern(p) = &o.style.fill else { panic!("not drawn: {:?}", o.style.fill) };
+    // it keeps what it was drawn from
+    assert!(matches!(p.source, Some(vector_core::style::PatternSource::PostScript { .. })), "{:?}", p.source);
     // one picture over the square's box
     let bounds = kurbo::Shape::bounding_box(&o.world_path());
     assert!((p.tile - bounds.width()).abs() < 1.0, "tile {} pt for a box {} wide", p.tile, bounds.width());

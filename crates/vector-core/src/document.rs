@@ -340,6 +340,27 @@ pub struct NamedPattern {
     pub source: Vec<crate::object::Object>,
 }
 
+/// The objects of a vector pattern's tile (`Document::pattern_tiles`), shared by every fill
+/// whose source names it. The fills' `image` is this tile drawn; it is drawn again whenever the
+/// objects change, and `revision` counts those changes.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PatternTile {
+    #[serde(default)]
+    pub name: String,
+    /// The objects that draw one tile, in tile coordinates: the tile's top-left corner at
+    /// (0, 0), y down, points.
+    pub objects: Vec<Object>,
+    /// The tile's size in points.
+    pub width: f64,
+    pub height: f64,
+    /// The color under the objects (CorelDRAW 4 draws its vector patterns on white); `None`
+    /// leaves the tile transparent where there are no objects.
+    #[serde(default)]
+    pub background: Option<Color>,
+    #[serde(default)]
+    pub revision: u64,
+}
+
 /// A color harmony (Color Styles docker): its color styles and the harmony rule that relates
 /// their hues (0 Custom, 1 Analogous - Accented, 2 Analogous, 3 Complementary, 4 Monochromatic,
 /// 5 Tetrad, 6 Triad).
@@ -616,6 +637,9 @@ pub struct Document {
     /// Patterns made with Object ▸ Create ▸ Pattern Fill.
     #[serde(default)]
     pub patterns: Vec<NamedPattern>,
+    /// The objects of vector pattern tiles, by the id their fills' `PatternSource::Tile` names.
+    #[serde(default)]
+    pub pattern_tiles: BTreeMap<u64, PatternTile>,
     /// Externally linked images: image id → the source file (Sources docker).
     #[serde(default)]
     pub links: BTreeMap<u64, String>,
@@ -658,6 +682,7 @@ impl Document {
             print_merge: None,
             arrowheads: vec![],
             patterns: vec![],
+            pattern_tiles: BTreeMap::new(),
             links: BTreeMap::new(),
             image_modes: BTreeMap::new(),
             bitmap_no_inflate: false,
@@ -704,6 +729,12 @@ impl Document {
         }
         for k in self.images.keys() {
             max = max.max(k + 1);
+        }
+        for (k, t) in &self.pattern_tiles {
+            max = max.max(k + 1);
+            for o in &t.objects {
+                o.walk(&mut |x| max = max.max(x.id + 1));
+            }
         }
         for c in &self.comments {
             max = max.max(c.id + 1);
@@ -1418,6 +1449,144 @@ impl Document {
                 visit(o);
             }
         }
+        // the objects of pattern tiles, and the tiles drawn by pattern transparencies and the
+        // document's named patterns
+        for t in self.pattern_tiles.values() {
+            for o in &t.objects {
+                visit(o);
+            }
+        }
+        self.pattern_fills(&mut |p| {
+            if let Some(img) = p.image {
+                if !v.contains(&img) {
+                    v.push(img);
+                }
+            }
+        });
         v
+    }
+
+    /// Visit every pattern fill and pattern transparency of the document: on the pages, in
+    /// symbols, object styles, named patterns and the objects of pattern tiles.
+    pub fn pattern_fills(&self, f: &mut dyn FnMut(&crate::style::PatternFill)) {
+        use crate::style::{Fill, Transparency};
+        let mut style = |s: &Style| {
+            if let Fill::Pattern(p) = &s.fill {
+                f(p);
+            }
+            if let Transparency::Pattern { pattern, .. } = &s.transparency {
+                f(pattern);
+            }
+        };
+        let objects = |list: &[Object], style: &mut dyn FnMut(&Style)| {
+            for o in list {
+                o.walk(&mut |x| style(&x.style));
+            }
+        };
+        for p in &self.pages {
+            for l in &p.layers {
+                objects(&l.objects, &mut style);
+            }
+        }
+        for s in &self.symbols {
+            objects(&s.objects, &mut style);
+        }
+        for t in self.pattern_tiles.values() {
+            objects(&t.objects, &mut style);
+        }
+        for s in &self.object_styles {
+            style(&s.style);
+        }
+        for n in &self.patterns {
+            f(&n.fill);
+        }
+    }
+
+    /// `pattern_fills`, able to change them.
+    pub fn pattern_fills_mut(&mut self, f: &mut dyn FnMut(&mut crate::style::PatternFill)) {
+        use crate::style::{Fill, Transparency};
+        let mut style = |s: &mut Style| {
+            if let Fill::Pattern(p) = &mut s.fill {
+                f(p);
+            }
+            if let Transparency::Pattern { pattern, .. } = &mut s.transparency {
+                f(pattern);
+            }
+        };
+        let objects = |list: &mut [Object], style: &mut dyn FnMut(&mut Style)| {
+            for o in list {
+                o.walk_mut(&mut |x| style(&mut x.style));
+            }
+        };
+        for p in &mut self.pages {
+            for l in &mut p.layers {
+                objects(&mut l.objects, &mut style);
+            }
+        }
+        for s in &mut self.symbols {
+            objects(&mut s.objects, &mut style);
+        }
+        for t in self.pattern_tiles.values_mut() {
+            objects(&mut t.objects, &mut style);
+        }
+        for s in &mut self.object_styles {
+            style(&mut s.style);
+        }
+        for n in &mut self.patterns {
+            f(&mut n.fill);
+        }
+    }
+
+    /// Add a pattern tile and return its id.
+    pub fn add_pattern_tile(&mut self, tile: PatternTile) -> u64 {
+        let id = self.new_id();
+        self.pattern_tiles.insert(id, tile);
+        id
+    }
+
+    /// The images that draw a pattern tile: the `image` of every fill whose source is the tile.
+    pub fn tile_images(&self, tile: u64) -> Vec<u64> {
+        let mut v = vec![];
+        self.pattern_fills(&mut |p| {
+            if let (Some(crate::style::PatternSource::Tile(t)), Some(img)) = (&p.source, p.image) {
+                if *t == tile && !v.contains(&img) {
+                    v.push(img);
+                }
+            }
+        });
+        v
+    }
+
+    /// Documents saved before pattern tiles kept a vector pattern's objects in its named pattern
+    /// (Object ▸ Create ▸ Pattern Fill): move them into a tile, and point the named pattern and
+    /// every fill drawn by the same image at it.
+    pub fn upgrade_pattern_tiles(&mut self) {
+        let mut moved: Vec<(u64, u64)> = vec![];
+        for i in 0..self.patterns.len() {
+            let np = &self.patterns[i];
+            let Some(image) = np.fill.image else { continue };
+            if !np.fill.vector || np.fill.source.is_some() || np.source.is_empty() {
+                continue;
+            }
+            // the tile's size, as the pattern document has it: the longer side is the fill's
+            // tile size, the other follows the image
+            let (iw, ih) = self.images.get(&image).map_or((1, 1), |im| (im.width.max(1), im.height.max(1)));
+            let big = iw.max(ih) as f64;
+            let (w, h) = (np.fill.tile * iw as f64 / big, np.fill.tile * ih as f64 / big);
+            let objects = std::mem::take(&mut self.patterns[i].source);
+            let name = self.patterns[i].name.clone();
+            let id = self.add_pattern_tile(PatternTile { name, objects, width: w.max(1.0), height: h.max(1.0), background: None, revision: 0 });
+            moved.push((image, id));
+        }
+        if moved.is_empty() {
+            return;
+        }
+        self.pattern_fills_mut(&mut |p| {
+            if p.source.is_none() && p.vector {
+                if let Some((_, id)) = moved.iter().find(|(img, _)| Some(*img) == p.image) {
+                    p.source = Some(crate::style::PatternSource::Tile(*id));
+                }
+            }
+        });
     }
 }
