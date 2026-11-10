@@ -38,7 +38,7 @@ Import with a .cdr file is enough. The original file is never saved over; File â
     (CorelDRAW X5, for example) keep that picture.
   - Contours come in as the shapes CorelDRAW stored for each step.
 - Arrowheads on lines keep their exact CorelDRAW shape and size. They are added to the document's arrowheads, so
-  you can use them on other lines too.
+  you can use them on other lines too. This includes CorelDRAW 2 drawings.
 
 ## Known limits
 
@@ -51,8 +51,8 @@ Import with a .cdr file is enough. The original file is never saved over; File â
   come in as a single column.
 - CMYK colors always use CorelDRAW's default color settings, even in a drawing saved with another CMYK color
   profile.
-- In CorelDRAW 1 and 2 files, only shapes, fills and outlines come in. Their bitmaps, text and arrowheads are
-  left out.
+- In CorelDRAW 1 and 2 files, text and bitmaps are left out. Arrowheads come in from CorelDRAW 2 files, but
+  not from CorelDRAW 1 files.
 - The sides of extrusions use AnyVector's own lighting, which can look different from CorelDRAW's shading.
 
 ## Legal notices
