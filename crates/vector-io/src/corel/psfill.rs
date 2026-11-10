@@ -1,7 +1,11 @@
 //! CorelDRAW's PostScript fills. A file keeps only the fill's number in CorelDRAW's library
-//! and up to five numbers; CorelDRAW draws the fill with its own PostScript procedure. The
-//! regular ones are drawn again here, as a repeating tile, from the same numbers. The others
-//! get the tone they have at their default settings.
+//! and up to five numbers; CorelDRAW draws the fill with its own PostScript procedure. Each is
+//! drawn again here from the same numbers: the regular ones as a repeating tile, the others
+//! ([`psbox`]) over the object's own box, the way CorelDRAW lays them out. A fill that can't be
+//! drawn gets the tone it has at its default settings.
+
+#[path = "psbox.rs"]
+mod psbox;
 
 use tiny_skia as sk;
 use vector_core::color::Color;
@@ -25,6 +29,32 @@ pub(super) fn number(stored: u16) -> u16 {
 
 /// The library's first fill (Archimedes); the others follow in the library's order.
 const FIRST: u16 = 28;
+
+/// Whether fill `number` is drawn over each object's box (with [`draw_box`]) rather than as a
+/// tile.
+pub(super) fn on_box(number: u16) -> bool {
+    number.checked_sub(FIRST - 1).is_some_and(|i| psbox::fill::ALL.contains(&i))
+}
+
+/// Pixels per inch of the pictures drawn over a box, and the most pixels one may have.
+const BOX_DPI: f64 = 200.0;
+const BOX_PIXELS: f64 = 6.0e6;
+
+/// Fill `number` drawn over a box `w` x `h` points: straight RGBA, its size in pixels, and its
+/// width in points. `None` when it can't be drawn.
+pub(super) fn draw_box(number: u16, params: &[i32], w: f64, h: f64) -> Option<(Vec<u8>, u32, u32, f64)> {
+    let index = number.checked_sub(FIRST - 1)?;
+    let (wm, hm) = (w / 72.0 * 1000.0, h / 72.0 * 1000.0);
+    let dpi = BOX_DPI.min((BOX_PIXELS / (w / 72.0 * h / 72.0)).sqrt());
+    let (rgba, pw, ph) = psbox::draw(index, params, wm, hm, dpi / 1000.0)?;
+    Some((rgba, pw, ph, pw as f64 / dpi * 72.0))
+}
+
+/// The tone of fill `number` at its default settings, measured from CorelDRAW's own drawing.
+pub(super) fn tone(number: u16) -> Color {
+    let t = number.checked_sub(FIRST).and_then(|i| TONES.get(i as usize)).copied().unwrap_or([200, 200, 200]);
+    Color::rgb(t[0], t[1], t[2])
+}
 
 /// The tone of each fill at its default settings, measured from CorelDRAW's own drawing.
 const TONES: [[u8; 3]; 52] = [
@@ -224,10 +254,7 @@ pub(super) fn draw(number: u16, p: &[i32]) -> Drawn {
                 }
             }
         }
-        _ => {
-            let t = number.checked_sub(FIRST).and_then(|i| TONES.get(i as usize)).copied().unwrap_or([200, 200, 200]);
-            Drawn::Tone(Color::rgb(t[0], t[1], t[2]))
-        }
+        _ => Drawn::Tone(tone(number)),
     }
 }
 
@@ -346,6 +373,37 @@ mod tests {
         for number in [COLOR_HATCHING, COLOR_CROSSHATCHING, COLOR_FISHSCALE] {
             let Drawn::Tile { rgba, .. } = draw(number, &[]) else { panic!("fill {number} is a tone") };
             assert!(rgba.chunks(4).any(|p| p[0].abs_diff(p[1]) > 60), "fill {number} has no color");
+        }
+    }
+
+    /// The picture of fill `index` over a 3 x 2 inch box at its defaults, on white.
+    fn on_white(index: u16, params: &[i32]) -> Option<(Vec<u8>, u32, u32)> {
+        let (rgba, w, h, _) = draw_box(FIRST - 1 + index, params, 216.0, 144.0)?;
+        let flat = rgba
+            .chunks(4)
+            .flat_map(|p| {
+                let a = p[3] as u32;
+                let m = |c: u8| ((c as u32 * a + 255 * (255 - a)) / 255) as u8;
+                [m(p[0]), m(p[1]), m(p[2]), 255]
+            })
+            .collect();
+        Some((flat, w, h))
+    }
+
+    /// Draw every fill drawn over a box into `ANYVECTOR_PSFILL_DIR`, as `<index>.ours.png`, to
+    /// compare with CorelDRAW's.
+    #[test]
+    #[ignore]
+    fn psfill_pictures() {
+        let Ok(dir) = std::env::var("ANYVECTOR_PSFILL_DIR") else { return };
+        for i in psbox::fill::ALL {
+            let t = std::time::Instant::now();
+            let Some((rgba, w, h)) = on_white(i, &[]) else {
+                println!("{i}: not drawn");
+                continue;
+            };
+            std::fs::write(format!("{dir}/{i:02}.ours.png"), crate::image_io::encode_png(w, h, &rgba)).unwrap();
+            println!("{i}: {w}x{h} {:.0}ms", t.elapsed().as_secs_f64() * 1000.0);
         }
     }
 }
