@@ -883,9 +883,26 @@ impl<'a> Ctx<'a> {
         let n = r.u8() as usize;
         let dash_at = r.p;
         let dash: Vec<f64> = if line_type & 0x02 != 0 { (0..n.min(10)).map(|_| r.u8() as f64).collect() } else { vec![] };
-        let mut r = Rd::at(a, dash_at + 10);
-        let join = r.u16();
-        let caps = r.u16();
+        // CorelDRAW 1 has no dashes: the join and the caps (one byte per end) follow the
+        // dash count's place; CorelDRAW 2 keeps a byte per end too, then the arrowheads
+        let (join, caps, arrows) = match self.ver {
+            100 => {
+                let mut r = Rd::at(a, dash_at - 1);
+                (r.u16(), r.u8() as u16, None)
+            }
+            200 => {
+                let mut r = Rd::at(a, dash_at + 10);
+                let (join, caps) = (r.u16(), r.u8() as u16);
+                r.skip(1);
+                (join, caps, Some((r.u16() as u32, r.u16() as u32)))
+            }
+            _ => {
+                let mut r = Rd::at(a, dash_at + 10);
+                (r.u16(), r.u16(), None)
+            }
+        };
+        let arrow = |id: u32| self.arrows.get(&id).map(|a| ArrowHead::Custom(*a));
+        let (start_arrow, end_arrow) = arrows.map(|(s, e)| (arrow(s), arrow(e))).unwrap_or_default();
         let mut o = Outline {
             width: width.max(0.0),
             color: Some(c),
@@ -900,6 +917,8 @@ impl<'a> Ctx<'a> {
                 _ => LineJoin::Miter,
             },
             dash,
+            start_arrow,
+            end_arrow,
             scale_with_object: line_type & 0x10 != 0,
             behind_fill: line_type & 0x08 != 0,
             ..Default::default()
