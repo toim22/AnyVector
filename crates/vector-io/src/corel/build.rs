@@ -1892,6 +1892,26 @@ impl Ctx<'_> {
     }
 }
 
+/// CorelDRAW 4 paragraph text that flows through frames (`chains`: the text's id and its frames'
+/// record ids, `by_spnd`: those records' objects): the first frame holds the text, the others
+/// follow it. Frames with no text of their own are text objects too, so a chain keeps every link.
+fn link_chains4(doc: &mut Document, chains: &[(u32, Vec<u32>)], by_spnd: &HashMap<u32, u64>) {
+    let mut linked = false;
+    for (_, frames) in chains {
+        let ids: Vec<u64> = frames.iter().filter_map(|f| by_spnd.get(f).copied()).filter(|id| doc.find(*id).is_some_and(|o| matches!(o.kind, ObjKind::Text(_)))).collect();
+        for (i, id) in ids.iter().enumerate() {
+            if let Some(ObjKind::Text(t)) = doc.find_mut(*id).map(|o| &mut o.kind) {
+                t.link_prev = i.checked_sub(1).map(|p| ids[p]);
+                t.link_next = ids.get(i + 1).copied();
+                linked |= ids.len() > 1;
+            }
+        }
+    }
+    if linked {
+        doc.update_text_flow();
+    }
+}
+
 pub(super) fn document(root: &Chunk) -> Result<Document> {
     document_with_report(root).map(|r| r.0)
 }
@@ -1979,22 +1999,7 @@ pub(super) fn document_with_report(root: &Chunk) -> Result<(Document, Report)> {
             }
         }
     }
-    // CorelDRAW 4 paragraph text that flows through frames: the first frame holds it, the others
-    // follow it
-    let mut linked = false;
-    for (_, frames) in &cx.chains4 {
-        let ids: Vec<u64> = frames.iter().filter_map(|f| cx.by_spnd.get(f).copied()).filter(|id| doc.find(*id).is_some_and(|o| matches!(o.kind, ObjKind::Text(_)))).collect();
-        for (i, id) in ids.iter().enumerate() {
-            if let Some(ObjKind::Text(t)) = doc.find_mut(*id).map(|o| &mut o.kind) {
-                t.link_prev = i.checked_sub(1).map(|p| ids[p]);
-                t.link_next = ids.get(i + 1).copied();
-                linked |= ids.len() > 1;
-            }
-        }
-    }
-    if linked {
-        doc.update_text_flow();
-    }
+    link_chains4(&mut doc, &cx.chains4, &cx.by_spnd);
     doc.ensure_next_id();
     let notes = skipped.iter().map(|&(kind, n)| (ImportNote::SkippedObjects { kind }, n)).chain(cx.notes).collect();
     Ok((doc, Report { skipped, notes }))
@@ -2007,6 +2012,34 @@ pub(crate) mod tests {
     pub(crate) fn ctx(ver: u32) -> Ctx<'static> {
         let k = if ver >= 600 { 72.0 / 254_000.0 } else { 72.0 / 1000.0 };
         Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), vects: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), notes: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], doc: Document::new(612.0, 792.0) }
+    }
+
+    #[test]
+    fn a_coreldraw_4_chain_keeps_its_empty_frames_linked() {
+        use vector_core::text::{CharFormat, TextObj};
+        let mut doc = Document::new(612.0, 792.0);
+        // CorelDRAW 4 puts a chain's whole text in its first frame; the others start empty
+        let text = "one two three four five six seven eight nine ten ".repeat(30);
+        let frames = [&text[..], "", ""].map(|s| TextObj::paragraph(s, 60.0, 30.0, CharFormat::default()));
+        let mut by_spnd = HashMap::new();
+        let mut ids = vec![];
+        for (i, t) in frames.into_iter().enumerate() {
+            let id = doc.new_id();
+            doc.pages[0].layers[0].objects.push(Object::new(id, ObjKind::Text(t), Affine::translate((0.0, 40.0 * i as f64)), Style::text_default()));
+            by_spnd.insert(i as u32 + 1, id);
+            ids.push(id);
+        }
+        link_chains4(&mut doc, &[(9, vec![1, 2, 3])], &by_spnd);
+        let text_of = |id| match doc.find(id).map(|o| &o.kind) {
+            Some(ObjKind::Text(t)) => t.clone(),
+            _ => panic!("frame {id} is gone"),
+        };
+        let (a, b, c) = (text_of(ids[0]), text_of(ids[1]), text_of(ids[2]));
+        assert_eq!((a.link_prev, a.link_next), (None, Some(ids[1])));
+        assert_eq!((b.link_prev, b.link_next), (Some(ids[0]), Some(ids[2])));
+        assert_eq!((c.link_prev, c.link_next), (Some(ids[1]), None));
+        // the text that does not fit the first frame goes on in the empty middle one
+        assert!(b.flow.start > 0, "{:?}", b.flow);
     }
 
     #[test]

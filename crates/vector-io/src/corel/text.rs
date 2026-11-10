@@ -1,6 +1,6 @@
 //! Text of a CorelDRAW drawing: the font table, the style table and the text streams.
 
-use super::build::{Ctx, Loda, ARG_STYLE, ARG_STYLE_JSON};
+use super::build::{Ctx, ImportNote, Loda, ARG_STYLE, ARG_STYLE_JSON};
 use super::color;
 use super::riff::{Chunk, Rd};
 use kurbo::{Affine, Point};
@@ -1145,14 +1145,13 @@ fn unscaled_frame(xf: Affine, w: f64, h: f64) -> (f64, f64, Affine) {
 /// thousandths of an inch at 19, character and line spacing in percent, the alignment at 25), the
 /// tab stops and indents, then the characters from byte 132: a flag byte and the character, then
 /// 18 bytes of the character's own settings when the flag's low bit is set, else one byte.
-fn paragraphs_v3(cx: &Ctx, t: &[u8]) -> Vec<Para> {
+fn paragraphs_v3(cx: &mut Ctx, t: &[u8]) -> Vec<Para> {
     let n = Rd::at(t, 11).u16() as usize;
     let font = Rd::at(t, 15).u16() as u32;
     let size = Rd::at(t, 19).u16() as f64 * cx.k;
     let line = Rd::at(t, 23).u16() as f64;
     let mut look = Look { size: Some(size).filter(|s| *s > 0.1), line: (line > 0.0 && line < 10_000.0).then_some(line), ..Default::default() };
-    // a font the drawing lists, else its first one
-    look.font = cx.fonts.get(&font).or_else(|| cx.fonts.get(&u32::MAX)).cloned();
+    look.font = v3_font(cx, font);
     look.align = Some(match Rd::at(t, 25).u8() {
         2 => TextAlign::Center,
         3 => TextAlign::Right,
@@ -1173,9 +1172,32 @@ fn paragraphs_v3(cx: &Ctx, t: &[u8]) -> Vec<Para> {
     vec![p]
 }
 
+/// The font of a CorelDRAW 3 text whose header asks for font `id`.
+///
+/// The font table numbers its fonts differently from text headers: across the CorelDRAW 3 CD the
+/// texts ask for small numbers (3 to 15) that the table's ids (1, 13, 105, 242...) almost never
+/// are, even in drawings that list a single font. So:
+/// - an id the table has is that font;
+/// - else a table that names one family is that family: it is the only face the drawing uses;
+/// - else the font is unknown. Taking the table's first font would be a guess (it used to be),
+///   so the text keeps the default font and the user is told which id was missing;
+/// - a drawing with no font table (most CorelDRAW 3 clipart) has nothing to look up and keeps the
+///   default font quietly.
+fn v3_font(cx: &mut Ctx, id: u32) -> Option<String> {
+    if let Some(f) = cx.fonts.get(&id) {
+        return Some(f.clone());
+    }
+    let mut families = cx.fonts.values();
+    let only = families.next()?;
+    if families.all(|f| f == only) {
+        return Some(only.clone());
+    }
+    cx.note(ImportNote::MissingFontId { id });
+    None
+}
+
 /// The font table of CorelDRAW 3 (`ftbl`): a count, a blank name, then per font two words (the
-/// second its id) and its name in 32 bytes. The first font is also kept as the drawing's
-/// default (id `u32::MAX`).
+/// second its id) and its name in 32 bytes.
 pub(super) fn ftbl(cx: &mut Ctx, b: &[u8]) {
     let n = Rd::new(b).u16() as usize;
     for i in 0..n.min(256) {
@@ -1188,8 +1210,7 @@ pub(super) fn ftbl(cx: &mut Ctx, b: &[u8]) {
             continue;
         }
         let family = super::waldo::font_family(name);
-        cx.fonts.entry(id).or_insert_with(|| family.clone());
-        cx.fonts.entry(u32::MAX).or_insert(family);
+        cx.fonts.entry(id).or_insert(family);
     }
 }
 
@@ -1432,8 +1453,15 @@ pub(super) fn object(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Opti
     if paragraph && cx.ver < 500 {
         return paragraph4(cx, obj, l, world);
     }
-    let data = if v4 { l.arg(0x1e)? } else { stream(obj)? };
+    // a paragraph text frame that was never typed into may have no text stream at all
+    let data = if v4 { l.arg(0x1e) } else { stream(obj) };
+    let data = match data {
+        Some(d) => d,
+        None if paragraph => &[],
+        None => return None,
+    };
     let mut paras = match cx.ver {
+        _ if data.is_empty() => vec![],
         1600.. => paragraphs_json(cx, data),
         700.. => paragraphs_binary(cx, data, !paragraph, l.arg(ARG_PLACED).is_some()),
         600.. => paragraphs_v6(cx, data),
@@ -1443,7 +1471,9 @@ pub(super) fn object(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Opti
         _ if v4 => paragraphs_v4(cx, data, l.arg(ARG_STYLE).map(|a| cx.uint(&mut Rd::new(a))).unwrap_or(0)),
         _ => vec![],
     };
-    if paras.is_empty() {
+    // artistic text without characters is nothing; an empty paragraph text frame is still a
+    // frame (it reserves space, or waits for text flowing from the frame before it)
+    if paras.is_empty() && !paragraph {
         return None;
     }
     // the object's own style: the JSON properties (X6 and later) or the style table
@@ -1457,11 +1487,11 @@ pub(super) fn object(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Opti
             None => Look::default(),
         },
     };
-    let first = paras[0].runs.first().map(|r| r.look.over(&own)).unwrap_or_else(|| own.clone());
+    let first = paras.first().and_then(|p| p.runs.first()).map(|r| r.look.over(&own)).unwrap_or_else(|| own.clone());
     let format = first.format();
     let mut content = String::new();
     let mut spans = vec![];
-    let last = paras.len() - 1;
+    let last = paras.len().saturating_sub(1);
     for (i, p) in paras.iter_mut().enumerate() {
         for run in &p.runs {
             let look = run.look.over(&own);
@@ -1482,7 +1512,7 @@ pub(super) fn object(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Opti
     while content.ends_with('\n') {
         content.pop();
     }
-    if content.trim().is_empty() {
+    if content.trim().is_empty() && !paragraph {
         return None;
     }
     let mut t;
@@ -1525,7 +1555,7 @@ pub(super) fn object(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Opti
     if let Some(v) = first.words {
         t.word_spacing = v;
     }
-    if let Some(a) = paras[0].align.or(first.align).or(own.align) {
+    if let Some(a) = paras.first().and_then(|p| p.align).or(first.align).or(own.align) {
         t.align = a;
     }
     // indents: CorelDRAW measures the first line's from the frame, AnyVector from the left indent
@@ -1535,7 +1565,7 @@ pub(super) fn object(cx: &mut Ctx, obj: &Chunk, l: &Loda, world: Affine) -> Opti
         (first.map(|f| f - left), left, right.unwrap_or(0.0))
     };
     if paragraph {
-        let (f0, l0, r0) = indents(&paras[0]);
+        let (f0, l0, r0) = paras.first().map(indents).unwrap_or_else(|| indents(&Para { runs: vec![], align: None, indents: [None; 3] }));
         t.first_indent = f0.unwrap_or(0.0);
         t.left_indent = l0;
         t.right_indent = r0;
@@ -1778,7 +1808,7 @@ mod tests {
         t[25] = 2;
         t.extend([0, b'H', 0, 1, b'i']);
         t.extend([0u8; 18]);
-        let p = paragraphs_v3(&cx, &t);
+        let p = paragraphs_v3(&mut cx, &t);
         assert_eq!(p.len(), 1);
         let text: String = p[0].runs.iter().map(|r| r.text.as_str()).collect();
         assert_eq!(text, "Hi");
@@ -1786,6 +1816,91 @@ mod tests {
         assert_eq!(look.font.as_deref(), Some(super::super::waldo::font_family("avalon").as_str()));
         assert!((look.size.unwrap() - 14.4).abs() < 0.01);
         assert_eq!(p[0].align, Some(TextAlign::Center));
+    }
+
+    /// A CorelDRAW 3 font table with these (id, name) entries.
+    fn v3_table(entries: &[(u16, &str)]) -> Vec<u8> {
+        let mut f = (entries.len() as u16).to_le_bytes().to_vec();
+        f.extend([0u8; 32]);
+        for (id, name) in entries {
+            let mut e = vec![0u8; 36];
+            e[2..4].copy_from_slice(&id.to_le_bytes());
+            e[4..4 + name.len()].copy_from_slice(name.as_bytes());
+            f.extend(e);
+        }
+        f
+    }
+
+    /// The font of a one-character CorelDRAW 3 text asking for font `id`.
+    fn v3_font_of(cx: &mut Ctx, id: u16) -> Option<String> {
+        let mut t = vec![0u8; 132];
+        t[11..13].copy_from_slice(&1u16.to_le_bytes());
+        t[15..17].copy_from_slice(&id.to_le_bytes());
+        t[19..21].copy_from_slice(&200u16.to_le_bytes());
+        t.extend([0, b'A', 0]);
+        paragraphs_v3(cx, &t)[0].runs[0].look.font.clone()
+    }
+
+    #[test]
+    fn coreldraw_3_font_ids_never_borrow_another_font() {
+        let family = super::super::waldo::font_family;
+        // no font table (most CorelDRAW 3 clipart): the default font, nothing to report
+        let mut cx = super::super::build::tests::ctx(300);
+        assert_eq!(v3_font_of(&mut cx, 7), None);
+        assert!(cx.notes.is_empty());
+        // a table naming one family (here twice, as real files do): texts ask for other numbers
+        // than the table's, but the drawing uses no other face
+        let mut cx = super::super::build::tests::ctx(300);
+        ftbl(&mut cx, &v3_table(&[(13, "arial"), (13, "arial")]));
+        assert_eq!(v3_font_of(&mut cx, 3), Some(family("arial")));
+        assert!(cx.notes.is_empty());
+        // several families: a listed id is its font, an unlisted one is not guessed (the first
+        // font used to stand in for it) and is reported once per text
+        let mut cx = super::super::build::tests::ctx(300);
+        ftbl(&mut cx, &v3_table(&[(1, "avalon"), (13, "arial")]));
+        assert_eq!(v3_font_of(&mut cx, 13), Some(family("arial")));
+        assert_eq!(v3_font_of(&mut cx, 1), Some(family("avalon")));
+        assert!(cx.notes.is_empty());
+        assert_eq!(v3_font_of(&mut cx, 7), None);
+        assert_eq!(v3_font_of(&mut cx, 7), None);
+        assert_eq!(v3_font_of(&mut cx, 8), None);
+        assert_eq!(cx.notes.get(&ImportNote::MissingFontId { id: 7 }), Some(&2));
+        assert_eq!(cx.notes.get(&ImportNote::MissingFontId { id: 8 }), Some(&1));
+        assert_eq!(cx.notes.len(), 2);
+    }
+
+    #[test]
+    fn empty_paragraph_frames_are_kept() {
+        use vector_core::text::{layout, TextKind};
+        for ver in [500, 600, 700, 1200, 1600, 2700] {
+            let mut cx = super::super::build::tests::ctx(ver);
+            let k = cx.k;
+            // the frame: a spare field, then its width and height (2 by 1 inch)
+            let mut a = vec![0u8; if cx.wide() { 4 } else { 2 }];
+            let (w, h) = (144.0 / k, 72.0 / k);
+            if cx.wide() {
+                a.extend((w.round() as i32).to_le_bytes());
+                a.extend((h.round() as i32).to_le_bytes());
+            } else {
+                a.extend((w.round() as i16).to_le_bytes());
+                a.extend((h.round() as i16).to_le_bytes());
+            }
+            // never typed into: no text stream at all
+            let obj = Chunk { tag: *b"LIST", list: Some(*b"obj "), data: vec![], children: vec![] };
+            let frame = Loda { kind: 6, args: vec![(0x1e, &a[..])] };
+            let world = Affine::scale(k);
+            let o = object(&mut cx, &obj, &frame, world).unwrap_or_else(|| panic!("version {ver} dropped the frame"));
+            let ObjKind::Text(t) = &o.kind else { panic!("version {ver}: not text") };
+            assert_eq!(t.content, "");
+            let TextKind::Paragraph { width, height } = t.kind else { panic!("version {ver}: not a frame") };
+            assert!((width - 144.0).abs() < 0.01 && (height - 72.0).abs() < 0.01, "version {ver}: {width} x {height}");
+            // an empty frame lays out
+            let l = layout(t);
+            assert!(l.glyphs.is_empty());
+            // empty artistic text is still nothing
+            let artistic = Loda { kind: 4, args: vec![(0x1e, &a[..])] };
+            assert!(object(&mut cx, &obj, &artistic, world).is_none(), "version {ver}");
+        }
     }
 
     #[test]
