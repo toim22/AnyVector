@@ -8,9 +8,9 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 
 /// Parts of other projects kept inside AnyVector's own crates: (name, license, source).
 const BUNDLED: [(&str, &str, &str); 1] = [(
-    "libcdr colour palette tables (crates/vector-io/src/corel/palettes.rs)",
+    "libcdr colour palette tables",
     "MPL-2.0",
-    "https://git.libreoffice.org/libcdr",
+    "Taken from https://git.libreoffice.org/libcdr. The source as AnyVector uses it is\n    legal\\palettes.rs in the install folder, and\n    https://github.com/toim22/AnyVector/blob/main/crates/vector-io/src/corel/palettes.rs\n    The license text is legal\\MPL-2.0.txt in the install folder.",
 )];
 
 pub fn run() -> Result<()> {
