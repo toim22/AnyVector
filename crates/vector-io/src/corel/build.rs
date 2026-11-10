@@ -158,6 +158,9 @@ pub(super) struct Ctx<'a> {
     /// CorelDRAW 4 paragraph text frames (`lnkt`): the text's id, then the `spnd` ids of the
     /// frames it flows through.
     pub chains4: Vec<(u32, Vec<u32>)>,
+    /// PostScript fills drawn over an object's box: the fill, its numbers, the box's size and the
+    /// picture's shift (hundredths of a point) to the document's image and its tile width.
+    pub ps_boxes: HashMap<(u16, Vec<i32>, [i64; 4]), (u64, f64)>,
     pub doc: Document,
 }
 
@@ -774,6 +777,10 @@ impl<'a> Ctx<'a> {
         let ids: Vec<u32> = self.fills.keys().copied().collect();
         for id in ids {
             if let Some(RawFill::PostScript { number, params }) = self.fills.get(&id) {
+                // drawn over each object's own box, when the objects are made
+                if super::psfill::on_box(*number) {
+                    continue;
+                }
                 let fill = match super::psfill::draw(*number, params) {
                     super::psfill::Drawn::Tone(c) => RawFill::Solid(c),
                     super::psfill::Drawn::Tile { rgba, w, h, width, angle } => {
@@ -1434,7 +1441,7 @@ impl<'a> Ctx<'a> {
         self.clip_owners.get(&n).or_else(|| self.clips.get(&n.wrapping_add(1))).copied()
     }
 
-    pub(super) fn style_of(&self, l: &Loda, bounds: kurbo::Rect, world: Affine) -> Style {
+    pub(super) fn style_of(&mut self, l: &Loda, bounds: kurbo::Rect, world: Affine) -> Style {
         let mut st = Style::default();
         st.fill = Fill::None;
         st.outline = Outline::none();
@@ -1446,7 +1453,13 @@ impl<'a> Ctx<'a> {
             _ => (0, 0),
         };
         let fill_id = l.arg(ARG_FILL).map(|a| Rd::new(a).u32()).or((style_fill != 0).then_some(style_fill));
-        if let Some(id) = fill_id {
+        let postscript = match (&fill3, fill_id.and_then(|id| self.fills.get(&id))) {
+            (None, Some(RawFill::PostScript { number, params })) => Some((*number, params.clone())),
+            _ => None,
+        };
+        if let Some((number, params)) = postscript {
+            st.fill = self.postscript_fill(number, &params, bounds, world);
+        } else if let Some(id) = fill_id {
             st.fill = match fill3.as_ref().or_else(|| self.fills.get(&id)) {
                 Some(RawFill::Solid(c)) => Fill::Solid(*c),
                 Some(RawFill::Gradient { kind, angle, cx, cy, pad, stops }) => fit_gradient(*kind, *angle, *cx, *cy, *pad, stops, bounds, world),
@@ -1480,6 +1493,40 @@ impl<'a> Ctx<'a> {
             }
         }
         st
+    }
+
+    /// A PostScript fill that paints the object's box (most of CorelDRAW's library): drawn for this
+    /// object's box, on the page's axes, as CorelDRAW does, and given to the object as a picture
+    /// the size of the box. Objects of the same size share the picture. Text, which has no box
+    /// here, gets the fill's tone.
+    fn postscript_fill(&mut self, number: u16, params: &[i32], bounds: kurbo::Rect, world: Affine) -> Fill {
+        let tone = Fill::Solid(super::psfill::tone(number));
+        let (w, h) = (bounds.width(), bounds.height());
+        let unit = world == Affine::IDENTITY && bounds == kurbo::Rect::new(0.0, 0.0, 1.0, 1.0);
+        if unit || !(w >= 1.0 && h >= 1.0 && w.is_finite() && h.is_finite()) {
+            return tone;
+        }
+        // the renderer starts the fill's tiles at the object's own origin: shift the picture so
+        // that its tile lands on the box
+        let local = (world.inverse() * bounds.to_path(0.1)).bounding_box();
+        let origin = world * Point::new(local.x0, local.y0);
+        let shift = (bounds.x0 - origin.x, bounds.y0 - origin.y);
+        let hundredths = |v: f64| (v * 100.0).round() as i64;
+        let key = (number, params.to_vec(), [hundredths(w), hundredths(h), hundredths(shift.0.rem_euclid(w)), hundredths(shift.1.rem_euclid(h))]);
+        let (image, tile) = match self.ps_boxes.get(&key) {
+            Some(found) => *found,
+            None => {
+                let Some((rgba, pw, ph, tile)) = super::psfill::draw_box(number, params, w, h) else { return tone };
+                let s = pw as f64 / tile;
+                let rgba = roll(&rgba, pw, ph, (shift.0 * s).round() as i64, (shift.1 * s).round() as i64);
+                let encoded = crate::image_io::encode_png(pw, ph, &rgba);
+                let data = vector_core::document::ImageData { width: pw, height: ph, rgba: std::sync::Arc::new(rgba), encoded: std::sync::Arc::new(encoded), format: "png".into(), name: format!("PostScript fill {number}") };
+                let found = (self.doc.add_image(data), tile);
+                self.ps_boxes.insert(key, found);
+                found
+            }
+        };
+        Fill::Pattern(PatternFill { kind: PatternKind::Checker, fg: Color::BLACK, bg: Color::WHITE, tile, angle: 0.0, image: Some(image), transform_with_object: true, vector: false, mirror: 0 })
     }
 
     /// A lens (X3 and later): class, id, then for color lenses the kind, the rate in tenths
@@ -1767,6 +1814,25 @@ fn polygon(side: &BezPath, n: usize, step: usize) -> BezPath {
 
 /// Place a stored fountain fill on an object. Our gradients are positioned in the object's
 /// local bounding box, so the page-space line is taken back through the object's transform.
+/// A picture `w` x `h` pixels shifted by `dx`, `dy` pixels, what leaves one side coming back in
+/// on the other, like a tile.
+fn roll(rgba: &[u8], w: u32, h: u32, dx: i64, dy: i64) -> Vec<u8> {
+    let (w, h) = (w as i64, h as i64);
+    if (dx.rem_euclid(w), dy.rem_euclid(h)) == (0, 0) {
+        return rgba.to_vec();
+    }
+    let mut out = vec![0; rgba.len()];
+    for y in 0..h {
+        let sy = (y - dy).rem_euclid(h);
+        for x in 0..w {
+            let sx = (x - dx).rem_euclid(w);
+            let (o, i) = (((y * w + x) * 4) as usize, ((sy * w + sx) * 4) as usize);
+            out[o..o + 4].copy_from_slice(&rgba[i..i + 4]);
+        }
+    }
+    out
+}
+
 fn fit_gradient(kind: GradientKind, angle: f64, cx: f64, cy: f64, pad: f64, stops: &[GradientStop], bounds: kurbo::Rect, world: Affine) -> Fill {
     let (w, h) = (bounds.width().max(1e-6), bounds.height().max(1e-6));
     let c = bounds.center();
@@ -1900,7 +1966,7 @@ pub(super) fn document(root: &Chunk) -> Result<Document> {
 pub(super) fn document_with_report(root: &Chunk) -> Result<(Document, Report)> {
     let ver = version(root);
     let k = if ver >= 600 { 72.0 / 254_000.0 } else { 72.0 / 1000.0 };
-    let mut cx = Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), vects: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), notes: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], doc: Document::new(612.0, 792.0) };
+    let mut cx = Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), vects: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), notes: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], ps_boxes: HashMap::new(), doc: Document::new(612.0, 792.0) };
     cx.collect(root);
     cx.pattern_images();
     let default_size = cx.default_page_size(root);
@@ -2006,7 +2072,7 @@ pub(crate) mod tests {
 
     pub(crate) fn ctx(ver: u32) -> Ctx<'static> {
         let k = if ver >= 600 { 72.0 / 254_000.0 } else { 72.0 / 1000.0 };
-        Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), vects: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), notes: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], doc: Document::new(612.0, 792.0) }
+        Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), vects: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), notes: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], ps_boxes: HashMap::new(), doc: Document::new(612.0, 792.0) }
     }
 
     #[test]
