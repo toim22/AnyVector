@@ -64,6 +64,8 @@ pub(super) enum RawFill {
     /// A CorelDRAW 4 vector pattern: the `spnd` of the group in `vect` that draws the tile, and
     /// the tile's width and height in points.
     Vector { pattern: u32, w: f64, h: f64 },
+    /// A texture fill of a file older than X3: its colors, read from the texture's settings.
+    Texture(super::texture::Texture),
 }
 
 pub(super) struct Ctx<'a> {
@@ -646,8 +648,14 @@ impl<'a> Ctx<'a> {
                 let h = self.coord(&mut r).abs() * self.k;
                 RawFill::Vector { pattern, w, h }
             }
-            // vector pattern and texture fills before X3 keep no bitmap (CorelDRAW draws a
-            // texture from its settings): shown as a neutral tone
+            // texture fills before X3 keep no bitmap, CorelDRAW draws them from their settings:
+            // we draw a tile in the texture's colors
+            11 => match super::texture::read(b) {
+                Some(t) if !t.colors.is_empty() => RawFill::Texture(t),
+                _ => RawFill::Solid(Color::rgb(200, 200, 200)),
+            },
+            // vector pattern fills of CorelDRAW 5 to X2, and textures of an unknown style:
+            // shown as a neutral tone
             _ => RawFill::Solid(Color::rgb(200, 200, 200)),
         };
         self.fills.insert(id, fill);
@@ -706,6 +714,7 @@ impl<'a> Ctx<'a> {
     /// Give the two-color pattern and PostScript fills their tile image.
     pub(super) fn pattern_images(&mut self) {
         let mut made: HashMap<(u32, [u8; 4], [u8; 4]), u32> = HashMap::new();
+        let mut textures: HashMap<super::texture::Texture, u32> = HashMap::new();
         let mut next = 0xff00_0000u32;
         let ids: Vec<u32> = self.fills.keys().copied().collect();
         for id in ids {
@@ -734,6 +743,26 @@ impl<'a> Ctx<'a> {
                         self.images.insert(next, (iid, pw, ph));
                         RawFill::Image { bitmap: next, tile: w, angle: 0.0 }
                     }
+                    None => RawFill::Solid(Color::rgb(200, 200, 200)),
+                };
+                self.fills.insert(id, fill);
+                continue;
+            }
+            if let Some(RawFill::Texture(t)) = self.fills.get(&id).cloned() {
+                let bitmap = match textures.get(&t) {
+                    Some(b) => Some(*b),
+                    None => super::texture::tile(&t).map(|(rgba, w, h)| {
+                        let encoded = crate::image_io::encode_png(w, h, &rgba);
+                        let data = vector_core::document::ImageData { width: w, height: h, rgba: std::sync::Arc::new(rgba), encoded: std::sync::Arc::new(encoded), format: "png".into(), name: "texture fill".into() };
+                        let iid = self.doc.add_image(data);
+                        next += 1;
+                        self.images.insert(next, (iid, w, h));
+                        textures.insert(t, next);
+                        next
+                    }),
+                };
+                let fill = match bitmap {
+                    Some(bitmap) => RawFill::Image { bitmap, tile: super::texture::TILE, angle: 0.0 },
                     None => RawFill::Solid(Color::rgb(200, 200, 200)),
                 };
                 self.fills.insert(id, fill);
