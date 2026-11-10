@@ -68,6 +68,49 @@ pub(super) enum RawFill {
     Texture(super::texture::Texture),
 }
 
+/// Something in a drawing that the importer could not bring in exactly. The user sees these when
+/// the drawing opens, so a difference from CorelDRAW is explained instead of discovered.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum ImportNote {
+    /// Objects of a kind the importer doesn't read yet were left out (CorelDRAW's type number).
+    SkippedObjects { kind: u32 },
+    /// A texture fill of a style that isn't in CorelDRAW's texture library.
+    UnknownTextureStyle { name: String },
+    /// Text asks for a font number that the drawing's font list doesn't have.
+    MissingFontId { id: u32 },
+    /// A font the drawing uses isn't installed, so its text is shown in another one.
+    FontSubstituted { missing: String, used: String },
+}
+
+impl ImportNote {
+    /// The note as the user reads it, for `count` occurrences. Each text is a key of the
+    /// translation file (`{}` stands for a value), so keep the wording and the translation in step.
+    pub fn describe(&self, count: usize) -> String {
+        match self {
+            ImportNote::SkippedObjects { kind } => format!("Left out: {} object(s) of a kind AnyVector doesn't read yet (type {})", count, kind),
+            ImportNote::UnknownTextureStyle { name } => format!("Texture \"{}\" isn't in CorelDRAW's texture library, so it's shown as a plain texture ({} fill(s))", name, count),
+            ImportNote::MissingFontId { id } => format!("Text uses a font the drawing doesn't list (font {}), so it's shown in the default font ({} text(s))", id, count),
+            ImportNote::FontSubstituted { missing, used } => format!("The font \"{}\" isn't installed, so its text is shown in \"{}\"", missing, used),
+        }
+    }
+}
+
+/// What the importer left out or approximated in a drawing.
+#[derive(Clone, Debug, Default)]
+pub struct Report {
+    /// Object types that were not converted: (type, count).
+    pub skipped: Vec<(u32, usize)>,
+    /// Everything to tell the user, the skipped object types included: (note, count).
+    pub notes: Vec<(ImportNote, usize)>,
+}
+
+impl Report {
+    /// The notes as the user reads them, one line each.
+    pub fn lines(&self) -> Vec<String> {
+        self.notes.iter().map(|(n, c)| n.describe(*c)).collect()
+    }
+}
+
 pub(super) struct Ctx<'a> {
     /// File version times 100 (X5 = 1500).
     pub ver: u32,
@@ -97,6 +140,8 @@ pub(super) struct Ctx<'a> {
     pub patterns: HashMap<u32, (usize, usize, Vec<bool>)>,
     /// Object types that were not converted, with how many of each.
     pub skipped: std::collections::BTreeMap<u32, usize>,
+    /// What could not be brought in exactly, with how many times, to tell the user.
+    pub notes: std::collections::BTreeMap<ImportNote, usize>,
     /// Text fitted to a path (`lnkt`): the `spnd` ids of the two objects, in either order.
     pub text_paths: Vec<(u32, u32)>,
     /// Where each text fitted to a path sits on it, by the text's id.
@@ -1830,15 +1875,23 @@ fn split_spreads(spreads: Vec<Page>, left_first: bool, doc: &mut Document) -> Ve
     out
 }
 
+impl Ctx<'_> {
+    /// Record something to tell the user; the same note twice counts twice.
+    #[allow(dead_code)] // used by the texture, text and font readers
+    pub fn note(&mut self, note: ImportNote) {
+        *self.notes.entry(note).or_default() += 1;
+    }
+}
+
 pub(super) fn document(root: &Chunk) -> Result<Document> {
     document_with_report(root).map(|r| r.0)
 }
 
-/// The document and the object types left out (type, count).
-pub(super) fn document_with_report(root: &Chunk) -> Result<(Document, Vec<(u32, usize)>)> {
+/// The document and what was left out or approximated.
+pub(super) fn document_with_report(root: &Chunk) -> Result<(Document, Report)> {
     let ver = version(root);
     let k = if ver >= 600 { 72.0 / 254_000.0 } else { 72.0 / 1000.0 };
-    let mut cx = Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), vects: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], doc: Document::new(612.0, 792.0) };
+    let mut cx = Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), vects: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), notes: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], doc: Document::new(612.0, 792.0) };
     cx.collect(root);
     cx.pattern_images();
     let default_size = cx.default_page_size(root);
@@ -1894,7 +1947,7 @@ pub(super) fn document_with_report(root: &Chunk) -> Result<(Document, Vec<(u32, 
     if let Some(left_first) = cx.facing4(root) {
         out = split_spreads(out, left_first, &mut cx.doc);
     }
-    let skipped = cx.skipped.iter().map(|(k, v)| (*k, *v)).collect();
+    let skipped: Vec<(u32, usize)> = cx.skipped.iter().map(|(k, v)| (*k, *v)).collect();
     let mut doc = cx.doc;
     doc.pages = out;
     for (a, z) in &cx.text_paths {
@@ -1934,7 +1987,8 @@ pub(super) fn document_with_report(root: &Chunk) -> Result<(Document, Vec<(u32, 
         doc.update_text_flow();
     }
     doc.ensure_next_id();
-    Ok((doc, skipped))
+    let notes = skipped.iter().map(|&(kind, n)| (ImportNote::SkippedObjects { kind }, n)).chain(cx.notes).collect();
+    Ok((doc, Report { skipped, notes }))
 }
 
 #[cfg(test)]
@@ -1943,7 +1997,18 @@ pub(crate) mod tests {
 
     pub(crate) fn ctx(ver: u32) -> Ctx<'static> {
         let k = if ver >= 600 { 72.0 / 254_000.0 } else { 72.0 / 1000.0 };
-        Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), vects: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], doc: Document::new(612.0, 792.0) }
+        Ctx { ver, k, fills: HashMap::new(), outlines: HashMap::new(), fonts: HashMap::new(), charsets: HashMap::new(), named_charsets: Default::default(), styles: Default::default(), images: HashMap::new(), clips: HashMap::new(), vects: HashMap::new(), clip_owners: HashMap::new(), graphic_styles: HashMap::new(), arrows: HashMap::new(), patterns: HashMap::new(), text_paths: vec![], path_places: HashMap::new(), by_spnd: HashMap::new(), skipped: Default::default(), notes: Default::default(), warps: vec![], texts4: HashMap::new(), text4: None, chains4: vec![], doc: Document::new(612.0, 792.0) }
+    }
+
+    #[test]
+    fn notes_count_repeats_and_read_as_sentences() {
+        let mut cx = ctx(1200);
+        cx.note(ImportNote::MissingFontId { id: 7 });
+        cx.note(ImportNote::MissingFontId { id: 7 });
+        cx.note(ImportNote::MissingFontId { id: 8 });
+        assert_eq!(cx.notes.get(&ImportNote::MissingFontId { id: 7 }), Some(&2));
+        let report = Report { skipped: vec![(0x20, 3)], notes: vec![(ImportNote::SkippedObjects { kind: 0x20 }, 3)] };
+        assert_eq!(report.lines(), vec!["Left out: 3 object(s) of a kind AnyVector doesn't read yet (type 32)".to_string()]);
     }
 
     #[test]
