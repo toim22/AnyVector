@@ -158,7 +158,7 @@ mod tests {
                         }
                     }
                 }
-                let opts = crate::image_io::RasterOptions { dpi: 96.0, ..Default::default() };
+                let opts = crate::image_io::RasterOptions { dpi: std::env::var("ANYVECTOR_CDR_DPI").ok().and_then(|v| v.parse().ok()).unwrap_or(96.0), ..Default::default() };
                 let _ = crate::image_io::export_raster(&doc, i, std::path::Path::new(&format!("{path}.p{}.png", i + 1)), &opts);
             }
         }
