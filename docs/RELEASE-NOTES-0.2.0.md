@@ -20,8 +20,12 @@ Import with a .cdr file is enough. The original file is never saved over; File â
   tone they have in CorelDRAW.
 - Colors in RGB, CMYK, HSB, HLS, Lab, grayscale and registration, and colors of the fixed palettes (PANTONE,
   TRUMATCH, Focoltone and the others), with their tints.
-- Artistic and paragraph text with its fonts, sizes, styles, colors and alignment, in every character set
-  CorelDRAW used, including the one-byte Windows and Mac sets of old files.
+- Artistic and paragraph text with its fonts, sizes, styles, colors, underline and strikethrough, in every
+  character set CorelDRAW used, including the one-byte Windows and Mac sets of old files.
+- Paragraph text keeps its frame layout: each paragraph's own alignment and indents, and the frame's columns
+  with their widths and gutters.
+- Text fitted to a path stays live on its path: on curves at the same place (left, right, centered or at an
+  offset), distance and side, and on ellipses centered on the same side.
 - Embedded bitmaps, and lenses.
 - Perspective and envelopes, applied to the shapes they hold.
 - **Effects:**
@@ -42,8 +46,8 @@ Import with a .cdr file is enough. The original file is never saved over; File â
 - Vector pattern and texture fills come in as a picture of their tile, so their objects and texture settings
   can't be edited.
 - Guidelines are not imported.
-- Text on a path and the frame layout of paragraph text are approximate, and some text of CorelDRAW 9 files is
-  missing.
+- Overlined text comes in without the line over it. Columns of paragraph text saved by CorelDRAW X5 or older
+  come in as a single column.
 - CMYK colors are converted without CorelDRAW's color profile, so they can look a little more saturated than in
   CorelDRAW.
 - In CorelDRAW 1 and 2 files, only shapes, fills and outlines come in. Their bitmaps, text and arrowheads are

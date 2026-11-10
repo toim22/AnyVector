@@ -860,6 +860,7 @@ pub fn press(app: &mut AnyVectorApp, key: &str) {
             // one tab stop (half an inch) per step
             let step = if key == "a7d5c6be" { 36.0 } else { -36.0 };
             crate::dialogs::text::modify_texts(app, if step > 0.0 { "Increase Indent" } else { "Decrease Indent" }, true, move |tx| {
+                tx.clear_paragraph_styles();
                 let first_rel = tx.first_indent - tx.left_indent;
                 tx.left_indent = (tx.left_indent + step).max(0.0);
                 tx.first_indent = (tx.left_indent + first_rel).max(0.0);

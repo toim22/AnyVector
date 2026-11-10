@@ -164,6 +164,19 @@ pub struct TextObj {
     /// the wrap, outline as a polygon). Derived by `Document::update_text_flow`.
     #[serde(skip)]
     pub wrap_obstacles: Vec<(u8, Vec<Point>)>,
+    /// Settings of single paragraphs that differ from the text's own (opened drawings keep
+    /// them per paragraph), by paragraph number; empty = every paragraph as the text.
+    #[serde(default)]
+    pub paragraphs: Vec<ParaStyle>,
+}
+
+/// A paragraph's own alignment and indents; None takes the text's.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct ParaStyle {
+    pub align: Option<TextAlign>,
+    pub first_indent: Option<f64>,
+    pub left_indent: Option<f64>,
+    pub right_indent: Option<f64>,
 }
 
 /// Formatting codes (Text ▸ Insert Formatting Code).
@@ -465,7 +478,22 @@ impl TextObj {
             web: false,
             frame_shape: None,
             wrap_obstacles: vec![],
+            paragraphs: vec![],
         }
+    }
+    /// Drop the settings of single paragraphs, so that the text's own apply to all of them.
+    pub fn clear_paragraph_styles(&mut self) {
+        self.paragraphs.clear();
+    }
+    /// The alignment and the first, left and right indents of paragraph `i`.
+    pub fn para_layout(&self, i: usize) -> (TextAlign, f64, f64, f64) {
+        let p = self.paragraphs.get(i);
+        (
+            p.and_then(|p| p.align).unwrap_or(self.align),
+            p.and_then(|p| p.first_indent).unwrap_or(self.first_indent),
+            p.and_then(|p| p.left_indent).unwrap_or(self.left_indent),
+            p.and_then(|p| p.right_indent).unwrap_or(self.right_indent),
+        )
     }
     pub fn paragraph(s: &str, w: f64, h: f64, format: CharFormat) -> TextObj {
         let mut t = TextObj::artistic(s, format);
@@ -1507,6 +1535,7 @@ pub fn layout_with(db: &mut FontDb, t: &TextObj) -> TextLayout {
                 }
             }
         }
+        let (p_align, p_first, p_left, p_right) = t.para_layout(para_no);
         let dc_indent = match (&drop, drop_cap) {
             (Some(d), Some(dc)) if para_line < dc.lines as usize || dc.hanging => d.width + dc.space,
             _ => 0.0,
@@ -1514,9 +1543,9 @@ pub fn layout_with(db: &mut FontDb, t: &TextObj) -> TextLayout {
         let left = match &marker {
             Some(m) if para_line == 0 || t.list.as_ref().is_some_and(|l| l.align_lines) => m.text_x,
             Some(m) => m.x,
-            None => t.left_indent + if para_line == 0 && !mid_para { t.first_indent } else { 0.0 },
+            None => p_left + if para_line == 0 && !mid_para { p_first } else { 0.0 },
         } + dc_indent;
-        let avail = if paragraph { (span_w - left - t.right_indent).max(1.0) } else { f64::INFINITY };
+        let avail = if paragraph { (span_w - left - p_right).max(1.0) } else { f64::INFINITY };
 
         let br = break_line(&chars, &shaped, &mut adv, &mut leader_at, t, k, avail, left, paragraph);
         let (asc, desc, size) = line_metrics(&shaped, k, br.end, &base_face, &t.format);
@@ -1557,21 +1586,21 @@ pub fn layout_with(db: &mut FontDb, t: &TextObj) -> TextLayout {
         let content_w: f64 = adv[k..e_trim].iter().sum::<f64>() + hyph_w;
         let (mut x, mut extra_per_space) = (0.0, 0.0);
         if paragraph {
-            match t.align {
+            match p_align {
                 TextAlign::Left => {}
                 TextAlign::Center => x = (avail - content_w) / 2.0,
                 TextAlign::Right => x = avail - content_w,
                 TextAlign::Justify | TextAlign::ForceJustify => {
                     let spaces = chars[k..e_trim].iter().filter(|c| **c == ' ').count();
                     let ends_para = matches!(br.kind, BreakKind::ParaEnd | BreakKind::ColBreak);
-                    if spaces > 0 && (!ends_para || t.align == TextAlign::ForceJustify) && !chars[k..e_trim].contains(&'\t') {
+                    if spaces > 0 && (!ends_para || p_align == TextAlign::ForceJustify) && !chars[k..e_trim].contains(&'\t') {
                         extra_per_space = ((avail - content_w) / spaces as f64).max(0.0);
                     }
                 }
             }
             x += span_x + left;
         } else {
-            x = match t.align {
+            x = match p_align {
                 TextAlign::Center => -content_w / 2.0,
                 TextAlign::Right => -content_w,
                 _ => 0.0,
@@ -1698,21 +1727,52 @@ pub fn layout_with(db: &mut FontDb, t: &TextObj) -> TextLayout {
         let bp = top.path.to_bez();
         let total = crate::path::bez_length(&bp);
         if total > 0.0 {
+            // the point `u` along the way the text runs, moved `distance` off the path, and the
+            // direction there
+            let at = |u: f64| -> Option<(Point, f64)> {
+                let s = if top.flip { total - u } else { u };
+                let (p, d) = crate::path::point_at_length(&bp, s)?;
+                let mut ang = d.y.atan2(d.x);
+                if top.flip {
+                    ang += std::f64::consts::PI;
+                }
+                let normal = kurbo::Vec2::new(-ang.sin(), ang.cos());
+                Some((p - normal * top.distance, ang))
+            };
+            // off the path, letters are spaced along the curve at that distance: (length along
+            // that curve, u) at small steps
+            let steps: Vec<(f64, f64)> = if top.distance.abs() > 1e-6 {
+                let n = (total / 0.25).clamp(64.0, 4000.0) as usize;
+                let mut acc = 0.0;
+                let mut prev: Option<Point> = None;
+                (0..=n)
+                    .filter_map(|i| {
+                        let u = total * i as f64 / n as f64;
+                        let (q, _) = at(u)?;
+                        acc += prev.map_or(0.0, |p| p.distance(q));
+                        prev = Some(q);
+                        Some((acc, u))
+                    })
+                    .collect()
+            } else {
+                vec![]
+            };
+            let to_u = |m: f64| -> Option<f64> {
+                if steps.is_empty() {
+                    return Some(m);
+                }
+                let i = steps.partition_point(|s| s.0 < m);
+                let (b, a) = (steps.get(i)?, steps.get(i.checked_sub(1)?)?);
+                let f = if b.0 > a.0 { (m - a.0) / (b.0 - a.0) } else { 0.0 };
+                Some(a.1 + (b.1 - a.1) * f)
+            };
             let mut remapped = vec![];
             for g in out.glyphs.drain(..) {
                 let mid = g.origin.x + g.advance / 2.0 + top.offset;
-                let s = if top.flip { total - mid } else { mid };
-                if s < 0.0 || s > total {
-                    continue;
-                }
-                if let Some((p, d)) = crate::path::point_at_length(&bp, s) {
-                    let mut ang = d.y.atan2(d.x);
-                    if top.flip {
-                        ang += std::f64::consts::PI;
-                    }
+                let Some(u) = to_u(mid).filter(|u| (0.0..=total).contains(u)) else { continue };
+                if let Some((q, ang)) = at(u) {
                     let local = Affine::translate((-g.origin.x - g.advance / 2.0, -g.origin.y));
-                    let normal = kurbo::Vec2::new(-ang.sin(), ang.cos());
-                    let place = Affine::translate(p.to_vec2() - normal * top.distance) * Affine::rotate(ang);
+                    let place = Affine::translate(q.to_vec2()) * Affine::rotate(ang);
                     let mut g2 = g.clone();
                     g2.transform = place * local * g.transform;
                     remapped.push(g2);
