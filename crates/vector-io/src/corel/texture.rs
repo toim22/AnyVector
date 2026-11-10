@@ -17,37 +17,114 @@ pub(super) struct Texture {
 const SIDE: usize = 128;
 pub(super) const TILE: f64 = 144.0;
 
-/// Read a texture fill record. The record has two names of 32 bytes each (the texture as the
-/// user saved it, then the style that draws it), the number of settings, and the settings in
-/// slots of 8 bytes: a number is the slot's first 16 bits, a color is three 16-bit percentages
-/// of red, green and blue. Which slots are colors depends on the style, so an unknown style
-/// gives `None`. The bytes after a number or after a name's end are leftovers and mean nothing.
-pub(super) fn read(b: &[u8]) -> Option<Texture> {
+/// A texture fill record as read: what to draw, and what the record says about its style.
+#[derive(Clone, Debug)]
+pub(super) struct Found {
+    pub texture: Texture,
+    /// The style's name as the record spells it.
+    pub style: String,
+    /// The style is in `STYLES`. When it isn't, `texture` is a neutral grey tile from the
+    /// record's first setting, so that two unknown textures still look different.
+    pub known: bool,
+    /// The names are UTF-16 in 64-byte fields (CorelDRAW 12), not one byte per character.
+    pub wide: bool,
+}
+
+/// A place in the record where a style's name could start, with the setting count after it.
+#[derive(Clone)]
+struct Candidate {
+    /// The first byte of the settings.
+    at: usize,
+    name: String,
+    count: usize,
+    wide: bool,
+}
+
+/// Read a texture fill record. The record has names (the texture as the user saved it, then the
+/// style that draws it), the number of settings, and the settings in slots of 8 bytes: a number
+/// is the slot's first 16 bits, a color is three 16-bit percentages of red, green and blue.
+/// Which slots are colors depends on the style. The bytes after a number or after a name's end
+/// are leftovers and mean nothing.
+///
+/// CorelDRAW 4 to 6 write the names one byte per character in 32-byte fields. CorelDRAW 12
+/// writes three names in UTF-16 in 64-byte fields (the texture, its library entry, the style),
+/// so the count comes 64 bytes after the style's name.
+///
+/// A style without color settings (Cosmic Clouds, Cosmic Minerals) is drawn in greys from black
+/// to white. A style that isn't in `STYLES` keeps its name and gets a neutral grey tile. `None`
+/// when no name in the record can be the style's.
+pub(super) fn read(b: &[u8]) -> Option<Found> {
     // The offset of the names changed between versions: look for the style's name instead,
-    // followed 32 bytes later by a count that fits the style. The last one is the style.
-    let mut found = None;
+    // followed one field later by a count that fits the style. The last one is the style, and
+    // a count that is exactly the style's number of settings wins over one that is larger.
+    let mut known: Option<(Candidate, &'static str)> = None;
+    let mut exact: Option<(Candidate, &'static str)> = None;
+    let mut unknown: Option<Candidate> = None;
     for o in 8..b.len().saturating_sub(34) {
         if !b[o].is_ascii_alphabetic() {
             continue;
         }
-        let Some(len) = b[o..o + 32].iter().position(|&c| c == 0) else { continue };
-        let Ok(name) = std::str::from_utf8(&b[o..o + len]) else { continue };
-        let Some(kinds) = kinds(name) else { continue };
-        let count = u16::from_le_bytes([b[o + 32], b[o + 33]]) as usize;
-        if count >= kinds.len() && count <= 24 && o + 34 + 8 * kinds.len() <= b.len() {
-            found = Some((o + 34, kinds));
+        let Some(c) = (if b[o + 1] == 0 { wide_name(b, o) } else { narrow_name(b, o) }) else { continue };
+        match kinds(&c.name) {
+            Some(kinds) => {
+                // the settings the style reads must be in the record
+                if c.count < kinds.len() || c.count > 24 || c.at + 8 * kinds.len() > b.len() {
+                    continue;
+                }
+                if c.count == kinds.len() {
+                    exact = Some((c.clone(), kinds));
+                }
+                known = Some((c, kinds));
+            }
+            None => {
+                // a name of its own, not the tail of another one, and all its settings in the record
+                let starts = if c.wide { !(0x20..0x7f).contains(&b[o - 2]) || b[o - 1] != 0 } else { !(0x20..0x7f).contains(&b[o - 1]) };
+                let printable = c.name.chars().count() >= 2 && c.name.chars().all(|ch| !ch.is_control());
+                if starts && printable && (1..=24).contains(&c.count) && c.at + 8 * c.count <= b.len() {
+                    unknown = Some(c);
+                }
+            }
         }
     }
-    let (at, kinds) = found?;
-    let word = |i: usize, n: usize| i16::from_le_bytes([b[at + 8 * i + 2 * n], b[at + 8 * i + 2 * n + 1]]);
-    let brightness = kinds.bytes().position(|k| k == b'b').map_or(0, |i| word(i, 0)).clamp(-100, 100) as f64 / 100.0;
+    let word = |at: usize, i: usize, n: usize| i16::from_le_bytes([b[at + 8 * i + 2 * n], b[at + 8 * i + 2 * n + 1]]);
+    let Some((c, kinds)) = exact.or(known) else {
+        let c = unknown?;
+        let texture = Texture { seed: word(c.at, 0, 0) as u16, colors: vec![[80; 3], [208; 3]] };
+        return Some(Found { texture, style: c.name, known: false, wide: c.wide });
+    };
+    let at = c.at;
+    let brightness = kinds.bytes().position(|k| k == b'b').map_or(0, |i| word(at, i, 0)).clamp(-100, 100) as f64 / 100.0;
     let channel = |v: i16| {
         let v = v.clamp(0, 100) as f64 / 100.0;
         let v = if brightness >= 0.0 { v + (1.0 - v) * brightness } else { v * (1.0 + brightness) };
         (v * 255.0).round() as u8
     };
-    let colors = kinds.bytes().enumerate().filter(|(_, k)| *k == b'c').map(|(i, _)| [channel(word(i, 0)), channel(word(i, 1)), channel(word(i, 2))]).collect();
-    Some(Texture { seed: word(0, 0) as u16, colors })
+    let mut colors: Vec<[u8; 3]> = kinds.bytes().enumerate().filter(|(_, k)| *k == b'c').map(|(i, _)| [channel(word(at, i, 0)), channel(word(at, i, 1)), channel(word(at, i, 2))]).collect();
+    if colors.is_empty() {
+        // a style with no colors draws in greys: black to white, with the brightness applied
+        colors = vec![[channel(0); 3], [channel(100); 3]];
+    }
+    Some(Found { texture: Texture { seed: word(at, 0, 0) as u16, colors }, style: c.name, known: true, wide: c.wide })
+}
+
+/// A one-byte name at `o` in a 32-byte field, then the count.
+fn narrow_name(b: &[u8], o: usize) -> Option<Candidate> {
+    let len = b[o..o + 32].iter().position(|&c| c == 0)?;
+    let name = std::str::from_utf8(&b[o..o + len]).ok()?.to_string();
+    let count = u16::from_le_bytes([b[o + 32], b[o + 33]]) as usize;
+    Some(Candidate { at: o + 34, name, count, wide: false })
+}
+
+/// A UTF-16LE name at `o` in a 64-byte field, then the count.
+fn wide_name(b: &[u8], o: usize) -> Option<Candidate> {
+    if o + 66 > b.len() {
+        return None;
+    }
+    let units: Vec<u16> = b[o..o + 64].chunks(2).map(|u| u16::from_le_bytes([u[0], u[1]])).collect();
+    let len = units.iter().position(|&u| u == 0)?;
+    let name = char::decode_utf16(units[..len].iter().copied()).collect::<Result<String, _>>().ok()?;
+    let count = u16::from_le_bytes([b[o + 64], b[o + 65]]) as usize;
+    Some(Candidate { at: o + 66, name, count, wide: true })
 }
 
 /// The kinds of a style's settings, in the file's order: `n` a number, `c` a color, `b` the
@@ -249,7 +326,7 @@ mod tests {
         // "Sky 2 Colors": number, softness, density, sky, clouds, brightness. The values after
         // the density and the brightness are leftovers, as CorelDRAW leaves them.
         let b = record("My sky", "Sky 2 Colors", &[[29335, 0, 0, 0], [0, 0, 0, 0], [50, 7, 7, 0], [0, 44, 100, 0], [100, 100, 100, 0], [0, 99, 85, 0]]);
-        let t = read(&b).expect("a known style");
+        let t = read(&b).expect("a known style").texture;
         assert_eq!(t.seed, 29335);
         assert_eq!(t.colors, vec![[0, 112, 255], [255, 255, 255]]);
     }
@@ -257,9 +334,9 @@ mod tests {
     #[test]
     fn texture_brightness_darkens_or_lightens_the_colors() {
         let slots = |brightness| [[1, 0, 0, 0], [0, 0, 0, 0], [50, 0, 0, 0], [0, 40, 100, 0], [100, 100, 100, 0], [brightness, 0, 0, 0]];
-        let dark = read(&record("", "Sky 2 Colors", &slots(-50))).unwrap();
+        let dark = read(&record("", "Sky 2 Colors", &slots(-50))).unwrap().texture;
         assert_eq!(dark.colors, vec![[0, 51, 128], [128, 128, 128]]);
-        let light = read(&record("", "Sky 2 Colors", &slots(50))).unwrap();
+        let light = read(&record("", "Sky 2 Colors", &slots(50))).unwrap().texture;
         assert_eq!(light.colors, vec![[128, 179, 255], [255, 255, 255]]);
     }
 
@@ -269,9 +346,94 @@ mod tests {
         let mut slots = vec![[0i16, 0, 0, 0]; 11];
         slots[8] = [80, 40, 20, 0];
         slots[9] = [100, 100, 100, 0];
-        let t = read(&record("Threads-Lit", "Cdr5:Threads-Lit", &slots)).unwrap();
+        let t = read(&record("Threads-Lit", "Cdr5:Threads-Lit", &slots)).unwrap().texture;
         assert_eq!(t.colors, vec![[204, 102, 51], [255, 255, 255]]);
-        assert!(read(&record("x", "No such style", &slots)).is_none());
+        // a style that isn't in the library is kept, by its name
+        let other = read(&record("x", "No such style", &slots)).unwrap();
+        assert!(!other.known);
+        assert_eq!(other.style, "No such style");
+    }
+
+    /// A record as CorelDRAW 12 writes it: three UTF-16 names in 64-byte fields from 0x3c (the
+    /// texture, its library entry, the style), the count at 0xfc and the settings from 0xfe.
+    fn wide_record(style: &str, slots: &[[i16; 4]]) -> Vec<u8> {
+        let mut b = vec![0u8; 0xfe + 8 * slots.len() + 30];
+        b[4] = 11;
+        b[0x0c..0x10].copy_from_slice(&508_000u32.to_le_bytes());
+        b[0x10..0x14].copy_from_slice(&508_000u32.to_le_bytes());
+        for (at, name) in [(0x3c, "CorelDefaultID_10001"), (0x7c, "CorelDefaultID_10334"), (0xbc, style)] {
+            for (i, u) in name.encode_utf16().enumerate() {
+                b[at + 2 * i..][..2].copy_from_slice(&u.to_le_bytes());
+            }
+        }
+        b[0xfc..0xfe].copy_from_slice(&(slots.len() as u16).to_le_bytes());
+        for (i, s) in slots.iter().enumerate() {
+            for (n, v) in s.iter().enumerate() {
+                b[0xfe + 8 * i + 2 * n..][..2].copy_from_slice(&v.to_le_bytes());
+            }
+        }
+        b
+    }
+
+    #[test]
+    fn texture_names_in_utf16_are_read() {
+        // the record of a CorelDRAW 12 drawing: "Surfaces", six numbers, two colors, brightness
+        let slots = [[2010, 0, 0, 0], [0, 0, 0, 0], [25, 0, 0, 0], [-55, 0, 0, 0], [-14, 0, 0, 0], [83, 0, 0, 0], [96, 96, 100, 0], [0, 0, 100, 0], [0, 0, 0, 0]];
+        let f = read(&wide_record("Surfaces", &slots)).expect("a wide-named style");
+        assert!(f.known && f.wide);
+        assert_eq!(f.style, "Surfaces");
+        assert_eq!(f.texture.seed, 2010);
+        assert_eq!(f.texture.colors, vec![[245, 245, 255], [0, 0, 255]]);
+        // one-byte names are not wide
+        assert!(!read(&record("", "Surfaces", &slots)).unwrap().wide);
+    }
+
+    #[test]
+    fn texture_settings_must_be_in_the_record() {
+        let slots = [[1, 0, 0, 0]; 9];
+        let mut b = wide_record("Surfaces", &slots);
+        b.truncate(0xfe + 8 * 8);
+        assert!(read(&b).map_or(true, |f| !f.known));
+    }
+
+    #[test]
+    fn texture_styles_without_colors_are_drawn_in_greys() {
+        // Cosmic Clouds: five numbers and the brightness, no color
+        let slots = [[24169, 0, 0, 0], [0, 0, 0, 0], [50, 0, 0, 0], [50, 0, 0, 0], [50, 0, 0, 0], [0, 0, 0, 0]];
+        let f = read(&record("", "Cosmic Clouds", &slots)).expect("a known style with no colors");
+        assert!(f.known);
+        assert_eq!(f.texture.colors, vec![[0; 3], [255; 3]]);
+        let (rgba, w, h) = tile(&f.texture).expect("a grey tile");
+        assert_eq!((w, h), (128, 128));
+        assert!(rgba.chunks(4).all(|p| p[0] == p[1] && p[1] == p[2]));
+        let (min, max) = rgba.chunks(4).fold((255, 0), |(l, h), p| (p[0].min(l), p[0].max(h)));
+        assert!(max - min > 100, "flat tile: {min}..{max}");
+        // the brightness still applies
+        let mut dark = slots;
+        dark[5] = [-50, 0, 0, 0];
+        assert_eq!(read(&record("", "Cosmic Clouds", &dark)).unwrap().texture.colors, vec![[0; 3], [128; 3]]);
+        // Cosmic Minerals too, in a wide record
+        let mut minerals = [[3i16, 0, 0, 0]; 8];
+        minerals[7] = [0; 4];
+        let f = read(&wide_record("Cosmic Minerals", &minerals)).unwrap();
+        assert!(f.known && f.wide);
+        assert_eq!(f.texture.colors, vec![[0; 3], [255; 3]]);
+    }
+
+    #[test]
+    fn texture_styles_not_in_the_library_keep_their_name_and_draw_grey() {
+        let f = read(&wide_record("A Style From Another Library", &[[1, 0, 0, 0]; 5])).expect("kept");
+        assert!(!f.known);
+        assert_eq!(f.style, "A Style From Another Library");
+        let (rgba, ..) = tile(&f.texture).unwrap();
+        assert!(rgba.chunks(4).all(|p| p[0] == p[1] && p[1] == p[2]));
+        // the tile depends on the record's first setting, so two of them don't look the same
+        let g = read(&record("", "Yet Another Style", &[[2, 0, 0, 0]; 5])).unwrap();
+        assert!(!g.known);
+        assert_eq!(g.style, "Yet Another Style");
+        assert_ne!(tile(&f.texture), tile(&g.texture));
+        // a record with no name at all is not a texture we can tell anything about
+        assert!(read(&[0u8; 200]).is_none());
     }
 
     #[test]

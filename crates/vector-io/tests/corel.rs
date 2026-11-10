@@ -385,6 +385,25 @@ fn tile_colors(doc: &Document, o: &Object) -> Vec<Color> {
     v.into_iter().map(|(c, _)| Color::rgb(c[0], c[1], c[2])).collect()
 }
 
+/// `texture-cdr12.cdr` comes from libcdr's test files (see `fixtures/corel/NOTICE.md`): a
+/// square with a "Surfaces" texture in blue and white, 2 inches a tile, as CorelDRAW 12 saves it.
+#[test]
+fn a_coreldraw_12_texture_fill_is_drawn_in_its_colors() {
+    let bytes = std::fs::read(fixture("texture-cdr12.cdr")).unwrap();
+    let (doc, report) = vector_io::corel::load_with_report(&bytes).unwrap();
+    let o = doc.pages[0].all_objects().next().expect("the square");
+    let Fill::Pattern(p) = &o.style.fill else { panic!("not a texture: {:?}", o.style.fill) };
+    // the tile repeats at the record's size, 2 inches
+    assert!((p.tile - 144.0).abs() < 0.5, "tile {} pt", p.tile);
+    // blue and white, not grey
+    let img = &doc.images[&p.image.expect("no tile image")];
+    let blue = img.rgba.chunks_exact(4).filter(|px| px[2] as i32 - px[0] as i32 > 40).count();
+    assert!(blue > img.rgba.len() / 4 / 10, "the tile has little blue: {blue}");
+    assert!(tile_colors(&doc, o).len() > 50);
+    // the style is in CorelDRAW's library, so there is nothing to tell
+    assert!(report.notes.is_empty(), "{:?}", report.notes);
+}
+
 #[test]
 fn pattern_texture_and_postscript_fills() {
     for name in ["fills-x5.cdr", "fills-2026.cdr"] {
