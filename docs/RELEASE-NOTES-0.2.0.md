@@ -21,7 +21,7 @@ Import with a .cdr file is enough. The original file is never saved over; File â
 - Colors in RGB, CMYK, HSB, HLS, Lab, grayscale and registration, and colors of the fixed palettes (PANTONE,
   TRUMATCH, Focoltone and the others), with their tints. CMYK colors look as they do on screen in CorelDRAW
   with its default color settings.
-- Artistic and paragraph text with its fonts, sizes, styles, colors, underline and strikethrough, in every
+- Artistic and paragraph text with its fonts, sizes, styles, colors, underline, strikethrough and overline, in every
   character set CorelDRAW used, including the one-byte Windows and Mac sets of old files.
 - Paragraph text keeps its frame layout: each paragraph's own alignment and indents, and the frame's columns
   with their widths and gutters.
@@ -48,7 +48,6 @@ Import with a .cdr file is enough. The original file is never saved over; File â
 - Bitmap, vector pattern and texture fills of files older than CorelDRAW X3 come in as a gray tone.
 - Vector pattern and texture fills come in as a picture of their tile, so their objects and texture settings
   can't be edited.
-- Overlined text comes in without the line over it.
 - CMYK colors always use CorelDRAW's default color settings, even in a drawing saved with another CMYK color
   profile.
 - In CorelDRAW 1 and 2 files, text and bitmaps are left out. Arrowheads come in from CorelDRAW 2 files, but

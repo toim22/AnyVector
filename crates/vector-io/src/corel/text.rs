@@ -137,6 +137,7 @@ struct Look {
     italic: Option<bool>,
     underline: Option<bool>,
     strike: Option<bool>,
+    overline: Option<bool>,
     color: Option<Color>,
     align: Option<TextAlign>,
     /// Line spacing and extra paragraph spacing, percent of the character height.
@@ -164,6 +165,7 @@ impl Look {
             italic: self.italic.or(base.italic),
             underline: self.underline.or(base.underline),
             strike: self.strike.or(base.strike),
+            overline: self.overline.or(base.overline),
             color: self.color.or(base.color),
             align: self.align.or(base.align),
             line: self.line.or(base.line),
@@ -188,6 +190,7 @@ impl Look {
         f.italic = self.italic.unwrap_or(false);
         f.underline = self.underline.unwrap_or(false);
         f.strike = self.strike.unwrap_or(false);
+        f.overline = self.overline.unwrap_or(false);
         f.tracking = self.tracking.unwrap_or(0.0);
         f.baseline_shift = self.shift.unwrap_or(0.0) * f.size;
         f
@@ -453,7 +456,7 @@ impl Styles {
         let mut l = match rec.and_then(|id| self.fonts.get(&id)) {
             Some((font, size, flags, charset)) => {
                 let (bold, italic) = weight(*flags);
-                let (underline, strike) = decorations(*flags);
+                let (underline, strike, overline) = decorations(*flags);
                 let charset = Some(*charset).filter(|c| *c != 0).or_else(|| cx.charsets.get(font).copied());
                 Look {
                     font: cx.fonts.get(font).cloned(),
@@ -462,6 +465,7 @@ impl Styles {
                     italic: Some(italic),
                     underline: Some(underline),
                     strike: Some(strike),
+                    overline: Some(overline),
                     charset,
                     ..Default::default()
                 }
@@ -533,6 +537,7 @@ fn json_look(v: &serde_json::Value, k: f64) -> Look {
         l.bold = latin.get("weight").and_then(json_num).map(|x| x >= 96.0);
         l.underline = latin.get("underline").and_then(json_num).map(|x| x != 0.0);
         l.strike = latin.get("strikeout").and_then(json_num).map(|x| x != 0.0);
+        l.overline = latin.get("overline").and_then(json_num).map(|x| x != 0.0);
     }
     if let Some(fill) = c.get("fill") {
         l.color = fill.get("primaryColor").and_then(|p| p.as_str()).and_then(json_color);
@@ -555,8 +560,9 @@ fn json_look(v: &serde_json::Value, k: f64) -> Look {
 
 /// Underline and strikethrough from the high half of a font's flags: three bits each, from bit 18
 /// and from bit 24 (1 single, 3 single thick, 5 double); overline (from bit 21) has no equal here.
-fn decorations(flags: u32) -> (bool, bool) {
-    ((flags >> 18) & 7 != 0, (flags >> 24) & 7 != 0)
+/// Underline, strikethrough and overline: three bits each, from bit 18, 24 and 21.
+fn decorations(flags: u32) -> (bool, bool, bool) {
+    ((flags >> 18) & 7 != 0, (flags >> 24) & 7 != 0, (flags >> 21) & 7 != 0)
 }
 
 /// Weight and slant flags: one bit per face, upright on even bits and italic on odd ones;
@@ -805,11 +811,12 @@ fn override_look(cx: &Ctx, r: &mut Rd) -> Look {
         // weight and slant, and the lines
         let flags = r.u32();
         let (bold, italic) = weight(flags);
-        let (underline, strike) = decorations(flags);
+        let (underline, strike, overline) = decorations(flags);
         l.bold = Some(bold);
         l.italic = Some(italic);
         l.underline = Some(underline);
         l.strike = Some(strike);
+        l.overline = Some(overline);
     }
     if fl2 & 0x04 != 0 {
         let s = cx.coord(r) * cx.k;
