@@ -404,6 +404,34 @@ fn a_coreldraw_12_texture_fill_is_drawn_in_its_colors() {
     assert!(report.notes.is_empty(), "{:?}", report.notes);
 }
 
+/// `postscript-cdr12.cdr` comes from libcdr's test files too: a square with the PostScript fill
+/// "Archimedes" (frequency 8, lines 5 thousandths of an inch, black on white), as CorelDRAW 12
+/// saves it. CorelDRAW draws a lattice of triangles and squares a quarter of an inch apart.
+#[test]
+fn a_coreldraw_12_postscript_fill_is_drawn() {
+    let bytes = std::fs::read(fixture("postscript-cdr12.cdr")).unwrap();
+    let (doc, _) = vector_io::corel::load_with_report(&bytes).unwrap();
+    let o = doc.pages[0].all_objects().next().expect("the square");
+    let Fill::Pattern(p) = &o.style.fill else { panic!("not drawn: {:?}", o.style.fill) };
+    // it keeps what it was drawn from
+    assert!(matches!(p.source, Some(vector_core::style::PatternSource::PostScript { .. })), "{:?}", p.source);
+    // one picture over the square's box
+    let bounds = kurbo::Shape::bounding_box(&o.world_path());
+    assert!((p.tile - bounds.width()).abs() < 1.0, "tile {} pt for a box {} wide", p.tile, bounds.width());
+    let img = &doc.images[&p.image.expect("no picture")];
+    let (w, h) = (img.width as usize, img.height as usize);
+    // white with black lines: as dark on average as CorelDRAW's (199 of 255 at 150 dpi)
+    let gray = |x: usize, y: usize| img.rgba[(y * w + x) * 4] as f64;
+    let mean = (0..h).flat_map(|y| (0..w).map(move |x| (x, y))).map(|(x, y)| gray(x, y)).sum::<f64>() / (w * h) as f64;
+    assert!((mean - 199.0).abs() < 25.0, "mean gray {mean}");
+    // the lattice repeats every quarter inch (2000 / 8 thousandths): a row of pixels matches
+    // itself shifted by that much
+    let period = (0.25 * 72.0 / p.tile * w as f64).round() as usize;
+    let y = h / 2;
+    let diff = |shift: usize| (0..w - shift).map(|x| (gray(x, y) - gray(x + shift, y)).abs()).sum::<f64>() / (w - shift) as f64;
+    assert!(diff(period) < diff(period / 2) / 2.0, "no quarter inch period: {} against {}", diff(period), diff(period / 2));
+}
+
 #[test]
 fn pattern_texture_and_postscript_fills() {
     for name in ["fills-x5.cdr", "fills-2026.cdr"] {
@@ -423,8 +451,15 @@ fn pattern_texture_and_postscript_fills() {
         }
         let Fill::Pattern(h) = &find(&doc, 0, "ps-Hatching").style.fill else { unreachable!() };
         assert_eq!(h.angle, -45.0, "{name}");
-        // the others take the tone they have in CorelDRAW
-        assert_eq!(find(&doc, 0, "ps-Grass").style.fill, Fill::Solid(Color::rgb(164, 164, 164)), "{name}");
+        // the others are drawn over the object's box: one picture the size of the box, blades
+        // of grass on white
+        let grass = find(&doc, 0, "ps-Grass");
+        let c = tile_colors(&doc, grass);
+        assert_eq!(c[0], Color::WHITE, "{name}");
+        assert!(c.iter().any(|c| c.r < 100 && c.g < 100 && c.b < 100), "{name}");
+        let Fill::Pattern(g) = &grass.style.fill else { unreachable!() };
+        let bounds = kurbo::Shape::bounding_box(&grass.world_path());
+        assert!((g.tile - bounds.width()).abs() < 1.0, "{name}: tile {} for a box {} wide", g.tile, bounds.width());
     }
 }
 
