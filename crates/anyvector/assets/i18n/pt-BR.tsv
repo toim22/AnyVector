@@ -5539,3 +5539,10 @@ feet	pés
 yards	jardas
 ciceros	cíceros
 didots	didots
+Invalid file: {}	Arquivo inválido: {}
+Unsupported file type: {}	Tipo de arquivo não compatível: {}
+this drawing was saved by CorelDRAW 1 or 2, a format older than AnyVector can read. Open it in CorelDRAW 3 or later and save it again.	este desenho foi salvo pelo CorelDRAW 1 ou 2, um formato mais antigo do que o AnyVector consegue ler. Abra-o no CorelDRAW 3 ou posterior e salve-o novamente.
+not a CorelDRAW drawing	não é um desenho do CorelDRAW
+the CorelDRAW drawing is empty or damaged	o desenho do CorelDRAW está vazio ou danificado
+the CorelDRAW drawing has no pages	o desenho do CorelDRAW não tem páginas
+CDT - CorelDRAW Template (*.cdt;*.cdrt)	CDT - Modelo do CorelDRAW (*.cdt;*.cdrt)
