@@ -396,11 +396,11 @@ fn pattern_texture_and_postscript_fills() {
         assert_eq!(c[..2], [Color::rgb(255, 255, 255), Color::rgb(0, 0, 160)], "{name}");
         // a texture: the bitmap CorelDRAW rendered for it
         assert!(tile_colors(&doc, find(&doc, 0, "texture")).len() > 100, "{name}");
-        // regular PostScript fills are drawn again as a tile of dark lines on white
+        // regular PostScript fills are drawn again as a tile of dark lines on white (thin lines show gray)
         for ps in ["ps-Bricks", "ps-Hatching", "ps-Crosshatching"] {
             let c = tile_colors(&doc, find(&doc, 0, ps));
             assert_eq!(c[0], Color::WHITE, "{name} {ps}");
-            assert!(c.iter().any(|c| c.r < 100 && c.g < 100 && c.b < 100), "{name} {ps}");
+            assert!(c.iter().any(|c| c.r < 160 && c.g < 160 && c.b < 160), "{name} {ps}");
         }
         let Fill::Pattern(h) = &find(&doc, 0, "ps-Hatching").style.fill else { unreachable!() };
         assert_eq!(h.angle, -45.0, "{name}");
