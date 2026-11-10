@@ -8,6 +8,7 @@ mod bitmap;
 mod build;
 mod color;
 mod palettes;
+mod psfill;
 mod persp;
 mod riff;
 mod text;

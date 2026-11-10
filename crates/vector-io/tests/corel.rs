@@ -5,7 +5,8 @@
 //! `shapes-*` holds the basic shapes on two pages of different sizes, `mixed-*` bitmaps,
 //! formatted text, fountain fills, a PowerClip and layers in every state. `effects-*` holds a
 //! drop shadow, a blend, two contours, an envelope, an extrusion and lines with arrowheads;
-//! `extrude-x5` the six kinds of extrusion.
+//! `extrude-x5` the six kinds of extrusion. `fills-*` holds two-color patterns, a texture and
+//! seven PostScript fills.
 
 use std::path::PathBuf;
 use vector_core::color::Color;
@@ -365,4 +366,41 @@ fn every_kind_of_extrusion() {
     // small back, small front, big back (saved as small front), big front (saved as small
     // back), back parallel, front parallel
     assert_eq!(got, [(0, 80), (1, 80), (1, 80), (0, 80), (4, 100), (5, 100)]);
+}
+
+/// The pattern's tile image: its colors, from most to least used.
+fn tile_colors(doc: &Document, o: &Object) -> Vec<Color> {
+    let Fill::Pattern(p) = &o.style.fill else { panic!("{}: not a pattern: {:?}", o.name, o.style.fill) };
+    let img = &doc.images[&p.image.expect("no tile image")];
+    let mut n: std::collections::HashMap<[u8; 3], usize> = Default::default();
+    for px in img.rgba.chunks_exact(4) {
+        *n.entry([px[0], px[1], px[2]]).or_default() += 1;
+    }
+    let mut v: Vec<_> = n.into_iter().collect();
+    v.sort_by(|a, b| b.1.cmp(&a.1));
+    v.into_iter().map(|(c, _)| Color::rgb(c[0], c[1], c[2])).collect()
+}
+
+#[test]
+fn pattern_texture_and_postscript_fills() {
+    for name in ["fills-x5.cdr", "fills-2026.cdr"] {
+        let doc = open(name);
+        // two-color patterns: the pattern's bits in its two colors, background most
+        let c = tile_colors(&doc, find(&doc, 0, "two0"));
+        assert_eq!(c[..2], [Color::rgb(255, 230, 120), Color::rgb(200, 0, 0)], "{name}");
+        let c = tile_colors(&doc, find(&doc, 0, "two1"));
+        assert_eq!(c[..2], [Color::rgb(255, 255, 255), Color::rgb(0, 0, 160)], "{name}");
+        // a texture: the bitmap CorelDRAW rendered for it
+        assert!(tile_colors(&doc, find(&doc, 0, "texture")).len() > 100, "{name}");
+        // regular PostScript fills are drawn again as a tile of dark lines on white
+        for ps in ["ps-Bricks", "ps-Hatching", "ps-Crosshatching"] {
+            let c = tile_colors(&doc, find(&doc, 0, ps));
+            assert_eq!(c[0], Color::WHITE, "{name} {ps}");
+            assert!(c.iter().any(|c| c.r < 100 && c.g < 100 && c.b < 100), "{name} {ps}");
+        }
+        let Fill::Pattern(h) = &find(&doc, 0, "ps-Hatching").style.fill else { unreachable!() };
+        assert_eq!(h.angle, -45.0, "{name}");
+        // the others take the tone they have in CorelDRAW
+        assert_eq!(find(&doc, 0, "ps-Grass").style.fill, Fill::Solid(Color::rgb(164, 164, 164)), "{name}");
+    }
 }
