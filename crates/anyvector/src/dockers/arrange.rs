@@ -19,7 +19,7 @@ fn anchor_point(bb: Rect, anchor: usize) -> Point {
 pub(crate) fn origin_grid(ui: &mut Ui, anchor: &mut usize, enabled: bool) {
     let (r, resp) = ui.allocate_exact_size(egui::vec2(42.0, 38.0), if enabled { egui::Sense::click() } else { egui::Sense::hover() });
     let p = ui.painter();
-    let col = if enabled { theme::TEXT } else { theme::DISABLED };
+    let col = if enabled { theme::TEXT() } else { theme::DISABLED() };
     let at = |i: usize| egui::pos2(r.left() + 7.0 + (i % 3) as f32 * 14.0, r.top() + 6.0 + (i / 3) as f32 * 13.0);
     for k in 0..3 {
         p.line_segment([at(k * 3), at(k * 3 + 2)], egui::Stroke::new(1.0, col));
@@ -27,7 +27,7 @@ pub(crate) fn origin_grid(ui: &mut Ui, anchor: &mut usize, enabled: bool) {
     }
     for i in 0..9 {
         let b = egui::Rect::from_center_size(at(i), egui::vec2(7.0, 7.0));
-        p.rect_filled(b, 0.0, theme::BG);
+        p.rect_filled(b, 0.0, theme::BG());
         if i == *anchor {
             p.rect_filled(b, 0.0, col);
         } else {
@@ -417,7 +417,7 @@ pub fn align(app: &mut AnyVectorApp, ui: &mut Ui) {
     ui.add_space(10.0);
     separator(ui);
     ui.add_space(6.0);
-    ui.label(egui::RichText::new("Text").font(theme::bold(13.0)).color(if any_text { theme::TEXT } else { theme::DISABLED }));
+    ui.label(egui::RichText::new("Text").font(theme::bold(13.0)).color(if any_text { theme::TEXT() } else { theme::DISABLED() }));
     ui.add_space(10.0);
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 8.0;
@@ -458,7 +458,7 @@ const FIT_STYLE: [&str; 5] = ["None", "Uniform", "Progressive", "Jitter", "Progr
 fn fit_row<R>(ui: &mut Ui, label: &str, enabled: bool, f: impl FnOnce(&mut Ui) -> R) -> R {
     ui.horizontal(|ui| {
         let (r, _) = ui.allocate_exact_size(egui::vec2(116.0, 22.0), egui::Sense::hover());
-        ui.painter().text(egui::pos2(r.left() + 12.0, r.center().y), egui::Align2::LEFT_CENTER, label, egui::FontId::proportional(12.5), if enabled { theme::TEXT } else { theme::DISABLED });
+        ui.painter().text(egui::pos2(r.left() + 12.0, r.center().y), egui::Align2::LEFT_CENTER, label, egui::FontId::proportional(12.5), if enabled { theme::TEXT() } else { theme::DISABLED() });
         ui.add_enabled_ui(enabled, f).inner
     })
     .inner
@@ -483,7 +483,7 @@ pub fn fit_to_path(app: &mut AnyVectorApp, ui: &mut Ui) {
     fit_row(ui, "Duplicate(s):", true, |ui| {
         spin(ui, &mut o.duplicates, 0..=999, 1.0, 0, "", vw - 30.0);
         ui.add_space(6.0);
-        ui.label(egui::RichText::new("ℹ").size(15.0).color(theme::TEXT)).on_hover_text("The number of extra copies of the objects fitted along the path.");
+        ui.label(egui::RichText::new("ℹ").size(15.0).color(theme::TEXT())).on_hover_text("The number of extra copies of the objects fitted along the path.");
     });
     section(ui, "Path:");
     fit_row(ui, "Object used:", true, |ui| ui.label(path_name));
@@ -498,7 +498,7 @@ pub fn fit_to_path(app: &mut AnyVectorApp, ui: &mut Ui) {
     o.object_origin = refp == 1;
     ui.horizontal_top(|ui| {
         let (r, _) = ui.allocate_exact_size(egui::vec2(116.0, 22.0), egui::Sense::hover());
-        ui.painter().text(egui::pos2(r.left() + 12.0, r.center().y), egui::Align2::LEFT_CENTER, "Origin:", egui::FontId::proportional(12.5), theme::TEXT);
+        ui.painter().text(egui::pos2(r.left() + 12.0, r.center().y), egui::Align2::LEFT_CENTER, "Origin:", egui::FontId::proportional(12.5), theme::TEXT());
         origin_grid(ui, &mut o.origin, true);
     });
     section(ui, "Rotation:");
@@ -539,7 +539,7 @@ const STEP_MODES: [&str; 3] = ["No offset", "Offset", "Spacing between objects"]
 fn sr_row<R>(ui: &mut Ui, label: &str, x: f32, enabled: bool, f: impl FnOnce(&mut Ui) -> R) -> R {
     ui.horizontal(|ui| {
         let (r, _) = ui.allocate_exact_size(egui::vec2(x, 22.0), egui::Sense::hover());
-        ui.painter().text(egui::pos2(r.left(), r.center().y), egui::Align2::LEFT_CENTER, label, egui::FontId::proportional(12.5), if enabled { theme::TEXT } else { theme::DISABLED });
+        ui.painter().text(egui::pos2(r.left(), r.center().y), egui::Align2::LEFT_CENTER, label, egui::FontId::proportional(12.5), if enabled { theme::TEXT() } else { theme::DISABLED() });
         ui.add_enabled_ui(enabled, f).inner
     })
     .inner
@@ -700,9 +700,9 @@ fn shape_legend(ui: &mut Ui) {
             let (r, _) = ui.allocate_exact_size(egui::vec2(18.0, 16.0), egui::Sense::hover());
             let c = r.center();
             if k == 0 {
-                ui.painter().add(egui::Shape::convex_polygon(vec![c + egui::vec2(-5.0, -5.0), c + egui::vec2(5.0, -5.0), c + egui::vec2(0.0, 5.0)], theme::TEXT, egui::Stroke::NONE));
+                ui.painter().add(egui::Shape::convex_polygon(vec![c + egui::vec2(-5.0, -5.0), c + egui::vec2(5.0, -5.0), c + egui::vec2(0.0, 5.0)], theme::TEXT(), egui::Stroke::NONE));
             } else {
-                ui.painter().rect_stroke(egui::Rect::from_center_size(c, egui::vec2(11.0, 8.0)), 1.0, egui::Stroke::new(1.0, theme::TEXT), egui::StrokeKind::Inside);
+                ui.painter().rect_stroke(egui::Rect::from_center_size(c, egui::vec2(11.0, 8.0)), 1.0, egui::Stroke::new(1.0, theme::TEXT()), egui::StrokeKind::Inside);
             }
             ui.label(t);
         });
@@ -744,7 +744,7 @@ pub fn shaping(app: &mut AnyVectorApp, ui: &mut Ui) {
     let clicked = ui
         .with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
             ui.add_space(4.0);
-            ui.add_enabled(n >= need, egui::Button::new(label).selected(picking).fill(egui::Color32::from_rgb(0x33, 0x33, 0x33)).min_size(egui::vec2(80.0, 24.0))).clicked()
+            ui.add_enabled(n >= need, egui::Button::new(label).selected(picking).fill(theme::BUTTON()).min_size(egui::vec2(80.0, 24.0))).clicked()
         })
         .inner;
     let op = SHAPE_OPS[cur].1;
@@ -810,11 +810,11 @@ fn radio_row(ui: &mut Ui, cur: &mut usize, k: usize, label: &str) {
     let (r, resp) = ui.allocate_exact_size(egui::vec2(120.0, 22.0), egui::Sense::click());
     let c = egui::pos2(r.left() + 7.0, r.center().y);
     let p = ui.painter();
-    p.circle_stroke(c, 5.5, egui::Stroke::new(1.0, theme::TEXT_DIM));
+    p.circle_stroke(c, 5.5, egui::Stroke::new(1.0, theme::TEXT_DIM()));
     if *cur == k {
-        p.circle_filled(c, 3.0, theme::TEXT);
+        p.circle_filled(c, 3.0, theme::TEXT());
     }
-    p.text(egui::pos2(r.left() + 18.0, r.center().y), egui::Align2::LEFT_CENTER, label, egui::FontId::proportional(12.5), theme::TEXT);
+    p.text(egui::pos2(r.left() + 18.0, r.center().y), egui::Align2::LEFT_CENTER, label, egui::FontId::proportional(12.5), theme::TEXT());
     if resp.clicked() {
         *cur = k;
     }
@@ -877,7 +877,7 @@ pub fn corners(app: &mut AnyVectorApp, ui: &mut Ui) {
     let (un, dpi) = app.doc().map(|d| (d.doc.settings.unit, d.doc.settings.dpi)).unwrap_or((app.settings.default_unit, 300.0));
     sr_row(ui, "      Radius:", 66.0, !chamfer, |ui| crate::widgets::unit_field(ui, egui::Id::unique("corner_r"), &mut u.corner_radius, un, dpi, 92.0, !chamfer));
     separator(ui);
-    ui.label(egui::RichText::new("Chamfer Distance").color(theme::TEXT));
+    ui.label(egui::RichText::new("Chamfer Distance").color(theme::TEXT()));
     ui.horizontal(|ui| {
         ui.vertical(|ui| {
             for (k, l) in ["A:", "B:"].into_iter().enumerate() {
@@ -892,7 +892,7 @@ pub fn corners(app: &mut AnyVectorApp, ui: &mut Ui) {
         });
         // the lock keeps B equal to A
         let (lr, lresp) = ui.allocate_exact_size(egui::vec2(18.0, 52.0), if chamfer { egui::Sense::click() } else { egui::Sense::hover() });
-        let col = if chamfer { theme::TEXT } else { theme::DISABLED };
+        let col = if chamfer { theme::TEXT() } else { theme::DISABLED() };
         let p = ui.painter();
         p.line_segment([lr.left_top() + egui::vec2(4.0, 8.0), lr.center_top() + egui::vec2(4.0, 8.0)], egui::Stroke::new(1.0, col));
         p.line_segment([lr.center_top() + egui::vec2(4.0, 8.0), lr.center_top() + egui::vec2(4.0, 13.0)], egui::Stroke::new(1.0, col));
@@ -902,7 +902,7 @@ pub fn corners(app: &mut AnyVectorApp, ui: &mut Ui) {
         if let Some(t) = app.icons.get(ui.ctx(), icon, 14.0, if chamfer { crate::icons::Tone::Normal } else { crate::icons::Tone::Disabled }) {
             let ir = egui::Rect::from_center_size(lr.center() + egui::vec2(4.0, 0.0), egui::vec2(14.0, 14.0));
             if chamfer && u.chamfer_lock {
-                ui.painter().rect_filled(ir.expand(1.0), 2.0, theme::ACCENT);
+                ui.painter().rect_filled(ir.expand(1.0), 2.0, theme::ACCENT());
             }
             ui.painter().image(t.id, ir, egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)), egui::Color32::WHITE);
         }
@@ -921,7 +921,7 @@ pub fn corners(app: &mut AnyVectorApp, ui: &mut Ui) {
     let apply = ui
         .with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
             ui.add_space(4.0);
-            ui.add_enabled(app.has_selection(), egui::Button::new("Apply").fill(egui::Color32::from_rgb(0x33, 0x33, 0x33)).min_size(egui::vec2(80.0, 24.0))).clicked()
+            ui.add_enabled(app.has_selection(), egui::Button::new("Apply").fill(theme::BUTTON()).min_size(egui::vec2(80.0, 24.0))).clicked()
         })
         .inner;
     if apply {
@@ -953,10 +953,10 @@ fn join_preview(ui: &mut Ui, mode: usize) {
     use egui::{pos2, vec2, Color32 as C, Stroke};
     let (r, _) = ui.allocate_exact_size(vec2(80.0, 85.0), egui::Sense::hover());
     let p = ui.painter_at(r);
-    p.rect_stroke(r, 0.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Inside);
+    p.rect_stroke(r, 0.0, Stroke::new(1.0, theme::SEP()), egui::StrokeKind::Inside);
     let at = |x: f32, y: f32| pos2(r.left() + r.width() * x, r.top() + r.height() * y);
     let blue = C::from_rgb(40, 160, 230);
-    let grey = Stroke::new(1.2, theme::TEXT_DIM);
+    let grey = Stroke::new(1.2, theme::TEXT_DIM());
     let node = |c: egui::Pos2| p.rect_stroke(egui::Rect::from_center_size(c, vec2(6.0, 6.0)), 1.0, grey, egui::StrokeKind::Middle);
     let dotted = |pts: &[egui::Pos2]| p.extend(egui::Shape::dotted_line(pts, blue, 4.0, 1.3));
     let curve = |pts: [egui::Pos2; 4]| {
@@ -1009,12 +1009,12 @@ pub fn join_curves(app: &mut AnyVectorApp, ui: &mut Ui) {
     let fillet = u.join_mode == 2;
     ui.horizontal(|ui| {
         let (r, _) = ui.allocate_exact_size(egui::vec2(92.0, 22.0), egui::Sense::hover());
-        ui.painter().text(egui::pos2(r.right() - 4.0, r.center().y), egui::Align2::RIGHT_CENTER, "Gap tolerance:", egui::FontId::proportional(12.5), theme::TEXT);
+        ui.painter().text(egui::pos2(r.right() - 4.0, r.center().y), egui::Align2::RIGHT_CENTER, "Gap tolerance:", egui::FontId::proportional(12.5), theme::TEXT());
         crate::widgets::unit_field(ui, egui::Id::unique("join_t"), &mut u.join_tolerance, un, dpi, 64.0, true);
     });
     ui.horizontal(|ui| {
         let (r, _) = ui.allocate_exact_size(egui::vec2(92.0, 22.0), egui::Sense::hover());
-        ui.painter().text(egui::pos2(r.right() - 4.0, r.center().y), egui::Align2::RIGHT_CENTER, "Radius:", egui::FontId::proportional(12.5), if fillet { theme::TEXT } else { theme::DISABLED });
+        ui.painter().text(egui::pos2(r.right() - 4.0, r.center().y), egui::Align2::RIGHT_CENTER, "Radius:", egui::FontId::proportional(12.5), if fillet { theme::TEXT() } else { theme::DISABLED() });
         crate::widgets::unit_field(ui, egui::Id::unique("join_r"), &mut u.join_radius, un, dpi, 64.0, fillet);
     });
     u.join_tolerance = u.join_tolerance.max(0.0);

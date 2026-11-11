@@ -77,14 +77,14 @@ pub fn comments(app: &mut AnyVectorApp, ui: &mut Ui) {
         }
         let sel = app.dockers.ui.comment_sel == Some(c.id);
         let page = app.doc().and_then(|d| d.doc.pages.iter().position(|p| p.id == c.page)).map(|i| i + 1).unwrap_or(1);
-        let fr = egui::Frame::new().fill(if sel { Color32::from_rgb(0x33, 0x33, 0x33) } else { theme::BG }).stroke(egui::Stroke::new(1.0, if sel { theme::FOCUS } else { theme::SEP })).inner_margin(6).corner_radius(2.0).show(ui, |ui| {
+        let fr = egui::Frame::new().fill(if sel { theme::BUTTON() } else { theme::BG() }).stroke(egui::Stroke::new(1.0, if sel { theme::FOCUS() } else { theme::SEP() })).inner_margin(6).corner_radius(2.0).show(ui, |ui| {
             ui.set_width(ui.available_width());
             ui.horizontal(|ui| {
                 if let Some(t) = app.icons.get(ui.ctx(), MARKS[c.mark.min(5) as usize].0, 16.0, crate::icons::Tone::Normal) {
                     ui.add(egui::Image::from_texture(t));
                 }
                 ui.label(egui::RichText::new(&c.author).strong());
-                ui.label(egui::RichText::new(format!("{}  ·  Page {page}", c.date)).color(theme::TEXT_DIM).size(11.5));
+                ui.label(egui::RichText::new(format!("{}  ·  Page {page}", c.date)).color(theme::TEXT_DIM()).size(11.5));
             });
             let editing = app.dockers.ui.comment_edit.as_ref().is_some_and(|e| e.0 == c.id);
             if editing {
@@ -108,7 +108,7 @@ pub fn comments(app: &mut AnyVectorApp, ui: &mut Ui) {
                 }
             } else {
                 let txt = egui::RichText::new(&c.text);
-                ui.label(if c.resolved { txt.strikethrough().color(theme::TEXT_DIM) } else { txt });
+                ui.label(if c.resolved { txt.strikethrough().color(theme::TEXT_DIM()) } else { txt });
             }
             for (who, what) in &c.replies {
                 ui.horizontal_wrapped(|ui| {
@@ -387,7 +387,7 @@ pub fn symbols(app: &mut AnyVectorApp, ui: &mut Ui) {
     ui.add_space(2.0);
     ui.horizontal(|ui| {
         let (pr, _) = ui.allocate_exact_size(vec2(100.0, 70.0), Sense::hover());
-        ui.painter().rect_stroke(pr, 0.0, egui::Stroke::new(1.0, theme::SEP), egui::StrokeKind::Inside);
+        ui.painter().rect_stroke(pr, 0.0, egui::Stroke::new(1.0, theme::SEP()), egui::StrokeKind::Inside);
         if let Some(s) = &sel {
             if let Some(t) = thumb(app, ui.ctx(), &format!("sym:{}:{}:{}", lib, s.id, s.name), &s.objects) {
                 let sz = t.size_vec2();
@@ -432,11 +432,11 @@ pub fn symbols(app: &mut AnyVectorApp, ui: &mut Ui) {
         v.sort();
         v
     };
-    egui::Frame::new().stroke(egui::Stroke::new(1.0, theme::SEP)).show(ui, |ui| {
+    egui::Frame::new().stroke(egui::Stroke::new(1.0, theme::SEP())).show(ui, |ui| {
         ui.set_width(full - 2.0);
         egui::ScrollArea::vertical().id_salt("sym_libs").max_height(96.0).auto_shrink([false, true]).show(ui, |ui| {
             ui.spacing_mut().item_spacing.y = 0.0;
-            let fill = |on: bool| on.then_some(theme::ACCENT);
+            let fill = |on: bool| on.then_some(theme::ACCENT());
             let (r, _) = list_row(app, ui, 0, Some(None), "symbols", title.as_str(), fill(lib == 0));
             if r.clicked() {
                 app.dockers.ui.sym_lib = 0;
@@ -501,9 +501,9 @@ pub fn symbols(app: &mut AnyVectorApp, ui: &mut Ui) {
         let on = app.dockers.ui.sym_sel.as_deref() == Some(s.name.as_str());
         let (r, resp) = ui.allocate_exact_size(vec2(full, 32.0), Sense::click());
         if on {
-            ui.painter().rect_filled(r, 0.0, theme::ACCENT);
+            ui.painter().rect_filled(r, 0.0, theme::ACCENT());
         } else if resp.hovered() {
-            ui.painter().rect_filled(r, 0.0, theme::HOVER);
+            ui.painter().rect_filled(r, 0.0, theme::HOVER());
         }
         let icon = if lib == 0 { "unlock" } else { "links" };
         if let Some(t) = app.icons.get(ui.ctx(), icon, 12.0, crate::icons::Tone::Normal) {
@@ -515,7 +515,7 @@ pub fn symbols(app: &mut AnyVectorApp, ui: &mut Ui) {
             let k = (28.0 / sz.x).min(22.0 / sz.y);
             ui.painter().image(t.id(), Rect::from_center_size(tr.center(), sz * k), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
         }
-        ui.painter().text(pos2(r.left() + 52.0, r.center().y), egui::Align2::LEFT_CENTER, &s.name, egui::FontId::proportional(13.0), theme::TEXT);
+        ui.painter().text(pos2(r.left() + 52.0, r.center().y), egui::Align2::LEFT_CENTER, &s.name, egui::FontId::proportional(13.0), theme::TEXT());
         if resp.clicked() {
             app.dockers.ui.sym_sel = Some(s.name.clone());
         }
@@ -627,7 +627,7 @@ pub fn export(app: &mut AnyVectorApp, ui: &mut Ui) {
             ] {
                 ui.vertical_centered(|ui| {
                     ui.set_max_width(ui.available_width() - 24.0);
-                    ui.label(egui::RichText::new(text).italics().color(egui::Color32::from_gray(205)));
+                    ui.label(egui::RichText::new(text).italics().color(crate::theme::gray(205)));
                     ui.add_space(4.0);
                     if let Some(t) = app.icons.get(ui.ctx(), icon, 20.0, crate::icons::Tone::Normal) {
                         ui.add(egui::Image::new(t).fit_to_exact_size(vec2(20.0, 20.0)));
@@ -642,7 +642,7 @@ pub fn export(app: &mut AnyVectorApp, ui: &mut Ui) {
             let it = app.dockers.ui.export_items[i].clone();
             let tex = export_thumb(app, ui.ctx(), &it);
             let it = &mut app.dockers.ui.export_items[i];
-            egui::Frame::new().stroke(egui::Stroke::new(1.0, crate::theme::SEP)).inner_margin(6.0).show(ui, |ui| {
+            egui::Frame::new().stroke(egui::Stroke::new(1.0, crate::theme::SEP())).inner_margin(6.0).show(ui, |ui| {
                 ui.set_width(ui.available_width());
                 ui.horizontal(|ui| {
                     ui.checkbox(&mut it.selected, "").on_hover_text("Select item");
@@ -699,7 +699,7 @@ pub fn export(app: &mut AnyVectorApp, ui: &mut Ui) {
     });
     // the bottom bar
     let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), 1.0), Sense::hover());
-    ui.painter().hline(r.x_range(), r.center().y, egui::Stroke::new(1.0, crate::theme::SEP));
+    ui.painter().hline(r.x_range(), r.center().y, egui::Stroke::new(1.0, crate::theme::SEP()));
     let has_sel = app.has_selection();
     let any = app.dockers.ui.export_items.iter().any(|i| i.selected);
     let all = !app.dockers.ui.export_items.is_empty() && app.dockers.ui.export_items.iter().all(|i| i.selected);
@@ -1001,17 +1001,17 @@ pub fn tray(app: &mut AnyVectorApp, ui: &mut Ui) {
         let (r, resp) = child.allocate_exact_size(vec2(72.0, 90.0), Sense::click());
         let resp = resp.on_hover_text(&it.name);
         if resp.hovered() {
-            child.painter().rect_filled(r, 2.0, theme::HOVER);
+            child.painter().rect_filled(r, 2.0, theme::HOVER());
         }
         let tile = Rect::from_min_size(r.min + vec2(4.0, 4.0), vec2(64.0, 64.0));
-        child.painter().rect_filled(tile, 1.0, Color32::from_rgb(0x30, 0x30, 0x30));
+        child.painter().rect_filled(tile, 1.0, crate::theme::FAINT());
         if let Some(t) = tray_thumb(app, child.ctx(), it) {
             let sz = t.size_vec2();
             let s = (60.0 / sz.x).min(60.0 / sz.y);
             child.painter().image(t.id(), Rect::from_center_size(tile.center(), sz * s), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
         }
-        let g = egui::WidgetText::from(egui::RichText::new(&it.name).size(11.0).color(theme::TEXT_DIM)).into_galley(&child, Some(egui::TextWrapMode::Truncate), 68.0, egui::TextStyle::Body);
-        child.painter().galley(pos2(r.center().x - g.size().x / 2.0, tile.bottom() + 4.0), g, theme::TEXT_DIM);
+        let g = egui::WidgetText::from(egui::RichText::new(&it.name).size(11.0).color(theme::TEXT_DIM())).into_galley(&child, Some(egui::TextWrapMode::Truncate), 68.0, egui::TextStyle::Body);
+        child.painter().galley(pos2(r.center().x - g.size().x / 2.0, tile.bottom() + 4.0), g, theme::TEXT_DIM());
         if resp.double_clicked() {
             insert = Some(i);
         }
@@ -1102,7 +1102,7 @@ pub fn links(app: &mut AnyVectorApp, ui: &mut Ui) {
                     edit_sel(app, "Hyperlink", |x| x.url = (!u.is_empty()).then(|| u.clone()));
                 }
                 let (ar, aresp) = ui.allocate_exact_size(vec2(20.0, 22.0), Sense::click());
-                crate::widgets::chevron(ui.painter(), ar.center(), 3.0, crate::theme::TEXT);
+                crate::widgets::chevron(ui.painter(), ar.center(), 3.0, crate::theme::TEXT());
                 egui::Popup::menu(&aresp).show(|ui| {
                     crate::menus::menu_style(ui);
                     if marks.is_empty() {
@@ -1362,10 +1362,10 @@ pub fn sources(app: &mut AnyVectorApp, ui: &mut Ui) {
     });
     for (id, path, page) in &links {
         let name = std::path::Path::new(path).file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| path.clone());
-        let fill = (sel == Some(*id)).then_some(theme::ACCENT);
+        let fill = (sel == Some(*id)).then_some(theme::ACCENT());
         let (resp, _) = list_row(app, ui, 0, None, "bitmap", name, fill);
         if let Some(pg) = page {
-            ui.painter().text(pos2(resp.rect.left() + name_w + page_w / 2.0, resp.rect.center().y), egui::Align2::CENTER_CENTER, pg.to_string(), egui::FontId::proportional(13.0), theme::TEXT);
+            ui.painter().text(pos2(resp.rect.left() + name_w + page_w / 2.0, resp.rect.center().y), egui::Align2::CENTER_CENTER, pg.to_string(), egui::FontId::proportional(13.0), theme::TEXT());
         }
         let resp = resp.on_hover_text(path);
         if resp.clicked() {
@@ -1429,7 +1429,7 @@ pub fn views(app: &mut AnyVectorApp, ui: &mut Ui) {
             app.run(Cmd::Tool(crate::tools::ToolId::Zoom));
         }
         let (sr, _) = ui.allocate_exact_size(vec2(9.0, 22.0), Sense::hover());
-        ui.painter().vline(sr.center().x, sr.y_range().shrink(2.0), egui::Stroke::new(1.0, theme::SEP));
+        ui.painter().vline(sr.center().x, sr.y_range().shrink(2.0), egui::Stroke::new(1.0, theme::SEP()));
         if icon_button(app, ui, "zoom_in", "Zoom In", true) {
             app.run(Cmd::ZoomIn);
         }
@@ -1479,7 +1479,7 @@ pub fn views(app: &mut AnyVectorApp, ui: &mut Ui) {
             }
             continue;
         }
-        let fill = (cur == Some(i)).then_some(theme::ACCENT);
+        let fill = (cur == Some(i)).then_some(theme::ACCENT());
         let (resp, _) = list_row(app, ui, 0, None, "", v.name.as_str(), fill);
         let resp = resp.on_hover_text(format!("Page {}, {:.0}%", v.page + 1, v.zoom / (96.0 / 72.0) * 100.0));
         if resp.clicked() {
@@ -1583,7 +1583,7 @@ pub fn history(app: &mut AnyVectorApp, ui: &mut Ui) {
         }
     }
     for (i, l) in redo.iter().enumerate() {
-        let (r, _) = list_row(app, ui, 0, None, history_icon(l), egui::RichText::new(l).color(theme::DISABLED), None);
+        let (r, _) = list_row(app, ui, 0, None, history_icon(l), egui::RichText::new(l).color(theme::DISABLED()), None);
         if r.clicked() {
             cmd = Some(Cmd::RedoTo(i + 1));
         }
@@ -1636,7 +1636,7 @@ pub fn scripts(app: &mut AnyVectorApp, ui: &mut Ui) {
     ui.horizontal(|ui| {
         let nb = ui.add_sized(vec2(80.0, 24.0), egui::Button::new("New"));
         let c = pos2(nb.rect.right() - 12.0, nb.rect.center().y);
-        ui.painter().add(egui::Shape::line(vec![c + vec2(-4.0, -2.0), c + vec2(0.0, 2.0), c + vec2(4.0, -2.0)], egui::Stroke::new(1.2, theme::TEXT)));
+        ui.painter().add(egui::Shape::line(vec![c + vec2(-4.0, -2.0), c + vec2(0.0, 2.0), c + vec2(4.0, -2.0)], egui::Stroke::new(1.2, theme::TEXT())));
         egui::Popup::menu(&nb).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
             ui.set_min_width(120.0);
             if ui.button("New script").clicked() {
@@ -1668,7 +1668,7 @@ pub fn scripts(app: &mut AnyVectorApp, ui: &mut Ui) {
         folders.push((f.clone(), f.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| f.to_string_lossy().to_string()), true));
     }
     let simple = app.dockers.ui.script_simple;
-    let sel_fill = |key: &str, app: &AnyVectorApp| (app.dockers.ui.script_sel.as_deref() == Some(key)).then_some(theme::ACCENT);
+    let sel_fill = |key: &str, app: &AnyVectorApp| (app.dockers.ui.script_sel.as_deref() == Some(key)).then_some(theme::ACCENT());
     let mut run = None;
     let mut edit = None;
     let mut delete = None;

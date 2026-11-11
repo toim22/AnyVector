@@ -39,11 +39,11 @@ fn style_combo(ui: &mut Ui, id: &str, style: &mut usize, color: Color32, w: f32,
     let field = Rect::from_min_max(r.min, pos2(r.right() - 16.0, r.bottom()));
     p.rect_filled(field.shrink(2.0), 1.0, if enabled { Color32::WHITE } else { Color32::from_gray(150) });
     styled_line(p, pos2(field.left() + 5.0, field.center().y), pos2(field.right() - 5.0, field.center().y), Stroke::new(1.0, color), *style);
-    crate::widgets::chevron(p, pos2(r.right() - 8.0, r.center().y), 3.0, if enabled { theme::TEXT } else { theme::DISABLED });
+    crate::widgets::chevron(p, pos2(r.right() - 8.0, r.center().y), 3.0, if enabled { theme::TEXT() } else { theme::DISABLED() });
     egui::Popup::menu(&resp).id(egui::Id::unique(("lg_style", id))).show(|ui| {
         for s in 0..LINE_STYLES {
             let (lr, lresp) = ui.allocate_exact_size(vec2(w, 20.0), Sense::click());
-            ui.painter().rect_filled(lr.shrink(1.0), 0.0, if s == *style { theme::ACCENT } else { Color32::WHITE });
+            ui.painter().rect_filled(lr.shrink(1.0), 0.0, if s == *style { theme::ACCENT() } else { theme::STRONG() });
             styled_line(ui.painter(), pos2(lr.left() + 6.0, lr.center().y), pos2(lr.right() - 6.0, lr.center().y), Stroke::new(1.0, Color32::from_gray(40)), s);
             if lresp.clicked() {
                 *style = s;
@@ -58,7 +58,7 @@ fn color_combo(ui: &mut Ui, id: &str, color: &mut [u8; 3], enabled: bool) {
     let (r, resp) = ui.allocate_exact_size(vec2(40.0, 22.0), if enabled { Sense::click() } else { Sense::hover() });
     let p = ui.painter();
     p.rect_filled(Rect::from_min_size(r.min + vec2(2.0, 4.0), vec2(22.0, 14.0)), 0.0, if enabled { c32(*color) } else { c32(*color).gamma_multiply(0.5) });
-    crate::widgets::chevron(p, pos2(r.right() - 8.0, r.center().y), 3.0, if enabled { theme::TEXT } else { theme::DISABLED });
+    crate::widgets::chevron(p, pos2(r.right() - 8.0, r.center().y), 3.0, if enabled { theme::TEXT() } else { theme::DISABLED() });
     egui::Popup::menu(&resp).id(egui::Id::unique(("lg_color", id))).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
         let mut c = Color::rgb(color[0], color[1], color[2]);
         if super::props::color_edit(ui, &mut c, false) {
@@ -77,11 +77,11 @@ fn header(ui: &mut Ui, title: &str, open: &mut bool, check: &mut bool, scroll_he
     let p = ui.painter();
     let a = pos2(r.left() + 7.0, r.center().y);
     if *open {
-        crate::widgets::chevron_up(p, a, 3.5, theme::TEXT);
+        crate::widgets::chevron_up(p, a, 3.5, theme::TEXT());
     } else {
-        crate::widgets::chevron(p, a, 3.5, theme::TEXT);
+        crate::widgets::chevron(p, a, 3.5, theme::TEXT());
     }
-    p.text(pos2(r.left() + 16.0, r.center().y), egui::Align2::LEFT_CENTER, title, theme::bold(12.5), theme::TEXT);
+    p.text(pos2(r.left() + 16.0, r.center().y), egui::Align2::LEFT_CENTER, title, theme::bold(12.5), theme::TEXT());
     let cb = Rect::from_center_size(pos2(r.right() - 10.0, r.center().y), vec2(12.0, 12.0));
     let cr = ui.interact(cb.expand(3.0), ui.scope_id().with(("lg_hdr", title)), Sense::click());
     checkbox_box(ui.painter(), cb, *check, true);
@@ -93,11 +93,11 @@ fn header(ui: &mut Ui, title: &str, open: &mut bool, check: &mut bool, scroll_he
 }
 
 fn checkbox_box(p: &egui::Painter, cb: Rect, on: bool, enabled: bool) {
-    let col = if enabled { theme::TEXT_DIM } else { theme::SEP };
+    let col = if enabled { theme::TEXT_DIM() } else { theme::SEP() };
     p.rect_stroke(cb, 1.0, Stroke::new(1.0, col), egui::StrokeKind::Inside);
     if on {
-        p.line_segment([cb.left_center() + vec2(2.5, 0.0), cb.center_bottom() - vec2(0.5, 3.0)], Stroke::new(1.5, theme::TEXT));
-        p.line_segment([cb.center_bottom() - vec2(0.5, 3.0), cb.right_top() + vec2(-2.5, 2.5)], Stroke::new(1.5, theme::TEXT));
+        p.line_segment([cb.left_center() + vec2(2.5, 0.0), cb.center_bottom() - vec2(0.5, 3.0)], Stroke::new(1.5, theme::TEXT()));
+        p.line_segment([cb.center_bottom() - vec2(0.5, 3.0), cb.right_top() + vec2(-2.5, 2.5)], Stroke::new(1.5, theme::TEXT()));
     }
 }
 
@@ -109,7 +109,7 @@ fn toggle(app: &mut AnyVectorApp, ui: &mut Ui, icon: &str, tip: &str, on: &mut b
 
 fn vbar(ui: &mut Ui) {
     let (r, _) = ui.allocate_exact_size(vec2(9.0, 22.0), Sense::hover());
-    ui.painter().line_segment([r.center_top(), r.center_bottom()], Stroke::new(1.0, theme::SEP));
+    ui.painter().line_segment([r.center_top(), r.center_bottom()], Stroke::new(1.0, theme::SEP()));
 }
 
 fn unit_field(app: &AnyVectorApp, ui: &mut Ui, id: &str, v: &mut f64, w: f32, enabled: bool) -> bool {
@@ -175,9 +175,9 @@ pub fn live_guides(app: &mut AnyVectorApp, ui: &mut Ui) {
         let (r, resp) = ui.allocate_exact_size(vec2(full_w, 12.0), Sense::click());
         let a = r.center();
         if mopen {
-            crate::widgets::chevron_up(ui.painter(), a, 3.0, theme::TEXT_DIM);
+            crate::widgets::chevron_up(ui.painter(), a, 3.0, theme::TEXT_DIM());
         } else {
-            crate::widgets::chevron(ui.painter(), a, 3.0, theme::TEXT_DIM);
+            crate::widgets::chevron(ui.painter(), a, 3.0, theme::TEXT_DIM());
         }
         if resp.clicked() {
             mopen = !mopen;
@@ -225,7 +225,7 @@ pub fn live_guides(app: &mut AnyVectorApp, ui: &mut Ui) {
                     // the lock joins the two margins
                     let (lr, lresp) = ui.allocate_exact_size(vec2(18.0, 50.0), if en { Sense::click() } else { Sense::hover() });
                     let p = ui.painter();
-                    let col = if en { theme::TEXT } else { theme::DISABLED };
+                    let col = if en { theme::TEXT() } else { theme::DISABLED() };
                     p.line_segment([lr.left_top() + vec2(4.0, 6.0), lr.center_top() + vec2(4.0, 6.0)], Stroke::new(1.0, col));
                     p.line_segment([lr.center_top() + vec2(4.0, 6.0), lr.center() + vec2(4.0, -9.0)], Stroke::new(1.0, col));
                     p.line_segment([lr.left_bottom() + vec2(4.0, -6.0), lr.center_bottom() + vec2(4.0, -6.0)], Stroke::new(1.0, col));
@@ -283,8 +283,8 @@ pub fn live_guides(app: &mut AnyVectorApp, ui: &mut Ui) {
     list_and_preview(app, ui, on, full_w);
     // the grip under the list
     let (r, _) = ui.allocate_exact_size(vec2(full_w, 10.0), Sense::hover());
-    ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, "···", egui::FontId::proportional(11.0), theme::TEXT_DIM);
-    ui.painter().hline(r.left()..=r.right() - 6.0, r.bottom(), Stroke::new(1.0, theme::SEP));
+    ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, "···", egui::FontId::proportional(11.0), theme::TEXT_DIM());
+    ui.painter().hline(r.left()..=r.right() - 6.0, r.bottom(), Stroke::new(1.0, theme::SEP()));
 }
 
 fn list_and_preview(app: &mut AnyVectorApp, ui: &mut Ui, on: bool, full_w: f32) {
@@ -292,7 +292,7 @@ fn list_and_preview(app: &mut AnyVectorApp, ui: &mut Ui, on: bool, full_w: f32) 
         // the angles, each with its check box
         let list_h = 205.0;
         let mut toggle_k = None;
-        egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP)).fill(theme::FIELD).show(ui, |ui| {
+        egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP())).fill(theme::FIELD()).show(ui, |ui| {
             ui.set_width(98.0);
             egui::ScrollArea::vertical().id_salt("dyn_angles").max_height(list_h).auto_shrink([false, false]).show(ui, |ui| {
                 ui.spacing_mut().item_spacing.y = 0.0;
@@ -300,11 +300,11 @@ fn list_and_preview(app: &mut AnyVectorApp, ui: &mut Ui, on: bool, full_w: f32) 
                 ui.vertical(|ui| for (k, (a, chk)) in app.settings.dyn_angles.iter().enumerate() {
                     let (r, resp) = ui.allocate_exact_size(vec2(84.0, 25.0), Sense::click());
                     if k == sel {
-                        ui.painter().rect_filled(r, 0.0, theme::ACCENT);
+                        ui.painter().rect_filled(r, 0.0, theme::ACCENT());
                     }
                     let cb = Rect::from_center_size(pos2(r.left() + 8.0, r.center().y), vec2(10.0, 10.0));
                     checkbox_box(ui.painter(), cb, *chk, on);
-                    ui.painter().text(pos2(r.left() + 18.0, r.center().y), egui::Align2::LEFT_CENTER, format!("{a} °"), egui::FontId::proportional(11.5), if on { theme::TEXT } else { theme::DISABLED });
+                    ui.painter().text(pos2(r.left() + 18.0, r.center().y), egui::Align2::LEFT_CENTER, format!("{a} °"), egui::FontId::proportional(11.5), if on { theme::TEXT() } else { theme::DISABLED() });
                     if on && resp.clicked() {
                         if resp.interact_pointer_pos().is_some_and(|q| q.x < cb.right() + 3.0) {
                             toggle_k = Some(k);
@@ -321,9 +321,9 @@ fn list_and_preview(app: &mut AnyVectorApp, ui: &mut Ui, on: bool, full_w: f32) 
             // the guides of the checked angles through a point
             let (r, _) = ui.allocate_exact_size(vec2((full_w - 118.0).max(60.0), 95.0), Sense::hover());
             let p = ui.painter();
-            p.rect_stroke(r, 0.0, Stroke::new(1.0, theme::TEXT_DIM), egui::StrokeKind::Inside);
+            p.rect_stroke(r, 0.0, Stroke::new(1.0, theme::TEXT_DIM()), egui::StrokeKind::Inside);
             let c = r.center();
-            let col = if on { c32(app.settings.dyn_guide_color) } else { theme::DISABLED };
+            let col = if on { c32(app.settings.dyn_guide_color) } else { theme::DISABLED() };
             for (k, (a, chk)) in app.settings.dyn_angles.iter().enumerate() {
                 if on && (*chk || k == app.dockers.ui.lg_angle_sel) {
                     let d = vec2(a.to_radians().cos() as f32, -a.to_radians().sin() as f32) * 200.0;
@@ -472,13 +472,13 @@ pub fn guidelines(app: &mut AnyVectorApp, ui: &mut Ui) {
     let (unit, dpi, o) = (d.doc.settings.unit, d.doc.settings.dpi, d.doc.settings.ruler_origin);
     let list_h = (ui.available_height() - 34.0).max(120.0);
     let mut pick = None;
-    egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP)).show(ui, |ui| {
+    egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP())).show(ui, |ui| {
         ui.set_min_size(vec2(full_w - 2.0, list_h));
         egui::ScrollArea::vertical().id_salt("guide_list").max_height(list_h).show(ui, |ui| {
             for (i, g) in guides.iter().enumerate() {
                 let (r, resp) = ui.allocate_exact_size(vec2(full_w - 10.0, 20.0), Sense::click());
                 if Some(i) == sel {
-                    ui.painter().rect_filled(r, 0.0, theme::ACCENT);
+                    ui.painter().rect_filled(r, 0.0, theme::ACCENT());
                 }
                 let t = match g.kind {
                     GuideKind::Horizontal => "Horizontal",
@@ -486,9 +486,9 @@ pub fn guidelines(app: &mut AnyVectorApp, ui: &mut Ui) {
                     GuideKind::Angled(_) => "Angled",
                 };
                 ui.painter().line_segment([pos2(r.left() + 4.0, r.center().y), pos2(r.left() + 18.0, r.center().y)], Stroke::new(2.0, Color32::from_rgb(g.color.r, g.color.g, g.color.b)));
-                ui.painter().text(pos2(r.left() + 24.0, r.center().y), egui::Align2::LEFT_CENTER, format!("{t}: {}", guide_label(g, unit, dpi, o)), egui::FontId::proportional(12.0), theme::TEXT);
+                ui.painter().text(pos2(r.left() + 24.0, r.center().y), egui::Align2::LEFT_CENTER, format!("{t}: {}", guide_label(g, unit, dpi, o)), egui::FontId::proportional(12.0), theme::TEXT());
                 if g.locked {
-                    ui.painter().text(pos2(r.right() - 4.0, r.center().y), egui::Align2::RIGHT_CENTER, "🔒", egui::FontId::proportional(10.0), theme::TEXT_DIM);
+                    ui.painter().text(pos2(r.right() - 4.0, r.center().y), egui::Align2::RIGHT_CENTER, "🔒", egui::FontId::proportional(10.0), theme::TEXT_DIM());
                 }
                 if resp.clicked() {
                     pick = Some(i);

@@ -460,7 +460,7 @@ fn row<R>(ui: &mut Ui, label: &str, add: impl FnOnce(&mut Ui) -> R) -> R {
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 8.0;
         let (r, _) = ui.allocate_exact_size(vec2(LABEL_W, 24.0), Sense::hover());
-        ui.painter().text(pos2(r.right(), r.center().y), Align2::RIGHT_CENTER, label, FontId::proportional(12.5), theme::TEXT);
+        ui.painter().text(pos2(r.right(), r.center().y), Align2::RIGHT_CENTER, label, FontId::proportional(12.5), theme::TEXT());
         add(ui)
     })
     .inner
@@ -470,7 +470,7 @@ fn section_title(ui: &mut Ui, text: &str) {
     ui.add_space(4.0);
     ui.horizontal(|ui| {
         ui.add_space(30.0);
-        ui.label(RichText::new(text).strong().size(13.0).color(Color32::WHITE));
+        ui.label(RichText::new(text).strong().size(13.0).color(theme::STRONG()));
     });
     ui.add_space(2.0);
 }
@@ -480,11 +480,11 @@ fn collapsible(ui: &mut Ui, text: &str, open: &mut bool) {
     let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 24.0), Sense::click());
     let c = pos2(r.left() + 10.0, r.center().y);
     if *open {
-        crate::widgets::chevron_up(ui.painter(), c, 3.5, theme::TEXT);
+        crate::widgets::chevron_up(ui.painter(), c, 3.5, theme::TEXT());
     } else {
-        crate::widgets::chevron(ui.painter(), c, 3.5, theme::TEXT);
+        crate::widgets::chevron(ui.painter(), c, 3.5, theme::TEXT());
     }
-    ui.painter().text(pos2(r.left() + 20.0, r.center().y), Align2::LEFT_CENTER, text, FontId::proportional(13.0), Color32::WHITE);
+    ui.painter().text(pos2(r.left() + 20.0, r.center().y), Align2::LEFT_CENTER, text, FontId::proportional(13.0), theme::STRONG());
     if resp.clicked() {
         *open = !*open;
     }
@@ -493,7 +493,7 @@ fn collapsible(ui: &mut Ui, text: &str, open: &mut bool) {
 fn hline(ui: &mut Ui) {
     ui.add_space(6.0);
     let r = ui.available_rect_before_wrap();
-    ui.painter().hline(r.left()..=r.right() - 6.0, r.top(), Stroke::new(1.0, theme::SEP));
+    ui.painter().hline(r.left()..=r.right() - 6.0, r.top(), Stroke::new(1.0, theme::SEP()));
     ui.add_space(8.0);
 }
 
@@ -513,8 +513,8 @@ fn spin(ui: &mut Ui, id: &str, value: &mut usize, range: std::ops::RangeInclusiv
         let dn = Rect::from_min_max(pos2(rect.min.x, rect.center().y), rect.max);
         let ru = ui.interact(up, egui::Id::unique((id, "up")), Sense::click());
         let rd = ui.interact(dn, egui::Id::unique((id, "dn")), Sense::click());
-        crate::widgets::chevron_up(ui.painter(), up.center(), 3.0, if ru.hovered() { Color32::WHITE } else { theme::TEXT_DIM });
-        crate::widgets::chevron(ui.painter(), dn.center(), 3.0, if rd.hovered() { Color32::WHITE } else { theme::TEXT_DIM });
+        crate::widgets::chevron_up(ui.painter(), up.center(), 3.0, if ru.hovered() { theme::STRONG() } else { theme::TEXT_DIM() });
+        crate::widgets::chevron(ui.painter(), dn.center(), 3.0, if rd.hovered() { theme::STRONG() } else { theme::TEXT_DIM() });
         if ru.clicked() && *value < *range.end() {
             *value += 1;
         }
@@ -589,8 +589,8 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
                 ui.spacing_mut().item_spacing.x = 8.0;
                 for (i, t) in ["Document Settings", "Templates"].iter().enumerate() {
                     let sel = st.tab == i;
-                    let b = egui::Button::new(RichText::new(*t).color(if sel { Color32::WHITE } else { theme::TEXT }))
-                        .fill(if sel { theme::ACCENT } else { Color32::from_rgb(0x3a, 0x3a, 0x3a) })
+                    let b = egui::Button::new(RichText::new(*t).color(if sel { theme::STRONG() } else { theme::TEXT() }))
+                        .fill(if sel { theme::ACCENT() } else { theme::BUTTON() })
                         .corner_radius(2.0)
                         .min_size(vec2(0.0, 24.0));
                     if ui.add(b).clicked() {
@@ -599,7 +599,7 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
                 }
             });
         });
-        ui.painter().hline(x0..=x0 + w, y0 + 41.0, Stroke::new(1.0, theme::SEP));
+        ui.painter().hline(x0..=x0 + w, y0 + 41.0, Stroke::new(1.0, theme::SEP()));
         let grid_rect = Rect::from_min_max(pos2(x0, y0 + 92.0), pos2(x0 + 479.0, y0 + 562.0));
         let right_rect = Rect::from_min_max(pos2(x0 + 492.0, y0 + 92.0), pos2(x0 + w, y0 + 562.0));
         if st.tab == 0 {
@@ -609,7 +609,7 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
         }
         // ---- footer
         let fy = y0 + 612.0;
-        ui.painter().hline(x0 - 10.0..=x0 + w + 10.0, fy - 8.0, Stroke::new(1.0, theme::SEP));
+        ui.painter().hline(x0 - 10.0..=x0 + w + 10.0, fy - 8.0, Stroke::new(1.0, theme::SEP()));
         let footer = Rect::from_min_max(pos2(x0, fy), pos2(x0 + w, fy + 28.0));
         ui.scope_builder(UiBuilder::new().max_rect(footer), |ui| {
             ui.horizontal_centered(|ui| {
@@ -685,7 +685,7 @@ fn settings_tab(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut NewDocState, top: 
     });
     // ---- presets grid
     let presets = visible_presets(app, st);
-    ui.painter().rect(grid_rect, 0.0, Color32::from_rgb(0x22, 0x22, 0x22), Stroke::new(1.0, theme::SEP), StrokeKind::Inside);
+    ui.painter().rect(grid_rect, 0.0, theme::gray(0x22), Stroke::new(1.0, theme::SEP()), StrokeKind::Inside);
     let inner = grid_rect.shrink(2.0);
     ui.scope_builder(UiBuilder::new().max_rect(inner), |ui| {
         egui::ScrollArea::vertical().id_salt("nd_presets").auto_shrink([false, false]).show(ui, |ui| {
@@ -702,9 +702,9 @@ fn settings_tab(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut NewDocState, top: 
                 let resp = ui.interact(r, egui::Id::unique(("nd_preset", i)), Sense::click());
                 let selected = st.selected.as_deref() == Some(p.name.as_str());
                 if selected {
-                    ui.painter().rect_filled(r.shrink(2.0), 3.0, theme::ACCENT);
+                    ui.painter().rect_filled(r.shrink(2.0), 3.0, theme::ACCENT());
                 } else if resp.hovered() {
-                    ui.painter().rect_filled(r.shrink(2.0), 3.0, theme::HOVER);
+                    ui.painter().rect_filled(r.shrink(2.0), 3.0, theme::HOVER());
                 }
                 let thumb = Rect::from_center_size(pos2(r.center().x, r.top() + 42.0), vec2(60.0, 58.0));
                 draw_thumb(ui.painter(), thumb, p.width, p.height, p.kind != Kind::Print);
@@ -713,8 +713,8 @@ fn settings_tab(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut NewDocState, top: 
                     egui::Image::from_texture(t).paint_at(ui, ir);
                 }
                 let name = elide(ui, &p.name, cell.x - 8.0, &font);
-                ui.painter().text(pos2(r.center().x, r.top() + 82.0), Align2::CENTER_CENTER, name, font.clone(), theme::TEXT);
-                ui.painter().text(pos2(r.center().x, r.top() + 96.0), Align2::CENTER_CENTER, p.size_text(), font.clone(), theme::TEXT);
+                ui.painter().text(pos2(r.center().x, r.top() + 82.0), Align2::CENTER_CENTER, name, font.clone(), theme::TEXT());
+                ui.painter().text(pos2(r.center().x, r.top() + 96.0), Align2::CENTER_CENTER, p.size_text(), font.clone(), theme::TEXT());
                 let resp = resp.on_hover_text(format!("{}\n{}", p.name, p.size_text()));
                 if resp.clicked() {
                     st.apply(p);
@@ -725,7 +725,7 @@ fn settings_tab(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut NewDocState, top: 
                 }
             }
             if presets.is_empty() {
-                ui.label(RichText::new("No presets match.").color(theme::TEXT_DIM));
+                ui.label(RichText::new("No presets match.").color(theme::TEXT_DIM()));
             }
         });
     });
@@ -774,7 +774,7 @@ fn settings_tab(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut NewDocState, top: 
             ui.add_space(4.0);
             ui.horizontal(|ui| {
                 ui.add_space(12.0);
-                ui.label(RichText::new("Document Settings").strong().size(13.0).color(Color32::WHITE));
+                ui.label(RichText::new("Document Settings").strong().size(13.0).color(theme::STRONG()));
             });
             ui.add_space(4.0);
             section_title(ui, "General");
@@ -895,7 +895,7 @@ fn settings_tab(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut NewDocState, top: 
     // vertical splitter dots between the two panes
     let c = pos2(grid_rect.right() + 6.0, grid_rect.center().y);
     for dy in [-4.0, 0.0, 4.0] {
-        ui.painter().circle_filled(c + vec2(0.0, dy), 1.0, theme::TEXT_DIM);
+        ui.painter().circle_filled(c + vec2(0.0, dy), 1.0, theme::TEXT_DIM());
     }
 }
 
@@ -923,16 +923,16 @@ fn templates_tab(_app: &mut AnyVectorApp, ui: &mut Ui, st: &mut NewDocState, top
         .as_ref()
         .map(|t| t.iter().cloned().enumerate().filter(|(_, t)| (st.category == 0 || t.category == CATEGORIES[st.category]) && (q.is_empty() || t.name.to_lowercase().contains(&q))).collect())
         .unwrap_or_default();
-    ui.painter().rect(grid_rect, 0.0, Color32::from_rgb(0x22, 0x22, 0x22), Stroke::new(1.0, theme::SEP), StrokeKind::Inside);
+    ui.painter().rect(grid_rect, 0.0, theme::gray(0x22), Stroke::new(1.0, theme::SEP()), StrokeKind::Inside);
     let inner = grid_rect.shrink(2.0);
     ui.scope_builder(UiBuilder::new().max_rect(inner), |ui| {
         egui::ScrollArea::vertical().id_salt("nd_templates").auto_shrink([false, false]).show(ui, |ui| {
             if list.is_empty() {
                 ui.add_space(20.0);
                 ui.vertical_centered(|ui| {
-                    ui.label(RichText::new("No templates found.").color(theme::TEXT));
+                    ui.label(RichText::new("No templates found.").color(theme::TEXT()));
                     ui.add_space(4.0);
-                    ui.label(RichText::new("Use File ▸ Save as Template to add your own, or copy\ntemplates (.cdr, .cdt, .vct) into the Templates folder.").color(theme::TEXT_DIM));
+                    ui.label(RichText::new("Use File ▸ Save as Template to add your own, or copy\ntemplates (.cdr, .cdt, .vct) into the Templates folder.").color(theme::TEXT_DIM()));
                     ui.add_space(8.0);
                     if ui.button("Open Templates Folder").clicked() {
                         let dir = crate::settings::config_dir().join("Templates");
@@ -954,9 +954,9 @@ fn templates_tab(_app: &mut AnyVectorApp, ui: &mut Ui, st: &mut NewDocState, top
                 }
                 let resp = ui.interact(r, egui::Id::unique(("nd_tpl", *i)), Sense::click());
                 if st.template_sel == Some(*i) {
-                    ui.painter().rect_filled(r.shrink(2.0), 3.0, theme::ACCENT);
+                    ui.painter().rect_filled(r.shrink(2.0), 3.0, theme::ACCENT());
                 } else if resp.hovered() {
-                    ui.painter().rect_filled(r.shrink(2.0), 3.0, theme::HOVER);
+                    ui.painter().rect_filled(r.shrink(2.0), 3.0, theme::HOVER());
                 }
                 let thumb_area = Rect::from_center_size(pos2(r.center().x, r.top() + 52.0), vec2(cell.x - 20.0, 86.0));
                 let tex = st
@@ -977,7 +977,7 @@ fn templates_tab(_app: &mut AnyVectorApp, ui: &mut Ui, st: &mut NewDocState, top
                     None => draw_thumb(ui.painter(), thumb_area, 612.0, 792.0, false),
                 }
                 let name = elide(ui, &t.name, cell.x - 8.0, &font);
-                ui.painter().text(pos2(r.center().x, r.top() + 112.0), Align2::CENTER_CENTER, name, font.clone(), theme::TEXT);
+                ui.painter().text(pos2(r.center().x, r.top() + 112.0), Align2::CENTER_CENTER, name, font.clone(), theme::TEXT());
                 if resp.clicked() {
                     st.template_sel = Some(*i);
                 }
@@ -992,7 +992,7 @@ fn templates_tab(_app: &mut AnyVectorApp, ui: &mut Ui, st: &mut NewDocState, top
         ui.add_space(4.0);
         ui.horizontal(|ui| {
             ui.add_space(12.0);
-            ui.label(RichText::new("Template Details").strong().size(13.0).color(Color32::WHITE));
+            ui.label(RichText::new("Template Details").strong().size(13.0).color(theme::STRONG()));
         });
         ui.add_space(8.0);
         let sel = st.templates.as_ref().and_then(|t| st.template_sel.and_then(|i| t.get(i))).cloned();
@@ -1001,14 +1001,14 @@ fn templates_tab(_app: &mut AnyVectorApp, ui: &mut Ui, st: &mut NewDocState, top
                 row(ui, "Name:", |ui| ui.label(t.name.as_str()));
                 row(ui, "Category:", |ui| ui.label(t.category.as_str()));
                 row(ui, "Modified:", |ui| ui.label(t.modified.as_str()));
-                row(ui, "File:", |ui| ui.label(RichText::new(t.path.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default()).color(theme::TEXT_DIM)));
+                row(ui, "File:", |ui| ui.label(RichText::new(t.path.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default()).color(theme::TEXT_DIM())));
                 ui.add_space(6.0);
                 row(ui, "Document name:", |ui| ui.add(egui::TextEdit::singleline(&mut st.name).desired_width(170.0)));
             }
             None => {
                 ui.horizontal(|ui| {
                     ui.add_space(30.0);
-                    ui.label(RichText::new("Select a template to see its details.").color(theme::TEXT_DIM));
+                    ui.label(RichText::new("Select a template to see its details.").color(theme::TEXT_DIM()));
                 });
             }
         }

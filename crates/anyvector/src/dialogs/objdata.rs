@@ -20,9 +20,9 @@ fn fields(app: &AnyVectorApp) -> Vec<String> {
 }
 
 fn header(ui: &mut Ui, r: Rect, text: &str) {
-    ui.painter().rect_filled(r, 0.0, Color32::from_rgb(0x33, 0x33, 0x33));
-    ui.painter().rect_stroke(r, 0.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Inside);
-    ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, text, egui::FontId::proportional(12.5), theme::TEXT);
+    ui.painter().rect_filled(r, 0.0, theme::BUTTON());
+    ui.painter().rect_stroke(r, 0.0, Stroke::new(1.0, theme::SEP()), egui::StrokeKind::Inside);
+    ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, text, egui::FontId::proportional(12.5), theme::TEXT());
 }
 
 pub fn field_editor(app: &mut AnyVectorApp, ctx: &egui::Context) {
@@ -45,7 +45,7 @@ pub fn field_editor(app: &mut AnyVectorApp, ctx: &egui::Context) {
         let lw = 180.0;
         header(ui, Rect::from_min_size(pos2(left, top), vec2(lw, 22.0)), "Name");
         let list_rect = Rect::from_min_size(pos2(left, top + 22.0), vec2(lw, 200.0));
-        ui.painter().rect_filled(list_rect, 0.0, theme::FIELD);
+        ui.painter().rect_filled(list_rect, 0.0, theme::FIELD());
         ui.scope_builder(egui::UiBuilder::new().max_rect(list_rect.shrink(1.0)), |ui| {
             ui.spacing_mut().item_spacing.y = 0.0;
             for (i, f) in list.iter().enumerate() {
@@ -61,11 +61,11 @@ pub fn field_editor(app: &mut AnyVectorApp, ctx: &egui::Context) {
                 let on = st.sel.contains(&i);
                 let (r, resp) = ui.allocate_exact_size(vec2(lw - 2.0, 24.0), Sense::click());
                 if on {
-                    ui.painter().rect_filled(r, 0.0, theme::ACCENT);
+                    ui.painter().rect_filled(r, 0.0, theme::ACCENT());
                 } else if resp.hovered() {
-                    ui.painter().rect_filled(r, 0.0, theme::HOVER);
+                    ui.painter().rect_filled(r, 0.0, theme::HOVER());
                 }
-                ui.painter().text(pos2(r.left() + 4.0, r.center().y), egui::Align2::LEFT_CENTER, f, egui::FontId::proportional(13.0), theme::TEXT);
+                ui.painter().text(pos2(r.left() + 4.0, r.center().y), egui::Align2::LEFT_CENTER, f, egui::FontId::proportional(13.0), theme::TEXT());
                 if resp.clicked() {
                     if ui.input(|i| i.modifiers.ctrl) {
                         if on {
@@ -85,7 +85,7 @@ pub fn field_editor(app: &mut AnyVectorApp, ctx: &egui::Context) {
         let br = Rect::from_min_size(pos2(left + lw + 20.0, top), vec2(ui.max_rect().right() - left - lw - 20.0, 120.0));
         ui.scope_builder(egui::UiBuilder::new().max_rect(br), |ui| {
             let w = br.width();
-            if ui.add(egui::Button::new(egui::RichText::new("New Field").color(Color32::WHITE)).fill(theme::ACCENT).min_size(vec2(w, 24.0))).clicked() {
+            if ui.add(egui::Button::new(egui::RichText::new("New Field").color(Color32::WHITE)).fill(theme::PRIMARY()).min_size(vec2(w, 24.0))).clicked() {
                 new_field = true;
             }
             ui.add_space(4.0);

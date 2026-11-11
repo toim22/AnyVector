@@ -171,7 +171,7 @@ pub fn assets(app: &mut AnyVectorApp, ui: &mut Ui) {
         links.retain(|l| l.to_lowercase().contains(&app.dockers.ui.assets.search.to_lowercase()));
         sort_combo(app, ui, w);
         if links.is_empty() {
-            egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP)).show(ui, |ui| {
+            egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP())).show(ui, |ui| {
                 ui.set_min_size(vec2(w, (ui.available_height() - 6.0).max(80.0)));
                 ui.vertical_centered(|ui| {
                     ui.add_space((ui.available_height() / 2.0 - 60.0).max(10.0));
@@ -240,7 +240,7 @@ pub fn assets(app: &mut AnyVectorApp, ui: &mut Ui) {
         });
         // the folder tree
         if app.dockers.ui.assets.tree {
-            egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP)).show(ui, |ui| {
+            egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP())).show(ui, |ui| {
                 ui.set_width(w);
                 egui::ScrollArea::vertical().id_salt("as_tree").max_height(120.0).auto_shrink([false, true]).show(ui, |ui| {
                     for r in &roots {
@@ -301,15 +301,15 @@ fn folder_row(app: &mut AnyVectorApp, ui: &mut Ui, dir: &Path, depth: usize) {
     let sel = app.dockers.ui.assets.folder.as_deref() == Some(dir);
     let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 20.0), Sense::click());
     if sel {
-        ui.painter().rect_filled(r, 0.0, theme::ACCENT);
+        ui.painter().rect_filled(r, 0.0, theme::ACCENT());
     } else if resp.hovered() {
-        ui.painter().rect_filled(r, 0.0, theme::HOVER);
+        ui.painter().rect_filled(r, 0.0, theme::HOVER());
     }
     let x = r.left() + 6.0 + depth as f32 * 14.0;
     if let Some(t) = app.icons.get(ui.ctx(), "open", 14.0, crate::icons::Tone::Normal) {
         ui.painter().image(t.id, Rect::from_center_size(pos2(x + 7.0, r.center().y), vec2(14.0, 14.0)), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
     }
-    ui.painter().text(pos2(x + 18.0, r.center().y), egui::Align2::LEFT_CENTER, &name, egui::FontId::proportional(12.5), theme::TEXT);
+    ui.painter().text(pos2(x + 18.0, r.center().y), egui::Align2::LEFT_CENTER, &name, egui::FontId::proportional(12.5), theme::TEXT());
     if resp.on_hover_text(dir.display().to_string()).clicked() {
         app.dockers.ui.assets.folder = if sel { None } else { Some(dir.to_path_buf()) };
         app.dockers.ui.assets.category = None;
@@ -329,7 +329,7 @@ fn asset_list(app: &mut AnyVectorApp, ui: &mut Ui, items: &[(PathBuf, String)], 
     let h = ui.available_height() - 30.0;
     let ctx = ui.ctx().clone();
     let mut loaded = 0;
-    egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP)).show(ui, |ui| {
+    egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP())).show(ui, |ui| {
         ui.set_min_height(h.max(60.0));
         egui::ScrollArea::vertical().id_salt("as_list").max_height(h.max(60.0)).auto_shrink([false, false]).show(ui, |ui| {
             ui.spacing_mut().item_spacing = vec2(0.0, 0.0);
@@ -344,12 +344,12 @@ fn asset_list(app: &mut AnyVectorApp, ui: &mut Ui, items: &[(PathBuf, String)], 
                         let sel = app.dockers.ui.assets.sel.as_deref() == Some(p.as_path());
                         let pt = ui.painter();
                         if sel {
-                            pt.rect_filled(r, 0.0, theme::ACCENT);
+                            pt.rect_filled(r, 0.0, theme::ACCENT());
                         } else if resp.hovered() {
-                            pt.rect_filled(r, 0.0, theme::HOVER);
+                            pt.rect_filled(r, 0.0, theme::HOVER());
                         }
                         if list {
-                            pt.line_segment([r.left_bottom(), r.right_bottom()], Stroke::new(1.0, theme::SEP));
+                            pt.line_segment([r.left_bottom(), r.right_bottom()], Stroke::new(1.0, theme::SEP()));
                         }
                         let tr = if list { Rect::from_min_size(pos2(r.left() + 16.0, r.top() + 6.0), vec2(size, size)) } else { Rect::from_min_size(pos2(r.center().x - size / 2.0, r.top() + 6.0), vec2(size, size)) };
                         if visible && !app.dockers.ui.assets.thumbs.contains_key(p) && loaded < 3 {
@@ -367,9 +367,9 @@ fn asset_list(app: &mut AnyVectorApp, ui: &mut Ui, items: &[(PathBuf, String)], 
                         let fav = app.settings.asset_favorites.iter().any(|f| Path::new(f) == p);
                         let label = if fav { format!("★ {name}") } else { name.clone() };
                         if list {
-                            ui.painter().text(pos2(tr.right() + 24.0, r.center().y), egui::Align2::LEFT_CENTER, &label, egui::FontId::proportional(12.5), theme::TEXT);
+                            ui.painter().text(pos2(tr.right() + 24.0, r.center().y), egui::Align2::LEFT_CENTER, &label, egui::FontId::proportional(12.5), theme::TEXT());
                         } else {
-                            ui.painter().text(pos2(r.center().x, r.bottom() - 10.0), egui::Align2::CENTER_CENTER, &label, egui::FontId::proportional(11.5), theme::TEXT);
+                            ui.painter().text(pos2(r.center().x, r.bottom() - 10.0), egui::Align2::CENTER_CENTER, &label, egui::FontId::proportional(11.5), theme::TEXT());
                         }
                         let resp = resp.on_hover_text(p.display().to_string());
                         if resp.clicked() {

@@ -125,14 +125,14 @@ fn length(ui: &mut Ui, v: &mut f64, u: Unit, dpi: f64, enabled: bool, w: f32) ->
 
 /// A label right-aligned in a fixed width.
 fn rlabel(ui: &mut Ui, text: &str, w: f32, enabled: bool) {
-    let col = if enabled { theme::TEXT } else { theme::TEXT_DIM };
+    let col = if enabled { theme::TEXT() } else { theme::TEXT_DIM() };
     ui.add_sized(vec2(w, 22.0), egui::Label::new(egui::RichText::new(text).color(col)).halign(egui::Align::Max));
 }
 
 /// A boxed list with an optional header row; returns (clicked row, double-clicked row).
 fn list_box(ui: &mut Ui, id: &str, size: egui::Vec2, header: &[&str], widths: &[f32], rows: &[Vec<String>], sel: Option<usize>) -> (Option<usize>, Option<usize>) {
     let (mut clicked, mut double) = (None, None);
-    egui::Frame::new().fill(theme::FIELD).stroke(Stroke::new(1.0, theme::SEP)).show(ui, |ui| { ui.vertical(|ui| {
+    egui::Frame::new().fill(theme::FIELD()).stroke(Stroke::new(1.0, theme::SEP())).show(ui, |ui| { ui.vertical(|ui| {
         ui.set_min_size(size);
         ui.set_max_size(size);
         ui.spacing_mut().item_spacing.y = 0.0;
@@ -141,10 +141,10 @@ fn list_box(ui: &mut Ui, id: &str, size: egui::Vec2, header: &[&str], widths: &[
                 ui.spacing_mut().item_spacing.x = 0.0;
                 for (h, w) in header.iter().zip(widths) {
                     let (r, _) = ui.allocate_exact_size(vec2(*w, 26.0), Sense::hover());
-                    ui.painter().rect_filled(r, 0.0, theme::BG);
-                    ui.painter().vline(r.right(), r.y_range(), Stroke::new(1.0, theme::SEP));
-                    ui.painter().hline(r.x_range(), r.bottom(), Stroke::new(1.0, theme::SEP));
-                    ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, *h, egui::FontId::proportional(12.5), theme::TEXT);
+                    ui.painter().rect_filled(r, 0.0, theme::BG());
+                    ui.painter().vline(r.right(), r.y_range(), Stroke::new(1.0, theme::SEP()));
+                    ui.painter().hline(r.x_range(), r.bottom(), Stroke::new(1.0, theme::SEP()));
+                    ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, *h, egui::FontId::proportional(12.5), theme::TEXT());
                 }
             });
         }
@@ -152,14 +152,14 @@ fn list_box(ui: &mut Ui, id: &str, size: egui::Vec2, header: &[&str], widths: &[
             for (i, row) in rows.iter().enumerate() {
                 let (r, resp) = ui.allocate_exact_size(vec2(size.x - 14.0, 25.0), Sense::click());
                 if sel == Some(i) {
-                    ui.painter().rect_filled(r, 0.0, theme::ACCENT);
+                    ui.painter().rect_filled(r, 0.0, theme::ACCENT());
                 } else if resp.hovered() {
-                    ui.painter().rect_filled(r, 0.0, theme::HOVER);
+                    ui.painter().rect_filled(r, 0.0, theme::HOVER());
                 }
                 let mut x = r.left() + 5.0;
                 for (k, cell) in row.iter().enumerate() {
                     let w = widths.get(k).copied().unwrap_or(size.x);
-                    ui.painter().text(pos2(x, r.center().y), egui::Align2::LEFT_CENTER, cell, egui::FontId::proportional(12.5), theme::TEXT);
+                    ui.painter().text(pos2(x, r.center().y), egui::Align2::LEFT_CENTER, cell, egui::FontId::proportional(12.5), theme::TEXT());
                     x += w;
                 }
                 if resp.double_clicked() {
@@ -266,7 +266,7 @@ pub fn tabs(app: &mut AnyVectorApp, ctx: &egui::Context) {
         let widths = [174.0, 156.0, 48.0];
         ui.horizontal(|ui| {
             ui.add_space(22.0);
-            egui::Frame::new().fill(theme::FIELD).stroke(Stroke::new(1.0, theme::SEP)).show(ui, |ui| { ui.vertical(|ui| {
+            egui::Frame::new().fill(theme::FIELD()).stroke(Stroke::new(1.0, theme::SEP())).show(ui, |ui| { ui.vertical(|ui| {
                 ui.set_min_size(size);
                 ui.set_max_size(size);
                 ui.spacing_mut().item_spacing.y = 0.0;
@@ -274,10 +274,10 @@ pub fn tabs(app: &mut AnyVectorApp, ctx: &egui::Context) {
                     ui.spacing_mut().item_spacing.x = 0.0;
                     for (h, w) in ["Tabs", "Alignment", "Leaders"].iter().zip(widths) {
                         let (r, _) = ui.allocate_exact_size(vec2(w, 26.0), Sense::hover());
-                        ui.painter().rect_filled(r, 0.0, theme::BG);
-                        ui.painter().vline(r.right(), r.y_range(), Stroke::new(1.0, theme::SEP));
-                        ui.painter().hline(r.x_range(), r.bottom(), Stroke::new(1.0, theme::SEP));
-                        ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, *h, egui::FontId::proportional(12.5), theme::TEXT);
+                        ui.painter().rect_filled(r, 0.0, theme::BG());
+                        ui.painter().vline(r.right(), r.y_range(), Stroke::new(1.0, theme::SEP()));
+                        ui.painter().hline(r.x_range(), r.bottom(), Stroke::new(1.0, theme::SEP()));
+                        ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, *h, egui::FontId::proportional(12.5), theme::TEXT());
                     }
                 });
                 egui::ScrollArea::vertical().id_salt("tab_list").auto_shrink([false, false]).show(ui, |ui| {
@@ -288,9 +288,9 @@ pub fn tabs(app: &mut AnyVectorApp, ctx: &egui::Context) {
                             ui.spacing_mut().item_spacing.x = 0.0;
                             let (r, resp) = ui.allocate_exact_size(vec2(widths[0], 25.0), Sense::click());
                             if selected {
-                                ui.painter().rect_filled(r.with_max_x(r.left() + size.x - 14.0), 0.0, theme::ACCENT);
+                                ui.painter().rect_filled(r.with_max_x(r.left() + size.x - 14.0), 0.0, theme::ACCENT());
                             }
-                            ui.painter().text(pos2(r.left() + 5.0, r.center().y), egui::Align2::LEFT_CENTER, fmt_len(st.tabs[i].pos, u, dpi), egui::FontId::proportional(12.5), theme::TEXT);
+                            ui.painter().text(pos2(r.left() + 5.0, r.center().y), egui::Align2::LEFT_CENTER, fmt_len(st.tabs[i].pos, u, dpi), egui::FontId::proportional(12.5), theme::TEXT());
                             if resp.clicked() {
                                 st.sel = Some(i);
                                 st.loc = st.tabs[i].pos;
@@ -309,8 +309,8 @@ pub fn tabs(app: &mut AnyVectorApp, ctx: &egui::Context) {
                                 });
                             } else {
                                 let (r2, resp2) = ui.allocate_exact_size(vec2(widths[1] + widths[2], 25.0), Sense::click());
-                                ui.painter().text(pos2(r2.left() + 5.0, r2.center().y), egui::Align2::LEFT_CENTER, st.tabs[i].align.name(), egui::FontId::proportional(12.5), theme::TEXT);
-                                ui.painter().text(pos2(r2.left() + widths[1] + 5.0, r2.center().y), egui::Align2::LEFT_CENTER, if st.tabs[i].leader { "On" } else { "Off" }, egui::FontId::proportional(12.5), theme::TEXT);
+                                ui.painter().text(pos2(r2.left() + 5.0, r2.center().y), egui::Align2::LEFT_CENTER, st.tabs[i].align.name(), egui::FontId::proportional(12.5), theme::TEXT());
+                                ui.painter().text(pos2(r2.left() + widths[1] + 5.0, r2.center().y), egui::Align2::LEFT_CENTER, if st.tabs[i].leader { "On" } else { "Off" }, egui::FontId::proportional(12.5), theme::TEXT());
                                 if resp2.clicked() {
                                     st.sel = Some(i);
                                     st.loc = st.tabs[i].pos;
@@ -439,7 +439,7 @@ impl ColumnsState {
 fn columns_preview(ui: &mut Ui, st: &ColumnsState) {
     let (r, _) = ui.allocate_exact_size(vec2(185.0, 193.0), Sense::hover());
     let p = ui.painter();
-    p.rect_stroke(r, 0.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Inside);
+    p.rect_stroke(r, 0.0, Stroke::new(1.0, theme::SEP()), egui::StrokeKind::Inside);
     let frame = ERect::from_min_max(r.min + vec2(27.0, 10.0), r.max - vec2(27.0, 10.0));
     // dashed frame
     let dash = |a: egui::Pos2, b: egui::Pos2| {
@@ -490,7 +490,7 @@ pub fn columns(app: &mut AnyVectorApp, ctx: &egui::Context) {
                 ui.horizontal(|ui| {
                     ui.add_space(12.0);
                     let widths = [82.0f32, 96.0, 76.0];
-                    egui::Frame::new().fill(theme::FIELD).stroke(Stroke::new(1.0, theme::SEP)).show(ui, |ui| { ui.vertical(|ui| {
+                    egui::Frame::new().fill(theme::FIELD()).stroke(Stroke::new(1.0, theme::SEP())).show(ui, |ui| { ui.vertical(|ui| {
                         ui.set_min_size(vec2(256.0, 154.0));
                         ui.set_max_size(vec2(256.0, 154.0));
                         ui.spacing_mut().item_spacing.y = 0.0;
@@ -498,9 +498,9 @@ pub fn columns(app: &mut AnyVectorApp, ctx: &egui::Context) {
                             ui.spacing_mut().item_spacing.x = 0.0;
                             for (h, w) in ["Column", "Width", "Gutter"].iter().zip(widths) {
                                 let (r, _) = ui.allocate_exact_size(vec2(w, 25.0), Sense::hover());
-                                ui.painter().rect_filled(r, 0.0, theme::BG);
-                                ui.painter().vline(r.right(), r.y_range(), Stroke::new(1.0, theme::SEP));
-                                ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, *h, egui::FontId::proportional(12.5), theme::TEXT);
+                                ui.painter().rect_filled(r, 0.0, theme::BG());
+                                ui.painter().vline(r.right(), r.y_range(), Stroke::new(1.0, theme::SEP()));
+                                ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, *h, egui::FontId::proportional(12.5), theme::TEXT());
                             }
                         });
                         egui::ScrollArea::vertical().id_salt("col_list").auto_shrink([false, false]).show(ui, |ui| {
@@ -511,9 +511,9 @@ pub fn columns(app: &mut AnyVectorApp, ctx: &egui::Context) {
                                     ui.spacing_mut().item_spacing.x = 0.0;
                                     let (r, resp) = ui.allocate_exact_size(vec2(widths[0], 24.0), Sense::click());
                                     if st.sel == i {
-                                        ui.painter().rect_filled(r.with_max_x(r.left() + 242.0), 0.0, theme::ACCENT);
+                                        ui.painter().rect_filled(r.with_max_x(r.left() + 242.0), 0.0, theme::ACCENT());
                                     }
-                                    ui.painter().text(pos2(r.left() + 6.0, r.center().y), egui::Align2::LEFT_CENTER, (i + 1).to_string(), egui::FontId::proportional(12.5), theme::TEXT);
+                                    ui.painter().text(pos2(r.left() + 6.0, r.center().y), egui::Align2::LEFT_CENTER, (i + 1).to_string(), egui::FontId::proportional(12.5), theme::TEXT());
                                     if resp.clicked() {
                                         st.sel = i;
                                     }
@@ -619,11 +619,11 @@ impl BulletsState {
 fn glyph_picker(app: &mut AnyVectorApp, ui: &mut Ui, font: &str, glyph: &mut char, enabled: bool) {
     let (r, resp) = ui.allocate_exact_size(vec2(66.0, 50.0), Sense::click());
     let p = ui.painter();
-    p.rect_filled(r, 0.0, theme::FIELD);
-    p.rect_stroke(r, 0.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Inside);
+    p.rect_filled(r, 0.0, theme::FIELD());
+    p.rect_stroke(r, 0.0, Stroke::new(1.0, theme::SEP()), egui::StrokeKind::Inside);
     let arrow = ERect::from_min_max(pos2(r.right() - 20.0, r.top()), r.max);
-    p.rect_filled(arrow, 0.0, theme::BG);
-    p.text(arrow.center(), egui::Align2::CENTER_CENTER, "⌄", egui::FontId::proportional(13.0), theme::TEXT);
+    p.rect_filled(arrow, 0.0, theme::BG());
+    p.text(arrow.center(), egui::Align2::CENTER_CENTER, "⌄", egui::FontId::proportional(13.0), theme::TEXT());
     if let Some(tex) = crate::dockers::text::sample_texture(app, ui.ctx(), font, &glyph.to_string(), 18.0) {
         let s = tex.size_vec2().min(vec2(36.0, 36.0));
         ui.painter().image(tex.id(), ERect::from_center_size(pos2(r.left() + 23.0, r.center().y), s), ERect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), if enabled { Color32::WHITE } else { Color32::from_gray(120) });
@@ -642,9 +642,9 @@ fn glyph_picker(app: &mut AnyVectorApp, ui: &mut Ui, font: &str, glyph: &mut cha
                     let Some(tex) = crate::dockers::text::sample_texture(app, ui.ctx(), font, &c.to_string(), 20.0) else { continue };
                     let (r, resp) = ui.allocate_exact_size(vec2(44.0, 44.0), Sense::click());
                     if *glyph == c {
-                        ui.painter().rect_stroke(r, 0.0, Stroke::new(1.0, theme::ACCENT), egui::StrokeKind::Inside);
+                        ui.painter().rect_stroke(r, 0.0, Stroke::new(1.0, theme::ACCENT()), egui::StrokeKind::Inside);
                     } else if resp.hovered() {
-                        ui.painter().rect_filled(r, 0.0, theme::HOVER);
+                        ui.painter().rect_filled(r, 0.0, theme::HOVER());
                     }
                     let s = tex.size_vec2().min(vec2(30.0, 30.0));
                     ui.painter().image(tex.id(), ERect::from_center_size(r.center(), s), ERect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
@@ -680,7 +680,7 @@ pub fn bullets(app: &mut AnyVectorApp, ctx: &egui::Context) {
                         st.list.frame_to_list = v.max(0.0);
                     }
                 });
-                ui.label(egui::RichText::new("Text frame to list:").color(if on { theme::TEXT } else { theme::TEXT_DIM }));
+                ui.label(egui::RichText::new("Text frame to list:").color(if on { theme::TEXT() } else { theme::TEXT_DIM() }));
             });
         });
         separator(ui);
@@ -690,15 +690,15 @@ pub fn bullets(app: &mut AnyVectorApp, ctx: &egui::Context) {
             ui.allocate_ui_with_layout(vec2(100.0, 250.0), egui::Layout::top_down(egui::Align::Min), |ui| {
                 ui.label(egui::RichText::new("Level").strong());
                 ui.add_space(6.0);
-                egui::Frame::new().fill(theme::FIELD).show(ui, |ui| { ui.vertical(|ui| {
+                egui::Frame::new().fill(theme::FIELD()).show(ui, |ui| { ui.vertical(|ui| {
                     ui.set_min_size(vec2(100.0, 226.0));
                     ui.spacing_mut().item_spacing.y = 0.0;
                     for lv in 1..=9u8 {
                         let (r, resp) = ui.allocate_exact_size(vec2(82.0, 25.0), Sense::click());
                         if l.level == lv {
-                            ui.painter().rect_filled(r, 0.0, theme::ACCENT);
+                            ui.painter().rect_filled(r, 0.0, theme::ACCENT());
                         }
-                        ui.painter().text(pos2(r.left() + 4.0, r.center().y), egui::Align2::LEFT_CENTER, lv.to_string(), egui::FontId::proportional(12.5), theme::TEXT);
+                        ui.painter().text(pos2(r.left() + 4.0, r.center().y), egui::Align2::LEFT_CENTER, lv.to_string(), egui::FontId::proportional(12.5), theme::TEXT());
                         if resp.clicked() {
                             l.level = lv;
                         }
@@ -771,7 +771,7 @@ pub fn bullets(app: &mut AnyVectorApp, ctx: &egui::Context) {
             let l = &mut st.list;
             ui.add_space(8.0);
             let (r, _) = ui.allocate_exact_size(vec2(1.0, 250.0), Sense::hover());
-            ui.painter().vline(r.center().x, r.y_range(), Stroke::new(1.0, theme::SEP));
+            ui.painter().vline(r.center().x, r.y_range(), Stroke::new(1.0, theme::SEP()));
             ui.add_space(16.0);
             // Size and spacing
             ui.allocate_ui_with_layout(vec2(200.0, 250.0), egui::Layout::top_down(egui::Align::Min), |ui| {
@@ -941,7 +941,7 @@ pub fn text_stats(app: &mut AnyVectorApp, ctx: &egui::Context) {
         });
         ui.horizontal(|ui| {
             ui.add_space(16.0);
-            egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP)).inner_margin(6.0).show(ui, |ui| { ui.vertical(|ui| {
+            egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP())).inner_margin(6.0).show(ui, |ui| { ui.vertical(|ui| {
                 ui.set_min_size(vec2(343.0, 138.0));
                 ui.set_max_width(343.0);
                 egui::ScrollArea::vertical().max_height(138.0).show(ui, |ui| {
@@ -1506,7 +1506,7 @@ pub fn writing_tools(app: &mut AnyVectorApp, ctx: &egui::Context) {
         ui.horizontal(|ui| {
             for (i, n) in ["Spell Checker", "Grammatik", "Thesaurus"].iter().enumerate() {
                 let on = st.tab == i;
-                let b = egui::Button::new(egui::RichText::new(*n).color(if on { Color32::WHITE } else { theme::TEXT })).fill(if on { theme::ACCENT } else { theme::FIELD }).min_size(vec2(0.0, 24.0));
+                let b = egui::Button::new(egui::RichText::new(*n).color(if on { theme::STRONG() } else { theme::TEXT() })).fill(if on { theme::ACCENT() } else { theme::FIELD() }).min_size(vec2(0.0, 24.0));
                 if ui.add(b).clicked() && !on {
                     st.tab = i;
                     st.pos = (0, 0);
@@ -1520,7 +1520,7 @@ pub fn writing_tools(app: &mut AnyVectorApp, ctx: &egui::Context) {
         });
         let body = ui.available_rect_before_wrap();
         let frame = ERect::from_min_max(body.min, pos2(body.right(), body.bottom() - 36.0));
-        ui.painter().rect_stroke(frame, 0.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Inside);
+        ui.painter().rect_stroke(frame, 0.0, Stroke::new(1.0, theme::SEP()), egui::StrokeKind::Inside);
         ui.scope_builder(egui::UiBuilder::new().max_rect(frame.shrink(12.0)), |ui| {
             if st.tab == 2 {
                 // Thesaurus
@@ -1577,7 +1577,7 @@ pub fn writing_tools(app: &mut AnyVectorApp, ctx: &egui::Context) {
                     });
                 });
                 ui.add_space(8.0);
-                egui::Frame::new().fill(theme::FIELD).stroke(Stroke::new(1.0, theme::SEP)).inner_margin(6.0).show(ui, |ui| { ui.vertical(|ui| {
+                egui::Frame::new().fill(theme::FIELD()).stroke(Stroke::new(1.0, theme::SEP())).inner_margin(6.0).show(ui, |ui| { ui.vertical(|ui| {
                     ui.set_min_size(vec2(ui.available_width() - 12.0, 86.0));
                     egui::ScrollArea::vertical().max_height(86.0).show(ui, |ui| {
                         if let Some(w) = &st.looked {
@@ -1636,7 +1636,7 @@ pub fn writing_tools(app: &mut AnyVectorApp, ctx: &egui::Context) {
                             }
                         });
                         ui.add_space(6.0);
-                        let dim = |s: &str| egui::RichText::new(s.to_string()).color(theme::TEXT);
+                        let dim = |s: &str| egui::RichText::new(s.to_string()).color(theme::TEXT());
                         if st.tab == 0 {
                             ui.horizontal(|ui| {
                                 rlabel(ui, "Not found:", 130.0, true);
@@ -1837,7 +1837,7 @@ fn language_list(ui: &mut Ui, sel: &mut usize) -> (bool, bool) {
     ui.ctx().data_mut(|d| d.insert_temp(key, now));
     ui.horizontal(|ui| {
         ui.add_space(22.0);
-        egui::Frame::new().fill(theme::FIELD).stroke(Stroke::new(1.0, theme::SEP)).show(ui, |ui| { ui.vertical(|ui| {
+        egui::Frame::new().fill(theme::FIELD()).stroke(Stroke::new(1.0, theme::SEP())).show(ui, |ui| { ui.vertical(|ui| {
             ui.set_min_size(vec2(310.0, 124.0));
             ui.set_max_size(vec2(310.0, 124.0));
             ui.spacing_mut().item_spacing.y = 0.0;
@@ -1845,15 +1845,15 @@ fn language_list(ui: &mut Ui, sel: &mut usize) -> (bool, bool) {
                 for (i, (name, code, _)) in crate::spell::LANGUAGES.iter().enumerate() {
                     let (r, resp) = ui.allocate_exact_size(vec2(296.0, 25.0), Sense::click());
                     if *sel == i {
-                        ui.painter().rect_filled(r, 0.0, theme::ACCENT);
+                        ui.painter().rect_filled(r, 0.0, theme::ACCENT());
                         if fresh {
                             ui.scroll_to_rect(r, Some(egui::Align::Center));
                         }
                     } else if resp.hovered() {
-                        ui.painter().rect_filled(r, 0.0, theme::HOVER);
+                        ui.painter().rect_filled(r, 0.0, theme::HOVER());
                     }
-                    ui.painter().text(pos2(r.left() + 5.0, r.center().y), egui::Align2::LEFT_CENTER, *name, egui::FontId::proportional(12.5), theme::TEXT);
-                    ui.painter().text(pos2(r.left() + 245.0, r.center().y), egui::Align2::LEFT_CENTER, *code, egui::FontId::proportional(12.5), theme::TEXT);
+                    ui.painter().text(pos2(r.left() + 5.0, r.center().y), egui::Align2::LEFT_CENTER, *name, egui::FontId::proportional(12.5), theme::TEXT());
+                    ui.painter().text(pos2(r.left() + 245.0, r.center().y), egui::Align2::LEFT_CENTER, *code, egui::FontId::proportional(12.5), theme::TEXT());
                     if resp.clicked() {
                         *sel = i;
                     }
@@ -2092,7 +2092,7 @@ pub fn encode(app: &mut AnyVectorApp, ctx: &egui::Context) {
                 ui.radio_value(&mut st.other, false, "Current");
                 ui.radio_value(&mut st.other, true, "Other encoding");
                 ui.add_space(4.0);
-                egui::Frame::new().fill(theme::FIELD).show(ui, |ui| { ui.vertical(|ui| {
+                egui::Frame::new().fill(theme::FIELD()).show(ui, |ui| { ui.vertical(|ui| {
                     ui.set_min_size(vec2(318.0, 360.0));
                     ui.set_max_size(vec2(318.0, 360.0));
                     ui.spacing_mut().item_spacing.y = 0.0;
@@ -2101,12 +2101,12 @@ pub fn encode(app: &mut AnyVectorApp, ctx: &egui::Context) {
                         for (i, (_, name)) in st.pages.iter().enumerate() {
                             let (r, resp) = ui.allocate_exact_size(vec2(302.0, 25.0), Sense::click());
                             if st.sel == i {
-                                ui.painter().rect_filled(r, 0.0, if enabled { theme::ACCENT } else { theme::HOVER });
+                                ui.painter().rect_filled(r, 0.0, if enabled { theme::ACCENT() } else { theme::HOVER() });
                                 if !st.scrolled {
                                     ui.scroll_to_rect(r, Some(egui::Align::TOP));
                                 }
                             }
-                            ui.painter().text(pos2(r.left() + 5.0, r.center().y), egui::Align2::LEFT_CENTER, name, egui::FontId::proportional(12.5), if enabled { theme::TEXT } else { theme::TEXT_DIM });
+                            ui.painter().text(pos2(r.left() + 5.0, r.center().y), egui::Align2::LEFT_CENTER, name, egui::FontId::proportional(12.5), if enabled { theme::TEXT() } else { theme::TEXT_DIM() });
                             if resp.clicked() && enabled {
                                 st.sel = i;
                             }
@@ -2120,10 +2120,10 @@ pub fn encode(app: &mut AnyVectorApp, ctx: &egui::Context) {
                 ui.add_space(26.0);
                 ui.label("Preview:");
                 ui.add_space(4.0);
-                egui::Frame::new().fill(theme::FIELD).inner_margin(6.0).show(ui, |ui| { ui.vertical(|ui| {
+                egui::Frame::new().fill(theme::FIELD()).inner_margin(6.0).show(ui, |ui| { ui.vertical(|ui| {
                     ui.set_min_size(vec2(328.0, 370.0));
                     ui.set_max_width(328.0);
-                    ui.label(egui::RichText::new(st.preview(&st.text)).color(theme::TEXT_DIM));
+                    ui.label(egui::RichText::new(st.preview(&st.text)).color(theme::TEXT_DIM()));
                 });
 });
             });
@@ -2308,7 +2308,7 @@ pub fn edit_text(app: &mut AnyVectorApp, ctx: &egui::Context) {
         let r = ui.available_rect_before_wrap();
         let area = ERect::from_min_max(r.min, pos2(r.right(), r.bottom() - 40.0));
         ui.painter().rect_filled(area, 0.0, Color32::WHITE);
-        ui.painter().rect_stroke(area, 0.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Outside);
+        ui.painter().rect_stroke(area, 0.0, Stroke::new(1.0, theme::SEP()), egui::StrokeKind::Outside);
         let before = st.plain.clone();
         ui.scope_builder(egui::UiBuilder::new().max_rect(area.shrink(3.0)), |ui| {
             egui::ScrollArea::vertical().id_salt("et_scroll").auto_shrink([false, false]).show(ui, |ui| {
@@ -2335,7 +2335,7 @@ pub fn edit_text(app: &mut AnyVectorApp, ctx: &egui::Context) {
                 }
                 egui::Popup::from_response(&resp).id(oid).open_memory(None::<egui::SetOpenCommand>).close_behavior(egui::PopupCloseBehavior::CloseOnClick).show(|ui| {
                     ui.set_width(150.0);
-                    ui.label(egui::RichText::new("Change Case").color(theme::TEXT_DIM));
+                    ui.label(egui::RichText::new("Change Case").color(theme::TEXT_DIM()));
                     for (mode, name) in CASE_MODES {
                         if ui.add(egui::Button::new(format!("   {name}")).frame(false)).clicked() {
                             let chars: Vec<char> = st.plain.chars().collect();

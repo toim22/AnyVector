@@ -60,7 +60,7 @@ pub fn welcome(app: &mut AnyVectorApp, ui: &mut Ui) {
 
     // the link column and its divider
     let divider_x = block.left() + NAV_W;
-    p.line_segment([pos2(divider_x, area.top() + 38.0), pos2(divider_x, rule_y - 146.0)], Stroke::new(1.0, theme::SEP));
+    p.line_segment([pos2(divider_x, area.top() + 38.0), pos2(divider_x, rule_y - 146.0)], Stroke::new(1.0, theme::SEP()));
     for (i, page) in Page::ALL.into_iter().enumerate() {
         let font = FontId::proportional(18.0);
         let g = p.layout_no_wrap(page.name().to_string(), font.clone(), LINK);
@@ -68,7 +68,7 @@ pub fn welcome(app: &mut AnyVectorApp, ui: &mut Ui) {
         let r = Rect::from_min_size(pos2(at.x - g.size().x, at.y - g.size().y / 2.0), g.size());
         let resp = ui.interact(r.expand(3.0), ui.scope_id().with(("welcome_page", i)), Sense::click()).on_hover_cursor(CursorIcon::PointingHand);
         let current = app.welcome_page == page;
-        let color = if current { Color32::WHITE } else { LINK };
+        let color = if current { crate::theme::STRONG() } else { LINK };
         p.text(r.left_center(), Align2::LEFT_CENTER, page.name(), font, color);
         if resp.hovered() {
             p.line_segment([r.left_bottom() + vec2(0.0, 1.0), r.right_bottom() + vec2(0.0, 1.0)], Stroke::new(1.0, color));
@@ -89,7 +89,7 @@ pub fn welcome(app: &mut AnyVectorApp, ui: &mut Ui) {
     }
 
     // the shortcuts
-    p.line_segment([pos2(block.left(), rule_y), pos2(block.right(), rule_y)], Stroke::new(1.0, theme::SEP));
+    p.line_segment([pos2(block.left(), rule_y), pos2(block.right(), rule_y)], Stroke::new(1.0, theme::SEP()));
     let shortcuts: [(&str, &str, Cmd); 2] = [("feedback", "Ideas and feedback", Cmd::Feedback), ("book", "User Guide", Cmd::UserGuide)];
     let step = w / 5.0;
     let first = block.center().x - step * (shortcuts.len() as f32 - 1.0) / 2.0;
@@ -102,7 +102,7 @@ pub fn welcome(app: &mut AnyVectorApp, ui: &mut Ui) {
         if let Some(t) = app.icons.get(ui.ctx(), icon, 44.0, Tone::Dark) {
             p.image(t.id, Rect::from_center_size(c, vec2(44.0, 44.0)), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
         }
-        p.text(c + vec2(0.0, 57.0), Align2::CENTER_CENTER, label, theme::body(13.0), if resp.hovered() { theme::TEXT } else { theme::TEXT_DIM });
+        p.text(c + vec2(0.0, 57.0), Align2::CENTER_CENTER, label, theme::body(13.0), if resp.hovered() { theme::TEXT() } else { theme::TEXT_DIM() });
         if resp.clicked() {
             app.run(cmd);
         }
@@ -113,13 +113,13 @@ pub fn welcome(app: &mut AnyVectorApp, ui: &mut Ui) {
     }
     // dropped-file hint while dragging files over the window
     if ui.ctx().input(|i| !i.raw.hovered_files.is_empty()) {
-        p.rect_stroke(area.shrink(12.0), 6.0, Stroke::new(2.0, theme::FOCUS), egui::StrokeKind::Inside);
-        p.text(area.center(), Align2::CENTER_CENTER, "Drop files to open them", theme::body(16.0), theme::TEXT);
+        p.rect_stroke(area.shrink(12.0), 6.0, Stroke::new(2.0, theme::FOCUS()), egui::StrokeKind::Inside);
+        p.text(area.center(), Align2::CENTER_CENTER, "Drop files to open them", theme::body(16.0), theme::TEXT());
     }
 }
 
 fn heading(ui: &mut Ui, text: &str) {
-    ui.label(egui::RichText::new(text).font(theme::light(20.0)).color(theme::TEXT));
+    ui.label(egui::RichText::new(text).font(theme::light(20.0)).color(theme::TEXT()));
     ui.add_space(10.0);
 }
 
@@ -127,12 +127,12 @@ fn heading(ui: &mut Ui, text: &str) {
 fn tile(app: &mut AnyVectorApp, ui: &mut Ui, icon: &str, caption: &str, size: egui::Vec2) -> egui::Response {
     let (r, resp) = ui.allocate_exact_size(size, Sense::click());
     let p = ui.painter();
-    p.rect_filled(r, 4.0, if resp.hovered() { theme::HOVER } else { theme::BAR });
-    p.rect_stroke(r, 4.0, Stroke::new(1.0, if resp.hovered() { theme::FOCUS } else { theme::SEP }), egui::StrokeKind::Inside);
+    p.rect_filled(r, 4.0, if resp.hovered() { theme::HOVER() } else { theme::BAR() });
+    p.rect_stroke(r, 4.0, Stroke::new(1.0, if resp.hovered() { theme::FOCUS() } else { theme::SEP() }), egui::StrokeKind::Inside);
     if let Some(t) = app.icons.get(ui.ctx(), icon, 40.0, Tone::Normal) {
         p.image(t.id, Rect::from_center_size(pos2(r.center().x, r.top() + 40.0), vec2(40.0, 40.0)), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
     }
-    p.text(pos2(r.center().x, r.bottom() - 22.0), Align2::CENTER_CENTER, caption, theme::body(13.0), theme::TEXT);
+    p.text(pos2(r.center().x, r.bottom() - 22.0), Align2::CENTER_CENTER, caption, theme::body(13.0), theme::TEXT());
     resp.on_hover_cursor(CursorIcon::PointingHand)
 }
 
@@ -148,27 +148,27 @@ fn get_started(app: &mut AnyVectorApp, ui: &mut Ui) {
         }
     });
     ui.add_space(22.0);
-    ui.label(egui::RichText::new("Recent Documents").font(theme::bold(13.0)).color(theme::TEXT));
+    ui.label(egui::RichText::new("Recent Documents").font(theme::bold(13.0)).color(theme::TEXT()));
     ui.add_space(4.0);
     let files = app.settings.recent_files.clone();
     if files.is_empty() {
-        ui.label(egui::RichText::new("Documents you open or save are listed here.").color(theme::TEXT_DIM));
+        ui.label(egui::RichText::new("Documents you open or save are listed here.").color(theme::TEXT_DIM()));
     }
     for (i, path) in files.iter().enumerate().take(8) {
         let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width().min(720.0), 40.0), Sense::click());
         let p = ui.painter();
         if resp.hovered() {
-            p.rect_filled(r, 3.0, theme::HOVER);
+            p.rect_filled(r, 3.0, theme::HOVER());
         }
         if let Some(t) = app.icons.get(ui.ctx(), "doc_props", 24.0, Tone::Normal) {
             p.image(t.id, Rect::from_center_size(pos2(r.left() + 20.0, r.center().y), vec2(24.0, 24.0)), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
         }
         let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
         let folder = path.parent().map(|d| d.display().to_string()).unwrap_or_default();
-        p.text(pos2(r.left() + 42.0, r.top() + 12.0), Align2::LEFT_CENTER, name, theme::body(13.0), theme::TEXT);
-        p.text(pos2(r.left() + 42.0, r.top() + 29.0), Align2::LEFT_CENTER, folder, theme::body(11.5), theme::TEXT_DIM);
+        p.text(pos2(r.left() + 42.0, r.top() + 12.0), Align2::LEFT_CENTER, name, theme::body(13.0), theme::TEXT());
+        p.text(pos2(r.left() + 42.0, r.top() + 29.0), Align2::LEFT_CENTER, folder, theme::body(11.5), theme::TEXT_DIM());
         if let Some(when) = modified(path) {
-            p.text(pos2(r.right() - 10.0, r.center().y), Align2::RIGHT_CENTER, when, theme::body(11.5), theme::TEXT_DIM);
+            p.text(pos2(r.right() - 10.0, r.center().y), Align2::RIGHT_CENTER, when, theme::body(11.5), theme::TEXT_DIM());
         }
         if resp.on_hover_text(path.display().to_string()).clicked() {
             run = Some(Cmd::OpenRecent(i));
@@ -186,7 +186,7 @@ fn modified(path: &std::path::Path) -> Option<String> {
 
 fn workspace(app: &mut AnyVectorApp, ui: &mut Ui) {
     heading(ui, "Workspace");
-    ui.label(egui::RichText::new("Choose the layout of tools, toolbars and dockers that fits your work. You can change it later in Window ▸ Workspace.").color(theme::TEXT_DIM));
+    ui.label(egui::RichText::new("Choose the layout of tools, toolbars and dockers that fits your work. You can change it later in Window ▸ Workspace.").color(theme::TEXT_DIM()));
     ui.add_space(12.0);
     let mut pick = None;
     let cols = 3;
@@ -200,14 +200,14 @@ fn workspace(app: &mut AnyVectorApp, ui: &mut Ui) {
                 let (r, resp) = ui.allocate_exact_size(vec2(tw, 92.0), Sense::click());
                 let current = app.settings.workspace == *name;
                 let p = ui.painter();
-                p.rect_filled(r, 4.0, if resp.hovered() { theme::HOVER } else { theme::BAR });
-                p.rect_stroke(r, 4.0, Stroke::new(if current { 2.0 } else { 1.0 }, if current || resp.hovered() { theme::FOCUS } else { theme::SEP }), egui::StrokeKind::Inside);
-                p.text(r.left_top() + vec2(12.0, 12.0), Align2::LEFT_TOP, *name, theme::bold(14.0), theme::TEXT);
+                p.rect_filled(r, 4.0, if resp.hovered() { theme::HOVER() } else { theme::BAR() });
+                p.rect_stroke(r, 4.0, Stroke::new(if current { 2.0 } else { 1.0 }, if current || resp.hovered() { theme::FOCUS() } else { theme::SEP() }), egui::StrokeKind::Inside);
+                p.text(r.left_top() + vec2(12.0, 12.0), Align2::LEFT_TOP, *name, theme::bold(14.0), theme::TEXT());
                 if current {
                     p.text(r.right_top() + vec2(-12.0, 13.0), Align2::RIGHT_TOP, "Current", theme::body(11.5), LINK);
                 }
-                let g = p.layout(desc.to_string(), theme::body(12.0), theme::TEXT_DIM, tw - 24.0);
-                p.galley(r.left_top() + vec2(12.0, 36.0), g, theme::TEXT_DIM);
+                let g = p.layout(desc.to_string(), theme::body(12.0), theme::TEXT_DIM(), tw - 24.0);
+                p.galley(r.left_top() + vec2(12.0, 36.0), g, theme::TEXT_DIM());
                 if resp.on_hover_cursor(CursorIcon::PointingHand).clicked() {
                     pick = Some(i as u8);
                 }
@@ -225,7 +225,7 @@ fn whats_new(ui: &mut Ui) {
     for line in WHATS_NEW {
         ui.horizontal_wrapped(|ui| {
             ui.label(egui::RichText::new("•").color(LINK));
-            ui.label(egui::RichText::new(*line).color(theme::TEXT));
+            ui.label(egui::RichText::new(*line).color(theme::TEXT()));
         });
         ui.add_space(4.0);
     }

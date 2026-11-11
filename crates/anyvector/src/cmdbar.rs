@@ -74,15 +74,15 @@ fn button(app: &mut AnyVectorApp, ui: &mut Ui, it: &'static Item, on: bool, chec
     // caption (with the icon on its left for "text right of image")
     let text = ui::plain(ui::label(it));
     let font = egui::FontId::proportional(12.5);
-    let tw = ui.painter().layout_no_wrap(text.clone(), font.clone(), theme::TEXT).size().x;
+    let tw = ui.painter().layout_no_wrap(text.clone(), font.clone(), theme::TEXT()).size().x;
     let with_icon = it.face == Face::TextRight && !it.icon.is_empty();
     let w = tw + 16.0 + if with_icon { s + 6.0 } else { 0.0 };
     let (rect, r) = ui.allocate_exact_size(vec2(w, s + 8.0), if on { Sense::click() } else { Sense::hover() });
     let p = ui.painter();
     if checked || (on && r.is_pointer_button_down_on()) {
-        p.rect_filled(rect.shrink(1.0), 2.0, theme::PRESSED);
+        p.rect_filled(rect.shrink(1.0), 2.0, theme::PRESSED());
     } else if on && r.hovered() {
-        p.rect_filled(rect.shrink(1.0), 2.0, theme::HOVER);
+        p.rect_filled(rect.shrink(1.0), 2.0, theme::HOVER());
     }
     let mut x = rect.left() + 8.0;
     if with_icon {
@@ -92,7 +92,7 @@ fn button(app: &mut AnyVectorApp, ui: &mut Ui, it: &'static Item, on: bool, chec
         }
         x += s + 6.0;
     }
-    p.text(pos2(x, rect.center().y), egui::Align2::LEFT_CENTER, text, font, if on { theme::TEXT } else { theme::DISABLED });
+    p.text(pos2(x, rect.center().y), egui::Align2::LEFT_CENTER, text, font, if on { theme::TEXT() } else { theme::DISABLED() });
     r.on_hover_text(tip)
 }
 
@@ -108,20 +108,20 @@ fn flyout(app: &mut AnyVectorApp, ui: &mut Ui, it: &'static Item, on: bool) -> e
         let tip = tooltip(app, it);
         let r = icon_button_sized(&mut app.icons, ui, it.icon, &tip, on, false, s + 14.0, s);
         let c = r.rect.center() + vec2(s / 2.0 + 1.0, s / 2.0 + 1.0);
-        let color = if on { theme::TEXT } else { theme::DISABLED };
+        let color = if on { theme::TEXT() } else { theme::DISABLED() };
         ui.painter().add(egui::Shape::convex_polygon(vec![c, c - vec2(4.0, 0.0), c - vec2(0.0, 4.0)], color, egui::Stroke::NONE));
         return r;
     }
-    let tw = ui.painter().layout_no_wrap(text.clone(), font.clone(), theme::TEXT).size().x + 6.0;
+    let tw = ui.painter().layout_no_wrap(text.clone(), font.clone(), theme::TEXT()).size().x + 6.0;
     let w = 8.0 + if show_icon { s + 4.0 } else { 0.0 } + tw + 14.0;
     let (rect, r) = ui.allocate_exact_size(vec2(w, s + 8.0), if on { Sense::click() } else { Sense::hover() });
     let p = ui.painter();
     if on && (r.hovered() || Popup::is_id_open(ui.ctx(), Popup::default_response_id(&r))) {
-        p.rect_filled(rect.shrink(1.0), 3.0, theme::HOVER);
+        p.rect_filled(rect.shrink(1.0), 3.0, theme::HOVER());
     } else {
-        p.rect_filled(rect.shrink(1.0), 3.0, egui::Color32::from_rgb(0x33, 0x33, 0x33));
+        p.rect_filled(rect.shrink(1.0), 3.0, theme::BUTTON());
     }
-    let c = if on { theme::TEXT } else { theme::DISABLED };
+    let c = if on { theme::TEXT() } else { theme::DISABLED() };
     let mut x = rect.left() + 6.0;
     if show_icon {
         let tone = if on { crate::icons::Tone::Normal } else { crate::icons::Tone::Disabled };

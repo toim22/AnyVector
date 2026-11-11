@@ -288,7 +288,7 @@ pub fn color_styles(app: &mut AnyVectorApp, ui: &mut Ui) {
                     let (fr, fresp) = ui.allocate_exact_size(vec2(sw + 6.0, sw), Sense::click());
                     let p = ui.painter();
                     if harmony == Some(h) {
-                        p.rect_filled(fr.expand(1.0), 2.0, theme::ACCENT);
+                        p.rect_filled(fr.expand(1.0), 2.0, theme::ACCENT());
                     }
                     if let Some(t) = app.icons.get(ui.ctx(), "cs_harmony_folder", sw - 2.0, crate::icons::Tone::Normal) {
                         p.image(t.id, Rect::from_center_size(fr.center(), vec2(sw - 2.0, sw - 2.0)), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
@@ -326,7 +326,7 @@ pub fn color_styles(app: &mut AnyVectorApp, ui: &mut Ui) {
         });
     });
     // the splitter mark
-    ui.vertical_centered(|ui| ui.label(egui::RichText::new("•••").size(7.0).color(theme::TEXT_DIM)));
+    ui.vertical_centered(|ui| ui.label(egui::RichText::new("•••").size(7.0).color(theme::TEXT_DIM())));
     if let Some((r, h, add)) = click {
         let cs = &mut app.dockers.ui.cs;
         cs.harmony = h;
@@ -381,7 +381,7 @@ pub fn color_styles(app: &mut AnyVectorApp, ui: &mut Ui) {
             }
         });
         let (sr, _) = ui.allocate_exact_size(vec2(7.0, 22.0), Sense::hover());
-        ui.painter().line_segment([pos2(sr.center().x, sr.top() + 3.0), pos2(sr.center().x, sr.bottom() - 3.0)], Stroke::new(1.0, theme::SEP));
+        ui.painter().line_segment([pos2(sr.center().x, sr.top() + 3.0), pos2(sr.center().x, sr.bottom() - 3.0)], Stroke::new(1.0, theme::SEP()));
         if icon_button(app, ui, "cs_merge", "Merge the selected color styles with the last selected color style.", sel.len() > 1) {
             run = Some("merge");
         }
@@ -460,7 +460,7 @@ pub fn color_styles(app: &mut AnyVectorApp, ui: &mut Ui) {
                     p.circle_stroke(pt, 6.0, Stroke::new(1.5, Color32::WHITE));
                 }
                 if n == 0 {
-                    p.text(c, egui::Align2::CENTER_CENTER, "Empty", egui::FontId::proportional(12.0), theme::TEXT_DIM);
+                    p.text(c, egui::Align2::CENTER_CENTER, "Empty", egui::FontId::proportional(12.0), theme::TEXT_DIM());
                 }
             }
         }

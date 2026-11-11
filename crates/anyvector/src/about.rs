@@ -38,7 +38,7 @@ fn logo(app: &mut AnyVectorApp, ctx: &egui::Context) -> egui::TextureHandle {
 fn button_at(ui: &mut Ui, r: Rect, text: &str, default: bool) -> bool {
     ui.scope_builder(UiBuilder::new().max_rect(r), |ui| {
         let b = if default {
-            egui::Button::new(egui::RichText::new(text).color(Color32::WHITE)).fill(theme::ACCENT)
+            egui::Button::new(egui::RichText::new(text).color(Color32::WHITE)).fill(theme::PRIMARY())
         } else {
             egui::Button::new(text)
         };
@@ -72,13 +72,13 @@ pub fn about(app: &mut AnyVectorApp, ctx: &egui::Context) {
         p.image(tex.id(), lr, Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
         // version and copyright
         let f = egui::FontId::proportional(13.0);
-        p.text(pos2(b.center().x, b.top() + 230.0), Align2::CENTER_CENTER, format!("Version {} - {RELEASE} Release", vector_core::APP_VERSION), f.clone(), theme::TEXT);
-        p.text(pos2(b.center().x, b.top() + 253.0), Align2::CENTER_CENTER, "(C) 2026 AnyVector Team.  All rights reserved.", f.clone(), theme::TEXT);
+        p.text(pos2(b.center().x, b.top() + 230.0), Align2::CENTER_CENTER, format!("Version {} - {RELEASE} Release", vector_core::APP_VERSION), f.clone(), theme::TEXT());
+        p.text(pos2(b.center().x, b.top() + 253.0), Align2::CENTER_CENTER, "(C) 2026 AnyVector Team.  All rights reserved.", f.clone(), theme::TEXT());
         // Source ID box
         let sid = Rect::from_min_max(pos2(b.left() + 5.0, b.top() + 266.0), pos2(b.right() - 5.0, b.top() + 295.0));
-        p.rect_stroke(sid, 0.0, Stroke::new(1.0, Color32::from_gray(0x5a)), egui::StrokeKind::Inside);
-        p.text(pos2(sid.left() + 8.0, sid.center().y), Align2::LEFT_CENTER, "Source ID:", f.clone(), theme::TEXT);
-        p.text(pos2(sid.left() + 84.0, sid.center().y), Align2::LEFT_CENTER, SOURCE_ID, f, theme::TEXT);
+        p.rect_stroke(sid, 0.0, Stroke::new(1.0, theme::gray(0x5a)), egui::StrokeKind::Inside);
+        p.text(pos2(sid.left() + 8.0, sid.center().y), Align2::LEFT_CENTER, "Source ID:", f.clone(), theme::TEXT());
+        p.text(pos2(sid.left() + 84.0, sid.center().y), Align2::LEFT_CENTER, SOURCE_ID, f, theme::TEXT());
         // buttons
         let y = b.top() + 313.0;
         sysinfo = button_at(ui, Rect::from_min_size(pos2(b.left() + 5.0, y), vec2(118.0, 25.0)), "System Info...", false);
@@ -105,7 +105,7 @@ pub fn system_info(app: &mut AnyVectorApp, ctx: &egui::Context) {
     let mut save = false;
     let ((), dismissed) = window(ctx, "system_info", "System Info", vec2(599.0, 411.0), |ui| {
         let b = ui.max_rect();
-        ui.painter().text(pos2(b.left() + 5.0, b.top() + 20.0), Align2::LEFT_CENTER, "Choose a category:", egui::FontId::proportional(13.0), theme::TEXT);
+        ui.painter().text(pos2(b.left() + 5.0, b.top() + 20.0), Align2::LEFT_CENTER, "Choose a category:", egui::FontId::proportional(13.0), theme::TEXT());
         let combo = Rect::from_min_size(pos2(b.left() + 138.0, b.top() + 8.0), vec2(270.0, 24.0));
         let mut cat = st.category;
         ui.scope_builder(UiBuilder::new().max_rect(combo), |ui| {
@@ -121,16 +121,16 @@ pub fn system_info(app: &mut AnyVectorApp, ctx: &egui::Context) {
         }
         // the list: name and value columns in a bordered, scrolling box
         let list = Rect::from_min_max(pos2(b.left() + 5.0, b.top() + 40.0), pos2(b.right() - 5.0, b.top() + 288.0));
-        ui.painter().rect_stroke(list, 0.0, Stroke::new(1.0, Color32::from_gray(0x5a)), egui::StrokeKind::Inside);
+        ui.painter().rect_stroke(list, 0.0, Stroke::new(1.0, theme::gray(0x5a)), egui::StrokeKind::Inside);
         let inner = list.shrink2(vec2(6.0, 2.0));
         ui.scope_builder(UiBuilder::new().max_rect(inner), |ui| {
             egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
                 for (k, v) in &st.rows {
                     let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), 25.0), Sense::hover());
                     let f = egui::FontId::proportional(13.0);
-                    ui.painter().text(pos2(r.left(), r.center().y), Align2::LEFT_CENTER, k, f.clone(), theme::TEXT);
+                    ui.painter().text(pos2(r.left(), r.center().y), Align2::LEFT_CENTER, k, f.clone(), theme::TEXT());
                     let vr = Rect::from_min_max(pos2(r.left() + 171.0, r.top()), r.max);
-                    ui.painter().with_clip_rect(vr).text(pos2(vr.left(), r.center().y), Align2::LEFT_CENTER, v, f, theme::TEXT);
+                    ui.painter().with_clip_rect(vr).text(pos2(vr.left(), r.center().y), Align2::LEFT_CENTER, v, f, theme::TEXT());
                 }
             });
         });
@@ -155,10 +155,10 @@ pub fn legal_notices(app: &mut AnyVectorApp, ctx: &egui::Context) {
     let ((), dismissed) = window(ctx, "legal_notices", "Legal Notices", vec2(599.0, 460.0), |ui| {
         let b = ui.max_rect();
         let text_rect = Rect::from_min_max(pos2(b.left() + 5.0, b.top() + 8.0), pos2(b.right() - 5.0, b.bottom() - 36.0));
-        ui.painter().rect_stroke(text_rect, 0.0, Stroke::new(1.0, Color32::from_gray(0x5a)), egui::StrokeKind::Inside);
+        ui.painter().rect_stroke(text_rect, 0.0, Stroke::new(1.0, theme::gray(0x5a)), egui::StrokeKind::Inside);
         ui.scope_builder(UiBuilder::new().max_rect(text_rect.shrink(6.0)), |ui| {
             egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
-                ui.label(egui::RichText::new(LEGAL).font(egui::FontId::monospace(11.5)).color(theme::TEXT));
+                ui.label(egui::RichText::new(LEGAL).font(egui::FontId::monospace(11.5)).color(theme::TEXT()));
             });
         });
         close = button_at(ui, Rect::from_min_size(pos2(b.right() - 85.0, b.bottom() - 25.0), vec2(82.0, 24.0)), "Close", true);

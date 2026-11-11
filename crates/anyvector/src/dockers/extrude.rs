@@ -239,7 +239,7 @@ fn draw_three(p: &egui::Painter, r: Rect, rot: [f64; 3], on: bool) {
     };
     let back: Vec<Pos2> = pts.iter().map(|&(x, y)| proj(x, y, 0.18)).collect();
     let front: Vec<Pos2> = pts.iter().map(|&(x, y)| proj(x, y, 0.0)).collect();
-    let (fc, bc) = if on { (Color32::from_rgb(0x1e, 0x88, 0xd8), Color32::from_rgb(0x10, 0x4a, 0x7a)) } else { (Color32::from_gray(72), Color32::from_gray(54)) };
+    let (fc, bc) = if on { (Color32::from_rgb(0x1e, 0x88, 0xd8), Color32::from_rgb(0x10, 0x4a, 0x7a)) } else { (crate::theme::gray(72), crate::theme::gray(54)) };
     let sw = (s * 0.09) as f32;
     for k in (0..front.len()).step_by(5) {
         p.line_segment([front[k], back[k]], Stroke::new(sw * 0.5, bc));
@@ -280,7 +280,7 @@ pub(crate) fn lighting_ui(ui: &mut Ui, e: &mut ExtrudeEffect, on: bool, sel: &mu
     let (frame, resp) = ui.allocate_exact_size(vec2(side + 8.0, side + 8.0), if on { Sense::click() } else { Sense::hover() });
     let r = frame.shrink(4.0);
     let p = ui.painter();
-    p.rect_stroke(frame, 0.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Inside);
+    p.rect_stroke(frame, 0.0, Stroke::new(1.0, theme::SEP()), egui::StrokeKind::Inside);
     p.rect_filled(r, 0.0, Color32::WHITE);
     let line = |a: u8, b: u8| p.line_segment([spot_at(r, a), spot_at(r, b)], Stroke::new(1.0, Color32::BLACK));
     for i in 0..3u8 {
@@ -357,15 +357,15 @@ fn track(ui: &mut Ui, v: &mut f64, w: f32, enabled: bool) -> bool {
         changed = true;
     }
     let kx = x0 + (*v / 100.0).clamp(0.0, 1.0) as f32 * (x1 - x0);
-    let blue = if enabled { Color32::from_rgb(0x1e, 0x88, 0xd8) } else { Color32::from_gray(90) };
+    let blue = if enabled { Color32::from_rgb(0x1e, 0x88, 0xd8) } else { crate::theme::gray(90) };
     let p = ui.painter();
-    p.line_segment([pos2(x0, y), pos2(x1, y)], Stroke::new(3.0, Color32::from_gray(80)));
+    p.line_segment([pos2(x0, y), pos2(x1, y)], Stroke::new(3.0, crate::theme::gray(80)));
     p.line_segment([pos2(x0, y), pos2(kx, y)], Stroke::new(3.0, blue));
     for k in 0..=5 {
         let tx = x0 + (x1 - x0) * k as f32 / 5.0;
-        p.line_segment([pos2(tx, y + 5.0), pos2(tx, y + 7.0)], Stroke::new(1.0, if enabled { theme::TEXT_DIM } else { theme::SEP }));
+        p.line_segment([pos2(tx, y + 5.0), pos2(tx, y + 7.0)], Stroke::new(1.0, if enabled { theme::TEXT_DIM() } else { theme::SEP() }));
     }
-    p.circle_filled(pos2(kx, y), 5.0, theme::BG);
+    p.circle_filled(pos2(kx, y), 5.0, theme::BG());
     p.circle_stroke(pos2(kx, y), 5.0, Stroke::new(1.5, blue));
     changed
 }

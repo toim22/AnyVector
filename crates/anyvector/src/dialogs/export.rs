@@ -1141,7 +1141,7 @@ pub fn show_bitmap(app: &mut AnyVectorApp, ctx: &egui::Context) {
         ui.add_space(8.0);
         ui.horizontal_top(|ui| {
             // preview
-            egui::Frame::new().fill(Color32::from_gray(0x30)).stroke(egui::Stroke::new(1.0, theme::SEP)).show(ui, |ui| {
+            egui::Frame::new().fill(theme::FAINT()).stroke(egui::Stroke::new(1.0, theme::SEP())).show(ui, |ui| {
                 ui.set_min_size(vec2(440.0, 440.0));
                 ui.centered_and_justified(|ui| {
                     if let Some(t) = &st.tex {

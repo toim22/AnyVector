@@ -81,7 +81,7 @@ fn adjust(ui: &mut Ui, st: &mut LineStyleState) {
     for i in 0..=SLOTS {
         let x = left + i as f32 * cell;
         let h = if i % 5 == 0 { 6.0 } else { 3.0 };
-        p.line_segment([pos2(x, top - h - 1.0), pos2(x, top - 1.0)], Stroke::new(1.0, theme::TEXT_DIM));
+        p.line_segment([pos2(x, top - h - 1.0), pos2(x, top - 1.0)], Stroke::new(1.0, theme::TEXT_DIM()));
     }
     // the squares
     for i in 0..SLOTS {
@@ -99,12 +99,12 @@ fn adjust(ui: &mut Ui, st: &mut LineStyleState) {
     // the length marker (an hourglass on the ruler) and the locks
     let mx = left + st.len as f32 * cell;
     let m = pos2(mx, top - 8.0);
-    p.add(egui::Shape::convex_polygon(vec![pos2(m.x - 4.0, m.y - 5.0), pos2(m.x + 4.0, m.y - 5.0), pos2(m.x, m.y)], theme::TEXT, Stroke::NONE));
-    p.add(egui::Shape::convex_polygon(vec![pos2(m.x, m.y), pos2(m.x + 4.0, m.y + 5.0), pos2(m.x - 4.0, m.y + 5.0)], theme::TEXT, Stroke::NONE));
+    p.add(egui::Shape::convex_polygon(vec![pos2(m.x - 4.0, m.y - 5.0), pos2(m.x + 4.0, m.y - 5.0), pos2(m.x, m.y)], theme::TEXT(), Stroke::NONE));
+    p.add(egui::Shape::convex_polygon(vec![pos2(m.x, m.y), pos2(m.x + 4.0, m.y + 5.0), pos2(m.x - 4.0, m.y + 5.0)], theme::TEXT(), Stroke::NONE));
     for i in [0, st.len - 1] {
         let c = pos2(left + (i as f32 + 0.5) * cell, top + cell + 6.0);
-        p.rect_filled(Rect::from_center_size(c + vec2(0.0, 1.5), vec2(7.0, 5.0)), 1.0, theme::TEXT);
-        p.circle_stroke(c + vec2(0.0, -1.5), 2.2, Stroke::new(1.0, theme::TEXT));
+        p.rect_filled(Rect::from_center_size(c + vec2(0.0, 1.5), vec2(7.0, 5.0)), 1.0, theme::TEXT());
+        p.circle_stroke(c + vec2(0.0, -1.5), 2.2, Stroke::new(1.0, theme::TEXT()));
     }
     // dragging on the ruler sets the length; a click on a square turns it on or off
     if let Some(pos) = resp.interact_pointer_pos() {
@@ -168,34 +168,34 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
         ui.horizontal(|ui| {
             ui.add_space(23.0);
             ui.vertical(|ui| {
-                ui.label(egui::RichText::new("Adjust").strong().color(theme::TEXT));
+                ui.label(egui::RichText::new("Adjust").strong().color(theme::TEXT()));
                 adjust(ui, &mut st);
-                ui.label(egui::RichText::new("Click on the squares to turn dots in the line style on and off.").color(theme::TEXT));
+                ui.label(egui::RichText::new("Click on the squares to turn dots in the line style on and off.").color(theme::TEXT()));
                 ui.add_space(14.0);
-                ui.label(egui::RichText::new("Preview").strong().color(theme::TEXT));
+                ui.label(egui::RichText::new("Preview").strong().color(theme::TEXT()));
                 preview(ui, &st);
                 ui.add_space(14.0);
                 let (hr, hresp) = ui.allocate_exact_size(vec2(60.0, 18.0), Sense::click());
                 let c = pos2(hr.left() + 7.0, hr.center().y);
                 if st.hint {
-                    crate::widgets::chevron_up(ui.painter(), c, 3.0, theme::TEXT);
+                    crate::widgets::chevron_up(ui.painter(), c, 3.0, theme::TEXT());
                 } else {
-                    crate::widgets::chevron(ui.painter(), c, 3.0, theme::TEXT);
+                    crate::widgets::chevron(ui.painter(), c, 3.0, theme::TEXT());
                 }
-                ui.painter().text(pos2(hr.left() + 17.0, hr.center().y), egui::Align2::LEFT_CENTER, "Hint", egui::FontId::proportional(12.5), theme::TEXT);
+                ui.painter().text(pos2(hr.left() + 17.0, hr.center().y), egui::Align2::LEFT_CENTER, "Hint", egui::FontId::proportional(12.5), theme::TEXT());
                 if hresp.clicked() {
                     st.hint = !st.hint;
                 }
                 if st.hint {
-                    ui.label(egui::RichText::new("Drag the marker above the squares to set the length of the line style. A line style starts with a dot and ends with a space. Add makes a new line style; Replace changes the one you are editing.").color(theme::TEXT_DIM));
+                    ui.label(egui::RichText::new("Drag the marker above the squares to set the length of the line style. A line style starts with a dot and ends with a space. Add makes a new line style; Replace changes the one you are editing.").color(theme::TEXT_DIM()));
                 }
             });
         });
         let rect = Rect::from_min_max(pos2(ui.max_rect().left(), ui.max_rect().bottom() - 30.0), ui.max_rect().right_bottom());
-        ui.painter().hline(rect.x_range(), rect.top() - 4.0, Stroke::new(1.0, theme::SEP));
+        ui.painter().hline(rect.x_range(), rect.top() - 4.0, Stroke::new(1.0, theme::SEP()));
         ui.scope_builder(egui::UiBuilder::new().max_rect(rect), |ui| {
             ui.horizontal(|ui| {
-                ui.add(egui::Button::new("?").min_size(vec2(24.0, 24.0)).stroke(Stroke::new(1.0, theme::ACCENT))).on_hover_text("Help");
+                ui.add(egui::Button::new("?").min_size(vec2(24.0, 24.0)).stroke(Stroke::new(1.0, theme::ACCENT()))).on_hover_text("Help");
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     cancel = button(ui, "Cancel", true);
                     ui.add_space(4.0);

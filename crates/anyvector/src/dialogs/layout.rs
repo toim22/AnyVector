@@ -444,7 +444,7 @@ pub fn border_grommet(app: &mut AnyVectorApp, ctx: &egui::Context) {
 }
 
 fn panel(ui: &mut Ui, title: &str, body: impl FnOnce(&mut Ui)) {
-    egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP)).corner_radius(3.0).inner_margin(8.0).show(ui, |ui| {
+    egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP())).corner_radius(3.0).inner_margin(8.0).show(ui, |ui| {
         ui.set_width(ui.available_width());
         ui.label(egui::RichText::new(title).strong());
         body(ui);
@@ -456,11 +456,11 @@ fn panel(ui: &mut Ui, title: &str, body: impl FnOnce(&mut Ui)) {
 fn placement_icon(ui: &Ui, r: Rect, which: usize, on: bool, enabled: bool, hovered: bool) {
     let p = ui.painter();
     if on {
-        p.rect_filled(r, 2.0, if enabled { theme::ACCENT } else { theme::FIELD });
+        p.rect_filled(r, 2.0, if enabled { theme::ACCENT() } else { theme::FIELD() });
     } else if hovered && enabled {
-        p.rect_filled(r, 2.0, theme::HOVER);
+        p.rect_filled(r, 2.0, theme::HOVER());
     }
-    let col = if enabled { theme::TEXT } else { theme::TEXT_DIM };
+    let col = if enabled { theme::TEXT() } else { theme::TEXT_DIM() };
     let f = r.shrink(5.0);
     p.rect_stroke(f, 0.0, Stroke::new(1.0, col), egui::StrokeKind::Middle);
     let dots: Vec<egui::Pos2> = match which {
@@ -515,7 +515,7 @@ pub(crate) fn rule_heading(ui: &mut Ui, text: &str) {
         ui.label(egui::RichText::new(text).strong());
         let w = ui.available_width() - 4.0;
         let (r, _) = ui.allocate_exact_size(vec2(w.max(0.0), 14.0), Sense::hover());
-        ui.painter().hline(r.x_range(), r.center().y, Stroke::new(1.0, theme::SEP));
+        ui.painter().hline(r.x_range(), r.center().y, Stroke::new(1.0, theme::SEP()));
     });
     ui.add_space(6.0);
 }
@@ -562,15 +562,15 @@ fn orientation_button(ui: &mut Ui, landscape: bool, on: bool) -> bool {
     let (r, resp) = ui.allocate_exact_size(vec2(24.0, 24.0), Sense::click());
     let p = ui.painter();
     if on {
-        p.rect_filled(r, 2.0, theme::ACCENT);
+        p.rect_filled(r, 2.0, theme::ACCENT());
     } else if resp.hovered() {
-        p.rect_filled(r, 2.0, theme::HOVER);
+        p.rect_filled(r, 2.0, theme::HOVER());
     }
     let sz = if landscape { vec2(14.0, 10.0) } else { vec2(10.0, 14.0) };
     let pg = Rect::from_center_size(r.center(), sz);
     let fold = 3.0;
     let pts = vec![pg.left_top(), pos2(pg.right() - fold, pg.top()), pos2(pg.right(), pg.top() + fold), pg.right_bottom(), pg.left_bottom(), pg.left_top()];
-    p.add(egui::Shape::line(pts, Stroke::new(1.0, theme::TEXT)));
+    p.add(egui::Shape::line(pts, Stroke::new(1.0, theme::TEXT())));
     resp.on_hover_text(if landscape { "Landscape" } else { "Portrait" }).clicked()
 }
 

@@ -298,7 +298,7 @@ fn general(ui: &mut Ui, st: &mut PrintState, has_sel: bool, doc_names: &[String]
         });
         let p = st.paper(false);
         row(ui, "Paper:", 70.0, |ui| {
-            ui.label(egui::RichText::new(format!("{:.2} × {:.2} in.", p.width / 72.0, p.height / 72.0)).color(theme::TEXT_DIM));
+            ui.label(egui::RichText::new(format!("{:.2} × {:.2} in.", p.width / 72.0, p.height / 72.0)).color(theme::TEXT_DIM()));
         });
         ui.horizontal(|ui| {
             ui.checkbox(&mut st.settings.to_file, "Print to file");
@@ -528,7 +528,7 @@ pub fn preflight_list(ui: &mut Ui, found: &[Issue]) {
             ui.label(egui::RichText::new(format!("⚠ {}", i.title)).color(Color32::from_rgb(0xf0, 0xc0, 0x40)));
             ui.horizontal(|ui| {
                 ui.add_space(18.0);
-                ui.add(egui::Label::new(egui::RichText::new(&i.detail).color(theme::TEXT_DIM)).wrap());
+                ui.add(egui::Label::new(egui::RichText::new(&i.detail).color(theme::TEXT_DIM())).wrap());
             });
             ui.add_space(4.0);
         }
@@ -596,7 +596,7 @@ fn preview(app: &mut AnyVectorApp, ctx: &egui::Context, mut st: PrintState) {
             if ui.button("Print Options...").clicked() {
                 options = true;
             }
-            if ui.add(egui::Button::new(egui::RichText::new("Print").color(Color32::WHITE)).fill(theme::ACCENT)).clicked() {
+            if ui.add(egui::Button::new(egui::RichText::new("Print").color(Color32::WHITE)).fill(theme::PRIMARY())).clicked() {
                 print = true;
             }
             crate::widgets::vsep(ui);
@@ -615,13 +615,13 @@ fn preview(app: &mut AnyVectorApp, ctx: &egui::Context, mut st: PrintState) {
                     close = true;
                 }
                 let t = if found.is_empty() { "No Issues".to_string() } else { format!("⚠ {} Issues", found.len()) };
-                ui.label(egui::RichText::new(t).color(theme::TEXT_DIM));
+                ui.label(egui::RichText::new(t).color(theme::TEXT_DIM()));
             });
         });
         ui.add_space(4.0);
         // preview area
         let area = Rect::from_min_max(ui.cursor().min, pos2(ui.max_rect().right(), ui.max_rect().bottom() - 30.0));
-        ui.painter().rect_filled(area, 0.0, theme::DESKTOP);
+        ui.painter().rect_filled(area, 0.0, theme::DESKTOP());
         if let Some((sheet, paper)) = sh.get(pv.sheet).cloned() {
             let fit = ((area.width() - 40.0) / paper.width as f32).min((area.height() - 40.0) / paper.height as f32);
             let k = if pv.zoom == 0 { fit } else { pv.zoom as f32 / 100.0 * ctx.pixels_per_point().recip() * 96.0 / 72.0 };
@@ -648,7 +648,7 @@ fn preview(app: &mut AnyVectorApp, ctx: &egui::Context, mut st: PrintState) {
             let dash = egui::Shape::dashed_line(&[pa.left_top(), pa.right_top(), pa.right_bottom(), pa.left_bottom(), pa.left_top()], Stroke::new(1.0, Color32::from_gray(0x90)), 4.0, 3.0);
             painter.extend(dash);
         } else {
-            ui.painter().text(area.center(), egui::Align2::CENTER_CENTER, "There is nothing to print.", egui::FontId::proportional(14.0), theme::TEXT);
+            ui.painter().text(area.center(), egui::Align2::CENTER_CENTER, "There is nothing to print.", egui::FontId::proportional(14.0), theme::TEXT());
         }
         // page navigation
         let nav = Rect::from_min_max(pos2(area.left(), area.bottom() + 4.0), pos2(area.right(), area.bottom() + 28.0));
@@ -662,7 +662,7 @@ fn preview(app: &mut AnyVectorApp, ctx: &egui::Context, mut st: PrintState) {
                     pv.sheet += 1;
                 }
                 if let Some((s, p)) = sh.get(pv.sheet) {
-                    ui.label(egui::RichText::new(format!("   {}   {:.2} × {:.2} in.{}", if s.landscape { "Landscape" } else { "Portrait" }, p.width / 72.0, p.height / 72.0, s.tile.map(|(c, r)| format!("   tile {},{}", c + 1, r + 1)).unwrap_or_default())).color(theme::TEXT_DIM));
+                    ui.label(egui::RichText::new(format!("   {}   {:.2} × {:.2} in.{}", if s.landscape { "Landscape" } else { "Portrait" }, p.width / 72.0, p.height / 72.0, s.tile.map(|(c, r)| format!("   tile {},{}", c + 1, r + 1)).unwrap_or_default())).color(theme::TEXT_DIM()));
                 }
             });
         });

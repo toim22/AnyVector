@@ -13,7 +13,9 @@ use vector_core::Unit;
 pub const ROW: f32 = 22.0;
 /// Height of each row of a stacked field.
 const SROW: f32 = 18.0;
-const BORDER: Color32 = Color32::from_rgb(0x50, 0x50, 0x50);
+fn border() -> Color32 {
+    theme::gray(0x50)
+}
 
 fn font() -> FontId {
     FontId::proportional(12.5)
@@ -21,9 +23,9 @@ fn font() -> FontId {
 
 fn ink(enabled: bool) -> Color32 {
     if enabled {
-        theme::TEXT
+        theme::TEXT()
     } else {
-        theme::DISABLED
+        theme::DISABLED()
     }
 }
 
@@ -104,8 +106,8 @@ impl Lead {
 
 /// The dark field background with its border.
 pub fn frame(ui: &Ui, rect: Rect, enabled: bool) {
-    ui.painter().rect_filled(rect, 2.0, theme::FIELD);
-    ui.painter().rect_stroke(rect, 2.0, Stroke::new(1.0, if enabled { BORDER } else { theme::SEP }), StrokeKind::Inside);
+    ui.painter().rect_filled(rect, 2.0, theme::FIELD());
+    ui.painter().rect_stroke(rect, 2.0, Stroke::new(1.0, if enabled { border() } else { theme::SEP() }), StrokeKind::Inside);
 }
 
 /// The editable text of a field in `rect`; the text when the user commits it (Enter or leaving
@@ -130,7 +132,7 @@ fn arrows(ui: &mut Ui, id: Id, rect: Rect, enabled: bool) -> i32 {
     let sense = if enabled { Sense::click() } else { Sense::hover() };
     let ru = ui.interact(up, id.with("up"), sense);
     let rd = ui.interact(down, id.with("down"), sense);
-    let col = |r: &Response| if !enabled { theme::DISABLED } else if r.hovered() { Color32::WHITE } else { theme::TEXT_DIM };
+    let col = |r: &Response| if !enabled { theme::DISABLED() } else if r.hovered() { theme::STRONG() } else { theme::TEXT_DIM() };
     chevron_up(ui.painter(), up.center() + vec2(0.0, 1.0), 3.0, col(&ru));
     chevron(ui.painter(), down.center() - vec2(0.0, 1.0), 3.0, col(&rd));
     if ru.clicked() {
@@ -240,7 +242,7 @@ pub fn combo(app: &mut AnyVectorApp, ui: &mut Ui, lead: Lead, text: &str, w: f32
     let (rect, r) = ui.allocate_exact_size(vec2(lw + w, ROW), if enabled { Sense::click() } else { Sense::hover() });
     lead.paint(app, ui, rect.left_center(), enabled);
     let fr = Rect::from_min_max(rect.min + vec2(lw, 0.0), rect.max);
-    ui.painter().rect_filled(fr, 2.0, if enabled && r.hovered() { theme::HOVER } else { Color32::from_rgb(0x33, 0x33, 0x33) });
+    ui.painter().rect_filled(fr, 2.0, if enabled && r.hovered() { theme::HOVER() } else { theme::BUTTON() });
     let clip = Rect::from_min_max(fr.min, pos2(fr.right() - 16.0, fr.bottom()));
     ui.painter().with_clip_rect(clip).text(pos2(fr.left() + 6.0, fr.center().y), egui::Align2::LEFT_CENTER, text, font(), ink(enabled));
     chevron(ui.painter(), pos2(fr.right() - 9.0, fr.center().y), 3.5, ink(enabled));
@@ -267,7 +269,7 @@ pub fn edit_list(app: &mut AnyVectorApp, ui: &mut Ui, id: Id, lead: Lead, v: Opt
     let on = enabled && v.is_some();
     let a = ui.interact(ar, id.with("list"), if on { Sense::click() } else { Sense::hover() });
     if on && a.hovered() {
-        ui.painter().rect_filled(ar.shrink(1.0), 2.0, theme::HOVER);
+        ui.painter().rect_filled(ar.shrink(1.0), 2.0, theme::HOVER());
     }
     chevron(ui.painter(), ar.center(), 3.5, ink(on));
     Popup::menu(&a).show(|ui| {
@@ -291,14 +293,14 @@ pub fn edit_list(app: &mut AnyVectorApp, ui: &mut Ui, id: Id, lead: Lead, v: Opt
 /// no color).
 pub fn color_combo(ui: &mut Ui, id: Id, color: Option<vector_core::Color>, w: f32, enabled: bool, tip: &str) -> Option<Option<vector_core::Color>> {
     let (rect, r) = ui.allocate_exact_size(vec2(w, ROW), if enabled { Sense::click() } else { Sense::hover() });
-    ui.painter().rect_filled(rect, 2.0, if enabled && r.hovered() { theme::HOVER } else { Color32::from_rgb(0x33, 0x33, 0x33) });
+    ui.painter().rect_filled(rect, 2.0, if enabled && r.hovered() { theme::HOVER() } else { theme::BUTTON() });
     let well = Rect::from_min_max(rect.min + vec2(4.0, 4.0), pos2(rect.right() - 18.0, rect.bottom() - 4.0));
     if enabled {
         paint_well(ui.painter(), well, color);
     } else {
-        ui.painter().rect_filled(well, 0.0, theme::FIELD);
+        ui.painter().rect_filled(well, 0.0, theme::FIELD());
     }
-    ui.painter().rect_stroke(well, 0.0, Stroke::new(1.0, BORDER), StrokeKind::Outside);
+    ui.painter().rect_stroke(well, 0.0, Stroke::new(1.0, border()), StrokeKind::Outside);
     chevron(ui.painter(), pos2(rect.right() - 9.0, rect.center().y), 3.5, ink(enabled));
     let r = if tip.is_empty() { r } else { r.on_hover_text(tip) };
     let mut out = None;
@@ -330,7 +332,7 @@ pub fn slider(app: &mut AnyVectorApp, ui: &mut Ui, id: Id, lead: Lead, v: Option
     let on = enabled && v.is_some();
     let b = ui.interact(br, id.with("slider"), if on { Sense::click() } else { Sense::hover() });
     if on && b.hovered() {
-        ui.painter().rect_filled(br, 2.0, theme::HOVER);
+        ui.painter().rect_filled(br, 2.0, theme::HOVER());
     }
     let c = br.center();
     let s = Stroke::new(1.0, ink(on));
@@ -351,7 +353,7 @@ pub fn slider(app: &mut AnyVectorApp, ui: &mut Ui, id: Id, lead: Lead, v: Option
 
 /// A one-line text field ("Prefix:"); the text when committed.
 pub fn text(ui: &mut Ui, id: Id, caption: &str, value: &str, w: f32, enabled: bool) -> Option<String> {
-    let cw = if caption.is_empty() { 0.0 } else { ui.painter().layout_no_wrap(caption.to_string(), font(), theme::TEXT).size().x + 4.0 };
+    let cw = if caption.is_empty() { 0.0 } else { ui.painter().layout_no_wrap(caption.to_string(), font(), theme::TEXT()).size().x + 4.0 };
     let (rect, _) = ui.allocate_exact_size(vec2(cw + w, ROW), Sense::hover());
     if cw > 0.0 {
         ui.painter().text(rect.left_center(), egui::Align2::LEFT_CENTER, caption, font(), ink(enabled));
@@ -373,7 +375,7 @@ pub fn caption(ui: &mut Ui, text: &str, enabled: bool) {
 pub fn anchors(ui: &mut Ui, origin: Option<u8>, enabled: bool, tip: &str) -> Option<u8> {
     let (rect, r) = ui.allocate_exact_size(vec2(26.0, 26.0), if enabled { Sense::click() } else { Sense::hover() });
     if enabled && r.hovered() {
-        ui.painter().rect_filled(rect, 2.0, theme::HOVER);
+        ui.painter().rect_filled(rect, 2.0, theme::HOVER());
     }
     grid(ui.painter(), rect.shrink(4.0), origin, enabled);
     let r = if tip.is_empty() { r } else { r.on_hover_text(tip) };
@@ -447,7 +449,7 @@ pub fn panel(app: &mut AnyVectorApp, ui: &mut Ui, lead: Lead, text: &str, w: f32
     let (rect, r) = ui.allocate_exact_size(vec2(lw + w, ROW), if enabled { Sense::click() } else { Sense::hover() });
     lead.paint(app, ui, rect.left_center(), enabled);
     let fr = Rect::from_min_max(rect.min + vec2(lw, 0.0), rect.max);
-    ui.painter().rect_filled(fr, 2.0, if enabled && r.hovered() { theme::HOVER } else { Color32::from_rgb(0x33, 0x33, 0x33) });
+    ui.painter().rect_filled(fr, 2.0, if enabled && r.hovered() { theme::HOVER() } else { theme::BUTTON() });
     let clip = Rect::from_min_max(fr.min, pos2(fr.right() - 16.0, fr.bottom()));
     ui.painter().with_clip_rect(clip).text(pos2(fr.left() + 6.0, fr.center().y), egui::Align2::LEFT_CENTER, text, font(), ink(enabled));
     chevron(ui.painter(), pos2(fr.right() - 9.0, fr.center().y), 3.5, ink(enabled));

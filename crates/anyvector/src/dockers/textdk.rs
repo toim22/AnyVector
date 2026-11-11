@@ -65,7 +65,7 @@ fn ind(app: &mut AnyVectorApp, ui: &mut Ui, on: bool) {
     if !on {
         return;
     }
-    let c = if resp.hovered() { theme::TEXT } else { Color32::from_gray(96) };
+    let c = if resp.hovered() { theme::TEXT() } else { theme::gray(96) };
     ui.painter().rect_stroke(Rect::from_center_size(r.center(), vec2(7.0, 7.0)), 0.0, Stroke::new(1.0, c), egui::StrokeKind::Inside);
     egui::Popup::menu(&resp).show(|ui| {
         crate::menus::menu_style(ui);
@@ -106,7 +106,7 @@ fn more_btn(ui: &mut Ui, tip: &str, enabled: bool) -> bool {
 fn fold(ui: &mut Ui, open: &mut bool) {
     let w = ui.available_width() - 14.0;
     let (r, resp) = ui.allocate_exact_size(vec2(w, 14.0), Sense::click());
-    let c = if resp.hovered() { Color32::WHITE } else { theme::TEXT_DIM };
+    let c = if resp.hovered() { theme::STRONG() } else { theme::TEXT_DIM() };
     if *open {
         crate::widgets::chevron_up(ui.painter(), r.center(), 3.5, c);
     } else {
@@ -171,11 +171,11 @@ pub fn text(app: &mut AnyVectorApp, ui: &mut Ui) {
                 let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width() - 44.0, 20.0), Sense::click());
                 let c = pos2(r.left() + 7.0, r.center().y);
                 if st.folded[s as usize] {
-                    crate::widgets::chevron(ui.painter(), c, 3.0, theme::TEXT);
+                    crate::widgets::chevron(ui.painter(), c, 3.0, theme::TEXT());
                 } else {
-                    crate::widgets::chevron_up(ui.painter(), c, 3.0, theme::TEXT);
+                    crate::widgets::chevron_up(ui.painter(), c, 3.0, theme::TEXT());
                 }
-                ui.painter().text(pos2(r.left() + 16.0, r.center().y), egui::Align2::LEFT_CENTER, names[s as usize], theme::bold(12.5), Color32::WHITE);
+                ui.painter().text(pos2(r.left() + 16.0, r.center().y), egui::Align2::LEFT_CENTER, names[s as usize], theme::bold(12.5), theme::STRONG());
                 if resp.clicked() {
                     st.folded[s as usize] = !st.folded[s as usize];
                 }

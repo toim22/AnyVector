@@ -587,20 +587,19 @@ impl DockerState {
 
 /// Width of the strip of docker tabs at the right of the docker area.
 pub const TAB_STRIP: f32 = 28.0;
-const TAB_BLUE: Color32 = Color32::from_rgb(29, 68, 112);
 
 /// A docker tab: its icon at the top and its name written downward.
 fn docker_tab(app: &mut AnyVectorApp, ui: &mut Ui, p: &egui::Painter, x: f32, y: f32, d: DockerId, active: bool) -> (egui::Response, f32) {
-    let galley = ui.painter().layout_no_wrap(title(d), egui::FontId::proportional(12.0), theme::TEXT);
+    let galley = ui.painter().layout_no_wrap(title(d), egui::FontId::proportional(12.0), theme::TEXT());
     let h = 26.0 + galley.size().x + 8.0;
     let r = Rect::from_min_size(pos2(x, y), vec2(TAB_STRIP - 4.0, h));
     let resp = ui.interact(r, ui.scope_id().with(("dk_tab", d)), Sense::click()).on_hover_text(title(d));
     let fill = if active {
-        TAB_BLUE
+        theme::TAB_ACTIVE()
     } else if resp.hovered() {
-        theme::HOVER
+        theme::HOVER()
     } else {
-        theme::BAR
+        theme::BAR()
     };
     p.rect_filled(r, egui::CornerRadius { nw: 0, sw: 0, ne: 4, se: 4 }, fill);
     if let Some(t) = app.icons.get(ui.ctx(), icon(d), 16.0, if active { Tone::Bright } else { Tone::Normal }) {
@@ -609,7 +608,7 @@ fn docker_tab(app: &mut AnyVectorApp, ui: &mut Ui, p: &egui::Painter, x: f32, y:
     // written downward: the text turns a quarter clockwise about its top-left corner
     let gh = galley.size().y;
     let at = pos2(r.center().x + gh / 2.0, r.top() + 26.0);
-    p.add(egui::epaint::TextShape::new(at, galley, if active { Color32::WHITE } else { theme::TEXT }).with_angle(std::f32::consts::FRAC_PI_2));
+    p.add(egui::epaint::TextShape::new(at, galley, if active { theme::STRONG() } else { theme::TEXT() }).with_angle(std::f32::consts::FRAC_PI_2));
     (resp, h)
 }
 
@@ -618,9 +617,9 @@ pub fn dockers_panel(app: &mut AnyVectorApp, ui: &mut Ui) {
     // the panel keeps the width it is given (a panel shrinks to what its contents use)
     ui.expand_to_include_rect(full);
     let p = ui.painter().clone();
-    p.rect_filled(full, 0.0, theme::BG);
+    p.rect_filled(full, 0.0, theme::BG());
     // left border
-    p.line_segment([full.left_top(), full.left_bottom()], Stroke::new(1.0, theme::SEP));
+    p.line_segment([full.left_top(), full.left_bottom()], Stroke::new(1.0, theme::SEP()));
     let Some(active) = app.dockers.active.or(app.dockers.open.first().copied()) else { return };
     let collapsed = app.dockers.collapsed;
     // header: title, then expand/collapse and close
@@ -629,14 +628,14 @@ pub fn dockers_panel(app: &mut AnyVectorApp, ui: &mut Ui) {
     let fold = Rect::from_center_size(pos2(header.right() - 38.0, header.center().y), vec2(20.0, 20.0));
     if !collapsed {
         let clip = Rect::from_min_max(header.min, pos2(fold.left() - 4.0, header.bottom()));
-        p.with_clip_rect(clip).text(pos2(header.left() + 8.0, header.center().y), egui::Align2::LEFT_CENTER, title(active), theme::bold(13.0), theme::TEXT);
+        p.with_clip_rect(clip).text(pos2(header.left() + 8.0, header.center().y), egui::Align2::LEFT_CENTER, title(active), theme::bold(13.0), theme::TEXT());
         let cr = ui.interact(close, ui.scope_id().with("dk_close"), Sense::click()).on_hover_text("Close");
         if cr.hovered() {
-            p.rect_filled(close, 2.0, theme::HOVER);
+            p.rect_filled(close, 2.0, theme::HOVER());
         }
         let s = 4.5;
-        p.line_segment([close.center() + vec2(-s, -s), close.center() + vec2(s, s)], Stroke::new(1.3, theme::TEXT));
-        p.line_segment([close.center() + vec2(s, -s), close.center() + vec2(-s, s)], Stroke::new(1.3, theme::TEXT));
+        p.line_segment([close.center() + vec2(-s, -s), close.center() + vec2(s, s)], Stroke::new(1.3, theme::TEXT()));
+        p.line_segment([close.center() + vec2(s, -s), close.center() + vec2(-s, s)], Stroke::new(1.3, theme::TEXT()));
         if cr.clicked() {
             app.dockers.close(active);
             return;
@@ -645,13 +644,13 @@ pub fn dockers_panel(app: &mut AnyVectorApp, ui: &mut Ui) {
     let fold = if collapsed { Rect::from_center_size(pos2(full.right() - TAB_STRIP / 2.0, header.center().y), vec2(20.0, 20.0)) } else { fold };
     let fr = ui.interact(fold, ui.scope_id().with("dk_fold"), Sense::click()).on_hover_text(if collapsed { "Expand Dockers" } else { "Collapse Dockers" });
     if fr.hovered() {
-        p.rect_filled(fold, 2.0, theme::HOVER);
+        p.rect_filled(fold, 2.0, theme::HOVER());
     }
     // two arrowheads, pointing right to collapse and left to expand
     for dx in [-3.5f32, 2.5] {
         let c = fold.center() + vec2(dx, 0.0);
         let pts = if collapsed { vec![c + vec2(2.5, -4.0), c + vec2(-2.5, 0.0), c + vec2(2.5, 4.0)] } else { vec![c + vec2(-2.5, -4.0), c + vec2(2.5, 0.0), c + vec2(-2.5, 4.0)] };
-        p.add(egui::Shape::convex_polygon(pts, theme::TEXT, Stroke::NONE));
+        p.add(egui::Shape::convex_polygon(pts, theme::TEXT(), Stroke::NONE));
     }
     if fr.clicked() {
         app.dockers.collapsed = !collapsed;
@@ -659,7 +658,7 @@ pub fn dockers_panel(app: &mut AnyVectorApp, ui: &mut Ui) {
     // the tabs of the open dockers, down the right edge, apart from the docker
     let strip_left = full.right() - TAB_STRIP;
     if !collapsed {
-        p.line_segment([pos2(strip_left - 2.5, header.bottom()), pos2(strip_left - 2.5, full.bottom())], Stroke::new(1.0, theme::SEP));
+        p.line_segment([pos2(strip_left - 2.5, header.bottom()), pos2(strip_left - 2.5, full.bottom())], Stroke::new(1.0, theme::SEP()));
     }
     let mut y = header.bottom() + 4.0;
     let open = app.dockers.open.clone();
@@ -682,10 +681,10 @@ pub fn dockers_panel(app: &mut AnyVectorApp, ui: &mut Ui) {
     let plus = Rect::from_center_size(pos2(strip_left + (TAB_STRIP - 4.0) / 2.0, y + 14.0), vec2(22.0, 22.0));
     let pr = ui.interact(plus, ui.scope_id().with("dk_plus"), Sense::click()).on_hover_text("Add Docker");
     if pr.hovered() {
-        p.rect_filled(plus, 2.0, theme::HOVER);
+        p.rect_filled(plus, 2.0, theme::HOVER());
     }
-    p.line_segment([plus.center() - vec2(6.0, 0.0), plus.center() + vec2(6.0, 0.0)], Stroke::new(1.6, theme::TEXT));
-    p.line_segment([plus.center() - vec2(0.0, 6.0), plus.center() + vec2(0.0, 6.0)], Stroke::new(1.6, theme::TEXT));
+    p.line_segment([plus.center() - vec2(6.0, 0.0), plus.center() + vec2(6.0, 0.0)], Stroke::new(1.6, theme::TEXT()));
+    p.line_segment([plus.center() - vec2(0.0, 6.0), plus.center() + vec2(0.0, 6.0)], Stroke::new(1.6, theme::TEXT()));
     egui::Popup::menu(&pr).show(|ui| {
         ui.set_min_width(200.0);
         for &d in ALL.iter().filter(|d| **d != Learn) {
@@ -762,18 +761,18 @@ fn docker_content(app: &mut AnyVectorApp, ui: &mut Ui, d: DockerId) {
 
 pub(crate) fn no_doc(ui: &mut Ui) {
     ui.add_space(8.0);
-    ui.label(egui::RichText::new("Open or create a document to use this docker.").color(theme::TEXT_DIM));
+    ui.label(egui::RichText::new("Open or create a document to use this docker.").color(theme::TEXT_DIM()));
 }
 
 pub(crate) fn hint(ui: &mut Ui, text: &str) {
-    ui.label(egui::RichText::new(text).color(theme::TEXT_DIM));
+    ui.label(egui::RichText::new(text).color(theme::TEXT_DIM()));
 }
 
 pub(crate) fn heading(ui: &mut Ui, text: &str) {
     ui.add_space(4.0);
-    ui.label(egui::RichText::new(text).strong().color(theme::TEXT));
+    ui.label(egui::RichText::new(text).strong().color(theme::TEXT()));
     let r = ui.available_rect_before_wrap();
-    ui.painter().line_segment([pos2(r.left(), r.top()), pos2(r.right(), r.top())], Stroke::new(1.0, theme::SEP));
+    ui.painter().line_segment([pos2(r.left(), r.top()), pos2(r.right(), r.top())], Stroke::new(1.0, theme::SEP()));
     ui.add_space(2.0);
 }
 
@@ -785,7 +784,7 @@ pub(crate) fn heading(ui: &mut Ui, text: &str) {
 pub(crate) fn form_row<R>(ui: &mut Ui, lw: f32, label: &str, enabled: bool, f: impl FnOnce(&mut Ui) -> R) -> R {
     ui.horizontal(|ui| {
         let (r, _) = ui.allocate_exact_size(vec2(lw, 22.0), Sense::hover());
-        ui.painter().text(pos2(r.right() - 6.0, r.center().y), egui::Align2::RIGHT_CENTER, label, egui::FontId::proportional(13.0), if enabled { theme::TEXT } else { theme::DISABLED });
+        ui.painter().text(pos2(r.right() - 6.0, r.center().y), egui::Align2::RIGHT_CENTER, label, egui::FontId::proportional(13.0), if enabled { theme::TEXT() } else { theme::DISABLED() });
         ui.add_enabled_ui(enabled, f).inner
     })
     .inner
@@ -804,7 +803,7 @@ pub(crate) fn section(ui: &mut Ui, title: &str) {
 
 /// A bold title in a docker.
 pub(crate) fn bold_title(ui: &mut Ui, title: &str) {
-    ui.label(egui::RichText::new(title).font(theme::bold(13.0)).color(theme::TEXT));
+    ui.label(egui::RichText::new(title).font(theme::bold(13.0)).color(theme::TEXT()));
 }
 
 /// A section title that folds its section: an arrow (up when open), then the bold title.
@@ -813,11 +812,11 @@ pub(crate) fn fold_header(ui: &mut Ui, title: &str, open: &mut bool) {
     let (r, resp) = ui.allocate_exact_size(vec2(w, 22.0), Sense::click());
     let a = pos2(r.left() + 6.0, r.center().y);
     if *open {
-        crate::widgets::chevron_up(ui.painter(), a, 3.5, theme::TEXT);
+        crate::widgets::chevron_up(ui.painter(), a, 3.5, theme::TEXT());
     } else {
-        crate::widgets::chevron(ui.painter(), a, 3.5, theme::TEXT);
+        crate::widgets::chevron(ui.painter(), a, 3.5, theme::TEXT());
     }
-    ui.painter().text(pos2(r.left() + 16.0, r.center().y), egui::Align2::LEFT_CENTER, title, theme::bold(12.5), theme::TEXT);
+    ui.painter().text(pos2(r.left() + 16.0, r.center().y), egui::Align2::LEFT_CENTER, title, theme::bold(12.5), theme::TEXT());
     if resp.clicked() {
         *open = !*open;
     }
@@ -825,15 +824,15 @@ pub(crate) fn fold_header(ui: &mut Ui, title: &str, open: &mut bool) {
 
 /// A radio button with its label.
 pub(crate) fn radio(ui: &mut Ui, on: bool, label: &str, enabled: bool) -> bool {
-    let galley_w = ui.fonts_mut(|f| f.layout_no_wrap(crate::i18n::t(label), egui::FontId::proportional(12.5), theme::TEXT).size().x);
+    let galley_w = ui.fonts_mut(|f| f.layout_no_wrap(crate::i18n::t(label), egui::FontId::proportional(12.5), theme::TEXT()).size().x);
     let (r, resp) = ui.allocate_exact_size(vec2(galley_w + 22.0, 22.0), if enabled { Sense::click() } else { Sense::hover() });
     let c = pos2(r.left() + 7.0, r.center().y);
     let p = ui.painter();
-    p.circle_stroke(c, 5.5, Stroke::new(1.0, if enabled { theme::TEXT_DIM } else { theme::SEP }));
+    p.circle_stroke(c, 5.5, Stroke::new(1.0, if enabled { theme::TEXT_DIM() } else { theme::SEP() }));
     if on {
-        p.circle_filled(c, 3.0, if enabled { theme::TEXT } else { theme::DISABLED });
+        p.circle_filled(c, 3.0, if enabled { theme::TEXT() } else { theme::DISABLED() });
     }
-    p.text(pos2(r.left() + 18.0, r.center().y), egui::Align2::LEFT_CENTER, label, egui::FontId::proportional(12.5), if enabled { theme::TEXT } else { theme::DISABLED });
+    p.text(pos2(r.left() + 18.0, r.center().y), egui::Align2::LEFT_CENTER, label, egui::FontId::proportional(12.5), if enabled { theme::TEXT() } else { theme::DISABLED() });
     resp.clicked() && enabled
 }
 
@@ -842,8 +841,8 @@ pub(crate) fn radio(ui: &mut Ui, on: bool, label: &str, enabled: bool) -> bool {
 pub(crate) fn tick_slider(ui: &mut Ui, label: &str, v: &mut f64, range: std::ops::RangeInclusive<f64>, enabled: bool) -> bool {
     let full_w = ui.available_width();
     let (lo, hi) = (*range.start(), *range.end());
-    let (text, dim) = (if enabled { theme::TEXT } else { theme::DISABLED }, if enabled { theme::TEXT_DIM } else { theme::SEP });
-    let blue = if enabled { Color32::from_rgb(0x1e, 0x88, 0xd8) } else { Color32::from_gray(90) };
+    let (text, dim) = (if enabled { theme::TEXT() } else { theme::DISABLED() }, if enabled { theme::TEXT_DIM() } else { theme::SEP() });
+    let blue = if enabled { Color32::from_rgb(0x1e, 0x88, 0xd8) } else { theme::gray(90) };
     ui.label(egui::RichText::new(label).color(text));
     let mut changed = false;
     let tw = full_w - 64.0;
@@ -858,14 +857,14 @@ pub(crate) fn tick_slider(ui: &mut Ui, label: &str, v: &mut f64, range: std::ops
         let t = ((*v - lo) / (hi - lo).max(1e-9)).clamp(0.0, 1.0) as f32;
         let kx = x0 + t * (x1 - x0);
         let p = ui.painter();
-        p.line_segment([pos2(x0, y), pos2(x1, y)], Stroke::new(3.0, Color32::from_gray(80)));
+        p.line_segment([pos2(x0, y), pos2(x1, y)], Stroke::new(3.0, theme::gray(80)));
         p.line_segment([pos2(x0, y), pos2(kx, y)], Stroke::new(3.0, blue));
         for k in 0..=10 {
             let tx = x0 + (x1 - x0) * k as f32 / 10.0;
             let th = if k % 5 == 0 { 3.5 } else { 2.0 };
             p.line_segment([pos2(tx, y + 6.0), pos2(tx, y + 6.0 + th)], Stroke::new(1.0, dim));
         }
-        p.circle_filled(pos2(kx, y), 5.5, theme::BG);
+        p.circle_filled(pos2(kx, y), 5.5, theme::BG());
         p.circle_stroke(pos2(kx, y), 5.5, Stroke::new(1.5, blue));
         ui.add_space(8.0);
         ui.add_enabled_ui(enabled, |ui| {
@@ -890,7 +889,7 @@ pub(crate) fn color_pick(ui: &mut Ui, id: &str, c: &mut Option<vector_core::Colo
 pub(crate) fn color_pick_w(ui: &mut Ui, id: &str, c: &mut Option<vector_core::Color>, allow_none: bool, enabled: bool, w: f32) -> bool {
     let (r, resp) = ui.allocate_exact_size(vec2(w, 24.0), if enabled { Sense::click() } else { Sense::hover() });
     let p = ui.painter();
-    p.rect_filled(r, 2.0, Color32::from_rgb(0x33, 0x33, 0x33));
+    p.rect_filled(r, 2.0, theme::BUTTON());
     let sw = Rect::from_min_size(r.min + vec2(4.0, 5.0), vec2(w - 22.0, 14.0));
     match c {
         Some(col) => {
@@ -901,8 +900,8 @@ pub(crate) fn color_pick_w(ui: &mut Ui, id: &str, c: &mut Option<vector_core::Co
             p.line_segment([sw.left_bottom(), sw.right_top()], Stroke::new(1.2, Color32::from_rgb(220, 40, 40)));
         }
     }
-    p.rect_stroke(sw, 1.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Outside);
-    crate::widgets::chevron(p, pos2(r.right() - 9.0, r.center().y), 3.0, if enabled { theme::TEXT } else { theme::DISABLED });
+    p.rect_stroke(sw, 1.0, Stroke::new(1.0, theme::SEP()), egui::StrokeKind::Outside);
+    crate::widgets::chevron(p, pos2(r.right() - 9.0, r.center().y), 3.0, if enabled { theme::TEXT() } else { theme::DISABLED() });
     let mut changed = false;
     let pid = egui::Id::unique(("color_pick", id));
     let open = egui::Popup::menu(&resp).id(pid).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
@@ -917,14 +916,14 @@ pub(crate) fn color_pick_w(ui: &mut Ui, id: &str, c: &mut Option<vector_core::Co
 /// A thin horizontal line across the docker.
 pub(crate) fn separator(ui: &mut Ui) {
     let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), 1.0), Sense::hover());
-    ui.painter().line_segment([r.left_center(), r.right_center()], Stroke::new(1.0, theme::SEP));
+    ui.painter().line_segment([r.left_center(), r.right_center()], Stroke::new(1.0, theme::SEP()));
 }
 
 /// The full-width Apply bar at the bottom of an effect docker.
 pub(crate) fn apply_bar(ui: &mut Ui, text: &str, enabled: bool) -> bool {
     ui.add_space(4.0);
     let w = ui.available_width();
-    ui.add_enabled_ui(enabled, |ui| ui.add_sized(vec2(w, 24.0), egui::Button::new(text).fill(Color32::from_rgb(0x33, 0x33, 0x33)))).inner.clicked()
+    ui.add_enabled_ui(enabled, |ui| ui.add_sized(vec2(w, 24.0), egui::Button::new(text).fill(theme::BUTTON()))).inner.clicked()
 }
 
 /// A number field with up/down arrows that change it by `step`, `w` points wide.
@@ -940,7 +939,7 @@ pub(crate) fn spin<N: egui::emath::Numeric>(ui: &mut Ui, v: &mut N, range: std::
         let id = ui.next_auto_id();
         let ru = ui.interact(up, id.with("up"), if enabled { Sense::click() } else { Sense::hover() });
         let rd = ui.interact(down, id.with("dn"), if enabled { Sense::click() } else { Sense::hover() });
-        let col = |r: &egui::Response| if !enabled { theme::DISABLED } else if r.hovered() { Color32::WHITE } else { theme::TEXT_DIM };
+        let col = |r: &egui::Response| if !enabled { theme::DISABLED() } else if r.hovered() { theme::STRONG() } else { theme::TEXT_DIM() };
         crate::widgets::chevron_up(ui.painter(), up.center(), 3.0, col(&ru));
         crate::widgets::chevron(ui.painter(), down.center(), 3.0, col(&rd));
         for (r, d) in [(ru, step), (rd, -step)] {
@@ -976,7 +975,7 @@ pub(crate) fn list_row(app: &mut AnyVectorApp, ui: &mut Ui, depth: usize, fold: 
     if let Some(c) = fill {
         p.rect_filled(r, 0.0, c);
     } else if resp.hovered() {
-        p.rect_filled(r, 0.0, theme::HOVER);
+        p.rect_filled(r, 0.0, theme::HOVER());
     }
     let mut x = r.left() + 6.0 + depth as f32 * 19.0;
     let mut chevron = false;
@@ -984,7 +983,7 @@ pub(crate) fn list_row(app: &mut AnyVectorApp, ui: &mut Ui, depth: usize, fold: 
         if let Some(open) = f {
             let c = pos2(x + 5.0, r.center().y);
             let pts = if open { vec![c + vec2(-4.0, -2.0), c + vec2(0.0, 2.0), c + vec2(4.0, -2.0)] } else { vec![c + vec2(-2.0, -4.0), c + vec2(2.0, 0.0), c + vec2(-2.0, 4.0)] };
-            p.add(egui::Shape::line(pts, Stroke::new(1.2, theme::TEXT)));
+            p.add(egui::Shape::line(pts, Stroke::new(1.2, theme::TEXT())));
             let cr = Rect::from_min_max(pos2(x - 3.0, r.top()), pos2(x + 13.0, r.bottom()));
             chevron = resp.clicked() && resp.interact_pointer_pos().is_some_and(|q| cr.contains(q));
         }
@@ -997,14 +996,14 @@ pub(crate) fn list_row(app: &mut AnyVectorApp, ui: &mut Ui, depth: usize, fold: 
         x += 22.0;
     }
     let g = label.into().into_galley(ui, Some(egui::TextWrapMode::Truncate), (r.right() - x - 4.0).max(10.0), egui::TextStyle::Body);
-    p.galley(pos2(x, r.center().y - g.size().y / 2.0), g, theme::TEXT);
+    p.galley(pos2(x, r.center().y - g.size().y / 2.0), g, theme::TEXT());
     (resp, chevron)
 }
 
 /// The small triangle in the corner of a button that drops a menu.
 pub(crate) fn drop_mark(ui: &Ui, r: Rect) {
     let c = r.right_bottom() - vec2(3.0, 3.0);
-    ui.painter().add(egui::Shape::convex_polygon(vec![c, c - vec2(4.0, 0.0), c - vec2(0.0, 4.0)], theme::TEXT, Stroke::NONE));
+    ui.painter().add(egui::Shape::convex_polygon(vec![c, c - vec2(4.0, 0.0), c - vec2(0.0, 4.0)], theme::TEXT(), Stroke::NONE));
 }
 
 /// A table header of a docker list: the column titles centered over columns ending at the
@@ -1013,14 +1012,14 @@ pub(crate) fn table_header(ui: &mut Ui, cols: &[(&str, f32)]) {
     let w = ui.available_width();
     let (r, _) = ui.allocate_exact_size(vec2(w, 22.0), Sense::hover());
     let p = ui.painter();
-    p.rect_filled(r, 0.0, Color32::from_rgb(0x33, 0x33, 0x33));
+    p.rect_filled(r, 0.0, theme::BUTTON());
     let mut x0 = r.left();
     for (i, (t, right)) in cols.iter().enumerate() {
         let x1 = if i + 1 == cols.len() { r.right() } else { r.left() + right };
         if i > 0 {
-            p.vline(x0, r.y_range(), Stroke::new(1.0, theme::SEP));
+            p.vline(x0, r.y_range(), Stroke::new(1.0, theme::SEP()));
         }
-        p.text(pos2((x0 + x1) / 2.0, r.center().y), egui::Align2::CENTER_CENTER, *t, egui::FontId::proportional(12.5), theme::TEXT);
+        p.text(pos2((x0 + x1) / 2.0, r.center().y), egui::Align2::CENTER_CENTER, *t, egui::FontId::proportional(12.5), theme::TEXT());
         x0 = x1;
     }
 }
@@ -1051,7 +1050,7 @@ pub(crate) fn icon_button_resp(app: &mut AnyVectorApp, ui: &mut Ui, icon: &str, 
     let (r, resp) = ui.allocate_exact_size(vec2(24.0, 24.0), if enabled { Sense::click() } else { Sense::hover() });
     let resp = resp.on_hover_text(tip);
     if enabled && resp.hovered() {
-        ui.painter().rect_filled(r, 2.0, theme::HOVER);
+        ui.painter().rect_filled(r, 2.0, theme::HOVER());
     }
     if let Some(t) = app.icons.get(ui.ctx(), icon, 16.0, if enabled { Tone::Normal } else { Tone::Disabled }) {
         ui.painter().image(t.id, Rect::from_center_size(r.center(), vec2(16.0, 16.0)), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);

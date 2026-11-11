@@ -793,7 +793,7 @@ pub fn insert_object_dialog(app: &mut AnyVectorApp, ctx: &Context) {
                     });
                 } else {
                     ui.label("Object Type:");
-                    egui::Frame::new().fill(Color32::from_gray(0x1e)).stroke(Stroke::new(1.0, Color32::from_gray(80))).inner_margin(2.0).show(ui, |ui| {
+                    egui::Frame::new().fill(crate::theme::gray(0x1e)).stroke(Stroke::new(1.0, crate::theme::gray(80))).inner_margin(2.0).show(ui, |ui| {
                         egui::ScrollArea::vertical().max_height(132.0).auto_shrink([false, false]).show(ui, |ui| {
                             ui.set_width(180.0);
                             ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
@@ -822,10 +822,10 @@ pub fn insert_object_dialog(app: &mut AnyVectorApp, ctx: &Context) {
             (true, true) => format!("Inserts a picture of the file contents into your document. The picture will be linked to the file so that changes to the file will be reflected in your document.{icon}"),
         };
         let r = egui::Rect::from_min_max(egui::pos2(body.left(), body.bottom() - 82.0), egui::pos2(body.right() - 110.0, body.bottom() - 12.0));
-        ui.painter().rect_stroke(r, 2.0, Stroke::new(1.0, Color32::from_gray(80)), egui::StrokeKind::Inside);
+        ui.painter().rect_stroke(r, 2.0, Stroke::new(1.0, crate::theme::gray(80)), egui::StrokeKind::Inside);
         let label = egui::Rect::from_min_size(egui::pos2(r.left() + 6.0, r.top() - 8.0), egui::vec2(44.0, 16.0));
-        ui.painter().rect_filled(label, 0.0, crate::theme::BG);
-        ui.painter().text(egui::pos2(r.left() + 9.0, r.top()), egui::Align2::LEFT_CENTER, "Result", egui::FontId::proportional(12.0), crate::theme::TEXT);
+        ui.painter().rect_filled(label, 0.0, crate::theme::BG());
+        ui.painter().text(egui::pos2(r.left() + 9.0, r.top()), egui::Align2::LEFT_CENTER, "Result", egui::FontId::proportional(12.0), crate::theme::TEXT());
         ui.scope_builder(egui::UiBuilder::new().max_rect(r.shrink2(egui::vec2(12.0, 14.0))), |ui| {
             ui.horizontal(|ui| {
                 ui.add(egui::Label::new(result).wrap());

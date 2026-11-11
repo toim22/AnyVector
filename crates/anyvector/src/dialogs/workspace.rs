@@ -134,17 +134,17 @@ pub fn open_import(app: &mut AnyVectorApp, p: &std::path::Path) {
 // ------------------------------------------------------------------------------------------
 
 pub(super) fn label_right(ui: &Ui, right: egui::Pos2, text: &str, enabled: bool) {
-    ui.painter().text(right, Align2::RIGHT_CENTER, text, FontId::proportional(13.0), if enabled { theme::TEXT } else { theme::DISABLED });
+    ui.painter().text(right, Align2::RIGHT_CENTER, text, FontId::proportional(13.0), if enabled { theme::TEXT() } else { theme::DISABLED() });
 }
 
 pub(super) fn label_left(ui: &Ui, left: egui::Pos2, text: &str) {
-    ui.painter().text(left, Align2::LEFT_CENTER, text, FontId::proportional(13.0), theme::TEXT);
+    ui.painter().text(left, Align2::LEFT_CENTER, text, FontId::proportional(13.0), theme::TEXT());
 }
 
 pub(super) fn put_button(ui: &mut Ui, r: Rect, text: &str, primary: bool, enabled: bool) -> bool {
-    let mut b = if primary { egui::Button::new(RichText::new(text).color(if enabled { Color32::WHITE } else { theme::DISABLED })) } else { egui::Button::new(text) };
+    let mut b = if primary { egui::Button::new(RichText::new(text).color(if enabled { theme::STRONG() } else { theme::DISABLED() })) } else { egui::Button::new(text) };
     if primary && enabled {
-        b = b.fill(theme::ACCENT);
+        b = b.fill(theme::ACCENT());
     }
     let layout = egui::Layout::centered_and_justified(egui::Direction::LeftToRight);
     ui.scope_builder(UiBuilder::new().max_rect(r).layout(layout), |ui| ui.add_enabled(enabled, b.min_size(r.size())).clicked()).inner
@@ -186,7 +186,7 @@ pub(super) fn put_radio(ui: &mut Ui, at: egui::Pos2, on: bool, text: &str) -> bo
 }
 
 pub(super) fn hline(ui: &Ui, x0: f32, x1: f32, y: f32) {
-    ui.painter().hline(x0..=x1, y.round() + 0.5, Stroke::new(1.0, theme::SEP));
+    ui.painter().hline(x0..=x1, y.round() + 0.5, Stroke::new(1.0, theme::SEP()));
 }
 
 /// A check box drawn for the tree: 0 clear, 1 partly checked, 2 checked.
@@ -194,9 +194,9 @@ fn tree_check(ui: &Ui, r: Rect, state: u8) {
     let p = ui.painter();
     let b = Rect::from_center_size(r.center(), vec2(13.0, 13.0));
     if state == 0 {
-        p.rect_stroke(b, 2.0, Stroke::new(1.0, Color32::from_gray(0x9a)), egui::StrokeKind::Inside);
+        p.rect_stroke(b, 2.0, Stroke::new(1.0, theme::gray(0x9a)), egui::StrokeKind::Inside);
     } else {
-        p.rect_filled(b, 2.0, theme::FOCUS);
+        p.rect_filled(b, 2.0, theme::FOCUS());
         if state == 2 {
             p.line(vec![b.left_center() + vec2(3.0, 0.0), b.center_bottom() + vec2(-1.0, -3.5), b.right_top() + vec2(-3.0, 3.5)], Stroke::new(1.6, Color32::WHITE));
         } else {
@@ -207,8 +207,8 @@ fn tree_check(ui: &Ui, r: Rect, state: u8) {
 
 /// The elements tree: a triangle opens a group, the check boxes choose the elements.
 fn tree(ui: &mut Ui, area: Rect, t: &mut Tree, salt: &str) {
-    ui.painter().rect_filled(area, 0.0, theme::FIELD);
-    ui.painter().rect_stroke(area, 0.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Inside);
+    ui.painter().rect_filled(area, 0.0, theme::FIELD());
+    ui.painter().rect_stroke(area, 0.0, Stroke::new(1.0, theme::SEP()), egui::StrokeKind::Inside);
     let mut y = area.top() + 4.0;
     let row_h = 22.0;
     let clip = ui.clip_rect();
@@ -221,7 +221,7 @@ fn tree(ui: &mut Ui, area: Rect, t: &mut Tree, salt: &str) {
         if !g.items.is_empty() {
             let c = tri.center();
             let pts = if open { vec![c + vec2(-4.0, -2.0), c + vec2(4.0, -2.0), c + vec2(0.0, 3.0)] } else { vec![c + vec2(-2.0, -4.0), c + vec2(3.0, 0.0), c + vec2(-2.0, 4.0)] };
-            ui.painter().add(egui::Shape::convex_polygon(pts, theme::TEXT_DIM, Stroke::NONE));
+            ui.painter().add(egui::Shape::convex_polygon(pts, theme::TEXT_DIM(), Stroke::NONE));
             if ui.interact(tri, Id::unique((salt, "tri", gi)), Sense::click()).clicked() {
                 if open {
                     t.expanded.remove(&gi);
@@ -248,7 +248,7 @@ fn tree(ui: &mut Ui, area: Rect, t: &mut Tree, salt: &str) {
         };
         let cb = Rect::from_center_size(pos2(row.left() + 32.0, row.center().y), vec2(18.0, 18.0));
         tree_check(ui, cb, state);
-        ui.painter().text(pos2(cb.right() + 6.0, row.center().y), Align2::LEFT_CENTER, &g.label, FontId::proportional(13.0), theme::TEXT);
+        ui.painter().text(pos2(cb.right() + 6.0, row.center().y), Align2::LEFT_CENTER, &g.label, FontId::proportional(13.0), theme::TEXT());
         let hit = Rect::from_min_max(cb.min, pos2(row.right(), cb.max.y));
         if ui.interact(hit, Id::unique((salt, "g", gi)), Sense::click()).clicked() {
             let on = state != 2;
@@ -267,7 +267,7 @@ fn tree(ui: &mut Ui, area: Rect, t: &mut Tree, salt: &str) {
                 let cb = Rect::from_center_size(pos2(row.left() + 52.0, row.center().y), vec2(18.0, 18.0));
                 let on = t.checked.contains(k);
                 tree_check(ui, cb, if on { 2 } else { 0 });
-                ui.painter().text(pos2(cb.right() + 6.0, row.center().y), Align2::LEFT_CENTER, label, FontId::proportional(13.0), theme::TEXT);
+                ui.painter().text(pos2(cb.right() + 6.0, row.center().y), Align2::LEFT_CENTER, label, FontId::proportional(13.0), theme::TEXT());
                 let hit = Rect::from_min_max(cb.min, pos2(row.right(), cb.max.y));
                 if ui.interact(hit, Id::unique((salt, "i", gi, ii)), Sense::click()).clicked() {
                     if on {
@@ -502,7 +502,7 @@ pub fn options_list(app: &mut AnyVectorApp, ui: &mut Ui, list: Rect) {
         app.dialogs.options.workspace_sel = names.iter().position(|n| *n == app.settings.workspace);
     }
     let frame = Rect::from_min_max(list.min, pos2(list.right(), list.bottom() - 25.0));
-    ui.painter().rect_stroke(frame, 0.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Inside);
+    ui.painter().rect_stroke(frame, 0.0, Stroke::new(1.0, theme::SEP()), egui::StrokeKind::Inside);
     for (i, n) in names.iter().enumerate() {
         let row = Rect::from_min_size(pos2(frame.left() + 1.0, frame.top() + 1.0 + 25.0 * i as f32), vec2(frame.width() - 2.0, 25.0));
         if row.bottom() > frame.bottom() {
@@ -510,15 +510,15 @@ pub fn options_list(app: &mut AnyVectorApp, ui: &mut Ui, list: Rect) {
         }
         let resp = ui.interact(row, Id::unique(("ws_opt_row", i)), Sense::click());
         if app.dialogs.options.workspace_sel == Some(i) {
-            ui.painter().rect_filled(row, 0.0, Color32::from_rgb(0x3a, 0x3a, 0x3a));
+            ui.painter().rect_filled(row, 0.0, theme::HOVER());
         } else if resp.hovered() {
-            ui.painter().rect_filled(row, 0.0, Color32::from_rgb(0x31, 0x31, 0x31));
+            ui.painter().rect_filled(row, 0.0, theme::gray(0x31));
         }
         if *n == app.settings.workspace {
             let c = pos2(row.left() + 24.0, row.center().y);
             ui.painter().line(vec![c + vec2(-6.0, 0.0), c + vec2(-1.5, 5.0), c + vec2(7.0, -6.0)], Stroke::new(2.0, Color32::from_rgb(0x3f, 0xb9, 0x50)));
         }
-        ui.painter().text(pos2(row.left() + 47.0, row.center().y), Align2::LEFT_CENTER, ws::display(n), FontId::proportional(13.0), theme::TEXT);
+        ui.painter().text(pos2(row.left() + 47.0, row.center().y), Align2::LEFT_CENTER, ws::display(n), FontId::proportional(13.0), theme::TEXT());
         if resp.clicked() {
             app.dialogs.options.workspace_sel = Some(i);
         }
@@ -553,8 +553,8 @@ pub fn options_page(app: &mut AnyVectorApp, ui: &mut Ui) {
         }
     }
     hline(ui, o.x + 2.0, r.right() - 8.0, o.y + 204.0);
-    ui.painter().text(o + vec2(1.0, 240.0), Align2::LEFT_CENTER, "Description", theme::bold(13.0), theme::TEXT);
+    ui.painter().text(o + vec2(1.0, 240.0), Align2::LEFT_CENTER, "Description", theme::bold(13.0), theme::TEXT());
     let desc = ws::description(&app.settings, &sel_name);
-    let g = ui.painter().layout(desc, FontId::proportional(13.0), theme::TEXT, 500.0_f32.min(r.width() - 10.0));
-    ui.painter().galley(o + vec2(1.0, 264.0), g, theme::TEXT);
+    let g = ui.painter().layout(desc, FontId::proportional(13.0), theme::TEXT(), 500.0_f32.min(r.width() - 10.0));
+    ui.painter().galley(o + vec2(1.0, 264.0), g, theme::TEXT());
 }

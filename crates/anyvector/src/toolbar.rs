@@ -26,17 +26,17 @@ pub fn zoom_combo(app: &mut AnyVectorApp, ui: &mut Ui, doc: bool) {
         text = format!("{}%", (pct.round() as i64));
     }
     let (rect, _) = ui.allocate_exact_size(vec2(84.0, 24.0), egui::Sense::hover());
-    ui.painter().rect_filled(rect, 2.0, theme::FIELD);
+    ui.painter().rect_filled(rect, 2.0, theme::FIELD());
     let te_rect = egui::Rect::from_min_max(rect.min + vec2(2.0, 2.0), egui::pos2(rect.max.x - 18.0, rect.max.y - 2.0));
     let r = ui.place(
         te_rect,
-        egui::TextEdit::singleline(&mut text).id(id.with("te")).frame(egui::Frame::NONE).text_color(if doc { theme::TEXT } else { theme::DISABLED }).interactive(doc),
+        egui::TextEdit::singleline(&mut text).id(id.with("te")).frame(egui::Frame::NONE).text_color(if doc { theme::TEXT() } else { theme::DISABLED() }).interactive(doc),
     );
     if !doc {
         // the screenshot shows "100%" selected (highlighted) in the empty state
         let g = ui.painter().layout_no_wrap("100%".into(), egui::FontId::proportional(12.5), egui::Color32::WHITE);
         let tr = egui::Rect::from_min_size(te_rect.left_center() - vec2(-2.0, g.size().y / 2.0), g.size());
-        ui.painter().rect_filled(tr, 0.0, theme::FOCUS);
+        ui.painter().rect_filled(tr, 0.0, theme::FOCUS());
         ui.painter().galley(tr.min, g, egui::Color32::WHITE);
     }
     if r.has_focus() {
@@ -49,7 +49,7 @@ pub fn zoom_combo(app: &mut AnyVectorApp, ui: &mut Ui, doc: bool) {
     }
     let arrow = egui::Rect::from_min_max(egui::pos2(rect.max.x - 18.0, rect.min.y), rect.max);
     let ar = ui.interact(arrow, id.with("arrow"), if doc { egui::Sense::click() } else { egui::Sense::hover() });
-    crate::widgets::chevron(ui.painter(), arrow.center(), 3.5, if doc { theme::TEXT } else { theme::DISABLED });
+    crate::widgets::chevron(ui.painter(), arrow.center(), 3.5, if doc { theme::TEXT() } else { theme::DISABLED() });
     Popup::menu(&ar).show(|ui| {
         ui.set_min_width(140.0);
         for (label, cmd) in [

@@ -1848,7 +1848,7 @@ fn wrap_text(app: &mut AnyVectorApp, ui: &mut Ui, it: &Item) {
         for (i, (g, n)) in WRAP_STYLES.iter().enumerate() {
             if *g != group {
                 ui.separator();
-                ui.label(egui::RichText::new(*g).color(crate::theme::TEXT_DIM));
+                ui.label(egui::RichText::new(*g).color(crate::theme::TEXT_DIM()));
                 group = g;
             }
             if ui.selectable_label(cur.is_some_and(|w| w.style == i as u8), *n).clicked() {
@@ -1945,7 +1945,7 @@ fn brush_picker(app: &mut AnyVectorApp, ui: &mut Ui, it: &Item) {
     fields::panel(app, ui, Lead::None, BRUSHES[cur].0, 120.0, app.has_doc(), &tip(it), |_, ui| {
         egui::ScrollArea::vertical().max_height(420.0).show(ui, |ui| {
             if !favs.is_empty() {
-                ui.label(egui::RichText::new("Favorites").color(crate::theme::TEXT_DIM));
+                ui.label(egui::RichText::new("Favorites").color(crate::theme::TEXT_DIM()));
                 for &b in &favs {
                     if let Some(br) = BRUSHES.get(b) {
                         if ui.selectable_label(b == cur, br.0).clicked() {
@@ -2024,7 +2024,7 @@ fn preset_list(app: &mut AnyVectorApp, ui: &mut Ui, it: &Item, k: &str) {
     let mut pick = None;
     fields::combo(app, ui, Lead::None, cur.as_deref().unwrap_or("Presets..."), 110.0, app.has_doc(), &tip(it), |_, ui| {
         if names.is_empty() {
-            ui.label(egui::RichText::new("No presets saved").color(crate::theme::TEXT_DIM));
+            ui.label(egui::RichText::new("No presets saved").color(crate::theme::TEXT_DIM()));
         }
         for n in &names {
             if ui.selectable_label(cur.as_ref() == Some(n), n).clicked() {

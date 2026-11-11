@@ -118,11 +118,11 @@ pub(crate) fn effect_page(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, i: us
         let (r, resp) = ui.allocate_exact_size(vec2(w - 70.0, 24.0), Sense::click());
         let a = pos2(r.left() + 6.0, r.center().y);
         if open {
-            crate::widgets::chevron_up(ui.painter(), a, 3.5, theme::TEXT);
+            crate::widgets::chevron_up(ui.painter(), a, 3.5, theme::TEXT());
         } else {
-            crate::widgets::chevron(ui.painter(), a, 3.5, theme::TEXT);
+            crate::widgets::chevron(ui.painter(), a, 3.5, theme::TEXT());
         }
-        ui.painter().text(pos2(r.left() + 18.0, r.center().y), egui::Align2::LEFT_CENTER, fx::name(&cx.e), theme::bold(12.5), theme::TEXT);
+        ui.painter().text(pos2(r.left() + 18.0, r.center().y), egui::Align2::LEFT_CENTER, fx::name(&cx.e), theme::bold(12.5), theme::TEXT());
         if resp.clicked() {
             open = !open;
         }
@@ -254,7 +254,7 @@ fn radio_list(cx: &mut Cx, ui: &mut Ui, key: &str, label: &str, opts: &[&str], d
 /// An option button of the effect pages (a small circle, the dot when chosen).
 fn radio_row(ui: &mut Ui, on: bool, label: &str) -> bool {
     let en = ui.is_enabled();
-    let galley_w = ui.fonts_mut(|f| f.layout_no_wrap(crate::i18n::t(label), egui::FontId::proportional(12.5), theme::TEXT).size().x);
+    let galley_w = ui.fonts_mut(|f| f.layout_no_wrap(crate::i18n::t(label), egui::FontId::proportional(12.5), theme::TEXT()).size().x);
     let (r, resp) = ui.allocate_exact_size(vec2(galley_w + 22.0, 18.0), if en { Sense::click() } else { Sense::hover() });
     let c = pos2(r.left() + 7.0, r.center().y);
     let p = ui.painter();
@@ -262,14 +262,14 @@ fn radio_row(ui: &mut Ui, on: bool, label: &str) -> bool {
     if on {
         p.circle_filled(c, 3.0, if en { Color32::from_gray(0xe8) } else { Color32::from_gray(0x70) });
     }
-    p.text(pos2(r.left() + 19.0, r.center().y), egui::Align2::LEFT_CENTER, label, egui::FontId::proportional(12.5), if en { theme::TEXT } else { theme::DISABLED });
+    p.text(pos2(r.left() + 19.0, r.center().y), egui::Align2::LEFT_CENTER, label, egui::FontId::proportional(12.5), if en { theme::TEXT() } else { theme::DISABLED() });
     resp.clicked() && en && !on
 }
 
 /// A check box as the reference draws it: a box, light and ticked when on.
 fn check_resp(ui: &mut Ui, on: &mut bool, label: &str) -> egui::Response {
     let en = ui.is_enabled();
-    let tw = if label.is_empty() { 0.0 } else { ui.fonts_mut(|f| f.layout_no_wrap(crate::i18n::t(label), egui::FontId::proportional(12.5), theme::TEXT).size().x) + 8.0 };
+    let tw = if label.is_empty() { 0.0 } else { ui.fonts_mut(|f| f.layout_no_wrap(crate::i18n::t(label), egui::FontId::proportional(12.5), theme::TEXT()).size().x) + 8.0 };
     let (r, mut resp) = ui.allocate_exact_size(vec2(16.0 + tw, 20.0), if en { Sense::click() } else { Sense::hover() });
     let b = Rect::from_center_size(pos2(r.left() + 7.0, r.center().y), vec2(12.0, 12.0));
     let p = ui.painter();
@@ -282,7 +282,7 @@ fn check_resp(ui: &mut Ui, on: &mut bool, label: &str) -> egui::Response {
         p.rect_stroke(b, 2.0, Stroke::new(1.0, if en { Color32::from_gray(0x9a) } else { Color32::from_gray(0x50) }), egui::StrokeKind::Inside);
     }
     if !label.is_empty() {
-        p.text(pos2(r.left() + 20.0, r.center().y), egui::Align2::LEFT_CENTER, label, egui::FontId::proportional(12.5), if en { theme::TEXT } else { theme::DISABLED });
+        p.text(pos2(r.left() + 20.0, r.center().y), egui::Align2::LEFT_CENTER, label, egui::FontId::proportional(12.5), if en { theme::TEXT() } else { theme::DISABLED() });
     }
     if resp.clicked() && en {
         *on = !*on;
@@ -304,7 +304,7 @@ fn key_of(c: &Ctl) -> Option<&'static str> {
 
 fn text(ui: &mut Ui, s: &str) {
     if !s.is_empty() {
-        let c = if ui.is_enabled() { theme::TEXT } else { theme::DISABLED };
+        let c = if ui.is_enabled() { theme::TEXT() } else { theme::DISABLED() };
         ui.label(egui::RichText::new(s).size(12.5).color(c));
     }
 }
@@ -682,9 +682,9 @@ fn dial(ui: &mut Ui, v: &mut f64, quarter: bool) -> bool {
         changed = true;
     }
     let p = ui.painter();
-    p.circle_stroke(c, 11.0, Stroke::new(1.2, if en { theme::TEXT } else { theme::DISABLED }));
+    p.circle_stroke(c, 11.0, Stroke::new(1.2, if en { theme::TEXT() } else { theme::DISABLED() }));
     let a = (*v as f32).to_radians();
-    p.circle_filled(c + vec2(a.cos(), -a.sin()) * 6.5, 3.5, if en { theme::TEXT } else { theme::DISABLED });
+    p.circle_filled(c + vec2(a.cos(), -a.sin()) * 6.5, 3.5, if en { theme::TEXT() } else { theme::DISABLED() });
     changed
 }
 
@@ -784,7 +784,7 @@ fn thumbs(cx: &mut Cx, ui: &mut Ui, ops: &[&str]) {
                 let (r, resp) = ui.allocate_exact_size(vec2(98.0, 78.0), Sense::click());
                 ui.painter().image(tex.id(), r, Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
                 if resp.hovered() {
-                    ui.painter().rect_stroke(r, 0.0, Stroke::new(1.5, theme::ACCENT), egui::StrokeKind::Outside);
+                    ui.painter().rect_stroke(r, 0.0, Stroke::new(1.5, theme::ACCENT()), egui::StrokeKind::Outside);
                 }
                 if resp.clicked() {
                     add = Some(k);
@@ -820,7 +820,7 @@ fn styles(cx: &mut Cx, ui: &mut Ui, key: &str, opts: &[&str], def: usize) {
             let resp = resp.on_hover_text(*name);
             ui.painter().image(tex.id(), r, Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
             if cur == k {
-                ui.painter().rect_stroke(r.expand(2.0), 0.0, Stroke::new(1.5, theme::ACCENT), egui::StrokeKind::Outside);
+                ui.painter().rect_stroke(r.expand(2.0), 0.0, Stroke::new(1.5, theme::ACCENT()), egui::StrokeKind::Outside);
             }
             if resp.clicked() {
                 pick = Some(k);
@@ -864,7 +864,7 @@ fn swatches(cx: &mut Cx, ui: &mut Ui, key: &str, label: &str, opts: &[(&str, Opt
                     }
                 }
                 if cur == n {
-                    ui.painter().rect_stroke(r.shrink(1.0), 2.0, Stroke::new(1.5, theme::ACCENT), egui::StrokeKind::Inside);
+                    ui.painter().rect_stroke(r.shrink(1.0), 2.0, Stroke::new(1.5, theme::ACCENT()), egui::StrokeKind::Inside);
                 }
                 if resp.clicked() {
                     pick = Some(n);
@@ -896,10 +896,10 @@ fn texture_pick(cx: &mut Cx, ui: &mut Ui, key: &str, label: &str) {
     };
     let t = tex_of(ui, cur);
     let (r, resp) = ui.allocate_exact_size(vec2(160.0, 90.0), Sense::click());
-    ui.painter().rect_filled(r, 2.0, Color32::from_rgb(0x33, 0x33, 0x33));
+    ui.painter().rect_filled(r, 2.0, theme::BUTTON());
     let ir = Rect::from_min_size(r.min + vec2(4.0, 5.0), vec2(120.0, 80.0));
     ui.painter().image(t.id(), ir, Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
-    crate::widgets::chevron(ui.painter(), pos2(r.right() - 10.0, r.center().y), 3.0, theme::TEXT);
+    crate::widgets::chevron(ui.painter(), pos2(r.right() - 10.0, r.center().y), 3.0, theme::TEXT());
     let mut pick = None;
     egui::Popup::menu(&resp).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
         egui::Grid::new(("fx_tex_grid", key)).spacing(vec2(6.0, 6.0)).show(ui, |ui| {
@@ -908,7 +908,7 @@ fn texture_pick(cx: &mut Cx, ui: &mut Ui, key: &str, label: &str) {
                 let (r, resp) = ui.allocate_exact_size(vec2(72.0, 48.0), Sense::click());
                 ui.painter().image(t.id(), r, Rect::from_min_max(pos2(0.0, 0.0), pos2(0.6, 0.6)), Color32::WHITE);
                 if k == cur {
-                    ui.painter().rect_stroke(r, 0.0, Stroke::new(1.5, theme::ACCENT), egui::StrokeKind::Outside);
+                    ui.painter().rect_stroke(r, 0.0, Stroke::new(1.5, theme::ACCENT()), egui::StrokeKind::Outside);
                 }
                 if resp.on_hover_text(*name).clicked() {
                     pick = Some(k);
@@ -983,7 +983,7 @@ fn threshold_markers(cx: &mut Cx, ui: &mut Ui, r: Rect) {
     for k in keys {
         let v = cx.e.num(k, if *k == "High" { 255.0 } else if *k == "Mid" { 127.0 } else { 0.0 }) as f32;
         let x = mr.left() + mr.width() * v / 255.0;
-        ui.painter().add(egui::Shape::convex_polygon(vec![pos2(x, mr.top()), pos2(x - 4.0, mr.bottom()), pos2(x + 4.0, mr.bottom())], Color32::TRANSPARENT, Stroke::new(1.0, theme::TEXT)));
+        ui.painter().add(egui::Shape::convex_polygon(vec![pos2(x, mr.top()), pos2(x - 4.0, mr.bottom()), pos2(x + 4.0, mr.bottom())], Color32::TRANSPARENT, Stroke::new(1.0, theme::TEXT())));
         ui.painter().line_segment([pos2(x, r.top()), pos2(x, r.bottom())], Stroke::new(1.0, Color32::from_gray(0xc0)));
     }
     if let Some(p) = resp.interact_pointer_pos().filter(|_| resp.dragged() || resp.clicked()) {
@@ -1019,7 +1019,7 @@ fn levels(cx: &mut Cx, ui: &mut Ui) {
         let x = x_of(v);
         let y = if top { r.top() - 1.0 } else { r.bottom() + 1.0 };
         let d = if top { -6.0 } else { 6.0 };
-        p.add(egui::Shape::convex_polygon(vec![pos2(x, y), pos2(x - 4.0, y + d), pos2(x + 4.0, y + d)], Color32::from_gray(0x30), Stroke::new(1.0, theme::TEXT)));
+        p.add(egui::Shape::convex_polygon(vec![pos2(x, y), pos2(x - 4.0, y + d), pos2(x + 4.0, y + d)], Color32::from_gray(0x30), Stroke::new(1.0, theme::TEXT())));
     }
     let gx = x_of(il + (ih - il) * 0.5f64.powf(g));
     p.circle_filled(pos2(gx, r.bottom() + 4.0), 3.0, Color32::from_gray(0x90));
@@ -1319,7 +1319,7 @@ fn frames(cx: &mut Cx, ui: &mut Ui) {
     });
     ui.horizontal(|ui| {
         let (r, _) = ui.allocate_exact_size(vec2(118.0, 96.0), Sense::hover());
-        ui.painter().rect_filled(r, 2.0, Color32::from_rgb(0x33, 0x33, 0x33));
+        ui.painter().rect_filled(r, 2.0, theme::BUTTON());
         ui.painter().image(tex.id(), r.shrink(4.0), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
     });
     ui.add_space(4.0);
@@ -1327,17 +1327,17 @@ fn frames(cx: &mut Cx, ui: &mut Ui) {
     for (k, name) in vector_render::bitfx_art::FRAMES.iter().enumerate() {
         let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 20.0), Sense::click());
         if k == cur {
-            ui.painter().rect_filled(r, 0.0, theme::ACCENT);
+            ui.painter().rect_filled(r, 0.0, theme::ACCENT());
         } else if resp.hovered() {
-            ui.painter().rect_filled(r, 0.0, theme::HOVER);
+            ui.painter().rect_filled(r, 0.0, theme::HOVER());
         }
         let b = Rect::from_center_size(pos2(r.left() + 12.0, r.center().y), vec2(11.0, 11.0));
-        ui.painter().rect_stroke(b, 1.0, Stroke::new(1.0, theme::TEXT_DIM), egui::StrokeKind::Inside);
+        ui.painter().rect_stroke(b, 1.0, Stroke::new(1.0, theme::TEXT_DIM()), egui::StrokeKind::Inside);
         if k == cur {
-            ui.painter().line_segment([b.left_center() + vec2(2.0, 0.0), b.center_bottom() - vec2(0.0, 2.5)], Stroke::new(1.5, theme::TEXT));
-            ui.painter().line_segment([b.center_bottom() - vec2(0.0, 2.5), b.right_top() + vec2(-2.0, 2.0)], Stroke::new(1.5, theme::TEXT));
+            ui.painter().line_segment([b.left_center() + vec2(2.0, 0.0), b.center_bottom() - vec2(0.0, 2.5)], Stroke::new(1.5, theme::TEXT()));
+            ui.painter().line_segment([b.center_bottom() - vec2(0.0, 2.5), b.right_top() + vec2(-2.0, 2.0)], Stroke::new(1.5, theme::TEXT()));
         }
-        ui.painter().text(pos2(r.left() + 40.0, r.center().y), egui::Align2::LEFT_CENTER, *name, egui::FontId::proportional(12.0), theme::TEXT);
+        ui.painter().text(pos2(r.left() + 40.0, r.center().y), egui::Align2::LEFT_CENTER, *name, egui::FontId::proportional(12.0), theme::TEXT());
         if resp.clicked() {
             cx.set("CurrentFrameImage", FxValue::Num(k as f64));
         }

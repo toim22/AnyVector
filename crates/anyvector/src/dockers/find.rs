@@ -241,7 +241,7 @@ pub fn find_replace(app: &mut AnyVectorApp, ui: &mut Ui) {
 fn line(ui: &mut Ui) {
     ui.add_space(6.0);
     let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), 1.0), Sense::hover());
-    ui.painter().hline(r.x_range(), r.center().y, Stroke::new(1.0, Color32::from_rgb(82, 82, 82)));
+    ui.painter().hline(r.x_range(), r.center().y, Stroke::new(1.0, crate::theme::gray(82)));
     ui.add_space(6.0);
 }
 
@@ -312,8 +312,8 @@ fn find_objects(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut FrUi) {
             ui.painter().image(t.id, Rect::from_center_size(pos2(r.left() + 10.0, r.center().y), vec2(16.0, 16.0)), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
         }
         let (text, c) = match v {
-            Some(s) => (s.as_str(), theme::TEXT),
-            None => ("Undefined", theme::DISABLED),
+            Some(s) => (s.as_str(), theme::TEXT()),
+            None => ("Undefined", theme::DISABLED()),
         };
         ui.painter().text(pos2(r.left() + 25.0, r.center().y), egui::Align2::LEFT_CENTER, text, theme::body(12.5), c);
     }

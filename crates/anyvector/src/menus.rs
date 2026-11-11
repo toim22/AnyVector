@@ -287,7 +287,7 @@ pub fn menu_style(ui: &mut Ui) {
     // 22 px rows, as in the reference
     ui.spacing_mut().item_spacing.y = 0.0;
     ui.spacing_mut().button_padding = egui::vec2(6.0, 2.0);
-    ui.style_mut().visuals.widgets.hovered.weak_bg_fill = theme::HOVER;
+    ui.style_mut().visuals.widgets.hovered.weak_bg_fill = theme::HOVER();
     ui.style_mut().visuals.widgets.hovered.bg_stroke = egui::Stroke::NONE;
 }
 
@@ -295,7 +295,7 @@ pub fn menu_style(ui: &mut Ui) {
 /// check mark in the icon column, the mnemonic underlined. Gives whether it was chosen.
 pub fn item(app: &mut AnyVectorApp, ui: &mut Ui, text: &str, enabled: bool, check: bool) -> bool {
     let img = icon_img(app, ui, None, enabled);
-    let color = if enabled { theme::TEXT } else { theme::DISABLED };
+    let color = if enabled { theme::TEXT() } else { theme::DISABLED() };
     let r = ui.add_enabled(enabled, Button::image_and_text(img, mnemonic(text, color, 12.5)).min_size(egui::vec2(200.0, 22.0)));
     if check {
         let c = r.rect.left_center() + egui::vec2(ui.spacing().button_padding.x + 8.0, 0.0);
@@ -307,7 +307,7 @@ pub fn item(app: &mut AnyVectorApp, ui: &mut Ui, text: &str, enabled: bool, chec
 /// A submenu row of a docker's own menu.
 pub fn submenu(app: &mut AnyVectorApp, ui: &mut Ui, text: &str, enabled: bool, f: impl FnOnce(&mut AnyVectorApp, &mut Ui)) {
     let img = icon_img(app, ui, None, enabled);
-    let color = if enabled { theme::TEXT } else { theme::DISABLED };
+    let color = if enabled { theme::TEXT() } else { theme::DISABLED() };
     let b = Button::image_and_text(img, mnemonic(text, color, 12.5)).min_size(egui::vec2(200.0, 22.0));
     if !enabled {
         ui.add_enabled(false, b.right_text(SubMenuButton::arrow_atom(Some(color))));
@@ -328,7 +328,7 @@ fn sep(ui: &mut Ui) {
     ui.add_space(3.0);
     let r = ui.available_rect_before_wrap();
     let y = r.top() + 0.5;
-    ui.painter().line_segment([egui::pos2(r.left() + 28.0, y), egui::pos2(r.right(), y)], egui::Stroke::new(1.0, theme::SEP));
+    ui.painter().line_segment([egui::pos2(r.left() + 28.0, y), egui::pos2(r.right(), y)], egui::Stroke::new(1.0, theme::SEP()));
     ui.add_space(4.0);
 }
 
@@ -343,7 +343,7 @@ fn draw_rows(app: &mut AnyVectorApp, ui: &mut Ui, rows: Vec<Row>) {
 
 fn draw_entry(app: &mut AnyVectorApp, ui: &mut Ui, e: Entry) {
     let img = icon_img(app, ui, e.icon, e.enabled);
-    let color = if e.enabled { theme::TEXT } else { theme::DISABLED };
+    let color = if e.enabled { theme::TEXT() } else { theme::DISABLED() };
     let mut b = Button::image_and_text(img, mnemonic(&e.text, color, 12.5)).min_size(egui::vec2(200.0, 22.0));
     match e.act {
         Act::Sub(_) | Act::Rows(_) => {
@@ -546,7 +546,7 @@ pub fn menu_bar(app: &mut AnyVectorApp, ui: &mut Ui) {
             if it.sub == NO_SUB {
                 continue;
             }
-            let galley = ui.painter().layout_job(mnemonic(it.text, theme::TEXT, 12.5));
+            let galley = ui.painter().layout_job(mnemonic(it.text, theme::TEXT(), 12.5));
             let size = galley.size();
             let atom = egui::IdSalt::new(("menubar_caption", it.sub));
             let (resp, _) = MenuButton::from_button(egui::Button::new(egui::Atom::custom(atom, size))).ui(ui, |ui| {
@@ -557,7 +557,7 @@ pub fn menu_bar(app: &mut AnyVectorApp, ui: &mut Ui) {
             let name = galley.text().to_owned();
             resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
             let pos = (resp.rect.center() - size / 2.0 - egui::vec2(0.0, MENU_BAR_LIFT)).round();
-            ui.painter().galley(pos, galley, theme::TEXT);
+            ui.painter().galley(pos, galley, theme::TEXT());
         }
     });
 }

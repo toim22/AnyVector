@@ -397,8 +397,8 @@ fn paint_in(ui: &Ui, v: &View, pane: Rect, t: &TextureHandle, size: Vec2, part: 
 /// The preview panes in `rect` (before and after, the result alone, or split); dragging pans.
 /// Gives where a click fell on the image (0..1 of its size).
 fn panes(ui: &mut Ui, v: &mut View, rect: Rect, before: Option<&TextureHandle>, after: Option<&TextureHandle>, size: Vec2, titles: bool) -> Option<Pos2> {
-    let pane_bg = Color32::from_rgb(0x26, 0x26, 0x26);
-    let border = Stroke::new(1.0, Color32::from_gray(0x6a));
+    let pane_bg = theme::BG();
+    let border = Stroke::new(1.0, theme::gray(0x6a));
     let font = egui::FontId::proportional(12.0);
     if v.actual {
         let fit = match v.layout {
@@ -417,8 +417,8 @@ fn panes(ui: &mut Ui, v: &mut View, rect: Rect, before: Option<&TextureHandle>, 
             let a = Rect::from_min_size(rect.min + vec2(1.0, top + 10.0), vec2(half - 1.0, rect.height() - top - 11.0));
             let b = a.translate(vec2(half + 5.0, 0.0));
             if titles {
-                ui.painter().text(pos2(a.center().x, rect.top() + 20.0), egui::Align2::CENTER_CENTER, "Before", font.clone(), theme::TEXT);
-                ui.painter().text(pos2(b.center().x, rect.top() + 20.0), egui::Align2::CENTER_CENTER, "After", font.clone(), theme::TEXT);
+                ui.painter().text(pos2(a.center().x, rect.top() + 20.0), egui::Align2::CENTER_CENTER, "Before", font.clone(), theme::TEXT());
+                ui.painter().text(pos2(b.center().x, rect.top() + 20.0), egui::Align2::CENTER_CENTER, "After", font.clone(), theme::TEXT());
             }
             list.push((a, before, None));
             list.push((b, after, None));
@@ -560,13 +560,13 @@ fn spin(ui: &mut Ui, v: &mut f64, lo: f64, hi: f64, step: f64, dec: usize, suffi
 }
 
 fn label_at(ui: &mut Ui, text: &str, w: f32, right: bool) {
-    let l = egui::Label::new(egui::RichText::new(text).color(if ui.is_enabled() { theme::TEXT } else { theme::TEXT_DIM }));
+    let l = egui::Label::new(egui::RichText::new(text).color(if ui.is_enabled() { theme::TEXT() } else { theme::TEXT_DIM() }));
     ui.add_sized(vec2(w, 22.0), if right { l.halign(egui::Align::Max) } else { l.halign(egui::Align::Min) });
 }
 
 /// A button that looks pressed when `on` (Curves / Overprint, tab buttons).
 fn toggle_button(ui: &mut Ui, text: &str, on: bool) -> bool {
-    let b = egui::Button::new(egui::RichText::new(text).color(theme::TEXT)).fill(if on { theme::ACCENT } else { Color32::from_rgb(0x3a, 0x3a, 0x3a) }).min_size(vec2(0.0, 22.0));
+    let b = egui::Button::new(egui::RichText::new(text).color(theme::TEXT())).fill(if on { theme::ACCENT() } else { theme::BUTTON() }).min_size(vec2(0.0, 22.0));
     ui.add(b).clicked()
 }
 
@@ -599,7 +599,7 @@ fn bottom(ui: &mut Ui, help: bool, reset: bool) -> (bool, bool, bool) {
 }
 
 fn hline(ui: &Ui, x: impl Into<egui::Rangef>, y: f32) {
-    ui.painter().hline(x, y, Stroke::new(1.0, theme::SEP));
+    ui.painter().hline(x, y, Stroke::new(1.0, theme::SEP()));
 }
 
 // ------------------------------------------------------------------------------ Convert To Bitmap
@@ -634,7 +634,7 @@ fn convert(app: &mut AnyVectorApp, ctx: &egui::Context) {
             ui.spacing_mut().item_spacing.x = 0.0;
             ui.add_sized(vec2(60.0, 22.0), egui::TextEdit::singleline(&mut st.dpi));
             let b = ui.add_sized(vec2(18.0, 22.0), egui::Button::new(""));
-            crate::widgets::chevron(ui.painter(), b.rect.center(), 3.0, theme::TEXT);
+            crate::widgets::chevron(ui.painter(), b.rect.center(), 3.0, theme::TEXT());
             egui::Popup::menu(&b).show(|ui| {
                 ui.set_min_width(80.0);
                 for d in DPIS {
@@ -1227,11 +1227,11 @@ fn duotone(app: &mut AnyVectorApp, ctx: &egui::Context) {
                 ui.add_space(2.0);
                 for (i, ink) in st.d.inks.clone().iter().enumerate() {
                     let (rr, resp) = ui.allocate_exact_size(vec2(250.0, 20.0), Sense::click());
-                    ui.painter().rect_filled(rr, 0.0, if st.sel == i { Color32::from_gray(0x48) } else { Color32::from_gray(0x33) });
+                    ui.painter().rect_filled(rr, 0.0, if st.sel == i { theme::gray(0x48) } else { theme::gray(0x33) });
                     let sw = Rect::from_min_size(rr.min + vec2(6.0, 3.0), vec2(14.0, 14.0));
                     ui.painter().rect_filled(sw, 0.0, c32(ink.1));
                     ui.painter().rect_stroke(sw, 0.0, Stroke::new(1.0, Color32::from_gray(0x80)), egui::StrokeKind::Inside);
-                    ui.painter().text(pos2(rr.left() + 32.0, rr.center().y), egui::Align2::LEFT_CENTER, &ink.0, egui::FontId::proportional(12.0), theme::TEXT);
+                    ui.painter().text(pos2(rr.left() + 32.0, rr.center().y), egui::Align2::LEFT_CENTER, &ink.0, egui::FontId::proportional(12.0), theme::TEXT());
                     if resp.clicked() {
                         st.sel = i;
                     }
@@ -1474,7 +1474,7 @@ fn paletted(app: &mut AnyVectorApp, ctx: &egui::Context) {
                 }
             });
             let box_r = Rect::from_min_size(pos2(ui.max_rect().left(), ui.cursor().top()), vec2(ui.max_rect().width(), 252.0));
-            ui.painter().rect_stroke(box_r, 0.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Inside);
+            ui.painter().rect_stroke(box_r, 0.0, Stroke::new(1.0, theme::SEP()), egui::StrokeKind::Inside);
             at(ui, box_r.shrink2(vec2(26.0, 18.0)), |ui| match st.tab {
                 0 => {
                     ui.add_space(12.0);
@@ -1708,7 +1708,7 @@ fn straighten(app: &mut AnyVectorApp, ctx: &egui::Context) {
         });
         // the corrections
         let box_r = Rect::from_min_size(pos2(left + 415.0, top + 63.0), vec2(442.0, 348.0));
-        ui.painter().rect_stroke(box_r, 2.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Inside);
+        ui.painter().rect_stroke(box_r, 2.0, Stroke::new(1.0, theme::SEP()), egui::StrokeKind::Inside);
         at(ui, box_r.shrink2(vec2(10.0, 14.0)), |ui| {
             ui.spacing_mut().item_spacing.y = 4.0;
             let rows: [(&str, usize, f64, &str, (&str, &str)); 4] = [("Correct lens distortion", 0, 100.0, "", ("lens_barrel", "lens_pincushion")), ("Rotate image", 1, 15.0, " °", ("rotate_cw", "rotate_ccw")), ("Vertical Perspective", 2, 100.0, "", ("persp_v_in", "persp_v_out")), ("Horizontal Perspective", 3, 100.0, "", ("persp_h_in", "persp_h_out"))];
@@ -1890,7 +1890,7 @@ fn lab(app: &mut AnyVectorApp, ctx: &egui::Context) {
         });
         let pr = Rect::from_min_size(pos2(left + 40.0, top + 93.0), vec2(455.0, 448.0));
         if st.pv.view.layout == 1 {
-            ui.painter().text(pos2(pr.center().x, pr.top() - 10.0), egui::Align2::CENTER_CENTER, "After", egui::FontId::proportional(12.0), theme::TEXT);
+            ui.painter().text(pos2(pr.center().x, pr.top() - 10.0), egui::Align2::CENTER_CENTER, "After", egui::FontId::proportional(12.0), theme::TEXT());
         }
         let (b, a) = (st.pv.before.clone(), st.pv.after.clone());
         let titles = st.pv.view.layout == 0;
@@ -1931,7 +1931,7 @@ fn lab(app: &mut AnyVectorApp, ctx: &egui::Context) {
                     let (r, resp) = ui.allocate_exact_size(vec2(44.0, 30.0), Sense::click());
                     ui.painter().image(t.id(), r, Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
                     if st.snap_sel == Some(k) {
-                        ui.painter().rect_stroke(r, 0.0, Stroke::new(2.0, theme::ACCENT), egui::StrokeKind::Outside);
+                        ui.painter().rect_stroke(r, 0.0, Stroke::new(2.0, theme::ACCENT()), egui::StrokeKind::Outside);
                     }
                     if resp.clicked() {
                         st.snap_sel = Some(k);
@@ -2314,8 +2314,8 @@ fn trace(app: &mut AnyVectorApp, ctx: &egui::Context) {
             });
         });
         let full = Rect::from_min_size(pos2(left + 25.0, top + 52.0), vec2(598.0, 534.0));
-        let pane_bg = Color32::from_rgb(0x26, 0x26, 0x26);
-        let border = Stroke::new(1.0, Color32::from_gray(0x6a));
+        let pane_bg = theme::BG();
+        let border = Stroke::new(1.0, theme::gray(0x6a));
         let after = st.after.as_ref().map(|a| a.1.clone());
         let before = st.before.clone();
         let size = st.size;
@@ -2383,7 +2383,7 @@ fn trace(app: &mut AnyVectorApp, ctx: &egui::Context) {
         });
         // the settings
         let side = Rect::from_min_size(pos2(left + 645.0, top + 18.0), vec2(365.0, 570.0));
-        ui.painter().rect_filled(Rect::from_min_size(pos2(side.right() - 12.0, side.top()), vec2(12.0, side.height())), 0.0, Color32::from_rgb(0x1e, 0x1e, 0x1e));
+        ui.painter().rect_filled(Rect::from_min_size(pos2(side.right() - 12.0, side.top()), vec2(12.0, side.height())), 0.0, theme::gray(0x1e));
         let modes = palette_modes(app);
         at(ui, side, |ui| {
             egui::ScrollArea::vertical().id_salt("bm_tr_side").max_height(side.height()).auto_shrink([false, false]).show(ui, |ui| {
@@ -2428,12 +2428,12 @@ fn section(ui: &mut Ui, title: &str, folded: &mut bool) -> bool {
     let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 20.0), Sense::click());
     let c = pos2(r.left() + 8.0, r.center().y);
     if *folded {
-        crate::widgets::chevron(ui.painter(), c, 3.0, theme::TEXT);
+        crate::widgets::chevron(ui.painter(), c, 3.0, theme::TEXT());
     } else {
-        crate::widgets::chevron_up(ui.painter(), c, 3.0, theme::TEXT);
+        crate::widgets::chevron_up(ui.painter(), c, 3.0, theme::TEXT());
     }
-    ui.painter().text(pos2(r.left() + 20.0, r.center().y), egui::Align2::LEFT_CENTER, title, egui::FontId::proportional(12.5), theme::TEXT);
-    ui.painter().text(pos2(r.left() + 20.5, r.center().y), egui::Align2::LEFT_CENTER, title, egui::FontId::proportional(12.5), theme::TEXT);
+    ui.painter().text(pos2(r.left() + 20.0, r.center().y), egui::Align2::LEFT_CENTER, title, egui::FontId::proportional(12.5), theme::TEXT());
+    ui.painter().text(pos2(r.left() + 20.5, r.center().y), egui::Align2::LEFT_CENTER, title, egui::FontId::proportional(12.5), theme::TEXT());
     if resp.clicked() {
         *folded = !*folded;
     }
@@ -2537,8 +2537,8 @@ fn trace_settings(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut TraceState, mode
         // the colors of the trace
         let list: Vec<Color> = st.result.as_ref().map(|r| sort_colors(&r.1, st.o.sort)).unwrap_or_default();
         let lr = Rect::from_min_size(ui.cursor().min, vec2(328.0, 210.0));
-        ui.painter().rect_filled(lr, 0.0, Color32::from_rgb(0x26, 0x26, 0x26));
-        ui.painter().rect_stroke(lr, 0.0, Stroke::new(1.0, Color32::from_gray(0x6a)), egui::StrokeKind::Inside);
+        ui.painter().rect_filled(lr, 0.0, theme::BG());
+        ui.painter().rect_stroke(lr, 0.0, Stroke::new(1.0, theme::gray(0x6a)), egui::StrokeKind::Inside);
         at(ui, lr.shrink(1.0), |ui| {
             egui::ScrollArea::vertical().id_salt("bm_tr_colors").max_height(lr.height() - 2.0).show(ui, |ui| {
                 ui.spacing_mut().item_spacing.y = 0.0;
@@ -2546,7 +2546,7 @@ fn trace_settings(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut TraceState, mode
                     let (r, resp) = ui.allocate_exact_size(vec2(lr.width() - 8.0, 26.0), Sense::click());
                     ui.painter().rect_filled(r, 0.0, c32(*c));
                     if st.sel.contains(&k) {
-                        ui.painter().rect_stroke(r.shrink(1.0), 0.0, Stroke::new(2.0, theme::ACCENT), egui::StrokeKind::Inside);
+                        ui.painter().rect_stroke(r.shrink(1.0), 0.0, Stroke::new(2.0, theme::ACCENT()), egui::StrokeKind::Inside);
                     }
                     let light = 0.299 * c.r as f32 + 0.587 * c.g as f32 + 0.114 * c.b as f32 > 140.0;
                     ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, format!("R{} G{} B{}", c.r, c.g, c.b), egui::FontId::proportional(12.0), if light { Color32::from_gray(0x50) } else { Color32::WHITE });

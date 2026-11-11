@@ -271,12 +271,12 @@ pub fn window<R>(ctx: &egui::Context, id: &str, title: &str, size: Vec2, body: i
     let mut dismissed = false;
     let resp = egui::Modal::new(Id::unique(("dlg", id)))
         .backdrop_color(Color32::from_black_alpha(70))
-        .frame(Frame::new().fill(theme::BG).stroke(Stroke::new(1.0, Color32::from_rgb(0x48, 0x48, 0x48))).corner_radius(4.0).inner_margin(0.0))
+        .frame(Frame::new().fill(theme::BG()).stroke(Stroke::new(1.0, theme::gray(0x48))).corner_radius(4.0).inner_margin(0.0))
         .show(ctx, |ui| {
             let (full, _) = ui.allocate_exact_size(size, Sense::hover());
             let title_rect = Rect::from_min_size(full.min, vec2(size.x, 32.0));
             let p = ui.painter();
-            p.text(pos2(title_rect.left() + 11.0, title_rect.center().y), egui::Align2::LEFT_CENTER, title, egui::FontId::proportional(13.0), theme::TEXT);
+            p.text(pos2(title_rect.left() + 11.0, title_rect.center().y), egui::Align2::LEFT_CENTER, title, egui::FontId::proportional(13.0), theme::TEXT());
             let close = Rect::from_center_size(pos2(title_rect.right() - 22.0, title_rect.center().y), vec2(30.0, 26.0));
             let cr = ui.interact(close, Id::unique(("dlg_close", id)), Sense::click());
             if cr.hovered() {
@@ -284,7 +284,7 @@ pub fn window<R>(ctx: &egui::Context, id: &str, title: &str, size: Vec2, body: i
             }
             let c = close.center();
             let s = 6.0;
-            let st = Stroke::new(1.2, theme::TEXT);
+            let st = Stroke::new(1.2, theme::TEXT());
             ui.painter().line_segment([pos2(c.x - s, c.y - s), pos2(c.x + s, c.y + s)], st);
             ui.painter().line_segment([pos2(c.x - s, c.y + s), pos2(c.x + s, c.y - s)], st);
             if cr.clicked() {
@@ -305,7 +305,7 @@ pub fn window<R>(ctx: &egui::Context, id: &str, title: &str, size: Vec2, body: i
 
 /// The blue default button (OK) used at the bottom right of dialogs.
 pub fn ok_button(ui: &mut Ui, text: &str, enabled: bool) -> bool {
-    let r = ui.add_enabled(enabled, egui::Button::new(egui::RichText::new(text).color(Color32::WHITE)).fill(theme::ACCENT).min_size(vec2(80.0, 24.0)));
+    let r = ui.add_enabled(enabled, egui::Button::new(egui::RichText::new(text).color(Color32::WHITE)).fill(theme::PRIMARY()).min_size(vec2(80.0, 24.0)));
     r.clicked()
 }
 
@@ -348,20 +348,20 @@ pub fn separator(ui: &mut Ui) {
     ui.add_space(10.0);
     let w = ui.available_width();
     let (r, _) = ui.allocate_exact_size(vec2(w, 1.0), Sense::hover());
-    ui.painter().hline(r.x_range(), r.center().y, Stroke::new(1.0, theme::SEP));
+    ui.painter().hline(r.x_range(), r.center().y, Stroke::new(1.0, theme::SEP()));
     ui.add_space(10.0);
 }
 
 /// Bold section heading.
 pub fn heading(ui: &mut Ui, text: &str) {
     ui.add_space(2.0);
-    ui.label(egui::RichText::new(text).strong().color(theme::TEXT).size(13.0));
+    ui.label(egui::RichText::new(text).strong().color(theme::TEXT()).size(13.0));
     ui.add_space(6.0);
 }
 
 /// Dimmed explanatory text.
 pub fn note(ui: &mut Ui, text: &str) {
-    ui.label(egui::RichText::new(text).color(theme::TEXT_DIM).size(12.0));
+    ui.label(egui::RichText::new(text).color(theme::TEXT_DIM()).size(12.0));
 }
 
 /// A row of tabs across the top of a dialog page; returns true when the tab changed.
@@ -371,24 +371,24 @@ pub fn tabs(ui: &mut Ui, current: &mut usize, names: &[String]) -> bool {
     let font = egui::FontId::proportional(12.5);
     let mut x = row.left();
     for (i, n) in names.iter().enumerate() {
-        let w = ui.painter().layout_no_wrap(n.clone(), font.clone(), theme::TEXT).size().x + 22.0;
+        let w = ui.painter().layout_no_wrap(n.clone(), font.clone(), theme::TEXT()).size().x + 22.0;
         let r = Rect::from_min_size(pos2(x, row.top()), vec2(w, 28.0));
         let resp = ui.interact(r, ui.scope_id().with(("tab", i)), Sense::click());
         let on = *current == i;
         if on {
-            ui.painter().rect_filled(r, 0.0, theme::FIELD);
-            ui.painter().hline(r.x_range(), r.bottom() - 1.0, Stroke::new(2.0, theme::ACCENT));
+            ui.painter().rect_filled(r, 0.0, theme::FIELD());
+            ui.painter().hline(r.x_range(), r.bottom() - 1.0, Stroke::new(2.0, theme::ACCENT()));
         } else if resp.hovered() {
-            ui.painter().rect_filled(r, 0.0, theme::HOVER);
+            ui.painter().rect_filled(r, 0.0, theme::HOVER());
         }
-        ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, n, font.clone(), if on { theme::TEXT } else { theme::TEXT_DIM });
+        ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, n, font.clone(), if on { theme::TEXT() } else { theme::TEXT_DIM() });
         if resp.clicked() && !on {
             *current = i;
             changed = true;
         }
         x += w;
     }
-    ui.painter().hline(row.x_range(), row.bottom() - 0.5, Stroke::new(1.0, theme::SEP));
+    ui.painter().hline(row.x_range(), row.bottom() - 0.5, Stroke::new(1.0, theme::SEP()));
     ui.add_space(8.0);
     changed
 }
@@ -396,15 +396,15 @@ pub fn tabs(ui: &mut Ui, current: &mut usize, names: &[String]) -> bool {
 /// A titled group box (the title on its top edge), as in the reference dialogs.
 pub fn group<R>(ui: &mut Ui, title: &str, body: impl FnOnce(&mut Ui) -> R) -> R {
     ui.add_space(6.0);
-    let r = Frame::new().stroke(Stroke::new(1.0, theme::SEP)).corner_radius(3.0).inner_margin(egui::Margin { left: 10, right: 10, top: 12, bottom: 8 }).show(ui, |ui| {
+    let r = Frame::new().stroke(Stroke::new(1.0, theme::SEP())).corner_radius(3.0).inner_margin(egui::Margin { left: 10, right: 10, top: 12, bottom: 8 }).show(ui, |ui| {
         ui.set_width(ui.available_width());
         body(ui)
     });
     let at = r.response.rect.left_top() + vec2(10.0, 0.0);
-    let galley = ui.painter().layout_no_wrap(title.to_string(), egui::FontId::proportional(12.0), theme::TEXT);
+    let galley = ui.painter().layout_no_wrap(title.to_string(), egui::FontId::proportional(12.0), theme::TEXT());
     let bg = Rect::from_min_size(at - vec2(3.0, galley.size().y / 2.0), galley.size() + vec2(6.0, 0.0));
-    ui.painter().rect_filled(bg, 0.0, theme::BG);
-    ui.painter().galley(at - vec2(0.0, galley.size().y / 2.0), galley, theme::TEXT);
+    ui.painter().rect_filled(bg, 0.0, theme::BG());
+    ui.painter().galley(at - vec2(0.0, galley.size().y / 2.0), galley, theme::TEXT());
     r.inner
 }
 

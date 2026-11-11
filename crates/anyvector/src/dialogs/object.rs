@@ -102,7 +102,7 @@ impl ArrowheadState {
 fn arrow_preview(ui: &mut Ui, st: &ArrowheadState) {
     let (r, _) = ui.allocate_exact_size(vec2(200.0, 200.0), Sense::hover());
     let p = ui.painter();
-    p.rect_stroke(r, 0.0, Stroke::new(1.0, theme::TEXT), egui::StrokeKind::Inside);
+    p.rect_stroke(r, 0.0, Stroke::new(1.0, theme::TEXT()), egui::StrokeKind::Inside);
     let w = st.width / st.length.max(1e-6);
     let shape = Affine::scale_non_uniform(1.0, w / st.ratio.max(1e-6)) * st.path.clone();
     // fit the arrowhead in the right part of the box, a line stub coming from the left
@@ -501,10 +501,10 @@ pub fn barcode(app: &mut AnyVectorApp, ctx: &egui::Context) {
         ui.add_space(8.0);
         ui.label("Enter keyword data:");
         ui.add(egui::TextEdit::singleline(&mut st.data).desired_width(300.0));
-        ui.label(egui::RichText::new(kind.rule()).color(theme::TEXT_DIM).small());
+        ui.label(egui::RichText::new(kind.rule()).color(theme::TEXT_DIM()).small());
         ui.add_space(4.0);
         match &check {
-            Ok(t) => ui.label(egui::RichText::new(format!("Encoded: {t}")).color(theme::TEXT_DIM)),
+            Ok(t) => ui.label(egui::RichText::new(format!("Encoded: {t}")).color(theme::TEXT_DIM())),
             Err(e) => ui.label(egui::RichText::new(e).color(Color32::from_rgb(0xe8, 0x6a, 0x6a))),
         };
         ui.add_space(8.0);

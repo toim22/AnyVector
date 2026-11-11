@@ -118,7 +118,7 @@ pub fn toolbox(app: &mut AnyVectorApp, ui: &mut Ui) {
         let Some(cur) = current(app, slot) else { continue };
         if sep {
             let (r, _) = ui.allocate_exact_size(vec2(w, 9.0), Sense::hover());
-            ui.painter().line_segment([pos2(r.left() + 4.0, r.center().y), pos2(r.right() - 4.0, r.center().y)], Stroke::new(1.0, theme::SEP));
+            ui.painter().line_segment([pos2(r.left() + 4.0, r.center().y), pos2(r.right() - 4.0, r.center().y)], Stroke::new(1.0, theme::SEP()));
             sep = false;
         }
         any = true;
@@ -128,7 +128,7 @@ pub fn toolbox(app: &mut AnyVectorApp, ui: &mut Ui) {
     // Quick Customize
     let (rect, resp) = ui.allocate_exact_size(vec2(w, 26.0), Sense::click());
     if resp.hovered() {
-        ui.painter().rect_filled(rect.shrink(1.0), 2.0, theme::HOVER);
+        ui.painter().rect_filled(rect.shrink(1.0), 2.0, theme::HOVER());
     }
     if let Some(t) = app.icons.get(ui.ctx(), "plus", 16.0, Tone::Normal) {
         ui.painter().image(t.id, Rect::from_center_size(rect.center(), vec2(16.0, 16.0)), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
@@ -144,9 +144,9 @@ fn slot_button(app: &mut AnyVectorApp, ui: &mut Ui, slot: &'static Item, cur: &'
     let (rect, resp) = ui.allocate_exact_size(vec2(w, 30.0), if doc { Sense::click_and_drag() } else { Sense::hover() });
     let p = ui.painter();
     if active {
-        p.rect_filled(rect.shrink(1.0), 2.0, theme::PRESSED);
+        p.rect_filled(rect.shrink(1.0), 2.0, theme::PRESSED());
     } else if doc && resp.hovered() {
-        p.rect_filled(rect.shrink(1.0), 2.0, theme::HOVER);
+        p.rect_filled(rect.shrink(1.0), 2.0, theme::HOVER());
     }
     let tone = if !doc {
         Tone::Disabled
@@ -160,7 +160,7 @@ fn slot_button(app: &mut AnyVectorApp, ui: &mut Ui, slot: &'static Item, cur: &'
     }
     let has_flyout = slot.sub != NO_SUB && matches!(slot.kind, Kind::ToolFlyout | Kind::Flyout);
     if has_flyout {
-        let c = if doc { Color32::from_gray(0xb0) } else { Color32::from_gray(0x55) };
+        let c = if doc { theme::gray(0xb0) } else { theme::gray(0x55) };
         let br = rect.right_bottom() - vec2(3.0, 3.0);
         p.add(egui::Shape::convex_polygon(vec![br, br - vec2(5.0, 0.0), br - vec2(0.0, 5.0)], c, Stroke::NONE));
     }
@@ -211,7 +211,7 @@ fn quick_customize(app: &mut AnyVectorApp, ui: &mut Ui) {
                 ui.painter().line_segment([pos2(r.left(), r.top() + 2.0), pos2(r.right(), r.top() + 2.0)], Stroke::new(1.0, Color32::from_rgb(0x2a, 0x6a, 0xc8)));
                 ui.add_space(5.0);
             }
-            ui.label(egui::RichText::new(slot_title(slot)).color(theme::TEXT_DIM));
+            ui.label(egui::RichText::new(slot_title(slot)).color(theme::TEXT_DIM()));
             for it in slot_tools(slot) {
                 let mut on = shown(app, it);
                 let key = crate::ui::bind::cmd(it.id).and_then(|c| crate::shortcuts::shortcut_text(app, c)).or_else(|| it.keys.first().map(|k| k.to_string()));
@@ -225,7 +225,7 @@ fn quick_customize(app: &mut AnyVectorApp, ui: &mut Ui) {
                     ui.label(ui::plain(ui::label(it)));
                     if let Some(k) = key.filter(|k| !k.is_empty()) {
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            ui.label(egui::RichText::new(k).color(theme::TEXT_DIM));
+                            ui.label(egui::RichText::new(k).color(theme::TEXT_DIM()));
                         });
                     }
                 });

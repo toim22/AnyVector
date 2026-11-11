@@ -423,11 +423,11 @@ pub fn panel(app: &mut AnyVectorApp, ui: &mut egui::Ui) {
     if let Some(r) = &app.ai.reference {
         ui.horizontal(|ui| {
             let what = if app.ai.mode == 2 { "Source image" } else { "Reference image" };
-            ui.label(egui::RichText::new(format!("{what}: the selection ({} objects)", r.count)).color(crate::theme::TEXT_DIM));
+            ui.label(egui::RichText::new(format!("{what}: the selection ({} objects)", r.count)).color(crate::theme::TEXT_DIM()));
             clear = ui.small_button("Clear reference content").clicked();
         });
     } else if app.ai.mode == 2 {
-        ui.label(egui::RichText::new("Select the artwork to remix, then choose Object ▸ AI Generate ▸ Remix Selection.").color(crate::theme::TEXT_DIM));
+        ui.label(egui::RichText::new("Select the artwork to remix, then choose Object ▸ AI Generate ▸ Remix Selection.").color(crate::theme::TEXT_DIM()));
     }
     if clear {
         app.ai.reference = None;
@@ -449,14 +449,14 @@ pub fn panel(app: &mut AnyVectorApp, ui: &mut egui::Ui) {
     ui.add_space(6.0);
     ui.horizontal(|ui| {
         let can = !app.ai.busy && app.ai.prompt.trim().chars().count() >= 3 && (app.ai.mode != 2 || app.ai.reference.is_some());
-        let b = egui::Button::new(egui::RichText::new("✦ Generate").color(egui::Color32::WHITE)).fill(crate::theme::PRESSED).min_size(egui::vec2(100.0, 26.0));
+        let b = egui::Button::new(egui::RichText::new("✦ Generate").color(egui::Color32::WHITE)).fill(crate::theme::PRIMARY()).min_size(egui::vec2(100.0, 26.0));
         if ui.add_enabled(can, b).clicked() {
             start(app);
         }
         if app.ai.busy {
             ui.spinner();
         }
-        ui.label(egui::RichText::new(&app.ai.status).color(crate::theme::TEXT_DIM));
+        ui.label(egui::RichText::new(&app.ai.status).color(crate::theme::TEXT_DIM()));
     });
     if let Some(e) = &app.ai.error {
         ui.add_space(4.0);
@@ -470,7 +470,7 @@ pub fn panel(app: &mut AnyVectorApp, ui: &mut egui::Ui) {
     }
     if !app.ai.history.is_empty() {
         ui.add_space(8.0);
-        ui.label(egui::RichText::new("Recent prompts").color(crate::theme::TEXT_DIM));
+        ui.label(egui::RichText::new("Recent prompts").color(crate::theme::TEXT_DIM()));
         let hist = app.ai.history.clone();
         for h in hist {
             if ui.link(h.chars().take(60).collect::<String>()).clicked() {
@@ -479,5 +479,5 @@ pub fn panel(app: &mut AnyVectorApp, ui: &mut egui::Ui) {
         }
     }
     ui.add_space(6.0);
-    ui.label(egui::RichText::new(format!("Results are editable vector objects. Powered by Claude ({MODEL}).")).small().color(crate::theme::TEXT_DIM));
+    ui.label(egui::RichText::new(format!("Results are editable vector objects. Powered by Claude ({MODEL}).")).small().color(crate::theme::TEXT_DIM()));
 }

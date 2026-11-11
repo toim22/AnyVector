@@ -12,9 +12,16 @@ use std::collections::HashSet;
 use vector_core::{Layer, ObjId, ObjKind, Object};
 
 /// The bands of the pages and the Master Page, the row lines and the selected row.
-const BAND: Color32 = Color32::from_rgb(60, 60, 60);
-const LINE: Color32 = Color32::from_rgb(82, 82, 82);
-const SEL: Color32 = Color32::from_rgb(29, 68, 112);
+fn band_gray() -> Color32 {
+    theme::gray(60)
+}
+fn line_gray() -> Color32 {
+    theme::gray(82)
+}
+/// Selected row (the active docker tab blue).
+fn sel_fill() -> Color32 {
+    crate::theme::TAB_ACTIVE()
+}
 /// The fold key of the Master Page.
 const MASTER: u64 = u64::MAX;
 /// Special rows: the guides of a page, of all pages, the desktop and the document grid.
@@ -162,7 +169,7 @@ fn objects_body(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut ObjUi) {
     egui::ScrollArea::vertical().id_salt("om_tree").max_height(tree_h).min_scrolled_height(tree_h).auto_shrink([false, false]).show(ui, |ui| {
         ui.spacing_mut().item_spacing.y = 0.0;
         let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), 1.0), Sense::hover());
-        ui.painter().hline(r.x_range(), r.center().y, Stroke::new(1.0, LINE));
+        ui.painter().hline(r.x_range(), r.center().y, Stroke::new(1.0, line_gray()));
         for row in &rows {
             draw_row(app, ui, st, row, rh, &mut acts);
         }
@@ -481,15 +488,15 @@ fn draw_row(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut ObjUi, row: &Row, rh: 
     }
     let p = ui.painter().clone();
     if band {
-        p.rect_filled(r, 0.0, BAND);
-        p.hline(r.x_range(), r.bottom() - 0.5, Stroke::new(1.0, LINE));
+        p.rect_filled(r, 0.0, band_gray());
+        p.hline(r.x_range(), r.bottom() - 0.5, Stroke::new(1.0, line_gray()));
     } else if row.selected {
-        p.rect_filled(r, 0.0, SEL);
+        p.rect_filled(r, 0.0, sel_fill());
     } else if resp.hovered() {
-        p.rect_filled(r, 0.0, theme::HOVER);
+        p.rect_filled(r, 0.0, theme::HOVER());
     }
     if row.line_below {
-        p.hline(r.x_range(), r.bottom() - 0.5, Stroke::new(1.0, LINE));
+        p.hline(r.x_range(), r.bottom() - 0.5, Stroke::new(1.0, line_gray()));
     }
     let cy = r.center().y;
     let pointer = resp.interact_pointer_pos();
@@ -499,7 +506,7 @@ fn draw_row(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut ObjUi, row: &Row, rh: 
     if let Some(open) = row.fold {
         let c = pos2(tri_x, cy);
         let pts = if open { vec![c + vec2(-4.5, -2.5), c + vec2(4.5, -2.5), c + vec2(0.0, 3.0)] } else { vec![c + vec2(-2.5, -4.5), c + vec2(3.0, 0.0), c + vec2(-2.5, 4.5)] };
-        p.add(egui::Shape::convex_polygon(pts, theme::TEXT, Stroke::NONE));
+        p.add(egui::Shape::convex_polygon(pts, theme::TEXT(), Stroke::NONE));
         chevron = resp.clicked() && pointer.is_some_and(|q| (q.x - tri_x).abs() < 8.0);
     }
     // the switches and the color bar at the right
@@ -548,7 +555,7 @@ fn draw_row(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut ObjUi, row: &Row, rh: 
             } else if let Some(f) = row.fill {
                 p.rect_filled(sw, 0.0, theme::to_c32(f));
             } else {
-                p.rect_stroke(sw.shrink(0.5), 0.0, Stroke::new(1.0, row.outline.map(theme::to_c32).unwrap_or(theme::TEXT_DIM)), egui::StrokeKind::Inside);
+                p.rect_stroke(sw.shrink(0.5), 0.0, Stroke::new(1.0, row.outline.map(theme::to_c32).unwrap_or(theme::TEXT_DIM())), egui::StrokeKind::Inside);
             }
             x = sw.right() + 7.0;
         }
@@ -599,8 +606,8 @@ fn draw_row(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut ObjUi, row: &Row, rh: 
         }
     } else {
         let font = if row.bold { theme::bold(12.5) } else { theme::body(12.5) };
-        let g = p.layout_no_wrap(row.name.clone(), font, theme::TEXT);
-        p.with_clip_rect(Rect::from_min_max(r.min, pos2(right - 4.0, r.max.y)).intersect(ui.clip_rect())).galley(pos2(x, cy - g.size().y / 2.0), g, theme::TEXT);
+        let g = p.layout_no_wrap(row.name.clone(), font, theme::TEXT());
+        p.with_clip_rect(Rect::from_min_max(r.min, pos2(right - 4.0, r.max.y)).intersect(ui.clip_rect())).galley(pos2(x, cy - g.size().y / 2.0), g, theme::TEXT());
     }
     // what the clicks do
     let ctrl = ui.input(|i| i.modifiers.ctrl || i.modifiers.shift);
@@ -927,13 +934,13 @@ fn list_slider(ui: &mut Ui, v: &mut f32, tip: &str, ticks: usize) {
     let p = ui.painter();
     let cy = r.center().y;
     let kx = x0 + *v * (x1 - x0);
-    p.hline(x0..=kx, cy, Stroke::new(3.0, theme::FOCUS));
-    p.hline(kx..=x1, cy, Stroke::new(3.0, Color32::from_rgb(0x55, 0x55, 0x55)));
+    p.hline(x0..=kx, cy, Stroke::new(3.0, theme::FOCUS()));
+    p.hline(kx..=x1, cy, Stroke::new(3.0, theme::gray(0x55)));
     for k in 1..=ticks {
         let tx = x0 + (x1 - x0) * k as f32 / (ticks + 1) as f32 + 6.0;
-        p.vline(tx, (cy + 5.0)..=(cy + 8.0), Stroke::new(1.5, theme::TEXT));
+        p.vline(tx, (cy + 5.0)..=(cy + 8.0), Stroke::new(1.5, theme::TEXT()));
     }
-    p.circle(pos2(kx, cy), 5.5, theme::BG, Stroke::new(1.5, theme::FOCUS));
+    p.circle(pos2(kx, cy), 5.5, theme::BG(), Stroke::new(1.5, theme::FOCUS()));
 }
 
 // ------------------------------------------------------------------------------- Pages docker
@@ -992,7 +999,7 @@ fn pages_body(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut PagesUi) {
     egui::ScrollArea::vertical().id_salt("pg_list").max_height(tree_h).min_scrolled_height(tree_h).auto_shrink([false, false]).show(ui, |ui| {
         ui.spacing_mut().item_spacing.y = 0.0;
         let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), 1.0), Sense::hover());
-        ui.painter().hline(r.x_range(), r.center().y, Stroke::new(1.0, LINE));
+        ui.painter().hline(r.x_range(), r.center().y, Stroke::new(1.0, line_gray()));
         for (i, name) in names.iter().enumerate() {
             if !q.is_empty() && !name.to_lowercase().contains(&q) {
                 continue;
@@ -1000,11 +1007,11 @@ fn pages_body(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut PagesUi) {
             let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width(), rh), Sense::click());
             let p = ui.painter().clone();
             if st.sel == Some(i) {
-                p.rect_filled(r, 0.0, SEL);
+                p.rect_filled(r, 0.0, sel_fill());
             } else if resp.hovered() {
-                p.rect_filled(r, 0.0, theme::HOVER);
+                p.rect_filled(r, 0.0, theme::HOVER());
             }
-            p.hline(r.x_range(), r.bottom() - 0.5, Stroke::new(1.0, LINE));
+            p.hline(r.x_range(), r.bottom() - 0.5, Stroke::new(1.0, line_gray()));
             let mut x = r.left() + 14.0;
             if !st.list {
                 let key = format!("pgdk:{uid}:{i}:{rev}:{}", th as u32);
@@ -1043,7 +1050,7 @@ fn pages_body(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut PagesUi) {
                 }
             } else {
                 let font = if i == cur { theme::bold(12.5) } else { theme::body(12.5) };
-                p.text(pos2(x, r.center().y), Align2::LEFT_CENTER, name, font, theme::TEXT);
+                p.text(pos2(x, r.center().y), Align2::LEFT_CENTER, name, font, theme::TEXT());
             }
             if resp.double_clicked() {
                 st.rename = Some((i, name.clone()));
