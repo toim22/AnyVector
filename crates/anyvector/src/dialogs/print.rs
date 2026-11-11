@@ -182,7 +182,7 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
         return;
     }
     let found = issues(app, &mut st);
-    let names: Vec<String> = ["General", "Color", "Composite", "Layout", "Prepress"].iter().map(|s| s.to_string()).chain(std::iter::once(if found.is_empty() { "No Issues".to_string() } else { format!("{} Issue{}", found.len(), if found.len() == 1 { "" } else { "s" }) })).collect();
+    let names: Vec<String> = ["General", "Color", "Composite", "Layout", "Prepress"].iter().map(|s| s.to_string()).chain(std::iter::once(if found.is_empty() { "No Issues".to_string() } else { if found.len() == 1 { "1 Issue".to_string() } else { format!("{} Issues", found.len()) } })).collect();
     let width = if st.mini_preview { 860.0 } else { 560.0 };
     let mut action = None;
     let has_sel = app.has_selection();

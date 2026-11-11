@@ -1,0 +1,5571 @@
+# AnyVector user interface in Japanese (ja-JP).
+# One pair per line: English<TAB>translation. \n and \t stand for a line break and a tab; {} are the values of a
+# format string, in order ({0}, {1} pick one). In menu captions, & goes before the access key.
+# Terms follow the official CorelDRAW ja-JP text in corel-i18n/languages/ja-JP.md where it exists.
+# python -I xtask/i18n_check.py . ja-JP checks this file.
+English (United States)	English (United States)
+Português Brasileiro	Português Brasileiro
+File	ファイル(&F)
+Edit	編集(&E)
+View	表示(&V)
+Layout	レイアウト(&L)
+Object	オブジェクト(&J)
+Effects	効果(&C)
+Bitmaps	ビットマップ(&B)
+Text	テキスト(&X)
+Table	表(&A)
+Tools	ツール(&O)
+Window	ウィンドウ(&W)
+Help	ヘルプ(&H)
+New...	新規作成...
+New	新規作成
+New from Template...	テンプレートから新規作成...
+Quick AI Generate…	クイック AI 生成…
+Open...	開く...
+Open	開く
+Open Recent	最近使ったファイルを開く
+Close	閉じる
+Close All	すべて閉じる
+Save...	保存...
+Save	保存
+Save As...	名前を付けて保存...
+Save as Template...	テンプレートとして保存...
+Revert	元に戻す (最後の保存状態)
+Acquire Image	イメージの取り込み
+Import...	インポート...
+Import	インポート
+Export...	エクスポート...
+Export	エクスポート
+Export For	用途別エクスポート
+Export Docker	エクスポート ドッキング ウィンドウ
+Send To	送る
+Publish to PDF	PDF に発行
+Print Merge	差し込み印刷
+Print...	印刷...
+Print	印刷
+Print Preview...	印刷プレビュー...
+Document Properties...	ドキュメント プロパティ...
+Exit	終了
+Undo {}	元に戻す: {}
+Undo	元に戻す
+Redo {}	やり直し: {}
+Redo	やり直し
+Repeat {}	繰り返し: {}
+Bring into Focus	フォーカス
+Exit Focus Mode	フォーカス モードを終了
+Cut	切り取り
+Copy	コピー
+Copy Properties From...	プロパティのコピー元...
+Paste	貼り付け
+Paste in View	ビューに貼り付け
+Paste Special...	形式を選択して貼り付け...
+Delete	削除
+Duplicate	複製
+Clone	クローン
+Select All	すべて選択
+Find and Replace	検索と置換
+Step and Repeat	ステップと繰り返し
+Wireframe	ワイヤーフレーム
+Normal	標準
+Enhanced	拡張
+Pixels	ピクセル
+Pattern Preview	パターン プレビュー
+Full-screen Preview	フルスクリーン プレビュー
+Full-screen preview	フルスクリーン プレビュー
+Preview Selected Only	選択オブジェクトのみプレビュー
+Multipage View	複数ページ ビュー
+Multipage view	複数ページ ビュー
+Zoom In	拡大
+Zoom in	拡大
+Zoom Out	縮小
+Zoom out	縮小
+Zoom To Fit	ウィンドウに合わせる
+Zoom to all objects	すべてのオブジェクトにズーム
+Proof Colors	校正カラー
+Simulate Overprints	オーバープリントのシミュレート
+Rasterize Complex Effects	複雑な効果をラスタライズ
+Page	ページ
+Grid	グリッド
+Rulers	定規
+Show rulers	定規を表示
+Guidelines	ガイドライン
+Show guidelines	ガイドラインを表示
+Alignment Guides	整列ガイド
+Alignment guides	整列ガイド
+Dynamic Guides	ダイナミック ガイド
+Dynamic guides	ダイナミック ガイド
+Snap To	スナップ
+Snap Off	スナップ オフ
+Document Navigator	ドキュメント ナビゲータ
+Show document navigator	ドキュメント ナビゲータを表示
+Scrollbars	スクロール バー
+Show scrollbars	スクロール バーを表示
+Insert Page...	ページの挿入...
+Duplicate Page...	ページの複製...
+Rename Page...	ページ名の変更...
+Delete Page...	ページの削除...
+Go to Page...	指定ページへ移動...
+Insert Page Number	ページ番号の挿入
+Page Number Settings...	ページ番号の設定...
+Switch Page Orientation	ページの向きを切り替え
+Document Options...	ドキュメント オプション...
+Page Size...	ページ サイズ...
+Page Layout...	ページ レイアウト...
+Page Layout	ページ レイアウト
+Page Background...	ページの背景...
+Border and Grommet...	縁取りとグロメット...
+Create	作成
+Insert	挿入
+AI Generate	AI 生成
+PowerClip	PowerClip
+Symmetry	シンメトリー
+Symbol	シンボル
+Rollover	ロールオーバー
+Clear Transformations	変形のクリア
+Copy Effect	効果のコピー
+Clone Effect	効果のクローン
+Clear Effect	効果のクリア
+Align and Distribute	整列と配置
+Align and distribute	整列と配置
+Fit Objects to Path	オブジェクトをパスに合わせる
+Order	順序
+Group	グループ化
+Hide	非表示
+Lock	ロック
+Shaping	シェイプ
+Combine	結合
+Break Apart	分割
+Break apart	分割
+Perspective	遠近効果
+Convert to Curves	カーブに変換
+Convert to curves 	カーブに変換
+Convert to Bitmap...	ビットマップに変換...
+Convert Outline to Object	アウトラインをオブジェクトに変換
+Join Curves	カーブの連結
+Overprint Fill	塗りつぶしのオーバープリント
+Overprint Outline	アウトラインのオーバープリント
+Overprint Bitmap	ビットマップのオーバープリント
+Object Hinting	オブジェクトのヒント
+Properties	プロパティ
+Object properties	オブジェクト プロパティ
+Objects	オブジェクト
+Objects Docker	オブジェクト ドッキング ウィンドウ
+Pages	ページ
+Flatten Effects	効果の統合
+3D Effects	3D 効果
+Adjust	調整
+Art Strokes	アート ストローク
+Blur	ぼかし
+Camera	カメラ
+Color Transform	カラー変換
+Contour	輪郭
+Correction	補正
+Creative	クリエイティブ
+Custom	カスタム
+Distort	ゆがみ
+Noise	ノイズ
+Sharpen	シャープ
+Texture	テクスチャ
+Transform	変形
+Artistic Media	アーティスティック メディア
+Bevel	ベベル
+Blend	ブレンド
+Envelope	エンベロープ
+Extrude	押し出し
+Lens	レンズ
+PhotoCocktail	PhotoCocktail
+Pointillizer	点描
+Straighten Image...	イメージの傾き補正...
+Image Adjustment Lab...	イメージ調整ラボ...
+Remove JPEG Artifacts	JPEG アーティファクトの除去
+Edit Bitmap...	ビットマップの編集...
+Edit bitmap	ビットマップの編集
+Remove Background	背景の除去
+Remove background	背景の除去
+Crop Bitmap	ビットマップのトリミング
+Crop bitmap	ビットマップのトリミング
+Resample...	再サンプル...
+Resample bitmap	ビットマップの再サンプル
+Mode	モード
+Inflate Bitmap	ビットマップの拡張
+Break Link	リンクの解除
+Update from Link	リンクから更新
+Quick Trace	クイック トレース
+Quick trace	クイック トレース
+Repeat Last Trace	前回のトレースを繰り返す
+Open Last Trace Settings...	前回のトレース設定を開く...
+Centerline Trace	センターライン トレース
+Outline Trace	アウトライン トレース
+Plug-ins	プラグイン
+Bitmap Mask	ビットマップ マスク
+Bitmap mask	ビットマップ マスク
+Tabs...	タブ...
+Tab settings	タブの設定
+Columns...	段組み...
+Columns	段組み
+Bullets and Numbering...	箇条書きと段落番号...
+Bullet and number settings	箇条書きと段落番号の設定
+Drop Cap...	ドロップ キャップ...
+Drop Cap settings	ドロップ キャップの設定
+Text Statistics...	テキスト統計...
+Edit Text...	テキストの編集...
+Edit text	テキストの編集
+Insert Formatting Code	書式コードの挿入
+Insert formatting code	書式コードの挿入
+Convert	変換
+Show Non-Printing Characters	印刷されない文字を表示
+Paragraph Text Frame	段落テキスト フレーム
+Fit Text to Path	パスにテキストを合わせる
+Fit text to path	パスにテキストを合わせる
+Straighten Text	テキストの傾きを補正
+Align to Baseline	ベースラインに揃える
+Align to Baseline Grid	ベースライン グリッドに揃える
+Align to baseline grid	ベースライン グリッドに揃える
+Use Hyphenation	ハイフネーションを使用
+Writing Tools	文章校正ツール
+Change Case...	大文字/小文字の変更...
+Make Text Web-compatible	テキストを Web 互換にする
+Make text Web-compatible	テキストを Web 互換にする
+Encode...	エンコード...
+Glyphs	グリフ
+Create New Table...	新しい表の作成...
+Convert Text to Table...	テキストを表に変換...
+Convert Table to Text...	表をテキストに変換...
+Select	選択
+Distribute	均等配置
+Merge Cells	セルの結合
+Combine cells	セルの結合
+Unmerge Cells	セルの結合解除
+Undo combine	結合を元に戻す
+Split into Rows...	行に分割...
+Split cells horizontally	セルを水平方向に分割
+Split into Columns...	列に分割...
+Split cells vertically	セルを垂直方向に分割
+Options	オプション
+Save Settings as Default...	設定をデフォルトとして保存...
+Save settings as default	設定をデフォルトとして保存
+Color Management...	カラー マネージメント...
+Scripts	スクリプト
+New Window	新しいウィンドウ
+Refresh Window	ウィンドウの更新
+Close Window	ウィンドウを閉じる
+Cascade	重ねて表示
+Tile Horizontally	上下に並べて表示
+Tile Vertically	左右に並べて表示
+Combine Windows	ウィンドウの統合
+Dock Window	ウィンドウのドッキング
+Workspace	ワークスペース
+Dockers	ドッキング ウィンドウ
+Toolbars	ツールバー
+Color Palettes	カラー パレット
+Window List	ウィンドウの一覧
+Product Help...	製品ヘルプ...
+Welcome Screen	ようこそ画面
+Welcome screen	ようこそ画面
+Quick Start Guide...	クイック スタート ガイド...
+User Guide...	ユーザー ガイド...
+What's New?...	新機能...
+Updates...	更新...
+Submit Ideas and Feedback...	アイデアとフィードバックの送信...
+Report a Bug	バグの報告
+About AnyVector...	AnyVector について...
+Report a Bug...	バグの報告...
+View Reported Bugs...	報告済みのバグを表示...
+Recent Files	最近使ったファイル
+Select TWAIN Source...	TWAIN ソースの選択...
+Select WIA Source...	WIA ソースの選択...
+Acquire...	取り込み...
+Office...	Office...
+Web...	Web...
+WordPress...	WordPress...
+Add Selection	選択範囲を追加
+Add Current Page	現在のページを追加
+Add All Pages	すべてのページを追加
+Send To Links	送るリンク
+Mail...	メール...
+Create/load Print Merge	差し込み印刷の作成/読み込み
+Edit Print Merge	差し込み印刷の編集
+Print Merged Document...	差し込みドキュメントの印刷...
+Perform Print Merge	差し込み印刷の実行
+Create Merged Document	差し込みドキュメントの作成
+Nodes	ノード
+Select all nodes	すべてのノードを選択
+Page Border	ページ境界
+Bleed	裁ち落とし
+Printable Area	印刷可能領域
+Document Grid	ドキュメント グリッド
+Show grid	グリッドを表示
+Pixel Grid	ピクセル グリッド
+Baseline Grid	ベースライン グリッド
+Show baseline grid	ベースライン グリッドを表示
+Snap to pixels	ピクセルにスナップ
+Snap to document grid	ドキュメント グリッドにスナップ
+Snap to baseline grid	ベースライン グリッドにスナップ
+Snap to guidelines	ガイドラインにスナップ
+Snap to objects	オブジェクトにスナップ
+Snap to page	ページにスナップ
+On Active Layer	アクティブ レイヤー上
+On All Pages	すべてのページ上
+On All Odd Pages	すべての奇数ページ上
+On All Even Pages	すべての偶数ページ上
+Arrowhead...	矢印...
+Pattern Fill...	パターン塗りつぶし...
+QR Code	QR コード
+Insert QR Code	QR コードの挿入
+Barcode	バーコード
+Insert barcode	バーコードの挿入
+Validate Barcode	バーコードの検証
+Validate bar code	バーコードの検証
+Object...	オブジェクト...
+Create vector graphic	ベクター グラフィックの作成
+Create Vector Graphic Guided by Selection	選択範囲を基にベクター グラフィックを作成
+Create image	イメージの作成
+Create Image Guided by Selection	選択範囲を基にイメージを作成
+Remix image	イメージのリミックス
+Remix Selection	選択範囲のリミックス
+Place Inside Frame...	フレーム内部に配置...
+Extract Contents	内容の抽出
+Edit PowerClip...	PowerClip の編集...
+Finish Editing PowerClip	PowerClip の編集を終了
+Create Empty PowerClip Frame	空の PowerClip フレームを作成
+PowerClip frame	PowerClip フレーム
+Lock Contents to PowerClip	内容を PowerClip にロック
+Center	中央揃え
+Center contents	内容を中央に配置
+Fit Proportionally	比例して合わせる
+Fit contents proportionally	内容を比例して合わせる
+Fill Proportionally	比例して塗りつぶす
+Fill frame proportionally	フレームを比例して塗りつぶす
+Stretch to Fill	伸縮して塗りつぶす
+Stretch contents to fill frame	内容をフレームいっぱいに伸縮
+Copy PowerClip From...	PowerClip のコピー元...
+Copy PowerClip	PowerClip のコピー
+Create New Symmetry	新しいシンメトリーの作成
+Edit Symmetry	シンメトリーの編集
+Finish Editing Symmetry	シンメトリーの編集を終了
+Remove Symmetry	シンメトリーの削除
+Break Symmetry Link	シンメトリー リンクの解除
+Create New Symbol	新しいシンボルの作成
+Edit Master...	マスターの編集...
+Edit Master	マスターの編集
+Finish Editing Symbol	シンボルの編集を終了
+Revert to Objects	オブジェクトに戻す
+Export Library...	ライブラリのエクスポート...
+Symbols	シンボル
+Create Rollover	ロールオーバーの作成
+Create rollover	ロールオーバーの作成
+Extract Rollover Objects	ロールオーバー オブジェクトの抽出
+Extract rollover objects	ロールオーバー オブジェクトの抽出
+Edit Rollover...	ロールオーバーの編集...
+Edit rollover	ロールオーバーの編集
+Finish Editing rollover	ロールオーバーの編集を終了
+Finish editing rollover	ロールオーバーの編集を終了
+Rollover Live Preview	ロールオーバーのライブ プレビュー
+Rollover live preview	ロールオーバーのライブ プレビュー
+Perspective From...	遠近効果のコピー元...
+Envelope From...	エンベロープのコピー元...
+Blend From...	ブレンドのコピー元...
+Extrude From...	押し出しのコピー元...
+Contour From...	輪郭のコピー元...
+Lens From...	レンズのコピー元...
+Shadow From...	シャドウのコピー元...
+Distortion From...	ディストーションのコピー元...
+Align Left	左揃え
+Align Right	右揃え
+Align Top	上揃え
+Align Bottom	下揃え
+Align Centers Horizontally	水平方向に中央揃え
+Align Centers Vertically	垂直方向に中央揃え
+Center to Page	ページの中央に配置
+Center to Page Horizontally	ページの水平方向の中央に配置
+Center to Page Vertically	ページの垂直方向の中央に配置
+Align with Pixel Grid	ピクセル グリッドに揃える
+To Front of Page	ページの最前面へ
+To front of page	ページの最前面へ
+To Back of Page	ページの最背面へ
+To back of page	ページの最背面へ
+To Front of Layer	レイヤーの最前面へ
+To front of layer	レイヤーの最前面へ
+To Back of Layer	レイヤーの最背面へ
+To back of layer	レイヤーの最背面へ
+Forward One	1 つ前面へ
+Back One	1 つ背面へ
+In Front Of...	指定オブジェクトの前面へ...
+Behind...	指定オブジェクトの背面へ...
+Reverse Order	順序を逆にする
+Group objects	オブジェクトのグループ化
+Ungroup	グループ解除
+Ungroup objects	オブジェクトのグループ解除
+Ungroup All	すべてグループ解除
+Ungroup all objects	すべてのオブジェクトのグループ解除
+Show	表示
+Show All	すべて表示
+Lock object	オブジェクトのロック
+Unlock	ロック解除
+Unlock object	オブジェクトのロック解除
+Unlock All	すべてロック解除
+Unlock all	すべてロック解除
+Weld	溶接
+Trim	トリム
+Intersect	交差
+Simplify	単純化
+Front Minus Back	前面マイナス背面
+Front minus back	前面マイナス背面
+Back Minus Front	背面マイナス前面
+Back minus front	背面マイナス前面
+Boundary	境界
+Create boundary	境界の作成
+Shape	シェイプ
+Shape Docker	シェイプ ドッキング ウィンドウ
+Add Perspective...	遠近効果の追加...
+Draw in Perspective...	遠近法で描画...
+Edit Perspective Group...	遠近グループの編集...
+3D Rotate...	3D 回転...
+Cylinder...	円柱...
+Emboss...	エンボス...
+Page Curl...	ページ カール...
+Pinch/Punch...	ピンチ/パンチ...
+Sphere...	球面...
+Zig Zag...	ジグザグ...
+Auto Adjust	自動調整
+Levels...	レベル...
+Equalize...	イコライズ...
+Sample & Target...	サンプルとターゲット...
+Tone Curve...	トーン カーブ...
+Light...	ライト...
+Color Balance...	カラー バランス...
+Gamma...	ガンマ...
+White Balance...	ホワイト バランス...
+Hue/Saturation/Lightness...	色相/彩度/明度...
+Black & White...	白黒...
+Vibrance...	自然な彩度...
+Selective Color...	特定色域の選択...
+Replace Colors...	カラーの置き換え...
+Desaturate	彩度を下げる
+Channel Mixer...	チャンネル ミキサー...
+Charcoal...	木炭...
+Conté Crayon...	コンテ クレヨン...
+Crayon...	クレヨン...
+Cubist...	キュビズム...
+Dabble...	点描画...
+Impressionist...	印象派...
+Palette Knife...	パレット ナイフ...
+Pastels...	パステル...
+Pen & Ink...	ペンとインク...
+Pointillist...	点描...
+Scraperboard...	スクラッチボード...
+Sketch Pad...	スケッチ パッド...
+Watercolor...	水彩画...
+Water Marker...	水性マーカー...
+Wave Paper...	ウェーブ ペーパー...
+Tune Blur...	ぼかしの調整...
+Directional Smooth...	方向性スムーズ...
+Feather...	フェザー...
+Gaussian Blur...	ガウスぼかし...
+Jaggy Despeckle...	ギザギザの除去...
+Low Pass...	ローパス...
+Motion Blur...	モーション ブラー...
+Radial Blur...	放射状ぼかし...
+Smart Blur...	スマート ぼかし...
+Smooth...	スムーズ...
+Soften...	ソフト...
+Zoom...	ズーム...
+Colorize...	カラー化...
+Diffuse...	拡散...
+Photo Filter...	フォト フィルタ...
+Lens Flare...	レンズ フレア...
+Lighting Effects...	照明効果...
+Sepia Toning...	セピア調...
+Spot Filter...	スポット フィルタ...
+Time Machine...	タイム マシン...
+Bit Planes...	ビット プレーン...
+Halftone...	ハーフトーン...
+Psychedelic...	サイケデリック...
+Solarize...	ソラリゼーション...
+Edge Detect...	エッジ検出...
+Find Edges...	輪郭の検出...
+Trace Contour...	輪郭のトレース...
+Local Equalization...	ローカル イコライズ...
+Dust and Scratch...	ダストとスクラッチ...
+Tune Sharpen...	シャープの調整...
+Art Style...	アート スタイル...
+Crystalize...	結晶化...
+Fabric...	ファブリック...
+Frame...	フレーム...
+Glass Block...	ガラス ブロック...
+Mosaic...	モザイク...
+Scatter...	散乱...
+Smoked Glass...	スモーク ガラス...
+Stained Glass...	ステンド グラス...
+Vignette...	ビネット...
+Vortex...	渦巻き...
+Band Pass...	バンドパス...
+Bump Map...	バンプ マップ...
+User Defined...	ユーザー定義...
+Blocks...	ブロック...
+Displace...	置き換え...
+Mesh Warp...	メッシュ ワープ...
+Offset...	オフセット...
+Pixelate...	ピクセレート...
+Ripple...	波紋...
+Shear...	シアー...
+Swirl...	スワール...
+Tile...	タイル...
+Wet Paint...	ウェット ペイント...
+Whirlpool...	渦...
+Wind...	風...
+Tune Noise...	ノイズの調整...
+Add Noise...	ノイズの追加...
+3-D Stereo Noise...	3D ステレオ ノイズ...
+Maximum...	最大値...
+Median...	中央値...
+Minimum...	最小値...
+Remove Moiré...	モアレの除去...
+Remove Noise...	ノイズの除去...
+Adaptive Unsharp...	アダプティブ アンシャープ...
+Directional Sharpen...	方向性シャープ...
+High Pass...	ハイパス...
+Sharpen...	シャープ...
+Unsharp Mask...	アンシャープ マスク...
+Brick Wall...	レンガ壁...
+Bubbles...	泡...
+Canvas...	キャンバス...
+Cobblestone...	石畳...
+Elephant Skin...	象の皮膚...
+Etching...	エッチング...
+Plastic...	プラスチック...
+Plaster Wall...	しっくい壁...
+Relief Sculpture...	レリーフ彫刻...
+Screen Door...	網戸...
+Stone...	石...
+Underpainting...	下塗り...
+DeInterlace...	インターレース解除...
+Invert Colors	色の反転
+Posterize...	ポスタリゼーション...
+Threshold...	しきい値...
+Black and White (1-bit)...	白黒 (1 ビット)...
+Grayscale (8-bit)	グレースケール (8 ビット)
+Duotone (8-bit)...	ダブルトーン (8 ビット)...
+Paletted (8-bit)...	パレット (8 ビット)...
+RGB Color (24-bit)	RGB カラー (24 ビット)
+Lab Color (24-bit)	Lab カラー (24 ビット)
+CMYK Color (32-bit)	CMYK カラー (32 ビット)
+Auto Inflate Bitmap	ビットマップの自動拡張
+Manually Inflate Bitmap...	ビットマップの手動拡張...
+Technical Illustration...	テクニカル イラストレーション...
+Technical illustration	テクニカル イラストレーション
+Line Drawing...	線画...
+Line drawing	線画
+Line Art...	ライン アート...
+Line art	ライン アート
+Logo...	ロゴ...
+Logo	ロゴ
+Detailed Logo...	詳細ロゴ...
+Detailed logo	詳細ロゴ
+Clipart...	クリップアート...
+Clipart 	クリップアート
+Low Quality Image...	低品質イメージ...
+Low-quality image	低品質イメージ
+High Quality Image...	高品質イメージ...
+High-quality image	高品質イメージ
+Not Installed	未インストール
+Em Space	全角スペース
+En Space	半角スペース
+¼ Em Space	1/4 全角スペース
+Non-breaking Space	改行なしスペース
+Tab	タブ
+Column/Frame Break	段/フレーム区切り
+Em Dash	全角ダッシュ
+En Dash	半角ダッシュ
+Non-breaking Hyphen	改行なしハイフン
+Optional Hyphen	任意指定ハイフン
+Custom Optional Hyphens...	カスタム任意指定ハイフン...
+Show Text Frames	テキスト フレームを表示
+Fit Text To Frame	テキストをフレームに合わせる
+Insert Placeholder Text	プレースホルダ テキストの挿入
+Insert placeholder text	プレースホルダ テキストの挿入
+Create Empty Text Frame	空のテキスト フレームを作成
+Text frame	テキスト フレーム
+Link	リンク
+Unlink	リンク解除
+Spell Check...	スペル チェック...
+Grammatik...	Grammatik...
+Thesaurus...	類義語辞典...
+QuickCorrect...	QuickCorrect...
+Language...	言語...
+Settings...	設定...
+Row Above	上に行
+Row Below	下に行
+Column Left	左に列
+Column Right	右に列
+Insert Rows...	行の挿入...
+Insert Columns...	列の挿入...
+Cell	セル
+Row	行
+Column	列
+Rows Evenly	行の高さを揃える
+Columns Evenly	列の幅を揃える
+AnyVector...	AnyVector...
+Customization...	カスタマイズ...
+Tools...	ツール...
+Global...	グローバル...
+Workspaces...	ワークスペース...
+Script Editor...	スクリプト エディタ...
+Script Editor	スクリプト エディタ
+Run Script...	スクリプトの実行...
+Run script	スクリプトの実行
+Visual Studio Editor...	Visual Studio エディタ...
+Start Recording	記録の開始
+Start recording	記録の開始
+Pause Recording	記録の一時停止
+Pause recording	記録の一時停止
+Stop Recording	記録の停止
+Stop recording	記録の停止
+Cancel Recording	記録のキャンセル
+Record Temporary Script	一時スクリプトの記録
+Run Temporary Script	一時スクリプトの実行
+Scripts Manager	スクリプト マネージャ
+Comments	コメント
+Comments Tool	コメント ツール
+Object Data	オブジェクト データ
+Object Styles	オブジェクト スタイル
+Object styles	オブジェクト スタイル
+Generative AI Tool	生成 AI ツール
+Coordinates	座標
+Live Guides	ライブ ガイド
+Corners	角
+Font Sampler	フォント サンプラー
+Color	カラー
+Palettes	パレット
+Color Styles	カラー スタイル
+Color styles	カラー スタイル
+Color Proofing	カラー校正
+Assets	アセット
+Tray	トレイ
+Links	リンク
+Sources	ソース
+Views	ビュー
+History	履歴
+Default Button Size	デフォルトのボタン サイズ
+Menu bar	メニュー バー
+Status bar	ステータス バー
+Toolbar List	ツールバーの一覧
+Lock Toolbars	ツールバーのロック
+Add Colors from Selection...	選択範囲からカラーを追加...
+Add Colors from Document...	ドキュメントからカラーを追加...
+Create Palette from Selection...	選択範囲からパレットを作成...
+Create Palette from Document...	ドキュメントからパレットを作成...
+Open Palette...	パレットを開く...
+Close All Palettes	すべてのパレットを閉じる
+Palette Editor...	パレット エディタ...
+Recent	最近使用したもの
+Small	小
+Medium	中
+Large	大
+Paper	用紙
+Page size	ページ サイズ
+Size	サイズ
+Page dimensions	ページの寸法
+Autofit page	ページの自動調整
+Portrait	縦
+Landscape	横
+Default Page	デフォルト ページ
+All pages	すべてのページ
+Current Page	現在のページ
+Current page	現在のページ
+Units	単位
+Drawing units	描画単位
+Nudge	微調整
+Nudge distance	微調整の距離
+Duplicate distance	複製の距離
+Treat All Objects as Filled	すべてのオブジェクトを塗りつぶし扱いにする
+Treat all objects as filled	すべてのオブジェクトを塗りつぶし扱いにする
+Object Origin	オブジェクトの原点
+Position	位置
+Object position	オブジェクトの位置
+Object size	オブジェクトのサイズ
+Scale	拡大/縮小
+Scale factor	拡大/縮小率
+Proportional Ratio	縦横比
+Lock ratio	縦横比を固定
+Angle	角度
+Angle of rotation	回転角度
+Mirror horizontally	水平方向に反転
+Mirror vertically	垂直方向に反転
+Outline Width	アウトラインの幅
+Outline width	アウトラインの幅
+Outline Style Selector	アウトライン スタイル セレクタ
+Line style	線のスタイル
+Wrap Paragraph Text	段落テキストの回り込み
+Wrap text	テキストの回り込み
+Ellipse	楕円形
+Pie	扇形
+Arc	円弧
+Angles	角度
+Starting and ending angles	開始角度と終了角度
+Direction	方向
+Change direction	方向の変更
+Variable Outline	可変アウトライン
+Variable Outline tool	可変アウトライン ツール
+Points or Sides	頂点数または辺数
+Points or sides	頂点数または辺数
+Star	星形
+Complex Star	複合星形
+Sharpness of Star and Complex Star	星形と複合星形の鋭さ
+Sharpness	鋭さ
+Font List	フォント リスト
+Font list	フォント リスト
+Font Size	フォント サイズ
+Font size	フォント サイズ
+Variable Fonts	可変フォント
+Bold	太字
+Italic	斜体
+Underline	下線
+Horizontal Alignment	水平方向の配置
+Horizontal alignment	水平方向の配置
+Bullets	箇条書き
+Bulleted list	箇条書きリスト
+Numbers	段落番号
+Numbered list	番号付きリスト
+Use drop cap	ドロップ キャップを使用
+Drop cap	ドロップ キャップ
+Increase Indent	インデントを増やす
+Increase indent	インデントを増やす
+Decrease Indent	インデントを減らす
+Decrease indent	インデントを減らす
+Interactive OpenType	インタラクティブ OpenType
+None	なし
+Left	左
+Right	右
+Full Justify	完全両端揃え
+Force Justify	強制両端揃え
+Trace Bitmap	ビットマップのトレース
+Trace bitmap	ビットマップのトレース
+Text Orientation	テキストの方向
+Text orientation	テキストの方向
+Distance from Path	パスからの距離
+Distance from path	パスからの距離
+Horizontal Offset	水平オフセット
+Offset	オフセット
+Mirror Fitted Text Horizontally	パステキストを水平方向に反転
+Mirror text horizontally	テキストを水平方向に反転
+Mirror Fitted Text Vertically	パステキストを垂直方向に反転
+Mirror text vertically	テキストを垂直方向に反転
+Tick Snapping	目盛りにスナップ
+Tick snapping	目盛りにスナップ
+Selection Mode	選択モード
+Selection mode	選択モード
+Add	追加
+Add nodes	ノードの追加
+Delete nodes	ノードの削除
+Join	連結
+Join two nodes	2 つのノードを連結
+Break curve	カーブの切断
+To Line	直線へ
+Convert to line	直線に変換
+To Curve	カーブへ
+Convert to curve	カーブに変換
+Cusp	尖点
+Cusp node	尖点ノード
+Smooth	スムーズ
+Smooth node	スムーズ ノード
+Symmetrical	対称
+Symmetrical node	対称ノード
+Reverse Subpaths	サブパスの反転
+Reverse direction	方向の反転
+Extract	抽出
+Extract subpath	サブパスの抽出
+Extend curve to close	カーブを延長して閉じる
+Close Curve	カーブを閉じる
+Close curve	カーブを閉じる
+Stretch or scale nodes	ノードの伸縮/拡大縮小
+Rotate & Skew	回転と傾斜
+Rotate or skew nodes	ノードの回転/傾斜
+Align	整列
+Align nodes	ノードの整列
+Reflect Nodes Horizontally	ノードを水平方向に反射
+Reflect nodes horizontally	ノードを水平方向に反射
+Reflect Nodes Vertically	ノードを垂直方向に反射
+Reflect nodes vertically	ノードを垂直方向に反射
+Elastic Mode	弾性モード
+Elastic mode	弾性モード
+Reduce Nodes	ノードの削減
+Reduce nodes	ノードの削減
+Curve Smoothness	カーブの滑らかさ
+Curve smoothness	カーブの滑らかさ
+Bounding Box	境界ボックス
+Bounding box	境界ボックス
+Parallel Drawing	平行描画
+Horizontal Character Offset	文字の水平オフセット
+Horizontal character offset	文字の水平オフセット
+Vertical Character Offset	文字の垂直オフセット
+Vertical character offset	文字の垂直オフセット
+Character Angle	文字の角度
+Character angle	文字の角度
+Superscript	上付き文字
+Subscript	下付き文字
+Small Capitals	スモール キャピタル
+Small capitals	スモール キャピタル
+All Capitals	すべて大文字
+All capitals	すべて大文字
+Shape:	形状:
+Round Nib	丸形ペン先
+Round nib	丸形ペン先
+Square Nib	角形ペン先
+Square nib	角形ペン先
+Eraser Thickness	消しゴムの太さ
+Eraser thickness	消しゴムの太さ
+Pen pressure	筆圧
+Pen tilt	ペンの傾き
+Tilt angle	傾斜角度
+Pen bearing	ペンの方位
+Bearing angle	方位角
+Auto-Reduce	自動削減
+Zoom Levels	ズーム レベル
+Zoom levels	ズーム レベル
+Zoom To Selection	選択範囲にズーム
+Zoom to selected	選択オブジェクトにズーム
+Zoom to all pages	すべてのページにズーム
+Zoom To Page	ページにズーム
+Zoom to page	ページにズーム
+Zoom To Width	幅にズーム
+Zoom to page width	ページ幅にズーム
+Zoom To Height	高さにズーム
+Zoom to page height	ページの高さにズーム
+No Fill	塗りつぶしなし
+No fill	塗りつぶしなし
+Uniform Fill	均一塗りつぶし
+Uniform fill	均一塗りつぶし
+Fountain Fill	グラデーション塗りつぶし
+Fountain fill	グラデーション塗りつぶし
+Vector Pattern Fill	ベクター パターン塗りつぶし
+Vector pattern fill	ベクター パターン塗りつぶし
+Bitmap Pattern Fill	ビットマップ パターン塗りつぶし
+Bitmap pattern fill	ビットマップ パターン塗りつぶし
+Hatch Fill	ハッチ塗りつぶし
+Hatch fill	ハッチ塗りつぶし
+Two-color Pattern Fill	2 色パターン塗りつぶし
+Two-color pattern fill	2 色パターン塗りつぶし
+Texture Fill	テクスチャ塗りつぶし
+Texture fill	テクスチャ塗りつぶし
+PostScript Fill	PostScript 塗りつぶし
+PostScript fill	PostScript 塗りつぶし
+Copy Fill	塗りつぶしのコピー
+Copy fill	塗りつぶしのコピー
+Fill Color	塗りつぶしカラー
+Fill color	塗りつぶしカラー
+Edit Fill	塗りつぶしの編集
+Edit fill	塗りつぶしの編集
+Fill Picker	塗りつぶしピッカー
+Fill picker	塗りつぶしピッカー
+Linear Fountain Fill	線形グラデーション塗りつぶし
+Linear fountain fill	線形グラデーション塗りつぶし
+Elliptical Fountain Fill	楕円形グラデーション塗りつぶし
+Elliptical fountain fill	楕円形グラデーション塗りつぶし
+Conical Fountain Fill	円錐グラデーション塗りつぶし
+Conical fountain fill	円錐グラデーション塗りつぶし
+Rectangular Fountain Fill	矩形グラデーション塗りつぶし
+Rectangular fountain fill	矩形グラデーション塗りつぶし
+Node Color	ノードのカラー
+Node color	ノードのカラー
+Node Transparency	ノードの透明度
+Node transparency	ノードの透明度
+Node position	ノードの位置
+Reverse Fill	塗りつぶしの反転
+Reverse fill	塗りつぶしの反転
+Arrangement	配置
+Smooth Fountain Fill	スムーズ グラデーション塗りつぶし
+Acceleration	加速
+Free Scale and Skew	自由な拡大縮小と傾斜
+Free scale and skew	自由な拡大縮小と傾斜
+Default Fountain Fill	デフォルトのグラデーション塗りつぶし
+Default fountain fill	デフォルトのグラデーション塗りつぶし
+Repeat and Mirror	繰り返しと反転
+Repeat and mirror	繰り返しと反転
+Repeat	繰り返し
+Mirror Tiles Horizontally	タイルを水平方向に反転
+Mirror tiles horizontally	タイルを水平方向に反転
+Mirror Tiles Vertically	タイルを垂直方向に反転
+Mirror tiles vertically	タイルを垂直方向に反転
+Transform Fill	塗りつぶしの変形
+Transform with object	オブジェクトと一緒に変形
+Blend Transition	ブレンドの推移
+Blend transition	ブレンドの推移
+Fill Dropdown	塗りつぶしドロップダウン
+First fill color or pattern	最初の塗りつぶしカラーまたはパターン
+Front Color	前景色
+Front color	前景色
+Back Color	背景色
+Back color	背景色
+Texture Library	テクスチャ ライブラリ
+Texture library	テクスチャ ライブラリ
+Texture Options...	テクスチャ オプション...
+Texture options	テクスチャ オプション
+Regenerate Texture	テクスチャの再生成
+Regenerate texture	テクスチャの再生成
+PostScript Fill Textures	PostScript 塗りつぶしテクスチャ
+PostScript fill textures	PostScript 塗りつぶしテクスチャ
+PostScript Fill Preview	PostScript 塗りつぶしプレビュー
+PostScript fill preview	PostScript 塗りつぶしプレビュー
+Preset List	プリセット リスト
+Preset list	プリセット リスト
+Add Preset	プリセットの追加
+Add preset	プリセットの追加
+Delete Preset	プリセットの削除
+Delete preset	プリセットの削除
+Unconstrained	制約なし
+Unconstrained mode	制約なしモード
+Straight	直線
+Straight line mode	直線モード
+Single	単一
+Single-arc mode	単一円弧モード
+Double	二重
+Double-arc mode	二重円弧モード
+Mapping mode	マッピング モード
+Keep Lines	直線を保持
+Keep lines	直線を保持
+Add New	新規追加
+Add new envelope	新しいエンベロープの追加
+Create Envelope From	エンベロープの作成元
+Create envelope from	エンベロープの作成元
+Copy Envelope Properties	エンベロープ プロパティのコピー
+Copy envelope properties	エンベロープ プロパティのコピー
+Clear Envelope	エンベロープのクリア
+Clear envelope	エンベロープのクリア
+Drop Shadow tool	ドロップ シャドウ ツール
+Inner Shadow Tool	内側シャドウ ツール
+Inner Shadow tool	内側シャドウ ツール
+Shadow Color	シャドウのカラー
+Shadow color	シャドウのカラー
+Merge Mode	マージ モード
+Merge mode	マージ モード
+Opacity	不透明度
+Shadow opacity	シャドウの不透明度
+Feathering	フェザー
+Shadow feathering	シャドウのフェザー
+Feathering direction	フェザーの方向
+Edges	エッジ
+Feather edge	フェザーのエッジ
+Shadow offset	シャドウのオフセット
+Shadow angle	シャドウの角度
+Shadow stretch	シャドウの伸縮
+Fade	フェード
+Shadow fade	シャドウのフェード
+Copy shadow properties	シャドウ プロパティのコピー
+Clear Shadow	シャドウのクリア
+Clear shadow	シャドウのクリア
+Gaussian Blur	ガウスぼかし
+Inside	内側
+Middle	中間
+Outside	外側
+Average	平均
+Linear	線形
+Squared	二乗
+Inverse Squared	逆二乗
+Flat	フラット
+Inner Shadow Width	内側シャドウの幅
+Inner shadow width	内側シャドウの幅
+VP Coordinate	消点座標
+Vanishing point coordinate	消点の座標
+Extrusion Type	押し出しの種類
+Extrusion type	押し出しの種類
+Depth	奥行き
+Rotation	回転
+Extrude rotation	押し出しの回転
+Extrusion color	押し出しのカラー
+Bevels	ベベル
+Extrusion bevels	押し出しのベベル
+Lighting	照明
+Extrusion lighting	押し出しの照明
+Vanishing Point Properties	消点のプロパティ
+Vanishing point properties	消点のプロパティ
+VP Object/VP Page	オブジェクト消点/ページ消点
+Page or object vanishing point	ページまたはオブジェクトの消点
+Copy Extrude Properties	押し出しプロパティのコピー
+Copy extrusion properties	押し出しプロパティのコピー
+Clear Extrude	押し出しのクリア
+Clear extrusion	押し出しのクリア
+HTML Font Size List	HTML フォント サイズ リスト
+Center of Rotation	回転の中心
+Center of rotation	回転の中心
+Lock guideline	ガイドラインのロック
+Preset Guidelines	プリセット ガイドライン
+Preset guidelines	プリセット ガイドライン
+Select object attributes	オブジェクト属性の選択
+Transformations	変形
+Apply object attributes	オブジェクト属性の適用
+Select color	カラーの選択
+Eyedropper 1X1	スポイト 1x1
+Eyedropper 2X2	スポイト 2x2
+Eyedropper 5X5	スポイト 5x5
+Select from Desktop	デスクトップから選択
+Sample from desktop	デスクトップからサンプリング
+Selected Color	選択したカラー
+Selected color	選択したカラー
+Apply color	カラーの適用
+Add To Palette	パレットに追加
+Add to palette	パレットに追加
+Freehand Smoothing	フリーハンドの滑らかさ
+Freehand smoothing	フリーハンドの滑らかさ
+Small Thumbnails	小さいサムネイル
+Small thumbnails	小さいサムネイル
+Medium Thumbnails	中サイズのサムネイル
+Medium thumbnails	中サイズのサムネイル
+Large Thumbnails	大きいサムネイル
+Large thumbnails	大きいサムネイル
+Start Arrowhead Selector	始点の矢印セレクタ
+Start arrowhead:  %1	始点の矢印:  %1
+End Arrowhead Selector	終点の矢印セレクタ
+End arrowhead:  %1	終点の矢印:  %1
+Columns and rows	列と行
+Revolutions	回転数
+Spiral revolutions	らせんの回転数
+Symmetrical spiral	対称らせん
+Logarithmic	対数
+Logarithmic spiral	対数らせん
+Expansion	拡張
+Spiral expansion factor	らせんの拡張率
+This object contains information from another program.	このオブジェクトには、別のプログラムの情報が含まれています。
+Push & Pull	プッシュ/プル
+Push and pull distortion	プッシュ/プル ディストーション
+Zipper	ジッパー
+Zipper distortion	ジッパー ディストーション
+Twister	ツイスター
+Twister distortion	ツイスター ディストーション
+Center distortion	ディストーションを中央へ
+Push and Pull Distortion Amplitude	プッシュ/プル ディストーションの振幅
+Push and pull amplitude	プッシュ/プルの振幅
+Add New Distortion	新しいディストーションの追加
+Add new distortion	新しいディストーションの追加
+Copy Distortion Properties	ディストーション プロパティのコピー
+Copy distortion properties	ディストーション プロパティのコピー
+Clear Distortion	ディストーションのクリア
+Clear distortion	ディストーションのクリア
+Zipper Amplitude	ジッパーの振幅
+Zipper amplitude	ジッパーの振幅
+Zipper Frequency	ジッパーの周波数
+Zipper frequency	ジッパーの周波数
+Randomize Distortion	ランダム ディストーション
+Randomize distortion	ランダム ディストーション
+Smooth Distortion	スムーズ ディストーション
+Smooth distortion	スムーズ ディストーション
+Localize Distortion	ローカル ディストーション
+Localize distortion	ローカル ディストーション
+Clockwise Rotation	時計回りの回転
+Clockwise rotation	時計回りの回転
+Counterclockwise Rotation	反時計回りの回転
+Counterclockwise rotation	反時計回りの回転
+Complete Rotations	完全回転数
+Complete rotations	完全回転数
+Additional Degrees	追加角度
+Additional degrees	追加角度
+Shape Recognition Level	シェイプ認識レベル
+Shape recognition level	シェイプ認識レベル
+Smart Smoothing Level	スマート スムージング レベル
+Smart smoothing level	スマート スムージング レベル
+Crop position	トリミング位置
+Crop size	トリミング サイズ
+Angle of Rotation	回転角度
+Fill Source	塗りつぶしのソース
+Fill options	塗りつぶしオプション
+Fill Colour	塗りつぶしカラー
+Outline Source	アウトラインのソース
+Outline options	アウトライン オプション
+Outline Colour	アウトライン カラー
+Outline color	アウトライン カラー
+No Transparency	透明なし
+No transparency	透明なし
+Uniform Transparency	均一透明
+Uniform transparency	均一透明
+Fountain Transparency	グラデーション透明
+Fountain transparency	グラデーション透明
+Vector Pattern Transparency	ベクター パターン透明
+Vector pattern transparency	ベクター パターン透明
+Bitmap Pattern Transparency	ビットマップ パターン透明
+Bitmap pattern transparency	ビットマップ パターン透明
+Two-color Pattern Transparency	2 色パターン透明
+Two-color pattern transparency	2 色パターン透明
+Texture Transparency	テクスチャ透明
+Texture transparency	テクスチャ透明
+Copy Transparency	透明のコピー
+Copy transparency	透明のコピー
+Transparency	透明
+Transparency Picker	透明ピッカー
+Transparency picker	透明ピッカー
+Apply to All	すべてに適用
+All	すべて
+Apply to Fill	塗りつぶしに適用
+Fill	塗りつぶし
+Apply to Outline	アウトラインに適用
+Outline	アウトライン
+Freeze	固定
+Freeze transparency	透明の固定
+Edit Transparency	透明の編集
+Edit transparency	透明の編集
+Linear Fountain Transparency	線形グラデーション透明
+Linear fountain transparency	線形グラデーション透明
+Elliptical Fountain Transparency	楕円形グラデーション透明
+Elliptical fountain transparency	楕円形グラデーション透明
+Conical Fountain Transparency	円錐グラデーション透明
+Conical fountain transparency	円錐グラデーション透明
+Rectangular Fountain Transparency	矩形グラデーション透明
+Rectangular fountain transparency	矩形グラデーション透明
+Node Position	ノードの位置
+Rotate	回転
+Foreground Transparency	前景の透明度
+Foreground transparency	前景の透明度
+Invert	反転
+Background Transparency	背景の透明度
+Background transparency	背景の透明度
+Mirror Horizontally	水平方向に反転
+Mirror Vertically	垂直方向に反転
+Effect style	効果のスタイル
+Select inner boundary	内側の境界を選択
+Select outer boundary	外側の境界を選択
+Start and end points	始点と終点
+Line width	線の幅
+Width steps	幅のステップ
+Randomize width order	幅の順序をランダム化
+Line spacing	線の間隔
+Spacing steps	間隔のステップ
+Randomize spacing order	間隔の順序をランダム化
+Widest point	最も広い点
+Preset	プリセット
+Vector Brush	ベクター ブラシ
+Sprayer	スプレー
+Calligraphic	カリグラフィ
+Expression	表現
+Preset Stroke List	プリセット ストローク リスト
+Preset stroke	プリセット ストローク
+Width	幅
+Stroke width	ストロークの幅
+Scale Stroke With Object	オブジェクトと一緒にストロークを拡大縮小
+Scale stroke with object	オブジェクトと一緒にストロークを拡大縮小
+Category List	カテゴリ リスト
+Category	カテゴリ
+Brushstroke List	ブラシストローク リスト
+Brushstroke	ブラシストローク
+Browse	参照
+Save artistic media stroke	アーティスティック メディア ストロークの保存
+Spray Pattern List	スプレー パターン リスト
+Spray pattern	スプレー パターン
+Spraylist Settings	スプレーリストの設定
+Spraylist options	スプレーリストのオプション
+Size of sprayed objects	スプレーするオブジェクトのサイズ
+Incremental Scaling	段階的な拡大縮小
+Incremental spraying	段階的なスプレー
+Choice	選択方法
+Spray order	スプレーの順序
+Add to spraylist	スプレーリストに追加
+Dabs/Spacing	タッチ数/間隔
+Images per dab and image spacing	タッチごとのイメージ数とイメージの間隔
+Calligraphic angle	カリグラフィの角度
+Add Control Point	コントロール ポイントの追加
+Add control point	コントロール ポイントの追加
+Delete Control Point	コントロール ポイントの削除
+Delete control point	コントロール ポイントの削除
+Clamped Control Point	固定コントロール ポイント
+Clamp control point	コントロール ポイントを固定
+Floating Control Point	浮動コントロール ポイント
+Float control point	コントロール ポイントを浮動
+Steps	ステップ数
+Blend steps	ブレンドのステップ数
+Spacing	間隔
+Blend spacing	ブレンドの間隔
+Blend objects	ブレンド オブジェクト
+Blend direction	ブレンドの方向
+Loop	ループ
+Loop blend	ループ ブレンド
+Path Properties	パスのプロパティ
+Path properties	パスのプロパティ
+Direct	直接
+Direct blend	直接ブレンド
+Clockwise	時計回り
+Clockwise blend	時計回りのブレンド
+Counterclockwise	反時計回り
+Counterclockwise blend	反時計回りのブレンド
+Object and Color Acceleration	オブジェクトとカラーの加速
+Object and color acceleration	オブジェクトとカラーの加速
+Size acceleration	サイズの加速
+More blend options	その他のブレンド オプション
+Start and End Properties	始点と終点のプロパティ
+Starting and ending objects	始点と終点のオブジェクト
+Copy Blend Properties	ブレンド プロパティのコピー
+Copy blend properties	ブレンド プロパティのコピー
+Clear Blend	ブレンドのクリア
+Clear blend	ブレンドのクリア
+New Path	新しいパス
+Show Path	パスを表示
+Detach from Path	パスから切り離す
+Map nodes	ノードのマッピング
+Split	分割
+Fuse start	始点を融合
+Fuse end	終点を融合
+Blend along full path	パス全体に沿ってブレンド
+Rotate all objects	すべてのオブジェクトを回転
+New Start	新しい始点
+Show Start	始点を表示
+New End	新しい終点
+Show End	終点を表示
+Callout Shape	引き出し線の形状
+Callout shape	引き出し線の形状
+Callout Gap	引き出し線の間隔
+Gap	間隔
+Callout End Size	引き出し線の端のサイズ
+End size	端のサイズ
+Straight-Line Connector	直線コネクタ
+Right-Angle Connector	直角コネクタ
+Rounded Right-Angle Connector	角丸直角コネクタ
+Right Angle Roundness Radius	直角の角丸半径
+Rounded right angle	角丸直角
+Scale Proportionally	比例して拡大縮小
+Outline Pen	アウトライン ペン
+Anchor Position	アンカーの位置
+Anchor position	アンカーの位置
+Anchor Relative to Object	オブジェクト基準のアンカー
+Relative to object	オブジェクト基準
+Adjust Anchor Direction	アンカーの方向を調整
+Adjust anchor direction	アンカーの方向を調整
+Anchor Direction	アンカーの方向
+Anchor direction	アンカーの方向
+Auto Anchor	自動アンカー
+Auto anchor	自動アンカー
+Delete Anchor	アンカーの削除
+Delete anchor	アンカーの削除
+To Center	中心へ
+To center	中心へ
+Inside contour	内側の輪郭
+Outside contour	外側の輪郭
+Contour Steps	輪郭のステップ数
+Contour steps	輪郭のステップ数
+Contour Offset	輪郭のオフセット
+Contour offset	輪郭のオフセット
+Contour Corners	輪郭の角
+Contour corners	輪郭の角
+Contour Colors	輪郭のカラー
+Contour colors	輪郭のカラー
+Last Fill Color	最後の塗りつぶしカラー
+Last fill color	最後の塗りつぶしカラー
+Copy Contour Properties	輪郭プロパティのコピー
+Copy contour properties	輪郭プロパティのコピー
+Clear Contour	輪郭のクリア
+Clear contour	輪郭のクリア
+Mitered corners	マイター角
+Round corners	丸角
+Bevel corners	ベベル角
+Linear Contour Colors	線形の輪郭カラー
+Linear contour colors	線形の輪郭カラー
+Clockwise Contour Colors	時計回りの輪郭カラー
+Clockwise contour colors	時計回りの輪郭カラー
+Counterclockwise Contour Colors	反時計回りの輪郭カラー
+Counterclockwise contour colors	反時計回りの輪郭カラー
+Dynamic Dimensioning	ダイナミック寸法
+Dynamic dimensioning	ダイナミック寸法
+Dimension Style	寸法スタイル
+Dimension style	寸法スタイル
+Dimension Precision	寸法の精度
+Dimension precision	寸法の精度
+Dimension Units	寸法の単位
+Dimension units	寸法の単位
+Show Units	単位を表示
+Display units	単位を表示
+Show Leading Zero	先頭のゼロを表示
+Show leading zero	先頭のゼロを表示
+Prefix	接頭辞
+Dimension prefix	寸法の接頭辞
+Suffix	接尾辞
+Dimension suffix	寸法の接尾辞
+Arrowhead Selector	矢印セレクタ
+Double arrowhead:  %1	両端の矢印:  %1
+Text Position	テキストの位置
+Text position	テキストの位置
+Extension Line Options	寸法補助線のオプション
+Extension line options	寸法補助線のオプション
+Text Above Dimension Line	寸法線の上にテキスト
+Text Through Dimension Line	寸法線上にテキスト
+Text Below Dimension Line	寸法線の下にテキスト
+Center Text Between Extension Lines	寸法補助線の間の中央にテキスト
+Force Text Horizontal	テキストを強制的に水平にする
+Draw Box Around Text	テキストを枠で囲む
+Automatic Successive Dimensioning	自動連続寸法
+Automatic successive dimensioning	自動連続寸法
+Nib Size	ペン先のサイズ
+Nib size	ペン先のサイズ
+Pen Pressure	筆圧
+Spike Frequency	スパイクの頻度
+Frequency of spikes	スパイクの頻度
+Dryout	かすれ
+Use Pen Tilt	ペンの傾きを使用
+Use pen tilt	ペンの傾きを使用
+Pen Tilt	ペンの傾き
+Spike Direction	スパイクの方向
+Spike direction	スパイクの方向
+Pen Bearing	ペンの方位
+Block shadow color	ブロック シャドウのカラー
+Overprint block shadow	ブロック シャドウのオーバープリント
+Remove holes	穴を除去
+Generate from object outline	オブジェクトのアウトラインから生成
+Expand block shadow	ブロック シャドウを拡張
+Clear block shadow	ブロック シャドウのクリア
+2-Point Line	2 点直線
+2-Point Line tool	2 点直線ツール
+2-Point Perpendicular Line	2 点垂直線
+Perpendicular 2-point line	2 点垂直線
+2-Point Tangent Line	2 点接線
+Tangential 2-point line	2 点接線
+Auto-Close Curve	カーブを自動的に閉じる
+Auto-close curve	カーブを自動的に閉じる
+2-Point Line mode	2 点直線モード
+Freehand mode	フリーハンド モード
+Bézier mode	ベジェ モード
+Auto-Close	自動的に閉じる
+Auto-close on cut	切断時に自動的に閉じる
+Cut Span	切断幅
+Cut span	切断幅
+Common Shapes	基本シェイプ
+Common shapes	基本シェイプ
+Grid Size	グリッドのサイズ
+Grid size	グリッドのサイズ
+Add Intersection	交点の追加
+Add intersection	交点の追加
+Sample Mesh Fill Color	メッシュ塗りつぶしカラーのサンプリング
+Sample mesh fill color	メッシュ塗りつぶしカラーのサンプリング
+Mesh Fill Color	メッシュ塗りつぶしカラー
+Mesh fill color	メッシュ塗りつぶしカラー
+Mesh Transparency	メッシュの透明度
+Smooth Mesh Color	メッシュ カラーをスムーズに
+Smooth mesh color	メッシュ カラーをスムーズに
+Copy Mesh Fill properties from	メッシュ塗りつぶしプロパティのコピー元
+Copy mesh fill	メッシュ塗りつぶしのコピー
+Clear Mesh	メッシュのクリア
+Clear mesh	メッシュのクリア
+Brush picker	ブラシ ピッカー
+Brush size	ブラシのサイズ
+Brush transparency	ブラシの透明度
+Glow	グロー
+Simulate pen pressure	筆圧をシミュレート
+Density	密度
+Brush smoothing	ブラシの滑らかさ
+Tilt direction	傾きの方向
+Texture strength	テクスチャの強さ
+Reset brush	ブラシのリセット
+Brush texture	ブラシのテクスチャ
+Clear Brushstroke	ブラシストロークのクリア
+Clear brushstroke	ブラシストロークのクリア
+Preview	プレビュー
+Preview mode	プレビュー モード
+Auto Add-Delete	自動追加/削除
+Automatically add or delete nodes	ノードを自動的に追加または削除
+Free rotation	自由回転
+Reflect	反射
+Free angle reflection	自由角度の反射
+Free scale	自由な拡大縮小
+Skew	傾斜
+Free skew	自由な傾斜
+Skew angle	傾斜角度
+Apply to Duplicate	複製に適用
+Apply to duplicate	複製に適用
+Relative to Object	オブジェクト基準
+Round Corner	丸角
+Round corner	丸角
+Scalloped Corner	扇形角
+Scalloped corner	扇形角
+Chamfered Corner	面取り角
+Chamfered corner	面取り角
+Corner Radius	角の半径
+Corner radius	角の半径
+Edit Corners Together	角をまとめて編集
+Edit corners together	角をまとめて編集
+Relative Corner Scaling	角の相対的な拡大縮小
+Relative corner scaling	角の相対的な拡大縮小
+Pressure	圧力
+Smooth Smear	スムーズ スミア
+Smooth smear	スムーズ スミア
+Pointy Smear	ポインティー スミア
+Pointy smear	ポインティー スミア
+Rate	速度
+Counterclockwise Twirl	反時計回りの渦巻き
+Counterclockwise twirl	反時計回りの渦巻き
+Clockwise Twirl	時計回りの渦巻き
+Clockwise twirl	時計回りの渦巻き
+Attract	引き付け
+Attract tool	引き付けツール
+Repel	反発
+Repel tool	反発ツール
+Timer	タイマー
+Include curves	カーブを含める
+Distance from curve	カーブからの距離
+Create single curve	単一カーブを作成
+Curve smoothing	カーブの滑らかさ
+Use Pen Bearing	ペンの方位を使用
+Use pen bearing	ペンの方位を使用
+Number of Rows and Columns in the Table	表の行数と列数
+Rows and columns	行と列
+Outline Color	アウトライン カラー
+Border:	境界線:
+Border selection	境界線の選択
+Table options	表のオプション
+Top and Bottom	上と下
+Left and Right	左と右
+Top	上
+Bottom	下
+Table cell width and height	表のセルの幅と高さ
+Margins	余白
+Vertical Alignment	垂直方向の配置
+Vertical alignment	垂直方向の配置
+Top Vertical Alignment	上揃え
+Center Vertical Alignment	中央揃え (垂直)
+Bottom Vertical Alignment	下揃え
+Full Vertical Alignment	垂直方向の均等配置
+Full	均等
+Add Variable Node	可変ノードの追加
+Add Node	ノードの追加
+Delete Variable Node	可変ノードの削除
+Remove Node	ノードの除去
+Sides	辺
+Variable Width	可変幅
+Lock Ratio	縦横比を固定
+Total	合計
+Total Width	合計幅
+Scale width with Stroke	ストロークに合わせて幅を拡大縮小
+Scale Variable Outline with Stroke	ストロークに合わせて可変アウトラインを拡大縮小
+Copy Variable Outline	可変アウトラインのコピー
+Clear Nodes	ノードのクリア
+Barcode Message	バーコードのメッセージ
+Barcode message	バーコードのメッセージ
+Edit Barcode...	バーコードの編集...
+Edit barcode	バーコードの編集
+Validate	検証
+Validate barcode	バーコードの検証
+QR Code Margin	QR コードの余白
+Margin	余白
+Pixel Shape	ピクセルの形状
+Pixel shape	ピクセルの形状
+Pixel Fill Factor	ピクセルの塗りつぶし率
+Pixel fill factor	ピクセルの塗りつぶし率
+Weld Pixels	ピクセルを溶接
+Weld pixels	ピクセルを溶接
+Pixel RoundnessType	ピクセルの丸みの種類
+Pixel roundness	ピクセルの丸み
+Validate QR code	QR コードの検証
+Text Tools	テキスト ツール
+Dimension Flyout	寸法フライアウト
+Transparency tool	透明ツール
+Fill Tools	塗りつぶしツール
+Interactive fill tools	インタラクティブ塗りつぶしツール
+Pick	選択
+Pick tool	選択ツール
+Freehand Pick	フリーハンド選択
+Freehand Pick tool	フリーハンド選択ツール
+Free Transform	自由変形
+Free Transform tool	自由変形ツール
+Shape Tool	シェイプ ツール
+Smooth tool	スムーズ ツール
+Smear	スミア
+Smear tool	スミア ツール
+Twirl	渦巻き
+Twirl tool	渦巻きツール
+Attract and Repel	引き付けと反発
+Attract and Repel tool	引き付けと反発ツール
+Smudge	にじみ
+Smudge tool	にじみツール
+Roughen	粗さ
+Roughen tool	粗さツール
+Crop	トリミング
+Crop tool	トリミング ツール
+Knife	ナイフ
+Knife tool	ナイフ ツール
+Virtual Segment Delete	仮想セグメント削除
+Virtual Segment Delete tool	仮想セグメント削除ツール
+Eraser	消しゴム
+Eraser tool	消しゴム ツール
+Zoom	ズーム
+Zoom tool	ズーム ツール
+Pan	パン
+Pan tool	パン ツール
+Freehand	フリーハンド
+Freehand tool	フリーハンド ツール
+Bézier	ベジェ
+Bézier tool	ベジェ ツール
+Pen	ペン
+Pen tool	ペン ツール
+B-Spline	B スプライン
+B-Spline tool	B スプライン ツール
+Polyline	ポリライン
+Polyline tool	ポリライン ツール
+3-Point Curve	3 点カーブ
+3-Point curve tool	3 点カーブ ツール
+Painterly Brush	ペインタリー ブラシ
+Painterly Brush tool	ペインタリー ブラシ ツール
+Artistic Media tool	アーティスティック メディア ツール
+LiveSketch	LiveSketch
+Smart Drawing	スマート描画
+Smart Drawing tool	スマート描画ツール
+Rectangle	矩形
+Rectangle tool	矩形ツール
+3-Point Rectangle	3 点矩形
+3-Point Rectangle tool	3 点矩形ツール
+Ellipse tool	楕円形ツール
+3-Point Ellipse	3 点楕円形
+3-Point Ellipse tool	3 点楕円形ツール
+Polygon	多角形
+Polygon tool	多角形ツール
+Star tool	星形ツール
+Spiral	らせん
+Spiral tool	らせんツール
+Common Shapes tool	基本シェイプ ツール
+Impact tool	インパクト ツール
+Graph Paper	グラフ用紙
+Graph Paper tool	グラフ用紙ツール
+Text tool	テキスト ツール
+Table tool	表ツール
+Parallel Dimension	平行寸法
+Parallel Dimension tool	平行寸法ツール
+Horizontal or Vertical Dimension	水平/垂直寸法
+Horizontal or Vertical Dimension tool	水平/垂直寸法ツール
+Angular Dimension	角度寸法
+Angular Dimension tool	角度寸法ツール
+Segment Dimension	セグメント寸法
+Segment Dimension tool	セグメント寸法ツール
+2-Leg Callout	2 点引き出し線
+2-Leg Callout tool	2 点引き出し線ツール
+Connector	コネクタ
+Connector tool	コネクタ ツール
+Anchor Editing	アンカー編集
+Shadow	シャドウ
+Shadow tool	シャドウ ツール
+Contour tool	輪郭ツール
+Blend tool	ブレンド ツール
+Distort tool	ディストーション ツール
+Envelope tool	エンベロープ ツール
+Extrude tool	押し出しツール
+Block Shadow	ブロック シャドウ
+Block Shadow tool	ブロック シャドウ ツール
+Color Eyedropper	カラー スポイト
+Color Eyedropper tool	カラー スポイト ツール
+Attributes Eyedropper	属性スポイト
+Attributes Eyedropper tool	属性スポイト ツール
+Interactive Fill	インタラクティブ塗りつぶし
+Interactive Fill tool	インタラクティブ塗りつぶしツール
+Smart Fill	スマート塗りつぶし
+Smart Fill tool	スマート塗りつぶしツール
+Mesh Fill	メッシュ塗りつぶし
+Mesh Fill tool	メッシュ塗りつぶしツール
+No Outline	アウトラインなし
+Hairline Outline	極細アウトライン
+Outline Width Presets	アウトライン幅のプリセット
+Outline width presets	アウトライン幅のプリセット
+Pause/Track	一時停止/記録
+Project Timer Name and Recorded Time	プロジェクト タイマー名と記録時間
+Remove Frame	フレームの除去
+Remove frame	フレームの除去
+Object edges	オブジェクトのエッジ
+Object centers	オブジェクトの中心
+Individual objects in a group	グループ内の個別オブジェクト
+Intelligent spacing	インテリジェント間隔
+Intelligent dimensioning	インテリジェント寸法
+Alignment Guides Margins	整列ガイドの余白
+Alignment guides margins	整列ガイドの余白
+Horizontal margin	水平方向の余白
+Vertical margin	垂直方向の余白
+Layout Setup	レイアウトの設定
+Layout setup	レイアウトの設定
+No horizontal margin	水平方向の余白なし
+Offset horizontally	水平方向にオフセット
+Inset horizontally	水平方向にインセット
+Offset and inset horizontally	水平方向にオフセットとインセット
+No vertical margin	垂直方向の余白なし
+Offset vertically	垂直方向にオフセット
+Inset vertically	垂直方向にインセット
+Offset and inset vertically	垂直方向にオフセットとインセット
+Grid and Ruler...	グリッドと定規...
+Snap to Objects...	オブジェクトにスナップ...
+Active Rollover State	アクティブなロールオーバー状態
+Active rollover state	アクティブなロールオーバー状態
+Duplicate Rollover State	ロールオーバー状態の複製
+Duplicate rollover state	ロールオーバー状態の複製
+Delete Rollover State	ロールオーバー状態の削除
+Deletes rollover state	ロールオーバー状態を削除します
+Behavior	動作
+Contains Behavior properties	動作プロパティが含まれます
+Hotspot Options	ホットスポット オプション
+Hotspot options	ホットスポット オプション
+Show Hotspots	ホットスポットを表示
+Show hotspots	ホットスポットを表示
+Disable Application Events	アプリケーション イベントを無効にする
+Disable application events	アプリケーション イベントを無効にする
+Parallel lines	平行線
+Parallel lines on left	左側に平行線
+Parallel lines on right	右側に平行線
+Number of lines	線の数
+Distance	距離
+Set distance interactively	距離をインタラクティブに設定
+Preview lines	線をプレビュー
+Create from selected	選択範囲から作成
+Commands to Append	追加するコマンド
+PowerClip Inside...	PowerClip 内部...
+Frame Type	フレームの種類
+Internet Links	インターネット リンク
+Wrap Connector Line	コネクタ線を回り込ませる
+Wrap connector line	コネクタ線を回り込ませる
+Update Field...	フィールドの更新...
+Move to Plane	平面へ移動
+Fit Contents	内容を合わせる
+Select Clones	クローンの選択
+Select Master	マスターの選択
+Revert To Master	マスターに戻す
+Open Link	リンクを開く
+Apply Style	スタイルの適用
+Apply style	スタイルの適用
+Edit Style	スタイルの編集
+Edit style	スタイルの編集
+New Style From	スタイルの新規作成元
+New style from	スタイルの新規作成元
+New Style Set From...	スタイル セットの新規作成元...
+New style set from	スタイル セットの新規作成元
+Apply to Style	スタイルに適用
+Apply to style	スタイルに適用
+Revert to Style	スタイルに戻す
+Revert to style	スタイルに戻す
+Break Link to Style	スタイルへのリンクを解除
+Break link to style	スタイルへのリンクを解除
+New from Selected...	選択範囲から新規作成...
+New from selected	選択範囲から新規作成
+New from Document...	ドキュメントから新規作成...
+New from document	ドキュメントから新規作成
+Break Link to Color Styles	カラー スタイルへのリンクを解除
+Break link to color styles	カラー スタイルへのリンクを解除
+Move to Orthographic Plane	正投影面へ移動
+Move to Top Plane	上面へ移動
+Move to Left Plane	左面へ移動
+Move to Side Plane	側面へ移動
+Move to Right Plane	右面へ移動
+Save Bitmap As...	名前を付けてビットマップを保存...
+Change Case	大文字/小文字の変更
+Sentence case	文の先頭を大文字にする
+lowercase	小文字
+UPPERCASE	大文字
+Title Case	各単語の先頭を大文字にする
+tOGGLE cASE	大文字/小文字を入れ替える
+Reset Connector	コネクタのリセット
+Convert to	変換
+Convert to Connector	コネクタに変換
+Connector Line	コネクタ線
+Right Angle Connector Line	直角コネクタ線
+Right Angle Round Connector Line	角丸直角コネクタ線
+B-Spline Connector Line	B スプライン コネクタ線
+Bézier Curve Connector Line	ベジェ カーブ コネクタ線
+Create Object	オブジェクトの作成
+Toolbox	ツールボックス
+Property Bar	プロパティ バー
+Common Shape	基本シェイプ
+Preset Stroke	プリセット ストローク
+Brush Stroke	ブラシ ストローク
+Calligraphic Stroke	カリグラフィ ストローク
+Grid Setup...	グリッドの設定...
+Ruler Setup...	定規の設定...
+Guidelines Setup...	ガイドラインの設定...
+Left Tab	左揃えタブ
+Centre Tab	中央揃えタブ
+Right Tab	右揃えタブ
+Decimal Tab	小数点揃えタブ
+Load palette...	パレットの読み込み...
+Save palette...	パレットの保存...
+Insert Page After	後にページを挿入
+Insert Page Before	前にページを挿入
+Delete Page	ページの削除
+Customize	カスタマイズ
+Default	デフォルト
+Image Only	イメージのみ
+Caption Only	キャプションのみ
+Caption to Right of Image	イメージの右にキャプション
+Properties...	プロパティ...
+Reset to Default	デフォルトにリセット
+Add New Menu	新しいメニューの追加
+Add New Command...	新しいコマンドの追加...
+Add Separator	区切り線の追加
+Small Button Size	小さいボタン サイズ
+Medium Button Size	中サイズのボタン サイズ
+Large Button Size	大きいボタン サイズ
+Add New Flyout	新しいフライアウトの追加
+One Line	1 行
+Two Lines	2 行
+Spell Checker Replacement(s)	スペル チェックの置換候補
+Ignore All	すべて無視
+Grammatik Suggestions(s)	Grammatik の候補
+Copy Node Properties	ノード プロパティのコピー
+Paste Node Properties	ノード プロパティの貼り付け
+Menu Bar	メニュー バー
+Menu Bar (no document)	メニュー バー (ドキュメントなし)
+Property Bar: No Selection	プロパティ バー: 選択なし
+Property Bar: Multiple Objects	プロパティ バー: 複数のオブジェクト
+Property Bar: Group	プロパティ バー: グループ
+Property Bar: Ellipse	プロパティ バー: 楕円形
+Property Bar: Polygon	プロパティ バー: 多角形
+Property Bar: Star	プロパティ バー: 星形
+Property Bar: Text	プロパティ バー: テキスト
+Property Bar: Bitmap or OLE Object	プロパティ バー: ビットマップまたは OLE オブジェクト
+Property Bar: OLE Object	プロパティ バー: OLE オブジェクト
+Property Bar: Text on Curve/Object	プロパティ バー: カーブ/オブジェクト上のテキスト
+Property Bar: Edit curve, polygon  envelope	プロパティ バー: カーブ、多角形、エンベロープの編集
+Property Bar: Kerning text	プロパティ バー: テキストのカーニング
+Property Bar: Eraser Tool	プロパティ バー: 消しゴム ツール
+Property Bar: Zoom Tool	プロパティ バー: ズーム ツール
+Property Bar 00b9d138	プロパティ バー 00b9d138
+Property Bar: Interactive Uniform (Model Color) Fill	プロパティ バー: インタラクティブ均一 (モデル カラー) 塗りつぶし
+Property Bar: Interactive Uniform (Palette Color) Fill	プロパティ バー: インタラクティブ均一 (パレット カラー) 塗りつぶし
+Property Bar: Interactive Multi Color Fountain Fill	プロパティ バー: インタラクティブ多色グラデーション塗りつぶし
+Property Bar c51be972	プロパティ バー c51be972
+Property Bar: Interactive Pattern Fill	プロパティ バー: インタラクティブ パターン塗りつぶし
+Property Bar 83ecaa5f	プロパティ バー 83ecaa5f
+Property Bar: Interactive Hatch Fill	プロパティ バー: インタラクティブ ハッチ塗りつぶし
+Property Bar: Interactive Texture Fill	プロパティ バー: インタラクティブ テクスチャ塗りつぶし
+Property Bar: Interactive PostScript Fill	プロパティ バー: インタラクティブ PostScript 塗りつぶし
+Property Bar: Interactive Envelope Tool	プロパティ バー: インタラクティブ エンベロープ ツール
+Property Bar: Interactive Drop Shadow	プロパティ バー: インタラクティブ ドロップ シャドウ
+Property Bar: Interactive Inner Shadow	プロパティ バー: インタラクティブ内側シャドウ
+Property Bar: Interactive Extrude	プロパティ バー: インタラクティブ押し出し
+Property Bar: HTML Text	プロパティ バー: HTML テキスト
+Property Bar: Guideline	プロパティ バー: ガイドライン
+Property Bar: Eyedropper and Paintbucket Tool	プロパティ バー: スポイト/塗りつぶしバケツ ツール
+Property Bar: Mesh Fill	プロパティ バー: メッシュ塗りつぶし
+Property Bar: Page Sorter	プロパティ バー: ページ ソーター
+Property Bar: Symbol	プロパティ バー: シンボル
+Property Bar: Curve	プロパティ バー: カーブ
+Property Bar: Graph Paper Tool	プロパティ バー: グラフ用紙ツール
+Property Bar: Spiral Tool	プロパティ バー: らせんツール
+Property Bar: Unknown Object	プロパティ バー: 不明なオブジェクト
+Property Bar: Interactive Distortion - Push and Pull Effect	プロパティ バー: インタラクティブ ディストーション - プッシュ/プル効果
+Property Bar: Interactive Distortion - Zipper Effect	プロパティ バー: インタラクティブ ディストーション - ジッパー効果
+Property Bar: Interactive Distortion - Twister Effect	プロパティ バー: インタラクティブ ディストーション - ツイスター効果
+Property Bar: Virtual Segment Delete	プロパティ バー: 仮想セグメント削除
+Property Bar: 3 Point Ellipse Tool	プロパティ バー: 3 点楕円形ツール
+Property Bar: Smart Drawing Tool	プロパティ バー: スマート描画ツール
+Property Bar: Crop	プロパティ バー: トリミング
+Property Bar: Smart Fill	プロパティ バー: スマート塗りつぶし
+Property Bar 1b9d2d53	プロパティ バー 1b9d2d53
+Property Bar: Interactive Uniform Transparency	プロパティ バー: インタラクティブ均一透明
+Property Bar: Interactive Fountain Transparency	プロパティ バー: インタラクティブ グラデーション透明
+Property Bar d1181dde	プロパティ バー d1181dde
+Property Bar 97d4c5d7	プロパティ バー 97d4c5d7
+Property Bar: Interactive Pattern Transparency	プロパティ バー: インタラクティブ パターン透明
+Property Bar: Interactive Texture Transparency	プロパティ バー: インタラクティブ テクスチャ透明
+Property Bar c783bf62	プロパティ バー c783bf62
+Property Bar: Artistic Media Preset	プロパティ バー: アーティスティック メディア プリセット
+Property Bar: Artistic Media Brush	プロパティ バー: アーティスティック メディア ブラシ
+Property Bar: Artistic Media Object Spray	プロパティ バー: アーティスティック メディア オブジェクト スプレー
+Property Bar: Artistic Media Calligraphic	プロパティ バー: アーティスティック メディア カリグラフィ
+Property Bar: Artistic Media Pressure Sensitive Pen	プロパティ バー: アーティスティック メディア 筆圧感知ペン
+Property Bar be98f634	プロパティ バー be98f634
+Property Bar: Interactive Blend Tool	プロパティ バー: インタラクティブ ブレンド ツール
+Property Bar 820aed33	プロパティ バー 820aed33
+Property Bar f98aee2b	プロパティ バー f98aee2b
+Property Bar 05586960	プロパティ バー 05586960
+Property Bar a5e996d2	プロパティ バー a5e996d2
+Property Bar 70618151	プロパティ バー 70618151
+Property Bar 211583c4	プロパティ バー 211583c4
+{} Toolbar	{} ツールバー
+Property Bar 0c3dc487	プロパティ バー 0c3dc487
+Property Bar 290f6196	プロパティ バー 290f6196
+Property Bar: Interactive Contour Tool	プロパティ バー: インタラクティブ輪郭ツール
+Property Bar 47015b40	プロパティ バー 47015b40
+Property Bar b1ae77c4	プロパティ バー b1ae77c4
+Property Bar: Roughen tool	プロパティ バー: 粗さツール
+Property Bar: Block Shadow	プロパティ バー: ブロック シャドウ
+Property Bar 4d6bd188	プロパティ バー 4d6bd188
+Property Bar: Polyline Tool	プロパティ バー: ポリライン ツール
+Property Bar: 3 Point Curve Tool	プロパティ バー: 3 点カーブ ツール
+Property Bar: Knife	プロパティ バー: ナイフ
+Property Bar: Common Shapes	プロパティ バー: 基本シェイプ
+Property Bar: Interactive Mesh Fill Tool	プロパティ バー: インタラクティブ メッシュ塗りつぶしツール
+Property Bar f49ca8d5	プロパティ バー f49ca8d5
+Property Bar: Pen Tool	プロパティ バー: ペン ツール
+Property Bar: Free Transform Tool	プロパティ バー: 自由変形ツール
+Property Bar: Rectangle	プロパティ バー: 矩形
+Property Bar: 3 Point Rectangle Tool	プロパティ バー: 3 点矩形ツール
+Property Bar: Smear	プロパティ バー: スミア
+Property Bar: Twirl	プロパティ バー: 渦巻き
+Property Bar: Attract and Repel	プロパティ バー: 引き付けと反発
+Property Bar: Smooth	プロパティ バー: スムーズ
+Property Bar: LiveSketch	プロパティ バー: LiveSketch
+Property Bar: Smudge tool	プロパティ バー: にじみツール
+Property Bar 390243ba	プロパティ バー 390243ba
+Border Selector	境界線セレクタ
+Property Bar bde2df13	プロパティ バー bde2df13
+Property Bar a8b43e0c	プロパティ バー a8b43e0c
+Property Bar: Variable Outline	プロパティ バー: 可変アウトライン
+Property Bar: Barcode	プロパティ バー: バーコード
+Property Bar: QR Code	プロパティ バー: QR コード
+Standard	標準
+Pick Tools	選択ツール
+Edit Shape Tools	シェイプ編集ツール
+Crop Tools	トリミング ツール
+Zoom Tools	ズーム ツール
+Curve Tools	カーブ ツール
+Drawing Tools	描画ツール
+Rectangle Tools	矩形ツール
+Ellipse Tools	楕円形ツール
+Shape Tools	シェイプ ツール
+Connector Tools	コネクタ ツール
+Effect Tools	効果ツール
+Eyedropper flyout	スポイト フライアウト
+Project Timer	プロジェクト タイマー
+Internet	インターネット
+Macros	マクロ
+Parallel Lines	平行線
+Graphic Object Selection	グラフィック オブジェクトの選択
+Symmetry Commands to Append	追加するシンメトリー コマンド
+Artistic Text Selected	アーティスティック テキストの選択
+Paragraph Text Selected	段落テキストの選択
+Bitmap Object Selection	ビットマップ オブジェクトの選択
+Group Object Selection	グループ オブジェクトの選択
+Multiple Object Selection	複数オブジェクトの選択
+Symbol Instance Context Menu	シンボル インスタンスのコンテキスト メニュー
+Locked Object Selection	ロックされたオブジェクトの選択
+Artistic Text Editing	アーティスティック テキストの編集
+Paragraph Text Editing	段落テキストの編集
+Text Character Selection	テキスト文字の選択
+Node Editing of Curves	カーブのノード編集
+Node Editing of Text	テキストのノード編集
+Table Edit	表の編集
+Table Edit 2	表の編集 2
+Table Edit 3	表の編集 3
+Connector Edit	コネクタの編集
+Connector Edit 2	コネクタの編集 2
+Document Desktop	ドキュメント デスクトップ
+Ruler Menu	定規メニュー
+Ruler Menu In Text Mode	テキスト モードの定規メニュー
+Palette Menu	パレット メニュー
+Page Tab	ページ タブ
+Command Bar Context Menu	コマンド バーのコンテキスト メニュー
+Customize Item Menu	項目のカスタマイズ メニュー
+Customize Flyout Menu	フライアウトのカスタマイズ メニュー
+Effect Selection	効果の選択
+Blend Control Editing	ブレンド コントロールの編集
+Spelling Errors	スペル ミス
+Grammar/Double Word Errors	文法/単語の重複エラー
+Variable Outline Node Editing	可変アウトラインのノード編集
+About {}	{} について
+Version {} - {} Release	バージョン {} - {} リリース
+(C) 2026 AnyVector Team.  All rights reserved.	(C) 2026 AnyVector Team.  All rights reserved.
+Source ID:	ソース ID:
+System Info...	システム情報...
+Legal Notices...	法的通知...
+System Info	システム情報
+Choose a category:	カテゴリを選択:
+Save System Info	システム情報の保存
+Text (*.txt)	テキスト (*.txt)
+Could not save {}:\n{}	{} を保存できませんでした:\n{}
+Legal Notices	法的通知
+Flat illustration	フラット イラスト
+Logo / icon	ロゴ / アイコン
+Isometric	アイソメトリック
+Geometric pattern	幾何学パターン
+Cartoon	カートゥーン
+Infographic	インフォグラフィック
+Silhouette	シルエット
+Tools ▸ Options ▸ Global ▸ Privacy ▸ AI Generate	ツール ▸ オプション ▸ グローバル ▸ プライバシー ▸ AI 生成
+Environment	環境
+Type the name of the environment variable first.	最初に環境変数の名前を入力してください。
+Could not save the environment variable (error {}).	環境変数を保存できませんでした (エラー {})。
+AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your Windows account, never in its own files.	AI 生成には API キーが必要です。{} でキーを追加してください。AnyVector はキーを Windows アカウントの環境変数 {} に保存し、独自のファイルには保存しません。
+Generating...	生成中...
+Could not reach the AI service: {}	AI サービスに接続できませんでした: {}
+Invalid response from the AI service: {}	AI サービスからの応答が無効です: {}
+unknown error	不明なエラー
+AI service error ({}): {}	AI サービスのエラー ({}): {}
+The request was declined.	要求が拒否されました。
+The AI declined this prompt. {}	AI がこのプロンプトを拒否しました。{}
+The drawing was too complex and got cut off. Try a simpler prompt.	描画が複雑すぎたため途中で切れました。より簡単なプロンプトをお試しください。
+The AI did not return a drawing. Try rephrasing the prompt.	AI から描画が返されませんでした。プロンプトを言い換えてお試しください。
+Generating... {}s	生成中... {} 秒
+AI: {}	AI: {}
+Could not render the generated image.	生成されたイメージをレンダリングできませんでした。
+Done	完了
+The generated drawing was empty.	生成された描画は空でした。
+Could not read the generated drawing: {}	生成された描画を読み取れませんでした: {}
+Quick AI Generate	クイック AI 生成
+Generative AI Terms	生成 AI の利用規約
+To use the AI features of AnyVector, you must be at least 18 years old and accept the Generative AI Policy. If you are under 18 or do not accept it, do not use these features.	AnyVector の AI 機能を使用するには、18 歳以上で、生成 AI ポリシーに同意する必要があります。18 歳未満の場合、または同意しない場合は、これらの機能を使用しないでください。
+The AI features send your description, and any artwork you choose as a reference, to a third-party AI model (Claude, by Anthropic) to generate the result.	AI 機能は、結果を生成するために、説明文と参照として選択したアートワークを第三者の AI モデル (Anthropic の Claude) に送信します。
+Generative AI Policy...	生成 AI ポリシー...
+By clicking 'I agree', you accept the Generative AI Policy and confirm that you are at least 18 years old.	[同意する] をクリックすると、生成 AI ポリシーに同意し、18 歳以上であることを確認したことになります。
+I do not agree	同意しない
+I agree	同意する
+Source image	ソース イメージ
+Reference image	参照イメージ
+{}: the selection ({} objects)	{}: 選択範囲 ({} 個のオブジェクト)
+Clear reference content	参照内容のクリア
+Select the artwork to remix, then choose Object ▸ AI Generate ▸ Remix Selection.	リミックスするアートワークを選択してから、[オブジェクト] ▸ [AI 生成] ▸ [選択範囲のリミックス] を選択してください。
+Describe what you want to create:	作成したい内容を説明してください:
+e.g. a hot-air balloon over rolling hills	例: なだらかな丘の上を飛ぶ熱気球
+Style:	スタイル:
+Colors:	カラー:
+✦ Generate	✦ 生成
+Open AI Settings...	AI 設定を開く...
+Privacy	プライバシー
+Recent prompts	最近のプロンプト
+Results are editable vector objects. Powered by Claude ({}).	結果は編集可能なベクター オブジェクトです。Powered by Claude ({})。
+Property bar	プロパティ バー
+Project timer	プロジェクト タイマー
+Scanner selected.	スキャナが選択されました。
+Black and White (1-bit)	白黒 (1 ビット)
+Duotone (8-bit)	ダブルトーン (8 ビット)
+Paletted (8-bit)	パレット (8 ビット)
+Line Art	ライン アート
+Ordered	規則的
+Halftone	ハーフトーン
+Cardinality-Distribution	カーディナリティ分散
+Square	四角形
+Round	円形
+Line	線
+Cross	十字
+Fixed 4x4	固定 4x4
+Fixed 8x8	固定 8x8
+Document Palette	ドキュメント パレット
+Color Styles Palette	カラー スタイル パレット
+Adaptive	適応
+Optimized	最適化
+Grayscale	グレースケール
+System	システム
+Uniform Colors	均一カラー
+Standard VGA	標準 VGA
+More Palettes...	その他のパレット...
+Radius	半径
+Temperature	色温度
+Tint	色合い
+Vibrance	自然な彩度
+Saturation	彩度
+Brightness	明るさ
+Contrast	コントラスト
+Highlights	ハイライト
+Shadows	シャドウ
+Midtones	中間調
+debug build	デバッグ ビルド
+release build	リリース ビルド
+Could not open the browser. Please send it at {}	ブラウザを開けませんでした。{} から送信してください
+Submit Ideas and Feedback	アイデアとフィードバックの送信
+Thank you! Your idea was sent.	ありがとうございます。アイデアが送信されました。
+Thank you! Your bug report was sent.	ありがとうございます。バグ報告が送信されました。
+Almost done: finish in your browser	もう少しです: ブラウザで完了してください
+Your idea could not be sent	アイデアを送信できませんでした
+The report could not be sent	報告を送信できませんでした
+The issue was created on the AnyVector project on GitHub:	GitHub の AnyVector プロジェクトに Issue が作成されました:
+GitHub opened in your browser with your idea already filled in.	アイデアが入力された状態で GitHub がブラウザで開きました。
+GitHub opened in your browser with the report already filled in.	報告が入力された状態で GitHub がブラウザで開きました。
+Sign in if asked, review it and click "Create" to send it.	必要に応じてサインインし、内容を確認してから "Create" をクリックして送信してください。
+Back	戻る
+Tell us your idea or what you think of AnyVector. It is sent to the AnyVector project on GitHub as a new idea. You don't need a GitHub account.	アイデアや AnyVector へのご意見をお聞かせください。新しいアイデアとして GitHub の AnyVector プロジェクトに送信されます。GitHub アカウントは不要です。
+Title (your idea in a few words):	タイトル (アイデアを簡潔に):
+e.g. Snap to the center of the page	例: ページの中央にスナップ
+Describe your idea or feedback:	アイデアまたはフィードバックの内容:
+How would it help you? (optional)	どのように役立ちますか? (省略可)
+Describe the problem. It is sent to the AnyVector project on GitHub as a new issue. You don't need a GitHub account.	問題の内容を説明してください。新しい Issue として GitHub の AnyVector プロジェクトに送信されます。GitHub アカウントは不要です。
+Title (a short summary):	タイトル (簡単な概要):
+e.g. Toolbar overlaps the menu bar	例: ツールバーがメニュー バーに重なる
+What happened?	何が起きましたか?
+Steps to reproduce (optional):	再現手順 (省略可):
+What did you expect to happen? (optional)	本来はどうなるはずでしたか? (省略可)
+Include system information	システム情報を含める
+View submitted ideas	送信済みのアイデアを表示
+View reported bugs	報告済みのバグを表示
+Cancel	キャンセル
+Sending...	送信中...
+Send	送信
+✓  Finish	✓  完了
+Navigator	ナビゲータ
+Move Ruler Origin	定規の原点を移動
+Reset Ruler Origin	定規の原点をリセット
+First Page	最初のページ
+Previous Page	前のページ
+{} of {}	{} / {}
+Go To Page	指定ページへ移動
+Next Page	次のページ
+Last Page	最後のページ
+Add Page	ページの追加
+Insert Page	ページの挿入
+Maximize	最大化
+{} is not available in this version yet.	{} はこのバージョンではまだ使用できません。
+Select objects to change their outline color.	アウトライン カラーを変更するオブジェクトを選択してください。
+Default fill set for new objects.	新しいオブジェクトのデフォルトの塗りつぶしを設定しました。
+New Symbol	新しいシンボル
+Symbol {}	シンボル {}
+No document	ドキュメントなし
+The page no longer exists.	このページはもう存在しません。
+The object no longer exists.	このオブジェクトはもう存在しません。
+Nothing to export	エクスポートする内容がありません
+No scanner or camera was found. Connect a WIA device and try again.	スキャナまたはカメラが見つかりませんでした。WIA デバイスを接続して、もう一度お試しください。
+The image could not be acquired:\n{}	イメージを取り込めませんでした:\n{}
+All File Formats	すべてのファイル形式
+Open Drawing	描画を開く
+Could not open {}:\n{}	{} を開けませんでした:\n{}
+Imported {} (large bitmap: editing may be slower)	{} をインポートしました (大きなビットマップのため、編集が遅くなる場合があります)
+Imported {}	{} をインポートしました
+Could not import {}:\n{}	{} をインポートできませんでした:\n{}
+Save Drawing	描画の保存
+Saved {}	{} を保存しました
+Pasted image	貼り付けたイメージ
+The selection has no bitmap effects to flatten.	選択範囲に統合するビットマップ効果がありません。
+Bitmap	ビットマップ
+Traced bitmap	トレースしたビットマップ
+Bitmap traced	ビットマップをトレースしました
+Edit Table	表の編集
+Add Colors	カラーの追加
+Saved a copy to {}: {}	{} にコピーを保存しました: {}
+Could not save: {}	保存できませんでした: {}
+Choose your cloud sync folder (OneDrive, Dropbox...)	クラウド同期フォルダを選択してください (OneDrive、Dropbox...)
+The file {} no longer exists.	ファイル {} はもう存在しません。
+the cloud folder	クラウド フォルダ
+Templates	テンプレート
+CDRT/CDT - CorelDRAW Template (*.cdrt;*.cdt)	CDRT/CDT - CorelDRAW テンプレート (*.cdrt;*.cdt)
+Template saved	テンプレートを保存しました
+Save As Template	テンプレートとして保存
+TWAIN sources are not supported. Choose Select WIA Source: scanners and cameras that come with a WIA driver are acquired through Windows Image Acquisition.	TWAIN ソースはサポートされていません。[WIA ソースの選択] を選択してください。WIA ドライバ付きのスキャナやカメラは Windows Image Acquisition で取り込まれます。
+No TWAIN data source manager is installed. Choose Select WIA Source to use a scanner or camera through Windows Image Acquisition.	TWAIN データ ソース マネージャがインストールされていません。Windows Image Acquisition でスキャナやカメラを使用するには、[WIA ソースの選択] を選択してください。
+Select TWAIN Source	TWAIN ソースの選択
+Waiting for the scanner...	スキャナを待機しています...
+Send To Mail	メールで送信
+Could not save the drawing: {}	描画を保存できませんでした: {}
+No mail program accepted the attachment; the drawing is ready to attach to your message.	添付ファイルを受け付けるメール プログラムがありませんでした。描画はメッセージに添付できる状態です。
+the Desktop	デスクトップ
+Documents	ドキュメント
+Select at least one record in the print merge data.	差し込み印刷データのレコードを少なくとも 1 つ選択してください。
+Click the object to copy the effect from.	効果のコピー元のオブジェクトをクリックしてください。
+Click the object to place the selection in front of.	選択範囲をその前面に配置するオブジェクトをクリックしてください。
+Click the object to place the selection behind.	選択範囲をその背面に配置するオブジェクトをクリックしてください。
+Click the PowerClip to copy the contents from.	内容のコピー元の PowerClip をクリックしてください。
+{} guidelines on this page (edit them in the Guidelines docker).	このページのガイドライン: {} 本 (ガイドライン ドッキング ウィンドウで編集できます)。
+Command Bars	コマンド バー
+Commands	コマンド
+A document must have at least one page.	ドキュメントには少なくとも 1 ページが必要です。
+Page Orientation	ページの向き
+Page Size	ページ サイズ
+Background	背景
+Lock Object	オブジェクトのロック
+Unlock Object	オブジェクトのロック解除
+Unlock All Objects	すべてのオブジェクトのロック解除
+Hide Object	オブジェクトを非表示
+Show All Objects	すべてのオブジェクトを表示
+Center Contents	内容を中央に配置
+Fit Contents Proportionally	内容を比例して合わせる
+Fill Frame Proportionally	フレームを比例して塗りつぶす
+Stretch Contents to Fill Frame	内容をフレームいっぱいに伸縮
+Click the frame to place the selection inside.	選択範囲を内部に配置するフレームをクリックしてください。
+Mirror	反転
+Break Blend Group Apart	ブレンド グループの分割
+Add Perspective	遠近効果の追加
+Clear Perspective	遠近効果のクリア
+Select an object to apply the effect to.	効果を適用するオブジェクトを選択してください。
+Hyphenation	ハイフネーション
+Make Text Web Compatible	テキストを Web 互換にする
+Click the path to fit the text to.	テキストを合わせるパスをクリックしてください。
+Convert Text	テキストの変換
+Settings saved as default	設定をデフォルトとして保存しました
+Color Management	カラー マネージメント
+AnyVector works in sRGB. CMYK values shown in the color dockers are converted with a standard (uncalibrated) formula; use Color Proofing to preview print output.	AnyVector は sRGB で動作します。カラー ドッキング ウィンドウに表示される CMYK 値は標準の (キャリブレーションされていない) 式で変換されます。印刷出力をプレビューするにはカラー校正を使用してください。
+Run Script	スクリプトの実行
+AnyVector script	AnyVector スクリプト
+Error: {}	エラー: {}
+Recording... (Tools > Scripts > Stop Recording to finish)	記録中... (終了するには [ツール] > [スクリプト] > [記録の停止])
+Recording temporary script...	一時スクリプトを記録中...
+Temporary script recorded (Ctrl+Shift+P to run)	一時スクリプトを記録しました (Ctrl+Shift+P で実行)
+Recording cancelled	記録をキャンセルしました
+No temporary script recorded.	一時スクリプトは記録されていません。
+AnyVector Help	AnyVector ヘルプ
+Account	アカウント
+AnyVector does not require an account. All your work stays on this computer.	AnyVector にアカウントは不要です。作業内容はすべてこのコンピュータに保存されます。
+AnyVector Community	AnyVector コミュニティ
+Share ideas and report problems with Help > Submit Ideas and Feedback and Help > Report a Bug.	アイデアの共有や問題の報告は、[ヘルプ] > [アイデアとフィードバックの送信] と [ヘルプ] > [バグの報告] から行えます。
+Gridlines	グリッド線
+Never	しない
+3D Rotate	3D 回転
+Vertical:	垂直:
+Horizontal:	水平:
+Best fit	最適
+Cylinder	円柱
+Cylinder Modes	円柱モード
+Horizontal	水平
+Vertical	垂直
+Percentage	パーセント
+Emboss	エンボス
+Level	レベル
+Emboss color	エンボスのカラー
+Original color	元のカラー
+Gray	グレー
+Black	黒
+Other	その他
+Page Curl	ページ カール
+Top left	左上
+Top right	右上
+Bottom left	左下
+Bottom right	右下
+Opaque	不透明
+Transparent	透明
+Curl Color	カールのカラー
+Background Color	背景色
+Height	高さ
+Pinch/Punch	ピンチ/パンチ
+Sphere	球面
+Optimize	最適化
+Speed	速度
+Quality	品質
+Zigzag	ジグザグ
+Zig Zag	ジグザグ
+Type	種類
+Pond Ripples	池の波紋
+Out from center	中心から外側
+Around center	中心の周囲
+Waves	波
+Strength	強さ
+Damping	減衰
+Equalize	イコライズ
+Levels	レベル
+Channel	チャンネル
+Red	レッド
+Green	グリーン
+Blue	ブルー
+Preserve Color	カラーを保持
+Model	モデル
+Uniform	均一
+Hyperbolic	双曲線
+Sample & Target	サンプルとターゲット
+Adjust all channels	すべてのチャンネルを調整
+Sample	サンプル
+Target	ターゲット
+Tone Curve	トーン カーブ
+Light	ライト
+Intensity	強度
+Color Balance	カラー バランス
+Master	マスター
+3-Way Color	3 方向カラー
+Luminance	輝度
+Preserve luminance	輝度を保持
+Cyan - Red	シアン - レッド
+Magenta - Green	マゼンタ - グリーン
+Yellow - Blue	イエロー - ブルー
+Gamma	ガンマ
+White Balance	ホワイト バランス
+Hue/Saturation/Lightness	色相/彩度/明度
+Yellow	イエロー
+Cyan	シアン
+Magenta	マゼンタ
+Hue	色相
+Lightness	明度
+Black & White	白黒
+Reds	レッド系
+Yellows	イエロー系
+Greens	グリーン系
+Cyans	シアン系
+Blues	ブルー系
+Magentas	マゼンタ系
+Split tone	スプリット トーン
+Selective Color	特定色域の選択
+Spectrum	スペクトル
+Adjustment Percentage	調整率
+Relative	相対
+Absolute	絶対
+Replace Colors	カラーの置き換え
+Original	元の色
+Single color	単一カラー
+Smoothness	滑らかさ
+Channel Mixer	チャンネル ミキサー
+Preview output channel only	出力チャンネルのみプレビュー
+Charcoal	木炭
+Edge	エッジ
+Conté Crayon	コンテ クレヨン
+Conté Colors	コンテのカラー
+White	白
+Sanguine	サンギーヌ
+Bistre	ビスタ
+Sepia	セピア
+Paper Color	用紙の色
+Crayon	クレヨン
+Cubist	キュビズム
+Dabble	点描画
+Style	スタイル
+Randomize	ランダム化
+Impressionist	印象派
+Strokes	ストローク
+Dabs	タッチ
+Detail	細部
+Stroke	ストローク
+Coloration	着色
+Palette Knife	パレット ナイフ
+Blade Size	刃のサイズ
+Softness	柔らかさ
+Soft Edge	ソフト エッジ
+Pastels	パステル
+Pastel Type	パステルの種類
+Soft	ソフト
+Oil	オイル
+Stroke Size	ストロークのサイズ
+Hue Variation	色相の変化
+Pen & Ink	ペンとインク
+Crosshatch	クロスハッチ
+Stippling	点刻
+Ink pools	インクだまり
+Pointillist	点描
+Scraperboard	スクラッチボード
+Scrape to	削り出す色
+Sketch Pad	スケッチ パッド
+Pencil Type	鉛筆の種類
+Graphite	グラファイト
+Lead	鉛
+Watercolor	水彩画
+Granulation	粒状化
+Water amount	水の量
+Water Marker	水性マーカー
+Variation	変化
+Random	ランダム
+Color variation	カラーの変化
+Wave Paper	ウェーブ ペーパー
+Brush color mode	ブラシのカラー モード
+Black and White	白黒
+Brush pressure	ブラシの圧力
+Tune Blur	ぼかしの調整
+Gaussian	ガウス
+Directional Smooth	方向性スムーズ
+Soften	ソフト
+Step	ステップ
+Feather	フェザー
+Curved	曲線
+Jaggy Despeckle	ギザギザの除去
+Symmetric	対称
+Low Pass	ローパス
+Motion Blur	モーション ブラー
+Sampling	サンプリング
+Off-image sampling	イメージ外のサンプリング
+Ignore pixels outside image	イメージ外のピクセルを無視
+Use paper color	用紙の色を使用
+Sample nearest edge pixel	最も近いエッジのピクセルをサンプリング
+Radial Blur	放射状ぼかし
+Amount	量
+Smart Blur	スマート ぼかし
+Colorize	カラー化
+Diffuse	拡散
+Photo Filter	フォト フィルタ
+Preserve Luminosity	明度を保持
+Lens Flare	レンズ フレア
+Aspect Ratio	縦横比
+Flares	フレア
+General	全般
+Halo	ハロー
+Reflections	反射
+Falloff	減衰
+Rays	光線
+Streaks	光条
+Anamorphic	アナモルフィック
+Count	数
+Lighting Effects	照明効果
+Light Source	光源
+Enable light source	光源を有効にする
+Spotlight	スポットライト
+Directional	方向性
+Cone size	コーンのサイズ
+Atmosphere	雰囲気
+Enable atmosphere	雰囲気を有効にする
+Exposure	露出
+Image Texture	イメージ テクスチャ
+Relief	レリーフ
+Sepia Toning	セピア調
+Amount to age	経年変化の量
+Spot Filter	スポット フィルタ
+Sharpen radius	シャープの半径
+Light falloff	光の減衰
+Last Used	前回使用した設定
+Time Machine	タイム マシン
+Daguerreotype	ダゲレオタイプ
+Albumen	鶏卵紙
+Cyanotype	サイアノタイプ
+Platinum	プラチナ
+Early Color	初期カラー
+Box Camera	ボックス カメラ
+Cross Process	クロス プロセス
+Photo edges	写真の縁
+Bit Planes	ビット プレーン
+Apply to all planes	すべてのプレーンに適用
+Max dot radius	最大ドット半径
+Psychedelic	サイケデリック
+Solarize	ソラリゼーション
+Edge Detect	エッジ検出
+Background color	背景色
+Sensitivity	感度
+Find Edges	輪郭の検出
+Edge Type	エッジの種類
+Solid	ソリッド
+Trace Contour	輪郭のトレース
+Lower	下限
+Upper	上限
+Local Equalization	ローカル イコライズ
+Dust and Scratch	ダストとスクラッチ
+Threshold	しきい値
+Tune Sharpen	シャープの調整
+Unsharp Mask	アンシャープ マスク
+Adaptive Unsharp	アダプティブ アンシャープ
+Directional Sharpen	方向性シャープ
+Art Style	アート スタイル
+Smooth Acrylic	スムーズ アクリル
+Pastel Mosaic	パステル モザイク
+Neon	ネオン
+Woodcut	木版画
+Lava Lamp	ラバ ランプ
+Low	低
+High	高
+Crystallize	結晶化
+Fabric	ファブリック
+Needlepoint	ニードルポイント
+Rug Hooking	ラグ フッキング
+Quilt	キルト
+Strings	ひも
+Ribbons	リボン
+Tissue Collage	ティッシュ コラージュ
+Complete	完了
+Frame	フレーム
+Blur/Feather	ぼかし/フェザー
+Glass Block	ガラス ブロック
+Block width	ブロックの幅
+Block height	ブロックの高さ
+Mosaic	モザイク
+Vignette	ビネット
+Scatter	散乱
+Smoked Glass	スモーク ガラス
+Blurring	ぼかし
+Stained Glass	ステンド グラス
+Light Intensity	光の強度
+Thickness	太さ
+Solder Width	はんだの幅
+Solder Color	はんだのカラー
+3D Lighting	3D 照明
+Circle	円
+Vortex	渦巻き
+Brushed	ブラシ
+Layered	レイヤー
+Thick	太い
+Thin	細い
+Inner Direction	内側の方向
+Outer Direction	外側の方向
+Band Pass	バンドパス
+Frequency	周波数
+Bandwidth	帯域幅
+Bump Map	バンプ マップ
+Scaling	拡大/縮小
+Stretch To Fit	伸縮して合わせる
+Tile	タイル
+Tile Width	タイルの幅
+Tile Height	タイルの高さ
+Invert Bump Map	バンプ マップを反転
+Smooth Bump Map	バンプ マップをスムーズに
+Surface	表面
+Scale Factor	拡大/縮小率
+Floor	床
+Ceiling	天井
+Highlight	ハイライト
+Directional light color	指向性ライトのカラー
+Declination	偏角
+Auto Compute Brightness	明るさを自動計算
+Ambient light color	環境光のカラー
+User Defined	ユーザー定義
+Divisor	除数
+Auto compute divisor	除数を自動計算
+Preserve colors	カラーを保持
+Symmetric kernel	対称カーネル
+Blocks	ブロック
+Max. offset	最大オフセット
+Undefined Areas	未定義領域
+Original Image	元のイメージ
+Inverse Image	反転イメージ
+Displace	置き換え
+Scale Mode	拡大/縮小モード
+Stretch to fit	伸縮して合わせる
+Repeat Edges	エッジを繰り返す
+Wrap Around	折り返し
+Mesh Warp	メッシュ ワープ
+Shift value as % of dimensions	シフト値 (寸法に対する %)
+Other Color	その他のカラー
+Pixelate	ピクセレート
+Pixelate mode	ピクセレート モード
+Rectangular	矩形
+Radial	放射状
+Ripple	波紋
+Primary Wave	一次波
+Period	周期
+Amplitude	振幅
+Perpendicular Wave	垂直波
+Distort ripple	波紋をゆがめる
+Shear	シアー
+Curve	カーブ
+Orientation	方向
+Edges style	エッジのスタイル
+Swirl	スワール
+Counter-Clockwise	反時計回り
+Whole Rotations	完全回転数
+Degree	角度
+Horizontal tiles	水平方向のタイル数
+Vertical tiles	垂直方向のタイル数
+Overlap	重なり
+Wet Paint	ウェット ペイント
+Wetness	濡れ具合
+Percent	パーセント
+Whirlpool	渦
+Warp	ワープ
+Smear Length	スミアの長さ
+Twist	ねじれ
+Streak Detail	筋の細部
+Wind	風
+Tune Noise	ノイズの調整
+More Spike	スパイクを増やす
+More Gaussian	ガウスを増やす
+More Uniform	均一を増やす
+Minimum	最小値
+Median	中央値
+Maximum	最大値
+Remove Noise	ノイズの除去
+Add Noise	ノイズの追加
+Noise type	ノイズの種類
+Spike	スパイク
+Color mode	カラー モード
+3-D Stereo Noise	3D ステレオ ノイズ
+Show dots	ドットを表示
+Remove Moiré	モアレの除去
+Output	出力
+Auto	自動
+High Pass	ハイパス
+Edge level	エッジ レベル
+Preserve Colors	カラーを保持
+Brick Wall	レンガ壁
+Roughness	粗さ
+Brick Width	レンガの幅
+Brick Height	レンガの高さ
+Maintain Aspect Ratio	縦横比を維持
+Grout Width	目地の幅
+Light Direction	光の方向
+Bubbles	泡
+Diameter	直径
+Coverage	範囲
+Refraction	屈折
+Canvas	キャンバス
+X Offset	X オフセット
+Y Offset	Y オフセット
+Tile Offset	タイルのオフセット
+Rows	行
+Cobblestone	石畳
+Grout width	目地の幅
+Light direction	光の方向
+Elephant Skin	象の皮膚
+Age	経年
+Etching	エッチング
+Surface Color	表面のカラー
+Plastic	プラスチック
+Light Color	光のカラー
+Plaster Wall	しっくい壁
+Relief Sculpture	レリーフ彫刻
+Screen Door	網戸
+Mesh Density	メッシュの密度
+Stone	石
+Underpainting	下塗り
+Scan Lines	走査線
+Even Lines	偶数ライン
+Odd Lines	奇数ライン
+Replacement	置換
+Replacement Method	置換方法
+Duplication	複製
+Interpolation	補間
+Posterize	ポスタリゼーション
+Low-level	低レベル
+Mid	中
+High-level	高レベル
+RGB Channels	RGB チャンネル
+Red Channel	レッド チャンネル
+Green Channel	グリーン チャンネル
+Blue Channel	ブルー チャンネル
+To Black	黒へ
+To White	白へ
+Bi-Level	2 階調
+Histogram Display Clipping	ヒストグラム表示のクリッピング
+The help page could not be opened: {}	ヘルプ ページを開けませんでした: {}
+Quick Start Guide	クイック スタート ガイド
+User Guide	ユーザー ガイド
+Keyboard Shortcuts	キーボード ショートカット
+What's New in This Version	このバージョンの新機能
+Language	言語
+Fonts	フォント
+Send To {}	{} に送る
+&Lite	ライト(&L)
+&Default	デフォルト(&D)
+&Touch	タッチ(&T)
+&Specialty	スペシャリティ(&S)
+&Illustration	イラストレーション(&I)
+&Page Layout	ページ レイアウト(&P)
+Default Palette	デフォルト パレット
+blank icon	空白のアイコン
+Toolbar Item	ツールバー項目
+Web	Web
+No Color	カラーなし
+Set Fill	塗りつぶしの設定
+Set Outline	アウトラインの設定
+Large swatches	大きいスウォッチ
+Wide borders	幅の広い境界線
+Show "No Color" well	"カラーなし" ウェルを表示
+Add Color to Document Palette	ドキュメント パレットにカラーを追加
+Drag colors (or objects) here to store these colors with your document	カラー (またはオブジェクト) をここにドラッグすると、そのカラーがドキュメントと一緒に保存されます
+Add Colors from Selection	選択範囲からカラーを追加
+Add Colors from Document	ドキュメントからカラーを追加
+Automatically update	自動的に更新
+Clear Document Palette	ドキュメント パレットのクリア
+Match orientation	向きを合わせる
+Even & Odd	偶数と奇数
+Even	偶数
+Odd	奇数
+Single file	単一ファイル
+Pages to separate files	ページごとに別ファイル
+Ignore	無視
+Simulate	シミュレート
+Top center	中央上
+Middle left	左中央
+Middle right	右中央
+Bottom center	中央下
+Print Styles	印刷スタイル
+Page {}	ページ {}
+{}   {}   Page {}	{}   {}   ページ {}
+There is nothing to print.	印刷する内容がありません。
+The pages being printed have no printable objects.	印刷するページに印刷可能なオブジェクトがありません。
+{} object(s) lie completely outside the page.	{} 個のオブジェクトが完全にページの外にあります。
+Objects outside the page do not print. Move them onto the page or remove them.	ページの外にあるオブジェクトは印刷されません。ページ上に移動するか削除してください。
+{} bitmap(s) have a resolution lower than 150 dpi.	{} 個のビットマップの解像度が 150 dpi 未満です。
+Low-resolution bitmaps print blurred or pixelated. Use higher-resolution images or print them smaller.	低解像度のビットマップはぼやけたりピクセル化したりして印刷されます。より高解像度のイメージを使用するか、小さく印刷してください。
+{} empty text object(s).	{} 個の空のテキスト オブジェクト。
+Empty text objects print nothing and can be deleted.	空のテキスト オブジェクトは何も印刷されないため、削除できます。
+{} object(s) have outlines thinner than 0.25 pt.	{} 個のオブジェクトのアウトラインが 0.25 pt より細くなっています。
+Very thin outlines may not print, or print unevenly. Use at least 0.25 pt.	非常に細いアウトラインは印刷されないか、ムラが出る場合があります。0.25 pt 以上にしてください。
+Printers' marks do not fit on the paper.	プリンタ マークが用紙に収まりません。
+The paper must be larger than the page to hold crop marks, registration marks and the other printers' marks. Choose a larger paper, or Fit to page on the Layout tab.	トンボ、レジストレーション マーク、その他のプリンタ マークを入れるには、用紙をページより大きくする必要があります。より大きな用紙を選択するか、[レイアウト] タブで [ページに合わせる] を選択してください。
+Printing is available on Windows only.	印刷は Windows でのみ使用できます。
+Could not open the printer "{}".	プリンタ "{}" を開けませんでした。
+The printer did not accept the job.	プリンタがジョブを受け付けませんでした。
+The printer stopped the job.	プリンタがジョブを停止しました。
+The printer could not finish the job.	プリンタがジョブを完了できませんでした。
+The printer "{}" is not available.	プリンタ "{}" は使用できません。
+There are no pages to print.	印刷するページがありません。
+Printed {} page(s) to {}	{} ページを {} に印刷しました
+Sent {} page(s) to {}	{} ページを {} に送信しました
+0 bytes	0 バイト
+{} bytes	{} バイト
+{} KB	{} KB
+{} MB	{} MB
+Embed color profiles ({})	カラー プロファイルを埋め込む ({})
+Color profiles:	カラー プロファイル:
+Embed fonts ({})	フォントを埋め込む ({})
+Ver&sion:	バージョン(&S):
+&Advanced...	詳細設定(&A)...
+Advanced Save Options	保存の詳細オプション
+Optimize for	最適化の対象
+S&peed	速度(&P)
+Si&ze	サイズ(&Z)
+Save &presentation attributes (views)	プレゼンテーション属性 (ビュー) を保存(&P)
+Use &bitmap compression	ビットマップ圧縮を使用(&B)
+Use &graphic object compression	グラフィック オブジェクト圧縮を使用(&G)
+Save &thumbnail	サムネイルを保存(&T)
+unknown command: {}	不明なコマンド: {}
+Script	スクリプト
+Script Fill	スクリプトによる塗りつぶし
+Script Outline	スクリプトによるアウトライン
+Script Move	スクリプトによる移動
+Script Rotate	スクリプトによる回転
+Script Scale	スクリプトによる拡大縮小
+New document	新規ドキュメント
+Open document	ドキュメントを開く
+Open last edited	最後に編集したドキュメントを開く
+Nothing	何もしない
+Clipart	クリップアート
+Touch	タッチ
+Dark	ダーク
+Afrikaans	アフリカーンス語
+Albanian	アルバニア語
+Arabic (Algeria)	アラビア語 (アルジェリア)
+Arabic (Bahrain)	アラビア語 (バーレーン)
+Arabic (Egypt)	アラビア語 (エジプト)
+Arabic (Iraq)	アラビア語 (イラク)
+Arabic (Jordan)	アラビア語 (ヨルダン)
+Arabic (Kuwait)	アラビア語 (クウェート)
+Arabic (Lebanon)	アラビア語 (レバノン)
+Arabic (Libya)	アラビア語 (リビア)
+Arabic (Morocco)	アラビア語 (モロッコ)
+Arabic (Oman)	アラビア語 (オマーン)
+Arabic (Qatar)	アラビア語 (カタール)
+Arabic (Saudi Arabia)	アラビア語 (サウジアラビア)
+Arabic (Syria)	アラビア語 (シリア)
+Arabic (Tunisia)	アラビア語 (チュニジア)
+Arabic (United Arab Emirates)	アラビア語 (アラブ首長国連邦)
+Arabic (Yemen)	アラビア語 (イエメン)
+Azeri (Cyrillic)	アゼルバイジャン語 (キリル)
+Azeri (Latin)	アゼルバイジャン語 (ラテン)
+Basque	バスク語
+Belarusian	ベラルーシ語
+Bulgarian	ブルガリア語
+Catalan	カタロニア語
+Chinese (China)	中国語 (中国)
+Chinese (Hong Kong SAR)	中国語 (香港特別行政区)
+Chinese (Macau SAR)	中国語 (マカオ特別行政区)
+Chinese (Simplified)	中国語 (簡体字)
+Chinese (Singapore)	中国語 (シンガポール)
+Chinese (Taiwan)	中国語 (台湾)
+Chinese (Traditional)	中国語 (繁体字)
+Croatian	クロアチア語
+Czech	チェコ語
+Danish	デンマーク語
+Dutch (Belgium)	オランダ語 (ベルギー)
+Dutch (The Netherlands)	オランダ語 (オランダ)
+English (Australia)	英語 (オーストラリア)
+English (Belize)	英語 (ベリーズ)
+English (Canada)	英語 (カナダ)
+English (Caribbean)	英語 (カリブ)
+English (Ireland)	英語 (アイルランド)
+English (Jamaica)	英語 (ジャマイカ)
+English (New Zealand)	英語 (ニュージーランド)
+English (Philippines)	英語 (フィリピン)
+English (South Africa)	英語 (南アフリカ)
+English (Trinidad and Tobago)	英語 (トリニダード・トバゴ)
+English (United Kingdom)	英語 (イギリス)
+English (Zimbabwe)	英語 (ジンバブエ)
+Estonian	エストニア語
+Faroese	フェロー語
+Farsi	ペルシャ語
+Finnish	フィンランド語
+French (Belgium)	フランス語 (ベルギー)
+French (Canada)	フランス語 (カナダ)
+French (France)	フランス語 (フランス)
+French (Luxembourg)	フランス語 (ルクセンブルク)
+French (Monaco)	フランス語 (モナコ)
+French (Switzerland)	フランス語 (スイス)
+Galician	ガリシア語
+German (Austria)	ドイツ語 (オーストリア)
+German (Germany)	ドイツ語 (ドイツ)
+German (Liechtenstein)	ドイツ語 (リヒテンシュタイン)
+German (Luxembourg)	ドイツ語 (ルクセンブルク)
+German (Switzerland)	ドイツ語 (スイス)
+Greek	ギリシャ語
+Hebrew	ヘブライ語
+Hungarian	ハンガリー語
+Icelandic	アイスランド語
+Indonesian	インドネシア語
+Italian	イタリア語
+Italian (Switzerland)	イタリア語 (スイス)
+Japanese	日本語
+Kazakh	カザフ語
+Korean	韓国語
+Kyrgyz	キルギス語
+Latvian	ラトビア語
+Lithuanian	リトアニア語
+Macedonian	マケドニア語
+Malay (Brunei)	マレー語 (ブルネイ)
+Malay (Malaysia)	マレー語 (マレーシア)
+Mongolian	モンゴル語
+Norwegian (Bokmel)	ノルウェー語 (ブークモール)
+Norwegian (Nynorsk)	ノルウェー語 (ニーノシュク)
+Polish	ポーランド語
+Portuguese (Brazil)	ポルトガル語 (ブラジル)
+Portuguese (Portugal)	ポルトガル語 (ポルトガル)
+Romanian (Romania)	ルーマニア語 (ルーマニア)
+Russian (Russia)	ロシア語 (ロシア)
+Serbian (Cyrillic)	セルビア語 (キリル)
+Serbian (Latin)	セルビア語 (ラテン)
+Slovak	スロバキア語
+Slovenian	スロベニア語
+Spanish (Argentina)	スペイン語 (アルゼンチン)
+Spanish (Bolivia)	スペイン語 (ボリビア)
+Spanish (Chile)	スペイン語 (チリ)
+Spanish (Colombia)	スペイン語 (コロンビア)
+Spanish (Costa Rica)	スペイン語 (コスタリカ)
+Spanish (Dominican Republic)	スペイン語 (ドミニカ共和国)
+Spanish (Ecuador)	スペイン語 (エクアドル)
+Spanish (El Salvador)	スペイン語 (エルサルバドル)
+Spanish (Guatemala)	スペイン語 (グアテマラ)
+Spanish (Honduras)	スペイン語 (ホンジュラス)
+Spanish (Mexico)	スペイン語 (メキシコ)
+Spanish (Nicaragua)	スペイン語 (ニカラグア)
+Spanish (Panama)	スペイン語 (パナマ)
+Spanish (Paraguay)	スペイン語 (パラグアイ)
+Spanish (Peru)	スペイン語 (ペルー)
+Spanish (Puerto Rico)	スペイン語 (プエルトリコ)
+Spanish (Spain)	スペイン語 (スペイン)
+Spanish (Uruguay)	スペイン語 (ウルグアイ)
+Spanish (Venezuela)	スペイン語 (ベネズエラ)
+Swahili	スワヒリ語
+Swedish (Finland)	スウェーデン語 (フィンランド)
+Swedish (Sweden)	スウェーデン語 (スウェーデン)
+Tatar	タタール語
+Thai	タイ語
+Turkish	トルコ語
+Ukrainian	ウクライナ語
+Urdu	ウルドゥー語
+Uzbek (Cyrillic)	ウズベク語 (キリル)
+Uzbek (Latin)	ウズベク語 (ラテン)
+Vietnamese	ベトナム語
+Duplicate word	単語の重複
+`{}` is repeated.	`{}` が重複しています。
+Spelling	スペル
+`{}` is not in the spelling dictionary.	`{}` はスペル辞書にありません。
+Capitalization	大文字小文字
+The first word of a sentence starts with a capital letter.	文の最初の単語は大文字で始まります。
+Article	冠詞
+Use `{}` before `{}`.	`{}` の前には `{}` を使用してください。
+There are two spaces between words.	単語の間にスペースが 2 つあります。
+Punctuation	句読点
+There is a space before the punctuation mark.	句読点の前にスペースがあります。
+Initializing...	初期化しています...
+Loading fonts...	フォントを読み込んでいます...
+Loading color palettes...	カラー パレットを読み込んでいます...
+Loading workspace...	ワークスペースを読み込んでいます...
+Starting AnyVector...	AnyVector を起動しています...
+Vector graphics editor	ベクター グラフィック エディタ
+Version {}	バージョン {}
+Tool Hints	ツールのヒント
+Object Details	オブジェクトの詳細
+Cursor Coordinates	カーソル座標
+Document Color Settings	ドキュメントのカラー設定
+{}  {} pt	{}  {} pt
+Object Information	オブジェクト情報
+Color profile: sRGB IEC61966-2.1	カラー プロファイル: sRGB IEC61966-2.1
+Color mode: RGB	カラー モード: RGB
+ with {} nodes	 ({} 個のノード)
+ of {} objects	 ({} 個のオブジェクト)
+ ({} characters)	 ({} 文字)
+ ({} x {} pixels)	 ({} x {} ピクセル)
+{}{} on {}	{2} 上の{0}{1}
+{} objects selected on {}	{1} 上で {0} 個のオブジェクトを選択
+W: {}  H: {}  Center: ({}, {})	幅: {}  高さ: {}  中心: ({}, {})
+Display	表示
+Printing	印刷
+AnyVector EXEs & DLLs	AnyVector の EXE と DLL
+System DLLs	システム DLL
+{} GB	{} GB
+AnyVector {} - System Info	AnyVector {} - システム情報
+Platform:	プラットフォーム:
+Processor:	プロセッサ:
+Number of Processors:	プロセッサ数:
+Math Coprocessor:	数値演算コプロセッサ:
+Yes	はい
+No	いいえ
+Total physical memory:	合計物理メモリ:
+Available physical memory:	使用可能な物理メモリ:
+Total virtual memory:	合計仮想メモリ:
+Available virtual memory:	使用可能な仮想メモリ:
+Total memory used by app:	アプリケーションが使用している合計メモリ:
+GDI Object Count:	GDI オブジェクト数:
+User Object Count:	ユーザー オブジェクト数:
+Available space on drive {}	ドライブ {} の空き容量
+Windows Directory:	Windows ディレクトリ:
+TEMP directory:	TEMP ディレクトリ:
+Application directory:	アプリケーション ディレクトリ:
+Graphics adapter:	グラフィック アダプタ:
+Unknown	不明
+Number of displays:	ディスプレイ数:
+Display {}:	ディスプレイ {}:
+    Resolution:	    解像度:
+{} x {} pixels	{} x {} ピクセル
+    Color depth:	    色深度:
+{} bits	{} ビット
+    Refresh rate:	    リフレッシュ レート:
+{} Hz	{} Hz
+    Position:	    位置:
+Default printer:	通常使うプリンタ:
+Installed printers:	インストールされているプリンタ:
+To Page	ページに合わせる
+To Width	幅に合わせる
+To Height	高さに合わせる
+To Selected	選択オブジェクトに合わせる
+To All Objects	すべてのオブジェクトに合わせる
+Quick Customize	クイック カスタマイズ
+Reset toolbar	ツールバーのリセット
+Customize...	カスタマイズ...
+Detailed Logo	詳細ロゴ
+Low Quality Image	低品質イメージ
+High Quality Image	高品質イメージ
+Centerline	センターライン
+Technical Illustration	テクニカル イラストレーション
+Traced {}	トレースした {}
+Centerline {}	センターライン {}
+Keep the product up to date (recommended)	製品を最新の状態に保つ (推奨)
+Check for updates and let me choose when to install them	更新プログラムを確認し、インストールのタイミングを選択する
+Never check for updates	更新プログラムを確認しない
+Automatically downloads product updates, but prompts you before installing them.	製品の更新プログラムを自動的にダウンロードしますが、インストール前に確認します。
+AnyVector tells you when a new version is available; you choose when to download and install it.	新しいバージョンが利用可能になると AnyVector が通知します。ダウンロードとインストールのタイミングはユーザーが選択します。
+AnyVector never connects to the Internet to look for updates. Help ▸ Updates still checks when you ask.	AnyVector は更新プログラムを探すためにインターネットに接続しません。[ヘルプ] ▸ [更新] では、要求したときに確認が行われます。
+An Internet connection is required. Please connect to the Internet and try again.	インターネット接続が必要です。インターネットに接続してからやり直してください。
+Invalid answer from the update server: {}	更新サーバーからの応答が無効です: {}
+The latest release has no setup for Windows.	最新のリリースには Windows 用のセットアップがありません。
+No published release was found at github.com/{}.	github.com/{} に公開されたリリースが見つかりませんでした。
+AnyVector Updates	AnyVector の更新
+The update server answered {}.	更新サーバーの応答: {}。
+The download was interrupted. Please try again.	ダウンロードが中断されました。もう一度お試しください。
+The downloaded setup is empty.	ダウンロードしたセットアップが空です。
+This release has no notes.	このリリースにはリリース ノートがありません。
+Click Check Now to look for a new version.	新しいバージョンを探すには [今すぐ確認] をクリックしてください。
+Checking for updates...	更新プログラムを確認しています...
+AnyVector is up to date.	AnyVector は最新の状態です。
+AnyVector {} is available.	AnyVector {} が利用可能です。
+Downloading AnyVector {}...	AnyVector {} をダウンロードしています...
+AnyVector {} is ready to install.	AnyVector {} をインストールする準備ができました。
+AnyVector closes to install it (it asks to save your drawings first) and starts again when it is done.	インストールのために AnyVector は終了し (先に描画の保存を確認します)、完了すると再起動します。
+Updates	更新
+You are using AnyVector {}.	AnyVector {} を使用しています。
+The update will be installed when AnyVector closes.	更新プログラムは AnyVector の終了時にインストールされます。
+Allow product updates:	製品の更新を許可:
+Release Notes	リリース ノート
+Install Now	今すぐインストール
+Check Now	今すぐ確認
+Later	後で
+There is a new version of AnyVector available.	AnyVector の新しいバージョンが利用可能です。
+New version: {}. Your version: {}.	新しいバージョン: {}。現在のバージョン: {}。
+Click OK to install the new version.	新しいバージョンをインストールするには [OK] をクリックしてください。
+Get Started	はじめに
+What's New	新機能
+Menus, right-click menus, toolbars, the toolbox and every property bar follow the reference layout	メニュー、右クリック メニュー、ツールバー、ツールボックス、すべてのプロパティ バーがリファレンスのレイアウトに準拠
+The Welcome Screen with Get Started, Workspace and What's New	[はじめに]、[ワークスペース]、[新機能] を備えたようこそ画面
+CDR drawing format (.cdr); the older .vct format still opens	CDR 描画形式 (.cdr)。以前の .vct 形式も引き続き開けます
+PDF, SVG and bitmap export	PDF、SVG、ビットマップへのエクスポート
+PowerTRACE bitmap tracing	PowerTRACE によるビットマップのトレース
+Scripting with recording	記録機能付きのスクリプト
+Ideas and feedback	アイデアとフィードバック
+Drop files to open them	ファイルをドロップして開く
+New Document	新規ドキュメント
+New from Template	テンプレートから新規作成
+Open Document	ドキュメントを開く
+Recent Documents	最近使ったドキュメント
+Documents you open or save are listed here.	開いたり保存したりしたドキュメントがここに表示されます。
+Choose the layout of tools, toolbars and dockers that fits your work. You can change it later in Window ▸ Workspace.	作業に合ったツール、ツールバー、ドッキング ウィンドウのレイアウトを選択してください。後から [ウィンドウ] ▸ [ワークスペース] で変更できます。
+Current	現在
+What's New in AnyVector {}	AnyVector {} の新機能
+Lite	ライト
+The Lite workspace is ideal for new users who are getting started. Its clean look invites you to explore AnyVector in a friendly environment.	ライト ワークスペースは、使い始めたばかりの新しいユーザーに最適です。すっきりとした外観で、わかりやすい環境で AnyVector を試すことができます。
+The Default workspace places tools and controls where they are easy to find. It suits users who know other vector graphics software as well as long-time users.	デフォルト ワークスペースでは、ツールとコントロールが見つけやすい場所に配置されています。他のベクター グラフィック ソフトウェアに慣れたユーザーにも、長年のユーザーにも適しています。
+Optimized for touch-enabled devices, the Touch workspace is ideal for field work and sketching. Work with touch, a dial or a stylus, without a mouse or keyboard.	タッチ対応デバイス向けに最適化されたタッチ ワークスペースは、現場での作業やスケッチに最適です。マウスやキーボードを使わずに、タッチ、ダイヤル、スタイラスで作業できます。
+Illustration	イラストレーション
+The Illustration workspace is ideal for an intuitive and efficient workflow when you create book covers, magazine ads, storyboards and other illustrations.	イラストレーション ワークスペースは、本の表紙、雑誌広告、絵コンテなどのイラストを作成する際に、直感的で効率的なワークフローを実現します。
+The Page Layout workspace is optimized for arranging graphics and text into layouts for business cards, branding, product packaging and multipage documents such as brochures and newsletters.	ページ レイアウト ワークスペースは、名刺、ブランディング、製品パッケージや、パンフレットやニュースレターなどの複数ページ ドキュメントのレイアウトにグラフィックとテキストを配置するために最適化されています。
+This workspace has the look and feel of Adobe® Illustrator®, helping Illustrator users to get started quickly with AnyVector.	このワークスペースは Adobe® Illustrator® のような外観と操作性を備えているため、Illustrator ユーザーがすぐに AnyVector を使い始めることができます。
+Workspace: {}	ワークスペース: {}
+Status Bar	ステータス バー
+Menus	メニュー
+Shortcut Keys	ショートカット キー
+The file is not a workspace file.	このファイルはワークスペース ファイルではありません。
+This workspace was not made with AnyVector, so its elements cannot be read.	このワークスペースは AnyVector で作成されていないため、要素を読み取れません。
+Select a bitmap.	ビットマップを選択してください。
+Convert to Grayscale	グレースケールに変換
+Convert to {}	{} に変換
+Edit Bitmap	ビットマップの編集
+Could not write {}: {}	{} を書き込めませんでした: {}
+Edit the bitmap and save it: AnyVector updates it.	ビットマップを編集して保存してください。AnyVector で更新されます。
+Select the objects to convert to a bitmap.	ビットマップに変換するオブジェクトを選択してください。
+Before and after	変更前と変更後
+Full preview	フル プレビュー
+Split preview	分割プレビュー
+Zoom 100%	100% ズーム
+Zoom to fit	ウィンドウに合わせる
+Before	変更前
+After	変更後
+Reset	リセット
+16 Colors (4-bit)	16 色 (4 ビット)
+Convert To Bitmap	ビットマップに変換
+Resolution:	解像度:
+Color mode:	カラー モード:
+Dithered	ディザ
+Always overprint black	常に黒をオーバープリント
+Anti-aliasing	アンチエイリアス
+Transparent background	透明な背景
+Uncompressed file size: {} MB	非圧縮時のファイル サイズ: {} MB
+Convert to Bitmap	ビットマップに変換
+Original Size	元のサイズ
+Inflate to:	拡張後のサイズ:
+Inflate by:	拡張量:
+Width:	幅:
+{} (pixels)	{} (ピクセル)
+Height:	高さ:
+Maintain aspect ratio	縦横比を維持
+picas, points	パイカ、ポイント
+ciceros, didots	シセロ、ディドー
+Resample	再サンプル
+Image size	イメージ サイズ
+Resolution	解像度
+Identical values	同じ値
+Bicubic	バイキュービック
+Illustration ✦	イラストレーション ✦
+Nearest neighbor	ニアレスト ネイバー
+Photorealistic ✦	写実的 ✦
+Noise reduction:	ノイズ低減:
+Original file size:	元のファイル サイズ:
+New file size:	新しいファイル サイズ:
+Maintain original file size	元のファイル サイズを維持
+Original pixel size:	元のピクセル サイズ:
+{} x {} px	{} x {} px
+New pixel size:	新しいピクセル サイズ:
+Convert to 1 bit	1 ビットに変換
+Conversion method:	変換方法:
+Threshold:	しきい値:
+Intensity:	強度:
+Screen type:	スクリーンの種類:
+lines per	線数/
+Monotone	モノトーン
+Duotone	ダブルトーン
+Tritone	トリプルトーン
+Quadtone	クワッドトーン
+Curves	カーブ
+Overprint	オーバープリント
+Type:	種類:
+Overprint colors:	オーバープリントのカラー:
+A monotone prints with one ink: there are no overprints.	モノトーンは 1 色のインクで印刷されるため、オーバープリントはありません。
+Null	ヌル
+Load	読み込み
+Duotone curves	ダブルトーン カーブ
+Convert to Duotone	ダブルトーンに変換
+8 bits(256 colors)	8 ビット (256 色)
+4 bits(16 colors)	4 ビット (16 色)
+2 bits(4 colors)	2 ビット (4 色)
+Convert to Paletted	パレットに変換
+Range Sensitivity	範囲の感度
+Processed Palette	処理済みパレット
+Smoothing:	スムージング:
+Palette:	パレット:
+Dithering	ディザリング
+Dither Intensity:	ディザの強度:
+Color range sensivity to:	カラー範囲の感度の対象:
+Importance:	重要度:
+Lightness:	明度:
+{} colors	{} 色
+Presets:	プリセット:
+Preset {}	プリセット {}
+Straighten Image	イメージの傾き補正
+Grid:	グリッド:
+Correct lens distortion	レンズのゆがみを補正
+Rotate image	イメージを回転
+Vertical Perspective	垂直方向の遠近
+Horizontal Perspective	水平方向の遠近
+Crop image	イメージをトリミング
+Crop and resample to original size	トリミングして元のサイズに再サンプル
+Remember settings	設定を記憶
+Image Adjustment Lab	イメージ調整ラボ
+Rotate clockwise	時計回りに回転
+Rotate counterclockwise	反時計回りに回転
+Create snapshot	スナップショットの作成
+Delete snapshot	スナップショットの削除
+Auto adjust	自動調整
+Select white point	白色点を選択
+Select black point	黒色点を選択
+Low quality image	低品質イメージ
+High quality image	高品質イメージ
+Auto-downsample (16 MP+)	自動ダウンサンプル (16 MP 以上)
+Keep original resolution	元の解像度を維持
+Upsample (Illustration ✦)	アップサンプル (イラストレーション ✦)
+Upsample (Photorealistic ✦)	アップサンプル (写実的 ✦)
+Specify color	カラーを指定
+Similarity	類似度
+Before and After	変更前と変更後
+Large Preview	大きいプレビュー
+Wireframe Overlay	ワイヤーフレームのオーバーレイ
+Select a bitmap to trace.	トレースするビットマップを選択してください。
+Preview:	プレビュー:
+Curves:	カーブ:
+Nodes:	ノード:
+Trace type	トレースの種類
+Trace type:	トレースの種類:
+Trace profile:	トレース プロファイル:
+Image handling	イメージの処理
+Resample mode:	再サンプル モード:
+Remove image background	イメージの背景を除去
+Remove JPEG artifacts	JPEG アーティファクトを除去
+Delete original image	元のイメージを削除
+Shape detail	シェイプの細部
+Node density	ノードの密度
+Curvature	曲率
+Shape structure	シェイプの構造
+Remove overlap	重なりを除去
+Merge adjacent shapes	隣接するシェイプを結合
+Color Mode:	カラー モード:
+Remove:	除去:
+Number of Colors:	カラー数:
+Sort by:	並べ替え:
+Merge by averaging	平均で結合
+Merge to first selected	最初に選択したカラーに結合
+Open color palette	カラー パレットを開く
+Save color palette	カラー パレットを保存
+Palette	パレット
+Edit...	編集...
+Select color from image	イメージからカラーを選択
+Delete color	カラーの削除
+AnyVector Graphic	AnyVector グラフィック
+SVG Document	SVG ドキュメント
+Device Independent Bitmap	デバイス独立ビットマップ
+Inserts the contents of the clipboard into your document as AnyVector objects.	クリップボードの内容を AnyVector オブジェクトとしてドキュメントに挿入します。
+Inserts the contents of the clipboard into your document as SVG objects.	クリップボードの内容を SVG オブジェクトとしてドキュメントに挿入します。
+Inserts the contents of the clipboard into your document as Text.	クリップボードの内容をテキストとしてドキュメントに挿入します。
+Inserts the contents of the clipboard into your document as a bitmap.	クリップボードの内容をビットマップとしてドキュメントに挿入します。
+Unknown Source	不明なソース
+Paste Special	形式を選択して貼り付け
+Source:	ソース:
+Paste Link	リンク貼り付け
+As:	形式:
+Result	結果
+The clipboard is empty.	クリップボードは空です。
+Display As Icon	アイコンとして表示
+Copy Properties	プロパティのコピー
+Text Properties	テキスト プロパティ
+Hint: You may copy properties by dragging one object onto another using the right mouse button.	ヒント: マウスの右ボタンでオブジェクトを別のオブジェクトの上にドラッグしても、プロパティをコピーできます。
+After pressing OK, choose the object to copy from.	[OK] をクリックした後、コピー元のオブジェクトを選択してください。
+Click the object to copy properties from.	プロパティのコピー元のオブジェクトをクリックしてください。
+1 star	星 1 つ
+2 stars	星 2 つ
+3 stars	星 3 つ
+4 stars	星 4 つ
+5 stars	星 5 つ
+Name and location:	名前と場所:
+Document	ドキュメント
+Pages:	ページ:
+Layers:	レイヤー:
+Page size:	ページ サイズ:
+Page orientation:	ページの向き:
+Resolution (dpi):	解像度 (dpi):
+RGB Profile:	RGB プロファイル:
+CMYK Profile:	CMYK プロファイル:
+Grayscale Profile:	グレースケール プロファイル:
+Primary color mode:	プライマリ カラー モード:
+Rendering intent:	レンダリング インテント:
+Shadows:	シャドウ:
+Contours:	輪郭:
+Extrusions:	押し出し:
+Distortions:	ディストーション:
+Envelopes:	エンベロープ:
+Lenses:	レンズ:
+Bevels:	ベベル:
+Bitmap effects:	ビットマップ効果:
+Blends:	ブレンド:
+No fill:	塗りつぶしなし:
+Uniform fills:	均一塗りつぶし:
+Fountain fills:	グラデーション塗りつぶし:
+Pattern fills:	パターン塗りつぶし:
+Mesh fills:	メッシュ塗りつぶし:
+No outline:	アウトラインなし:
+Hairline outlines:	極細アウトライン:
+Outlines:	アウトライン:
+Objects:	オブジェクト:
+Points in curves:	カーブのポイント:
+Graphic Objects	グラフィック オブジェクト
+Text objects:	テキスト オブジェクト:
+Paragraphs:	段落:
+Words:	単語:
+Characters:	文字:
+Fonts used:	使用フォント:
+Text Statistics	テキスト統計
+Bitmap Objects	ビットマップ オブジェクト
+Bitmaps:	ビットマップ:
+Images in document:	ドキュメント内のイメージ:
+Styles	スタイル
+Object styles:	オブジェクト スタイル:
+Color styles:	カラー スタイル:
+Fills	塗りつぶし
+Outlines	アウトライン
+Print Merge Fields	差し込み印刷フィールド
+Ellipses	楕円形
+Polygons	多角形
+Text objects	テキスト オブジェクト
+Groups	グループ
+Rectangles	矩形
+Custom ({} × {} in.)	カスタム ({} × {} インチ)
+Document Properties	ドキュメント プロパティ
+Language:	言語:
+Title:	タイトル:
+Subject:	件名:
+Author:	作成者:
+Copyright:	著作権:
+Tags:	タグ:
+Notes:	メモ:
+Rating:	評価:
+Document distribution	ドキュメント配布
+Archiving (CMYK)	アーカイブ (CMYK)
+Archiving (RGB)	アーカイブ (RGB)
+Current proof settings	現在の校正設定
+Editing	編集
+Prepress	プリプレス
+PDF Presets	PDF プリセット
+Current document	現在のドキュメント
+Selection	選択範囲
+Untitled	無題
+The export range does not contain any pages or objects.	エクスポート範囲にページもオブジェクトも含まれていません。
+Transparency will be flattened	透明部分は統合されます
+{} does not support transparency. Transparent objects are blended with white and drawn opaque.	{} は透明をサポートしていません。透明なオブジェクトは白と合成され、不透明で描画されます。
+Security is not available	セキュリティを使用できません
+Passwords cannot be used with {}. The PDF is saved without security.	{} ではパスワードを使用できません。PDF はセキュリティなしで保存されます。
+Open password without a permission password	権限パスワードのない文書を開くパスワード
+Set a permission password too; the open password is only used together with one.	権限パスワードも設定してください。文書を開くパスワードは権限パスワードと一緒にのみ使用されます。
+The permission password is empty	権限パスワードが空です
+Type a permission password on the Security tab.	[セキュリティ] タブで権限パスワードを入力してください。
+No output profile is embedded	出力プロファイルが埋め込まれていません
+PDF/A-1b needs an embedded ICC output profile; the file is identified as PDF/A-1b but carries no profile.	PDF/A-1b には ICC 出力プロファイルの埋め込みが必要です。ファイルは PDF/A-1b として識別されますが、プロファイルが含まれていません。
+Thumbnails in PDF/A	PDF/A のサムネイル
+Thumbnails are allowed but make the file larger.	サムネイルは使用できますが、ファイル サイズが大きくなります。
+{} object(s) are outside the page	{} 個のオブジェクトがページの外にあります
+Objects off the page are exported but not visible. Select Export only objects on page on the General tab to leave them out.	ページ外のオブジェクトはエクスポートされますが表示されません。除外するには、[全般] タブで [ページ上のオブジェクトのみエクスポート] を選択してください。
+File name:	ファイル名:
+Browse...	参照...
+PDF - Portable Document Format (*.pdf)	PDF - Portable Document Format (*.pdf)
+Save as type:	ファイルの種類:
+PDF preset:	PDF プリセット:
+(Custom)	(カスタム)
+PDF Settings	PDF 設定
+Export PDF Settings	PDF エクスポート設定
+No Issues	問題なし
+1 Issue	1 件の問題
+{} Issues	{} 件の問題
+Security	セキュリティ
+Export range	エクスポート範囲
+Defined by document	ドキュメントで定義
+Defined by selected objects	選択したオブジェクトで定義
+Compatibility:	互換性:
+Export only objects on page	ページ上のオブジェクトのみエクスポート
+Add PDF preset	PDF プリセットの追加
+Delete PDF preset	PDF プリセットの削除
+Preset name	プリセット名
+Use document color settings	ドキュメントのカラー設定を使用
+Use color proof settings	カラー校正設定を使用
+Color management	カラー マネージメント
+Output colors as:	カラーの出力形式:
+Convert spot colors to:	特色の変換先:
+Embed color profile	カラー プロファイルを埋め込む
+Color profiles are not embedded.	カラー プロファイルは埋め込まれません。
+Overprints	オーバープリント
+Preserve document overprints	ドキュメントのオーバープリントを保持
+Object overprint settings are not exported.	オブジェクトのオーバープリント設定はエクスポートされません。
+Include hyperlinks	ハイパーリンクを含める
+Generate bookmarks	しおりを生成
+Generate thumbnails	サムネイルを生成
+Include comments	コメントを含める
+On start, display	起動時の表示
+Encoding	エンコード
+Binary	バイナリ
+Optimize for web	Web 用に最適化
+Linearized (fast web view) files are not written.	線形化 (Web 表示用に高速化) されたファイルは書き込まれません。
+Bitmap compression	ビットマップ圧縮
+Compression type:	圧縮の種類:
+JPEG quality:	JPEG 品質:
+Compress text and line art	テキストとライン アートを圧縮
+Bitmap downsampling	ビットマップのダウンサンプル
+Monochrome	モノクロ
+Text exporting	テキストのエクスポート
+Export all text as curves	すべてのテキストをカーブとしてエクスポート
+Text is always written as curves.	テキストは常にカーブとして書き込まれます。
+Embed fonts in document	ドキュメントにフォントを埋め込む
+Bleed limit:	裁ち落としの制限:
+Printer's marks	プリンタ マーク
+Crop marks	トンボ
+Registration marks	レジストレーション マーク
+Densitometer scales	濃度計スケール
+File information	ファイル情報
+Maintain OPI links	OPI リンクを保持
+Security options are not available for {}.	{} ではセキュリティ オプションを使用できません。
+Permission password	権限パスワード
+Password:	パスワード:
+Low resolution	低解像度
+High resolution	高解像度
+Printing permissions:	印刷の権限:
+Insert, delete, rotate pages	ページの挿入、削除、回転
+Any except extracting pages	ページの抽出を除くすべて
+Editing permissions:	編集の権限:
+Enable copying of content	内容のコピーを許可
+Open password	文書を開くパスワード
+Nothing to export in the selected range.	選択した範囲にエクスポートする内容がありません。
+Published {}	{} を発行しました
+Could not publish:\n{}	発行できませんでした:\n{}
+Publishing to PDF...	PDF に発行しています...
+Selected only	選択オブジェクトのみ
+Export this page only	このページのみエクスポート
+Do not show filter dialog	フィルタ ダイアログを表示しない
+SVG Export	SVG エクスポート
+Encoding:	エンコード:
+Styling:	スタイル設定:
+Presentation attributes	プレゼンテーション属性
+Units:	単位:
+Points	ポイント
+Inches	インチ
+Millimeters	ミリメートル
+Bitmap resolution:	ビットマップの解像度:
+Bitmaps and effects that cannot be described in SVG are embedded as images at this resolution.	SVG で表現できないビットマップと効果は、この解像度のイメージとして埋め込まれます。
+Exported {}	{} をエクスポートしました
+Export failed:\n{}	エクスポートに失敗しました:\n{}
+Export to {}	{} にエクスポート
+Export For Web	Web 用にエクスポート
+Export For Office	Office 用にエクスポート
+Export For WordPress	WordPress 用にエクスポート
+The image is too large.	イメージが大きすぎます。
+{} × {} pixels · Estimated file size: {}	{} × {} ピクセル · 推定ファイル サイズ: {}
+Upload	アップロード
+Export to	エクスポート先
+Microsoft Office	Microsoft Office
+WordPerfect Office	WordPerfect Office
+WPG files are not written.	WPG ファイルは書き込まれません。
+Graphic best suited for	グラフィックの最適な用途
+Compatibility	互換性
+EMF files are not written.	EMF ファイルは書き込まれません。
+Optimized for:	最適化の対象:
+Presentation	プレゼンテーション
+Desktop printing	デスクトップ印刷
+Commercial printing	商業印刷
+Format:	形式:
+RGB color (24-bit)	RGB カラー (24 ビット)
+Quality:	品質:
+WordPress site	WordPress サイト
+Site address:	サイトのアドレス:
+User name:	ユーザー名:
+Use an application password (WordPress ▸ Users ▸ Profile).	アプリケーション パスワードを使用してください (WordPress ▸ ユーザー ▸ プロフィール)。
+Save As	名前を付けて保存
+Uploading to WordPress...	WordPress にアップロードしています...
+Could not reach the WordPress site:\n{}	WordPress サイトに接続できませんでした:\n{}
+Uploaded to WordPress: {}	WordPress にアップロードしました: {}
+The upload was refused.	アップロードが拒否されました。
+WordPress returned an error ({}):\n{}	WordPress からエラーが返されました ({}):\n{}
+Save changes to the following documents before closing?	閉じる前に次のドキュメントへの変更を保存しますか?
+Save changes to {}?	{} への変更を保存しますか?
+Script Editor - {}{}	スクリプト エディタ - {}{}
+▶ Run	▶ 実行
+Insert recorded	記録を挿入
+Insert the last recorded commands	最後に記録したコマンドを挿入
+Output:	出力:
+Script finished.	スクリプトが終了しました。
+Page Number Settings	ページ番号の設定
+Start at number:	開始番号:
+Start on page:	開始ページ:
+Page Number	ページ番号
+Stretch	伸縮
+Grommets	グロメット
+Grommet	グロメット
+Border	縁取り
+Border and Grommet	縁取りとグロメット
+Source	ソース
+Add border	縁取りを追加
+   Type:	   種類:
+   Size:	   サイズ:
+Add grommets	グロメットを追加
+Use border area	縁取り領域を使用
+   Margin:	   余白:
+Placement and distribution	配置と分布
+Number of grommets	グロメットの数
+   Spacing:	   間隔:
+   Vertical:	   垂直:
+   Horizontal:	   水平:
+Number of pages:	ページ数:
+Place:	配置:
+Existing Page:	既存のページ:
+Size:	サイズ:
+Duplicate Page	ページの複製
+Duplicate page:	複製するページ:
+Insert new page:	新しいページの挿入:
+Before selected page	選択したページの前
+After selected page	選択したページの後
+To new document	新しいドキュメントへ
+Copy layer(s) only	レイヤーのみコピー
+Copy layer(s) and their contents	レイヤーとその内容をコピー
+Delete Page:	削除するページ:
+Through to page:	終了ページ:
+Last page to delete	削除する最後のページ
+Inclusive	指定ページを含む
+Rename Page	ページ名の変更
+Page name:	ページ名:
+Go to page:	移動先のページ:
+Edit Line Style	線のスタイルの編集
+Click on the squares to turn dots in the line style on and off.	正方形をクリックすると、線のスタイルのドットのオン/オフが切り替わります。
+Hint	ヒント
+Drag the marker above the squares to set the length of the line style. A line style starts with a dot and ends with a space. Add makes a new line style; Replace changes the one you are editing.	正方形の上のマーカーをドラッグして、線のスタイルの長さを設定します。線のスタイルはドットで始まり、スペースで終わります。[追加] で新しい線のスタイルを作成し、[置換] で編集中のスタイルを変更します。
+Replace	置換
+Line Style	線のスタイル
+Numeric	数値
+Path	パス
+Import Data Source...	データ ソースのインポート...
+Data source (*.csv;*.txt)	データ ソース (*.csv;*.txt)
+Sync with data source	データ ソースと同期
+Save Data Source...	データ ソースの保存...
+CSV (*.csv)	CSV (*.csv)
+Selected records only	選択したレコードのみ
+Clear print merge data	差し込み印刷データのクリア
+Field:	フィールド:
+Insert Field	フィールドの挿入
+Fields show in text as «Name» and are filled in when merging.	フィールドはテキスト内に «名前» の形式で表示され、差し込み時に値が入力されます。
+No columns yet.	列がまだありません。
+Column name	列名
+Add Column	列の追加
+Delete Column	列の削除
+View All Records	すべてのレコードを表示
+View Single Record	1 件のレコードを表示
+Deselect all	すべて選択解除
+Select all	すべて選択
+Add columns, or import a data source (CSV or text file).	列を追加するか、データ ソース (CSV またはテキスト ファイル) をインポートしてください。
+Record {} of {}	レコード {} / {}
+First	最初
+Previous	前へ
+Next	次へ
+Last	最後
+Add a record	レコードの追加
+Delete a record	レコードの削除
+User interface language	ユーザー インターフェイスの言語
+Choose the language of the user interface:	ユーザー インターフェイスの言語を選択してください:
+All Page Sizes	すべてのページ サイズ
+Devices	デバイス
+Social	ソーシャル
+Page Type	ページの種類
+Name	名前
+Most Recently Used	最近使用したもの
+Largest Page Size	最大のページ サイズ
+Smallest Page Size	最小のページ サイズ
+All Categories	すべてのカテゴリ
+Book Covers	本の表紙
+Brochures	パンフレット
+Business Cards	名刺
+Calendars	カレンダー
+Cards Invitations	カード/招待状
+Catalog & Informational Booklets	カタログ/案内冊子
+Certificates	証明書
+Collages	コラージュ
+Flyers	チラシ
+Infographics	インフォグラフィック
+Letterheads & Letters	レターヘッド/レター
+Letters & Stationary	レター/ステーショナリー
+Logos	ロゴ
+Merchandise	グッズ
+Posters	ポスター
+Presentations	プレゼンテーション
+Resumes	履歴書
+Social Media and Web	ソーシャル メディアと Web
+Dot Gain 10%	ドット ゲイン 10%
+Dot Gain 15%	ドット ゲイン 15%
+Dot Gain 25%	ドット ゲイン 25%
+Dot Gain 30%	ドット ゲイン 30%
+Gray Gamma 1.8	グレー ガンマ 1.8
+Gray Gamma 2.2	グレー ガンマ 2.2
+Letter	レター
+Legal	リーガル
+Tabloid	タブロイド
+Executive	エグゼクティブ
+Tabloid Extra	タブロイド エクストラ
+Envelope C4	封筒 C4
+Envelope C5	封筒 C5
+Envelope C6	封筒 C6
+Envelope DL	封筒 DL
+Envelope #9	封筒 #9
+Envelope #10	封筒 #10
+Envelope #11	封筒 #11
+Envelope #12	封筒 #12
+Envelope #14	封筒 #14
+Envelope Monarch	封筒 Monarch
+Business Card	名刺
+Index Card 3 × 5	インデックス カード 3 × 5
+Index Card 4 × 6	インデックス カード 4 × 6
+Index Card 5 × 8	インデックス カード 5 × 8
+Default RGB	デフォルト RGB
+Default Web	デフォルト Web
+Full Screen	フル スクリーン
+Web Page Square	Web ページ (正方形)
+Web Page 1	Web ページ 1
+Web Page 2	Web ページ 2
+Web Banner 1	Web バナー 1
+Web Banner 2	Web バナー 2
+Web Banner 3	Web バナー 3
+Web Banner 4	Web バナー 4
+Web Banner 5	Web バナー 5
+Web Banner 6	Web バナー 6
+Web Banner 7	Web バナー 7
+Web Banner 8	Web バナー 8
+Web Banner 9	Web バナー 9
+Web Banner 10	Web バナー 10
+Leaderboard Ad	リーダーボード広告
+Medium Rectangle Ad	ミディアム レクタングル広告
+Wide Skyscraper Ad	ワイド スカイスクレイパー広告
+Blog Cover	ブログのカバー
+Blog Graphic	ブログのグラフィック
+Website - Small	Web サイト - 小
+Website - Normal	Web サイト - 標準
+Website - Medium	Web サイト - 中
+Website - Large	Web サイト - 大
+Website - Extra Large	Web サイト - 特大
+Website - Huge	Web サイト - 超特大
+Full Website	Web サイト全体
+iPad Pro 4th gen 12.9"	iPad Pro 第 4 世代 12.9"
+iPad Pro 4th gen 11"	iPad Pro 第 4 世代 11"
+iPad Air (4th gen)	iPad Air (第 4 世代)
+iPad 7th gen/8th gen	iPad 第 7 世代/第 8 世代
+Android mobile	Android モバイル
+iPad Pro 12.9/4th gen	iPad Pro 12.9/第 4 世代
+Facebook Cover	Facebook カバー
+Facebook Post	Facebook 投稿
+Facebook App	Facebook アプリ
+Facebook Ad	Facebook 広告
+Instagram Square	Instagram 正方形
+Instagram Story	Instagram ストーリーズ
+Twitter Cover	Twitter カバー
+Twitter Post	Twitter 投稿
+YouTube Cover	YouTube カバー
+Google Business Profile	Google ビジネス プロフィール
+Google Business Cover	Google ビジネス カバー
+Google Business Post	Google ビジネス投稿
+LinkedIn Cover	LinkedIn カバー
+LinkedIn Banner	LinkedIn バナー
+Dribbble Shot small	Dribbble Shot 小
+Dribbble Shot large	Dribbble Shot 大
+Twitch Cover	Twitch カバー
+Twitch Video	Twitch 動画
+Pinterest Pin	Pinterest ピン
+Tumblr Graphic	Tumblr グラフィック
+Poster	ポスター
+International Business Card	国際名刺
+Postcard	はがき
+Desktop Web Page	デスクトップ Web ページ
+Mobile Web Page	モバイル Web ページ
+Mobile Leaderboard	モバイル リーダーボード
+Instagram Profile	Instagram プロフィール
+Instagram Landscape	Instagram 横長
+Instagram Portrait	Instagram 縦長
+Facebook Profile	Facebook プロフィール
+Facebook Square	Facebook 正方形
+Facebook Landscape	Facebook 横長
+Facebook Portrait	Facebook 縦長
+Facebook Story	Facebook ストーリーズ
+YouTube Profile	YouTube プロフィール
+YouTube Banner	YouTube バナー
+YouTube Thumbnail	YouTube サムネイル
+Untitled-{}	無題-{}
+(Default) {}	(デフォルト) {}
+Create a New Document	新しいドキュメントの作成
+Document Settings	ドキュメントの設定
+Do not show this dialog again	今後このダイアログを表示しない
+Search presets	プリセットの検索
+No presets match.	一致するプリセットがありません。
+Save preset	プリセットの保存
+Preset name:	プリセット名:
+Name:	名前:
+Page view:	ページ ビュー:
+Single Page View	単一ページ ビュー
+Dimensions	寸法
+Orientation:	向き:
+Paper Type:	用紙の種類:
+Bleed:	裁ち落とし:
+Colors	カラー
+RGB profile:	RGB プロファイル:
+CMYK profile:	CMYK プロファイル:
+Grayscale profile:	グレースケール プロファイル:
+Search templates	テンプレートの検索
+No templates found.	テンプレートが見つかりません。
+Use File ▸ Save as Template to add your own, or copy\ntemplates (.cdr, .cdt, .vct) into the Templates folder.	独自のテンプレートを追加するには [ファイル] ▸ [テンプレートとして保存] を使用するか、\nテンプレート (.cdr、.cdt、.vct) をテンプレート フォルダにコピーしてください。
+Open Templates Folder	テンプレート フォルダを開く
+Template Details	テンプレートの詳細
+Category:	カテゴリ:
+Modified:	更新日時:
+File:	ファイル:
+Document name:	ドキュメント名:
+Select a template to see its details.	詳細を表示するテンプレートを選択してください。
+Object Data Field Editor	オブジェクト データ フィールド エディタ
+New Field	新しいフィールド
+Add Selected Field(s)	選択したフィールドを追加
+Delete Field(s)	フィールドの削除
+Rename Field	フィールド名の変更
+Field{}	フィールド{}
+Add Fields	フィールドの追加
+Delete Fields	フィールドの削除
+Object Data Manager	オブジェクト データ マネージャ
+Show levels:	表示レベル:
+Cost	コスト
+Arrowhead {}	矢印 {}
+Create Arrowhead	矢印の作成
+Length:	長さ:
+Proportional	比例
+Creates an arrowhead from the selected object. The new arrowhead is added to the Arrowhead selectors.	選択したオブジェクトから矢印を作成します。新しい矢印は矢印セレクタに追加されます。
+{} was added to the Arrowhead selectors.	{} を矢印セレクタに追加しました。
+Create Pattern	パターンの作成
+Two color	2 色
+After pressing OK, select pattern area with a marquee.	[OK] をクリックした後、マーキーでパターン領域を選択してください。
+Pattern {}	パターン {}
+Edit Pattern	パターンの編集
+Barcode ({})	バーコード ({})
+Barcode Wizard	バーコード ウィザード
+Select from one of the following industry standard formats:	次の業界標準形式から 1 つを選択してください:
+Enter keyword data:	キーワード データを入力:
+Encoded: {}	エンコード済み: {}
+Bar height:	バーの高さ:
+Bar width (narrow):	バーの幅 (細):
+Show the human-readable text	人間が読めるテキストを表示
+Finish	完了
+Insert Barcode	バーコードの挿入
+Select a barcode made with Object ▸ Insert ▸ Barcode.	[オブジェクト] ▸ [挿入] ▸ [バーコード] で作成したバーコードを選択してください。
+The {} barcode “{}” is valid.	{} バーコード “{}” は有効です。
+The {} barcode “{}” is not valid. {}	{} バーコード “{}” は無効です。{}
+Edit Symbol	シンボルの編集
+This document has no symbols.	このドキュメントにはシンボルがありません。
+Export Library	ライブラリのエクスポート
+CSL - Symbol Library (*.csl)	CSL - シンボル ライブラリ (*.csl)
+Exported {} symbols to {}.	{} 個のシンボルを {} にエクスポートしました。
+Could not write the library: {}	ライブラリを書き込めませんでした: {}
+Import Library	ライブラリのインポート
+Could not read {}: {}	{} を読み取れませんでした: {}
+The library {} has no symbol named “{}”.	ライブラリ {} には “{}” という名前のシンボルがありません。
+Over	オーバー
+Down	ダウン
+Finish Editing Rollover	ロールオーバーの編集を終了
+Rollover State	ロールオーバー状態
+Customization	カスタマイズ
+Global	グローバル
+Workspaces	ワークスペース
+Tablet Mode	タブレット モード
+Nodes and Handles	ノードとハンドル
+Snapping	スナップ
+Pen Settings	ペンの設定
+Warnings	警告
+Appearance	外観
+Color Palette	カラー パレット
+Zoom/Pan	ズーム/パン
+Freehand/Bézier	フリーハンド/ベジェ
+Dimension	寸法
+File Locations	ファイルの場所
+File Formats	ファイル形式
+User ID	ユーザー ID
+Adding folders that already exist as subfolders in the assets list	アセット リストのサブフォルダとして既に存在するフォルダを追加する場合
+Adding folders that already exist in the assets list	アセット リストに既に存在するフォルダを追加する場合
+Adding folders to the assets list as parent folders for existing folders	既存のフォルダの親フォルダとしてアセット リストにフォルダを追加する場合
+Applying effects to text with embedded graphics (Blend)	グラフィックが埋め込まれたテキストに効果を適用する場合 (ブレンド)
+Applying effects to text with embedded graphics (Contour)	グラフィックが埋め込まれたテキストに効果を適用する場合 (輪郭)
+Applying effects to text with embedded graphics (Convert to Curves)	グラフィックが埋め込まれたテキストに効果を適用する場合 (カーブに変換)
+Applying effects to text with embedded graphics (Distortion)	グラフィックが埋め込まれたテキストに効果を適用する場合 (ディストーション)
+Applying effects to text with embedded graphics (Envelope)	グラフィックが埋め込まれたテキストに効果を適用する場合 (エンベロープ)
+Applying effects to text with embedded graphics (Extrude)	グラフィックが埋め込まれたテキストに効果を適用する場合 (押し出し)
+Applying effects to text with embedded graphics (Lens)	グラフィックが埋め込まれたテキストに効果を適用する場合 (レンズ)
+Applying lens effects to duotones	ダブルトーンにレンズ効果を適用する場合
+Applying Painterly brushstrokes to incompatible objects	互換性のないオブジェクトにペインタリー ブラシストロークを適用する場合
+Artistic Media Brush contains invalid objects	アーティスティック メディア ブラシに無効なオブジェクトが含まれている場合
+Breaking apart objects that mix spot colors	特色が混在するオブジェクトを分割する場合
+Brushstrokes exceed the document rendering resolution	ブラシストロークがドキュメントのレンダリング解像度を超える場合
+Changing the document color settings	ドキュメントのカラー設定を変更する場合
+Closing a document that contains unsaved changes	保存されていない変更を含むドキュメントを閉じる場合
+Combining objects with different fill types	塗りつぶしの種類が異なるオブジェクトを結合する場合
+Converting a bitmap that contains transparency	透明部分を含むビットマップを変換する場合
+Converting objects with effects to curves	効果を含むオブジェクトをカーブに変換する場合
+Converting paragraph text that overflows its frame	フレームからあふれた段落テキストを変換する場合
+Copying objects that contain linked bitmaps	リンクされたビットマップを含むオブジェクトをコピーする場合
+Cropping objects that contain effects	効果を含むオブジェクトをトリミングする場合
+Deleting a layer that contains objects	オブジェクトを含むレイヤーを削除する場合
+Deleting a page that contains objects	オブジェクトを含むページを削除する場合
+Deleting a symbol that is used in the document	ドキュメントで使用されているシンボルを削除する場合
+Deleting color styles that are used in the document	ドキュメントで使用されているカラー スタイルを削除する場合
+Deleting guidelines on a locked layer	ロックされたレイヤー上のガイドラインを削除する場合
+Deleting object styles that are used in the document	ドキュメントで使用されているオブジェクト スタイルを削除する場合
+Discarding changes made in the Script Editor	スクリプト エディタでの変更を破棄する場合
+Editing a locked object	ロックされたオブジェクトを編集する場合
+Embedding fonts that do not allow embedding	埋め込みが許可されていないフォントを埋め込む場合
+Exporting a document that contains RGB and CMYK colors	RGB と CMYK のカラーを含むドキュメントをエクスポートする場合
+Exporting a page with no objects	オブジェクトのないページをエクスポートする場合
+Exporting bitmaps with a resolution lower than 72 dpi	解像度が 72 dpi 未満のビットマップをエクスポートする場合
+Exporting files with font substitutions	フォントの代替を含むファイルをエクスポートする場合
+Exporting text as curves	テキストをカーブとしてエクスポートする場合
+Fitting text to a path with an envelope	エンベロープを使用してテキストをパスに合わせる場合
+Grouping objects on different layers	異なるレイヤー上のオブジェクトをグループ化する場合
+Importing a file with missing fonts	見つからないフォントを含むファイルをインポートする場合
+Importing a large bitmap	大きなビットマップをインポートする場合
+Importing files that contain spot colors	特色を含むファイルをインポートする場合
+Importing SVG files with unsupported elements	サポートされていない要素を含む SVG ファイルをインポートする場合
+Joining curves that are far apart	離れたカーブを連結する場合
+Linking a bitmap that cannot be found	見つからないビットマップをリンクする場合
+Opening a document created in a newer version	新しいバージョンで作成されたドキュメントを開く場合
+Opening a document that contains missing fonts	見つからないフォントを含むドキュメントを開く場合
+Opening a document that is already open	既に開いているドキュメントを開く場合
+Opening a read-only document	読み取り専用のドキュメントを開く場合
+Overwriting an existing file when exporting	エクスポート時に既存のファイルを上書きする場合
+Pasting objects from a document with a different color mode	カラー モードが異なるドキュメントからオブジェクトを貼り付ける場合
+PowerClip contents extend beyond the frame	PowerClip の内容がフレームからはみ出している場合
+Printing a document with missing links	リンクが見つからないドキュメントを印刷する場合
+Printing to a printer that does not support the page size	ページ サイズをサポートしていないプリンタで印刷する場合
+Publishing to PDF with font substitutions	フォントの代替を含む PDF を発行する場合
+Removing a palette that is in use	使用中のパレットを削除する場合
+Resampling a bitmap to a higher resolution	ビットマップをより高い解像度に再サンプルする場合
+Reverting to the last saved version	最後に保存したバージョンに戻す場合
+Running a script from an untrusted location	信頼されていない場所のスクリプトを実行する場合
+Saving a document with unsupported features to an older version	サポートされていない機能を含むドキュメントを以前のバージョンで保存する場合
+Saving a template over an existing template	既存のテンプレートにテンプレートを上書き保存する場合
+Saving with font embedding restrictions	フォントの埋め込み制限がある状態で保存する場合
+Shaping objects that contain effects	効果を含むオブジェクトをシェイプ処理する場合
+Spell checking a document with no text	テキストのないドキュメントのスペル チェックを行う場合
+Text exceeds the maximum length for a single text object	テキストが 1 つのテキスト オブジェクトの最大長を超える場合
+Trimming objects with effects	効果を含むオブジェクトをトリムする場合
+Ungrouping objects that contain effects	効果を含むオブジェクトのグループを解除する場合
+Using a large number of steps in a blend	ブレンドで多数のステップを使用する場合
+Using too many nodes in a single curve	1 つのカーブで使用するノードが多すぎる場合
+Welding objects with different outlines	アウトラインが異なるオブジェクトを溶接する場合
+Document Options	ドキュメント オプション
+Open a document to edit its options.	オプションを編集するにはドキュメントを開いてください。
+Keywords:	キーワード:
+Drawing units:	描画単位:
+Rendering resolution:	レンダリング解像度:
+Apply size to all pages	サイズをすべてのページに適用
+Show bleed area	裁ち落とし領域を表示
+Facing pages	見開きページ
+Facing pages displays left and right pages side by side, as in a book or magazine.	見開きページでは、本や雑誌のように左右のページが並べて表示されます。
+Nudge:	微調整:
+Super nudge:	スーパー微調整:
+Micro nudge:	マイクロ微調整:
+Duplicate placement	複製の配置
+Horizontal offset:	水平オフセット:
+Vertical offset:	垂直オフセット:
+No background	背景なし
+Apply to all pages	すべてのページに適用
+The background is printed and exported with the page.	背景はページと一緒に印刷およびエクスポートされます。
+Origin	原点
+Drawing scale	描画の縮尺
+Scale (1 : n):	縮尺 (1 : n):
+Snap to grid	グリッドにスナップ
+Show pixel grid	ピクセル グリッドを表示
+Document grid	ドキュメント グリッド
+Horizontal spacing:	水平方向の間隔:
+Vertical spacing:	垂直方向の間隔:
+Display as:	表示形式:
+Lines	線
+Dots	ドット
+Color:	カラー:
+Opacity:	不透明度:
+Position:	位置:
+Add horizontal	水平を追加
+Add vertical	垂直を追加
+Horizontal  {}	水平  {}
+Vertical  {}	垂直  {}
+Angled {}°  ({}, {})	傾斜 {}°  ({}, {})
+Clear	クリア
+Save options	保存オプション
+Optimize for:	最適化の対象:
+Save presentation attributes (views)	プレゼンテーション属性 (ビュー) を保存
+Use bitmap compression	ビットマップ圧縮を使用
+Use graphic object compression	グラフィック オブジェクト圧縮を使用
+Save thumbnail	サムネイルを保存
+Embed color profiles	カラー プロファイルを埋め込む
+Embed fonts when saving files	ファイルの保存時にフォントを埋め込む
+Drawings are saved as .cdr files: a compressed container with the drawing, its images, metadata (title, subject, rating), a thumbnail and, optionally, the fonts and color profiles it uses.	描画は .cdr ファイルとして保存されます。これは、描画、イメージ、メタデータ (タイトル、件名、評価)、サムネイル、およびオプションで使用フォントとカラー プロファイルを含む圧縮コンテナです。
+Getting started	はじめに
+On AnyVector start-up:	AnyVector の起動時:
+Show New Document dialog box	[新規ドキュメント] ダイアログ ボックスを表示
+Undo levels	元に戻す回数
+Regular:	標準:
+Auto - switch between Tablet and Desktop workspaces	自動 - タブレット ワークスペースとデスクトップ ワークスペースを切り替える
+When switching to:	切り替え先:
+Desktop mode	デスクトップ モード
+Tablet mode	タブレット モード
+Proof colors	校正カラー
+Other controls	その他のコントロール
+Interruptible refresh	中断可能な再描画
+Manual refresh	手動で再描画
+Auto-panning	自動パン
+Show tooltips	ツール ヒントを表示
+Antialias bitmaps in enhanced view	拡張ビューでビットマップをアンチエイリアス
+Hide bounding box for curve tools	カーブ ツールの境界ボックスを非表示
+Highlight outline for selected objects	選択したオブジェクトのアウトラインを強調表示
+Use normal view	標準ビューを使用
+Use enhanced view	拡張ビューを使用
+Show page border	ページ境界を表示
+Navigation	ナビゲーション
+Default action for mouse wheel:	マウス ホイールのデフォルト動作:
+Scroll	スクロール
+Zoom rate:	ズーム率:
+Alternate Zoom (Ctrl+Shift) rate:	代替ズーム (Ctrl+Shift) の比率:
+Constrain angle:	角度の制限:
+Drawing precision:	描画の精度:
+decimal places	小数点以下の桁数
+Double-click to edit bitmaps in an image editor	ダブルクリックでイメージ エディタでビットマップを編集
+Visibility of inactive objects	非アクティブなオブジェクトの表示
+When editing objects, this setting controls the visibility of objects that are not currently active.	オブジェクトの編集中に、現在アクティブでないオブジェクトの表示方法を設定します。
+Double-click to activate Focus Mode	ダブルクリックでフォーカス モードを有効にする
+Node size:	ノードのサイズ:
+Node shape	ノードの形状
+Cusp:	尖点:
+Smooth:	スムーズ:
+Symmetrical:	対称:
+Show curve direction when editing	編集時にカーブの方向を表示
+Enable node tracking	ノード追跡を有効にする
+Color scheme:	配色:
+Main color:	メイン カラー:
+Secondary color:	セカンダリ カラー:
+Show highlight	ハイライトを表示
+Show node types in different colors	ノードの種類を異なるカラーで表示
+Drag content inside PowerClip:	PowerClip 内にコンテンツをドラッグ:
+PowerClip with content	コンテンツを含む PowerClip
+Ignore PowerClip frame	PowerClip フレームを無視
+Add content to PowerClip frame	PowerClip フレームにコンテンツを追加
+Replace existing content	既存のコンテンツを置き換え
+Auto-center new content	新しいコンテンツを自動的に中央に配置
+When content is completely outside frame	コンテンツが完全にフレームの外にある場合
+Always	常に
+New content is centered in the PowerClip frame based on this setting.	この設定に基づいて、新しいコンテンツが PowerClip フレームの中央に配置されます。
+Show lines in empty PowerClip frames:	空の PowerClip フレームに線を表示:
+Always (including print and export)	常に (印刷とエクスポートを含む)
+On screen only	画面上のみ
+Lines in empty PowerClip frames help you identify them; turn them off for a cleaner preview.	空の PowerClip フレームの線はフレームの識別に役立ちます。すっきりしたプレビューにするにはオフにしてください。
+Quick Trace method:	クイック トレースの方法:
+Node	ノード
+Intersection	交点
+Midpoint	中点
+Quadrant	四分円点
+Tangent	接点
+Perpendicular	垂直
+Text Baseline	テキストのベースライン
+Snap to objects (Alt+Z)	オブジェクトにスナップ (Alt+Z)
+Snap objects to themselves (Ctrl+Shift+H)	オブジェクト自身にスナップ (Ctrl+Shift+H)
+Snapping radius:	スナップの半径:
+Show Snap location marks	スナップ位置のマークを表示
+Show snapping mode in screen tip	スクリーン ヒントにスナップ モードを表示
+Modes	モード
+Deselect All	すべて選択解除
+Backup	バックアップ
+Back up original file before saving	保存前に元のファイルをバックアップ
+Back up to:	バックアップ先:
+Same folder as original file	元のファイルと同じフォルダ
+Choose location:	場所を選択:
+Auto-backup	自動バックアップ
+Back up every	バックアップの間隔
+Temporary folder	一時フォルダ
+Save documents to previous versions	ドキュメントを以前のバージョンで保存
+Ask when saving	保存時に確認
+Keep appearance (suitable for limited edits)	外観を維持 (限定的な編集に適しています)
+Keep editable (may change appearance)	編集可能な状態を維持 (外観が変わる場合があります)
+Set default version:	デフォルトのバージョンを設定:
+Paragraph Text	段落テキスト
+Show handles while editing	編集中にハンドルを表示
+Auto-keyboard switching	キーボードの自動切り替え
+Match font when inserting text in another language	別の言語のテキストを挿入するときにフォントを合わせる
+Keyboard text increment:	キーボードによるテキストの増分:
+Default text units:	デフォルトのテキスト単位:
+Show linking of text frames	テキスト フレームのリンクを表示
+Show text frames	テキスト フレームを表示
+Expand and shrink paragraph text frames to fit text	テキストに合わせて段落テキスト フレームを拡大/縮小
+When editing, apply text frame formatting to:	編集時にテキスト フレームの書式を適用する対象:
+All linked frames	リンクされたすべてのフレーム
+Selected frames only	選択したフレームのみ
+Selected and subsequent frames	選択したフレームと後続のフレーム
+Font list contents	フォント リストの内容
+Number of most recently used fonts displayed:	表示する最近使用したフォントの数:
+⟳ Update fonts	⟳ フォントの更新
+Enable remote fonts	リモート フォントを有効にする
+{} font families installed.	{} 個のフォント ファミリがインストールされています。
+Perform automatic spell checking	自動スペル チェックを実行
+Show errors in:	エラーの表示対象:
+All text frames	すべてのテキスト フレーム
+Selected text frame only	選択したテキスト フレームのみ
+Spelling suggestions:	スペルの候補:
+Add corrections to QuickCorrect	修正を QuickCorrect に追加
+Show errors which have been ignored	無視したエラーを表示
+Capitalize first letter of sentences	文の先頭文字を大文字にする
+Correct two initial, consecutive capitals	2 文字目を小文字にする
+Capitalize names of days	曜日の先頭文字を大文字にする
+Automatically create hyperlinks when typing web addresses	Web アドレスの入力時にハイパーリンクを自動作成
+Change straight quotes to typographic quotes	ストレート引用符を印刷用引用符に変更
+Use straight quotation marks after numbers (e.g. 6')	数字の後にはストレート引用符を使用 (例: 6')
+Single Quotes:	一重引用符:
+Open:	開始:
+Close:	終了:
+Double Quotes:	二重引用符:
+Replacement text	置換テキスト
+Replace text while typing	入力中にテキストを置換
+Replace:	置換前:
+With:	置換後:
+Apply at least three strokes with your stylus using a full range of pressure, and click Save.	スタイラスで筆圧の全範囲を使って少なくとも 3 回ストロークを描き、[保存] をクリックしてください。
+Interface	インターフェイス
+WinTab - not installed	WinTab - 未インストール
+Real-Time Stylus - installed	Real-Time Stylus - インストール済み
+Real-Time Stylus is the Windows pen interface. WinTab is used by some older graphics tablets.	Real-Time Stylus は Windows のペン インターフェイスです。WinTab は一部の古いペン タブレットで使用されます。
+Show warnings when:	警告を表示する状況:
+Security Options...	セキュリティ オプション...
+Security Level	セキュリティ レベル
+Low: run all scripts	低: すべてのスクリプトを実行
+Medium: ask before running scripts from outside the Scripts folder	中: Scripts フォルダ以外のスクリプトを実行する前に確認
+Scripts folder: {}	Scripts フォルダ: {}
+Trust all installed script modules	インストールされているすべてのスクリプト モジュールを信頼
+Delay Load scripting engine	スクリプト エンジンを遅延読み込み
+Plug-ins Folders	プラグイン フォルダ
+Add...	追加...
+Remove	削除
+Center dialog boxes	ダイアログ ボックスを中央に表示
+Changes the size of the user interface elements, such as toolbars, dockers and dialog boxes.	ツールバー、ドッキング ウィンドウ、ダイアログ ボックスなどのユーザー インターフェイス要素のサイズを変更します。
+Theme:	テーマ:
+Window border:	ウィンドウの境界線:
+Desktop:	デスクトップ:
+Global button size:	グローバル ボタン サイズ:
+Context menu bar	コンテキスト メニュー バー
+Custom command bars are created from the Commands page.	カスタム コマンド バーは [コマンド] ページで作成します。
+Button properties	ボタンのプロパティ
+Image only	イメージのみ
+Text only	テキストのみ
+Image and text	イメージとテキスト
+Toolbar properties	ツールバーのプロパティ
+Show title when toolbar is floating	フローティング時にツールバーのタイトルを表示
+Lock toolbars	ツールバーのロック
+Menu bar mode	メニュー バー モード
+Normal mode	標準モード
+File mode	ファイル モード
+Search	検索
+Select a command.	コマンドを選択してください。
+Caption:	キャプション:
+Icon:	アイコン:
+Tooltip:	ツール ヒント:
+Available on: {}	使用可能な場所: {}
+Current shortcut keys:	現在のショートカット キー:
+New shortcut key:	新しいショートカット キー:
+Press keys...	キーを押してください...
+Click, then press keys	クリックしてからキーを押してください
+Conflicts with: {}	競合: {}
+Assign	割り当て
+Reset All	すべてリセット
+Automatically update the document palette	ドキュメント パレットを自動的に更新
+Palette options	パレット オプション
+Maximum palette rows when docked:	ドッキング時のパレットの最大行数:
+Color wells	カラー ウェル
+Secondary mouse button	マウスのセカンダリ ボタン
+Context menu	コンテキスト メニュー
+Set outline color	アウトライン カラーを設定
+When "Set outline color" is selected, right-clicking a color well sets the outline color; press and hold to open the context menu.	[アウトライン カラーを設定] を選択すると、カラー ウェルを右クリックしてアウトライン カラーを設定できます。コンテキスト メニューを開くには長押しします。
+Crosshair cursor	十字カーソル
+Ctrl and Shift keys	Ctrl キーと Shift キー
+Traditional AnyVector: Ctrl = Constrain, Shift = Transform from center	従来の AnyVector: Ctrl = 制限、Shift = 中心から変形
+Windows standard: Ctrl = Duplicate/Leave Original, Shift = Constrain	Windows 標準: Ctrl = 複製/元のオブジェクトを残す、Shift = 制限
+Thickness:	太さ:
+Auto-reduce nodes of resulting objects	結果のオブジェクトのノードを自動削減
+Secondary mouse button:	マウスのセカンダリ ボタン:
+Zoom relative to 1:1	1:1 を基準にズーム
+Center mouse when zooming with the mouse wheel	マウス ホイールでのズーム時にマウス位置を中心にする
+Calibrate Zoom...	ズームの調整...
+Calibrating the rulers makes 100% zoom match real-world size on your monitor.	定規を調整すると、100% ズームがモニター上の実寸と一致します。
+Current display: {} dpi ({}% scaling). Hold a ruler to the screen and adjust Size in Customization > Appearance until an inch matches.	現在のディスプレイ: {} dpi ({}% スケーリング)。画面に定規を当て、1 インチが一致するまで [カスタマイズ] > [外観] の [サイズ] を調整してください。
+Freehand smoothing:	フリーハンドの滑らかさ:
+Corner threshold:	角のしきい値:
+Straight line threshold:	直線のしきい値:
+Auto-join:	自動連結:
+Drawing assistance delay:	描画アシスタンスの遅延:
+Corner type:	角の種類:
+Scallop	扇形
+Chamfer	面取り
+Scale corners	角を拡大縮小
+Starting angle:	開始角度:
+Ending angle:	終了角度:
+Direction:	方向:
+Number of columns:	列数:
+Number of rows:	行数:
+Number of revolutions:	回転数:
+Expansion:	拡張:
+Rows:	行:
+Columns:	列:
+When you edit a table, pressing Tab lets you:	表の編集時に Tab キーを押すと:
+Insert a tab character	タブ文字を挿入
+Move to the next cell	次のセルに移動
+Tab order:	タブの順序:
+Left to right, top to bottom	左から右、上から下
+Right to left, top to bottom	右から左、上から下
+Top to bottom, left to right	上から下、左から右
+Decimal	10 進
+Fractional	分数
+US Engineering	US エンジニアリング
+US Architectural	US 建築
+Precision:	精度:
+Prefix:	接頭辞:
+Suffix:	接尾辞:
+Use geometric anchor points as snapping points	幾何学的アンカー ポイントをスナップ ポイントとして使用
+Route distance from object:	オブジェクトからの経路の距離:
+Enable background tasks	バックグラウンド タスクを有効にする
+User interface language:	ユーザー インターフェイスの言語:
+Ask me the next time the application starts	次回アプリケーションの起動時に確認する
+Use hardware acceleration	ハードウェア アクセラレーションを使用
+Art Styles	アート スタイル
+Resampling	再サンプル
+JPEG Artifact Removal	JPEG アーティファクトの除去
+You need to restart the application to apply these changes.	これらの変更を適用するには、アプリケーションを再起動する必要があります。
+Spot color separations warning	特色分版の警告
+If more than 2 spot colors used	特色を 3 色以上使用している場合
+Preview color default	プレビュー カラーのデフォルト
+Auto (Simulate output)	自動 (出力をシミュレート)
+Preview separations default	分版プレビューのデフォルト
+Preview image default	イメージ プレビューのデフォルト
+On at startup	起動時にオン
+Overprint black threshold (PS)	黒のオーバープリントしきい値 (PS)
+Send large bitmaps in chunks	大きなビットマップを分割して送信
+Bitmap output threshold (K)	ビットマップ出力のしきい値 (K)
+Bitmap chunk overlap	ビットマップ分割の重なり
+32 pixels	32 ピクセル
+Small fonts (Preflight)	小さいフォント (プリフライト)
+Image resolution too low (Preflight)	イメージの解像度が低すぎる (プリフライト)
+Composite crop marks (PS)	コンポジット トンボ (PS)
+Output on all plates	すべての版に出力
+PostScript 2 stroke adjust (PS)	PostScript 2 ストローク調整 (PS)
+On	オン
+Many fonts (Preflight)	多数のフォント (プリフライト)
+NT double download workaround (PS)	NT 二重ダウンロードの回避策 (PS)
+NT bookman download workaround (PS)	NT Bookman ダウンロードの回避策 (PS)
+Render to bitmap resolution	ビットマップへのレンダリング解像度
+Automatic dpi	自動 dpi
+Print Style	印刷スタイル
+Driver Compatibility	ドライバの互換性
+Default print style:	デフォルトの印刷スタイル:
+AnyVector Defaults	AnyVector のデフォルト
+Print only current page	現在のページのみ印刷
+Special settings	特殊設定
+Printing uses the Windows print system. Documents are sent as high-resolution page images through the system print dialog, which works with every installed printer driver.	印刷には Windows の印刷システムを使用します。ドキュメントは高解像度のページ イメージとしてシステムの印刷ダイアログから送信されるため、インストールされているすべてのプリンタ ドライバで動作します。
+Adjustment Presets	調整プリセット
+Bitmap Presets	ビットマップ プリセット
+Cloud	クラウド
+Distortion	ディストーション
+Export Presets	エクスポート プリセット
+Image Lists	イメージ リスト
+Images	イメージ
+Photo Frames	フォト フレーム
+Trays	トレイ
+Vector Extrude	ベクター押し出し
+Content Type	コンテンツの種類
+Location	場所
+Available file types:	使用可能なファイルの種類:
+Raster	ラスター
+TXT - ANSI Text (*.txt)	TXT - ANSI テキスト (*.txt)
+Animation	アニメーション
+GIF - CompuServe Bitmap (*.gif)	GIF - CompuServe ビットマップ (*.gif)
+Move Up	上へ移動
+Move Down	下へ移動
+Active filters:	有効なフィルタ:
+Spot color palette:	特色パレット:
+AnyVector Spot Colors	AnyVector 特色
+Color palette mapping	カラー パレットのマッピング
+Choose the palette or library to use when you open or import files that contain spot colors included in multiple palettes.	複数のパレットに含まれる特色を含むファイルを開くまたはインポートするときに使用するパレットまたはライブラリを選択します。
+Spot colors:	特色:
+AnyVector Spot Color Library	AnyVector 特色ライブラリ
+Show Choose Color Palette dialog box	[カラー パレットの選択] ダイアログ ボックスを表示
+Company:	会社名:
+Your name is used as the author of new documents and comments.	名前は新しいドキュメントとコメントの作成者として使用されます。
+Share anonymous usage statistics to help improve AnyVector	匿名の使用統計を共有して AnyVector の改善に協力する
+AnyVector stores your documents and settings on this computer only. AI Generate sends only your prompt to the AI provider when you use it.	AnyVector はドキュメントと設定をこのコンピュータにのみ保存します。AI 生成を使用したときは、プロンプトのみが AI プロバイダに送信されます。
+API key variable:	API キーの変数:
+API key:	API キー:
+A key is set; type a new one to replace it	キーが設定されています。置き換えるには新しいキーを入力してください
+Paste your API key	API キーを貼り付けてください
+Save Key	キーの保存
+Remove Key	キーの削除
+The key was removed from the {} environment variable.	環境変数 {} からキーを削除しました。
+The key was saved in the {} environment variable of your Windows account. AI Generate is ready.	キーを Windows アカウントの環境変数 {} に保存しました。AI 生成を使用できます。
+An API key was found in this environment variable.	この環境変数に API キーが見つかりました。
+AI Generate needs an API key. Paste it above and click Save Key, or set this environment variable yourself.	AI 生成には API キーが必要です。上に貼り付けて [キーの保存] をクリックするか、この環境変数をご自身で設定してください。
+Save Key writes the key into this environment variable of your Windows account, right away. AnyVector never saves the key in its own settings or documents.	[キーの保存] をクリックすると、キーが Windows アカウントのこの環境変数にすぐに書き込まれます。AnyVector がキーを独自の設定やドキュメントに保存することはありません。
+A reduced set of common tools for new users.	新しいユーザー向けに、よく使うツールを絞り込んだセットです。
+The standard layout with all toolbars, the toolbox and dockers.	すべてのツールバー、ツールボックス、ドッキング ウィンドウを含む標準のレイアウトです。
+Large controls for touch, stylus and dial use.	タッチ、スタイラス、ダイヤル操作用の大きなコントロールです。
+For book covers, ads, storyboards and illustration.	本の表紙、広告、絵コンテ、イラスト向けです。
+For business cards, branding, packaging and multipage brochures or newsletters.	名刺、ブランディング、パッケージ、複数ページのパンフレットやニュースレター向けです。
+Places features where Adobe Illustrator users expect them.	Adobe Illustrator ユーザーが想定する場所に機能を配置します。
+Custom palette (*.xml)	カスタム パレット (*.xml)
+Edit Palette	パレットの編集
+Edit Color Styles	カラー スタイルの編集
+Open Palette	パレットを開く
+{} is not a palette file.	{} はパレット ファイルではありません。
+New Palette	新しいパレット
+The palette could not be saved: {}	パレットを保存できませんでした: {}
+My Palettes	マイ パレット
+Palette Editor	パレット エディタ
+Save Palette	パレットの保存
+Save Palette As	名前を付けてパレットを保存
+Edit Color	カラーの編集
+Add Color	カラーの追加
+Delete Color	カラーの削除
+Reset Palette	パレットのリセット
+Treat as:	扱い:
+Components:	成分:
+Process	プロセス
+Spot	特色
+Sort Colors        	カラーの並べ替え
+Reverse	反転
+RGB value	RGB 値
+HSB value	HSB 値
+Palette Libraries	パレット ライブラリ
+Lab Colors	Lab カラー
+SVG Colors	SVG カラー
+Web Safe Colors	Web セーフ カラー
+256 shades of Gray	256 階調のグレー
+CMYK Palette	CMYK パレット
+Percent Gray	グレーの割合
+RGB Palette	RGB パレット
+Select Color	カラーの選択
+Color viewers	カラー ビューア
+Color palettes	カラー パレット
+Show color names	カラー名を表示
+Swap Colors	カラーの入れ替え
+Eyedropper	スポイト
+There is no printer installed. Add a printer in Windows Settings > Bluetooth & devices > Printers & scanners.	プリンタがインストールされていません。Windows の [設定] > [Bluetooth とデバイス] > [プリンターとスキャナー] でプリンタを追加してください。
+Print to File	ファイルに出力
+Print file (*.prn)	印刷ファイル (*.prn)
+PostScript file (*.ps)	PostScript ファイル (*.ps)
+Printing...	印刷しています...
+Composite	コンポジット
+Print Preview	印刷プレビュー
+Mini preview	ミニ プレビュー
+Apply	適用
+Destination	出力先
+Printer:	プリンタ:
+Preferences...	基本設定...
+Page:	ページ:
+Paper:	用紙:
+{} × {} in.	{} × {} インチ
+Print to file	ファイルに出力
+Print range	印刷範囲
+Copies	部数
+Number of copies:	部数:
+Collate	部単位で印刷
+Print style:	印刷スタイル:
+Print style (*.prs)	印刷スタイル (*.prs)
+Save Settings As	名前を付けて設定を保存
+Print as bitmap:	ビットマップとして印刷:
+Print composite	コンポジット印刷
+Print separations	分版印刷
+Separations need a PostScript printer.	分版には PostScript プリンタが必要です。
+This printer accepts RGB or grayscale color.	このプリンタは RGB またはグレースケールのカラーに対応しています。
+Document overprints:	ドキュメントのオーバープリント:
+Trapping	トラッピング
+Auto-spreading	自動スプレッド
+PostScript 3 In-RIP trapping	PostScript 3 In-RIP トラッピング
+Trapping and overprinting black need a PostScript printer.	トラッピングと黒のオーバープリントには PostScript プリンタが必要です。
+Image position and size	イメージの位置とサイズ
+As in document	ドキュメントのとおり
+Fit to page	ページに合わせる
+Reposition artwork to:	アートワークの再配置先:
+Scale:	拡大/縮小:
+Tiling	タイリング
+Print tiled pages	ページをタイル状に印刷
+Tile overlap:	タイルの重なり:
+Tiling marks	タイリング マーク
+Imposition layout:	面付けレイアウト:
+Paper/film settings	用紙/フィルムの設定
+Crop/fold marks	トンボ/折りトンボ
+Exterior only	外側のみ
+Calibration bars	キャリブレーション バー
+Color calibration bar	カラー キャリブレーション バー
+Print file information	ファイル情報を印刷
+Print page numbers	ページ番号を印刷
+Print registration marks	レジストレーション マークを印刷
+Marks placement	マークの配置
+Marks to objects	オブジェクトに合わせてマークを配置
+No issues were found.	問題は見つかりませんでした。
+Save Print Style As...	名前を付けて印刷スタイルを保存...
+Delete Print Style	印刷スタイルの削除
+Print Options...	印刷オプション...
+To Fit	全体表示
+Close Print Preview	印刷プレビューを閉じる
+⚠ {} Issues	⚠ {} 件の問題
+Page {} of {}	ページ {} / {}
+   {}   {} × {} in.{}	   {}   {} × {} インチ{}
+   tile {},{}	   タイル {},{}
+One-point	1 点
+Two-point	2 点
+Three-point (worm's-eye)	3 点 (あおり)
+Three-point (bird's-eye)	3 点 (俯瞰)
+Orthographic	正投影
+Side	側面
+Edit Perspective Group	遠近グループの編集
+Draw in Perspective	遠近法で描画
+Perspective Group	遠近グループ
+Mirror lines:	ミラー線:
+Angle of rotation:	回転角度:
+Show symmetry lines	対称線を表示
+Remove symmetry: keep the objects you drew	シンメトリーの削除: 描画したオブジェクトは保持
+Horizon:	地平線:
+Fill page	ページを塗りつぶす
+The perspective field covers the page	遠近フィールドがページ全体を覆います
+Bitmap image	ビットマップ イメージ
+Rich Text Document	リッチ テキスト ドキュメント
+Text Document	テキスト ドキュメント
+Data	データ
+{} File	{} ファイル
+Insert Object	オブジェクトの挿入
+Create New	新規作成
+Create from File	ファイルから作成
+Object Type:	オブジェクトの種類:
+ It will be displayed as an icon.	 アイコンとして表示されます。
+Inserts a new {} object into your document.{}	新しい {} オブジェクトをドキュメントに挿入します。{}
+Inserts the contents of the file as an object into your document so that you may activate it using the program which created it.{}	ファイルの内容をオブジェクトとしてドキュメントに挿入し、作成元のプログラムを使用してアクティブにできるようにします。{}
+Inserts a picture of the file contents into your document. The picture will be linked to the file so that changes to the file will be reflected in your document.{}	ファイルの内容の図をドキュメントに挿入します。図はファイルにリンクされるため、ファイルへの変更がドキュメントに反映されます。{}
+No object types are available.	使用できるオブジェクトの種類がありません。
+Could not create {}:\n{}	{} を作成できませんでした:\n{}
+Could not read {}:\n{}	{} を読み取れませんでした:\n{}
+The file is too large to embed; insert it as a link.	ファイルが大きすぎて埋め込めません。リンクとして挿入してください。
+Could not open the object	オブジェクトを開けませんでした
+The linked file was not found:\n{}	リンクされたファイルが見つかりませんでした:\n{}
+Update Object	オブジェクトの更新
+Commas	カンマ
+Tabs	タブ
+Paragraphs	段落
+Create New Table	新しい表の作成
+Number of Rows:	行数:
+Number of Columns:	列数:
+Insert Columns	列の挿入
+Left of the selection	選択範囲の左
+Right of the selection	選択範囲の右
+Insert Rows	行の挿入
+Above the selection	選択範囲の上
+Below the selection	選択範囲の下
+Where:	挿入位置:
+Split Cells	セルの分割
+Convert Text to Table	テキストを表に変換
+Create columns based on the following separator:	次の区切り文字で列を作成:
+User defined:	ユーザー定義:
+A new row will be created for each paragraph.	段落ごとに新しい行が作成されます。
+Based on the current separator, the table will have {} rows and {} columns.	現在の区切り文字では、表は {} 行 {} 列になります。
+Convert Table to Text	表をテキストに変換
+Separate cell text with:	セルのテキストの区切り文字:
+User Defined:	ユーザー定義:
+A new paragraph will be created for each row.	行ごとに新しい段落が作成されます。
+Create Table	表の作成
+Leader Settings	リーダーの設定
+Character:	文字:
+Spacing:	間隔:
+Tab Settings	タブの設定
+Tab location:	タブの位置:
+Alignment	配置
+Leaders	リーダー
+Off	オフ
+Remove All	すべて削除
+Leader Options...	リーダー オプション...
+Column Settings	段組みの設定
+Gutter	段間
+Equal column width	段の幅を均等にする
+Frame Settings	フレームの設定
+Maintain current frame width	現在のフレーム幅を維持
+Automatically adjust frame width	フレーム幅を自動調整
+Bullets and Numbering	箇条書きと段落番号
+List	リスト
+Text frame to list:	テキスト フレームからリストまで:
+Use paragraph font	段落のフォントを使用
+Font:	フォント:
+Glyph:	グリフ:
+Size and spacing	サイズと間隔
+Baseline shift:	ベースライン シフト:
+Glyph to list text:	グリフからリスト テキストまで:
+Align lines in a list item	リスト項目内の行を揃える
+Drop Cap	ドロップ キャップ
+Number of lines dropped:	ドロップ キャップの行数:
+Space after drop cap:	ドロップ キャップの後のスペース:
+Use hanging indent style for drop cap	ドロップ キャップにぶら下げインデント スタイルを使用
+Statistics	統計
+All Text In Document	ドキュメント内のすべてのテキスト
+Selected Text	選択したテキスト
+Statistics:	統計:
+Lines:	行:
+Show style statistics	スタイルの統計を表示
+Custom Optional Hyphens	カスタム任意指定ハイフン
+Automatically insert custom option hyphens:	カスタム任意指定ハイフンを自動的に挿入:
+When typing	入力時
+When pasting and importing text	テキストの貼り付け時とインポート時
+Define custom option hyphens	カスタム任意指定ハイフンの定義
+Show all languages	すべての言語を表示
+Word:	単語:
+Hyphenated Word:	ハイフン付きの単語:
+Add Definition	定義の追加
+Remove Definition	定義の削除
+List of custom definitions:	カスタム定義の一覧:
+Word	単語
+Hyphenated Word	ハイフン付きの単語
+Apply to Selection	選択範囲に適用
+Auto Start	自動開始
+Beep on Misspelled	スペル ミスでビープ音
+Recheck All Text	すべてのテキストを再チェック
+Check Words with Numbers	数字を含む単語をチェック
+Check Duplicate Words	重複する単語をチェック
+Check Irregular Capitalization	不規則な大文字小文字をチェック
+Prompt Before Auto Replacement	自動置換の前に確認
+Show Phonetic Suggestions	音声的な候補を表示
+Synonym	同義語
+Antonym	反意語
+Related Words	関連語
+Is a Type of	上位概念
+Has Types	下位概念
+Is a Part of	全体
+Has Parts	部分
+Example	例
+Text Language	テキストの言語
+Spell Checker	スペル チェッカー
+Grammatik	Grammatik
+Thesaurus	類義語辞典
+Look Up	検索
+Options ⌄	オプション ⌄
+Auto Look Up	自動検索
+Spelling Assist	スペル アシスト
+     Language...	     言語...
+"{}" was not found.	"{}" が見つかりませんでした。
+"{}" was not found. Did you mean:	"{}" が見つかりませんでした。もしかして:
+{} (synonyms)	{} (同義語)
+Replace with:	置換後:
+Replacements:	置換候補:
+Not found:	見つからない語:
+Spell check complete.	スペル チェックが完了しました。
+New sentence:	新しい文:
+Grammatik check complete.	Grammatik のチェックが完了しました。
+Auto Replace	自動置換
+Skip Once	1 回スキップ
+Skip All	すべてスキップ
+Options             ⌄	オプション             ⌄
+Suggest Spelling Replacements	スペルの置換候補を表示
+Check:	チェック:
+Spell Check	スペル チェック
+Tag selected text as:	選択したテキストのタグ:
+Text Encoding	テキストのエンコード
+Select the encoding which makes your text readable:	テキストが読めるようになるエンコードを選択してください:
+Other encoding	その他のエンコード
+Encode	エンコード
+Edit Text	テキストの編集
+{} pt	{} pt
+Full justify	完全両端揃え
+Force justify	強制両端揃え
+Options  ⌄	オプション  ⌄
+Monday	月曜日
+Tuesday	火曜日
+Wednesday	水曜日
+Thursday	木曜日
+Friday	金曜日
+Saturday	土曜日
+Sunday	日曜日
+Fit Text to Frame	テキストをフレームに合わせる
+Import Workspace	ワークスペースのインポート
+Workspace File (*.cdws)	ワークスペース ファイル (*.cdws)
+Duplicate Workspace	ワークスペースの複製
+New Workspace	新しいワークスペース
+Base on:	基にするワークスペース:
+Description:	説明:
+Set as Current	現在のワークスペースに設定
+Delete Workspace	ワークスペースの削除
+The selected workspace will be deleted	選択したワークスペースが削除されます
+The Default workspace will be set as your current	デフォルト ワークスペースが現在のワークスペースに設定されます
+Export Workspace	ワークスペースのエクスポート
+Select the elements that you want to export:	エクスポートする要素を選択してください:
+Workspace exported to {}	ワークスペースを {} にエクスポートしました
+The workspace could not be exported: {}	ワークスペースをエクスポートできませんでした: {}
+Select the workspace elements that you want to import.	インポートするワークスペース要素を選択してください。
+Import selected elements into:	選択した要素のインポート先:
+New workspace	新しいワークスペース
+Current workspace	現在のワークスペース
+Workspace imported	ワークスペースをインポートしました
+Duplicate...	複製...
+Description	説明
+Scale and Mirror	拡大縮小と反転
+Relative Position	相対位置
+Angle:	角度:
+Relative Center	相対中心
+Scale portion	拡大縮小する部分
+Click the two ends of the part of the object to measure	測定するオブジェクト部分の両端をクリックしてください
+Use anchor point	アンカー ポイントを使用
+Copies:	コピー数:
+Align left (L)	左揃え (L)
+Align centers horizontally (E)	水平方向に中央揃え (E)
+Align right (R)	右揃え (R)
+Align top (T)	上揃え (T)
+Align centers vertically (C)	垂直方向に中央揃え (C)
+Align bottom (B)	下揃え (B)
+Align to:	整列の基準:
+Active objects	アクティブなオブジェクト
+Page edge	ページの端
+Page center	ページの中央
+Specified point	指定した点
+Select a point on the page	ページ上の点を選択してください
+Distribute left	左端を均等配置
+Distribute centers horizontally	水平方向に中心を均等配置
+Distribute right	右端を均等配置
+Distribute spacing horizontally	水平方向に間隔を均等配置
+Distribute top	上端を均等配置
+Distribute centers vertically	垂直方向に中心を均等配置
+Distribute bottom	下端を均等配置
+Distribute spacing vertically	垂直方向に間隔を均等配置
+Distribute to:	配置の範囲:
+Selection extent	選択範囲
+Page extent	ページ範囲
+First line baseline	最初の行のベースライン
+Last line baseline	最後の行のベースライン
+Selection: Selection order	選択: 選択順
+Selection: Reversed selection order	選択: 選択順の逆
+Selection: Top to bottom	選択: 上から下
+Selection: Bottom to top	選択: 下から上
+Selection: Left to right	選択: 左から右
+Selection: Right to left	選択: 右から左
+Area: Big to small	面積: 大から小
+Area: Small to big	面積: 小から大
+Height: Tall to short	高さ: 高から低
+Height: Short to tall	高さ: 低から高
+Width: Wide to narrow	幅: 広から狭
+Width: Narrow to wide	幅: 狭から広
+Uniform object spacing	オブジェクトの間隔を均一にする
+Uniform reference point spacing	基準点の間隔を均一にする
+Object origin	オブジェクトの原点
+Progressive	段階的
+Jitter	ジッター
+Progressive jitter	段階的ジッター
+Selection:	選択:
+{} object(s) selected	{} 個のオブジェクトを選択
+Keep originals	元のオブジェクトを保持
+Group all objects	すべてのオブジェクトをグループ化
+Duplicate(s):	複製数:
+The number of extra copies of the objects fitted along the path.	パスに沿って配置するオブジェクトの追加コピー数です。
+Path:	パス:
+Object used:	使用するオブジェクト:
+Subpaths:	サブパス:
+Treat as contiguous	連続したものとして扱う
+Order:	順序:
+Distribution:	分布:
+Reference:	基準:
+Origin:	原点:
+Rotation:	回転:
+Auto-rotate:	自動回転:
+Follow path	パスに沿う
+Reset:	リセット:
+Ignore initial rotation	最初の回転を無視
+Clear previously applied rotations before fitting objects to the path.	オブジェクトをパスに合わせる前に、適用済みの回転をクリアします。
+Modify rotation:	回転の変更:
+Start angle:	開始角度:
+Spin angle:	スピン角度:
+Revolution(s):	回転数:
+Range (±):	範囲 (±):
+No offset	オフセットなし
+Spacing between objects	オブジェクト間の間隔
+Horizontal Settings	水平方向の設定
+Vertical Settings	垂直方向の設定
+Up	上
+Distance:	距離:
+Front	前面
+Leave original source object	元のソース オブジェクトを残す
+Leave original target object	元のターゲット オブジェクトを残す
+Place behind selected	選択オブジェクトの背面に配置
+Leave original object	元のオブジェクトを残す
+Weld to	溶接先
+Intersect with	交差対象
+Fillet	フィレット
+      Radius:	      半径:
+Chamfer Distance	面取りの距離
+Extend	延長
+Bézier Curve	ベジェ カーブ
+Gap tolerance:	ギャップの許容値:
+Radius:	半径:
+Favorites	お気に入り
+Date Created	作成日
+Date Modified	更新日
+Get More	さらに入手
+Single-Folder Selection Mode	単一フォルダ選択モード
+Browse Recursively	サブフォルダも参照
+Add Folder	フォルダの追加
+Reindex Folder	フォルダの再インデックス
+Remove from List	リストから削除
+Local and network assets	ローカルとネットワークのアセット
+Cloud assets	クラウド アセット
+Linked assets	リンクされたアセット
+Refresh List	リストの更新
+No symbol libraries are linked to this document.	このドキュメントにリンクされているシンボル ライブラリはありません。
+To link a symbol library, click the Local and network assets button or the Cloud assets button, right-click a symbol library, and click Link to document.	シンボル ライブラリをリンクするには、[ローカルとネットワークのアセット] ボタンまたは [クラウド アセット] ボタンをクリックし、シンボル ライブラリを右クリックして [ドキュメントにリンク] をクリックします。
+All categories	すべてのカテゴリ
+Uncategorized	未分類
+Filter content	コンテンツのフィルタ
+Show vector images	ベクター イメージを表示
+Show raster images	ラスター イメージを表示
+Browse folders to choose a content source.	フォルダを参照してコンテンツ ソースを選択します。
+Sort assets by name or date.	アセットを名前または日付で並べ替えます。
+Remove from Favorites	お気に入りから削除
+Add to Favorites	お気に入りに追加
+Open Folder Location	フォルダの場所を開く
+Link to document	ドキュメントにリンク
+Import and link	インポートしてリンク
+Import at original position	元の位置にインポート
+Thumbnail size	サムネイルのサイズ
+Switch between list view and thumbnail preview.	リスト ビューとサムネイル プレビューを切り替えます。
+Name: {}\nFolder: {}\nSize: {} KB\nCreated: {}\nModified: {}	名前: {}\nフォルダ: {}\nサイズ: {} KB\n作成日時: {}\n更新日時: {}
+Custom Spot Colors	カスタム特色
+Spot Color {}	特色 {}
+New Color Style	新しいカラー スタイル
+Color Style {}	カラー スタイル {}
+Lab	Lab
+Registration Color	レジストレーション カラー
+HSB - Hue Based	HSB - 色相ベース
+HSB - Brightness Based	HSB - 明るさベース
+HSB - Wheel Based	HSB - ホイール ベース
+CMYK:	CMYK:
+RGB:	RGB:
+HSB:	HSB:
+Lab:	Lab:
+Hex:	16 進:
+Show color viewers	カラー ビューアを表示
+Show color sliders	カラー スライダを表示
+Show color palettes	カラー パレットを表示
+Reference color (top) and new color (bottom)	参照カラー (上) と新しいカラー (下)
+No color	カラーなし
+More color options	その他のカラー オプション
+Add to Custom Spot Colors	カスタム特色に追加
+Add to Document Palette	ドキュメント パレットに追加
+Add to Color Styles Palette	カラー スタイル パレットに追加
+Auto-apply color	カラーを自動適用
+Apply the color to the outline of the selected objects	選択したオブジェクトのアウトラインにカラーを適用
+Apply the color to the fill of the selected objects	選択したオブジェクトの塗りつぶしにカラーを適用
+2-Points Line	2 点直線
+Multi-Point Curve	複数点カーブ
+Set the angle interactively: click two points on the canvas	角度をインタラクティブに設定: キャンバス上の 2 点をクリックします
+Set the origin interactively: click on the canvas	原点をインタラクティブに設定: キャンバスをクリックします
+Set the width interactively: click two points on the canvas	幅をインタラクティブに設定: キャンバス上の 2 点をクリックします
+Set the height interactively: click two points on the canvas	高さをインタラクティブに設定: キャンバス上の 2 点をクリックします
+Set proportional	比例に設定
+Set the corner interactively: click on the canvas	角をインタラクティブに設定: キャンバスをクリックします
+Lower-left corner	左下隅
+Upper-right corner	右上隅
+Side length	辺の長さ
+Set the side length interactively: click two points on the canvas	辺の長さをインタラクティブに設定: キャンバス上の 2 点をクリックします
+Set the center interactively: click on the canvas	中心をインタラクティブに設定: キャンバスをクリックします
+Start point	始点
+Set the start point interactively: click on the canvas	始点をインタラクティブに設定: キャンバスをクリックします
+End point	終点
+Set the end point interactively: click on the canvas	終点をインタラクティブに設定: キャンバスをクリックします
+Set the length interactively: click two points on the canvas	長さをインタラクティブに設定: キャンバス上の 2 点をクリックします
+Create object	オブジェクトの作成
+Replace object	オブジェクトの置換
+Replace Object	オブジェクトの置換
+Analogous - Accented	類似色 - アクセント
+Analogous	類似色
+Complementary	補色
+Monochromatic	単色
+Tetrad	4 色配色
+Triad	3 色配色
+Custom starts a new harmony folder or removes a harmony rule.	[カスタム] では、新しいハーモニー フォルダを開始するか、ハーモニー ルールを削除します。
+Analogous - Accented adds the complement of the middle hue to the analogous hues.	[類似色 - アクセント] では、類似色の色相に中央の色相の補色を追加します。
+Analogous uses hues next to each other on the color wheel.	[類似色] では、カラー ホイール上で隣り合う色相を使用します。
+Complementary uses hues opposite each other on the color wheel.	[補色] では、カラー ホイール上で向かい合う色相を使用します。
+Monochromatic uses a single hue.	[単色] では、単一の色相を使用します。
+Tetrad uses two pairs of complementary hues.	[4 色配色] では、補色の組を 2 つ使用します。
+Triad uses three hues evenly spaced on the color wheel.	[3 色配色] では、カラー ホイール上で等間隔に並ぶ 3 つの色相を使用します。
+Harmony Rule	ハーモニー ルール
+Harmony {}	ハーモニー {}
+Specify a new name for the color style.	カラー スタイルの新しい名前を指定してください。
+Rename Color Style	カラー スタイル名の変更
+View Options	表示オプション
+Use large swatches	大きいスウォッチを使用
+Show empty arms	空のアームを表示
+Hint View	ヒント ビュー
+Increase the size of color swatches.	カラー スウォッチのサイズを大きくします。
+Show arms that do not contain colors.	カラーを含まないアームを表示します。
+Mark used color styles and objects associated with color styles.	使用中のカラー スタイルと、カラー スタイルに関連付けられたオブジェクトをマークします。
+Convert the selected color styles to a different color mode or to spot colors.	選択したカラー スタイルを別のカラー モードまたは特色に変換します。
+Convert to &RGB	RGB に変換(&R)
+Convert to &CMYK	CMYK に変換(&C)
+Convert to &Grayscale	グレースケールに変換(&G)
+Convert to &Spot	特色に変換(&S)
+Drag here to add color styles.	ここにドラッグしてカラー スタイルを追加します。
+Drag here to add color styles and\ngenerate a harmony.	ここにドラッグしてカラー スタイルを追加し、\nハーモニーを生成します。
+Create a color style.	カラー スタイルを作成します。
+&New Color Style	新しいカラー スタイル(&N)
+&New from Selected...	選択範囲から新規作成(&N)...
+New from &Document...	ドキュメントから新規作成(&D)...
+Create a color harmony.	カラー ハーモニーを作成します。
+New Color &Harmony	新しいカラー ハーモニー(&H)
+&Duplicate Harmony	ハーモニーの複製(&D)
+New &Gradient	新しいグラデーション(&G)
+Merge the selected color styles with the last selected color style.	選択したカラー スタイルを最後に選択したカラー スタイルに結合します。
+Swaps two selected color styles.	選択した 2 つのカラー スタイルを入れ替えます。
+Select all color styles that are not in use by the current document.	現在のドキュメントで使用されていないすべてのカラー スタイルを選択します。
+Delete the selected color style or color harmony.	選択したカラー スタイルまたはカラー ハーモニーを削除します。
+Import or export style sheets, or save current styles as the defaults for new documents.	スタイル シートのインポートやエクスポート、または現在のスタイルを新しいドキュメントのデフォルトとして保存します。
+&Import Style Sheet...	スタイル シートのインポート(&I)...
+&Export Style Sheet...	スタイル シートのエクスポート(&E)...
+&Add Linked Style Sheet...	リンクされたスタイル シートの追加(&A)...
+&Set as New Document Defaults...	新しいドキュメントのデフォルトとして設定(&S)...
+Harmony Editor	ハーモニー エディタ
+Distribute colors evenly when changing harmony rule.	ハーモニー ルールの変更時にカラーを均等に分布させます。
+Empty	空
+Color Editor	カラー エディタ
+Edit Color Style	カラー スタイルの編集
+Choose or remove a harmony rule to create or edit a color harmony.	カラー ハーモニーを作成または編集するには、ハーモニー ルールを選択または削除してください。
+Convert Color Styles	カラー スタイルの変換
+New Color Styles	新しいカラー スタイル
+New Color Harmony	新しいカラー ハーモニー
+Duplicate Harmony	ハーモニーの複製
+{} (copy)	{} (コピー)
+New Gradient	新しいグラデーション
+Merge Color Styles	カラー スタイルの結合
+Swap Color Styles	カラー スタイルの入れ替え
+Delete Color Styles	カラー スタイルの削除
+The color styles are the defaults of new documents.	カラー スタイルは新しいドキュメントのデフォルトです。
+Select an object to apply this effect.	この効果を適用するオブジェクトを選択してください。
+Contour alignment:	輪郭の配置:
+Steps:	ステップ数:
+Offset:	オフセット:
+Corner:	角:
+Color blend	カラー ブレンド
+Outline:	アウトライン:
+Fill:	塗りつぶし:
+Object:	オブジェクト:
+Link acceleration	加速をリンク
+Number of steps	ステップ数
+Fixed spacing	固定間隔
+Apply to sizing	サイズに適用
+Color Blend	カラー ブレンド
+Direct color blend	直接カラー ブレンド
+Clockwise color blend	時計回りのカラー ブレンド
+Counterclockwise color blend	反時計回りのカラー ブレンド
+Start object	始点オブジェクト
+End object	終点オブジェクト
+Soft edge	ソフト エッジ
+Bevel offset:	ベベルのオフセット:
+Shadow color:	シャドウのカラー:
+Light control	光のコントロール
+Light color:	光のカラー:
+Altitude:	高度:
+No Lens Effect	レンズ効果なし
+Rate:	比率:
+Palette rotation:	パレットの回転:
+Amount:	量:
+Direct palette	直接パレット
+Forward rainbow	順方向の虹
+Reverse rainbow	逆方向の虹
+From:	開始:
+To:	終了:
+Swap colors	カラーの入れ替え
+Frozen	固定
+Remove Face	面の除去
+Viewpoint	視点
+Clear Lens	レンズのクリア
+Add New Envelope	新しいエンベロープの追加
+Choose Preset	プリセットの選択
+Putty	パテ
+Small Back	小背面
+Small Front	小前面
+Big Back	大背面
+Big Front	大前面
+Back Parallel	背面平行
+Front Parallel	前面平行
+VP Locked To Object	消点をオブジェクトにロック
+VP Locked To Page	消点をページにロック
+Copy VP From...	消点のコピー元...
+Shared Vanishing Point	共有消点
+Extrude color	押し出しのカラー
+Extrusion Type:	押し出しの種類:
+Vanishing point:	消点:
+Depth:	奥行き:
+Measure from:	測定の基準:
+Page Origin	ページの原点
+Object center	オブジェクトの中心
+Rotation values	回転値
+Use object fill	オブジェクトの塗りつぶしを使用
+Drape fills	塗りつぶしをドレープ
+Solid fill	単色塗りつぶし
+Shade	陰影
+Use bevel	ベベルを使用
+Show bevel only	ベベルのみ表示
+Use extrude fill for bevel	ベベルに押し出しの塗りつぶしを使用
+Find Objects	オブジェクトの検索
+Replace Objects	オブジェクトの置換
+Find and Replace Text	テキストの検索と置換
+Overprinted outlines	オーバープリントされたアウトライン
+Pantone fills	Pantone 塗りつぶし
+Pantone outlines	Pantone アウトライン
+Scale with image off	イメージとともに拡大縮小がオフ
+Text with RGB fills	RGB 塗りつぶしのテキスト
+Bitmap Effects	ビットマップ効果
+Character	文字
+Paragraph	段落
+Style Set	スタイル セット
+Artistic Text	アーティスティック テキスト
+Callout	引き出し線
+Vector Pattern	ベクター パターン
+Bitmap Pattern	ビットマップ パターン
+Two-color Pattern	2 色パターン
+Fill with RGB color	RGB カラーの塗りつぶし
+Overprinted Outline	オーバープリントされたアウトライン
+Pantone outline	Pantone アウトライン
+Drop Shadow	ドロップ シャドウ
+Inner Shadow	内側シャドウ
+Pantone fill	Pantone 塗りつぶし
+Load a query	クエリの読み込み
+Load Query	クエリの読み込み
+AnyVector Find Query (*.vfind)	AnyVector 検索クエリ (*.vfind)
+Save the query	クエリの保存
+Save Query	クエリの保存
+Names or Styles	名前またはスタイル
+Search query	検索クエリ
+Undefined	未定義
+Add Query...	クエリの追加...
+&Object Types	オブジェクトの種類(&O)
+&Fills	塗りつぶし(&F)
+Ou&tlines	アウトライン(&T)
+&Special Effects	特殊効果(&S)
+From Selection	選択範囲から
+Object name:	オブジェクト名:
+Match case	大文字と小文字を区別
+Color model or palette	カラー モデルまたはパレット
+Outline properties	アウトラインのプロパティ
+Text properties	テキストのプロパティ
+Find:	検索:
+Apply to:	適用先:
+Uniform fills	均一塗りつぶし
+Fountain fills	グラデーション塗りつぶし
+2-color fills	2 色塗りつぶし
+Mesh fills	メッシュ塗りつぶし
+Monochrome bitmaps	モノクロ ビットマップ
+Outline width: find	アウトライン幅: 検索
+Outline width: replace	アウトライン幅: 置換
+Font: find	フォント: 検索
+Font: replace	フォント: 置換
+Size: find	サイズ: 検索
+Size: replace	サイズ: 置換
+Find whole words only	完全に一致する単語だけを検索
+Search range	検索範囲
+Find Previous	前を検索
+Find Next	次を検索
+No matching objects were found.	一致するオブジェクトが見つかりませんでした。
+Find All	すべて検索
+{} matching objects found	一致するオブジェクトが {} 個見つかりました
+Replace All	すべて置換
+Replaced in {} objects	{} 個のオブジェクトで置換しました
+Last Used:	前回使用:
+Click to use this stroke	クリックしてこのストロークを使用
+Stroke type:	ストロークの種類:
+Brushes	ブラシ
+Object Sprayer	オブジェクト スプレー
+Open a stroke list	ストローク リストを開く
+Could not open the strokes: {}	ストロークを開けませんでした: {}
+Save the stroke of the selected object as a custom stroke	選択したオブジェクトのストロークをカスタム ストロークとして保存
+Custom {}	カスタム {}
+Delete the custom stroke	カスタム ストロークの削除
+Tolerance	許容値
+Enabled	有効
+Color selector: click a color in the bitmap	カラー セレクタ: ビットマップ内のカラーをクリックします
+Click a color in the bitmap.	ビットマップ内のカラーをクリックしてください。
+Edit color	カラーの編集
+Save mask	マスクの保存
+Mask	マスク
+Could not save the mask: {}	マスクを保存できませんでした: {}
+Open mask	マスクを開く
+Could not open the mask: {}	マスクを開けませんでした: {}
+Remove the color	カラーの削除
+Tolerance:	許容値:
+Hide selected	選択したカラーを非表示
+Show selected	選択したカラーを表示
+Choose a folder of pictures for the library first.	最初にライブラリ用の画像フォルダを選択してください。
+Select the reference object first.	最初に参照オブジェクトを選択してください。
+Nothing to render.	レンダリングする内容がありません。
+Tiles	タイル
+Blending	合成
+Reference	参照
+No objects selected	オブジェクトが選択されていません
+1 object selected	1 個のオブジェクトを選択
+{} objects selected	{} 個のオブジェクトを選択
+Keep original source	元のソースを保持
+Library	ライブラリ
+Images:	イメージ:
+Select Folder	フォルダの選択
+The folder has no pictures AnyVector can read.	このフォルダには AnyVector で読み取れる画像がありません。
+Blending:	合成:
+Duplicates:	複製:
+Composition:	構成:
+Single bitmap	単一ビットマップ
+Bitmap stack	ビットマップ スタック
+Bitmap array	ビットマップ配列
+Edges:	エッジ:
+Omit partial tiles	部分的なタイルを除外
+Stretch output	出力を伸縮
+Priority:	優先:
+Match document DPI	ドキュメントの DPI に合わせる
+Custom DPI	カスタム DPI
+Custom tile dimensions	カスタム タイル寸法
+Custom output dimensions	カスタム出力寸法
+DPI:	DPI:
+Artwork:	アートワーク:
+Tile:	タイル:
+The selection has nothing to turn into tiles.	選択範囲にタイル化できるものがありません。
+{} tiles is too many: lower the density.	タイル数 {} は多すぎます: 密度を下げてください。
+Density:	密度:
+Screen angle:	スクリーン角度:
+Limit colors:	カラー数の制限:
+Tracking	トラッキング
+Method:	方法:
+Uniform (white matte)	均一 (白マット)
+Size modulation 1 (opacity)	サイズ変調 1 (不透明度)
+Size modulation 2 (luminosity)	サイズ変調 2 (輝度)
+Merge adjacent:	隣接部分を結合:
+Weld adjacent overlap	隣接する重なりを溶接
+Click a closed curve to use as the tile	タイルとして使用する閉じたカーブをクリックしてください
+Click a closed curve.	閉じたカーブをクリックしてください。
+Effect Center	効果の中心
+Effect Color	効果のカラー
+Turn the effect on or off	効果のオン/オフを切り替え
+Reset to the default settings	デフォルト設定にリセット
+Auto tone curve	自動トーン カーブ
+This effect has no settings.	この効果には設定がありません。
+{} Settings	{} の設定
+Pick the center of the effect on the object	オブジェクト上で効果の中心を選択
+Unlock the two values	2 つの値のロックを解除
+Keep the two values equal	2 つの値を同じにする
+Presets	プリセット
+Pick a color from the document	ドキュメントからカラーを選択
+Grays	グレー系
+Mesh	メッシュ
+Range	範囲
+Select Frame	フレームの選択
+Inset	インセット
+Offset and inset	オフセットとインセット
+No margin	余白なし
+Show one section at a time	一度に 1 つのセクションを表示
+Layout toolbar	レイアウト ツールバー
+Display screen tips	スクリーン ヒントを表示
+Extend along segment	セグメントに沿って延長
+Snap to tick spacing	目盛り間隔にスナップ
+Add angle	角度の追加
+Delete angle	角度の削除
+Angled	傾斜
+Show at scale	縮尺どおりに表示
+Modify	変更
+Add Guideline	ガイドラインの追加
+Modify Guideline	ガイドラインの変更
+Unlock guideline	ガイドラインのロック解除
+Delete guideline	ガイドラインの削除
+Unlock Guideline	ガイドラインのロック解除
+Lock Guideline	ガイドラインのロック
+Delete Guideline	ガイドラインの削除
+Note	メモ
+Arrow Markup	矢印マークアップ
+Highlighter	蛍光ペン
+Freehand Markup	フリーハンド マークアップ
+Rectangle Markup	矩形マークアップ
+Ellipse Markup	楕円形マークアップ
+Show Annotations	注釈を表示
+Show Resolved	解決済みを表示
+Resolve All	すべて解決
+Delete All	すべて削除
+{}  ·  Page {}	{}  ·  ページ {}
+Type a comment	コメントを入力
+Reply	返信
+Re-open	再開
+Resolve	解決
+Actions ⏷	アクション ⏷
+Copy Text	テキストのコピー
+User	ユーザー
+Comment	コメント
+Resolve Comment	コメントの解決
+Delete Comment	コメントの削除
+Delete All Comments	すべてのコメントの削除
+Copy Data From	データのコピー元
+Open spreadsheet	スプレッドシートを開く
+Open field editor	フィールド エディタを開く
+Copy data from	データのコピー元
+Clear all fields	すべてのフィールドをクリア
+Clear Object Data	オブジェクト データのクリア
+Value	値
+Delete Symbol	シンボルの削除
+Insert Symbol	シンボルの挿入
+{} instances	{} 個のインスタンス
+Linked	リンク
+Local	ローカル
+Nested	ネスト
+Unnested	ネストなし
+Scale to world units	実寸単位に拡大縮小
+Delete unused symbols	未使用のシンボルを削除
+Linked Symbols	リンクされたシンボル
+Local Symbols	ローカル シンボル
+Network Symbols	ネットワーク シンボル
+Rename Symbol	シンボル名の変更
+Rename	名前の変更
+Delete Unused Symbols	未使用のシンボルの削除
+In the document, select objects and click Add > Selection.	ドキュメントでオブジェクトを選択し、[追加] > [選択範囲] をクリックしてください。
+Or click Add > Current Page to add the current page.	または、[追加] > [現在のページ] をクリックして現在のページを追加します。
+Or click Add > All Pages to add all pages.	または、[追加] > [すべてのページ] をクリックしてすべてのページを追加します。
+Select item	項目の選択
+Destination folder	出力先フォルダ
+Export Item	項目のエクスポート
+Add Asset with These Settings	この設定でアセットを追加
+&Selection	選択範囲(&S)
+&Current Page	現在のページ(&C)
+&All Pages	すべてのページ(&A)
+Choose a default file format for new items.	新しい項目のデフォルトのファイル形式を選択してください。
+Could not export {}:\n{}	{} をエクスポートできませんでした:\n{}
+Exported {} item(s).	{} 個の項目をエクスポートしました。
+{} objects	{} 個のオブジェクト
+Open tray file	トレイ ファイルを開く
+Insert from Tray	トレイから挿入
+Tray 1	トレイ 1
+Tray management	トレイの管理
+Add tray	トレイの追加
+Tray {}	トレイ {}
+Delete tray	トレイの削除
+Rename tray	トレイ名の変更
+Open tray file...	トレイ ファイルを開く...
+Add to tray	トレイに追加
+Remove from tray	トレイから削除
+Behavior:	動作:
+Bookmark	ブックマーク
+Bookmark:	ブックマーク:
+Add descriptive information about a bookmark or anchor.	ブックマークまたはアンカーの説明情報を追加します。
+URL:	URL:
+Assign a hyperlink to the Web object or bookmark.	Web オブジェクトまたはブックマークにハイパーリンクを割り当てます。
+Hyperlink	ハイパーリンク
+(no bookmarks)	(ブックマークなし)
+Target:	ターゲット:
+Target Frame	ターゲット フレーム
+Alt Comments	代替コメント
+Define hotspot using:	ホットスポットの定義方法:
+Bounds	境界
+Hotspot	ホットスポット
+Cross-hatch:	クロスハッチ:
+Background:	背景:
+Active rollover state:	アクティブなロールオーバー状態:
+Show or hide hotspots on objects.	オブジェクトのホットスポットを表示または非表示にします。
+Add linked file	リンク ファイルの追加
+Sync Linked File	リンク ファイルの同期
+Could not read the linked file:\n{}	リンク ファイルを読み取れませんでした:\n{}
+Open source file	ソース ファイルを開く
+Sync linked file	リンク ファイルの同期
+Break link	リンクの解除
+Refresh	更新
+Add linked file...	リンク ファイルの追加...
+Zoom One-Shot	1 回ズーム
+Zoom to Selected	選択オブジェクトにズーム
+Zoom to All Objects	すべてのオブジェクトにズーム
+Add current view	現在のビューを追加
+Delete current view	現在のビューを削除
+Page {}, {}%	ページ {}、{}%
+View-{}	ビュー-{}
+File Open	ファイルを開く
+File New	新規ファイル
+Displays documents UNDO and REDO history	ドキュメントの元に戻す/やり直しの履歴を表示します
+New script	新しいスクリプト
+Load...	読み込み...
+Simple mode	シンプル モード
+User Scripts	ユーザー スクリプト
+Unload	アンロード
+Could not rename {} to {}	{} の名前を {} に変更できませんでした
+Run	実行
+Could not delete {}: {}	{} を削除できませんでした: {}
+Draw shapes	シェイプを描く
+Use the Rectangle (F6), Ellipse (F7) and Polygon (Y) tools. Hold Ctrl to constrain and Shift to draw from the center.	矩形 (F6)、楕円形 (F7)、多角形 (Y) ツールを使用します。Ctrl キーを押したままにすると制限され、Shift キーを押したままにすると中心から描画されます。
+Edit curves	カーブを編集する
+Select a curve and press F10 for the Shape tool. Double-click a curve to add a node; drag nodes and control handles.	カーブを選択し、F10 キーを押してシェイプ ツールを使用します。カーブをダブルクリックするとノードが追加されます。ノードとコントロール ハンドルはドラッグできます。
+Click a palette swatch to fill, right-click to set the outline. Drag colors onto objects.	パレットのスウォッチをクリックすると塗りつぶし、右クリックするとアウトラインが設定されます。カラーをオブジェクトにドラッグすることもできます。
+Combine shapes	シェイプを組み合わせる
+Select two or more objects and use Weld, Trim or Intersect from the property bar or the Shape docker.	2 つ以上のオブジェクトを選択し、プロパティ バーまたはシェイプ ドッキング ウィンドウで溶接、トリム、交差を使用します。
+Press F8 for the Text tool. Click to type artistic text, or drag a frame for paragraph text.	F8 キーを押してテキスト ツールを使用します。クリックするとアーティスティック テキスト、フレームをドラッグすると段落テキストを入力できます。
+File > Export (Ctrl+E) saves PNG, JPG, SVG, PDF and more. File > Publish to PDF creates print-ready PDFs.	[ファイル] > [エクスポート] (Ctrl+E) で PNG、JPG、SVG、PDF などに保存できます。[ファイル] > [PDF に発行] で印刷用の PDF を作成できます。
+Describe what you want in the AI Generate docker; the result is editable vector artwork.	AI 生成ドッキング ウィンドウで作りたいものを説明すると、編集可能なベクター アートワークが生成されます。
+P&roperties	プロパティ(&R)
+&Objects	オブジェクト(&O)
+&Pages	ページ(&P)
+Co&mments	コメント(&M)
+Object &Data	オブジェクト データ(&D)
+Object St&yles	オブジェクト スタイル(&Y)
+&Symbols	シンボル(&S)
+&Find and Replace	検索と置換(&F)
+E&xport	エクスポート(&X)
+&AI Generate	AI 生成(&A)
+&Transform	変形(&T)
+Coord&inates	座標(&I)
+&Live Guides	ライブ ガイド(&L)
+&Guidelines	ガイドライン(&G)
+Align and Dis&tribute	整列と配置(&T)
+Fit Objects to Pat&h	オブジェクトをパスに合わせる(&H)
+St&ep and Repeat	ステップと繰り返し(&E)
+S&hape	シェイプ(&H)
+Cor&ners	角(&N)
+&Join Curves	カーブの連結(&J)
+Te&xt	テキスト(&X)
+Font Sa&mpler	フォント サンプラー(&M)
+&Glyphs	グリフ(&G)
+Artistic Me&dia	アーティスティック メディア(&D)
+Be&vel	ベベル(&V)
+Bitmap &Mask	ビットマップ マスク(&M)
+&Blend	ブレンド(&B)
+&Contour	輪郭(&C)
+&Envelope	エンベロープ(&E)
+E&xtrude	押し出し(&X)
+&Lens	レンズ(&L)
+&Color	カラー(&C)
+&Palettes	パレット(&P)
+Color St&yles	カラー スタイル(&Y)
+Color Pr&oofing	カラー校正(&O)
+&Assets	アセット(&A)
+T&ray	トレイ(&R)
+&Links and Rollovers	リンクとロールオーバー(&L)
+So&urces	ソース(&U)
+&Views	ビュー(&V)
+&History	履歴(&H)
+Scr&ipts	スクリプト(&I)
+Lear&n	学習(&N)
+Open or create a document to use this docker.	このドッキング ウィンドウを使用するには、ドキュメントを開くか作成してください。
+View Pages, Layers, and Objects	ページ、レイヤー、オブジェクトを表示
+View Layers and Objects	レイヤーとオブジェクトを表示
+Click the layer to copy the selected objects to.	選択したオブジェクトのコピー先のレイヤーをクリックしてください。
+Click the layer to move the selected objects to.	選択したオブジェクトの移動先のレイヤーをクリックしてください。
+&Edit Across Layers	レイヤー間で編集(&E)
+E&xpand to Show Selection	展開して選択範囲を表示(&X)
+&Keep Desktop Objects on Layer	デスクトップ オブジェクトをレイヤー上に保持(&K)
+&Select Object to Activate Layer	オブジェクトを選択してレイヤーをアクティブにする(&S)
+Show Object Properties	オブジェクト プロパティを表示
+&Layer	レイヤー(&L)
+&New Layer	新しいレイヤー(&N)
+New Master Layer (&all pages)	新しいマスター レイヤー (すべてのページ)(&A)
+New Master Layer (&odd pages)	新しいマスター レイヤー (奇数ページ)(&O)
+New Master Layer (&even pages)	新しいマスター レイヤー (偶数ページ)(&E)
+&Delete Layer	レイヤーの削除(&D)
+Delete E&mpty Layers	空のレイヤーの削除(&M)
+&Move to Layer...	レイヤーへ移動(&M)...
+&Copy to Layer...	レイヤーへコピー(&C)...
+&Page	ページ(&P)
+Show Master Layers on Pages	ページにマスター レイヤーを表示
+&View Pages, Layers, and Objects	ページ、レイヤー、オブジェクトを表示(&V)
+&View Layers and Objects	レイヤーとオブジェクトを表示(&V)
+&New Page	新しいページ(&N)
+&Insert Page...	ページの挿入(&I)...
+&Duplicate Page...	ページの複製(&D)...
+D&elete Page	ページの削除(&E)
+New Layer	新しいレイヤー
+Layer {}	レイヤー {}
+New Master Layer	新しいマスター レイヤー
+Delete Layer	レイヤーの削除
+Delete Empty Layers	空のレイヤーの削除
+Guides	ガイド
+Master Page	マスター ページ
+Guides (all pages)	ガイド (すべてのページ)
+Desktop	デスクトップ
+Show or hide	表示/非表示
+Lock or unlock	ロック/ロック解除
+Enable or disable printing and exporting	印刷とエクスポートの有効/無効
+&Rename	名前の変更(&R)
+&Delete	削除(&D)
+Un&lock	ロック解除(&L)
+&Lock	ロック(&L)
+&Change Layer To	レイヤーの変更(&C)
+&Local Layer	ローカル レイヤー(&L)
+Master Layer (&all pages)	マスター レイヤー (すべてのページ)(&A)
+Master Layer (&odd pages)	マスター レイヤー (奇数ページ)(&O)
+Master Layer (&even pages)	マスター レイヤー (偶数ページ)(&E)
+Change Layer To	レイヤーの変更
+ (all pages)	 (すべてのページ)
+ (odd pages)	 (奇数ページ)
+ (even pages)	 (偶数ページ)
+Layer Properties	レイヤーのプロパティ
+Visibility	表示
+Copy to Layer	レイヤーへコピー
+Move to Layer	レイヤーへ移動
+Add Effects	効果の追加
+Resize list	リストのサイズ変更
+Single page view	単一ページ ビュー
+Multipage view settings	複数ページ ビューの設定
+New Page	新しいページ
+List view	リスト ビュー
+Graphic	グラフィック
+New Style Set	新しいスタイル セット
+New Style	新しいスタイル
+Style Sets	スタイル セット
+Default Object Properties	デフォルトのオブジェクト プロパティ
+Import, export, or save defaults	デフォルトのインポート、エクスポート、保存
+The styles are the defaults of new documents.	スタイルは新しいドキュメントのデフォルトです。
+&Outline	アウトライン(&O)
+&Fill	塗りつぶし(&F)
+&Transparency	透明(&T)
+&Character	文字(&C)
+&Paragraph	段落(&P)
+F&rame	フレーム(&R)
+&Apply Style	スタイルの適用(&A)
+D&uplicate	複製(&U)
+&Select Objects Using Style	スタイルを使用するオブジェクトの選択(&S)
+Rename Style	スタイル名の変更
+Duplicate Style	スタイルの複製
+Delete Style	スタイルの削除
+Import Style Sheet	スタイル シートのインポート
+AnyVector Style Sheet (*.vstyles)	AnyVector スタイル シート (*.vstyles)
+The style sheet could not be read.	スタイル シートを読み取れませんでした。
+Export Style Sheet	スタイル シートのエクスポート
+The style sheet could not be saved.	スタイル シートを保存できませんでした。
+Misc	その他
+Nature	自然
+People	人物
+Things	物
+256 Colors	256 色
+TRUMATCH Colors	TRUMATCH カラー
+DIC Colors	DIC カラー
+FOCOLTONE Colors	FOCOLTONE カラー
+SpectraMaster® Colors	SpectraMaster® カラー
+{}% Black	{}% ブラック
+Not included in AnyVector	AnyVector には含まれていません
+New Folder	新しいフォルダ
+New Blank Palette	新しい空のパレット
+Edit Palette...	パレットの編集...
+New palette	新しいパレット
+New empty Color Palette	新しい空のカラー パレット
+New Palette from Selected objects	選択したオブジェクトから新しいパレット
+New Palette from the Document	ドキュメントから新しいパレット
+Untitled Palette	無題のパレット
+Relative colorimetric	相対的な色域を維持
+Absolute colorimetric	絶対的な色域を維持
+Perceptual	知覚的
+(Document) {}	(ドキュメント) {}
+(Document) Dot Gain 20%	(ドキュメント) ドット ゲイン 20%
+Default profiles	デフォルトのプロファイル
+(Default) sRGB IEC61966-2.1	(デフォルト) sRGB IEC61966-2.1
+(Default) Dot Gain 20%	(デフォルト) ドット ゲイン 20%
+CMYK output profiles	CMYK 出力プロファイル
+RGB output profiles	RGB 出力プロファイル
+Grayscale output profiles	グレースケール出力プロファイル
+Show the colors of the document as they will look in the proofing environment.	ドキュメントのカラーを校正環境での見え方で表示します。
+Gamut warning	色域外警告
+Out-of-gamut colors	色域外のカラー
+Highlight the colors that the proofing environment cannot reproduce.	校正環境で再現できないカラーを強調表示します。
+Choose the color of the out-of-gamut overlay.	色域外オーバーレイのカラーを選択します。
+Set the transparency of the out-of-gamut overlay.	色域外オーバーレイの透明度を設定します。
+Proof preset:	校正プリセット:
+Choose a proof preset.	校正プリセットを選択します。
+Save all current proof settings as a proof preset. Out-of-gamut settings are not included in the proof preset.	現在のすべての校正設定を校正プリセットとして保存します。色域外の設定は校正プリセットに含まれません。
+Proof preset {}	校正プリセット {}
+Delete the selected proof preset.	選択した校正プリセットを削除します。
+Simulate environment:	シミュレートする環境:
+Choose the printer, press or display whose colors the soft proof simulates.	ソフト プルーフでシミュレートするプリンタ、印刷機、またはディスプレイを選択します。
+Preserve {} numbers	{} 値を保持
+Keep the RGB color values of the document in the soft proof. RGB colors will not be converted from the document color profile to the color profile of the proofing environment.	ソフト プルーフでドキュメントの RGB カラー値を保持します。RGB カラーはドキュメントのカラー プロファイルから校正環境のカラー プロファイルに変換されません。
+Keep the Grayscale color values of the document in the soft proof. Grayscale colors will not be converted from the document color profile to the color profile of the proofing environment.	ソフト プルーフでドキュメントのグレースケール カラー値を保持します。グレースケール カラーはドキュメントのカラー プロファイルから校正環境のカラー プロファイルに変換されません。
+Keep the CMYK color values of the document in the soft proof. CMYK colors will not be converted from the document color profile to the color profile of the proofing environment.	ソフト プルーフでドキュメントの CMYK カラー値を保持します。CMYK カラーはドキュメントのカラー プロファイルから校正環境のカラー プロファイルに変換されません。
+The rendering intent determines how out-of-gamut colors are interpreted in the soft proof.	レンダリング インテントは、ソフト プルーフで色域外のカラーをどのように解釈するかを決定します。
+Export soft proof...	ソフト プルーフのエクスポート...
+Save the soft proof as a JPG, TIFF, Adobe Portable Document Format (PDF), or Corel PHOTO-PAINT (CPT ) file. Note that the colors of the saved proof will be different from the colors of the active document.	ソフト プルーフを JPG、TIFF、Adobe Portable Document Format (PDF)、または Corel PHOTO-PAINT (CPT) ファイルとして保存します。保存した校正のカラーはアクティブなドキュメントのカラーとは異なります。
+Print proof...	校正刷りの印刷...
+Print the document with the colors of the proofing environment.	校正環境のカラーでドキュメントを印刷します。
+Show or hide the description.	説明を表示または非表示にします。
+Point to a control to learn how it affects colors in the file or when you should use it.	コントロールをポイントすると、ファイル内のカラーへの影響や使用するタイミングを確認できます。
+Export Soft Proof	ソフト プルーフのエクスポート
+{} proof.png	{} 校正.png
+The soft proof could not be saved.	ソフト プルーフを保存できませんでした。
+Save as new	新規として保存
+Jump to the rectangle properties.	矩形のプロパティに移動します。
+Jump to the ellipse properties.	楕円形のプロパティに移動します。
+Jump to the star properties.	星形のプロパティに移動します。
+Jump to the polygon properties.	多角形のプロパティに移動します。
+Jump to the bitmap properties.	ビットマップのプロパティに移動します。
+Jump to the symbol properties.	シンボルのプロパティに移動します。
+Jump to the frame properties.	フレームのプロパティに移動します。
+Jump to the curve properties.	カーブのプロパティに移動します。
+Jump to the outline properties.	アウトラインのプロパティに移動します。
+Jump to the fill properties.	塗りつぶしのプロパティに移動します。
+Jump to the transparency properties.	透明のプロパティに移動します。
+Jump to the effects properties.	効果のプロパティに移動します。
+Jump to the Painterly brushstroke properties.	ペインタリー ブラシストロークのプロパティに移動します。
+Jump to the summary properties.	概要のプロパティに移動します。
+Show or hide the summary.	概要を表示または非表示にします。
+Show or hide all properties.	すべてのプロパティを表示または非表示にします。
+Summary	概要
+Hairline	極細線
+Line style\nChoose a style for the line or outline.	線のスタイル\n線またはアウトラインのスタイルを選択します。
+Default dashes	デフォルトの破線
+Align dashes	破線を揃える
+Fixed dashes	固定破線
+Dashes	破線
+Miter limit:	マイター制限:
+Miter Limit	マイター制限
+Corners:	角:
+Miter corners	マイター角
+Line caps:	線端:
+Square cap	四角形の線端
+Round cap	丸形の線端
+Extended square cap	延長された四角形の線端
+Line Caps	線端
+Outside outline	外側のアウトライン
+Centered outline	中央のアウトライン
+Inside outline	内側のアウトライン
+Outline Position	アウトラインの位置
+Arrowheads	矢印
+Arrowhead settings\nModify arrowhead attributes such as size, offset, and rotation angle.	矢印の設定\nサイズ、オフセット、回転角度などの矢印の属性を変更します。
+Attributes...	属性...
+Arrowhead	矢印
+Share Attributes	属性を共有
+Calligraphy	カリグラフィ
+Default nib	デフォルトのペン先
+Behind fill	塗りつぶしの背面
+Behind Fill	塗りつぶしの背面
+Scale with object	オブジェクトと一緒に拡大縮小
+Scale Outline	アウトラインの拡大縮小
+Overprint outline	アウトラインのオーバープリント
+Start arrowhead\nAdd an arrowhead at the start of the line.	始点の矢印\n線の始点に矢印を追加します。
+End arrowhead\nAdd an arrowhead at the end of the line.	終点の矢印\n線の終点に矢印を追加します。
+No arrowhead	矢印なし
+Side 1:	辺 1:
+Side 2:	辺 2:
+Lock side widths	辺の幅をロック
+Total:	合計:
+More\nDisplay other fill types.	その他\n他の塗りつぶしの種類を表示します。
+The object has no fill.	オブジェクトに塗りつぶしがありません。
+Fill winding	塗りつぶしの巻き方向
+Fill Winding	塗りつぶしの巻き方向
+Overprint fill	塗りつぶしのオーバープリント
+Transparency:	透明度:
+Blend direction:	ブレンドの方向:
+Linear color blend	線形カラー ブレンド
+Arrangement:	配置:
+Reverse fill:	塗りつぶしの反転:
+Acceleration:	加速:
+Smooth transition	スムーズな推移
+New source	新しいソース
+New source from document	ドキュメントから新しいソース
+New source from file...	ファイルから新しいソース...
+Foreground:	前景:
+Swap	入れ替え
+Transparency target:	透明の対象:
+Front color:	前景色:
+Back color:	背景色:
+Mirror tiles:	タイルの反転:
+Blend type:	ブレンドの種類:
+Radial blend	放射状ブレンド
+Linear blend	線形ブレンド
+Edge match	エッジの一致
+Row offset	行のオフセット
+Column offset	列のオフセット
+Pattern Fill	パターン塗りつぶし
+More\nDisplay other transparency types.	その他\n他の透明の種類を表示します。
+Transparency Target	透明の対象
+All presets	すべてのプリセット
+Bright Midtones	明るい中間調
+Dark Midtones	暗い中間調
+High Contrast	高コントラスト
+Low Contrast	低コントラスト
+Effect Order	効果の順序
+Add effect	効果の追加
+Delete effect	効果の削除
+Delete Effect	効果の削除
+Points:	頂点数:
+Sides:	辺数:
+Sharpness:	鋭さ:
+Text or web address	テキストまたは Web アドレス
+QR Code Text	QR コードのテキスト
+Showing the {} state	{} 状態を表示中
+Select it with the Impact tool to change it on the property bar	変更するには、インパクト ツールで選択してプロパティ バーで変更します
+1 mirror line; double-click to edit	鏡映線 1 本 (ダブルクリックで編集)
+{} mirror lines; double-click to edit	鏡映線 {} 本 (ダブルクリックで編集)
+{} perspective; double-click to edit	{} 遠近効果。ダブルクリックで編集
+{}; double-click to open it in its program	{}。ダブルクリックで作成元のプログラムで開きます
+Brush Size	ブラシのサイズ
+{} Objects Selected	{} 個のオブジェクトを選択
+Layer:	レイヤー:
+Multiple Objects	複数のオブジェクト
+Selection dimension:	選択範囲の寸法:
+Selection center:	選択範囲の中心:
+Rotation center:	回転の中心:
+Wrap paragraph text:	段落テキストの回り込み:
+Contour - Flow Left	輪郭 - 左に回り込み
+Contour - Flow Right	輪郭 - 右に回り込み
+Contour - Straddle Text	輪郭 - 両側に回り込み
+Square - Flows Left	四角形 - 左に回り込み
+Square - Flows Right	四角形 - 右に回り込み
+Square - Straddle Text	四角形 - 両側に回り込み
+Square - Above/Below	四角形 - 上下
+Text Wrap Offset	テキストの回り込みのオフセット
+{} on {} layers	{1} 個のレイヤー上の {0}
+{} dpi	{} dpi
+Choose a typeface for new or selected text.	新しいテキストまたは選択したテキストの書体を選択します。
+Show a single line of text.	1 行のテキストを表示します。
+Show a paragraph of text.	テキストの段落を表示します。
+Show single line of text in increasing sizes.	1 行のテキストをサイズを大きくしながら表示します。
+Change the size of the sample text.	サンプル テキストのサイズを変更します。
+{} Normal	{} 標準
+Add another sample	サンプルの追加
+Arrows	矢印
+Currency	通貨
+Mathematical Symbols	数学記号
+Marks	記号
+Punctuation & Separators	句読点と区切り記号
+Latin	ラテン
+Cyrillic	キリル
+Arabic	アラビア
+Recent glyphs:	最近使用したグリフ:
+Shows the most recently used glyphs	最近使用したグリフを表示します
+Entire Font	フォント全体
+Common	共通
+Find characters and glyphs for specific OpenType features, languages, categories, and more.	特定の OpenType 機能、言語、カテゴリなどに対応する文字やグリフを検索します。
+Glyph ID:	グリフ ID:
+Unicode:	Unicode:
+Keystroke:	キーストローク:
+OpenType:	OpenType:
+Show all glyph variations.	すべてのグリフのバリエーションを表示します。
+Change the glyph size in the Glyph Preview area.	グリフ プレビュー領域のグリフのサイズを変更します。
+&Revert to style	スタイルに戻す(&R)
+Jump to the character properties.	文字のプロパティに移動します。
+Jump to the paragraph properties.	段落のプロパティに移動します。
+Display or hide the style indicators.	スタイル インジケータを表示または非表示にします。
+&Justification...	行揃え(&J)...
+&Tabs...	タブ(&T)...
+&Bullets and Numbering...	箇条書きと段落番号(&B)...
+&Drop Cap...	ドロップ キャップ(&D)...
+&Hyphenation Settings...	ハイフネーションの設定(&H)...
+Normal-Italic	標準-斜体
+Bold-Italic	太字-斜体
+2 Color Pattern	2 色パターン
+Single Thin	一重細線
+Single Thin Word	一重細線 (単語)
+Single Thick	一重太線
+Single Thick Word	一重太線 (単語)
+Double Thin	二重細線
+Double Thin Word	二重細線 (単語)
+Choose a font style for the text.	テキストのフォント スタイルを選択します。
+Font Style	フォント スタイル
+Adjust variable font properties.	可変フォントのプロパティを調整します。
+Range Kerning	範囲カーニング
+Underline the text.	テキストに下線を引きます。
+Choose the type of fill to apply to the characters.	文字に適用する塗りつぶしの種類を選択します。
+Text Fill	テキストの塗りつぶし
+Text Color	テキストのカラー
+Background Fill	背景の塗りつぶし
+Choose the type of background fill for the characters.	文字の背景の塗りつぶしの種類を選択します。
+Set an outline width for the characters.	文字のアウトライン幅を設定します。
+Change the position of a selected character relative to the surrounding characters.	選択した文字の位置を周囲の文字を基準に変更します。
+Superscript (auto)	上付き文字 (自動)
+Subscript (auto)	下付き文字 (自動)
+Superscript (synthesized)	上付き文字 (合成)
+Subscript (synthesized)	下付き文字 (合成)
+Change text capitalization.	テキストの大文字/小文字を変更します。
+Caps	大文字
+All Caps	すべて大文字
+Titling Caps	タイトル用大文字
+Small Caps (synthesized)	スモール キャピタル (合成)
+All Small Caps	すべてスモール キャピタル
+Small Caps from Caps	大文字からスモール キャピタル
+Petite Caps	ペティート キャピタル
+All Petite Caps	すべてペティート キャピタル
+Unicase	ユニケース
+Capital Spacing	大文字の間隔
+Alternate Annotation Forms	代替注釈字形
+Character Strikethrough	文字の取り消し線
+Apply a line through the selected text.	選択したテキストに取り消し線を引きます。
+Strikethrough	取り消し線
+Character Overline	文字の上線
+Apply a line above the selected text.	選択したテキストの上に線を引きます。
+Let the outline print on top of the underlying colors.	アウトラインを下にあるカラーの上に重ねて印刷します。
+Let the fill print on top of the underlying colors.	塗りつぶしを下にあるカラーの上に重ねて印刷します。
+Number Styles	数字スタイル
+Fraction	分数
+Ordinals	序数
+Stylistic Alternates	スタイル セットの代替字形
+Font	フォント
+Do not align text with the text frame.	テキストをテキスト フレームに揃えません。
+Align text with the left side of the text frame.	テキストをテキスト フレームの左側に揃えます。
+Center text between the left and right sides of the text frame.	テキストをテキスト フレームの左右の中央に揃えます。
+Align text with the right side of the text frame.	テキストをテキスト フレームの右側に揃えます。
+Align text, excluding the last line, with the left and right sides of the text frame.	最後の行を除き、テキストをテキスト フレームの左右両側に揃えます。
+Align text with both left and right sides of the text frame.	テキストをテキスト フレームの左右両側に揃えます。
+Line Spacing	行間隔
+% of Char. height	文字の高さに対する %
+% of Pt. size	ポイント サイズに対する %
+Set the unit of measurement for spacing text.	テキストの間隔の単位を設定します。
+Left indent	左インデント
+Before Paragraph Spacing	段落前の間隔
+First Line	最初の行
+After Paragraph Spacing	段落後の間隔
+Right indent	右インデント
+Character Spacing	文字間隔
+Word Spacing	単語間隔
+Add or remove bulleted-list formatting.	箇条書きリストの書式を追加または削除します。
+Add or remove numbered-list formatting.	番号付きリストの書式を追加または削除します。
+Move the list item to the right.	リスト項目を右に移動します。
+Move the list item to the left.	リスト項目を左に移動します。
+Add or remove a drop cap.	ドロップ キャップを追加または削除します。
+Modify tab settings.	タブの設定を変更します。
+Use hyphenation	ハイフネーションを使用
+Text Direction:	テキストの方向:
+Make text flow from left to right	テキストを左から右に流す
+Make text flow from right to left	テキストを右から左に流す
+Align the text inside the text frame to the document's baseline grid.	テキスト フレーム内のテキストをドキュメントのベースライン グリッドに揃えます。
+Choose a method of aligning text vertically.	テキストの垂直方向の配置方法を選択します。
+Number Of Columns	段数
+Adjust the width of text frame columns equally.	テキスト フレームの段の幅を均等に調整します。
+Equal Column Width	段の幅を均等にする
+Modify column settings.	段組みの設定を変更します。
+Apply right-to-left text flow to the columns.	段に右から左へのテキストの流れを適用します。
+Text Orientation:	テキストの方向:
+Changes the text to horizontal direction	テキストを横書きにします
+Changes the text to vertical	テキストを縦書きにします
+Acrylics	アクリル
+Airbrushes	エアブラシ
+Digital Effects	デジタル効果
+Fluid	リキッド
+Glazing	グレーズ
+Gouache	ガッシュ
+Inks	インク
+Markers	マーカー
+Oils	油彩
+Particles	パーティクル
+Pastels & Chalks	パステルとチョーク
+Pencils	鉛筆
+Sponges	スポンジ
+Basic Paper	基本用紙
+Contour - Follow	輪郭 - 追従
+Text flow left	テキストを左に回り込み
+Text flow right	テキストを右に回り込み
+Straddle text	両側に回り込み
+Above/below	上下
+Center Distortion	ディストーションを中央へ
+Scale Variable Outline	可変アウトラインの拡大縮小
+Rounded Rectangle	角丸矩形
+Object acceleration	オブジェクトの加速
+Color acceleration	カラーの加速
+Link accelerations	加速をリンク
+VP Locked to Object	消点をオブジェクトにロック
+VP Locked to Page	消点をページにロック
+Create Gap	ギャップの作成
+Automatic	自動
+Convert Outlines to Objects	アウトラインをオブジェクトに変換
+Keep Outlines	アウトラインを保持
+Margins:	余白:
+Fixed Direction	固定方向
+Use Default	デフォルトを使用
+Specify	指定
+Parallel	平行
+Aligned Start and End	始点と終点を揃える
+Random Start	ランダムな始点
+Random End	ランダムな終点
+Random Start and End	ランダムな始点と終点
+Min:	最小:
+Max:	最大:
+Wedge	くさび形
+Tapered Both Ends	両端を先細り
+Tapered Start	始点を先細り
+Table Fill	表の塗りつぶし
+Cell Fill	セルの塗りつぶし
+Table Border	表の境界線
+Automatically resize cells while typing	入力中にセルのサイズを自動調整
+Separated cell borders	セルの境界線を分離
+Horizontal cell spacing:	セルの水平方向の間隔:
+Vertical cell spacing:	セルの垂直方向の間隔:
+Table Options	表のオプション
+Top:	上:
+Bottom:	下:
+Left:	左:
+Right:	右:
+Lock margins	余白をロック
+Cell Margins	セルの余白
+Cell Size	セルのサイズ
+Text wrap offset:	テキストの回り込みのオフセット:
+Gap to object:	オブジェクトとの間隔:
+Extend beyond dimension line:	寸法線からの延長:
+Clear All	すべてクリア
+Presets...	プリセット...
+No presets saved	保存済みのプリセットはありません
+Extrude Rotation	押し出しの回転
+Extrude Color	押し出しのカラー
+Extrude Bevel	押し出しのベベル
+Extrude Lighting	押し出しの照明
+Autofit Page	ページの自動調整
+Node Align	ノードの整列
+Align horizontal	水平方向に整列
+Align vertical	垂直方向に整列
+Align control points	コントロール ポイントを整列
+Align Nodes	ノードの整列
+Lowest	最低
+Highest	最高
+Shape Recognition Level:	シェイプ認識レベル:
+Smart Smoothing Level:	スマート スムージング レベル:
+Taper	先細り
+Taper end	終点を先細り
+Taper start	始点を先細り
+Move	移動
+Outline Style	アウトライン スタイル
+Clear Block Shadow	ブロック シャドウのクリア
+Click an object twice for rotating/skewing; dbl-clicking tool selects all objects; Shift+click multi-selects; Alt+click digs; Ctrl+click selects in a group	オブジェクトを 2 回クリックすると回転/傾斜、ツールをダブルクリックするとすべてのオブジェクトを選択、Shift+クリックで複数選択、Alt+クリックで背面を選択、Ctrl+クリックでグループ内を選択します
+Drag around objects to select them with a freehand marquee	オブジェクトの周囲をドラッグすると、フリーハンドのマーキーで選択されます
+Drag to rotate, reflect, scale or skew the selection freely	ドラッグして選択範囲を自由に回転、反射、拡大縮小、傾斜します
+Click a curve object to select it; drag nodes to reshape; double-click a curve to add a node	カーブ オブジェクトをクリックして選択し、ノードをドラッグして形状を変更します。カーブをダブルクリックするとノードが追加されます
+Drag along the edge of a curve object to smooth it	カーブ オブジェクトのエッジに沿ってドラッグすると滑らかになります
+Drag along the outline to smear (distort) it	アウトラインに沿ってドラッグするとスミア (ゆがみ) が適用されます
+Click and hold over the edge of an object to add twirls	オブジェクトのエッジ上でクリックしたままにすると渦巻きが追加されます
+Click and hold to attract nodes; hold Ctrl to repel	クリックしたままにするとノードが引き付けられます。Ctrl キーを押したままにすると反発します
+Drag across the edge of a curve to smudge it	カーブのエッジを横切ってドラッグするとにじみが適用されます
+Drag along the outline of a curve to roughen it	カーブのアウトラインに沿ってドラッグすると粗くなります
+Drag to define the area to keep; double-click inside or press Enter to crop	ドラッグして残す領域を指定し、内側をダブルクリックするか Enter キーを押してトリミングします
+Click or drag across an object to split it	オブジェクトをクリックするか横切ってドラッグすると分割されます
+Click a segment between intersections to delete it	交点間のセグメントをクリックすると削除されます
+Drag over a selected object to erase parts of it	選択したオブジェクト上をドラッグすると、その部分が消去されます
+Click to zoom in; right-click to zoom out; drag to zoom to an area	クリックすると拡大、右クリックすると縮小、ドラッグすると領域にズームします
+Drag to pan the drawing window	ドラッグして描画ウィンドウをパンします
+Drag to draw a freehand curve; click start and end points to draw a straight line	ドラッグしてフリーハンドのカーブを描きます。始点と終点をクリックすると直線を描きます
+Drag to draw a straight line between two points	ドラッグして 2 点間に直線を描きます
+Click to add straight segments; drag to add curved segments; double-click or press Enter to finish	クリックで直線セグメント、ドラッグで曲線セグメントを追加します。ダブルクリックするか Enter キーを押して終了します
+Click to add points, drag to create curves; double-click to finish	クリックでポイントを追加し、ドラッグでカーブを作成します。ダブルクリックで終了します
+Click to add control points; double-click to finish	クリックでコントロール ポイントを追加します。ダブルクリックで終了します
+Click to add straight segments; drag to draw freehand; double-click to finish	クリックで直線セグメントを追加し、ドラッグでフリーハンドで描画します。ダブルクリックで終了します
+Drag to set the start and end points, then click to set the curvature	ドラッグして始点と終点を設定してから、クリックして曲率を設定します
+Sketch strokes; nearby strokes are merged into smooth curves	ストロークをスケッチします。近接するストロークは滑らかなカーブに結合されます
+Draw a shape freehand; it is recognized and converted into a basic shape	フリーハンドでシェイプを描くと、認識されて基本シェイプに変換されます
+Drag to draw a brush, sprayer, calligraphic or pressure stroke	ドラッグしてブラシ、スプレー、カリグラフィ、または筆圧のストロークを描きます
+Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center	ドラッグして矩形を描きます。Ctrl で正方形に制限、Shift で中心から描画します
+Drag to set the baseline, then click to set the height	ドラッグしてベースラインを設定してから、クリックして高さを設定します
+Drag to draw an ellipse; Ctrl constrains to a circle; Shift draws from the center	ドラッグして楕円形を描きます。Ctrl で円に制限、Shift で中心から描画します
+Drag to set the center line, then click to set the height	ドラッグして中心線を設定してから、クリックして高さを設定します
+Drag to draw a polygon; Ctrl constrains; Shift draws from the center	ドラッグして多角形を描きます。Ctrl で制限、Shift で中心から描画します
+Drag to draw a star; Ctrl constrains; Shift draws from the center	ドラッグして星形を描きます。Ctrl で制限、Shift で中心から描画します
+Drag to draw a spiral	ドラッグしてらせんを描きます
+Drag to draw a grid of rectangles	ドラッグして矩形のグリッドを描きます
+Choose a shape on the property bar and drag to draw it	プロパティ バーでシェイプを選択し、ドラッグして描きます
+Click to add artistic text; drag to add paragraph text	クリックでアーティスティック テキスト、ドラッグで段落テキストを追加します
+Drag to draw a table	ドラッグして表を描きます
+Drag to set the start and end points, then click to place the dimension line	ドラッグして始点と終点を設定してから、クリックして寸法線を配置します
+Click the vertex, then the two arms, then place the arc	頂点をクリックし、次に 2 本の辺をクリックしてから円弧を配置します
+Click a segment to measure it	セグメントをクリックすると測定されます
+Drag to draw the leader, then click to set the shoulder and type the text	ドラッグして引き出し線を描き、クリックして肩を設定してからテキストを入力します
+Drag from one object to another to connect them	オブジェクトから別のオブジェクトへドラッグして接続します
+Drag from one object to another to connect them with a right-angle line	オブジェクトから別のオブジェクトへドラッグして直角の線で接続します
+Drag from one object to another to connect them with a rounded right-angle line	オブジェクトから別のオブジェクトへドラッグして角丸直角の線で接続します
+Click an object to show its anchors; drag anchors to move them	オブジェクトをクリックするとアンカーが表示されます。アンカーをドラッグして移動します
+Drag from an object to add a drop shadow	オブジェクトからドラッグしてドロップ シャドウを追加します
+Drag inside an object to add an inner shadow	オブジェクトの内側でドラッグして内側シャドウを追加します
+Drag from an object to add a block shadow	オブジェクトからドラッグしてブロック シャドウを追加します
+Drag from the center to the edge, or from the edge out, to add a contour	中心からエッジへ、またはエッジから外側へドラッグして輪郭を追加します
+Drag from one object to another to create a blend	オブジェクトから別のオブジェクトへドラッグしてブレンドを作成します
+Drag on an object to distort it (Push and Pull, Zipper or Twister)	オブジェクト上でドラッグしてゆがめます (プッシュ/プル、ジッパー、ツイスター)
+Click an object, then drag the envelope nodes to shape it	オブジェクトをクリックし、エンベロープ ノードをドラッグして形状を変更します
+Drag from an object to extrude it	オブジェクトからドラッグして押し出しを適用します
+Click an object, then choose a transparency type on the property bar; drag to set a gradient transparency	オブジェクトをクリックし、プロパティ バーで透明の種類を選択します。ドラッグするとグラデーション透明を設定できます
+Click to sample a color; then click an object to apply it (Shift+click applies to the outline)	クリックしてカラーをサンプリングし、オブジェクトをクリックして適用します (Shift+クリックでアウトラインに適用)
+Click an object to copy its properties, then click other objects to apply them	オブジェクトをクリックしてプロパティをコピーし、他のオブジェクトをクリックして適用します
+Click an object to select it; drag to set a gradient fill	オブジェクトをクリックして選択します。ドラッグするとグラデーション塗りつぶしを設定できます
+Click an object to create a mesh; click a patch and choose a color from the palette	オブジェクトをクリックしてメッシュを作成し、パッチをクリックしてパレットからカラーを選択します
+Click inside an enclosed area to create a filled object	囲まれた領域の内側をクリックして塗りつぶされたオブジェクトを作成します
+Drag to paint with realistic brush strokes	ドラッグしてリアルなブラシストロークでペイントします
+Click an outline to add a width node; drag a node away from the path to widen that side	アウトラインをクリックして幅ノードを追加し、ノードをパスから離れるようにドラッグしてその側を広げます
+Impact	インパクト
+Drag to create an impact effect of radial or parallel lines	ドラッグして放射状または平行線のインパクト効果を作成します
+Create B-Spline	B スプラインの作成
+Create Polyline	ポリラインの作成
+Create {}	{} の作成
+Click a segment of a curve to measure it	カーブのセグメントをクリックすると測定されます
+Create Curve	カーブの作成
+Delete Node	ノードの削除
+Move Nodes	ノードの移動
+Edit Curve	カーブの編集
+Round Corners	角を丸くする
+Edit Anchor	アンカーの編集
+Drag a marquee around the area to make the pattern from	パターンの作成元となる領域をマーキーで囲むようにドラッグしてください
+{} was added to the pattern fills	{} をパターン塗りつぶしに追加しました
+Nothing to make a pattern from in that area	その領域にはパターンを作成できるものがありません
+Create Connector	コネクタの作成
+Create 2-Point Line	2 点直線の作成
+Move Guideline	ガイドラインの移動
+Erase	消去
+Create Line	直線の作成
+Add Anchor	アンカーの追加
+A copy will be left at the original position	元の位置にコピーが残されます
+Add Comment	コメントの追加
+No object was clicked	オブジェクトがクリックされていません
+Click a closed curve	閉じたカーブをクリックしてください
+Groups, text and impact effects can't be boundaries	グループ、テキスト、インパクト効果は境界にできません
+PowerClip Inside	PowerClip 内部
+The object clicked does not have that effect	クリックしたオブジェクトにはその効果がありません
+In Front Of	指定オブジェクトの前面
+Behind	指定オブジェクトの背面
+Click a PowerClip object	PowerClip オブジェクトをクリックしてください
+Copy PowerClip From	PowerClip のコピー元
+The object clicked has no shape to take	クリックしたオブジェクトにはコピーできる形状がありません
+Select a text object, then click a curve	テキスト オブジェクトを選択してから、カーブをクリックしてください
+Sampled color R{} G{} B{}	サンプリングしたカラー R{} G{} B{}
+Attributes sampled; click objects to apply them	属性をサンプリングしました。オブジェクトをクリックして適用してください
+Apply Attributes	属性の適用
+Click inside an area enclosed by objects	オブジェクトで囲まれた領域の内側をクリックしてください
+Click a curve segment between intersections	交点間のカーブ セグメントをクリックしてください
+Impact Effect	インパクト効果
+Symmetry line	対称線
+Perspective line	遠近線
+Corner	角
+Page corner	ページの角
+Guideline	ガイドライン
+Baseline grid	ベースライン グリッド
+Dynamic guide	ダイナミック ガイド
+Margin guide	余白ガイド
+Alignment guide	整列ガイド
+Edit Table Text	表のテキストの編集
+Create Text	テキストの作成
+Delete Text	テキストの削除
+Click to place a note (Esc to cancel)	クリックしてメモを配置します (Esc でキャンセル)
+Drag to draw the markup (Esc to cancel)	ドラッグしてマークアップを描きます (Esc でキャンセル)
+Click the frame object to place the selection inside it (Esc to cancel)	選択範囲を内部に配置するフレーム オブジェクトをクリックしてください (Esc でキャンセル)
+Click the object to copy properties from (Esc to cancel)	プロパティのコピー元のオブジェクトをクリックしてください (Esc でキャンセル)
+Click the object to copy the effect from (Esc to cancel)	効果のコピー元のオブジェクトをクリックしてください (Esc でキャンセル)
+Click the object to place the selection in front of (Esc to cancel)	選択範囲をその前面に配置するオブジェクトをクリックしてください (Esc でキャンセル)
+Click the object to place the selection behind (Esc to cancel)	選択範囲をその背面に配置するオブジェクトをクリックしてください (Esc でキャンセル)
+Click the PowerClip to copy the contents from (Esc to cancel)	内容のコピー元の PowerClip をクリックしてください (Esc でキャンセル)
+Click the path to fit the text to (Esc to cancel)	テキストを合わせるパスをクリックしてください (Esc でキャンセル)
+Click the object whose shape the envelope takes (Esc to cancel)	エンベロープの形状にするオブジェクトをクリックしてください (Esc でキャンセル)
+Click the object that makes the inner boundary (Esc to cancel)	内側の境界になるオブジェクトをクリックしてください (Esc でキャンセル)
+Click the object that makes the outer boundary (Esc to cancel)	外側の境界になるオブジェクトをクリックしてください (Esc でキャンセル)
+Click a color in the bitmap (Esc to cancel)	ビットマップ内のカラーをクリックしてください (Esc でキャンセル)
+Click the closed curve to use as the tile (Esc to cancel)	タイルとして使用する閉じたカーブをクリックしてください (Esc でキャンセル)
+Click the first point (Esc to cancel)	最初の点をクリックしてください (Esc でキャンセル)
+Click the second point (Esc to cancel)	2 番目の点をクリックしてください (Esc でキャンセル)
+Click a point on the page (Esc to cancel)	ページ上の点をクリックしてください (Esc でキャンセル)
+Click the target object (Esc to cancel)	ターゲット オブジェクトをクリックしてください (Esc でキャンセル)
+Click to add nodes, drag to set curve handles; double-click, Enter or Space to finish; click the first node to close	クリックでノードを追加し、ドラッグでカーブ ハンドルを設定します。ダブルクリック、Enter、Space で終了し、最初のノードをクリックすると閉じます
+Move the pointer to set the shape, then click	ポインタを動かして形状を設定し、クリックします
+Click to place the dimension line and text	クリックして寸法線とテキストを配置します
+Click the second and third points, then place the text	2 番目と 3 番目の点をクリックしてから、テキストを配置します
+Click to place the elbow, then click to place the text	クリックして折れ点を配置し、次にクリックしてテキストを配置します
+Double-click inside the crop area or press Enter to crop; Esc to cancel	トリミング領域内をダブルクリックするか Enter キーを押してトリミングします。Esc でキャンセルします
+Click objects to apply the sampled color (right-click: outline); Shift+click to sample again	オブジェクトをクリックしてサンプリングしたカラーを適用します (右クリック: アウトライン)。Shift+クリックで再度サンプリングします
+Click objects to apply the sampled attributes; Shift+click to sample again	オブジェクトをクリックしてサンプリングした属性を適用します。Shift+クリックで再度サンプリングします
+Reverse Direction	方向の反転
+Add Nodes	ノードの追加
+Delete Nodes	ノードの削除
+Join Nodes	ノードの連結
+Break Curve	カーブの切断
+Extend Curve to Close	カーブを延長して閉じる
+Extract Subpath	サブパスの抽出
+Insert Text	テキストの挿入
+Parallelogram	平行四辺形
+Trapezoid	台形
+Triangle	三角形
+Right Triangle	直角三角形
+Diamond	ひし形
+Pentagon	五角形
+Hexagon	六角形
+Octagon	八角形
+Heart	ハート
+Lightning	稲妻
+Moon	月
+Ring	リング
+Right Arrow	右矢印
+Left Arrow	左矢印
+Up Arrow	上矢印
+Down Arrow	下矢印
+Left-Right Arrow	左右矢印
+Up-Down Arrow	上下矢印
+Chevron	山形
+Decision	判断
+Terminator	端子
+Banner	バナー
+Rectangle Callout	四角形の吹き出し
+Round Callout	円形の吹き出し
+Con&vert To Paragraph Text	段落テキストに変換(&V)
+Con&vert To Artistic Text	アーティスティック テキストに変換(&V)
+&Break Dimension Apart	寸法の分割(&B)
+inches	インチ
+millimeters	ミリメートル
+centimeters	センチメートル
+meters	メートル
+points	ポイント
+pixels	ピクセル
+feet	フィート
+yards	ヤード
+ciceros	シセロ
+didots	ディドー
+Invalid file: {}	無効なファイル: {}
+Unsupported file type: {}	サポートされていないファイルの種類: {}
+this drawing was saved by CorelDRAW 1 or 2, a format older than AnyVector can read. Open it in CorelDRAW 3 or later and save it again.	この描画は CorelDRAW 1 または 2 で保存されており、AnyVector で読み取れる形式より古いものです。CorelDRAW 3 以降で開いて保存し直してください。
+not a CorelDRAW drawing	CorelDRAW の描画ではありません
+the CorelDRAW drawing is empty or damaged	CorelDRAW の描画が空か、破損しています
+the CorelDRAW drawing has no pages	CorelDRAW の描画にページがありません
+CDT - CorelDRAW Template (*.cdt;*.cdrt)	CDT - CorelDRAW テンプレート (*.cdt;*.cdrt)
+{} came in with these differences from the original:	{} は元のファイルと次の点が異なる状態で開かれました:
+Left out: {} object(s) of a kind AnyVector doesn't read yet (type {})	除外: AnyVector がまだ読み取れない種類 (タイプ {1}) のオブジェクト {0} 個
+Texture "{}" isn't in CorelDRAW's texture library, so it's shown as a plain texture ({} fill(s))	テクスチャ "{}" は CorelDRAW のテクスチャ ライブラリにないため、単純なテクスチャとして表示されます ({} 個の塗りつぶし)
+Text uses a font the drawing doesn't list (font {}), so it's shown in the default font ({} text(s))	描画に記載されていないフォント (フォント {}) がテキストで使用されているため、デフォルトのフォントで表示されます ({} 個のテキスト)
+The font "{}" isn't installed, so its text is shown in "{}"	フォント "{}" がインストールされていないため、そのテキストは "{}" で表示されます
+Its settings are shown only: they can't be changed here yet.	設定は表示のみです。ここではまだ変更できません。
+Please wait a minute	しばらくお待ちください
+Several reports were sent from this connection in the last minute. Try again in a minute.	この接続から過去 1 分間に複数の報告が送信されました。1 分後にもう一度お試しください。
+AnyVector closes to install it as soon as the download finishes (it asks to save your drawings first).	ダウンロードが完了すると、インストールのために AnyVector が終了します (先に描画の保存を確認します)。
+Vector pattern "{}": {} object(s)	ベクター パターン "{}": {} 個のオブジェクト
+Vector pattern: its objects are missing	ベクター パターン: オブジェクトが見つかりません
+Texture fill: {}	テクスチャ塗りつぶし: {}
+Color {}:	カラー {}:
+Texture #:	テクスチャ番号:
+Setting {}:	設定 {}:
+This style isn't in CorelDRAW's texture library: its settings are shown only.	このスタイルは CorelDRAW のテクスチャ ライブラリにないため、設定は表示のみです。
+PostScript fill {}	PostScript 塗りつぶし {}
+Convert to bitmap pattern	ビットマップ パターンに変換
+Keep the tile's picture and forget what it is made of	タイルの画像を保持し、その構成要素は破棄します
+Overline	上線
+Pattern	パターン
+(Document)	(ドキュメント)
+(Default)	(デフォルト)

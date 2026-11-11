@@ -2420,7 +2420,7 @@ fn special_section(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object) {
         Some(Special::Barcode { kind, data }) => dim(ui, &format!("{}: {data}", kind.name())),
         Some(Special::Rollover { state }) => dim(ui, &format!("Showing the {} state", crate::dialogs::object::ROLLOVER_STATES[*state as usize % 3])),
         Some(Special::Impact { .. }) => dim(ui, "Select it with the Impact tool to change it on the property bar"),
-        Some(Special::Symmetry { lines, .. }) => dim(ui, &format!("{lines} mirror line{}; double-click to edit", if *lines == 1 { "" } else { "s" })),
+        Some(Special::Symmetry { lines, .. }) => dim(ui, &if *lines == 1 { "1 mirror line; double-click to edit".to_string() } else { format!("{lines} mirror lines; double-click to edit") }),
         Some(Special::Perspective { kind, .. }) => dim(ui, &format!("{} perspective; double-click to edit", crate::dialogs::symmetry::PERSP_TYPES[*kind as usize % 4])),
         Some(Special::Ole { name, .. }) => dim(ui, &format!("{name}; double-click to open it in its program")),
         None => {}

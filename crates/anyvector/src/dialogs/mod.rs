@@ -435,16 +435,21 @@ pub fn combo(ui: &mut Ui, id: &str, current: &mut usize, names: &[&str], width: 
 /// "Ask me the next time the application starts": the user interface language, before work begins.
 fn ask_language(app: &mut AnyVectorApp, ctx: &egui::Context) {
     let mut done = false;
-    let ((), dismissed) = window(ctx, "ask_language", "User interface language", vec2(380.0, 190.0), |ui| {
+    let ((), dismissed) = window(ctx, "ask_language", "User interface language", vec2(400.0, 290.0), |ui| {
         ui.add_space(10.0);
         ui.label("Choose the language of the user interface:");
         ui.add_space(6.0);
         let cur = crate::i18n::Lang::resolve(&app.settings.language);
-        for l in crate::i18n::Lang::ALL {
-            if ui.radio(cur == l, l.native_name()).clicked() {
-                app.settings.language = l.code().into();
+        // two columns: English and the first half, then the rest
+        let all = crate::i18n::Lang::ALL;
+        let half = all.len().div_ceil(2);
+        ui.columns(2, |cols| {
+            for (i, l) in all.into_iter().enumerate() {
+                if cols[i / half].radio(cur == l, l.native_name()).clicked() {
+                    app.settings.language = l.code().into();
+                }
             }
-        }
+        });
         ui.add_space((ui.available_height() - 34.0).max(0.0));
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             if ok_button(ui, "OK", true) {

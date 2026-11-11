@@ -272,7 +272,9 @@ impl AnyVectorApp {
     fn ui_impl(&mut self, ui: &mut egui::Ui) {
         let ctx = ui.ctx().clone();
         self.frame_count += 1;
-        crate::i18n::sync(&self.settings.language);
+        if crate::i18n::sync(&self.settings.language) {
+            crate::theme::install_fonts(&ctx);
+        }
         if self.splash.is_some() {
             if crate::splash::show(self, ui) {
                 return;

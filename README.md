@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://github.com/toim22/AnyVector/releases/latest"><img alt="Version 0.3.1" src="https://img.shields.io/badge/version-0.3.1-0a9cff"></a>
   <img alt="Windows 10 and 11, 64-bit" src="https://img.shields.io/badge/Windows-10%20%7C%2011%20(x64)-2b3242">
-  <img alt="English and Brazilian Portuguese" src="https://img.shields.io/badge/languages-EN%20%7C%20pt--BR-43c35a">
+  <img alt="15 languages" src="https://img.shields.io/badge/languages-15-43c35a">
   <img alt="Built with Rust" src="https://img.shields.io/badge/built%20with-Rust-f57c00">
 </p>
 
@@ -37,8 +37,9 @@ Your muscle memory works on day one.
   the common bitmap formats.
 - **Fast and lightweight.** A single native Windows program written in Rust. No account, no cloud sign-in, no
   subscription screens.
-- **Your language.** The whole interface is available in English and Brazilian Portuguese, and you can switch
-  languages instantly without restarting.
+- **Your language.** The whole interface is available in the 15 languages CorelDRAW offers: English, Chinese
+  (Simplified and Traditional), Czech, Dutch, French, German, Italian, Japanese, Polish, Brazilian Portuguese,
+  Russian, Spanish, Swedish and Turkish. You can switch languages instantly without restarting.
 - **Always up to date.** AnyVector checks for new versions in the background and installs them when you close it,
   after asking you to save your drawings.
 
