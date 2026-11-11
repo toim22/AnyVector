@@ -1,11 +1,12 @@
 # AnyVector — Status
 
-Last updated: 2026-11-10.
+Last updated: 2026-11-11.
 
 ## Version history
 
 | Version | Date | What it brings |
 | --- | --- | --- |
+| [0.3.0](RELEASE-NOTES-0.3.0.md) | 2026-11-11 | CorelDRAW import, second round: import messages, look-alike fonts, CorelDRAW 12 textures, full-color pattern and PostScript fills drawn, Corel clipart (CMX), editable pattern tiles and texture settings; bug reports and ideas without a GitHub account; Install Now while an update downloads. |
 | [0.2.0](RELEASE-NOTES-0.2.0.md) | 2026-11-10 | Opens CorelDRAW drawings natively, from CorelDRAW 1 to 2026: pages, layers, shapes, fills (uniform, fountain, bitmap, two-color, texture, vector pattern, PostScript), outlines and arrowheads, text with its layout, bitmaps, lenses, perspective, envelopes, PowerLines, blends, extrusions, drop shadows, contours, guidelines and CMYK through the drawing's profile. |
 | [0.1.0](RELEASE-NOTES-0.1.0.md) | 2026-11-09 | The CorelDRAW 2026 interface item by item: menus, toolbars, tools, property bars, dockers and dialogs; the AnyVector name; Brazilian Portuguese; the installer. |
 
@@ -17,9 +18,10 @@ opens as an ordinary AnyVector document; the full list and the known limits are 
 vector pattern fills of CorelDRAW 5 to X2, CorelDRAW 1 arrowheads, CorelDRAW 3 font widths, and the few objects
 still left out of CorelDRAW 5 to 10 files.
 
-## Next version (not released yet): CorelDRAW import, second round
+## Version 0.3.0 (released 2026-11-11): CorelDRAW import, second round
 
-Merged to `main` on 2026-11-10 (pull requests #35 to #43). The plan and research behind it are in
+Merged to `main` on 2026-11-10 and 2026-11-11 (pull requests #35 to #48); the release notes are in
+`docs/RELEASE-NOTES-0.3.0.md` and the manual test plan, all passed, in `docs/TEST-PLAN-corel-import-round2.md`. The plan and research behind it are in
 `C:\Projetos\Vector` (not part of the repository).
 
 - **Import notes (#35).** File > Open and File > Import say what a CorelDRAW drawing came in without: objects left
@@ -55,7 +57,9 @@ fixtures); the two that don't are damaged CorelDRAW 3 files that 0.2.0 refused a
 
 Also in this version: Help > Report a Bug and Help > Submit Ideas and Feedback send the issue through a small relay
 (`services/issue-relay`, a Cloudflare Worker acting as the AnyVector Reports GitHub App), so nobody needs a GitHub
-account. When the relay can't be reached, GitHub's filled-in form opens in the browser as before.
+account. When the relay can't be reached, GitHub's filled-in form opens in the browser as before (#46, issue #34).
+Help > Updates shows Install Now while an update downloads in the background, and its buttons stay in view (#48,
+issue #33).
 
 ## CorelDRAW import: known issues to review later
 

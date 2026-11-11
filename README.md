@@ -9,16 +9,16 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/toim22/AnyVector/releases/latest"><img alt="Version 0.2.0" src="https://img.shields.io/badge/version-0.2.0-0a9cff"></a>
+  <a href="https://github.com/toim22/AnyVector/releases/latest"><img alt="Version 0.3.0" src="https://img.shields.io/badge/version-0.3.0-0a9cff"></a>
   <img alt="Windows 10 and 11, 64-bit" src="https://img.shields.io/badge/Windows-10%20%7C%2011%20(x64)-2b3242">
   <img alt="English and Brazilian Portuguese" src="https://img.shields.io/badge/languages-EN%20%7C%20pt--BR-43c35a">
   <img alt="Built with Rust" src="https://img.shields.io/badge/built%20with-Rust-f57c00">
 </p>
 
 <p align="center">
-  <a href="https://github.com/toim22/AnyVector/releases/latest"><strong>Download AnyVector 0.2.0</strong></a>
+  <a href="https://github.com/toim22/AnyVector/releases/latest"><strong>Download AnyVector 0.3.0</strong></a>
   ·
-  <a href="docs/RELEASE-NOTES-0.2.0.md">What's new</a>
+  <a href="docs/RELEASE-NOTES-0.3.0.md">What's new</a>
   ·
   <a href="https://github.com/toim22/AnyVector/issues">Report a bug or share an idea</a>
 </p>
@@ -73,7 +73,7 @@ Your muscle memory works on day one.
 
 ## Install
 
-1. Download `AnyVector-0.2.0-setup.exe` from the [latest release](https://github.com/toim22/AnyVector/releases/latest).
+1. Download `AnyVector-0.3.0-setup.exe` from the [latest release](https://github.com/toim22/AnyVector/releases/latest).
 2. Run it. No administrator rights are needed, because AnyVector installs for your user by default. You can also
    choose to install it for all users.
 3. Choose the language AnyVector should start in. You can change it later in
@@ -110,8 +110,8 @@ Inno Setup (`ISCC.exe installer\AnyVector.iss`), which writes `dist\AnyVector-<v
 
 ## Project status
 
-AnyVector **0.2.0** opens drawings saved by every version of CorelDRAW, from CorelDRAW 1 to 2026
-(see [the release notes](docs/RELEASE-NOTES-0.2.0.md)). See [docs/STATUS.md](docs/STATUS.md) for progress and
+AnyVector **0.3.0** opens drawings saved by every version of CorelDRAW, from CorelDRAW 1 to 2026, and Corel
+clipart (see [the release notes](docs/RELEASE-NOTES-0.3.0.md)). See [docs/STATUS.md](docs/STATUS.md) for progress and
 [docs/COVERAGE.md](docs/COVERAGE.md) for the item-by-item list of what is complete. Known limits:
 
 - Licensed palette books (PANTONE, TRUMATCH and others) are not included.
