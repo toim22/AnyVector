@@ -317,6 +317,50 @@ fn visual_update_prompt() {
     assert_eq!(crate::i18n::lang(), crate::i18n::Lang::EnUs);
 }
 
+/// Help > Updates with a new version found: the Install Now button must show with long release
+/// notes, and while the setup downloads in the background (issue #33).
+#[test]
+#[ignore]
+fn visual_updates_dialog() {
+    use egui_kittest::kittest::Queryable;
+    use crate::updater::{Release, Status};
+    let mut h = harness();
+    let notes = (1..=60).map(|i| format!("- Change number {i}, described in a line long enough to wrap in the window")).collect::<Vec<_>>().join("
+");
+    let r = Release {
+        version: "9.9.9".into(),
+        tag: "v9.9.9".into(),
+        notes,
+        page: String::new(),
+        asset_name: "AnyVector-9.9.9-setup.exe".into(),
+        asset_url: String::new(),
+        asset_size: 0,
+        via_gh: false,
+    };
+    h.state_mut().update.dialog = true;
+    h.state_mut().update.status = Status::Available(r.clone());
+    save(&mut h, "92_updates_available");
+    assert!(h.query_all_by_label("Install Now").next().is_some(), "Install Now is missing when a version is available");
+    h.state_mut().update.status = Status::Downloading(r.clone(), 0.4);
+    save(&mut h, "92_updates_downloading");
+    assert!(h.query_all_by_label("Install Now").next().is_some(), "Install Now is missing while the setup downloads");
+    // pressing it while the download runs: AnyVector installs as soon as it ends
+    let at = h.get_by_label("Install Now").rect().center();
+    click(&mut h, at);
+    assert!(h.state().update.install_when_ready);
+    save(&mut h, "92_updates_downloading_install");
+    h.state_mut().update.install_when_ready = false;
+    h.state_mut().settings.language = "pt-BR".into();
+    save(&mut h, "92_updates_downloading_ptbr");
+    h.state_mut().settings.language = "en-US".into();
+    h.state_mut().update.status = Status::Ready(r, std::path::PathBuf::from("setup.exe"));
+    save(&mut h, "92_updates_ready");
+    assert!(h.query_all_by_label("Install Now").next().is_some(), "Install Now is missing when the setup is ready");
+    h.state_mut().update.dialog = false;
+    h.state_mut().update.status = Status::Idle;
+    h.step();
+}
+
 fn right_click(h: &mut Harness<'_, AnyVectorApp>, p: egui::Pos2) {
     for _ in 0..30 {
         h.step();

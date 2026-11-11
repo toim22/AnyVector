@@ -360,14 +360,19 @@ fn install_now(app: &mut AnyVectorApp) {
     }
 }
 
-fn release_notes(ui: &mut egui::Ui, r: &Release) {
-    egui::ScrollArea::vertical().max_height(180.0).auto_shrink([false, true]).show(ui, |ui| {
+/// Room the Updates window keeps under the status for the update setting and its note.
+const SETTING_ROOM: f32 = 96.0;
+
+/// The release notes, scrolling, in what is left of the window above `room` (at most 180 points).
+fn release_notes(ui: &mut egui::Ui, r: &Release, room: f32) {
+    let h = (ui.available_height() - room).clamp(36.0, 180.0);
+    egui::ScrollArea::vertical().max_height(h).auto_shrink([false, true]).show(ui, |ui| {
         let notes = if r.notes.trim().is_empty() { "This release has no notes." } else { r.notes.trim() };
         ui.label(RichText::new(notes).color(theme::TEXT).size(12.0));
     });
 }
 
-fn status_ui(app: &mut AnyVectorApp, ui: &mut egui::Ui) {
+fn status_ui(app: &mut AnyVectorApp, ui: &mut egui::Ui, room: f32) {
     match app.update.status.clone() {
         Status::Idle => {
             note(ui, "Click Check Now to look for a new version.");
@@ -383,16 +388,21 @@ fn status_ui(app: &mut AnyVectorApp, ui: &mut egui::Ui) {
         }
         Status::Available(r) => {
             ui.label(RichText::new(format!("AnyVector {} is available.", r.version)).strong());
-            release_notes(ui, &r);
+            release_notes(ui, &r, room);
         }
         Status::Downloading(r, p) => {
+            ui.label(RichText::new(format!("AnyVector {} is available.", r.version)).strong());
             ui.label(format!("Downloading AnyVector {}...", r.version));
             ui.add(egui::ProgressBar::new(p).desired_width(ui.available_width()).show_percentage());
+            if app.update.install_when_ready {
+                note(ui, "AnyVector closes to install it as soon as the download finishes (it asks to save your drawings first).");
+            }
+            release_notes(ui, &r, room);
         }
         Status::Ready(r, _) => {
             ui.label(RichText::new(format!("AnyVector {} is ready to install.", r.version)).strong());
             note(ui, "AnyVector closes to install it (it asks to save your drawings first) and starts again when it is done.");
-            release_notes(ui, &r);
+            release_notes(ui, &r, room);
         }
         Status::Failed(e) => {
             ui.colored_label(Color32::from_rgb(0xe0, 0x70, 0x60), format!("Error: {e}"));
@@ -408,8 +418,15 @@ pub fn dialogs(app: &mut AnyVectorApp, ctx: &egui::Context) {
         let ((), dismissed) = window(ctx, "updates", "Updates", vec2(520.0, 400.0), |ui| {
             ui.add_space(8.0);
             ui.spacing_mut().item_spacing.y = 6.0;
+            // the buttons keep the bottom of the window; everything else fits above them (issue #33)
+            let full = ui.max_rect();
+            let bar = egui::Rect::from_min_max(egui::pos2(full.left(), full.bottom() - 28.0), full.max);
+            let top = egui::Rect::from_min_max(full.min, egui::pos2(full.right(), bar.top() - 4.0));
+            let mut ui = ui.new_child(egui::UiBuilder::new().max_rect(top).layout(egui::Layout::top_down(egui::Align::Min)));
+            let ui = &mut ui;
             heading(ui, &format!("You are using AnyVector {}.", current_version()));
-            status_ui(app, ui);
+            let room = SETTING_ROOM + if app.update.install_on_exit.is_some() { 24.0 } else { 0.0 };
+            status_ui(app, ui, room);
             if app.update.install_on_exit.is_some() {
                 note(ui, "The update will be installed when AnyVector closes.");
             }
@@ -428,7 +445,7 @@ pub fn dialogs(app: &mut AnyVectorApp, ctx: &egui::Context) {
                 }
             });
             note(ui, MODE_NOTES[(app.settings.update_mode as usize).min(2)]);
-            ui.add_space((ui.available_height() - 34.0).max(0.0));
+            let mut ui = ui.new_child(egui::UiBuilder::new().max_rect(bar).layout(egui::Layout::left_to_right(egui::Align::Center)));
             ui.horizontal(|ui| {
                 if ui.link("Release Notes").clicked() {
                     match &app.update.status {
@@ -444,8 +461,13 @@ pub fn dialogs(app: &mut AnyVectorApp, ctx: &egui::Context) {
                     if ui.add(egui::Button::new("Close").min_size(vec2(80.0, 24.0))).clicked() {
                         close = true;
                     }
-                    let can_install = matches!(app.update.status, Status::Available(_) | Status::Ready(..));
-                    if can_install && ok_button(ui, "Install Now", app.update.rx.is_none()) {
+                    // also while the setup downloads in the background: it installs when the download ends (issue #33)
+                    let (can_install, enabled) = match app.update.status {
+                        Status::Available(_) | Status::Ready(..) => (true, app.update.rx.is_none()),
+                        Status::Downloading(..) => (true, !app.update.install_when_ready),
+                        _ => (false, false),
+                    };
+                    if can_install && ok_button(ui, "Install Now", enabled) {
                         install_now(app);
                     }
                     let busy = app.update.rx.is_some();
