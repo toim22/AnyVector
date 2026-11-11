@@ -1955,12 +1955,12 @@ GitHub opened in your browser with your idea already filled in.	O GitHub foi abe
 GitHub opened in your browser with the report already filled in.	O GitHub foi aberto no navegador com o relatório já preenchido.
 Sign in if asked, review it and click "Create" to send it.	Entre na conta se for solicitado, revise e clique em "Create" para enviar.
 Back	Voltar
-Tell us your idea or what you think of AnyVector. It is sent to the AnyVector project on GitHub as a new idea.	Conte sua ideia ou o que você acha do AnyVector. Ela é enviada ao projeto AnyVector no GitHub como uma nova ideia.
+Tell us your idea or what you think of AnyVector. It is sent to the AnyVector project on GitHub as a new idea. You don't need a GitHub account.	Conte sua ideia ou o que você acha do AnyVector. Ela é enviada ao projeto AnyVector no GitHub como uma nova ideia. Você não precisa de uma conta no GitHub.
 Title (your idea in a few words):	Título (sua ideia em poucas palavras):
 e.g. Snap to the center of the page	ex.: Encaixar no centro da página
 Describe your idea or feedback:	Descreva sua ideia ou comentário:
 How would it help you? (optional)	Como isso ajudaria você? (opcional)
-Describe the problem. It is sent to the AnyVector project on GitHub as a new issue.	Descreva o problema. Ele é enviado ao projeto AnyVector no GitHub como um novo item.
+Describe the problem. It is sent to the AnyVector project on GitHub as a new issue. You don't need a GitHub account.	Descreva o problema. Ele é enviado ao projeto AnyVector no GitHub como um novo item. Você não precisa de uma conta no GitHub.
 Title (a short summary):	Título (um breve resumo):
 e.g. Toolbar overlaps the menu bar	ex.: A barra de ferramentas sobrepõe a barra de menus
 What happened?	O que aconteceu?
@@ -5552,3 +5552,5 @@ Texture "{}" isn't in CorelDRAW's texture library, so it's shown as a plain text
 Text uses a font the drawing doesn't list (font {}), so it's shown in the default font ({} text(s))	Há texto com uma fonte que o desenho não lista (fonte {}), então ele aparece na fonte padrão ({} texto(s))
 The font "{}" isn't installed, so its text is shown in "{}"	A fonte "{}" não está instalada, então o texto dela aparece em "{}"
 Its settings are shown only: they can't be changed here yet.	As configurações são só exibidas: ainda não dá para alterá-las aqui.
+Please wait a minute	Aguarde um minuto
+Several reports were sent from this connection in the last minute. Try again in a minute.	Várias mensagens foram enviadas desta conexão no último minuto. Tente de novo em um minuto.
