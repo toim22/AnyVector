@@ -1933,7 +1933,7 @@ fn pattern_source(app: &mut AnyVectorApp, ui: &mut Ui, p: &mut PatternFill, src:
                 rlabel(ui, "Settings:", 86.0, true);
                 label(ui, &if list.is_empty() { "none".to_string() } else { list.join(", ") }, true);
             });
-            label(ui, "Its settings are shown only: AnyVector can't redraw a PostScript fill yet.", false);
+            label(ui, "Its settings are shown only: they can't be changed here yet.", false);
         }
     }
     if editable && ui.button("Convert to bitmap pattern").on_hover_text("Keep the tile's picture and forget what it is made of").clicked() {
