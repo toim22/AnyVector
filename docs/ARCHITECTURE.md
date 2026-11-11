@@ -45,7 +45,7 @@ plan and the decisions; `docs/COVERAGE.md` tracks every item of the reference.
 - `ai.rs`: the optional AI Generate feature. It reads the API key from an environment variable (Options ▸
   Privacy ▸ Save Key writes it to the user's Windows environment, never to the settings file).
 - `settings.rs`: persisted application settings in `%APPDATA%\AnyVector` (moved from `%APPDATA%\Vector` once).
-- `i18n.rs`: the interface languages, English (United States) and Brazilian Portuguese (see below).
+- `i18n.rs`: the interface languages, CorelDRAW's 15 (see below).
 - `updater.rs`: Help ▸ Updates and the background check (see below).
 - `bugreport.rs`: the Report a Bug and Submit Ideas and Feedback forms. They create a GitHub issue labeled `bug` or
   `enhancement` with `gh` when it is signed in, or open a prefilled issue page otherwise.
@@ -59,9 +59,17 @@ The interface is written in English, and translations are looked up when text is
 - `i18n.rs` registers the translator. It looks up `assets/i18n/<lang>.tsv` (English, tab, translation): exact
   match, then without surrounding spaces, trailing `...`, `:`, `.` or `?`, then line by line, then templates where
   `{}` stands for a number or name (`Página {} de {}`). Access keys (`&Arquivo`) are kept.
-- `python xtask/i18n.py .` lists every interface string in `target/i18n/strings.tsv` and the untranslated ones in
-  `target/i18n/missing-pt-BR.tsv`. The strings left untranslated are names and codes (file names, registry
-  paths, device and paper names, brand palettes).
+- The languages are the 15 of CorelDRAW's setup (`corel-i18n/docs/02-language-inventory.md`): en-US, zh-CN, zh-TW,
+  cs-CZ, nl-NL, fr-FR, de-DE, it-IT, ja-JP, pl-PL, pt-BR, ru-RU, es-ES, sv-SE, tr-TR. Without a setting AnyVector
+  follows Windows' display language (`Lang::from_langid`), English when it has no translation for it.
+- pt-BR is the reference translation. `python xtask/i18n.py .` lists every interface string in
+  `target/i18n/strings.tsv` and the ones pt-BR doesn't translate in `target/i18n/missing-pt-BR.tsv` (the strings
+  left untranslated are names and codes: file names, registry paths, device and paper names, brand palettes).
+  `python xtask/i18n_check.py . <code>` checks another language against pt-BR's keys (missing strings,
+  placeholders, line breaks, access keys); the `dictionaries_parse` test checks the same.
+- Chinese and Japanese captions put the access key in parentheses (`文件(&F)`). Segoe UI has no CJK characters, so
+  `i18n::add_fonts` adds Microsoft YaHei (Yu Gothic for Japanese, Microsoft JhengHei for Traditional Chinese) at
+  the end of every font family; the fonts are installed again when the language changes.
 - The language is Options ▸ Global ▸ General ▸ User interface language; empty means "follow Windows". The
   installer writes its language page's choice to `HKCU\Software\AnyVector\Language` (or HKLM for all users) with
   a stamp, and AnyVector applies it once on the next start.

@@ -285,6 +285,32 @@ fn visual_pt_br() {
     assert_eq!(crate::i18n::lang(), crate::i18n::Lang::EnUs);
 }
 
+/// The other languages: the main window with a document, and the Options dialog, in a Latin, a Cyrillic and the
+/// Chinese and Japanese scripts (their characters come from the CJK font `i18n::add_fonts` adds). Also the language
+/// chooser, in English, which shows every language by its own name.
+#[test]
+#[ignore]
+fn visual_languages() {
+    let mut h = harness();
+    h.state_mut().dialogs.ask_language = true;
+    save(&mut h, "92_lang_chooser");
+    h.state_mut().dialogs.ask_language = false;
+    h.state_mut().new_default_document();
+    for code in ["de-DE", "ru-RU", "ja-JP", "zh-CN", "zh-TW"] {
+        h.state_mut().settings.language = code.into();
+        h.step();
+        assert_eq!(crate::i18n::lang().code(), code);
+        save(&mut h, &format!("92_lang_{code}_document"));
+        h.state_mut().open_options(crate::commands::OptionsPage::Global, None);
+        save(&mut h, &format!("92_lang_{code}_options"));
+        h.key_press(egui::Key::Escape);
+        h.step();
+    }
+    h.state_mut().settings.language = "en-US".into();
+    h.step();
+    assert_eq!(crate::i18n::lang(), crate::i18n::Lang::EnUs);
+}
+
 /// The message shown at start when a new version is found, in English and in Brazilian Portuguese.
 #[test]
 #[ignore]
