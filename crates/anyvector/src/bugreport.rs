@@ -2,10 +2,11 @@
 //! AnyVector project, labeled `bug` or `enhancement`.
 //!
 //! Sending tries, in order:
-//! 1. the GitHub CLI (`gh issue create`), when it is installed and signed in: the issue is
-//!    created directly and its URL is shown;
-//! 2. otherwise the browser opens GitHub's "New issue" page with the title, description and
-//!    system information already filled in, so the user only has to press "Create".
+//! 1. the issue relay (`services/issue-relay`, a Cloudflare Worker): it creates the issue as the
+//!    AnyVector Reports GitHub App, so the user needs no GitHub account, and its URL is shown;
+//! 2. when the relay can't be reached, the browser opens GitHub's "New issue" page with the title,
+//!    description and system information already filled in, so the user only has to press "Create"
+//!    (that needs a GitHub account).
 
 use crate::app::AnyVectorApp;
 use crate::dialogs::{heading, note, separator, window};
@@ -17,6 +18,14 @@ use std::sync::mpsc::{channel, Receiver};
 /// The GitHub repository that receives bug reports.
 pub const REPO: &str = "toim22/AnyVector";
 
+/// The relay that files the issues for people without a GitHub account: `services/issue-relay`.
+/// The environment variable `ANYVECTOR_ISSUE_RELAY` points elsewhere (a local `cf dev`, a test).
+pub const RELAY_URL: &str = "https://anyvector-issues.antoniocarlos85.workers.dev";
+
+fn relay_url() -> String {
+    std::env::var("ANYVECTOR_ISSUE_RELAY").ok().filter(|s| !s.trim().is_empty()).unwrap_or_else(|| RELAY_URL.to_owned())
+}
+
 pub fn issues_url() -> String {
     format!("https://github.com/{REPO}/issues")
 }
@@ -25,8 +34,10 @@ pub fn issues_url() -> String {
 pub enum Sent {
     /// Created directly; the issue URL.
     Created(String),
-    /// Opened the prefilled page in the browser.
+    /// The relay couldn't be reached: the prefilled page opened in the browser.
     Browser,
+    /// The relay asks to wait: several reports in a minute from this connection.
+    Later,
     Failed(String),
 }
 
@@ -163,33 +174,56 @@ pub(crate) fn gh(args: &[&str]) -> Option<std::process::Output> {
     cmd.output().ok()
 }
 
-/// Create the issue with the GitHub CLI. `None` if the CLI is missing or not signed in.
-fn create_with_gh(label: &str, title: &str, body: &str) -> Option<Result<String, String>> {
-    let auth = gh(&["auth", "status", "--hostname", "github.com"])?;
-    if !auth.status.success() {
-        return None;
-    }
-    let mut out = gh(&["issue", "create", "--repo", REPO, "--title", title, "--body", body, "--label", label])?;
-    if !out.status.success() {
-        // The repository may not have the label; retry without it.
-        out = gh(&["issue", "create", "--repo", REPO, "--title", title, "--body", body])?;
-    }
-    if out.status.success() {
-        let url = String::from_utf8_lossy(&out.stdout).lines().rev().find(|l| l.starts_with("https://")).unwrap_or_default().trim().to_string();
-        Some(Ok(if url.is_empty() { issues_url() } else { url }))
-    } else {
-        Some(Err(String::from_utf8_lossy(&out.stderr).trim().to_string()))
+/// At most `max` characters of `s`, as the relay counts them.
+fn clip(s: &str, max: usize) -> String {
+    s.chars().take(max).collect()
+}
+
+/// The report as the relay reads it (`services/issue-relay/src/report.ts`), cut to its limits.
+pub fn relay_body(st: &BugReportState, system: Option<&str>) -> String {
+    serde_json::json!({
+        "kind": if st.idea { "idea" } else { "bug" },
+        "title": clip(st.title.trim(), 200),
+        "text": clip(st.what_happened.trim(), 8000),
+        "more": clip(st.steps.trim(), 4000),
+        "expected": if st.idea { String::new() } else { clip(st.expected.trim(), 2000) },
+        "version": env!("CARGO_PKG_VERSION"),
+        "program": "AnyVector",
+        "system": system.map(|s| clip(s.trim(), 600)).unwrap_or_default(),
+    })
+    .to_string()
+}
+
+/// Post the report to the relay: the issue's URL, or the HTTP status (0 when unreachable) and why.
+fn send_to_relay(base: &str, body: &str) -> Result<String, (u16, String)> {
+    let agent: ureq::Agent = ureq::Agent::config_builder().http_status_as_error(false).timeout_global(Some(std::time::Duration::from_secs(20))).build().into();
+    let url = format!("{}/issues", base.trim_end_matches('/'));
+    let ua = format!("AnyVector/{}", env!("CARGO_PKG_VERSION"));
+    match agent.post(&url).header("Content-Type", "application/json").header("User-Agent", &ua).send(body) {
+        Ok(mut r) => {
+            let status = r.status().as_u16();
+            let text = r.body_mut().read_to_string().unwrap_or_default();
+            if status == 201 || status == 200 {
+                let url = serde_json::from_str::<serde_json::Value>(&text).ok().and_then(|v| v["url"].as_str().map(str::to_string)).unwrap_or_default();
+                Ok(if url.starts_with("https://github.com/") { url } else { issues_url() })
+            } else {
+                Err((status, text))
+            }
+        }
+        Err(e) => Err((0, e.to_string())),
     }
 }
 
-/// Send in the background; the dialog polls the receiver.
-fn send(label: &'static str, title: String, body: String) -> Receiver<Sent> {
+/// Send in the background; the dialog polls the receiver. The relay first; when it can't take the
+/// report (other than asking to wait), GitHub's prefilled page in the browser.
+fn send(relay: String, label: &'static str, title: String, body: String) -> Receiver<Sent> {
     let (tx, rx) = channel();
     std::thread::spawn(move || {
-        let r = match create_with_gh(label, &title, &body) {
-            Some(Ok(url)) => Sent::Created(url),
-            // CLI present but failed, or absent: fall back to the browser.
-            Some(Err(_)) | None => {
+        let r = match send_to_relay(&relay_url(), &relay) {
+            Ok(url) => Sent::Created(url),
+            Err((429, _)) => Sent::Later,
+            Err((status, e)) => {
+                log::warn!("issue relay did not take the report ({status} {e}); opening the browser");
                 if open_in_browser(&new_issue_url(label, &title, &body)) {
                     Sent::Browser
                 } else {
@@ -225,6 +259,7 @@ pub fn dialog(app: &mut AnyVectorApp, ctx: &egui::Context, idea: bool) {
                 Sent::Created(_) if st.idea => "Thank you! Your idea was sent.",
                 Sent::Created(_) => "Thank you! Your bug report was sent.",
                 Sent::Browser => "Almost done: finish in your browser",
+                Sent::Later => "Please wait a minute",
                 Sent::Failed(_) if st.idea => "Your idea could not be sent",
                 Sent::Failed(_) => "The report could not be sent",
             });
@@ -240,6 +275,9 @@ pub fn dialog(app: &mut AnyVectorApp, ctx: &egui::Context, idea: bool) {
                     ui.label(if st.idea { "GitHub opened in your browser with your idea already filled in." } else { "GitHub opened in your browser with the report already filled in." });
                     ui.label("Sign in if asked, review it and click \"Create\" to send it.");
                 }
+                Sent::Later => {
+                    ui.label("Several reports were sent from this connection in the last minute. Try again in a minute.");
+                }
                 Sent::Failed(e) => {
                     ui.colored_label(Color32::from_rgb(0xe0, 0x70, 0x60), e.as_str());
                 }
@@ -250,7 +288,7 @@ pub fn dialog(app: &mut AnyVectorApp, ctx: &egui::Context, idea: bool) {
                     if crate::dialogs::ok_button(ui, "Close", true) {
                         close = true;
                     }
-                    if matches!(st.result, Some(Sent::Failed(_))) && ui.add(egui::Button::new("Back").min_size(vec2(80.0, 24.0))).clicked() {
+                    if matches!(st.result, Some(Sent::Failed(_) | Sent::Later)) && ui.add(egui::Button::new("Back").min_size(vec2(80.0, 24.0))).clicked() {
                         st.result = None;
                     }
                 });
@@ -258,7 +296,7 @@ pub fn dialog(app: &mut AnyVectorApp, ctx: &egui::Context, idea: bool) {
             return;
         }
         if st.idea {
-            note(ui, "Tell us your idea or what you think of AnyVector. It is sent to the AnyVector project on GitHub as a new idea.");
+            note(ui, "Tell us your idea or what you think of AnyVector. It is sent to the AnyVector project on GitHub as a new idea. You don't need a GitHub account.");
             ui.add_space(4.0);
             ui.label("Title (your idea in a few words):");
             ui.add(egui::TextEdit::singleline(&mut st.title).hint_text("e.g. Snap to the center of the page").desired_width(f32::INFINITY));
@@ -267,7 +305,7 @@ pub fn dialog(app: &mut AnyVectorApp, ctx: &egui::Context, idea: bool) {
             ui.label("How would it help you? (optional)");
             ui.add(egui::TextEdit::multiline(&mut st.steps).desired_rows(4).desired_width(f32::INFINITY));
         } else {
-            note(ui, "Describe the problem. It is sent to the AnyVector project on GitHub as a new issue.");
+            note(ui, "Describe the problem. It is sent to the AnyVector project on GitHub as a new issue. You don't need a GitHub account.");
             ui.add_space(4.0);
             ui.label("Title (a short summary):");
             ui.add(egui::TextEdit::singleline(&mut st.title).hint_text("e.g. Toolbar overlaps the menu bar").desired_width(f32::INFINITY));
@@ -296,8 +334,9 @@ pub fn dialog(app: &mut AnyVectorApp, ctx: &egui::Context, idea: bool) {
                 }
                 let label = if st.sending.is_some() { "Sending..." } else { "Send" };
                 if crate::dialogs::ok_button(ui, label, st.can_send()) {
-                    let body = issue_body(&st, st.include_system.then_some(system.as_str()));
-                    st.sending = Some(send(st.label(), st.title.trim().to_string(), body));
+                    let sys = st.include_system.then_some(system.as_str());
+                    let body = issue_body(&st, sys);
+                    st.sending = Some(send(relay_body(&st, sys), st.label(), st.title.trim().to_string(), body));
                 }
                 if st.sending.is_some() {
                     ui.spinner();
@@ -330,5 +369,18 @@ mod tests {
         assert!(body.contains("### Why it would help\n\nFaster layout"));
         assert!(!body.contains("System information"));
         assert!(new_issue_url(idea.label(), "Snap", &body).contains("labels=enhancement&"));
+
+        // what the relay reads (services/issue-relay/src/report.ts)
+        let v: serde_json::Value = serde_json::from_str(&relay_body(&st, Some("- Windows: 11"))).unwrap();
+        assert_eq!(v["kind"], "bug");
+        assert_eq!(v["title"], "T");
+        assert_eq!(v["text"], "Crash");
+        assert_eq!(v["more"], "1. Open");
+        assert_eq!(v["program"], "AnyVector");
+        assert_eq!(v["version"], env!("CARGO_PKG_VERSION"));
+        assert_eq!(v["system"], "- Windows: 11");
+        let v: serde_json::Value = serde_json::from_str(&relay_body(&BugReportState { expected: "x".into(), title: "é".repeat(300), ..idea }, None)).unwrap();
+        assert_eq!((v["kind"].as_str(), v["expected"].as_str(), v["system"].as_str()), (Some("idea"), Some(""), Some("")));
+        assert_eq!(v["title"].as_str().unwrap().chars().count(), 200);
     }
 }
