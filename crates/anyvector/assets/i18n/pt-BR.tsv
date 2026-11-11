@@ -5551,3 +5551,4 @@ Left out: {} object(s) of a kind AnyVector doesn't read yet (type {})	Deixado de
 Texture "{}" isn't in CorelDRAW's texture library, so it's shown as a plain texture ({} fill(s))	A textura "{}" não está na biblioteca de texturas do CorelDRAW, então aparece como uma textura simples ({} preenchimento(s))
 Text uses a font the drawing doesn't list (font {}), so it's shown in the default font ({} text(s))	Há texto com uma fonte que o desenho não lista (fonte {}), então ele aparece na fonte padrão ({} texto(s))
 The font "{}" isn't installed, so its text is shown in "{}"	A fonte "{}" não está instalada, então o texto dela aparece em "{}"
+Its settings are shown only: they can't be changed here yet.	As configurações são só exibidas: ainda não dá para alterá-las aqui.
