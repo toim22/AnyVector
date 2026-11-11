@@ -6,6 +6,7 @@ Last updated: 2026-11-11.
 
 | Version | Date | What it brings |
 | --- | --- | --- |
+| [0.3.1](RELEASE-NOTES-0.3.1.md) | 2026-11-11 | Help ▸ Updates shows the release notes formatted (headings, lists, bold) instead of their raw text. |
 | [0.3.0](RELEASE-NOTES-0.3.0.md) | 2026-11-11 | CorelDRAW import, second round: import messages, look-alike fonts, CorelDRAW 12 textures, full-color pattern and PostScript fills drawn, Corel clipart (CMX), editable pattern tiles and texture settings; bug reports and ideas without a GitHub account; Install Now while an update downloads. |
 | [0.2.0](RELEASE-NOTES-0.2.0.md) | 2026-11-10 | Opens CorelDRAW drawings natively, from CorelDRAW 1 to 2026: pages, layers, shapes, fills (uniform, fountain, bitmap, two-color, texture, vector pattern, PostScript), outlines and arrowheads, text with its layout, bitmaps, lenses, perspective, envelopes, PowerLines, blends, extrusions, drop shadows, contours, guidelines and CMYK through the drawing's profile. |
 | [0.1.0](RELEASE-NOTES-0.1.0.md) | 2026-11-09 | The CorelDRAW 2026 interface item by item: menus, toolbars, tools, property bars, dockers and dialogs; the AnyVector name; Brazilian Portuguese; the installer. |
