@@ -367,9 +367,105 @@ const SETTING_ROOM: f32 = 96.0;
 fn release_notes(ui: &mut egui::Ui, r: &Release, room: f32) {
     let h = (ui.available_height() - room).clamp(36.0, 180.0);
     egui::ScrollArea::vertical().max_height(h).auto_shrink([false, true]).show(ui, |ui| {
-        let notes = if r.notes.trim().is_empty() { "This release has no notes." } else { r.notes.trim() };
-        ui.label(RichText::new(notes).color(theme::TEXT).size(12.0));
+        if r.notes.trim().is_empty() {
+            ui.label(RichText::new("This release has no notes.").color(theme::TEXT).size(12.0));
+        } else {
+            notes_ui(ui, &r.notes);
+        }
     });
+}
+
+/// A piece of the release notes, as GitHub shows them: a heading, a list item or a paragraph.
+#[derive(Debug, PartialEq)]
+pub(crate) enum NoteBlock {
+    /// `## Heading` (level 2 and below; the `# AnyVector x.y.z` title is left out, the window says it already)
+    Heading(Vec<(String, bool)>),
+    /// `- item`, nested two spaces per level
+    Item(usize, Vec<(String, bool)>),
+    Para(Vec<(String, bool)>),
+}
+
+/// The text with `**bold**` as (text, bold) runs and the backticks of `code` dropped.
+fn note_runs(s: &str) -> Vec<(String, bool)> {
+    let s = s.replace('`', "");
+    s.split("**").enumerate().filter(|(_, t)| !t.is_empty()).map(|(i, t)| (t.to_string(), i % 2 == 1)).collect()
+}
+
+/// The release notes (GitHub Markdown, lines wrapped at a fixed width) as blocks: wrapped lines join their block.
+pub(crate) fn note_blocks(md: &str) -> Vec<NoteBlock> {
+    let mut out = vec![];
+    // the block being read: its kind and its text so far
+    let mut cur: Option<(Option<usize>, String)> = None;
+    let flush = |cur: &mut Option<(Option<usize>, String)>, out: &mut Vec<NoteBlock>| {
+        if let Some((depth, text)) = cur.take() {
+            out.push(match depth {
+                Some(d) => NoteBlock::Item(d, note_runs(&text)),
+                None => NoteBlock::Para(note_runs(&text)),
+            });
+        }
+    };
+    for line in md.lines() {
+        let t = line.trim();
+        if t.is_empty() {
+            flush(&mut cur, &mut out);
+            continue;
+        }
+        if t.starts_with('#') {
+            flush(&mut cur, &mut out);
+            let level = t.chars().take_while(|c| *c == '#').count();
+            if level >= 2 {
+                out.push(NoteBlock::Heading(note_runs(t.trim_start_matches('#').trim())));
+            }
+            continue;
+        }
+        if let Some(item) = t.strip_prefix("- ").or_else(|| t.strip_prefix("* ")) {
+            flush(&mut cur, &mut out);
+            let indent = line.len() - line.trim_start().len();
+            cur = Some((Some(indent / 2), item.trim().to_string()));
+            continue;
+        }
+        match &mut cur {
+            Some((_, text)) => {
+                text.push(' ');
+                text.push_str(t);
+            }
+            None => cur = Some((None, t.to_string())),
+        }
+    }
+    flush(&mut cur, &mut out);
+    out
+}
+
+fn notes_ui(ui: &mut egui::Ui, md: &str) {
+    let job = |runs: &[(String, bool)], size: f32, base: Color32| {
+        let mut job = egui::text::LayoutJob::default();
+        for (t, bold) in runs {
+            let color = if *bold { Color32::WHITE } else { base };
+            job.append(t, 0.0, egui::TextFormat { font_id: egui::FontId::proportional(size), color, ..Default::default() });
+        }
+        job
+    };
+    ui.spacing_mut().item_spacing.y = 3.0;
+    for (i, b) in note_blocks(md).iter().enumerate() {
+        match b {
+            NoteBlock::Heading(runs) => {
+                if i > 0 {
+                    ui.add_space(6.0);
+                }
+                ui.add(egui::Label::new(job(runs, 13.0, Color32::WHITE)).wrap());
+            }
+            NoteBlock::Para(runs) => {
+                ui.add(egui::Label::new(job(runs, 12.0, theme::TEXT)).wrap());
+            }
+            NoteBlock::Item(depth, runs) => {
+                ui.horizontal_top(|ui| {
+                    ui.add_space(4.0 + 14.0 * *depth as f32);
+                    ui.label(RichText::new(if *depth == 0 { "•" } else { "◦" }).color(theme::TEXT).size(12.0));
+                    ui.add(egui::Label::new(job(runs, 12.0, theme::TEXT)).wrap());
+                });
+            }
+        }
+    }
 }
 
 fn status_ui(app: &mut AnyVectorApp, ui: &mut egui::Ui, room: f32) {
@@ -544,6 +640,38 @@ fn prompt(app: &mut AnyVectorApp, ctx: &egui::Context) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn release_notes_read_as_github_shows_them() {
+        let md = "# AnyVector 0.3.0
+
+Intro that wraps
+onto a second line.
+
+## What's `new`
+
+- **Fonts.** A missing font
+  gets a look-alike:
+  - narrow stays narrow
+- Last
+";
+        let b = note_blocks(md);
+        let run = |t: &str, bold: bool| (t.to_string(), bold);
+        assert_eq!(b, vec![
+            NoteBlock::Para(vec![run("Intro that wraps onto a second line.", false)]),
+            NoteBlock::Heading(vec![run("What's new", false)]),
+            NoteBlock::Item(0, vec![run("Fonts.", true), run(" A missing font gets a look-alike:", false)]),
+            NoteBlock::Item(1, vec![run("narrow stays narrow", false)]),
+            NoteBlock::Item(0, vec![run("Last", false)]),
+        ]);
+        // the real notes have no Markdown marks left
+        for b in [include_str!("../../../docs/RELEASE-NOTES-0.3.0.md"), include_str!("../../../docs/RELEASE-NOTES-0.3.1.md")].iter().flat_map(|md| note_blocks(md)) {
+            let (NoteBlock::Heading(r) | NoteBlock::Item(_, r) | NoteBlock::Para(r)) = b;
+            for (t, _) in r {
+                assert!(!t.contains("**") && !t.contains('`') && !t.starts_with('#') && !t.starts_with("- "), "{t}");
+            }
+        }
+    }
 
     #[test]
     fn versions_compare() {

@@ -325,8 +325,7 @@ fn visual_updates_dialog() {
     use egui_kittest::kittest::Queryable;
     use crate::updater::{Release, Status};
     let mut h = harness();
-    let notes = (1..=60).map(|i| format!("- Change number {i}, described in a line long enough to wrap in the window")).collect::<Vec<_>>().join("
-");
+    let notes = include_str!("../../../docs/RELEASE-NOTES-0.3.0.md").to_string();
     let r = Release {
         version: "9.9.9".into(),
         tag: "v9.9.9".into(),

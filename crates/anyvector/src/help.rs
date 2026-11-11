@@ -8,7 +8,7 @@ use std::fmt::Write as _;
 use std::path::PathBuf;
 
 /// The release notes of this version (also shown by Help ▸ Updates).
-const RELEASE_NOTES: &str = include_str!("../../../docs/RELEASE-NOTES-0.3.0.md");
+const RELEASE_NOTES: &str = include_str!("../../../docs/RELEASE-NOTES-0.3.1.md");
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Page {
