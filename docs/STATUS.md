@@ -53,6 +53,10 @@ Merged to `main` on 2026-11-10 (pull requests #35 to #43). The plan and research
 Checked on all samples at hand: 216 of 218 drawings open (CorelDRAW 1/2, 3, 5, 12, CMX clipart and the test
 fixtures); the two that don't are damaged CorelDRAW 3 files that 0.2.0 refused as well.
 
+Also in this version: Help > Report a Bug and Help > Submit Ideas and Feedback send the issue through a small relay
+(`services/issue-relay`, a Cloudflare Worker acting as the AnyVector Reports GitHub App), so nobody needs a GitHub
+account. When the relay can't be reached, GitHub's filled-in form opens in the browser as before.
+
 ## CorelDRAW import: known issues to review later
 
 These are outside the current round of work and stay as they are until they are picked up again. The research
