@@ -283,7 +283,7 @@ fn apply_visuals(ctx: &egui::Context) {
     ctx.set_theme(if p.light { egui::ThemePreference::Light } else { egui::ThemePreference::Dark });
 }
 
-fn install_fonts(ctx: &egui::Context) {
+pub(crate) fn install_fonts(ctx: &egui::Context) {
     let windir = std::env::var("WINDIR").unwrap_or_else(|_| "C:\\Windows".into());
     let fonts = std::path::Path::new(&windir).join("Fonts");
     let mut defs = egui::FontDefinitions::default();
@@ -318,6 +318,7 @@ fn install_fonts(ctx: &egui::Context) {
         let p = defs.families.get(&FontFamily::Proportional).cloned().unwrap_or_default();
         defs.families.insert(FontFamily::Name("light".into()), p);
     }
+    crate::i18n::add_fonts(&mut defs, &fonts);
     ctx.set_fonts(defs);
 }
 

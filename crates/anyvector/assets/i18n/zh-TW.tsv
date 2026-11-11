@@ -1,0 +1,5573 @@
+# AnyVector user interface in Chinese (Traditional, Taiwan) (zh-TW).
+# One pair per line: English<TAB>translation. \n and \t stand for a line break and a tab; {} are the values of a
+# format string, in order ({0}, {1} pick one). In menu captions, & goes before the access key.
+# Terms follow the official CorelDRAW zh-TW text in corel-i18n/languages/zh-TW.md where it exists.
+# python -I xtask/i18n_check.py . zh-TW checks this file.
+English (United States)	English (United States)
+Português Brasileiro	Português Brasileiro
+File	檔案(&F)
+Edit	編輯(&E)
+View	檢視(&V)
+Layout	版面(&L)
+Object	物件(&O)
+Effects	效果(&C)
+Bitmaps	點陣圖(&B)
+Text	文字(&X)
+Table	表格(&T)
+Tools	工具(&O)
+Window	視窗(&W)
+Help	說明(&H)
+New...	新增...
+New	新增
+New from Template...	從範本新增...
+Quick AI Generate…	AI 快速產生…
+Open...	開啟...
+Open	開啟
+Open Recent	開啟最近使用的檔案
+Close	關閉
+Close All	全部關閉
+Save...	儲存...
+Save	儲存
+Save As...	另存新檔...
+Save as Template...	另存為範本...
+Revert	回復
+Acquire Image	擷取影像
+Import...	匯入...
+Import	匯入
+Export...	匯出...
+Export	匯出
+Export For	匯出為
+Export Docker	匯出泊塢視窗
+Send To	傳送到
+Publish to PDF	發佈為 PDF
+Print Merge	合併列印
+Print...	列印...
+Print	列印
+Print Preview...	預覽列印...
+Document Properties...	文件屬性...
+Exit	結束
+Undo {}	復原 {}
+Undo	復原
+Redo {}	重做 {}
+Redo	重做
+Repeat {}	重複 {}
+Bring into Focus	進入焦點
+Exit Focus Mode	結束焦點模式
+Cut	剪下
+Copy	複製
+Copy Properties From...	複製屬性自...
+Paste	貼上
+Paste in View	在檢視中貼上
+Paste Special...	選擇性貼上...
+Delete	刪除
+Duplicate	再製
+Clone	仿製
+Select All	全選
+Find and Replace	尋找及取代
+Step and Repeat	逐步與重複
+Wireframe	線框
+Normal	一般
+Enhanced	增強
+Pixels	像素
+Pattern Preview	圖樣預覽
+Full-screen Preview	全螢幕預覽
+Full-screen preview	全螢幕預覽
+Preview Selected Only	僅預覽選取的物件
+Multipage View	多頁檢視
+Multipage view	多頁檢視
+Zoom In	拉近
+Zoom in	拉近
+Zoom Out	拉遠
+Zoom out	拉遠
+Zoom To Fit	縮放至適合大小
+Zoom to all objects	縮放至所有物件
+Proof Colors	校樣色彩
+Simulate Overprints	模擬疊印
+Rasterize Complex Effects	點陣化複雜效果
+Page	頁面
+Grid	格點
+Rulers	尺規
+Show rulers	顯示尺規
+Guidelines	導線
+Show guidelines	顯示導線
+Alignment Guides	對齊導線
+Alignment guides	對齊導線
+Dynamic Guides	動態導線
+Dynamic guides	動態導線
+Snap To	貼齊
+Snap Off	關閉貼齊
+Document Navigator	文件導覽器
+Show document navigator	顯示文件導覽器
+Scrollbars	捲軸
+Show scrollbars	顯示捲軸
+Insert Page...	插入頁面...
+Duplicate Page...	再製頁面...
+Rename Page...	重新命名頁面...
+Delete Page...	刪除頁面...
+Go to Page...	移至頁面...
+Insert Page Number	插入頁碼
+Page Number Settings...	頁碼設定...
+Switch Page Orientation	切換頁面方向
+Document Options...	文件選項...
+Page Size...	頁面大小...
+Page Layout...	頁面版面配置...
+Page Layout	頁面版面配置
+Page Background...	頁面背景...
+Border and Grommet...	邊框與扣眼...
+Create	建立
+Insert	插入
+AI Generate	AI 產生
+PowerClip	PowerClip
+Symmetry	對稱
+Symbol	符號
+Rollover	滑鼠變換
+Clear Transformations	清除變形
+Copy Effect	複製效果
+Clone Effect	仿製效果
+Clear Effect	清除效果
+Align and Distribute	對齊與分佈
+Align and distribute	對齊與分佈
+Fit Objects to Path	使物件適合路徑
+Order	順序
+Group	群組
+Hide	隱藏
+Lock	鎖定
+Shaping	造形
+Combine	結合
+Break Apart	打散
+Break apart	打散
+Perspective	透視
+Convert to Curves	轉換為曲線
+Convert to curves 	轉換為曲線 
+Convert to Bitmap...	轉換為點陣圖...
+Convert Outline to Object	外框轉換為物件
+Join Curves	連接曲線
+Overprint Fill	疊印填色
+Overprint Outline	疊印外框
+Overprint Bitmap	疊印點陣圖
+Object Hinting	物件提示
+Properties	屬性
+Object properties	物件屬性
+Objects	物件
+Objects Docker	物件泊塢視窗
+Pages	頁面
+Flatten Effects	平面化效果
+3D Effects	3D 效果
+Adjust	調整
+Art Strokes	藝術筆觸
+Blur	模糊
+Camera	相機
+Color Transform	色彩轉換
+Contour	輪廓圖
+Correction	校正
+Creative	創意
+Custom	自訂
+Distort	扭曲
+Noise	雜點
+Sharpen	銳利化
+Texture	材質
+Transform	變形
+Artistic Media	藝術筆
+Bevel	斜角
+Blend	調和
+Envelope	封套
+Extrude	立體化
+Lens	透鏡
+PhotoCocktail	PhotoCocktail
+Pointillizer	點描畫
+Straighten Image...	拉直影像...
+Image Adjustment Lab...	影像調整實驗室...
+Remove JPEG Artifacts	移除 JPEG 失真
+Edit Bitmap...	編輯點陣圖...
+Edit bitmap	編輯點陣圖
+Remove Background	移除背景
+Remove background	移除背景
+Crop Bitmap	裁剪點陣圖
+Crop bitmap	裁剪點陣圖
+Resample...	重新取樣...
+Resample bitmap	重新取樣點陣圖
+Mode	模式
+Inflate Bitmap	擴充點陣圖
+Break Link	中斷連結
+Update from Link	從連結更新
+Quick Trace	快速描圖
+Quick trace	快速描圖
+Repeat Last Trace	重複上次描圖
+Open Last Trace Settings...	開啟上次描圖設定...
+Centerline Trace	中心線描圖
+Outline Trace	外框描圖
+Plug-ins	外掛程式
+Bitmap Mask	點陣圖遮罩
+Bitmap mask	點陣圖遮罩
+Tabs...	定位點...
+Tab settings	定位點設定
+Columns...	欄...
+Columns	欄
+Bullets and Numbering...	項目符號與編號...
+Bullet and number settings	項目符號與編號設定
+Drop Cap...	首字放大...
+Drop Cap settings	首字放大設定
+Text Statistics...	文字統計資料...
+Edit Text...	編輯文字...
+Edit text	編輯文字
+Insert Formatting Code	插入格式代碼
+Insert formatting code	插入格式代碼
+Convert	轉換
+Show Non-Printing Characters	顯示非列印字元
+Paragraph Text Frame	段落文字框
+Fit Text to Path	使文字適合路徑
+Fit text to path	使文字適合路徑
+Straighten Text	拉直文字
+Align to Baseline	對齊基線
+Align to Baseline Grid	對齊基線格點
+Align to baseline grid	對齊基線格點
+Use Hyphenation	使用連字
+Writing Tools	書寫工具
+Change Case...	變更大小寫...
+Make Text Web-compatible	使文字與網頁相容
+Make text Web-compatible	使文字與網頁相容
+Encode...	編碼...
+Glyphs	字符
+Create New Table...	建立新表格...
+Convert Text to Table...	文字轉換為表格...
+Convert Table to Text...	表格轉換為文字...
+Select	選取
+Distribute	分佈
+Merge Cells	合併儲存格
+Combine cells	合併儲存格
+Unmerge Cells	取消合併儲存格
+Undo combine	取消合併
+Split into Rows...	分割為列...
+Split cells horizontally	水平分割儲存格
+Split into Columns...	分割為欄...
+Split cells vertically	垂直分割儲存格
+Options	選項
+Save Settings as Default...	將設定儲存為預設值...
+Save settings as default	將設定儲存為預設值
+Color Management...	色彩管理...
+Scripts	指令碼
+New Window	新增視窗
+Refresh Window	重新整理視窗
+Close Window	關閉視窗
+Cascade	重疊顯示
+Tile Horizontally	水平並排
+Tile Vertically	垂直並排
+Combine Windows	合併視窗
+Dock Window	停駐視窗
+Workspace	工作區
+Dockers	泊塢視窗
+Toolbars	工具列
+Color Palettes	調色盤
+Window List	視窗清單
+Product Help...	產品說明...
+Welcome Screen	歡迎畫面
+Welcome screen	歡迎畫面
+Quick Start Guide...	快速入門指南...
+User Guide...	使用者指南...
+What's New?...	新增功能...
+Updates...	更新...
+Submit Ideas and Feedback...	提交想法與意見回饋...
+Report a Bug	回報錯誤
+About AnyVector...	關於 AnyVector...
+Report a Bug...	回報錯誤...
+View Reported Bugs...	檢視已回報的錯誤...
+Recent Files	最近使用的檔案
+Select TWAIN Source...	選取 TWAIN 來源...
+Select WIA Source...	選取 WIA 來源...
+Acquire...	擷取...
+Office...	Office...
+Web...	Web...
+WordPress...	WordPress...
+Add Selection	新增選取範圍
+Add Current Page	新增目前頁面
+Add All Pages	新增所有頁面
+Send To Links	「傳送到」連結
+Mail...	郵件...
+Create/load Print Merge	建立/載入合併列印
+Edit Print Merge	編輯合併列印
+Print Merged Document...	列印合併的文件...
+Perform Print Merge	執行合併列印
+Create Merged Document	建立合併的文件
+Nodes	節點
+Select all nodes	選取所有節點
+Page Border	頁面邊框
+Bleed	出血
+Printable Area	可列印區域
+Document Grid	文件格點
+Show grid	顯示格點
+Pixel Grid	像素格點
+Baseline Grid	基線格點
+Show baseline grid	顯示基線格點
+Snap to pixels	貼齊像素
+Snap to document grid	貼齊文件格點
+Snap to baseline grid	貼齊基線格點
+Snap to guidelines	貼齊導線
+Snap to objects	貼齊物件
+Snap to page	貼齊頁面
+On Active Layer	在作用中圖層上
+On All Pages	在所有頁面上
+On All Odd Pages	在所有奇數頁上
+On All Even Pages	在所有偶數頁上
+Arrowhead...	箭頭...
+Pattern Fill...	圖樣填色...
+QR Code	QR 碼
+Insert QR Code	插入 QR 碼
+Barcode	條碼
+Insert barcode	插入條碼
+Validate Barcode	驗證條碼
+Validate bar code	驗證條碼
+Object...	物件...
+Create vector graphic	建立向量圖形
+Create Vector Graphic Guided by Selection	依選取範圍建立向量圖形
+Create image	建立影像
+Create Image Guided by Selection	依選取範圍建立影像
+Remix image	重新混合影像
+Remix Selection	重新混合選取範圍
+Place Inside Frame...	置於框架內...
+Extract Contents	擷取內容
+Edit PowerClip...	編輯 PowerClip...
+Finish Editing PowerClip	完成編輯 PowerClip
+Create Empty PowerClip Frame	建立空白 PowerClip 框架
+PowerClip frame	PowerClip 框架
+Lock Contents to PowerClip	將內容鎖定至 PowerClip
+Center	置中
+Center contents	內容置中
+Fit Proportionally	等比例調整
+Fit contents proportionally	內容等比例調整
+Fill Proportionally	等比例填滿
+Fill frame proportionally	等比例填滿框架
+Stretch to Fill	延展以填滿
+Stretch contents to fill frame	延展內容以填滿框架
+Copy PowerClip From...	複製 PowerClip 自...
+Copy PowerClip	複製 PowerClip
+Create New Symmetry	建立新對稱
+Edit Symmetry	編輯對稱
+Finish Editing Symmetry	完成編輯對稱
+Remove Symmetry	移除對稱
+Break Symmetry Link	中斷對稱連結
+Create New Symbol	建立新符號
+Edit Master...	編輯主要物件...
+Edit Master	編輯主要物件
+Finish Editing Symbol	完成編輯符號
+Revert to Objects	還原為物件
+Export Library...	匯出元件庫...
+Symbols	符號
+Create Rollover	建立滑鼠變換
+Create rollover	建立滑鼠變換
+Extract Rollover Objects	擷取滑鼠變換物件
+Extract rollover objects	擷取滑鼠變換物件
+Edit Rollover...	編輯滑鼠變換...
+Edit rollover	編輯滑鼠變換
+Finish Editing rollover	完成編輯滑鼠變換
+Finish editing rollover	完成編輯滑鼠變換
+Rollover Live Preview	滑鼠變換即時預覽
+Rollover live preview	滑鼠變換即時預覽
+Perspective From...	透視自...
+Envelope From...	封套自...
+Blend From...	調和自...
+Extrude From...	立體化自...
+Contour From...	輪廓圖自...
+Lens From...	透鏡自...
+Shadow From...	陰影自...
+Distortion From...	扭曲自...
+Align Left	靠左對齊
+Align Right	靠右對齊
+Align Top	靠上對齊
+Align Bottom	靠下對齊
+Align Centers Horizontally	水平置中對齊
+Align Centers Vertically	垂直置中對齊
+Center to Page	在頁面置中
+Center to Page Horizontally	在頁面水平置中
+Center to Page Vertically	在頁面垂直置中
+Align with Pixel Grid	對齊像素格點
+To Front of Page	移至頁面前面
+To front of page	移至頁面前面
+To Back of Page	移至頁面後面
+To back of page	移至頁面後面
+To Front of Layer	移至圖層前面
+To front of layer	移至圖層前面
+To Back of Layer	移至圖層後面
+To back of layer	移至圖層後面
+Forward One	向前一層
+Back One	向後一層
+In Front Of...	在此之前...
+Behind...	在此之後...
+Reverse Order	反轉順序
+Group objects	群組物件
+Ungroup	取消群組
+Ungroup objects	取消群組物件
+Ungroup All	全部取消群組
+Ungroup all objects	取消所有物件群組
+Show	顯示
+Show All	全部顯示
+Lock object	鎖定物件
+Unlock	解除鎖定
+Unlock object	解除鎖定物件
+Unlock All	全部解除鎖定
+Unlock all	全部解除鎖定
+Weld	焊接
+Trim	修剪
+Intersect	相交
+Simplify	簡化
+Front Minus Back	前減後
+Front minus back	前減後
+Back Minus Front	後減前
+Back minus front	後減前
+Boundary	邊界
+Create boundary	建立邊界
+Shape	形狀
+Shape Docker	形狀泊塢視窗
+Add Perspective...	新增透視...
+Draw in Perspective...	以透視繪製...
+Edit Perspective Group...	編輯透視群組...
+3D Rotate...	3D 旋轉...
+Cylinder...	圓柱...
+Emboss...	浮雕...
+Page Curl...	頁面捲曲...
+Pinch/Punch...	內縮/外擴...
+Sphere...	球體...
+Zig Zag...	鋸齒...
+Auto Adjust	自動調整
+Levels...	色階...
+Equalize...	等化...
+Sample & Target...	取樣/目標平衡...
+Tone Curve...	色調曲線...
+Light...	光線...
+Color Balance...	色彩平衡...
+Gamma...	Gamma 值...
+White Balance...	白平衡...
+Hue/Saturation/Lightness...	色相/飽和度/亮度...
+Black & White...	黑白...
+Vibrance...	自然飽和度...
+Selective Color...	可選色彩...
+Replace Colors...	取代色彩...
+Desaturate	去除飽和度
+Channel Mixer...	色版混合器...
+Charcoal...	炭筆...
+Conté Crayon...	孔特蠟筆...
+Crayon...	蠟筆...
+Cubist...	立體派...
+Dabble...	輕塗...
+Impressionist...	印象派...
+Palette Knife...	調色刀...
+Pastels...	粉彩筆...
+Pen & Ink...	鋼筆與墨水...
+Pointillist...	點畫派...
+Scraperboard...	刮畫...
+Sketch Pad...	素描本...
+Watercolor...	水彩...
+Water Marker...	水彩筆...
+Wave Paper...	波紋紙...
+Tune Blur...	微調模糊...
+Directional Smooth...	方向性平滑...
+Feather...	羽化...
+Gaussian Blur...	高斯模糊...
+Jaggy Despeckle...	鋸齒去斑...
+Low Pass...	低通...
+Motion Blur...	動態模糊...
+Radial Blur...	放射狀模糊...
+Smart Blur...	智慧模糊...
+Smooth...	平滑...
+Soften...	柔化...
+Zoom...	縮放...
+Colorize...	著色...
+Diffuse...	擴散...
+Photo Filter...	相片濾鏡...
+Lens Flare...	鏡頭光暈...
+Lighting Effects...	光源效果...
+Sepia Toning...	懷舊色調...
+Spot Filter...	點濾鏡...
+Time Machine...	時光機...
+Bit Planes...	位元平面...
+Halftone...	半色調...
+Psychedelic...	迷幻...
+Solarize...	曝光過度...
+Edge Detect...	邊緣偵測...
+Find Edges...	尋找邊緣...
+Trace Contour...	描繪輪廓...
+Local Equalization...	局部等化...
+Dust and Scratch...	灰塵與刮痕...
+Tune Sharpen...	微調銳利化...
+Art Style...	藝術風格...
+Crystalize...	結晶化...
+Fabric...	織物...
+Frame...	框架...
+Glass Block...	玻璃磚...
+Mosaic...	馬賽克...
+Scatter...	分散...
+Smoked Glass...	煙燻玻璃...
+Stained Glass...	彩繪玻璃...
+Vignette...	暈映...
+Vortex...	漩渦...
+Band Pass...	帶通...
+Bump Map...	凹凸貼圖...
+User Defined...	使用者定義...
+Blocks...	區塊...
+Displace...	置換...
+Mesh Warp...	網格彎曲...
+Offset...	位移...
+Pixelate...	像素化...
+Ripple...	漣漪...
+Shear...	切變...
+Swirl...	旋轉...
+Tile...	並排...
+Wet Paint...	濕畫...
+Whirlpool...	渦流...
+Wind...	風...
+Tune Noise...	微調雜點...
+Add Noise...	增加雜點...
+3-D Stereo Noise...	3D 立體雜點...
+Maximum...	最大值...
+Median...	中間值...
+Minimum...	最小值...
+Remove Moiré...	移除波紋...
+Remove Noise...	移除雜點...
+Adaptive Unsharp...	調適性銳利化...
+Directional Sharpen...	方向性銳利化...
+High Pass...	高通...
+Sharpen...	銳利化...
+Unsharp Mask...	遮色片銳利化...
+Brick Wall...	磚牆...
+Bubbles...	泡泡...
+Canvas...	畫布...
+Cobblestone...	鵝卵石...
+Elephant Skin...	象皮...
+Etching...	蝕刻...
+Plastic...	塑膠...
+Plaster Wall...	灰泥牆...
+Relief Sculpture...	浮雕雕刻...
+Screen Door...	紗門...
+Stone...	石頭...
+Underpainting...	底層畫...
+DeInterlace...	反交錯...
+Invert Colors	反轉色彩
+Posterize...	色調分離...
+Threshold...	臨界值...
+Black and White (1-bit)...	黑白 (1 位元)...
+Grayscale (8-bit)	灰階 (8 位元)
+Duotone (8-bit)...	雙色調 (8 位元)...
+Paletted (8-bit)...	調色盤 (8 位元)...
+RGB Color (24-bit)	RGB 色彩 (24 位元)
+Lab Color (24-bit)	Lab 色彩 (24 位元)
+CMYK Color (32-bit)	CMYK 色彩 (32 位元)
+Auto Inflate Bitmap	自動擴充點陣圖
+Manually Inflate Bitmap...	手動擴充點陣圖...
+Technical Illustration...	技術插圖...
+Technical illustration	技術插圖
+Line Drawing...	線條圖...
+Line drawing	線條圖
+Line Art...	線條美工...
+Line art	線條美工
+Logo...	標誌...
+Logo	標誌
+Detailed Logo...	詳細標誌...
+Detailed logo	詳細標誌
+Clipart...	美工圖案...
+Clipart 	美工圖案 
+Low Quality Image...	低品質影像...
+Low-quality image	低品質影像
+High Quality Image...	高品質影像...
+High-quality image	高品質影像
+Not Installed	未安裝
+Em Space	全形空格
+En Space	半形空格
+¼ Em Space	¼ 全形空格
+Non-breaking Space	不分行空格
+Tab	定位字元
+Column/Frame Break	欄/框架分隔
+Em Dash	全形破折號
+En Dash	半形破折號
+Non-breaking Hyphen	不分行連字號
+Optional Hyphen	選用連字號
+Custom Optional Hyphens...	自訂選用連字號...
+Show Text Frames	顯示文字框
+Fit Text To Frame	使文字適合框架
+Insert Placeholder Text	插入預留位置文字
+Insert placeholder text	插入預留位置文字
+Create Empty Text Frame	建立空白文字框
+Text frame	文字框
+Link	連結
+Unlink	取消連結
+Spell Check...	拼字檢查...
+Grammatik...	Grammatik...
+Thesaurus...	同義字...
+QuickCorrect...	QuickCorrect...
+Language...	語言...
+Settings...	設定...
+Row Above	上方列
+Row Below	下方列
+Column Left	左側欄
+Column Right	右側欄
+Insert Rows...	插入列...
+Insert Columns...	插入欄...
+Cell	儲存格
+Row	列
+Column	欄
+Rows Evenly	平均分佈列
+Columns Evenly	平均分佈欄
+AnyVector...	AnyVector...
+Customization...	自訂...
+Tools...	工具...
+Global...	全域...
+Workspaces...	工作區...
+Script Editor...	指令碼編輯器...
+Script Editor	指令碼編輯器
+Run Script...	執行指令碼...
+Run script	執行指令碼
+Visual Studio Editor...	Visual Studio 編輯器...
+Start Recording	開始錄製
+Start recording	開始錄製
+Pause Recording	暫停錄製
+Pause recording	暫停錄製
+Stop Recording	停止錄製
+Stop recording	停止錄製
+Cancel Recording	取消錄製
+Record Temporary Script	錄製暫存指令碼
+Run Temporary Script	執行暫存指令碼
+Scripts Manager	指令碼管理員
+Comments	註解
+Comments Tool	註解工具
+Object Data	物件資料
+Object Styles	物件樣式
+Object styles	物件樣式
+Generative AI Tool	生成式 AI 工具
+Coordinates	座標
+Live Guides	即時導線
+Corners	轉角
+Font Sampler	字型取樣器
+Color	色彩
+Palettes	調色盤
+Color Styles	色彩樣式
+Color styles	色彩樣式
+Color Proofing	色彩校樣
+Assets	資產
+Tray	匣
+Links	連結
+Sources	來源
+Views	檢視
+History	歷程記錄
+Default Button Size	預設按鈕大小
+Menu bar	功能表列
+Status bar	狀態列
+Toolbar List	工具列清單
+Lock Toolbars	鎖定工具列
+Add Colors from Selection...	從選取範圍新增色彩...
+Add Colors from Document...	從文件新增色彩...
+Create Palette from Selection...	從選取範圍建立調色盤...
+Create Palette from Document...	從文件建立調色盤...
+Open Palette...	開啟調色盤...
+Close All Palettes	關閉所有調色盤
+Palette Editor...	調色盤編輯器...
+Recent	最近使用
+Small	小
+Medium	中
+Large	大
+Paper	紙張
+Page size	頁面大小
+Size	大小
+Page dimensions	頁面尺寸
+Autofit page	自動調整頁面
+Portrait	直向
+Landscape	橫向
+Default Page	預設頁面
+All pages	所有頁面
+Current Page	目前頁面
+Current page	目前頁面
+Units	單位
+Drawing units	繪圖單位
+Nudge	微調
+Nudge distance	微調距離
+Duplicate distance	再製距離
+Treat All Objects as Filled	將所有物件視為已填色
+Treat all objects as filled	將所有物件視為已填色
+Object Origin	物件原點
+Position	位置
+Object position	物件位置
+Object size	物件大小
+Scale	縮放比例
+Scale factor	縮放係數
+Proportional Ratio	等比例
+Lock ratio	鎖定比例
+Angle	角度
+Angle of rotation	旋轉角度
+Mirror horizontally	水平鏡射
+Mirror vertically	垂直鏡射
+Outline Width	外框寬度
+Outline width	外框寬度
+Outline Style Selector	外框樣式選擇器
+Line style	線條樣式
+Wrap Paragraph Text	段落文字繞圖
+Wrap text	文字繞圖
+Ellipse	橢圓形
+Pie	圓餅形
+Arc	弧形
+Angles	角度
+Starting and ending angles	起始和結束角度
+Direction	方向
+Change direction	變更方向
+Variable Outline	可變外框
+Variable Outline tool	可變外框工具
+Points or Sides	點數或邊數
+Points or sides	點數或邊數
+Star	星形
+Complex Star	複雜星形
+Sharpness of Star and Complex Star	星形和複雜星形的銳利度
+Sharpness	銳利度
+Font List	字型清單
+Font list	字型清單
+Font Size	字型大小
+Font size	字型大小
+Variable Fonts	可變字型
+Bold	粗體
+Italic	斜體
+Underline	底線
+Horizontal Alignment	水平對齊
+Horizontal alignment	水平對齊
+Bullets	項目符號
+Bulleted list	項目符號清單
+Numbers	編號
+Numbered list	編號清單
+Use drop cap	使用首字放大
+Drop cap	首字放大
+Increase Indent	增加縮排
+Increase indent	增加縮排
+Decrease Indent	減少縮排
+Decrease indent	減少縮排
+Interactive OpenType	互動式 OpenType
+None	無
+Left	靠左
+Right	靠右
+Full Justify	完全對齊
+Force Justify	強制對齊
+Trace Bitmap	描繪點陣圖
+Trace bitmap	描繪點陣圖
+Text Orientation	文字方向
+Text orientation	文字方向
+Distance from Path	與路徑的距離
+Distance from path	與路徑的距離
+Horizontal Offset	水平位移
+Offset	位移
+Mirror Fitted Text Horizontally	水平鏡射適合路徑的文字
+Mirror text horizontally	水平鏡射文字
+Mirror Fitted Text Vertically	垂直鏡射適合路徑的文字
+Mirror text vertically	垂直鏡射文字
+Tick Snapping	刻度貼齊
+Tick snapping	刻度貼齊
+Selection Mode	選取模式
+Selection mode	選取模式
+Add	新增
+Add nodes	新增節點
+Delete nodes	刪除節點
+Join	連接
+Join two nodes	連接兩個節點
+Break curve	中斷曲線
+To Line	轉換為直線
+Convert to line	轉換為直線
+To Curve	轉換為曲線
+Convert to curve	轉換為曲線
+Cusp	尖突
+Cusp node	尖突節點
+Smooth	平滑
+Smooth node	平滑節點
+Symmetrical	對稱
+Symmetrical node	對稱節點
+Reverse Subpaths	反轉子路徑
+Reverse direction	反轉方向
+Extract	擷取
+Extract subpath	擷取子路徑
+Extend curve to close	延伸曲線以封閉
+Close Curve	封閉曲線
+Close curve	封閉曲線
+Stretch or scale nodes	延展或縮放節點
+Rotate & Skew	旋轉與傾斜
+Rotate or skew nodes	旋轉或傾斜節點
+Align	對齊
+Align nodes	對齊節點
+Reflect Nodes Horizontally	水平反射節點
+Reflect nodes horizontally	水平反射節點
+Reflect Nodes Vertically	垂直反射節點
+Reflect nodes vertically	垂直反射節點
+Elastic Mode	彈性模式
+Elastic mode	彈性模式
+Reduce Nodes	減少節點
+Reduce nodes	減少節點
+Curve Smoothness	曲線平滑度
+Curve smoothness	曲線平滑度
+Bounding Box	邊框
+Bounding box	邊框
+Parallel Drawing	平行繪圖
+Horizontal Character Offset	字元水平位移
+Horizontal character offset	字元水平位移
+Vertical Character Offset	字元垂直位移
+Vertical character offset	字元垂直位移
+Character Angle	字元角度
+Character angle	字元角度
+Superscript	上標
+Subscript	下標
+Small Capitals	小型大寫字母
+Small capitals	小型大寫字母
+All Capitals	全部大寫
+All capitals	全部大寫
+Shape:	形狀：
+Round Nib	圓形筆尖
+Round nib	圓形筆尖
+Square Nib	方形筆尖
+Square nib	方形筆尖
+Eraser Thickness	橡皮擦粗細
+Eraser thickness	橡皮擦粗細
+Pen pressure	筆壓
+Pen tilt	筆傾斜
+Tilt angle	傾斜角度
+Pen bearing	筆方位
+Bearing angle	方位角度
+Auto-Reduce	自動減少
+Zoom Levels	縮放層級
+Zoom levels	縮放層級
+Zoom To Selection	縮放至選取範圍
+Zoom to selected	縮放至選取的物件
+Zoom to all pages	縮放至所有頁面
+Zoom To Page	縮放至頁面
+Zoom to page	縮放至頁面
+Zoom To Width	縮放至寬度
+Zoom to page width	縮放至頁面寬度
+Zoom To Height	縮放至高度
+Zoom to page height	縮放至頁面高度
+No Fill	無填色
+No fill	無填色
+Uniform Fill	均勻填色
+Uniform fill	均勻填色
+Fountain Fill	漸層填色
+Fountain fill	漸層填色
+Vector Pattern Fill	向量圖樣填色
+Vector pattern fill	向量圖樣填色
+Bitmap Pattern Fill	點陣圖圖樣填色
+Bitmap pattern fill	點陣圖圖樣填色
+Hatch Fill	網紋填色
+Hatch fill	網紋填色
+Two-color Pattern Fill	雙色圖樣填色
+Two-color pattern fill	雙色圖樣填色
+Texture Fill	材質填色
+Texture fill	材質填色
+PostScript Fill	PostScript 填色
+PostScript fill	PostScript 填色
+Copy Fill	複製填色
+Copy fill	複製填色
+Fill Color	填色色彩
+Fill color	填色色彩
+Edit Fill	編輯填色
+Edit fill	編輯填色
+Fill Picker	填色挑選器
+Fill picker	填色挑選器
+Linear Fountain Fill	線性漸層填色
+Linear fountain fill	線性漸層填色
+Elliptical Fountain Fill	橢圓形漸層填色
+Elliptical fountain fill	橢圓形漸層填色
+Conical Fountain Fill	圓錐形漸層填色
+Conical fountain fill	圓錐形漸層填色
+Rectangular Fountain Fill	矩形漸層填色
+Rectangular fountain fill	矩形漸層填色
+Node Color	節點色彩
+Node color	節點色彩
+Node Transparency	節點透明度
+Node transparency	節點透明度
+Node position	節點位置
+Reverse Fill	反轉填色
+Reverse fill	反轉填色
+Arrangement	排列
+Smooth Fountain Fill	平滑漸層填色
+Acceleration	加速
+Free Scale and Skew	自由縮放與傾斜
+Free scale and skew	自由縮放與傾斜
+Default Fountain Fill	預設漸層填色
+Default fountain fill	預設漸層填色
+Repeat and Mirror	重複與鏡射
+Repeat and mirror	重複與鏡射
+Repeat	重複
+Mirror Tiles Horizontally	水平鏡射拼貼
+Mirror tiles horizontally	水平鏡射拼貼
+Mirror Tiles Vertically	垂直鏡射拼貼
+Mirror tiles vertically	垂直鏡射拼貼
+Transform Fill	變形填色
+Transform with object	隨物件變形
+Blend Transition	調和過渡
+Blend transition	調和過渡
+Fill Dropdown	填色下拉式清單
+First fill color or pattern	第一個填色色彩或圖樣
+Front Color	前景色彩
+Front color	前景色彩
+Back Color	背景色彩
+Back color	背景色彩
+Texture Library	材質庫
+Texture library	材質庫
+Texture Options...	材質選項...
+Texture options	材質選項
+Regenerate Texture	重新產生材質
+Regenerate texture	重新產生材質
+PostScript Fill Textures	PostScript 填色材質
+PostScript fill textures	PostScript 填色材質
+PostScript Fill Preview	PostScript 填色預覽
+PostScript fill preview	PostScript 填色預覽
+Preset List	預設集清單
+Preset list	預設集清單
+Add Preset	新增預設集
+Add preset	新增預設集
+Delete Preset	刪除預設集
+Delete preset	刪除預設集
+Unconstrained	不受限
+Unconstrained mode	不受限模式
+Straight	直線
+Straight line mode	直線模式
+Single	單一
+Single-arc mode	單弧模式
+Double	雙重
+Double-arc mode	雙弧模式
+Mapping mode	對應模式
+Keep Lines	保留線條
+Keep lines	保留線條
+Add New	新增
+Add new envelope	新增封套
+Create Envelope From	建立封套自
+Create envelope from	建立封套自
+Copy Envelope Properties	複製封套屬性
+Copy envelope properties	複製封套屬性
+Clear Envelope	清除封套
+Clear envelope	清除封套
+Drop Shadow tool	陰影工具
+Inner Shadow Tool	內陰影工具
+Inner Shadow tool	內陰影工具
+Shadow Color	陰影色彩
+Shadow color	陰影色彩
+Merge Mode	合併模式
+Merge mode	合併模式
+Opacity	不透明度
+Shadow opacity	陰影不透明度
+Feathering	羽化
+Shadow feathering	陰影羽化
+Feathering direction	羽化方向
+Edges	邊緣
+Feather edge	羽化邊緣
+Shadow offset	陰影位移
+Shadow angle	陰影角度
+Shadow stretch	陰影延展
+Fade	淡出
+Shadow fade	陰影淡出
+Copy shadow properties	複製陰影屬性
+Clear Shadow	清除陰影
+Clear shadow	清除陰影
+Gaussian Blur	高斯模糊
+Inside	內部
+Middle	中間
+Outside	外部
+Average	平均
+Linear	線性
+Squared	平方
+Inverse Squared	反平方
+Flat	平面
+Inner Shadow Width	內陰影寬度
+Inner shadow width	內陰影寬度
+VP Coordinate	消失點座標
+Vanishing point coordinate	消失點座標
+Extrusion Type	立體化類型
+Extrusion type	立體化類型
+Depth	深度
+Rotation	旋轉
+Extrude rotation	立體化旋轉
+Extrusion color	立體化色彩
+Bevels	斜角
+Extrusion bevels	立體化斜角
+Lighting	光源
+Extrusion lighting	立體化光源
+Vanishing Point Properties	消失點屬性
+Vanishing point properties	消失點屬性
+VP Object/VP Page	物件消失點/頁面消失點
+Page or object vanishing point	頁面或物件消失點
+Copy Extrude Properties	複製立體化屬性
+Copy extrusion properties	複製立體化屬性
+Clear Extrude	清除立體化
+Clear extrusion	清除立體化
+HTML Font Size List	HTML 字型大小清單
+Center of Rotation	旋轉中心
+Center of rotation	旋轉中心
+Lock guideline	鎖定導線
+Preset Guidelines	預設導線
+Preset guidelines	預設導線
+Select object attributes	選取物件屬性
+Transformations	變形
+Apply object attributes	套用物件屬性
+Select color	選取色彩
+Eyedropper 1X1	滴管 1X1
+Eyedropper 2X2	滴管 2X2
+Eyedropper 5X5	滴管 5X5
+Select from Desktop	從桌面選取
+Sample from desktop	從桌面取樣
+Selected Color	選取的色彩
+Selected color	選取的色彩
+Apply color	套用色彩
+Add To Palette	新增至調色盤
+Add to palette	新增至調色盤
+Freehand Smoothing	手繪平滑
+Freehand smoothing	手繪平滑
+Small Thumbnails	小縮圖
+Small thumbnails	小縮圖
+Medium Thumbnails	中縮圖
+Medium thumbnails	中縮圖
+Large Thumbnails	大縮圖
+Large thumbnails	大縮圖
+Start Arrowhead Selector	起始箭頭選擇器
+Start arrowhead:  %1	起始箭頭：  %1
+End Arrowhead Selector	結束箭頭選擇器
+End arrowhead:  %1	結束箭頭：  %1
+Columns and rows	欄與列
+Revolutions	圈數
+Spiral revolutions	螺旋圈數
+Symmetrical spiral	對稱式螺旋
+Logarithmic	對數
+Logarithmic spiral	對數式螺旋
+Expansion	擴展
+Spiral expansion factor	螺旋擴展係數
+This object contains information from another program.	此物件包含來自其他程式的資訊。
+Push & Pull	推拉
+Push and pull distortion	推拉變形
+Zipper	拉鍊
+Zipper distortion	拉鍊變形
+Twister	扭轉
+Twister distortion	扭轉變形
+Center distortion	變形置中
+Push and Pull Distortion Amplitude	推拉變形振幅
+Push and pull amplitude	推拉振幅
+Add New Distortion	新增變形
+Add new distortion	新增變形
+Copy Distortion Properties	複製變形屬性
+Copy distortion properties	複製變形屬性
+Clear Distortion	清除變形
+Clear distortion	清除變形
+Zipper Amplitude	拉鍊振幅
+Zipper amplitude	拉鍊振幅
+Zipper Frequency	拉鍊頻率
+Zipper frequency	拉鍊頻率
+Randomize Distortion	隨機變形
+Randomize distortion	隨機變形
+Smooth Distortion	平滑變形
+Smooth distortion	平滑變形
+Localize Distortion	局部變形
+Localize distortion	局部變形
+Clockwise Rotation	順時針旋轉
+Clockwise rotation	順時針旋轉
+Counterclockwise Rotation	逆時針旋轉
+Counterclockwise rotation	逆時針旋轉
+Complete Rotations	完整旋轉圈數
+Complete rotations	完整旋轉圈數
+Additional Degrees	額外角度
+Additional degrees	額外角度
+Shape Recognition Level	形狀辨識等級
+Shape recognition level	形狀辨識等級
+Smart Smoothing Level	智慧平滑等級
+Smart smoothing level	智慧平滑等級
+Crop position	裁剪位置
+Crop size	裁剪大小
+Angle of Rotation	旋轉角度
+Fill Source	填色來源
+Fill options	填色選項
+Fill Colour	填色色彩
+Outline Source	外框來源
+Outline options	外框選項
+Outline Colour	外框色彩
+Outline color	外框色彩
+No Transparency	無透明度
+No transparency	無透明度
+Uniform Transparency	均勻透明度
+Uniform transparency	均勻透明度
+Fountain Transparency	漸層透明度
+Fountain transparency	漸層透明度
+Vector Pattern Transparency	向量圖樣透明度
+Vector pattern transparency	向量圖樣透明度
+Bitmap Pattern Transparency	點陣圖圖樣透明度
+Bitmap pattern transparency	點陣圖圖樣透明度
+Two-color Pattern Transparency	雙色圖樣透明度
+Two-color pattern transparency	雙色圖樣透明度
+Texture Transparency	材質透明度
+Texture transparency	材質透明度
+Copy Transparency	複製透明度
+Copy transparency	複製透明度
+Transparency	透明度
+Transparency Picker	透明度挑選器
+Transparency picker	透明度挑選器
+Apply to All	套用至全部
+All	全部
+Apply to Fill	套用至填色
+Fill	填色
+Apply to Outline	套用至外框
+Outline	外框
+Freeze	凍結
+Freeze transparency	凍結透明度
+Edit Transparency	編輯透明度
+Edit transparency	編輯透明度
+Linear Fountain Transparency	線性漸層透明度
+Linear fountain transparency	線性漸層透明度
+Elliptical Fountain Transparency	橢圓形漸層透明度
+Elliptical fountain transparency	橢圓形漸層透明度
+Conical Fountain Transparency	圓錐形漸層透明度
+Conical fountain transparency	圓錐形漸層透明度
+Rectangular Fountain Transparency	矩形漸層透明度
+Rectangular fountain transparency	矩形漸層透明度
+Node Position	節點位置
+Rotate	旋轉
+Foreground Transparency	前景透明度
+Foreground transparency	前景透明度
+Invert	反轉
+Background Transparency	背景透明度
+Background transparency	背景透明度
+Mirror Horizontally	水平鏡射
+Mirror Vertically	垂直鏡射
+Effect style	效果樣式
+Select inner boundary	選取內部邊界
+Select outer boundary	選取外部邊界
+Start and end points	起點和終點
+Line width	線條寬度
+Width steps	寬度階數
+Randomize width order	隨機寬度順序
+Line spacing	線條間距
+Spacing steps	間距階數
+Randomize spacing order	隨機間距順序
+Widest point	最寬點
+Preset	預設集
+Vector Brush	向量筆刷
+Sprayer	噴灑器
+Calligraphic	書法
+Expression	表現
+Preset Stroke List	預設筆觸清單
+Preset stroke	預設筆觸
+Width	寬度
+Stroke width	筆觸寬度
+Scale Stroke With Object	隨物件縮放筆觸
+Scale stroke with object	隨物件縮放筆觸
+Category List	類別清單
+Category	類別
+Brushstroke List	筆刷筆觸清單
+Brushstroke	筆刷筆觸
+Browse	瀏覽
+Save artistic media stroke	儲存藝術筆筆觸
+Spray Pattern List	噴灑圖樣清單
+Spray pattern	噴灑圖樣
+Spraylist Settings	噴灑清單設定
+Spraylist options	噴灑清單選項
+Size of sprayed objects	噴灑物件大小
+Incremental Scaling	遞增縮放
+Incremental spraying	遞增噴灑
+Choice	選擇
+Spray order	噴灑順序
+Add to spraylist	新增至噴灑清單
+Dabs/Spacing	點數/間距
+Images per dab and image spacing	每點影像數和影像間距
+Calligraphic angle	書法角度
+Add Control Point	新增控制點
+Add control point	新增控制點
+Delete Control Point	刪除控制點
+Delete control point	刪除控制點
+Clamped Control Point	固定控制點
+Clamp control point	固定控制點
+Floating Control Point	浮動控制點
+Float control point	浮動控制點
+Steps	階數
+Blend steps	調和階數
+Spacing	間距
+Blend spacing	調和間距
+Blend objects	調和物件
+Blend direction	調和方向
+Loop	迴圈
+Loop blend	迴圈調和
+Path Properties	路徑屬性
+Path properties	路徑屬性
+Direct	直接
+Direct blend	直接調和
+Clockwise	順時針
+Clockwise blend	順時針調和
+Counterclockwise	逆時針
+Counterclockwise blend	逆時針調和
+Object and Color Acceleration	物件和色彩加速
+Object and color acceleration	物件和色彩加速
+Size acceleration	大小加速
+More blend options	更多調和選項
+Start and End Properties	起始和結束屬性
+Starting and ending objects	起始和結束物件
+Copy Blend Properties	複製調和屬性
+Copy blend properties	複製調和屬性
+Clear Blend	清除調和
+Clear blend	清除調和
+New Path	新增路徑
+Show Path	顯示路徑
+Detach from Path	從路徑分離
+Map nodes	對應節點
+Split	分割
+Fuse start	熔合起點
+Fuse end	熔合終點
+Blend along full path	沿全路徑調和
+Rotate all objects	旋轉所有物件
+New Start	新增起點
+Show Start	顯示起點
+New End	新增終點
+Show End	顯示終點
+Callout Shape	圖說文字形狀
+Callout shape	圖說文字形狀
+Callout Gap	圖說文字間隙
+Gap	間隙
+Callout End Size	圖說文字端點大小
+End size	端點大小
+Straight-Line Connector	直線連接器
+Right-Angle Connector	直角連接器
+Rounded Right-Angle Connector	圓直角連接器
+Right Angle Roundness Radius	直角圓角半徑
+Rounded right angle	圓直角
+Scale Proportionally	等比例縮放
+Outline Pen	外框筆
+Anchor Position	錨點位置
+Anchor position	錨點位置
+Anchor Relative to Object	錨點相對於物件
+Relative to object	相對於物件
+Adjust Anchor Direction	調整錨點方向
+Adjust anchor direction	調整錨點方向
+Anchor Direction	錨點方向
+Anchor direction	錨點方向
+Auto Anchor	自動錨點
+Auto anchor	自動錨點
+Delete Anchor	刪除錨點
+Delete anchor	刪除錨點
+To Center	至中心
+To center	至中心
+Inside contour	內部輪廓圖
+Outside contour	外部輪廓圖
+Contour Steps	輪廓圖階數
+Contour steps	輪廓圖階數
+Contour Offset	輪廓圖位移
+Contour offset	輪廓圖位移
+Contour Corners	輪廓圖轉角
+Contour corners	輪廓圖轉角
+Contour Colors	輪廓圖色彩
+Contour colors	輪廓圖色彩
+Last Fill Color	最後填色色彩
+Last fill color	最後填色色彩
+Copy Contour Properties	複製輪廓圖屬性
+Copy contour properties	複製輪廓圖屬性
+Clear Contour	清除輪廓圖
+Clear contour	清除輪廓圖
+Mitered corners	斜接轉角
+Round corners	圓角
+Bevel corners	斜角轉角
+Linear Contour Colors	線性輪廓圖色彩
+Linear contour colors	線性輪廓圖色彩
+Clockwise Contour Colors	順時針輪廓圖色彩
+Clockwise contour colors	順時針輪廓圖色彩
+Counterclockwise Contour Colors	逆時針輪廓圖色彩
+Counterclockwise contour colors	逆時針輪廓圖色彩
+Dynamic Dimensioning	動態尺度
+Dynamic dimensioning	動態尺度
+Dimension Style	尺度樣式
+Dimension style	尺度樣式
+Dimension Precision	尺度精確度
+Dimension precision	尺度精確度
+Dimension Units	尺度單位
+Dimension units	尺度單位
+Show Units	顯示單位
+Display units	顯示單位
+Show Leading Zero	顯示前置零
+Show leading zero	顯示前置零
+Prefix	前置字元
+Dimension prefix	尺度前置字元
+Suffix	後置字元
+Dimension suffix	尺度後置字元
+Arrowhead Selector	箭頭選擇器
+Double arrowhead:  %1	雙箭頭：  %1
+Text Position	文字位置
+Text position	文字位置
+Extension Line Options	延伸線選項
+Extension line options	延伸線選項
+Text Above Dimension Line	文字在尺度線上方
+Text Through Dimension Line	文字穿過尺度線
+Text Below Dimension Line	文字在尺度線下方
+Center Text Between Extension Lines	文字在延伸線之間置中
+Force Text Horizontal	強制文字水平
+Draw Box Around Text	在文字周圍繪製方框
+Automatic Successive Dimensioning	自動連續標註尺度
+Automatic successive dimensioning	自動連續標註尺度
+Nib Size	筆尖大小
+Nib size	筆尖大小
+Pen Pressure	筆壓
+Spike Frequency	尖刺頻率
+Frequency of spikes	尖刺頻率
+Dryout	乾化
+Use Pen Tilt	使用筆傾斜
+Use pen tilt	使用筆傾斜
+Pen Tilt	筆傾斜
+Spike Direction	尖刺方向
+Spike direction	尖刺方向
+Pen Bearing	筆方位
+Block shadow color	區塊陰影色彩
+Overprint block shadow	疊印區塊陰影
+Remove holes	移除孔洞
+Generate from object outline	從物件外框產生
+Expand block shadow	擴展區塊陰影
+Clear block shadow	清除區塊陰影
+2-Point Line	2 點直線
+2-Point Line tool	2 點直線工具
+2-Point Perpendicular Line	2 點垂直線
+Perpendicular 2-point line	2 點垂直線
+2-Point Tangent Line	2 點切線
+Tangential 2-point line	2 點切線
+Auto-Close Curve	自動封閉曲線
+Auto-close curve	自動封閉曲線
+2-Point Line mode	2 點直線模式
+Freehand mode	手繪模式
+Bézier mode	貝茲模式
+Auto-Close	自動封閉
+Auto-close on cut	切割時自動封閉
+Cut Span	切割跨距
+Cut span	切割跨距
+Common Shapes	常見形狀
+Common shapes	常見形狀
+Grid Size	格點大小
+Grid size	格點大小
+Add Intersection	新增交點
+Add intersection	新增交點
+Sample Mesh Fill Color	取樣網狀填色色彩
+Sample mesh fill color	取樣網狀填色色彩
+Mesh Fill Color	網狀填色色彩
+Mesh fill color	網狀填色色彩
+Mesh Transparency	網狀透明度
+Smooth Mesh Color	平滑網狀色彩
+Smooth mesh color	平滑網狀色彩
+Copy Mesh Fill properties from	複製網狀填色屬性自
+Copy mesh fill	複製網狀填色
+Clear Mesh	清除網狀
+Clear mesh	清除網狀
+Brush picker	筆刷挑選器
+Brush size	筆刷大小
+Brush transparency	筆刷透明度
+Glow	光暈
+Simulate pen pressure	模擬筆壓
+Density	密度
+Brush smoothing	筆刷平滑
+Tilt direction	傾斜方向
+Texture strength	材質強度
+Reset brush	重設筆刷
+Brush texture	筆刷材質
+Clear Brushstroke	清除筆刷筆觸
+Clear brushstroke	清除筆刷筆觸
+Preview	預覽
+Preview mode	預覽模式
+Auto Add-Delete	自動新增/刪除
+Automatically add or delete nodes	自動新增或刪除節點
+Free rotation	自由旋轉
+Reflect	反射
+Free angle reflection	自由角度反射
+Free scale	自由縮放
+Skew	傾斜
+Free skew	自由傾斜
+Skew angle	傾斜角度
+Apply to Duplicate	套用至再製物件
+Apply to duplicate	套用至再製物件
+Relative to Object	相對於物件
+Round Corner	圓角
+Round corner	圓角
+Scalloped Corner	扇形轉角
+Scalloped corner	扇形轉角
+Chamfered Corner	倒角
+Chamfered corner	倒角
+Corner Radius	轉角半徑
+Corner radius	轉角半徑
+Edit Corners Together	同時編輯轉角
+Edit corners together	同時編輯轉角
+Relative Corner Scaling	相對轉角縮放
+Relative corner scaling	相對轉角縮放
+Pressure	壓力
+Smooth Smear	平滑塗抹
+Smooth smear	平滑塗抹
+Pointy Smear	尖角塗抹
+Pointy smear	尖角塗抹
+Rate	速率
+Counterclockwise Twirl	逆時針漩渦
+Counterclockwise twirl	逆時針漩渦
+Clockwise Twirl	順時針漩渦
+Clockwise twirl	順時針漩渦
+Attract	吸引
+Attract tool	吸引工具
+Repel	排斥
+Repel tool	排斥工具
+Timer	計時器
+Include curves	包含曲線
+Distance from curve	與曲線的距離
+Create single curve	建立單一曲線
+Curve smoothing	曲線平滑
+Use Pen Bearing	使用筆方位
+Use pen bearing	使用筆方位
+Number of Rows and Columns in the Table	表格中的列數和欄數
+Rows and columns	列與欄
+Outline Color	外框色彩
+Border:	框線：
+Border selection	框線選取
+Table options	表格選項
+Top and Bottom	上與下
+Left and Right	左與右
+Top	上
+Bottom	下
+Table cell width and height	表格儲存格寬度和高度
+Margins	邊界
+Vertical Alignment	垂直對齊
+Vertical alignment	垂直對齊
+Top Vertical Alignment	靠上垂直對齊
+Center Vertical Alignment	置中垂直對齊
+Bottom Vertical Alignment	靠下垂直對齊
+Full Vertical Alignment	完全垂直對齊
+Full	完全
+Add Variable Node	新增可變節點
+Add Node	新增節點
+Delete Variable Node	刪除可變節點
+Remove Node	移除節點
+Sides	側邊
+Variable Width	可變寬度
+Lock Ratio	鎖定比例
+Total	總計
+Total Width	總寬度
+Scale width with Stroke	隨筆觸縮放寬度
+Scale Variable Outline with Stroke	隨筆觸縮放可變外框
+Copy Variable Outline	複製可變外框
+Clear Nodes	清除節點
+Barcode Message	條碼訊息
+Barcode message	條碼訊息
+Edit Barcode...	編輯條碼...
+Edit barcode	編輯條碼
+Validate	驗證
+Validate barcode	驗證條碼
+QR Code Margin	QR 碼邊界
+Margin	邊界
+Pixel Shape	像素形狀
+Pixel shape	像素形狀
+Pixel Fill Factor	像素填色係數
+Pixel fill factor	像素填色係數
+Weld Pixels	焊接像素
+Weld pixels	焊接像素
+Pixel RoundnessType	像素圓角類型
+Pixel roundness	像素圓角
+Validate QR code	驗證 QR 碼
+Text Tools	文字工具
+Dimension Flyout	尺度展開工具列
+Transparency tool	透明度工具
+Fill Tools	填色工具
+Interactive fill tools	互動式填色工具
+Pick	挑選
+Pick tool	挑選工具
+Freehand Pick	手繪挑選
+Freehand Pick tool	手繪挑選工具
+Free Transform	自由變形
+Free Transform tool	自由變形工具
+Shape Tool	形狀工具
+Smooth tool	平滑工具
+Smear	塗抹
+Smear tool	塗抹工具
+Twirl	漩渦
+Twirl tool	漩渦工具
+Attract and Repel	吸引與排斥
+Attract and Repel tool	吸引與排斥工具
+Smudge	沾染
+Smudge tool	沾染工具
+Roughen	粗糙
+Roughen tool	粗糙工具
+Crop	裁剪
+Crop tool	裁剪工具
+Knife	刀子
+Knife tool	刀子工具
+Virtual Segment Delete	虛擬線段刪除
+Virtual Segment Delete tool	虛擬線段刪除工具
+Eraser	橡皮擦
+Eraser tool	橡皮擦工具
+Zoom	縮放
+Zoom tool	縮放工具
+Pan	平移
+Pan tool	平移工具
+Freehand	手繪
+Freehand tool	手繪工具
+Bézier	貝茲
+Bézier tool	貝茲工具
+Pen	鋼筆
+Pen tool	鋼筆工具
+B-Spline	B 雲形線
+B-Spline tool	B 雲形線工具
+Polyline	折線
+Polyline tool	折線工具
+3-Point Curve	3 點曲線
+3-Point curve tool	3 點曲線工具
+Painterly Brush	繪畫筆刷
+Painterly Brush tool	繪畫筆刷工具
+Artistic Media tool	藝術筆工具
+LiveSketch	LiveSketch
+Smart Drawing	智慧繪圖
+Smart Drawing tool	智慧繪圖工具
+Rectangle	矩形
+Rectangle tool	矩形工具
+3-Point Rectangle	3 點矩形
+3-Point Rectangle tool	3 點矩形工具
+Ellipse tool	橢圓形工具
+3-Point Ellipse	3 點橢圓形
+3-Point Ellipse tool	3 點橢圓形工具
+Polygon	多邊形
+Polygon tool	多邊形工具
+Star tool	星形工具
+Spiral	螺旋
+Spiral tool	螺旋工具
+Common Shapes tool	常見形狀工具
+Impact tool	衝擊工具
+Graph Paper	方格紙
+Graph Paper tool	方格紙工具
+Text tool	文字工具
+Table tool	表格工具
+Parallel Dimension	平行尺度
+Parallel Dimension tool	平行尺度工具
+Horizontal or Vertical Dimension	水平或垂直尺度
+Horizontal or Vertical Dimension tool	水平或垂直尺度工具
+Angular Dimension	角度尺度
+Angular Dimension tool	角度尺度工具
+Segment Dimension	線段尺度
+Segment Dimension tool	線段尺度工具
+2-Leg Callout	2 邊圖說文字
+2-Leg Callout tool	2 邊圖說文字工具
+Connector	連接器
+Connector tool	連接器工具
+Anchor Editing	錨點編輯
+Shadow	陰影
+Shadow tool	陰影工具
+Contour tool	輪廓圖工具
+Blend tool	調和工具
+Distort tool	扭曲工具
+Envelope tool	封套工具
+Extrude tool	立體化工具
+Block Shadow	區塊陰影
+Block Shadow tool	區塊陰影工具
+Color Eyedropper	色彩滴管
+Color Eyedropper tool	色彩滴管工具
+Attributes Eyedropper	屬性滴管
+Attributes Eyedropper tool	屬性滴管工具
+Interactive Fill	互動式填色
+Interactive Fill tool	互動式填色工具
+Smart Fill	智慧填色
+Smart Fill tool	智慧填色工具
+Mesh Fill	網狀填色
+Mesh Fill tool	網狀填色工具
+No Outline	無外框
+Hairline Outline	細線外框
+Outline Width Presets	外框寬度預設集
+Outline width presets	外框寬度預設集
+Pause/Track	暫停/追蹤
+Project Timer Name and Recorded Time	專案計時器名稱和記錄時間
+Remove Frame	移除框架
+Remove frame	移除框架
+Object edges	物件邊緣
+Object centers	物件中心
+Individual objects in a group	群組中的個別物件
+Intelligent spacing	智慧間距
+Intelligent dimensioning	智慧尺度
+Alignment Guides Margins	對齊導線邊界
+Alignment guides margins	對齊導線邊界
+Horizontal margin	水平邊界
+Vertical margin	垂直邊界
+Layout Setup	版面設定
+Layout setup	版面設定
+No horizontal margin	無水平邊界
+Offset horizontally	水平外移
+Inset horizontally	水平內縮
+Offset and inset horizontally	水平外移與內縮
+No vertical margin	無垂直邊界
+Offset vertically	垂直外移
+Inset vertically	垂直內縮
+Offset and inset vertically	垂直外移與內縮
+Grid and Ruler...	格點與尺規...
+Snap to Objects...	貼齊物件...
+Active Rollover State	作用中滑鼠變換狀態
+Active rollover state	作用中滑鼠變換狀態
+Duplicate Rollover State	再製滑鼠變換狀態
+Duplicate rollover state	再製滑鼠變換狀態
+Delete Rollover State	刪除滑鼠變換狀態
+Deletes rollover state	刪除滑鼠變換狀態
+Behavior	行為
+Contains Behavior properties	包含行為屬性
+Hotspot Options	作用點選項
+Hotspot options	作用點選項
+Show Hotspots	顯示作用點
+Show hotspots	顯示作用點
+Disable Application Events	停用應用程式事件
+Disable application events	停用應用程式事件
+Parallel lines	平行線
+Parallel lines on left	左側平行線
+Parallel lines on right	右側平行線
+Number of lines	線條數目
+Distance	距離
+Set distance interactively	以互動方式設定距離
+Preview lines	預覽線條
+Create from selected	從選取的物件建立
+Commands to Append	要附加的指令
+PowerClip Inside...	PowerClip 內部...
+Frame Type	框架類型
+Internet Links	網際網路連結
+Wrap Connector Line	繞排連接器線條
+Wrap connector line	繞排連接器線條
+Update Field...	更新欄位...
+Move to Plane	移至平面
+Fit Contents	調整內容
+Select Clones	選取仿製物件
+Select Master	選取主要物件
+Revert To Master	還原為主要物件
+Open Link	開啟連結
+Apply Style	套用樣式
+Apply style	套用樣式
+Edit Style	編輯樣式
+Edit style	編輯樣式
+New Style From	新增樣式自
+New style from	新增樣式自
+New Style Set From...	新增樣式集自...
+New style set from	新增樣式集自
+Apply to Style	套用至樣式
+Apply to style	套用至樣式
+Revert to Style	還原為樣式
+Revert to style	還原為樣式
+Break Link to Style	中斷樣式連結
+Break link to style	中斷樣式連結
+New from Selected...	從選取的物件新增...
+New from selected	從選取的物件新增
+New from Document...	從文件新增...
+New from document	從文件新增
+Break Link to Color Styles	中斷色彩樣式連結
+Break link to color styles	中斷色彩樣式連結
+Move to Orthographic Plane	移至正投影平面
+Move to Top Plane	移至頂部平面
+Move to Left Plane	移至左側平面
+Move to Side Plane	移至側面平面
+Move to Right Plane	移至右側平面
+Save Bitmap As...	點陣圖另存新檔...
+Change Case	變更大小寫
+Sentence case	句首大寫
+lowercase	小寫
+UPPERCASE	大寫
+Title Case	字首大寫
+tOGGLE cASE	大小寫互換
+Reset Connector	重設連接器
+Convert to	轉換為
+Convert to Connector	轉換為連接器
+Connector Line	連接器線條
+Right Angle Connector Line	直角連接器線條
+Right Angle Round Connector Line	圓直角連接器線條
+B-Spline Connector Line	B 雲形線連接器線條
+Bézier Curve Connector Line	貝茲曲線連接器線條
+Create Object	建立物件
+Toolbox	工具箱
+Property Bar	屬性列
+Common Shape	常見形狀
+Preset Stroke	預設筆觸
+Brush Stroke	筆刷筆觸
+Calligraphic Stroke	書法筆觸
+Grid Setup...	格點設定...
+Ruler Setup...	尺規設定...
+Guidelines Setup...	導線設定...
+Left Tab	靠左定位點
+Centre Tab	置中定位點
+Right Tab	靠右定位點
+Decimal Tab	小數點定位點
+Load palette...	載入調色盤...
+Save palette...	儲存調色盤...
+Insert Page After	在之後插入頁面
+Insert Page Before	在之前插入頁面
+Delete Page	刪除頁面
+Customize	自訂
+Default	預設
+Image Only	僅影像
+Caption Only	僅標題
+Caption to Right of Image	標題在影像右側
+Properties...	屬性...
+Reset to Default	重設為預設值
+Add New Menu	新增功能表
+Add New Command...	新增指令...
+Add Separator	新增分隔線
+Small Button Size	小按鈕大小
+Medium Button Size	中按鈕大小
+Large Button Size	大按鈕大小
+Add New Flyout	新增展開工具列
+One Line	一行
+Two Lines	兩行
+Spell Checker Replacement(s)	拼字檢查取代字
+Ignore All	全部忽略
+Grammatik Suggestions(s)	Grammatik 建議
+Copy Node Properties	複製節點屬性
+Paste Node Properties	貼上節點屬性
+Menu Bar	功能表列
+Menu Bar (no document)	功能表列 (無文件)
+Property Bar: No Selection	屬性列：無選取範圍
+Property Bar: Multiple Objects	屬性列：多個物件
+Property Bar: Group	屬性列：群組
+Property Bar: Ellipse	屬性列：橢圓形
+Property Bar: Polygon	屬性列：多邊形
+Property Bar: Star	屬性列：星形
+Property Bar: Text	屬性列：文字
+Property Bar: Bitmap or OLE Object	屬性列：點陣圖或 OLE 物件
+Property Bar: OLE Object	屬性列：OLE 物件
+Property Bar: Text on Curve/Object	屬性列：曲線/物件上的文字
+Property Bar: Edit curve, polygon  envelope	屬性列：編輯曲線、多邊形與封套
+Property Bar: Kerning text	屬性列：文字字距微調
+Property Bar: Eraser Tool	屬性列：橡皮擦工具
+Property Bar: Zoom Tool	屬性列：縮放工具
+Property Bar 00b9d138	屬性列 00b9d138
+Property Bar: Interactive Uniform (Model Color) Fill	屬性列：互動式均勻 (模型色彩) 填色
+Property Bar: Interactive Uniform (Palette Color) Fill	屬性列：互動式均勻 (調色盤色彩) 填色
+Property Bar: Interactive Multi Color Fountain Fill	屬性列：互動式多色漸層填色
+Property Bar c51be972	屬性列 c51be972
+Property Bar: Interactive Pattern Fill	屬性列：互動式圖樣填色
+Property Bar 83ecaa5f	屬性列 83ecaa5f
+Property Bar: Interactive Hatch Fill	屬性列：互動式網紋填色
+Property Bar: Interactive Texture Fill	屬性列：互動式材質填色
+Property Bar: Interactive PostScript Fill	屬性列：互動式 PostScript 填色
+Property Bar: Interactive Envelope Tool	屬性列：互動式封套工具
+Property Bar: Interactive Drop Shadow	屬性列：互動式陰影
+Property Bar: Interactive Inner Shadow	屬性列：互動式內陰影
+Property Bar: Interactive Extrude	屬性列：互動式立體化
+Property Bar: HTML Text	屬性列：HTML 文字
+Property Bar: Guideline	屬性列：導線
+Property Bar: Eyedropper and Paintbucket Tool	屬性列：滴管與顏料桶工具
+Property Bar: Mesh Fill	屬性列：網狀填色
+Property Bar: Page Sorter	屬性列：頁面排序器
+Property Bar: Symbol	屬性列：符號
+Property Bar: Curve	屬性列：曲線
+Property Bar: Graph Paper Tool	屬性列：方格紙工具
+Property Bar: Spiral Tool	屬性列：螺旋工具
+Property Bar: Unknown Object	屬性列：未知物件
+Property Bar: Interactive Distortion - Push and Pull Effect	屬性列：互動式扭曲 - 推拉效果
+Property Bar: Interactive Distortion - Zipper Effect	屬性列：互動式扭曲 - 拉鍊效果
+Property Bar: Interactive Distortion - Twister Effect	屬性列：互動式扭曲 - 扭轉效果
+Property Bar: Virtual Segment Delete	屬性列：虛擬線段刪除
+Property Bar: 3 Point Ellipse Tool	屬性列：3 點橢圓形工具
+Property Bar: Smart Drawing Tool	屬性列：智慧繪圖工具
+Property Bar: Crop	屬性列：裁剪
+Property Bar: Smart Fill	屬性列：智慧填色
+Property Bar 1b9d2d53	屬性列 1b9d2d53
+Property Bar: Interactive Uniform Transparency	屬性列：互動式均勻透明度
+Property Bar: Interactive Fountain Transparency	屬性列：互動式漸層透明度
+Property Bar d1181dde	屬性列 d1181dde
+Property Bar 97d4c5d7	屬性列 97d4c5d7
+Property Bar: Interactive Pattern Transparency	屬性列：互動式圖樣透明度
+Property Bar: Interactive Texture Transparency	屬性列：互動式材質透明度
+Property Bar c783bf62	屬性列 c783bf62
+Property Bar: Artistic Media Preset	屬性列：藝術筆預設集
+Property Bar: Artistic Media Brush	屬性列：藝術筆筆刷
+Property Bar: Artistic Media Object Spray	屬性列：藝術筆物件噴灑
+Property Bar: Artistic Media Calligraphic	屬性列：藝術筆書法
+Property Bar: Artistic Media Pressure Sensitive Pen	屬性列：藝術筆壓力感應筆
+Property Bar be98f634	屬性列 be98f634
+Property Bar: Interactive Blend Tool	屬性列：互動式調和工具
+Property Bar 820aed33	屬性列 820aed33
+Property Bar f98aee2b	屬性列 f98aee2b
+Property Bar 05586960	屬性列 05586960
+Property Bar a5e996d2	屬性列 a5e996d2
+Property Bar 70618151	屬性列 70618151
+Property Bar 211583c4	屬性列 211583c4
+{} Toolbar	{} 工具列
+Property Bar 0c3dc487	屬性列 0c3dc487
+Property Bar 290f6196	屬性列 290f6196
+Property Bar: Interactive Contour Tool	屬性列：互動式輪廓圖工具
+Property Bar 47015b40	屬性列 47015b40
+Property Bar b1ae77c4	屬性列 b1ae77c4
+Property Bar: Roughen tool	屬性列：粗糙工具
+Property Bar: Block Shadow	屬性列：區塊陰影
+Property Bar 4d6bd188	屬性列 4d6bd188
+Property Bar: Polyline Tool	屬性列：折線工具
+Property Bar: 3 Point Curve Tool	屬性列：3 點曲線工具
+Property Bar: Knife	屬性列：刀子
+Property Bar: Common Shapes	屬性列：常見形狀
+Property Bar: Interactive Mesh Fill Tool	屬性列：互動式網狀填色工具
+Property Bar f49ca8d5	屬性列 f49ca8d5
+Property Bar: Pen Tool	屬性列：鋼筆工具
+Property Bar: Free Transform Tool	屬性列：自由變形工具
+Property Bar: Rectangle	屬性列：矩形
+Property Bar: 3 Point Rectangle Tool	屬性列：3 點矩形工具
+Property Bar: Smear	屬性列：塗抹
+Property Bar: Twirl	屬性列：漩渦
+Property Bar: Attract and Repel	屬性列：吸引與排斥
+Property Bar: Smooth	屬性列：平滑
+Property Bar: LiveSketch	屬性列：LiveSketch
+Property Bar: Smudge tool	屬性列：沾染工具
+Property Bar 390243ba	屬性列 390243ba
+Border Selector	框線選擇器
+Property Bar bde2df13	屬性列 bde2df13
+Property Bar a8b43e0c	屬性列 a8b43e0c
+Property Bar: Variable Outline	屬性列：可變外框
+Property Bar: Barcode	屬性列：條碼
+Property Bar: QR Code	屬性列：QR 碼
+Standard	標準
+Pick Tools	挑選工具
+Edit Shape Tools	編輯形狀工具
+Crop Tools	裁剪工具
+Zoom Tools	縮放工具
+Curve Tools	曲線工具
+Drawing Tools	繪圖工具
+Rectangle Tools	矩形工具
+Ellipse Tools	橢圓形工具
+Shape Tools	形狀工具
+Connector Tools	連接器工具
+Effect Tools	效果工具
+Eyedropper flyout	滴管展開工具列
+Project Timer	專案計時器
+Internet	網際網路
+Macros	巨集
+Parallel Lines	平行線
+Graphic Object Selection	圖形物件選取
+Symmetry Commands to Append	要附加的對稱指令
+Artistic Text Selected	已選取美工文字
+Paragraph Text Selected	已選取段落文字
+Bitmap Object Selection	點陣圖物件選取
+Group Object Selection	群組物件選取
+Multiple Object Selection	多個物件選取
+Symbol Instance Context Menu	符號實例快顯功能表
+Locked Object Selection	鎖定物件選取
+Artistic Text Editing	美工文字編輯
+Paragraph Text Editing	段落文字編輯
+Text Character Selection	文字字元選取
+Node Editing of Curves	曲線節點編輯
+Node Editing of Text	文字節點編輯
+Table Edit	表格編輯
+Table Edit 2	表格編輯 2
+Table Edit 3	表格編輯 3
+Connector Edit	連接器編輯
+Connector Edit 2	連接器編輯 2
+Document Desktop	文件桌面
+Ruler Menu	尺規功能表
+Ruler Menu In Text Mode	文字模式下的尺規功能表
+Palette Menu	調色盤功能表
+Page Tab	頁面標籤
+Command Bar Context Menu	指令列快顯功能表
+Customize Item Menu	自訂項目功能表
+Customize Flyout Menu	自訂展開功能表
+Effect Selection	效果選取
+Blend Control Editing	調和控制項編輯
+Spelling Errors	拼字錯誤
+Grammar/Double Word Errors	文法/重複字錯誤
+Variable Outline Node Editing	可變外框節點編輯
+About {}	關於 {}
+Version {} - {} Release	版本 {} - {} 版
+(C) 2026 AnyVector Team.  All rights reserved.	(C) 2026 AnyVector Team.  版權所有。
+Source ID:	來源 ID：
+System Info...	系統資訊...
+Legal Notices...	法律聲明...
+System Info	系統資訊
+Choose a category:	選擇類別：
+Save System Info	儲存系統資訊
+Text (*.txt)	文字 (*.txt)
+Could not save {}:\n{}	無法儲存 {}：\n{}
+Legal Notices	法律聲明
+Flat illustration	平面插圖
+Logo / icon	標誌 / 圖示
+Isometric	等角
+Geometric pattern	幾何圖樣
+Cartoon	卡通
+Infographic	資訊圖表
+Silhouette	剪影
+Tools ▸ Options ▸ Global ▸ Privacy ▸ AI Generate	工具 ▸ 選項 ▸ 全域 ▸ 隱私權 ▸ AI 產生
+Environment	環境
+Type the name of the environment variable first.	請先輸入環境變數的名稱。
+Could not save the environment variable (error {}).	無法儲存環境變數 (錯誤 {})。
+AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your Windows account, never in its own files.	AI 產生需要 API 金鑰。請在 {} 中新增您的金鑰：AnyVector 會將其保存在您 Windows 帳戶的 {} 環境變數中，絕不存放在自己的檔案裡。
+Generating...	正在產生...
+Could not reach the AI service: {}	無法連線至 AI 服務：{}
+Invalid response from the AI service: {}	AI 服務的回應無效：{}
+unknown error	不明錯誤
+AI service error ({}): {}	AI 服務錯誤 ({})：{}
+The request was declined.	要求遭到拒絕。
+The AI declined this prompt. {}	AI 拒絕了此提示。{}
+The drawing was too complex and got cut off. Try a simpler prompt.	繪圖過於複雜而遭到截斷。請嘗試較簡單的提示。
+The AI did not return a drawing. Try rephrasing the prompt.	AI 未傳回繪圖。請嘗試改寫提示。
+Generating... {}s	正在產生... {} 秒
+AI: {}	AI：{}
+Could not render the generated image.	無法轉譯產生的影像。
+Done	完成
+The generated drawing was empty.	產生的繪圖是空的。
+Could not read the generated drawing: {}	無法讀取產生的繪圖：{}
+Quick AI Generate	AI 快速產生
+Generative AI Terms	生成式 AI 條款
+To use the AI features of AnyVector, you must be at least 18 years old and accept the Generative AI Policy. If you are under 18 or do not accept it, do not use these features.	若要使用 AnyVector 的 AI 功能，您必須年滿 18 歲並接受生成式 AI 政策。如果您未滿 18 歲或不接受此政策，請勿使用這些功能。
+The AI features send your description, and any artwork you choose as a reference, to a third-party AI model (Claude, by Anthropic) to generate the result.	AI 功能會將您的描述，以及您選作參考的任何美工圖案，傳送至第三方 AI 模型 (Anthropic 的 Claude) 以產生結果。
+Generative AI Policy...	生成式 AI 政策...
+By clicking 'I agree', you accept the Generative AI Policy and confirm that you are at least 18 years old.	按一下「我同意」，即表示您接受生成式 AI 政策，並確認您已年滿 18 歲。
+I do not agree	我不同意
+I agree	我同意
+Source image	來源影像
+Reference image	參考影像
+{}: the selection ({} objects)	{}：選取範圍 ({} 個物件)
+Clear reference content	清除參考內容
+Select the artwork to remix, then choose Object ▸ AI Generate ▸ Remix Selection.	請選取要重新混合的美工圖案，然後選擇 物件 ▸ AI 產生 ▸ 重新混合選取範圍。
+Describe what you want to create:	描述您要建立的內容：
+e.g. a hot-air balloon over rolling hills	例如：起伏山丘上的熱氣球
+Style:	樣式：
+Colors:	色彩：
+✦ Generate	✦ 產生
+Open AI Settings...	開啟 AI 設定...
+Privacy	隱私權
+Recent prompts	最近的提示
+Results are editable vector objects. Powered by Claude ({}).	結果為可編輯的向量物件。由 Claude ({}) 提供技術支援。
+Property bar	屬性列
+Project timer	專案計時器
+Scanner selected.	已選取掃描器。
+Black and White (1-bit)	黑白 (1 位元)
+Duotone (8-bit)	雙色調 (8 位元)
+Paletted (8-bit)	調色盤 (8 位元)
+Line Art	線條美工
+Ordered	有序
+Halftone	半色調
+Cardinality-Distribution	基數分佈
+Square	正方形
+Round	圓形
+Line	線條
+Cross	十字
+Fixed 4x4	固定 4x4
+Fixed 8x8	固定 8x8
+Document Palette	文件調色盤
+Color Styles Palette	色彩樣式調色盤
+Adaptive	調適性
+Optimized	最佳化
+Grayscale	灰階
+System	系統
+Uniform Colors	均勻色彩
+Standard VGA	標準 VGA
+More Palettes...	更多調色盤...
+Radius	半徑
+Temperature	色溫
+Tint	色調
+Vibrance	自然飽和度
+Saturation	飽和度
+Brightness	亮度
+Contrast	對比
+Highlights	亮部
+Shadows	陰影
+Midtones	中間調
+debug build	偵錯版本
+release build	正式版本
+Could not open the browser. Please send it at {}	無法開啟瀏覽器。請至 {} 傳送
+Submit Ideas and Feedback	提交想法與意見回饋
+Thank you! Your idea was sent.	謝謝！您的想法已送出。
+Thank you! Your bug report was sent.	謝謝！您的錯誤報告已送出。
+Almost done: finish in your browser	即將完成：請在瀏覽器中完成
+Your idea could not be sent	無法傳送您的想法
+The report could not be sent	無法傳送報告
+The issue was created on the AnyVector project on GitHub:	已在 GitHub 上的 AnyVector 專案中建立此問題：
+GitHub opened in your browser with your idea already filled in.	已在瀏覽器中開啟 GitHub，並已填入您的想法。
+GitHub opened in your browser with the report already filled in.	已在瀏覽器中開啟 GitHub，並已填入報告內容。
+Sign in if asked, review it and click "Create" to send it.	如有要求請登入，檢查內容後按一下 "Create" 送出。
+Back	返回
+Tell us your idea or what you think of AnyVector. It is sent to the AnyVector project on GitHub as a new idea. You don't need a GitHub account.	告訴我們您的想法或對 AnyVector 的看法。內容會以新想法的形式傳送至 GitHub 上的 AnyVector 專案。您不需要 GitHub 帳戶。
+Title (your idea in a few words):	標題 (用幾個字描述您的想法)：
+e.g. Snap to the center of the page	例如：貼齊頁面中心
+Describe your idea or feedback:	描述您的想法或意見回饋：
+How would it help you? (optional)	這對您有什麼幫助？(選用)
+Describe the problem. It is sent to the AnyVector project on GitHub as a new issue. You don't need a GitHub account.	描述問題。內容會以新問題的形式傳送至 GitHub 上的 AnyVector 專案。您不需要 GitHub 帳戶。
+Title (a short summary):	標題 (簡短摘要)：
+e.g. Toolbar overlaps the menu bar	例如：工具列與功能表列重疊
+What happened?	發生了什麼事？
+Steps to reproduce (optional):	重現步驟 (選用)：
+What did you expect to happen? (optional)	您原本預期會發生什麼？(選用)
+Include system information	包含系統資訊
+View submitted ideas	檢視已提交的想法
+View reported bugs	檢視已回報的錯誤
+Cancel	取消
+Sending...	正在傳送...
+Send	傳送
+✓  Finish	✓  完成
+Navigator	導覽器
+Move Ruler Origin	移動尺規原點
+Reset Ruler Origin	重設尺規原點
+First Page	第一頁
+Previous Page	上一頁
+{} of {}	{} / {}
+Go To Page	移至頁面
+Next Page	下一頁
+Last Page	最後一頁
+Add Page	新增頁面
+Insert Page	插入頁面
+Maximize	最大化
+{} is not available in this version yet.	此版本尚未提供 {}。
+Select objects to change their outline color.	請選取物件以變更其外框色彩。
+Default fill set for new objects.	已設定新物件的預設填色。
+New Symbol	新增符號
+Symbol {}	符號 {}
+No document	無文件
+The page no longer exists.	該頁面已不存在。
+The object no longer exists.	該物件已不存在。
+Nothing to export	沒有可匯出的內容
+No scanner or camera was found. Connect a WIA device and try again.	找不到掃描器或相機。請連接 WIA 裝置後再試一次。
+The image could not be acquired:\n{}	無法擷取影像：\n{}
+All File Formats	所有檔案格式
+Open Drawing	開啟繪圖
+Could not open {}:\n{}	無法開啟 {}：\n{}
+Imported {} (large bitmap: editing may be slower)	已匯入 {} (大型點陣圖：編輯速度可能較慢)
+Imported {}	已匯入 {}
+Could not import {}:\n{}	無法匯入 {}：\n{}
+Save Drawing	儲存繪圖
+Saved {}	已儲存 {}
+Pasted image	已貼上的影像
+The selection has no bitmap effects to flatten.	選取範圍沒有可平面化的點陣圖效果。
+Bitmap	點陣圖
+Traced bitmap	已描圖的點陣圖
+Bitmap traced	點陣圖已描圖
+Edit Table	編輯表格
+Add Colors	新增色彩
+Saved a copy to {}: {}	已將複本儲存至 {}：{}
+Could not save: {}	無法儲存：{}
+Choose your cloud sync folder (OneDrive, Dropbox...)	選擇您的雲端同步資料夾 (OneDrive、Dropbox...)
+The file {} no longer exists.	檔案 {} 已不存在。
+the cloud folder	雲端資料夾
+Templates	範本
+CDRT/CDT - CorelDRAW Template (*.cdrt;*.cdt)	CDRT/CDT - CorelDRAW 範本 (*.cdrt;*.cdt)
+Template saved	已儲存範本
+Save As Template	另存為範本
+TWAIN sources are not supported. Choose Select WIA Source: scanners and cameras that come with a WIA driver are acquired through Windows Image Acquisition.	不支援 TWAIN 來源。請選擇「選取 WIA 來源」：附有 WIA 驅動程式的掃描器和相機會透過 Windows 影像擷取來取得影像。
+No TWAIN data source manager is installed. Choose Select WIA Source to use a scanner or camera through Windows Image Acquisition.	未安裝 TWAIN 資料來源管理員。請選擇「選取 WIA 來源」，透過 Windows 影像擷取使用掃描器或相機。
+Select TWAIN Source	選取 TWAIN 來源
+Waiting for the scanner...	正在等候掃描器...
+Send To Mail	傳送至郵件
+Could not save the drawing: {}	無法儲存繪圖：{}
+No mail program accepted the attachment; the drawing is ready to attach to your message.	沒有郵件程式接受附件；繪圖已準備好，可附加至您的郵件。
+the Desktop	桌面
+Documents	文件
+Select at least one record in the print merge data.	請在合併列印資料中至少選取一筆記錄。
+Click the object to copy the effect from.	按一下要從中複製效果的物件。
+Click the object to place the selection in front of.	按一下要將選取範圍置於其前面的物件。
+Click the object to place the selection behind.	按一下要將選取範圍置於其後面的物件。
+Click the PowerClip to copy the contents from.	按一下要從中複製內容的 PowerClip。
+{} guidelines on this page (edit them in the Guidelines docker).	此頁面上有 {} 條導線 (請在導線泊塢視窗中編輯)。
+Command Bars	指令列
+Commands	指令
+A document must have at least one page.	文件必須至少有一個頁面。
+Page Orientation	頁面方向
+Page Size	頁面大小
+Background	背景
+Lock Object	鎖定物件
+Unlock Object	解除鎖定物件
+Unlock All Objects	解除鎖定所有物件
+Hide Object	隱藏物件
+Show All Objects	顯示所有物件
+Center Contents	內容置中
+Fit Contents Proportionally	內容等比例調整
+Fill Frame Proportionally	等比例填滿框架
+Stretch Contents to Fill Frame	延展內容以填滿框架
+Click the frame to place the selection inside.	按一下要將選取範圍置入其中的框架。
+Mirror	鏡射
+Break Blend Group Apart	打散調和群組
+Add Perspective	新增透視
+Clear Perspective	清除透視
+Select an object to apply the effect to.	請選取要套用效果的物件。
+Hyphenation	連字
+Make Text Web Compatible	使文字與網頁相容
+Click the path to fit the text to.	按一下要使文字適合的路徑。
+Convert Text	轉換文字
+Settings saved as default	已將設定儲存為預設值
+Color Management	色彩管理
+AnyVector works in sRGB. CMYK values shown in the color dockers are converted with a standard (uncalibrated) formula; use Color Proofing to preview print output.	AnyVector 以 sRGB 運作。色彩泊塢視窗中顯示的 CMYK 值是以標準 (未校準) 公式轉換；請使用色彩校樣來預覽列印輸出。
+Run Script	執行指令碼
+AnyVector script	AnyVector 指令碼
+Error: {}	錯誤：{}
+Recording... (Tools > Scripts > Stop Recording to finish)	正在錄製... (按 工具 > 指令碼 > 停止錄製 以完成)
+Recording temporary script...	正在錄製暫存指令碼...
+Temporary script recorded (Ctrl+Shift+P to run)	已錄製暫存指令碼 (按 Ctrl+Shift+P 執行)
+Recording cancelled	已取消錄製
+No temporary script recorded.	未錄製暫存指令碼。
+AnyVector Help	AnyVector 說明
+Account	帳戶
+AnyVector does not require an account. All your work stays on this computer.	AnyVector 不需要帳戶。您的所有作品都會保留在這部電腦上。
+AnyVector Community	AnyVector 社群
+Share ideas and report problems with Help > Submit Ideas and Feedback and Help > Report a Bug.	請透過 說明 > 提交想法與意見回饋 和 說明 > 回報錯誤 分享想法和回報問題。
+Gridlines	格線
+Never	永不
+3D Rotate	3D 旋轉
+Vertical:	垂直：
+Horizontal:	水平：
+Best fit	最適大小
+Cylinder	圓柱
+Cylinder Modes	圓柱模式
+Horizontal	水平
+Vertical	垂直
+Percentage	百分比
+Emboss	浮雕
+Level	等級
+Emboss color	浮雕色彩
+Original color	原始色彩
+Gray	灰色
+Black	黑色
+Other	其他
+Page Curl	頁面捲曲
+Top left	左上
+Top right	右上
+Bottom left	左下
+Bottom right	右下
+Opaque	不透明
+Transparent	透明
+Curl Color	捲曲色彩
+Background Color	背景色彩
+Height	高度
+Pinch/Punch	內縮/外擴
+Sphere	球體
+Optimize	最佳化
+Speed	速度
+Quality	品質
+Zigzag	鋸齒
+Zig Zag	鋸齒
+Type	類型
+Pond Ripples	池塘漣漪
+Out from center	從中心向外
+Around center	繞著中心
+Waves	波浪
+Strength	強度
+Damping	阻尼
+Equalize	等化
+Levels	色階
+Channel	色版
+Red	紅
+Green	綠
+Blue	藍
+Preserve Color	保留色彩
+Model	模型
+Uniform	均勻
+Hyperbolic	雙曲線
+Sample & Target	取樣/目標平衡
+Adjust all channels	調整所有色版
+Sample	取樣
+Target	目標
+Tone Curve	色調曲線
+Light	光線
+Intensity	強度
+Color Balance	色彩平衡
+Master	主要
+3-Way Color	三向色彩
+Luminance	明度
+Preserve luminance	保留明度
+Cyan - Red	青 - 紅
+Magenta - Green	洋紅 - 綠
+Yellow - Blue	黃 - 藍
+Gamma	Gamma 值
+White Balance	白平衡
+Hue/Saturation/Lightness	色相/飽和度/亮度
+Yellow	黃
+Cyan	青
+Magenta	洋紅
+Hue	色相
+Lightness	亮度
+Black & White	黑白
+Reds	紅色
+Yellows	黃色
+Greens	綠色
+Cyans	青色
+Blues	藍色
+Magentas	洋紅色
+Split tone	分割色調
+Selective Color	可選色彩
+Spectrum	光譜
+Adjustment Percentage	調整百分比
+Relative	相對
+Absolute	絕對
+Replace Colors	取代色彩
+Original	原始
+Single color	單一色彩
+Smoothness	平滑度
+Channel Mixer	色版混合器
+Preview output channel only	僅預覽輸出色版
+Charcoal	炭筆
+Edge	邊緣
+Conté Crayon	孔特蠟筆
+Conté Colors	孔特色彩
+White	白色
+Sanguine	紅褐色
+Bistre	深褐色
+Sepia	懷舊棕
+Paper Color	紙張色彩
+Crayon	蠟筆
+Cubist	立體派
+Dabble	輕塗
+Style	樣式
+Randomize	隨機化
+Impressionist	印象派
+Strokes	筆觸
+Dabs	點觸
+Detail	細節
+Stroke	筆觸
+Coloration	著色
+Palette Knife	調色刀
+Blade Size	刀刃大小
+Softness	柔軟度
+Soft Edge	柔邊
+Pastels	粉彩筆
+Pastel Type	粉彩類型
+Soft	柔和
+Oil	油性
+Stroke Size	筆觸大小
+Hue Variation	色相變化
+Pen & Ink	鋼筆與墨水
+Crosshatch	交叉網紋
+Stippling	點畫
+Ink pools	墨水池
+Pointillist	點畫派
+Scraperboard	刮畫
+Scrape to	刮除至
+Sketch Pad	素描本
+Pencil Type	鉛筆類型
+Graphite	石墨
+Lead	鉛
+Watercolor	水彩
+Granulation	顆粒
+Water amount	水量
+Water Marker	水彩筆
+Variation	變化
+Random	隨機
+Color variation	色彩變化
+Wave Paper	波紋紙
+Brush color mode	筆刷色彩模式
+Black and White	黑白
+Brush pressure	筆刷壓力
+Tune Blur	微調模糊
+Gaussian	高斯
+Directional Smooth	方向性平滑
+Soften	柔化
+Step	階數
+Feather	羽化
+Curved	彎曲
+Jaggy Despeckle	鋸齒去斑
+Symmetric	對稱
+Low Pass	低通
+Motion Blur	動態模糊
+Sampling	取樣
+Off-image sampling	影像外取樣
+Ignore pixels outside image	忽略影像外的像素
+Use paper color	使用紙張色彩
+Sample nearest edge pixel	取樣最接近的邊緣像素
+Radial Blur	放射狀模糊
+Amount	量
+Smart Blur	智慧模糊
+Colorize	著色
+Diffuse	擴散
+Photo Filter	相片濾鏡
+Preserve Luminosity	保留明度
+Lens Flare	鏡頭光暈
+Aspect Ratio	外觀比例
+Flares	光暈
+General	一般
+Halo	光環
+Reflections	反射
+Falloff	衰減
+Rays	光線
+Streaks	條紋
+Anamorphic	變形鏡頭
+Count	數量
+Lighting Effects	光源效果
+Light Source	光源
+Enable light source	啟用光源
+Spotlight	聚光燈
+Directional	方向光
+Cone size	錐形大小
+Atmosphere	氛圍
+Enable atmosphere	啟用氛圍
+Exposure	曝光
+Image Texture	影像材質
+Relief	浮雕
+Sepia Toning	懷舊色調
+Amount to age	老化程度
+Spot Filter	點濾鏡
+Sharpen radius	銳利化半徑
+Light falloff	光線衰減
+Last Used	上次使用
+Time Machine	時光機
+Daguerreotype	銀版攝影
+Albumen	蛋白印相
+Cyanotype	藍曬
+Platinum	白金
+Early Color	早期彩色
+Box Camera	箱型相機
+Cross Process	交叉沖洗
+Photo edges	相片邊緣
+Bit Planes	位元平面
+Apply to all planes	套用至所有平面
+Max dot radius	最大網點半徑
+Psychedelic	迷幻
+Solarize	曝光過度
+Edge Detect	邊緣偵測
+Background color	背景色彩
+Sensitivity	敏感度
+Find Edges	尋找邊緣
+Edge Type	邊緣類型
+Solid	實心
+Trace Contour	描繪輪廓
+Lower	下限
+Upper	上限
+Local Equalization	局部等化
+Dust and Scratch	灰塵與刮痕
+Threshold	臨界值
+Tune Sharpen	微調銳利化
+Unsharp Mask	遮色片銳利化
+Adaptive Unsharp	調適性銳利化
+Directional Sharpen	方向性銳利化
+Art Style	藝術風格
+Smooth Acrylic	平滑壓克力
+Pastel Mosaic	粉彩馬賽克
+Neon	霓虹
+Woodcut	木刻
+Lava Lamp	熔岩燈
+Low	低
+High	高
+Crystallize	結晶化
+Fabric	織物
+Needlepoint	針織
+Rug Hooking	地毯勾織
+Quilt	拼布
+Strings	線繩
+Ribbons	緞帶
+Tissue Collage	薄紙拼貼
+Complete	完成
+Frame	框架
+Blur/Feather	模糊/羽化
+Glass Block	玻璃磚
+Block width	區塊寬度
+Block height	區塊高度
+Mosaic	馬賽克
+Vignette	暈映
+Scatter	分散
+Smoked Glass	煙燻玻璃
+Blurring	模糊
+Stained Glass	彩繪玻璃
+Light Intensity	光線強度
+Thickness	粗細
+Solder Width	焊接寬度
+Solder Color	焊接色彩
+3D Lighting	3D 光源
+Circle	圓形
+Vortex	漩渦
+Brushed	刷紋
+Layered	分層
+Thick	粗
+Thin	細
+Inner Direction	內部方向
+Outer Direction	外部方向
+Band Pass	帶通
+Frequency	頻率
+Bandwidth	頻寬
+Bump Map	凹凸貼圖
+Scaling	縮放比例
+Stretch To Fit	延展至適合大小
+Tile	並排
+Tile Width	拼貼寬度
+Tile Height	拼貼高度
+Invert Bump Map	反轉凹凸貼圖
+Smooth Bump Map	平滑凹凸貼圖
+Surface	表面
+Scale Factor	縮放係數
+Floor	下限
+Ceiling	上限
+Highlight	亮部
+Directional light color	方向光色彩
+Declination	偏角
+Auto Compute Brightness	自動計算亮度
+Ambient light color	環境光色彩
+User Defined	使用者定義
+Divisor	除數
+Auto compute divisor	自動計算除數
+Preserve colors	保留色彩
+Symmetric kernel	對稱核心
+Blocks	區塊
+Max. offset	最大位移
+Undefined Areas	未定義區域
+Original Image	原始影像
+Inverse Image	反轉影像
+Displace	置換
+Scale Mode	縮放模式
+Stretch to fit	延展至適合大小
+Repeat Edges	重複邊緣
+Wrap Around	環繞
+Mesh Warp	網格彎曲
+Shift value as % of dimensions	位移值為尺寸的 %
+Other Color	其他色彩
+Pixelate	像素化
+Pixelate mode	像素化模式
+Rectangular	矩形
+Radial	放射狀
+Ripple	漣漪
+Primary Wave	主要波
+Period	週期
+Amplitude	振幅
+Perpendicular Wave	垂直波
+Distort ripple	扭曲漣漪
+Shear	切變
+Curve	曲線
+Orientation	方向
+Edges style	邊緣樣式
+Swirl	旋轉
+Counter-Clockwise	逆時針
+Whole Rotations	完整旋轉圈數
+Degree	度
+Horizontal tiles	水平拼貼
+Vertical tiles	垂直拼貼
+Overlap	重疊
+Wet Paint	濕畫
+Wetness	濕度
+Percent	百分比
+Whirlpool	渦流
+Warp	彎曲
+Smear Length	塗抹長度
+Twist	扭轉
+Streak Detail	條紋細節
+Wind	風
+Tune Noise	微調雜點
+More Spike	更多尖峰
+More Gaussian	更多高斯
+More Uniform	更多均勻
+Minimum	最小值
+Median	中間值
+Maximum	最大值
+Remove Noise	移除雜點
+Add Noise	增加雜點
+Noise type	雜點類型
+Spike	尖峰
+Color mode	色彩模式
+3-D Stereo Noise	3D 立體雜點
+Show dots	顯示點
+Remove Moiré	移除波紋
+Output	輸出
+Auto	自動
+High Pass	高通
+Edge level	邊緣等級
+Preserve Colors	保留色彩
+Brick Wall	磚牆
+Roughness	粗糙度
+Brick Width	磚塊寬度
+Brick Height	磚塊高度
+Maintain Aspect Ratio	維持外觀比例
+Grout Width	灰泥寬度
+Light Direction	光線方向
+Bubbles	泡泡
+Diameter	直徑
+Coverage	覆蓋率
+Refraction	折射
+Canvas	畫布
+X Offset	X 位移
+Y Offset	Y 位移
+Tile Offset	拼貼位移
+Rows	列
+Cobblestone	鵝卵石
+Grout width	灰泥寬度
+Light direction	光線方向
+Elephant Skin	象皮
+Age	年代
+Etching	蝕刻
+Surface Color	表面色彩
+Plastic	塑膠
+Light Color	光線色彩
+Plaster Wall	灰泥牆
+Relief Sculpture	浮雕雕刻
+Screen Door	紗門
+Mesh Density	網格密度
+Stone	石頭
+Underpainting	底層畫
+Scan Lines	掃描線
+Even Lines	偶數線
+Odd Lines	奇數線
+Replacement	取代
+Replacement Method	取代方法
+Duplication	複製
+Interpolation	內插
+Posterize	色調分離
+Low-level	低階
+Mid	中階
+High-level	高階
+RGB Channels	RGB 色版
+Red Channel	紅色色版
+Green Channel	綠色色版
+Blue Channel	藍色色版
+To Black	至黑色
+To White	至白色
+Bi-Level	雙階
+Histogram Display Clipping	長條圖顯示裁切
+The help page could not be opened: {}	無法開啟說明頁面：{}
+Quick Start Guide	快速入門指南
+User Guide	使用者指南
+Keyboard Shortcuts	鍵盤快速鍵
+What's New in This Version	此版本的新增功能
+Language	語言
+Fonts	字型
+Send To {}	傳送到 {}
+&Lite	精簡(&L)
+&Default	預設(&D)
+&Touch	觸控(&T)
+&Specialty	特殊(&S)
+&Illustration	插圖(&I)
+&Page Layout	頁面版面(&P)
+Default Palette	預設調色盤
+blank icon	空白圖示
+Toolbar Item	工具列項目
+Web	Web
+No Color	無色彩
+Set Fill	設定填色
+Set Outline	設定外框
+Large swatches	大色樣
+Wide borders	寬框線
+Show "No Color" well	顯示「無色彩」色井
+Add Color to Document Palette	將色彩新增至文件調色盤
+Drag colors (or objects) here to store these colors with your document	將色彩 (或物件) 拖曳至此處，以將這些色彩與文件一起儲存
+Add Colors from Selection	從選取範圍新增色彩
+Add Colors from Document	從文件新增色彩
+Automatically update	自動更新
+Clear Document Palette	清除文件調色盤
+Match orientation	符合方向
+Even & Odd	偶數頁與奇數頁
+Even	偶數頁
+Odd	奇數頁
+Single file	單一檔案
+Pages to separate files	頁面分別存成檔案
+Ignore	忽略
+Simulate	模擬
+Top center	中上
+Middle left	左中
+Middle right	右中
+Bottom center	中下
+Print Styles	列印樣式
+Page {}	第 {} 頁
+{}   {}   Page {}	{}   {}   第 {} 頁
+There is nothing to print.	沒有可列印的內容。
+The pages being printed have no printable objects.	要列印的頁面上沒有可列印的物件。
+{} object(s) lie completely outside the page.	有 {} 個物件完全位於頁面外。
+Objects outside the page do not print. Move them onto the page or remove them.	頁面外的物件不會列印。請將它們移至頁面上或移除。
+{} bitmap(s) have a resolution lower than 150 dpi.	有 {} 個點陣圖的解析度低於 150 dpi。
+Low-resolution bitmaps print blurred or pixelated. Use higher-resolution images or print them smaller.	低解析度點陣圖列印時會模糊或出現像素化。請使用較高解析度的影像，或以較小尺寸列印。
+{} empty text object(s).	有 {} 個空白文字物件。
+Empty text objects print nothing and can be deleted.	空白文字物件不會列印任何內容，可以刪除。
+{} object(s) have outlines thinner than 0.25 pt.	有 {} 個物件的外框細於 0.25 pt。
+Very thin outlines may not print, or print unevenly. Use at least 0.25 pt.	非常細的外框可能無法列印，或列印不均勻。請使用至少 0.25 pt。
+Printers' marks do not fit on the paper.	印表機標記無法容納於紙張上。
+The paper must be larger than the page to hold crop marks, registration marks and the other printers' marks. Choose a larger paper, or Fit to page on the Layout tab.	紙張必須大於頁面，才能容納裁切標記、對位標記和其他印表機標記。請選擇較大的紙張，或在「版面」索引標籤上選擇「符合頁面」。
+Printing is available on Windows only.	列印功能僅適用於 Windows。
+Could not open the printer "{}".	無法開啟印表機 "{}"。
+The printer did not accept the job.	印表機不接受此工作。
+The printer stopped the job.	印表機已停止此工作。
+The printer could not finish the job.	印表機無法完成此工作。
+The printer "{}" is not available.	印表機 "{}" 無法使用。
+There are no pages to print.	沒有可列印的頁面。
+Printed {} page(s) to {}	已將 {} 頁列印至 {}
+Sent {} page(s) to {}	已將 {} 頁傳送至 {}
+0 bytes	0 位元組
+{} bytes	{} 位元組
+{} KB	{} KB
+{} MB	{} MB
+Embed color profiles ({})	內嵌色彩設定檔 ({})
+Color profiles:	色彩設定檔：
+Embed fonts ({})	內嵌字型 ({})
+Ver&sion:	版本(&S)：
+&Advanced...	進階(&A)...
+Advanced Save Options	進階儲存選項
+Optimize for	最佳化目標
+S&peed	速度(&P)
+Si&ze	大小(&Z)
+Save &presentation attributes (views)	儲存簡報屬性 (檢視)(&P)
+Use &bitmap compression	使用點陣圖壓縮(&B)
+Use &graphic object compression	使用圖形物件壓縮(&G)
+Save &thumbnail	儲存縮圖(&T)
+unknown command: {}	不明指令：{}
+Script	指令碼
+Script Fill	指令碼填色
+Script Outline	指令碼外框
+Script Move	指令碼移動
+Script Rotate	指令碼旋轉
+Script Scale	指令碼縮放
+New document	新增文件
+Open document	開啟文件
+Open last edited	開啟上次編輯的文件
+Nothing	無
+Clipart	美工圖案
+Touch	觸控
+Dark	深色
+Afrikaans	南非荷蘭文
+Albanian	阿爾巴尼亞文
+Arabic (Algeria)	阿拉伯文 (阿爾及利亞)
+Arabic (Bahrain)	阿拉伯文 (巴林)
+Arabic (Egypt)	阿拉伯文 (埃及)
+Arabic (Iraq)	阿拉伯文 (伊拉克)
+Arabic (Jordan)	阿拉伯文 (約旦)
+Arabic (Kuwait)	阿拉伯文 (科威特)
+Arabic (Lebanon)	阿拉伯文 (黎巴嫩)
+Arabic (Libya)	阿拉伯文 (利比亞)
+Arabic (Morocco)	阿拉伯文 (摩洛哥)
+Arabic (Oman)	阿拉伯文 (阿曼)
+Arabic (Qatar)	阿拉伯文 (卡達)
+Arabic (Saudi Arabia)	阿拉伯文 (沙烏地阿拉伯)
+Arabic (Syria)	阿拉伯文 (敘利亞)
+Arabic (Tunisia)	阿拉伯文 (突尼西亞)
+Arabic (United Arab Emirates)	阿拉伯文 (阿拉伯聯合大公國)
+Arabic (Yemen)	阿拉伯文 (葉門)
+Azeri (Cyrillic)	亞塞拜然文 (斯拉夫)
+Azeri (Latin)	亞塞拜然文 (拉丁)
+Basque	巴斯克文
+Belarusian	白俄羅斯文
+Bulgarian	保加利亞文
+Catalan	加泰隆尼亞文
+Chinese (China)	中文 (中國)
+Chinese (Hong Kong SAR)	中文 (香港特別行政區)
+Chinese (Macau SAR)	中文 (澳門特別行政區)
+Chinese (Simplified)	中文 (簡體)
+Chinese (Singapore)	中文 (新加坡)
+Chinese (Taiwan)	中文 (台灣)
+Chinese (Traditional)	中文 (繁體)
+Croatian	克羅埃西亞文
+Czech	捷克文
+Danish	丹麥文
+Dutch (Belgium)	荷蘭文 (比利時)
+Dutch (The Netherlands)	荷蘭文 (荷蘭)
+English (Australia)	英文 (澳洲)
+English (Belize)	英文 (貝里斯)
+English (Canada)	英文 (加拿大)
+English (Caribbean)	英文 (加勒比海)
+English (Ireland)	英文 (愛爾蘭)
+English (Jamaica)	英文 (牙買加)
+English (New Zealand)	英文 (紐西蘭)
+English (Philippines)	英文 (菲律賓)
+English (South Africa)	英文 (南非)
+English (Trinidad and Tobago)	英文 (千里達及托巴哥)
+English (United Kingdom)	英文 (英國)
+English (Zimbabwe)	英文 (辛巴威)
+Estonian	愛沙尼亞文
+Faroese	法羅文
+Farsi	波斯文
+Finnish	芬蘭文
+French (Belgium)	法文 (比利時)
+French (Canada)	法文 (加拿大)
+French (France)	法文 (法國)
+French (Luxembourg)	法文 (盧森堡)
+French (Monaco)	法文 (摩納哥)
+French (Switzerland)	法文 (瑞士)
+Galician	加利西亞文
+German (Austria)	德文 (奧地利)
+German (Germany)	德文 (德國)
+German (Liechtenstein)	德文 (列支敦斯登)
+German (Luxembourg)	德文 (盧森堡)
+German (Switzerland)	德文 (瑞士)
+Greek	希臘文
+Hebrew	希伯來文
+Hungarian	匈牙利文
+Icelandic	冰島文
+Indonesian	印尼文
+Italian	義大利文
+Italian (Switzerland)	義大利文 (瑞士)
+Japanese	日文
+Kazakh	哈薩克文
+Korean	韓文
+Kyrgyz	吉爾吉斯文
+Latvian	拉脫維亞文
+Lithuanian	立陶宛文
+Macedonian	馬其頓文
+Malay (Brunei)	馬來文 (汶萊)
+Malay (Malaysia)	馬來文 (馬來西亞)
+Mongolian	蒙古文
+Norwegian (Bokmel)	挪威文 (Bokmål)
+Norwegian (Nynorsk)	挪威文 (Nynorsk)
+Polish	波蘭文
+Portuguese (Brazil)	葡萄牙文 (巴西)
+Portuguese (Portugal)	葡萄牙文 (葡萄牙)
+Romanian (Romania)	羅馬尼亞文 (羅馬尼亞)
+Russian (Russia)	俄文 (俄羅斯)
+Serbian (Cyrillic)	塞爾維亞文 (斯拉夫)
+Serbian (Latin)	塞爾維亞文 (拉丁)
+Slovak	斯洛伐克文
+Slovenian	斯洛維尼亞文
+Spanish (Argentina)	西班牙文 (阿根廷)
+Spanish (Bolivia)	西班牙文 (玻利維亞)
+Spanish (Chile)	西班牙文 (智利)
+Spanish (Colombia)	西班牙文 (哥倫比亞)
+Spanish (Costa Rica)	西班牙文 (哥斯大黎加)
+Spanish (Dominican Republic)	西班牙文 (多明尼加共和國)
+Spanish (Ecuador)	西班牙文 (厄瓜多)
+Spanish (El Salvador)	西班牙文 (薩爾瓦多)
+Spanish (Guatemala)	西班牙文 (瓜地馬拉)
+Spanish (Honduras)	西班牙文 (宏都拉斯)
+Spanish (Mexico)	西班牙文 (墨西哥)
+Spanish (Nicaragua)	西班牙文 (尼加拉瓜)
+Spanish (Panama)	西班牙文 (巴拿馬)
+Spanish (Paraguay)	西班牙文 (巴拉圭)
+Spanish (Peru)	西班牙文 (秘魯)
+Spanish (Puerto Rico)	西班牙文 (波多黎各)
+Spanish (Spain)	西班牙文 (西班牙)
+Spanish (Uruguay)	西班牙文 (烏拉圭)
+Spanish (Venezuela)	西班牙文 (委內瑞拉)
+Swahili	史瓦希里文
+Swedish (Finland)	瑞典文 (芬蘭)
+Swedish (Sweden)	瑞典文 (瑞典)
+Tatar	韃靼文
+Thai	泰文
+Turkish	土耳其文
+Ukrainian	烏克蘭文
+Urdu	烏都文
+Uzbek (Cyrillic)	烏茲別克文 (斯拉夫)
+Uzbek (Latin)	烏茲別克文 (拉丁)
+Vietnamese	越南文
+Duplicate word	重複的字
+`{}` is repeated.	`{}` 重複了。
+Spelling	拼字
+`{}` is not in the spelling dictionary.	`{}` 不在拼字字典中。
+Capitalization	大小寫
+The first word of a sentence starts with a capital letter.	句子的第一個字以大寫字母開頭。
+Article	冠詞
+Use `{}` before `{}`.	在 `{}` 之前使用 `{}`。
+There are two spaces between words.	字與字之間有兩個空格。
+Punctuation	標點符號
+There is a space before the punctuation mark.	標點符號前有空格。
+Initializing...	正在初始化...
+Loading fonts...	正在載入字型...
+Loading color palettes...	正在載入調色盤...
+Loading workspace...	正在載入工作區...
+Starting AnyVector...	正在啟動 AnyVector...
+Vector graphics editor	向量繪圖編輯器
+Version {}	版本 {}
+Tool Hints	工具提示
+Object Details	物件詳細資料
+Cursor Coordinates	游標座標
+Document Color Settings	文件色彩設定
+{}  {} pt	{}  {} pt
+Object Information	物件資訊
+Color profile: sRGB IEC61966-2.1	色彩設定檔：sRGB IEC61966-2.1
+Color mode: RGB	色彩模式：RGB
+ with {} nodes	 包含 {} 個節點
+ of {} objects	 (含 {} 個物件)
+ ({} characters)	 ({} 個字元)
+ ({} x {} pixels)	 ({} x {} 像素)
+{}{} on {}	{}{} 位於 {}
+{} objects selected on {}	已在 {1} 上選取 {0} 個物件
+W: {}  H: {}  Center: ({}, {})	寬：{}  高：{}  中心：({}, {})
+Display	顯示
+Printing	列印
+AnyVector EXEs & DLLs	AnyVector EXE 與 DLL
+System DLLs	系統 DLL
+{} GB	{} GB
+AnyVector {} - System Info	AnyVector {} - 系統資訊
+Platform:	平台：
+Processor:	處理器：
+Number of Processors:	處理器數目：
+Math Coprocessor:	數學輔助處理器：
+Yes	是
+No	否
+Total physical memory:	實體記憶體總計：
+Available physical memory:	可用實體記憶體：
+Total virtual memory:	虛擬記憶體總計：
+Available virtual memory:	可用虛擬記憶體：
+Total memory used by app:	應用程式使用的記憶體總計：
+GDI Object Count:	GDI 物件數：
+User Object Count:	使用者物件數：
+Available space on drive {}	磁碟機 {} 的可用空間
+Windows Directory:	Windows 目錄：
+TEMP directory:	TEMP 目錄：
+Application directory:	應用程式目錄：
+Graphics adapter:	顯示卡：
+Unknown	不明
+Number of displays:	顯示器數目：
+Display {}:	顯示器 {}：
+    Resolution:	    解析度：
+{} x {} pixels	{} x {} 像素
+    Color depth:	    色彩深度：
+{} bits	{} 位元
+    Refresh rate:	    重新整理頻率：
+{} Hz	{} Hz
+    Position:	    位置：
+Default printer:	預設印表機：
+Installed printers:	已安裝的印表機：
+To Page	至頁面
+To Width	至寬度
+To Height	至高度
+To Selected	至選取的物件
+To All Objects	至所有物件
+Quick Customize	快速自訂
+Reset toolbar	重設工具列
+Customize...	自訂...
+Detailed Logo	詳細標誌
+Low Quality Image	低品質影像
+High Quality Image	高品質影像
+Centerline	中心線
+Technical Illustration	技術插圖
+Traced {}	已描圖 {}
+Centerline {}	中心線 {}
+Keep the product up to date (recommended)	定期更新產品 (建議)
+Check for updates and let me choose when to install them	檢查更新資訊，並讓我選擇安裝時機
+Never check for updates	永遠不要檢查更新資訊
+Automatically downloads product updates, but prompts you before installing them.	自動下載產品更新，但會在安裝前提示您。
+AnyVector tells you when a new version is available; you choose when to download and install it.	有新版本時 AnyVector 會通知您；由您選擇何時下載並安裝。
+AnyVector never connects to the Internet to look for updates. Help ▸ Updates still checks when you ask.	AnyVector 永遠不會連線至網際網路尋找更新。當您要求時，說明 ▸ 更新 仍會進行檢查。
+An Internet connection is required. Please connect to the Internet and try again.	您必須有網際網路連線。請連線至網際網路，然後再試一次。
+Invalid answer from the update server: {}	更新伺服器的回應無效：{}
+The latest release has no setup for Windows.	最新版本沒有適用於 Windows 的安裝程式。
+No published release was found at github.com/{}.	在 github.com/{} 找不到已發佈的版本。
+AnyVector Updates	AnyVector 更新
+The update server answered {}.	更新伺服器回應 {}。
+The download was interrupted. Please try again.	下載已中斷。請再試一次。
+The downloaded setup is empty.	下載的安裝程式是空的。
+This release has no notes.	此版本沒有版本資訊。
+Click Check Now to look for a new version.	按一下「立即檢查」以尋找新版本。
+Checking for updates...	正在檢查更新...
+AnyVector is up to date.	AnyVector 已是最新版本。
+AnyVector {} is available.	AnyVector {} 已推出。
+Downloading AnyVector {}...	正在下載 AnyVector {}...
+AnyVector {} is ready to install.	AnyVector {} 已可安裝。
+AnyVector closes to install it (it asks to save your drawings first) and starts again when it is done.	AnyVector 會關閉以進行安裝 (會先要求您儲存繪圖)，完成後再重新啟動。
+Updates	更新
+You are using AnyVector {}.	您正在使用 AnyVector {}。
+The update will be installed when AnyVector closes.	更新將在 AnyVector 關閉時安裝。
+Allow product updates:	允許產品更新：
+Release Notes	版本資訊
+Install Now	立即安裝
+Check Now	立即檢查
+Later	稍後
+There is a new version of AnyVector available.	AnyVector 有新版本可用。
+New version: {}. Your version: {}.	新版本：{}。您的版本：{}。
+Click OK to install the new version.	按一下「確定」以安裝新版本。
+Get Started	開始使用
+What's New	新增功能
+Menus, right-click menus, toolbars, the toolbox and every property bar follow the reference layout	功能表、右鍵功能表、工具列、工具箱及所有屬性列都遵循參考版面配置
+The Welcome Screen with Get Started, Workspace and What's New	包含「開始使用」、「工作區」和「新增功能」的歡迎畫面
+CDR drawing format (.cdr); the older .vct format still opens	CDR 繪圖格式 (.cdr)；仍可開啟舊版 .vct 格式
+PDF, SVG and bitmap export	PDF、SVG 與點陣圖匯出
+PowerTRACE bitmap tracing	PowerTRACE 點陣圖描圖
+Scripting with recording	可錄製的指令碼
+Ideas and feedback	想法與意見回饋
+Drop files to open them	拖放檔案即可開啟
+New Document	新增文件
+New from Template	從範本新增
+Open Document	開啟文件
+Recent Documents	最近使用的文件
+Documents you open or save are listed here.	您開啟或儲存的文件會列在這裡。
+Choose the layout of tools, toolbars and dockers that fits your work. You can change it later in Window ▸ Workspace.	選擇適合您工作的工具、工具列與泊塢視窗版面配置。您稍後可以在 視窗 ▸ 工作區 中變更。
+Current	目前
+What's New in AnyVector {}	AnyVector {} 的新增功能
+Lite	精簡
+The Lite workspace is ideal for new users who are getting started. Its clean look invites you to explore AnyVector in a friendly environment.	精簡工作區非常適合剛開始使用的新使用者。簡潔的外觀讓您在友善的環境中探索 AnyVector。
+The Default workspace places tools and controls where they are easy to find. It suits users who know other vector graphics software as well as long-time users.	預設工作區將工具和控制項放在容易找到的位置。適合熟悉其他向量繪圖軟體的使用者以及長期使用者。
+Optimized for touch-enabled devices, the Touch workspace is ideal for field work and sketching. Work with touch, a dial or a stylus, without a mouse or keyboard.	觸控工作區針對支援觸控的裝置最佳化，非常適合外出工作和素描。您可以使用觸控、旋鈕或手寫筆操作，不需要滑鼠或鍵盤。
+Illustration	插圖
+The Illustration workspace is ideal for an intuitive and efficient workflow when you create book covers, magazine ads, storyboards and other illustrations.	插圖工作區提供直覺又有效率的工作流程，非常適合製作書籍封面、雜誌廣告、分鏡腳本及其他插圖。
+The Page Layout workspace is optimized for arranging graphics and text into layouts for business cards, branding, product packaging and multipage documents such as brochures and newsletters.	頁面版面工作區針對將圖形和文字編排成名片、品牌識別、產品包裝，以及手冊和電子報等多頁文件而最佳化。
+This workspace has the look and feel of Adobe® Illustrator®, helping Illustrator users to get started quickly with AnyVector.	此工作區具有 Adobe® Illustrator® 的外觀與操作方式，協助 Illustrator 使用者快速上手 AnyVector。
+Workspace: {}	工作區：{}
+Status Bar	狀態列
+Menus	功能表
+Shortcut Keys	快速鍵
+The file is not a workspace file.	此檔案不是工作區檔案。
+This workspace was not made with AnyVector, so its elements cannot be read.	此工作區並非以 AnyVector 建立，因此無法讀取其元素。
+Select a bitmap.	請選取點陣圖。
+Convert to Grayscale	轉換為灰階
+Convert to {}	轉換為 {}
+Edit Bitmap	編輯點陣圖
+Could not write {}: {}	無法寫入 {}：{}
+Edit the bitmap and save it: AnyVector updates it.	編輯點陣圖並儲存：AnyVector 會更新它。
+Select the objects to convert to a bitmap.	請選取要轉換為點陣圖的物件。
+Before and after	前後對照
+Full preview	完整預覽
+Split preview	分割預覽
+Zoom 100%	縮放 100%
+Zoom to fit	縮放至適合大小
+Before	之前
+After	之後
+Reset	重設
+16 Colors (4-bit)	16 色 (4 位元)
+Convert To Bitmap	轉換為點陣圖
+Resolution:	解析度：
+Color mode:	色彩模式：
+Dithered	遞色
+Always overprint black	一律疊印黑色
+Anti-aliasing	消除鋸齒
+Transparent background	透明背景
+Uncompressed file size: {} MB	未壓縮的檔案大小：{} MB
+Convert to Bitmap	轉換為點陣圖
+Original Size	原始大小
+Inflate to:	擴充至：
+Inflate by:	擴充量：
+Width:	寬度：
+{} (pixels)	{} (像素)
+Height:	高度：
+Maintain aspect ratio	維持外觀比例
+picas, points	派卡、點
+ciceros, didots	西塞羅、迪多點
+Resample	重新取樣
+Image size	影像大小
+Resolution	解析度
+Identical values	相同值
+Bicubic	雙立方
+Illustration ✦	插圖 ✦
+Nearest neighbor	最近鄰點
+Photorealistic ✦	相片寫實 ✦
+Noise reduction:	雜點減少：
+Original file size:	原始檔案大小：
+New file size:	新檔案大小：
+Maintain original file size	維持原始檔案大小
+Original pixel size:	原始像素大小：
+{} x {} px	{} x {} px
+New pixel size:	新像素大小：
+Convert to 1 bit	轉換為 1 位元
+Conversion method:	轉換方法：
+Threshold:	臨界值：
+Intensity:	強度：
+Screen type:	網屏類型：
+lines per	線數/
+Monotone	單色調
+Duotone	雙色調
+Tritone	三色調
+Quadtone	四色調
+Curves	曲線
+Overprint	疊印
+Type:	類型：
+Overprint colors:	疊印色彩：
+A monotone prints with one ink: there are no overprints.	單色調以一種油墨列印：沒有疊印。
+Null	空值
+Load	載入
+Duotone curves	雙色調曲線
+Convert to Duotone	轉換為雙色調
+8 bits(256 colors)	8 位元 (256 色)
+4 bits(16 colors)	4 位元 (16 色)
+2 bits(4 colors)	2 位元 (4 色)
+Convert to Paletted	轉換為調色盤
+Range Sensitivity	範圍敏感度
+Processed Palette	已處理的調色盤
+Smoothing:	平滑：
+Palette:	調色盤：
+Dithering	遞色
+Dither Intensity:	遞色強度：
+Color range sensivity to:	色彩範圍敏感度：
+Importance:	重要性：
+Lightness:	亮度：
+{} colors	{} 色
+Presets:	預設集：
+Preset {}	預設集 {}
+Straighten Image	拉直影像
+Grid:	格點：
+Correct lens distortion	校正鏡頭扭曲
+Rotate image	旋轉影像
+Vertical Perspective	垂直透視
+Horizontal Perspective	水平透視
+Crop image	裁剪影像
+Crop and resample to original size	裁剪並重新取樣為原始大小
+Remember settings	記住設定
+Image Adjustment Lab	影像調整實驗室
+Rotate clockwise	順時針旋轉
+Rotate counterclockwise	逆時針旋轉
+Create snapshot	建立快照
+Delete snapshot	刪除快照
+Auto adjust	自動調整
+Select white point	選取白點
+Select black point	選取黑點
+Low quality image	低品質影像
+High quality image	高品質影像
+Auto-downsample (16 MP+)	自動降低取樣 (16 MP 以上)
+Keep original resolution	保留原始解析度
+Upsample (Illustration ✦)	提高取樣 (插圖 ✦)
+Upsample (Photorealistic ✦)	提高取樣 (相片寫實 ✦)
+Specify color	指定色彩
+Similarity	相似度
+Before and After	前後對照
+Large Preview	大型預覽
+Wireframe Overlay	線框重疊
+Select a bitmap to trace.	請選取要描圖的點陣圖。
+Preview:	預覽：
+Curves:	曲線：
+Nodes:	節點：
+Trace type	描圖類型
+Trace type:	描圖類型：
+Trace profile:	描圖設定檔：
+Image handling	影像處理
+Resample mode:	重新取樣模式：
+Remove image background	移除影像背景
+Remove JPEG artifacts	移除 JPEG 失真
+Delete original image	刪除原始影像
+Shape detail	形狀細節
+Node density	節點密度
+Curvature	曲率
+Shape structure	形狀結構
+Remove overlap	移除重疊
+Merge adjacent shapes	合併相鄰形狀
+Color Mode:	色彩模式：
+Remove:	移除：
+Number of Colors:	色彩數目：
+Sort by:	排序方式：
+Merge by averaging	以平均值合併
+Merge to first selected	合併至第一個選取的色彩
+Open color palette	開啟調色盤
+Save color palette	儲存調色盤
+Palette	調色盤
+Edit...	編輯...
+Select color from image	從影像選取色彩
+Delete color	刪除色彩
+AnyVector Graphic	AnyVector 圖形
+SVG Document	SVG 文件
+Device Independent Bitmap	裝置獨立點陣圖
+Inserts the contents of the clipboard into your document as AnyVector objects.	將剪貼簿的內容以 AnyVector 物件插入文件中。
+Inserts the contents of the clipboard into your document as SVG objects.	將剪貼簿的內容以 SVG 物件插入文件中。
+Inserts the contents of the clipboard into your document as Text.	將剪貼簿的內容以文字插入文件中。
+Inserts the contents of the clipboard into your document as a bitmap.	將剪貼簿的內容以點陣圖插入文件中。
+Unknown Source	不明來源
+Paste Special	選擇性貼上
+Source:	來源：
+Paste Link	貼上連結
+As:	為：
+Result	結果
+The clipboard is empty.	剪貼簿是空的。
+Display As Icon	顯示為圖示
+Copy Properties	複製屬性
+Text Properties	文字屬性
+Hint: You may copy properties by dragging one object onto another using the right mouse button.	提示：您可以使用滑鼠右鍵將一個物件拖曳到另一個物件上，以複製屬性。
+After pressing OK, choose the object to copy from.	按一下「確定」後，請選擇要從中複製的物件。
+Click the object to copy properties from.	按一下要從中複製屬性的物件。
+1 star	1 顆星
+2 stars	2 顆星
+3 stars	3 顆星
+4 stars	4 顆星
+5 stars	5 顆星
+Name and location:	名稱與位置：
+Document	文件
+Pages:	頁面：
+Layers:	圖層：
+Page size:	頁面大小：
+Page orientation:	頁面方向：
+Resolution (dpi):	解析度 (dpi)：
+RGB Profile:	RGB 設定檔：
+CMYK Profile:	CMYK 設定檔：
+Grayscale Profile:	灰階設定檔：
+Primary color mode:	主要色彩模式：
+Rendering intent:	演算意圖：
+Shadows:	陰影：
+Contours:	輪廓圖：
+Extrusions:	立體化：
+Distortions:	變形：
+Envelopes:	封套：
+Lenses:	透鏡：
+Bevels:	斜角：
+Bitmap effects:	點陣圖效果：
+Blends:	調和：
+No fill:	無填色：
+Uniform fills:	均勻填色：
+Fountain fills:	漸層填色：
+Pattern fills:	圖樣填色：
+Mesh fills:	網狀填色：
+No outline:	無外框：
+Hairline outlines:	細線外框：
+Outlines:	外框：
+Objects:	物件：
+Points in curves:	曲線中的點：
+Graphic Objects	圖形物件
+Text objects:	文字物件：
+Paragraphs:	段落：
+Words:	字數：
+Characters:	字元：
+Fonts used:	使用的字型：
+Text Statistics	文字統計資料
+Bitmap Objects	點陣圖物件
+Bitmaps:	點陣圖：
+Images in document:	文件中的影像：
+Styles	樣式
+Object styles:	物件樣式：
+Color styles:	色彩樣式：
+Fills	填色
+Outlines	外框
+Print Merge Fields	合併列印欄位
+Ellipses	橢圓形
+Polygons	多邊形
+Text objects	文字物件
+Groups	群組
+Rectangles	矩形
+Custom ({} × {} in.)	自訂 ({} × {} 英吋)
+Document Properties	文件屬性
+Language:	語言：
+Title:	標題：
+Subject:	主旨：
+Author:	作者：
+Copyright:	版權：
+Tags:	標籤：
+Notes:	備註：
+Rating:	評等：
+Document distribution	文件發佈
+Archiving (CMYK)	封存 (CMYK)
+Archiving (RGB)	封存 (RGB)
+Current proof settings	目前的校樣設定
+Editing	編輯
+Prepress	印前作業
+PDF Presets	PDF 預設集
+Current document	目前的文件
+Selection	選取範圍
+Untitled	未命名
+The export range does not contain any pages or objects.	匯出範圍未包含任何頁面或物件。
+Transparency will be flattened	透明度將被平面化
+{} does not support transparency. Transparent objects are blended with white and drawn opaque.	{} 不支援透明度。透明物件會與白色混合並以不透明方式繪製。
+Security is not available	無法使用安全性
+Passwords cannot be used with {}. The PDF is saved without security.	{} 無法使用密碼。PDF 將不含安全性設定儲存。
+Open password without a permission password	有開啟密碼但沒有權限密碼
+Set a permission password too; the open password is only used together with one.	請一併設定權限密碼；開啟密碼只能與權限密碼搭配使用。
+The permission password is empty	權限密碼是空的
+Type a permission password on the Security tab.	請在「安全性」索引標籤上輸入權限密碼。
+No output profile is embedded	未內嵌輸出設定檔
+PDF/A-1b needs an embedded ICC output profile; the file is identified as PDF/A-1b but carries no profile.	PDF/A-1b 需要內嵌 ICC 輸出設定檔；此檔案被識別為 PDF/A-1b，但未包含設定檔。
+Thumbnails in PDF/A	PDF/A 中的縮圖
+Thumbnails are allowed but make the file larger.	允許使用縮圖，但會使檔案變大。
+{} object(s) are outside the page	有 {} 個物件位於頁面外
+Objects off the page are exported but not visible. Select Export only objects on page on the General tab to leave them out.	頁面外的物件會匯出但不可見。請在「一般」索引標籤上選取「僅匯出頁面上的物件」以排除這些物件。
+File name:	檔案名稱：
+Browse...	瀏覽...
+PDF - Portable Document Format (*.pdf)	PDF - Portable Document Format (*.pdf)
+Save as type:	存檔類型：
+PDF preset:	PDF 預設集：
+(Custom)	(自訂)
+PDF Settings	PDF 設定
+Export PDF Settings	匯出 PDF 設定
+No Issues	沒有問題
+1 Issue	1 個問題
+{} Issues	{} 個問題
+Security	安全性
+Export range	匯出範圍
+Defined by document	由文件定義
+Defined by selected objects	由選取的物件定義
+Compatibility:	相容性：
+Export only objects on page	僅匯出頁面上的物件
+Add PDF preset	新增 PDF 預設集
+Delete PDF preset	刪除 PDF 預設集
+Preset name	預設集名稱
+Use document color settings	使用文件色彩設定
+Use color proof settings	使用色彩校樣設定
+Color management	色彩管理
+Output colors as:	輸出色彩為：
+Convert spot colors to:	特別色轉換為：
+Embed color profile	內嵌色彩設定檔
+Color profiles are not embedded.	未內嵌色彩設定檔。
+Overprints	疊印
+Preserve document overprints	保留文件疊印
+Object overprint settings are not exported.	不會匯出物件疊印設定。
+Include hyperlinks	包含超連結
+Generate bookmarks	產生書籤
+Generate thumbnails	產生縮圖
+Include comments	包含註解
+On start, display	開啟時顯示
+Encoding	編碼
+Binary	二進位
+Optimize for web	針對網頁最佳化
+Linearized (fast web view) files are not written.	不會寫入線性化 (快速網頁檢視) 檔案。
+Bitmap compression	點陣圖壓縮
+Compression type:	壓縮類型：
+JPEG quality:	JPEG 品質：
+Compress text and line art	壓縮文字和線條美工
+Bitmap downsampling	點陣圖降低取樣
+Monochrome	單色
+Text exporting	文字匯出
+Export all text as curves	將所有文字匯出為曲線
+Text is always written as curves.	文字一律會寫入為曲線。
+Embed fonts in document	在文件中內嵌字型
+Bleed limit:	出血限制：
+Printer's marks	印表機標記
+Crop marks	裁切標記
+Registration marks	對位標記
+Densitometer scales	密度計刻度
+File information	檔案資訊
+Maintain OPI links	保留 OPI 連結
+Security options are not available for {}.	{} 無法使用安全性選項。
+Permission password	權限密碼
+Password:	密碼：
+Low resolution	低解析度
+High resolution	高解析度
+Printing permissions:	列印權限：
+Insert, delete, rotate pages	插入、刪除、旋轉頁面
+Any except extracting pages	除擷取頁面外的任何操作
+Editing permissions:	編輯權限：
+Enable copying of content	啟用內容複製
+Open password	開啟密碼
+Nothing to export in the selected range.	選取的範圍內沒有可匯出的內容。
+Published {}	已發佈 {}
+Could not publish:\n{}	無法發佈：\n{}
+Publishing to PDF...	正在發佈為 PDF...
+Selected only	僅選取的物件
+Export this page only	僅匯出此頁面
+Do not show filter dialog	不要顯示篩選器對話方塊
+SVG Export	SVG 匯出
+Encoding:	編碼：
+Styling:	樣式設定：
+Presentation attributes	簡報屬性
+Units:	單位：
+Points	點
+Inches	英吋
+Millimeters	公釐
+Bitmap resolution:	點陣圖解析度：
+Bitmaps and effects that cannot be described in SVG are embedded as images at this resolution.	無法以 SVG 描述的點陣圖和效果，會以此解析度內嵌為影像。
+Exported {}	已匯出 {}
+Export failed:\n{}	匯出失敗：\n{}
+Export to {}	匯出至 {}
+Export For Web	匯出為 Web
+Export For Office	匯出為 Office
+Export For WordPress	匯出為 WordPress
+The image is too large.	影像太大。
+{} × {} pixels · Estimated file size: {}	{} × {} 像素 · 預估檔案大小：{}
+Upload	上傳
+Export to	匯出至
+Microsoft Office	Microsoft Office
+WordPerfect Office	WordPerfect Office
+WPG files are not written.	不會寫入 WPG 檔案。
+Graphic best suited for	圖形最適合用於
+Compatibility	相容性
+EMF files are not written.	不會寫入 EMF 檔案。
+Optimized for:	最佳化目標：
+Presentation	簡報
+Desktop printing	桌面列印
+Commercial printing	商業印刷
+Format:	格式：
+RGB color (24-bit)	RGB 色彩 (24 位元)
+Quality:	品質：
+WordPress site	WordPress 網站
+Site address:	網站位址：
+User name:	使用者名稱：
+Use an application password (WordPress ▸ Users ▸ Profile).	請使用應用程式密碼 (WordPress ▸ 使用者 ▸ 個人資料)。
+Save As	另存新檔
+Uploading to WordPress...	正在上傳至 WordPress...
+Could not reach the WordPress site:\n{}	無法連線至 WordPress 網站：\n{}
+Uploaded to WordPress: {}	已上傳至 WordPress：{}
+The upload was refused.	上傳遭到拒絕。
+WordPress returned an error ({}):\n{}	WordPress 傳回錯誤 ({})：\n{}
+Save changes to the following documents before closing?	關閉前要儲存下列文件的變更嗎？
+Save changes to {}?	要儲存對 {} 的變更嗎？
+Script Editor - {}{}	指令碼編輯器 - {}{}
+▶ Run	▶ 執行
+Insert recorded	插入錄製內容
+Insert the last recorded commands	插入上次錄製的指令
+Output:	輸出：
+Script finished.	指令碼已完成。
+Page Number Settings	頁碼設定
+Start at number:	起始號碼：
+Start on page:	起始頁面：
+Page Number	頁碼
+Stretch	延展
+Grommets	扣眼
+Grommet	扣眼
+Border	邊框
+Border and Grommet	邊框與扣眼
+Source	來源
+Add border	新增邊框
+   Type:	   類型：
+   Size:	   大小：
+Add grommets	新增扣眼
+Use border area	使用邊框區域
+   Margin:	   邊界：
+Placement and distribution	位置與分佈
+Number of grommets	扣眼數目
+   Spacing:	   間距：
+   Vertical:	   垂直：
+   Horizontal:	   水平：
+Number of pages:	頁數：
+Place:	位置：
+Existing Page:	現有頁面：
+Size:	大小：
+Duplicate Page	再製頁面
+Duplicate page:	再製頁面：
+Insert new page:	插入新頁面：
+Before selected page	在選取的頁面之前
+After selected page	在選取的頁面之後
+To new document	至新文件
+Copy layer(s) only	僅複製圖層
+Copy layer(s) and their contents	複製圖層及其內容
+Delete Page:	刪除頁面：
+Through to page:	直到頁面：
+Last page to delete	要刪除的最後一頁
+Inclusive	包含
+Rename Page	重新命名頁面
+Page name:	頁面名稱：
+Go to page:	移至頁面：
+Edit Line Style	編輯線條樣式
+Click on the squares to turn dots in the line style on and off.	按一下方格以開啟或關閉線條樣式中的點。
+Hint	提示
+Drag the marker above the squares to set the length of the line style. A line style starts with a dot and ends with a space. Add makes a new line style; Replace changes the one you are editing.	拖曳方格上方的標記以設定線條樣式的長度。線條樣式以點開始，以空格結束。「新增」會建立新的線條樣式；「取代」會變更您正在編輯的樣式。
+Replace	取代
+Line Style	線條樣式
+Numeric	數值
+Path	路徑
+Import Data Source...	匯入資料來源...
+Data source (*.csv;*.txt)	資料來源 (*.csv;*.txt)
+Sync with data source	與資料來源同步
+Save Data Source...	儲存資料來源...
+CSV (*.csv)	CSV (*.csv)
+Selected records only	僅選取的記錄
+Clear print merge data	清除合併列印資料
+Field:	欄位：
+Insert Field	插入欄位
+Fields show in text as «Name» and are filled in when merging.	欄位在文字中顯示為 «名稱»，並在合併時填入。
+No columns yet.	尚無欄。
+Column name	欄名稱
+Add Column	新增欄
+Delete Column	刪除欄
+View All Records	檢視所有記錄
+View Single Record	檢視單一記錄
+Deselect all	全部取消選取
+Select all	全選
+Add columns, or import a data source (CSV or text file).	請新增欄，或匯入資料來源 (CSV 或文字檔)。
+Record {} of {}	第 {} 筆記錄，共 {} 筆
+First	第一筆
+Previous	上一筆
+Next	下一筆
+Last	最後一筆
+Add a record	新增記錄
+Delete a record	刪除記錄
+User interface language	使用者介面語言
+Choose the language of the user interface:	選擇使用者介面的語言：
+All Page Sizes	所有頁面大小
+Devices	裝置
+Social	社群
+Page Type	頁面類型
+Name	名稱
+Most Recently Used	最近使用的項目
+Largest Page Size	最大頁面大小
+Smallest Page Size	最小頁面大小
+All Categories	所有類別
+Book Covers	書籍封面
+Brochures	手冊
+Business Cards	名片
+Calendars	月曆
+Cards Invitations	卡片與邀請函
+Catalog & Informational Booklets	目錄與資訊手冊
+Certificates	證書
+Collages	拼貼
+Flyers	傳單
+Infographics	資訊圖表
+Letterheads & Letters	信紙與信函
+Letters & Stationary	信函與文具
+Logos	標誌
+Merchandise	商品
+Posters	海報
+Presentations	簡報
+Resumes	履歷表
+Social Media and Web	社群媒體與網頁
+Dot Gain 10%	網點擴大 10%
+Dot Gain 15%	網點擴大 15%
+Dot Gain 25%	網點擴大 25%
+Dot Gain 30%	網點擴大 30%
+Gray Gamma 1.8	灰色 Gamma 1.8
+Gray Gamma 2.2	灰色 Gamma 2.2
+Letter	Letter
+Legal	Legal
+Tabloid	Tabloid
+Executive	Executive
+Tabloid Extra	Tabloid Extra
+Envelope C4	信封 C4
+Envelope C5	信封 C5
+Envelope C6	信封 C6
+Envelope DL	信封 DL
+Envelope #9	信封 #9
+Envelope #10	信封 #10
+Envelope #11	信封 #11
+Envelope #12	信封 #12
+Envelope #14	信封 #14
+Envelope Monarch	信封 Monarch
+Business Card	名片
+Index Card 3 × 5	索引卡 3 × 5
+Index Card 4 × 6	索引卡 4 × 6
+Index Card 5 × 8	索引卡 5 × 8
+Default RGB	預設 RGB
+Default Web	預設 Web
+Full Screen	全螢幕
+Web Page Square	方形網頁
+Web Page 1	網頁 1
+Web Page 2	網頁 2
+Web Banner 1	網頁橫幅 1
+Web Banner 2	網頁橫幅 2
+Web Banner 3	網頁橫幅 3
+Web Banner 4	網頁橫幅 4
+Web Banner 5	網頁橫幅 5
+Web Banner 6	網頁橫幅 6
+Web Banner 7	網頁橫幅 7
+Web Banner 8	網頁橫幅 8
+Web Banner 9	網頁橫幅 9
+Web Banner 10	網頁橫幅 10
+Leaderboard Ad	排行榜廣告
+Medium Rectangle Ad	中矩形廣告
+Wide Skyscraper Ad	寬摩天大樓廣告
+Blog Cover	部落格封面
+Blog Graphic	部落格圖形
+Website - Small	網站 - 小
+Website - Normal	網站 - 一般
+Website - Medium	網站 - 中
+Website - Large	網站 - 大
+Website - Extra Large	網站 - 特大
+Website - Huge	網站 - 超大
+Full Website	完整網站
+iPad Pro 4th gen 12.9"	iPad Pro 第 4 代 12.9"
+iPad Pro 4th gen 11"	iPad Pro 第 4 代 11"
+iPad Air (4th gen)	iPad Air (第 4 代)
+iPad 7th gen/8th gen	iPad 第 7 代/第 8 代
+Android mobile	Android 手機
+iPad Pro 12.9/4th gen	iPad Pro 12.9/第 4 代
+Facebook Cover	Facebook 封面
+Facebook Post	Facebook 貼文
+Facebook App	Facebook 應用程式
+Facebook Ad	Facebook 廣告
+Instagram Square	Instagram 方形
+Instagram Story	Instagram 限時動態
+Twitter Cover	Twitter 封面
+Twitter Post	Twitter 貼文
+YouTube Cover	YouTube 封面
+Google Business Profile	Google 商家檔案
+Google Business Cover	Google 商家封面
+Google Business Post	Google 商家貼文
+LinkedIn Cover	LinkedIn 封面
+LinkedIn Banner	LinkedIn 橫幅
+Dribbble Shot small	Dribbble Shot 小
+Dribbble Shot large	Dribbble Shot 大
+Twitch Cover	Twitch 封面
+Twitch Video	Twitch 影片
+Pinterest Pin	Pinterest Pin
+Tumblr Graphic	Tumblr 圖形
+Poster	海報
+International Business Card	國際名片
+Postcard	明信片
+Desktop Web Page	桌面網頁
+Mobile Web Page	行動網頁
+Mobile Leaderboard	行動排行榜
+Instagram Profile	Instagram 個人檔案
+Instagram Landscape	Instagram 橫向
+Instagram Portrait	Instagram 直向
+Facebook Profile	Facebook 個人檔案
+Facebook Square	Facebook 方形
+Facebook Landscape	Facebook 橫向
+Facebook Portrait	Facebook 直向
+Facebook Story	Facebook 限時動態
+YouTube Profile	YouTube 個人檔案
+YouTube Banner	YouTube 橫幅
+YouTube Thumbnail	YouTube 縮圖
+Untitled-{}	未命名-{}
+(Default) {}	(預設) {}
+Create a New Document	建立新文件
+Document Settings	文件設定
+Do not show this dialog again	不要再顯示此對話方塊
+Search presets	搜尋預設集
+No presets match.	沒有相符的預設集。
+Save preset	儲存預設集
+Preset name:	預設集名稱：
+Name:	名稱：
+Page view:	頁面檢視：
+Single Page View	單頁檢視
+Dimensions	尺寸
+Orientation:	方向：
+Paper Type:	紙張類型：
+Bleed:	出血：
+Colors	色彩
+RGB profile:	RGB 設定檔：
+CMYK profile:	CMYK 設定檔：
+Grayscale profile:	灰階設定檔：
+Search templates	搜尋範本
+No templates found.	找不到範本。
+Use File ▸ Save as Template to add your own, or copy\ntemplates (.cdr, .cdt, .vct) into the Templates folder.	使用 檔案 ▸ 另存為範本 新增您自己的範本，或將\n範本 (.cdr、.cdt、.vct) 複製到範本資料夾。
+Open Templates Folder	開啟範本資料夾
+Template Details	範本詳細資料
+Category:	類別：
+Modified:	修改日期：
+File:	檔案：
+Document name:	文件名稱：
+Select a template to see its details.	選取範本以查看其詳細資料。
+Object Data Field Editor	物件資料欄位編輯器
+New Field	新增欄位
+Add Selected Field(s)	新增選取的欄位
+Delete Field(s)	刪除欄位
+Rename Field	重新命名欄位
+Field{}	欄位{}
+Add Fields	新增欄位
+Delete Fields	刪除欄位
+Object Data Manager	物件資料管理員
+Show levels:	顯示層級：
+Cost	成本
+Arrowhead {}	箭頭 {}
+Create Arrowhead	建立箭頭
+Length:	長度：
+Proportional	等比例
+Creates an arrowhead from the selected object. The new arrowhead is added to the Arrowhead selectors.	從選取的物件建立箭頭。新箭頭會新增至箭頭選擇器。
+{} was added to the Arrowhead selectors.	{} 已新增至箭頭選擇器。
+Create Pattern	建立圖樣
+Two color	雙色
+After pressing OK, select pattern area with a marquee.	按一下「確定」後，請以框選方式選取圖樣區域。
+Pattern {}	圖樣 {}
+Edit Pattern	編輯圖樣
+Barcode ({})	條碼 ({})
+Barcode Wizard	條碼精靈
+Select from one of the following industry standard formats:	請從下列業界標準格式中選取一種：
+Enter keyword data:	輸入關鍵字資料：
+Encoded: {}	已編碼：{}
+Bar height:	條碼高度：
+Bar width (narrow):	條碼寬度 (窄)：
+Show the human-readable text	顯示人眼可讀的文字
+Finish	完成
+Insert Barcode	插入條碼
+Select a barcode made with Object ▸ Insert ▸ Barcode.	請選取以 物件 ▸ 插入 ▸ 條碼 建立的條碼。
+The {} barcode “{}” is valid.	{} 條碼「{}」有效。
+The {} barcode “{}” is not valid. {}	{} 條碼「{}」無效。{}
+Edit Symbol	編輯符號
+This document has no symbols.	此文件沒有符號。
+Export Library	匯出元件庫
+CSL - Symbol Library (*.csl)	CSL - 符號元件庫 (*.csl)
+Exported {} symbols to {}.	已將 {} 個符號匯出至 {}。
+Could not write the library: {}	無法寫入元件庫：{}
+Import Library	匯入元件庫
+Could not read {}: {}	無法讀取 {}：{}
+The library {} has no symbol named “{}”.	元件庫 {} 中沒有名為「{}」的符號。
+Over	滑過
+Down	按下
+Finish Editing Rollover	完成編輯滑鼠變換
+Rollover State	滑鼠變換狀態
+Customization	自訂
+Global	全域
+Workspaces	工作區
+Tablet Mode	平板模式
+Nodes and Handles	節點與控點
+Snapping	貼齊
+Pen Settings	畫筆設定
+Warnings	警告
+Appearance	外觀
+Color Palette	調色盤
+Zoom/Pan	縮放/平移
+Freehand/Bézier	手繪/貝茲
+Dimension	尺度
+File Locations	檔案位置
+File Formats	檔案格式
+User ID	使用者 ID
+Adding folders that already exist as subfolders in the assets list	新增已作為子資料夾存在於資產清單中的資料夾
+Adding folders that already exist in the assets list	新增已存在於資產清單中的資料夾
+Adding folders to the assets list as parent folders for existing folders	將資料夾新增至資產清單作為現有資料夾的上層資料夾
+Applying effects to text with embedded graphics (Blend)	將效果套用至含內嵌圖形的文字 (調和)
+Applying effects to text with embedded graphics (Contour)	將效果套用至含內嵌圖形的文字 (輪廓圖)
+Applying effects to text with embedded graphics (Convert to Curves)	將效果套用至含內嵌圖形的文字 (轉換為曲線)
+Applying effects to text with embedded graphics (Distortion)	將效果套用至含內嵌圖形的文字 (變形)
+Applying effects to text with embedded graphics (Envelope)	將效果套用至含內嵌圖形的文字 (封套)
+Applying effects to text with embedded graphics (Extrude)	將效果套用至含內嵌圖形的文字 (立體化)
+Applying effects to text with embedded graphics (Lens)	將效果套用至含內嵌圖形的文字 (透鏡)
+Applying lens effects to duotones	將透鏡效果套用至雙色調
+Applying Painterly brushstrokes to incompatible objects	將繪畫筆刷筆觸套用至不相容的物件
+Artistic Media Brush contains invalid objects	藝術筆筆刷包含無效的物件
+Breaking apart objects that mix spot colors	打散混合特別色的物件
+Brushstrokes exceed the document rendering resolution	筆刷筆觸超過文件演算解析度
+Changing the document color settings	變更文件色彩設定
+Closing a document that contains unsaved changes	關閉含有未儲存變更的文件
+Combining objects with different fill types	結合不同填色類型的物件
+Converting a bitmap that contains transparency	轉換含有透明度的點陣圖
+Converting objects with effects to curves	將含有效果的物件轉換為曲線
+Converting paragraph text that overflows its frame	轉換溢出文字框的段落文字
+Copying objects that contain linked bitmaps	複製含有連結點陣圖的物件
+Cropping objects that contain effects	裁剪含有效果的物件
+Deleting a layer that contains objects	刪除含有物件的圖層
+Deleting a page that contains objects	刪除含有物件的頁面
+Deleting a symbol that is used in the document	刪除文件中使用的符號
+Deleting color styles that are used in the document	刪除文件中使用的色彩樣式
+Deleting guidelines on a locked layer	刪除鎖定圖層上的導線
+Deleting object styles that are used in the document	刪除文件中使用的物件樣式
+Discarding changes made in the Script Editor	捨棄在指令碼編輯器中所做的變更
+Editing a locked object	編輯鎖定的物件
+Embedding fonts that do not allow embedding	內嵌不允許內嵌的字型
+Exporting a document that contains RGB and CMYK colors	匯出含有 RGB 與 CMYK 色彩的文件
+Exporting a page with no objects	匯出沒有物件的頁面
+Exporting bitmaps with a resolution lower than 72 dpi	匯出解析度低於 72 dpi 的點陣圖
+Exporting files with font substitutions	匯出有字型替代的檔案
+Exporting text as curves	將文字匯出為曲線
+Fitting text to a path with an envelope	使含封套的文字適合路徑
+Grouping objects on different layers	群組不同圖層上的物件
+Importing a file with missing fonts	匯入缺少字型的檔案
+Importing a large bitmap	匯入大型點陣圖
+Importing files that contain spot colors	匯入含有特別色的檔案
+Importing SVG files with unsupported elements	匯入含有不支援元素的 SVG 檔案
+Joining curves that are far apart	連接相距很遠的曲線
+Linking a bitmap that cannot be found	連結找不到的點陣圖
+Opening a document created in a newer version	開啟以較新版本建立的文件
+Opening a document that contains missing fonts	開啟缺少字型的文件
+Opening a document that is already open	開啟已開啟的文件
+Opening a read-only document	開啟唯讀文件
+Overwriting an existing file when exporting	匯出時覆寫現有檔案
+Pasting objects from a document with a different color mode	從不同色彩模式的文件貼上物件
+PowerClip contents extend beyond the frame	PowerClip 內容超出框架
+Printing a document with missing links	列印缺少連結的文件
+Printing to a printer that does not support the page size	列印至不支援該頁面大小的印表機
+Publishing to PDF with font substitutions	發佈有字型替代的 PDF
+Removing a palette that is in use	移除使用中的調色盤
+Resampling a bitmap to a higher resolution	將點陣圖重新取樣為較高解析度
+Reverting to the last saved version	回復至上次儲存的版本
+Running a script from an untrusted location	從不受信任的位置執行指令碼
+Saving a document with unsupported features to an older version	將含不支援功能的文件儲存為舊版
+Saving a template over an existing template	以範本覆寫現有範本
+Saving with font embedding restrictions	在字型內嵌限制下儲存
+Shaping objects that contain effects	對含有效果的物件進行造形
+Spell checking a document with no text	對沒有文字的文件進行拼字檢查
+Text exceeds the maximum length for a single text object	文字超過單一文字物件的最大長度
+Trimming objects with effects	修剪含有效果的物件
+Ungrouping objects that contain effects	取消群組含有效果的物件
+Using a large number of steps in a blend	在調和中使用大量階數
+Using too many nodes in a single curve	在單一曲線中使用過多節點
+Welding objects with different outlines	焊接外框不同的物件
+Document Options	文件選項
+Open a document to edit its options.	請開啟文件以編輯其選項。
+Keywords:	關鍵字：
+Drawing units:	繪圖單位：
+Rendering resolution:	演算解析度：
+Apply size to all pages	將大小套用至所有頁面
+Show bleed area	顯示出血區域
+Facing pages	對頁
+Facing pages displays left and right pages side by side, as in a book or magazine.	對頁會將左右頁並排顯示，就像書籍或雜誌一樣。
+Nudge:	微調：
+Super nudge:	超級微調：
+Micro nudge:	細微調：
+Duplicate placement	再製物件位置
+Horizontal offset:	水平位移：
+Vertical offset:	垂直位移：
+No background	無背景
+Apply to all pages	套用至所有頁面
+The background is printed and exported with the page.	背景會隨頁面一起列印和匯出。
+Origin	原點
+Drawing scale	繪圖比例
+Scale (1 : n):	比例 (1 : n)：
+Snap to grid	貼齊格點
+Show pixel grid	顯示像素格點
+Document grid	文件格點
+Horizontal spacing:	水平間距：
+Vertical spacing:	垂直間距：
+Display as:	顯示為：
+Lines	線條
+Dots	點
+Color:	色彩：
+Opacity:	不透明度：
+Position:	位置：
+Add horizontal	新增水平
+Add vertical	新增垂直
+Horizontal  {}	水平  {}
+Vertical  {}	垂直  {}
+Angled {}°  ({}, {})	傾斜 {}°  ({}, {})
+Clear	清除
+Save options	儲存選項
+Optimize for:	最佳化目標：
+Save presentation attributes (views)	儲存簡報屬性 (檢視)
+Use bitmap compression	使用點陣圖壓縮
+Use graphic object compression	使用圖形物件壓縮
+Save thumbnail	儲存縮圖
+Embed color profiles	內嵌色彩設定檔
+Embed fonts when saving files	儲存檔案時內嵌字型
+Drawings are saved as .cdr files: a compressed container with the drawing, its images, metadata (title, subject, rating), a thumbnail and, optionally, the fonts and color profiles it uses.	繪圖會儲存為 .cdr 檔案：這是一個壓縮容器，包含繪圖、其影像、中繼資料 (標題、主旨、評等)、縮圖，以及選擇性的所用字型和色彩設定檔。
+Getting started	開始使用
+On AnyVector start-up:	AnyVector 啟動時：
+Show New Document dialog box	顯示「新增文件」對話方塊
+Undo levels	復原層級
+Regular:	一般：
+Auto - switch between Tablet and Desktop workspaces	自動 - 在平板與桌面工作區之間切換
+When switching to:	切換至以下模式時：
+Desktop mode	桌面模式
+Tablet mode	平板模式
+Proof colors	校樣色彩
+Other controls	其他控制項
+Interruptible refresh	可中斷的重新整理
+Manual refresh	手動重新整理
+Auto-panning	自動平移
+Show tooltips	顯示工具提示
+Antialias bitmaps in enhanced view	在增強檢視中對點陣圖消除鋸齒
+Hide bounding box for curve tools	隱藏曲線工具的邊框
+Highlight outline for selected objects	醒目提示選取物件的外框
+Use normal view	使用一般檢視
+Use enhanced view	使用增強檢視
+Show page border	顯示頁面邊框
+Navigation	導覽
+Default action for mouse wheel:	滑鼠滾輪的預設動作：
+Scroll	捲動
+Zoom rate:	縮放速率：
+Alternate Zoom (Ctrl+Shift) rate:	替代縮放 (Ctrl+Shift) 速率：
+Constrain angle:	限制角度：
+Drawing precision:	繪圖精確度：
+decimal places	小數位數
+Double-click to edit bitmaps in an image editor	按兩下以在影像編輯器中編輯點陣圖
+Visibility of inactive objects	非作用中物件的可見度
+When editing objects, this setting controls the visibility of objects that are not currently active.	編輯物件時，此設定會控制目前非作用中物件的可見度。
+Double-click to activate Focus Mode	按兩下以啟動焦點模式
+Node size:	節點大小：
+Node shape	節點形狀
+Cusp:	尖突：
+Smooth:	平滑：
+Symmetrical:	對稱：
+Show curve direction when editing	編輯時顯示曲線方向
+Enable node tracking	啟用節點追蹤
+Color scheme:	色彩配置：
+Main color:	主要色彩：
+Secondary color:	次要色彩：
+Show highlight	顯示醒目提示
+Show node types in different colors	以不同色彩顯示節點類型
+Drag content inside PowerClip:	將內容拖曳至 PowerClip 內：
+PowerClip with content	含內容的 PowerClip
+Ignore PowerClip frame	忽略 PowerClip 框架
+Add content to PowerClip frame	將內容新增至 PowerClip 框架
+Replace existing content	取代現有內容
+Auto-center new content	自動將新內容置中
+When content is completely outside frame	當內容完全位於框架外時
+Always	一律
+New content is centered in the PowerClip frame based on this setting.	新內容會依據此設定在 PowerClip 框架中置中。
+Show lines in empty PowerClip frames:	在空白 PowerClip 框架中顯示線條：
+Always (including print and export)	一律 (包括列印和匯出)
+On screen only	僅在螢幕上
+Lines in empty PowerClip frames help you identify them; turn them off for a cleaner preview.	空白 PowerClip 框架中的線條可協助您辨識框架；關閉線條可獲得較簡潔的預覽。
+Quick Trace method:	快速描圖方法：
+Node	節點
+Intersection	交點
+Midpoint	中點
+Quadrant	象限
+Tangent	切線
+Perpendicular	垂直
+Text Baseline	文字基線
+Snap to objects (Alt+Z)	貼齊物件 (Alt+Z)
+Snap objects to themselves (Ctrl+Shift+H)	物件貼齊自身 (Ctrl+Shift+H)
+Snapping radius:	貼齊半徑：
+Show Snap location marks	顯示貼齊位置標記
+Show snapping mode in screen tip	在螢幕提示中顯示貼齊模式
+Modes	模式
+Deselect All	全部取消選取
+Backup	備份
+Back up original file before saving	儲存前備份原始檔案
+Back up to:	備份至：
+Same folder as original file	與原始檔案相同的資料夾
+Choose location:	選擇位置：
+Auto-backup	自動備份
+Back up every	備份間隔
+Temporary folder	暫存資料夾
+Save documents to previous versions	將文件儲存為舊版
+Ask when saving	儲存時詢問
+Keep appearance (suitable for limited edits)	保留外觀 (適合有限的編輯)
+Keep editable (may change appearance)	保持可編輯 (可能改變外觀)
+Set default version:	設定預設版本：
+Paragraph Text	段落文字
+Show handles while editing	編輯時顯示控點
+Auto-keyboard switching	自動切換鍵盤
+Match font when inserting text in another language	插入其他語言文字時符合字型
+Keyboard text increment:	鍵盤文字遞增量：
+Default text units:	預設文字單位：
+Show linking of text frames	顯示文字框的連結
+Show text frames	顯示文字框
+Expand and shrink paragraph text frames to fit text	擴大和縮小段落文字框以符合文字
+When editing, apply text frame formatting to:	編輯時，將文字框格式套用至：
+All linked frames	所有連結的文字框
+Selected frames only	僅選取的文字框
+Selected and subsequent frames	選取的文字框及其後續文字框
+Font list contents	字型清單內容
+Number of most recently used fonts displayed:	顯示的最近使用字型數目：
+⟳ Update fonts	⟳ 更新字型
+Enable remote fonts	啟用遠端字型
+{} font families installed.	已安裝 {} 個字型家族。
+Perform automatic spell checking	執行自動拼字檢查
+Show errors in:	顯示錯誤於：
+All text frames	所有文字框
+Selected text frame only	僅選取的文字框
+Spelling suggestions:	拼字建議：
+Add corrections to QuickCorrect	將更正新增至 QuickCorrect
+Show errors which have been ignored	顯示已忽略的錯誤
+Capitalize first letter of sentences	句首字母大寫
+Correct two initial, consecutive capitals	更正前兩個字母連續大寫
+Capitalize names of days	星期名稱首字大寫
+Automatically create hyperlinks when typing web addresses	輸入網址時自動建立超連結
+Change straight quotes to typographic quotes	將直引號變更為印刷引號
+Use straight quotation marks after numbers (e.g. 6')	數字後使用直引號 (例如 6')
+Single Quotes:	單引號：
+Open:	開始：
+Close:	結束：
+Double Quotes:	雙引號：
+Replacement text	取代文字
+Replace text while typing	輸入時取代文字
+Replace:	取代：
+With:	取代為：
+Apply at least three strokes with your stylus using a full range of pressure, and click Save.	請用手寫筆以完整的壓力範圍至少畫三筆，然後按一下「儲存」。
+Interface	介面
+WinTab - not installed	WinTab - 未安裝
+Real-Time Stylus - installed	Real-Time Stylus - 已安裝
+Real-Time Stylus is the Windows pen interface. WinTab is used by some older graphics tablets.	Real-Time Stylus 是 Windows 的手寫筆介面。部分較舊的繪圖板使用 WinTab。
+Show warnings when:	在下列情況顯示警告：
+Security Options...	安全性選項...
+Security Level	安全性層級
+Low: run all scripts	低：執行所有指令碼
+Medium: ask before running scripts from outside the Scripts folder	中：執行指令碼資料夾以外的指令碼前先詢問
+Scripts folder: {}	指令碼資料夾：{}
+Trust all installed script modules	信任所有已安裝的指令碼模組
+Delay Load scripting engine	延遲載入指令碼引擎
+Plug-ins Folders	外掛程式資料夾
+Add...	新增...
+Remove	移除
+Center dialog boxes	對話方塊置中
+Changes the size of the user interface elements, such as toolbars, dockers and dialog boxes.	變更使用者介面元素的大小，例如工具列、泊塢視窗和對話方塊。
+Theme:	佈景主題：
+Window border:	視窗框線：
+Desktop:	桌面：
+Global button size:	全域按鈕大小：
+Context menu bar	快顯功能表列
+Custom command bars are created from the Commands page.	自訂指令列是從「指令」頁面建立。
+Button properties	按鈕屬性
+Image only	僅影像
+Text only	僅文字
+Image and text	影像與文字
+Toolbar properties	工具列屬性
+Show title when toolbar is floating	工具列浮動時顯示標題
+Lock toolbars	鎖定工具列
+Menu bar mode	功能表列模式
+Normal mode	一般模式
+File mode	檔案模式
+Search	搜尋
+Select a command.	請選取指令。
+Caption:	標題：
+Icon:	圖示：
+Tooltip:	工具提示：
+Available on: {}	適用於：{}
+Current shortcut keys:	目前的快速鍵：
+New shortcut key:	新快速鍵：
+Press keys...	請按下按鍵...
+Click, then press keys	按一下，然後按下按鍵
+Conflicts with: {}	與下列項目衝突：{}
+Assign	指派
+Reset All	全部重設
+Automatically update the document palette	自動更新文件調色盤
+Palette options	調色盤選項
+Maximum palette rows when docked:	停駐時的調色盤最大列數：
+Color wells	色井
+Secondary mouse button	滑鼠次要按鈕
+Context menu	快顯功能表
+Set outline color	設定外框色彩
+When "Set outline color" is selected, right-clicking a color well sets the outline color; press and hold to open the context menu.	選取「設定外框色彩」時，在色井上按一下右鍵會設定外框色彩；按住則開啟快顯功能表。
+Crosshair cursor	十字游標
+Ctrl and Shift keys	Ctrl 和 Shift 鍵
+Traditional AnyVector: Ctrl = Constrain, Shift = Transform from center	傳統 AnyVector：Ctrl = 限制，Shift = 從中心變形
+Windows standard: Ctrl = Duplicate/Leave Original, Shift = Constrain	Windows 標準：Ctrl = 再製/保留原始物件，Shift = 限制
+Thickness:	粗細：
+Auto-reduce nodes of resulting objects	自動減少結果物件的節點
+Secondary mouse button:	滑鼠次要按鈕：
+Zoom relative to 1:1	相對於 1:1 縮放
+Center mouse when zooming with the mouse wheel	使用滑鼠滾輪縮放時將滑鼠置中
+Calibrate Zoom...	校準縮放...
+Calibrating the rulers makes 100% zoom match real-world size on your monitor.	校準尺規可讓 100% 縮放與螢幕上的實際大小相符。
+Current display: {} dpi ({}% scaling). Hold a ruler to the screen and adjust Size in Customization > Appearance until an inch matches.	目前顯示器：{} dpi ({}% 縮放)。請將尺放在螢幕上，並在 自訂 > 外觀 中調整大小，直到一英吋相符為止。
+Freehand smoothing:	手繪平滑：
+Corner threshold:	轉角臨界值：
+Straight line threshold:	直線臨界值：
+Auto-join:	自動連接：
+Drawing assistance delay:	繪圖輔助延遲：
+Corner type:	轉角類型：
+Scallop	扇形
+Chamfer	倒角
+Scale corners	縮放轉角
+Starting angle:	起始角度：
+Ending angle:	結束角度：
+Direction:	方向：
+Number of columns:	欄數：
+Number of rows:	列數：
+Number of revolutions:	圈數：
+Expansion:	擴展：
+Rows:	列：
+Columns:	欄：
+When you edit a table, pressing Tab lets you:	編輯表格時，按 Tab 鍵可以：
+Insert a tab character	插入定位字元
+Move to the next cell	移至下一個儲存格
+Tab order:	定位順序：
+Left to right, top to bottom	從左到右，從上到下
+Right to left, top to bottom	從右到左，從上到下
+Top to bottom, left to right	從上到下，從左到右
+Decimal	十進位
+Fractional	分數
+US Engineering	美式工程
+US Architectural	美式建築
+Precision:	精確度：
+Prefix:	前置字元：
+Suffix:	後置字元：
+Use geometric anchor points as snapping points	使用幾何錨點作為貼齊點
+Route distance from object:	路線與物件的距離：
+Enable background tasks	啟用背景工作
+User interface language:	使用者介面語言：
+Ask me the next time the application starts	下次啟動應用程式時詢問我
+Use hardware acceleration	使用硬體加速
+Art Styles	藝術風格
+Resampling	重新取樣
+JPEG Artifact Removal	JPEG 失真移除
+You need to restart the application to apply these changes.	您必須重新啟動應用程式才能套用這些變更。
+Spot color separations warning	特別色分色警告
+If more than 2 spot colors used	如果使用超過 2 種特別色
+Preview color default	預覽色彩預設值
+Auto (Simulate output)	自動 (模擬輸出)
+Preview separations default	預覽分色預設值
+Preview image default	預覽影像預設值
+On at startup	啟動時開啟
+Overprint black threshold (PS)	疊印黑色臨界值 (PS)
+Send large bitmaps in chunks	分段傳送大型點陣圖
+Bitmap output threshold (K)	點陣圖輸出臨界值 (K)
+Bitmap chunk overlap	點陣圖區段重疊
+32 pixels	32 像素
+Small fonts (Preflight)	小字型 (印前檢查)
+Image resolution too low (Preflight)	影像解析度過低 (印前檢查)
+Composite crop marks (PS)	複合裁切標記 (PS)
+Output on all plates	在所有印版上輸出
+PostScript 2 stroke adjust (PS)	PostScript 2 筆觸調整 (PS)
+On	開啟
+Many fonts (Preflight)	字型過多 (印前檢查)
+NT double download workaround (PS)	NT 重複下載因應措施 (PS)
+NT bookman download workaround (PS)	NT Bookman 下載因應措施 (PS)
+Render to bitmap resolution	演算為點陣圖解析度
+Automatic dpi	自動 dpi
+Print Style	列印樣式
+Driver Compatibility	驅動程式相容性
+Default print style:	預設列印樣式：
+AnyVector Defaults	AnyVector 預設值
+Print only current page	僅列印目前頁面
+Special settings	特殊設定
+Printing uses the Windows print system. Documents are sent as high-resolution page images through the system print dialog, which works with every installed printer driver.	列印使用 Windows 列印系統。文件會以高解析度頁面影像透過系統列印對話方塊傳送，適用於所有已安裝的印表機驅動程式。
+Adjustment Presets	調整預設集
+Bitmap Presets	點陣圖預設集
+Cloud	雲端
+Distortion	變形
+Export Presets	匯出預設集
+Image Lists	影像清單
+Images	影像
+Photo Frames	相框
+Trays	匣
+Vector Extrude	向量立體化
+Content Type	內容類型
+Location	位置
+Available file types:	可用的檔案類型：
+Raster	點陣
+TXT - ANSI Text (*.txt)	TXT - ANSI 文字 (*.txt)
+Animation	動畫
+GIF - CompuServe Bitmap (*.gif)	GIF - CompuServe 點陣圖 (*.gif)
+Move Up	上移
+Move Down	下移
+Active filters:	使用中的篩選器：
+Spot color palette:	特別色調色盤：
+AnyVector Spot Colors	AnyVector 特別色
+Color palette mapping	調色盤對應
+Choose the palette or library to use when you open or import files that contain spot colors included in multiple palettes.	選擇開啟或匯入含有多個調色盤中特別色的檔案時，要使用的調色盤或色彩庫。
+Spot colors:	特別色：
+AnyVector Spot Color Library	AnyVector 特別色庫
+Show Choose Color Palette dialog box	顯示「選擇調色盤」對話方塊
+Company:	公司：
+Your name is used as the author of new documents and comments.	您的名稱會作為新文件和註解的作者。
+Share anonymous usage statistics to help improve AnyVector	分享匿名使用統計資料，協助改善 AnyVector
+AnyVector stores your documents and settings on this computer only. AI Generate sends only your prompt to the AI provider when you use it.	AnyVector 只會將您的文件和設定儲存在這部電腦上。使用 AI 產生時，只會將您的提示傳送給 AI 供應商。
+API key variable:	API 金鑰變數：
+API key:	API 金鑰：
+A key is set; type a new one to replace it	已設定金鑰；輸入新金鑰即可取代
+Paste your API key	貼上您的 API 金鑰
+Save Key	儲存金鑰
+Remove Key	移除金鑰
+The key was removed from the {} environment variable.	已從 {} 環境變數中移除金鑰。
+The key was saved in the {} environment variable of your Windows account. AI Generate is ready.	金鑰已儲存在您 Windows 帳戶的 {} 環境變數中。AI 產生已可使用。
+An API key was found in this environment variable.	在此環境變數中找到 API 金鑰。
+AI Generate needs an API key. Paste it above and click Save Key, or set this environment variable yourself.	AI 產生需要 API 金鑰。請貼到上方並按一下「儲存金鑰」，或自行設定此環境變數。
+Save Key writes the key into this environment variable of your Windows account, right away. AnyVector never saves the key in its own settings or documents.	「儲存金鑰」會立即將金鑰寫入您 Windows 帳戶的此環境變數。AnyVector 絕不會將金鑰儲存在自己的設定或文件中。
+A reduced set of common tools for new users.	精簡的常用工具組合，適合新使用者。
+The standard layout with all toolbars, the toolbox and dockers.	包含所有工具列、工具箱和泊塢視窗的標準版面配置。
+Large controls for touch, stylus and dial use.	適合觸控、手寫筆和旋鈕使用的大型控制項。
+For book covers, ads, storyboards and illustration.	適用於書籍封面、廣告、分鏡腳本和插圖。
+For business cards, branding, packaging and multipage brochures or newsletters.	適用於名片、品牌識別、包裝，以及多頁手冊或電子報。
+Places features where Adobe Illustrator users expect them.	將功能放在 Adobe Illustrator 使用者預期的位置。
+Custom palette (*.xml)	自訂調色盤 (*.xml)
+Edit Palette	編輯調色盤
+Edit Color Styles	編輯色彩樣式
+Open Palette	開啟調色盤
+{} is not a palette file.	{} 不是調色盤檔案。
+New Palette	新增調色盤
+The palette could not be saved: {}	無法儲存調色盤：{}
+My Palettes	我的調色盤
+Palette Editor	調色盤編輯器
+Save Palette	儲存調色盤
+Save Palette As	調色盤另存新檔
+Edit Color	編輯色彩
+Add Color	新增色彩
+Delete Color	刪除色彩
+Reset Palette	重設調色盤
+Treat as:	視為：
+Components:	成分：
+Process	印刷色
+Spot	特別色
+Sort Colors        	排序色彩
+Reverse	反轉
+RGB value	RGB 值
+HSB value	HSB 值
+Palette Libraries	調色盤庫
+Lab Colors	Lab 色彩
+SVG Colors	SVG 色彩
+Web Safe Colors	網頁安全色彩
+256 shades of Gray	256 階灰色
+CMYK Palette	CMYK 調色盤
+Percent Gray	灰色百分比
+RGB Palette	RGB 調色盤
+Select Color	選取色彩
+Color viewers	色彩檢視器
+Color palettes	調色盤
+Show color names	顯示色彩名稱
+Swap Colors	交換色彩
+Eyedropper	滴管
+There is no printer installed. Add a printer in Windows Settings > Bluetooth & devices > Printers & scanners.	未安裝印表機。請在 Windows 設定 > 藍牙與裝置 > 印表機與掃描器 中新增印表機。
+Print to File	列印至檔案
+Print file (*.prn)	列印檔案 (*.prn)
+PostScript file (*.ps)	PostScript 檔案 (*.ps)
+Printing...	正在列印...
+Composite	複合
+Print Preview	預覽列印
+Mini preview	迷你預覽
+Apply	套用
+Destination	目的地
+Printer:	印表機：
+Preferences...	喜好設定...
+Page:	頁面：
+Paper:	紙張：
+{} × {} in.	{} × {} 英吋
+Print to file	列印至檔案
+Print range	列印範圍
+Copies	份數
+Number of copies:	份數：
+Collate	自動分頁
+Print style:	列印樣式：
+Print style (*.prs)	列印樣式 (*.prs)
+Save Settings As	設定另存新檔
+Print as bitmap:	列印為點陣圖：
+Print composite	列印複合
+Print separations	列印分色
+Separations need a PostScript printer.	分色需要 PostScript 印表機。
+This printer accepts RGB or grayscale color.	此印表機接受 RGB 或灰階色彩。
+Document overprints:	文件疊印：
+Trapping	補漏白
+Auto-spreading	自動擴張
+PostScript 3 In-RIP trapping	PostScript 3 In-RIP 補漏白
+Trapping and overprinting black need a PostScript printer.	補漏白和疊印黑色需要 PostScript 印表機。
+Image position and size	影像位置和大小
+As in document	與文件相同
+Fit to page	符合頁面
+Reposition artwork to:	將作品重新定位至：
+Scale:	比例：
+Tiling	拼貼
+Print tiled pages	列印拼貼頁面
+Tile overlap:	拼貼重疊：
+Tiling marks	拼貼標記
+Imposition layout:	拼版版面：
+Paper/film settings	紙張/底片設定
+Crop/fold marks	裁切/摺疊標記
+Exterior only	僅外部
+Calibration bars	校準列
+Color calibration bar	色彩校準列
+Print file information	列印檔案資訊
+Print page numbers	列印頁碼
+Print registration marks	列印對位標記
+Marks placement	標記位置
+Marks to objects	標記至物件
+No issues were found.	未發現任何問題。
+Save Print Style As...	列印樣式另存新檔...
+Delete Print Style	刪除列印樣式
+Print Options...	列印選項...
+To Fit	符合大小
+Close Print Preview	關閉預覽列印
+⚠ {} Issues	⚠ {} 個問題
+Page {} of {}	第 {} 頁，共 {} 頁
+   {}   {} × {} in.{}	   {}   {} × {} 英吋{}
+   tile {},{}	   拼貼 {},{}
+One-point	一點
+Two-point	兩點
+Three-point (worm's-eye)	三點 (仰視)
+Three-point (bird's-eye)	三點 (俯視)
+Orthographic	正投影
+Side	側面
+Edit Perspective Group	編輯透視群組
+Draw in Perspective	以透視繪製
+Perspective Group	透視群組
+Mirror lines:	鏡射線：
+Angle of rotation:	旋轉角度：
+Show symmetry lines	顯示對稱線
+Remove symmetry: keep the objects you drew	移除對稱：保留您繪製的物件
+Horizon:	地平線：
+Fill page	填滿頁面
+The perspective field covers the page	透視區域涵蓋頁面
+Bitmap image	點陣圖影像
+Rich Text Document	RTF 文件
+Text Document	文字文件
+Data	資料
+{} File	{} 檔案
+Insert Object	插入物件
+Create New	新建
+Create from File	從檔案建立
+Object Type:	物件類型：
+ It will be displayed as an icon.	 它將顯示為圖示。
+Inserts a new {} object into your document.{}	在文件中插入新的 {} 物件。{}
+Inserts the contents of the file as an object into your document so that you may activate it using the program which created it.{}	將檔案內容以物件形式插入文件中，以便您使用建立它的程式來啟動它。{}
+Inserts a picture of the file contents into your document. The picture will be linked to the file so that changes to the file will be reflected in your document.{}	在文件中插入檔案內容的圖片。圖片會連結至檔案，因此檔案的變更會反映在文件中。{}
+No object types are available.	沒有可用的物件類型。
+Could not create {}:\n{}	無法建立 {}：\n{}
+Could not read {}:\n{}	無法讀取 {}：\n{}
+The file is too large to embed; insert it as a link.	檔案太大，無法內嵌；請以連結方式插入。
+Could not open the object	無法開啟物件
+The linked file was not found:\n{}	找不到連結的檔案：\n{}
+Update Object	更新物件
+Commas	逗號
+Tabs	定位字元
+Paragraphs	段落
+Create New Table	建立新表格
+Number of Rows:	列數：
+Number of Columns:	欄數：
+Insert Columns	插入欄
+Left of the selection	選取範圍左側
+Right of the selection	選取範圍右側
+Insert Rows	插入列
+Above the selection	選取範圍上方
+Below the selection	選取範圍下方
+Where:	位置：
+Split Cells	分割儲存格
+Convert Text to Table	文字轉換為表格
+Create columns based on the following separator:	根據下列分隔符號建立欄：
+User defined:	使用者定義：
+A new row will be created for each paragraph.	每個段落將建立一個新列。
+Based on the current separator, the table will have {} rows and {} columns.	根據目前的分隔符號，表格將有 {} 列和 {} 欄。
+Convert Table to Text	表格轉換為文字
+Separate cell text with:	儲存格文字分隔方式：
+User Defined:	使用者定義：
+A new paragraph will be created for each row.	每一列將建立一個新段落。
+Create Table	建立表格
+Leader Settings	前置字元設定
+Character:	字元：
+Spacing:	間距：
+Tab Settings	定位點設定
+Tab location:	定位點位置：
+Alignment	對齊
+Leaders	前置字元
+Off	關閉
+Remove All	全部移除
+Leader Options...	前置字元選項...
+Column Settings	欄設定
+Gutter	欄間距
+Equal column width	等欄寬
+Frame Settings	框架設定
+Maintain current frame width	維持目前的框架寬度
+Automatically adjust frame width	自動調整框架寬度
+Bullets and Numbering	項目符號與編號
+List	清單
+Text frame to list:	文字框至清單：
+Use paragraph font	使用段落字型
+Font:	字型：
+Glyph:	字符：
+Size and spacing	大小與間距
+Baseline shift:	基線位移：
+Glyph to list text:	字符至清單文字：
+Align lines in a list item	對齊清單項目中的各行
+Drop Cap	首字放大
+Number of lines dropped:	首字放大行數：
+Space after drop cap:	首字放大後的間距：
+Use hanging indent style for drop cap	對首字放大使用凸排樣式
+Statistics	統計資料
+All Text In Document	文件中的所有文字
+Selected Text	選取的文字
+Statistics:	統計資料：
+Lines:	行數：
+Show style statistics	顯示樣式統計資料
+Custom Optional Hyphens	自訂選用連字號
+Automatically insert custom option hyphens:	自動插入自訂選用連字號：
+When typing	輸入時
+When pasting and importing text	貼上和匯入文字時
+Define custom option hyphens	定義自訂選用連字號
+Show all languages	顯示所有語言
+Word:	字詞：
+Hyphenated Word:	加連字號的字詞：
+Add Definition	新增定義
+Remove Definition	移除定義
+List of custom definitions:	自訂定義清單：
+Word	字詞
+Hyphenated Word	加連字號的字詞
+Apply to Selection	套用至選取範圍
+Auto Start	自動開始
+Beep on Misspelled	拼字錯誤時發出嗶聲
+Recheck All Text	重新檢查所有文字
+Check Words with Numbers	檢查含數字的字詞
+Check Duplicate Words	檢查重複字詞
+Check Irregular Capitalization	檢查不規則大小寫
+Prompt Before Auto Replacement	自動取代前提示
+Show Phonetic Suggestions	顯示語音建議
+Synonym	同義字
+Antonym	反義字
+Related Words	相關字詞
+Is a Type of	屬於某類型
+Has Types	具有類型
+Is a Part of	屬於某部分
+Has Parts	具有部分
+Example	範例
+Text Language	文字語言
+Spell Checker	拼字檢查程式
+Grammatik	Grammatik
+Thesaurus	同義字
+Look Up	查詢
+Options ⌄	選項 ⌄
+Auto Look Up	自動查詢
+Spelling Assist	拼字輔助
+     Language...	     語言...
+"{}" was not found.	找不到 "{}"。
+"{}" was not found. Did you mean:	找不到 "{}"。您是不是要找：
+{} (synonyms)	{} (同義字)
+Replace with:	取代為：
+Replacements:	取代字：
+Not found:	找不到：
+Spell check complete.	拼字檢查完成。
+New sentence:	新句子：
+Grammatik check complete.	Grammatik 檢查完成。
+Auto Replace	自動取代
+Skip Once	略過一次
+Skip All	全部略過
+Options             ⌄	選項             ⌄
+Suggest Spelling Replacements	建議拼字取代字
+Check:	檢查：
+Spell Check	拼字檢查
+Tag selected text as:	將選取的文字標記為：
+Text Encoding	文字編碼
+Select the encoding which makes your text readable:	選取讓文字可讀的編碼：
+Other encoding	其他編碼
+Encode	編碼
+Edit Text	編輯文字
+{} pt	{} pt
+Full justify	完全對齊
+Force justify	強制對齊
+Options  ⌄	選項  ⌄
+Monday	星期一
+Tuesday	星期二
+Wednesday	星期三
+Thursday	星期四
+Friday	星期五
+Saturday	星期六
+Sunday	星期日
+Fit Text to Frame	使文字適合框架
+Import Workspace	匯入工作區
+Workspace File (*.cdws)	工作區檔案 (*.cdws)
+Duplicate Workspace	再製工作區
+New Workspace	新增工作區
+Base on:	依據：
+Description:	描述：
+Set as Current	設為目前
+Delete Workspace	刪除工作區
+The selected workspace will be deleted	將刪除選取的工作區
+The Default workspace will be set as your current	將把預設工作區設為目前的工作區
+Export Workspace	匯出工作區
+Select the elements that you want to export:	選取要匯出的元素：
+Workspace exported to {}	已將工作區匯出至 {}
+The workspace could not be exported: {}	無法匯出工作區：{}
+Select the workspace elements that you want to import.	選取要匯入的工作區元素。
+Import selected elements into:	將選取的元素匯入至：
+New workspace	新工作區
+Current workspace	目前的工作區
+Workspace imported	已匯入工作區
+Duplicate...	再製...
+Description	描述
+Scale and Mirror	縮放與鏡射
+Relative Position	相對位置
+Angle:	角度：
+Relative Center	相對中心
+Scale portion	比例部分
+Click the two ends of the part of the object to measure	按一下要測量之物件部分的兩端
+Use anchor point	使用錨點
+Copies:	份數：
+Align left (L)	靠左對齊 (L)
+Align centers horizontally (E)	水平置中對齊 (E)
+Align right (R)	靠右對齊 (R)
+Align top (T)	靠上對齊 (T)
+Align centers vertically (C)	垂直置中對齊 (C)
+Align bottom (B)	靠下對齊 (B)
+Align to:	對齊至：
+Active objects	作用中物件
+Page edge	頁面邊緣
+Page center	頁面中心
+Specified point	指定點
+Select a point on the page	在頁面上選取一點
+Distribute left	靠左分佈
+Distribute centers horizontally	水平置中分佈
+Distribute right	靠右分佈
+Distribute spacing horizontally	水平間距分佈
+Distribute top	靠上分佈
+Distribute centers vertically	垂直置中分佈
+Distribute bottom	靠下分佈
+Distribute spacing vertically	垂直間距分佈
+Distribute to:	分佈至：
+Selection extent	選取範圍
+Page extent	頁面範圍
+First line baseline	第一行基線
+Last line baseline	最後一行基線
+Selection: Selection order	選取：選取順序
+Selection: Reversed selection order	選取：反向選取順序
+Selection: Top to bottom	選取：從上到下
+Selection: Bottom to top	選取：從下到上
+Selection: Left to right	選取：從左到右
+Selection: Right to left	選取：從右到左
+Area: Big to small	面積：從大到小
+Area: Small to big	面積：從小到大
+Height: Tall to short	高度：從高到矮
+Height: Short to tall	高度：從矮到高
+Width: Wide to narrow	寬度：從寬到窄
+Width: Narrow to wide	寬度：從窄到寬
+Uniform object spacing	均勻物件間距
+Uniform reference point spacing	均勻參考點間距
+Object origin	物件原點
+Progressive	漸進
+Jitter	抖動
+Progressive jitter	漸進抖動
+Selection:	選取：
+{} object(s) selected	已選取 {} 個物件
+Keep originals	保留原始物件
+Group all objects	群組所有物件
+Duplicate(s):	再製數：
+The number of extra copies of the objects fitted along the path.	沿路徑配置之物件的額外複本數目。
+Path:	路徑：
+Object used:	使用的物件：
+Subpaths:	子路徑：
+Treat as contiguous	視為連續
+Order:	順序：
+Distribution:	分佈：
+Reference:	參考：
+Origin:	原點：
+Rotation:	旋轉：
+Auto-rotate:	自動旋轉：
+Follow path	沿著路徑
+Reset:	重設：
+Ignore initial rotation	忽略初始旋轉
+Clear previously applied rotations before fitting objects to the path.	使物件適合路徑之前，先清除先前套用的旋轉。
+Modify rotation:	修改旋轉：
+Start angle:	起始角度：
+Spin angle:	自旋角度：
+Revolution(s):	圈數：
+Range (±):	範圍 (±)：
+No offset	無位移
+Spacing between objects	物件間距
+Horizontal Settings	水平設定
+Vertical Settings	垂直設定
+Up	上
+Distance:	距離：
+Front	前
+Leave original source object	保留原始來源物件
+Leave original target object	保留原始目標物件
+Place behind selected	置於選取物件之後
+Leave original object	保留原始物件
+Weld to	焊接至
+Intersect with	相交於
+Fillet	圓角
+      Radius:	      半徑：
+Chamfer Distance	倒角距離
+Extend	延伸
+Bézier Curve	貝茲曲線
+Gap tolerance:	間隙容許度：
+Radius:	半徑：
+Favorites	我的最愛
+Date Created	建立日期
+Date Modified	修改日期
+Get More	取得更多
+Single-Folder Selection Mode	單一資料夾選取模式
+Browse Recursively	遞迴瀏覽
+Add Folder	新增資料夾
+Reindex Folder	重新索引資料夾
+Remove from List	從清單中移除
+Local and network assets	本機與網路資產
+Cloud assets	雲端資產
+Linked assets	連結的資產
+Refresh List	重新整理清單
+No symbol libraries are linked to this document.	此文件沒有連結任何符號元件庫。
+To link a symbol library, click the Local and network assets button or the Cloud assets button, right-click a symbol library, and click Link to document.	若要連結符號元件庫，請按一下「本機與網路資產」按鈕或「雲端資產」按鈕，在符號元件庫上按一下右鍵，然後按一下「連結至文件」。
+All categories	所有類別
+Uncategorized	未分類
+Filter content	篩選內容
+Show vector images	顯示向量影像
+Show raster images	顯示點陣影像
+Browse folders to choose a content source.	瀏覽資料夾以選擇內容來源。
+Sort assets by name or date.	依名稱或日期排序資產。
+Remove from Favorites	從我的最愛移除
+Add to Favorites	新增至我的最愛
+Open Folder Location	開啟資料夾位置
+Link to document	連結至文件
+Import and link	匯入並連結
+Import at original position	在原始位置匯入
+Thumbnail size	縮圖大小
+Switch between list view and thumbnail preview.	在清單檢視與縮圖預覽之間切換。
+Name: {}\nFolder: {}\nSize: {} KB\nCreated: {}\nModified: {}	名稱：{}\n資料夾：{}\n大小：{} KB\n建立日期：{}\n修改日期：{}
+Custom Spot Colors	自訂特別色
+Spot Color {}	特別色 {}
+New Color Style	新增色彩樣式
+Color Style {}	色彩樣式 {}
+Lab	Lab
+Registration Color	對位色彩
+HSB - Hue Based	HSB - 以色相為準
+HSB - Brightness Based	HSB - 以亮度為準
+HSB - Wheel Based	HSB - 以色環為準
+CMYK:	CMYK：
+RGB:	RGB：
+HSB:	HSB：
+Lab:	Lab：
+Hex:	Hex：
+Show color viewers	顯示色彩檢視器
+Show color sliders	顯示色彩滑桿
+Show color palettes	顯示調色盤
+Reference color (top) and new color (bottom)	參考色彩 (上) 與新色彩 (下)
+No color	無色彩
+More color options	更多色彩選項
+Add to Custom Spot Colors	新增至自訂特別色
+Add to Document Palette	新增至文件調色盤
+Add to Color Styles Palette	新增至色彩樣式調色盤
+Auto-apply color	自動套用色彩
+Apply the color to the outline of the selected objects	將色彩套用至選取物件的外框
+Apply the color to the fill of the selected objects	將色彩套用至選取物件的填色
+2-Points Line	2 點直線
+Multi-Point Curve	多點曲線
+Set the angle interactively: click two points on the canvas	以互動方式設定角度：在畫布上按兩個點
+Set the origin interactively: click on the canvas	以互動方式設定原點：在畫布上按一下
+Set the width interactively: click two points on the canvas	以互動方式設定寬度：在畫布上按兩個點
+Set the height interactively: click two points on the canvas	以互動方式設定高度：在畫布上按兩個點
+Set proportional	設為等比例
+Set the corner interactively: click on the canvas	以互動方式設定轉角：在畫布上按一下
+Lower-left corner	左下角
+Upper-right corner	右上角
+Side length	邊長
+Set the side length interactively: click two points on the canvas	以互動方式設定邊長：在畫布上按兩個點
+Set the center interactively: click on the canvas	以互動方式設定中心：在畫布上按一下
+Start point	起點
+Set the start point interactively: click on the canvas	以互動方式設定起點：在畫布上按一下
+End point	終點
+Set the end point interactively: click on the canvas	以互動方式設定終點：在畫布上按一下
+Set the length interactively: click two points on the canvas	以互動方式設定長度：在畫布上按兩個點
+Create object	建立物件
+Replace object	取代物件
+Replace Object	取代物件
+Analogous - Accented	類比 - 強調
+Analogous	類比
+Complementary	互補
+Monochromatic	單色
+Tetrad	四色組
+Triad	三色組
+Custom starts a new harmony folder or removes a harmony rule.	「自訂」會開始新的和諧資料夾或移除和諧規則。
+Analogous - Accented adds the complement of the middle hue to the analogous hues.	「類比 - 強調」會將中間色相的互補色加入類比色相中。
+Analogous uses hues next to each other on the color wheel.	「類比」使用色環上相鄰的色相。
+Complementary uses hues opposite each other on the color wheel.	「互補」使用色環上相對的色相。
+Monochromatic uses a single hue.	「單色」使用單一色相。
+Tetrad uses two pairs of complementary hues.	「四色組」使用兩組互補色相。
+Triad uses three hues evenly spaced on the color wheel.	「三色組」使用色環上平均分佈的三個色相。
+Harmony Rule	和諧規則
+Harmony {}	和諧 {}
+Specify a new name for the color style.	指定色彩樣式的新名稱。
+Rename Color Style	重新命名色彩樣式
+View Options	檢視選項
+Use large swatches	使用大色樣
+Show empty arms	顯示空白臂
+Hint View	提示檢視
+Increase the size of color swatches.	增加色樣的大小。
+Show arms that do not contain colors.	顯示不含色彩的臂。
+Mark used color styles and objects associated with color styles.	標記已使用的色彩樣式，以及與色彩樣式相關聯的物件。
+Convert the selected color styles to a different color mode or to spot colors.	將選取的色彩樣式轉換為其他色彩模式或特別色。
+Convert to &RGB	轉換為 RGB(&R)
+Convert to &CMYK	轉換為 CMYK(&C)
+Convert to &Grayscale	轉換為灰階(&G)
+Convert to &Spot	轉換為特別色(&S)
+Drag here to add color styles.	拖曳至此處以新增色彩樣式。
+Drag here to add color styles and\ngenerate a harmony.	拖曳至此處以新增色彩樣式並\n產生和諧。
+Create a color style.	建立色彩樣式。
+&New Color Style	新增色彩樣式(&N)
+&New from Selected...	從選取的物件新增(&N)...
+New from &Document...	從文件新增(&D)...
+Create a color harmony.	建立色彩和諧。
+New Color &Harmony	新增色彩和諧(&H)
+&Duplicate Harmony	再製和諧(&D)
+New &Gradient	新增漸層(&G)
+Merge the selected color styles with the last selected color style.	將選取的色彩樣式與最後選取的色彩樣式合併。
+Swaps two selected color styles.	交換兩個選取的色彩樣式。
+Select all color styles that are not in use by the current document.	選取目前文件未使用的所有色彩樣式。
+Delete the selected color style or color harmony.	刪除選取的色彩樣式或色彩和諧。
+Import or export style sheets, or save current styles as the defaults for new documents.	匯入或匯出樣式表，或將目前樣式儲存為新文件的預設值。
+&Import Style Sheet...	匯入樣式表(&I)...
+&Export Style Sheet...	匯出樣式表(&E)...
+&Add Linked Style Sheet...	新增連結的樣式表(&A)...
+&Set as New Document Defaults...	設為新文件預設值(&S)...
+Harmony Editor	和諧編輯器
+Distribute colors evenly when changing harmony rule.	變更和諧規則時平均分佈色彩。
+Empty	空白
+Color Editor	色彩編輯器
+Edit Color Style	編輯色彩樣式
+Choose or remove a harmony rule to create or edit a color harmony.	選擇或移除和諧規則，以建立或編輯色彩和諧。
+Convert Color Styles	轉換色彩樣式
+New Color Styles	新增色彩樣式
+New Color Harmony	新增色彩和諧
+Duplicate Harmony	再製和諧
+{} (copy)	{} (複本)
+New Gradient	新增漸層
+Merge Color Styles	合併色彩樣式
+Swap Color Styles	交換色彩樣式
+Delete Color Styles	刪除色彩樣式
+The color styles are the defaults of new documents.	這些色彩樣式為新文件的預設值。
+Select an object to apply this effect.	請選取物件以套用此效果。
+Contour alignment:	輪廓圖對齊：
+Steps:	階數：
+Offset:	位移：
+Corner:	轉角：
+Color blend	色彩調和
+Outline:	外框：
+Fill:	填色：
+Object:	物件：
+Link acceleration	連結加速
+Number of steps	階數
+Fixed spacing	固定間距
+Apply to sizing	套用至大小調整
+Color Blend	色彩調和
+Direct color blend	直接色彩調和
+Clockwise color blend	順時針色彩調和
+Counterclockwise color blend	逆時針色彩調和
+Start object	起始物件
+End object	結束物件
+Soft edge	柔邊
+Bevel offset:	斜角位移：
+Shadow color:	陰影色彩：
+Light control	光線控制
+Light color:	光線色彩：
+Altitude:	高度：
+No Lens Effect	無透鏡效果
+Rate:	速率：
+Palette rotation:	調色盤旋轉：
+Amount:	量：
+Direct palette	直接調色盤
+Forward rainbow	順向彩虹
+Reverse rainbow	反向彩虹
+From:	從：
+To:	至：
+Swap colors	交換色彩
+Frozen	凍結
+Remove Face	移除面
+Viewpoint	視點
+Clear Lens	清除透鏡
+Add New Envelope	新增封套
+Choose Preset	選擇預設集
+Putty	油灰
+Small Back	後方小
+Small Front	前方小
+Big Back	後方大
+Big Front	前方大
+Back Parallel	後方平行
+Front Parallel	前方平行
+VP Locked To Object	消失點鎖定至物件
+VP Locked To Page	消失點鎖定至頁面
+Copy VP From...	複製消失點自...
+Shared Vanishing Point	共用消失點
+Extrude color	立體化色彩
+Extrusion Type:	立體化類型：
+Vanishing point:	消失點：
+Depth:	深度：
+Measure from:	測量起點：
+Page Origin	頁面原點
+Object center	物件中心
+Rotation values	旋轉值
+Use object fill	使用物件填色
+Drape fills	覆蓋填色
+Solid fill	實色填色
+Shade	陰影
+Use bevel	使用斜角
+Show bevel only	僅顯示斜角
+Use extrude fill for bevel	斜角使用立體化填色
+Find Objects	尋找物件
+Replace Objects	取代物件
+Find and Replace Text	尋找及取代文字
+Overprinted outlines	疊印外框
+Pantone fills	Pantone 填色
+Pantone outlines	Pantone 外框
+Scale with image off	關閉隨影像縮放
+Text with RGB fills	含 RGB 填色的文字
+Bitmap Effects	點陣圖效果
+Character	字元
+Paragraph	段落
+Style Set	樣式集
+Artistic Text	美工文字
+Callout	圖說文字
+Vector Pattern	向量圖樣
+Bitmap Pattern	點陣圖圖樣
+Two-color Pattern	雙色圖樣
+Fill with RGB color	以 RGB 色彩填色
+Overprinted Outline	疊印外框
+Pantone outline	Pantone 外框
+Drop Shadow	陰影
+Inner Shadow	內陰影
+Pantone fill	Pantone 填色
+Load a query	載入查詢
+Load Query	載入查詢
+AnyVector Find Query (*.vfind)	AnyVector 尋找查詢 (*.vfind)
+Save the query	儲存查詢
+Save Query	儲存查詢
+Names or Styles	名稱或樣式
+Search query	搜尋查詢
+Undefined	未定義
+Add Query...	新增查詢...
+&Object Types	物件類型(&O)
+&Fills	填色(&F)
+Ou&tlines	外框(&T)
+&Special Effects	特殊效果(&S)
+From Selection	從選取範圍
+Object name:	物件名稱：
+Match case	大小寫須相符
+Color model or palette	色彩模型或調色盤
+Outline properties	外框屬性
+Text properties	文字屬性
+Find:	尋找：
+Apply to:	套用至：
+Uniform fills	均勻填色
+Fountain fills	漸層填色
+2-color fills	雙色填色
+Mesh fills	網狀填色
+Monochrome bitmaps	單色點陣圖
+Outline width: find	外框寬度：尋找
+Outline width: replace	外框寬度：取代
+Font: find	字型：尋找
+Font: replace	字型：取代
+Size: find	大小：尋找
+Size: replace	大小：取代
+Find whole words only	僅尋找完整字詞
+Search range	搜尋範圍
+Find Previous	尋找上一個
+Find Next	尋找下一個
+No matching objects were found.	找不到相符的物件。
+Find All	全部尋找
+{} matching objects found	找到 {} 個相符的物件
+Replace All	全部取代
+Replaced in {} objects	已在 {} 個物件中取代
+Last Used:	上次使用：
+Click to use this stroke	按一下以使用此筆觸
+Stroke type:	筆觸類型：
+Brushes	筆刷
+Object Sprayer	物件噴灑器
+Open a stroke list	開啟筆觸清單
+Could not open the strokes: {}	無法開啟筆觸：{}
+Save the stroke of the selected object as a custom stroke	將選取物件的筆觸儲存為自訂筆觸
+Custom {}	自訂 {}
+Delete the custom stroke	刪除自訂筆觸
+Tolerance	容許度
+Enabled	已啟用
+Color selector: click a color in the bitmap	色彩選擇器：按一下點陣圖中的色彩
+Click a color in the bitmap.	請按一下點陣圖中的色彩。
+Edit color	編輯色彩
+Save mask	儲存遮罩
+Mask	遮罩
+Could not save the mask: {}	無法儲存遮罩：{}
+Open mask	開啟遮罩
+Could not open the mask: {}	無法開啟遮罩：{}
+Remove the color	移除色彩
+Tolerance:	容許度：
+Hide selected	隱藏選取的項目
+Show selected	顯示選取的項目
+Choose a folder of pictures for the library first.	請先為元件庫選擇圖片資料夾。
+Select the reference object first.	請先選取參考物件。
+Nothing to render.	沒有可轉譯的內容。
+Tiles	拼貼
+Blending	混合
+Reference	參考
+No objects selected	未選取物件
+1 object selected	已選取 1 個物件
+{} objects selected	已選取 {} 個物件
+Keep original source	保留原始來源
+Library	元件庫
+Images:	影像：
+Select Folder	選取資料夾
+The folder has no pictures AnyVector can read.	此資料夾中沒有 AnyVector 可讀取的圖片。
+Blending:	混合：
+Duplicates:	再製數：
+Composition:	構圖：
+Single bitmap	單一點陣圖
+Bitmap stack	點陣圖堆疊
+Bitmap array	點陣圖陣列
+Edges:	邊緣：
+Omit partial tiles	省略部分拼貼
+Stretch output	延展輸出
+Priority:	優先順序：
+Match document DPI	符合文件 DPI
+Custom DPI	自訂 DPI
+Custom tile dimensions	自訂拼貼尺寸
+Custom output dimensions	自訂輸出尺寸
+DPI:	DPI：
+Artwork:	作品：
+Tile:	拼貼：
+The selection has nothing to turn into tiles.	選取範圍沒有可轉換為拼貼的內容。
+{} tiles is too many: lower the density.	{} 個拼貼太多了：請降低密度。
+Density:	密度：
+Screen angle:	網屏角度：
+Limit colors:	限制色彩：
+Tracking	字距調整
+Method:	方法：
+Uniform (white matte)	均勻 (白色霧面)
+Size modulation 1 (opacity)	大小調變 1 (不透明度)
+Size modulation 2 (luminosity)	大小調變 2 (明度)
+Merge adjacent:	合併相鄰：
+Weld adjacent overlap	焊接相鄰重疊
+Click a closed curve to use as the tile	按一下要作為拼貼的封閉曲線
+Click a closed curve.	請按一下封閉曲線。
+Effect Center	效果中心
+Effect Color	效果色彩
+Turn the effect on or off	開啟或關閉效果
+Reset to the default settings	重設為預設設定
+Auto tone curve	自動色調曲線
+This effect has no settings.	此效果沒有設定。
+{} Settings	{} 設定
+Pick the center of the effect on the object	在物件上挑選效果的中心
+Unlock the two values	解除兩個值的鎖定
+Keep the two values equal	保持兩個值相等
+Presets	預設集
+Pick a color from the document	從文件中挑選色彩
+Grays	灰色
+Mesh	網格
+Range	範圍
+Select Frame	選取框架
+Inset	內縮
+Offset and inset	外移與內縮
+No margin	無邊界
+Show one section at a time	一次顯示一個區段
+Layout toolbar	版面工具列
+Display screen tips	顯示螢幕提示
+Extend along segment	沿線段延伸
+Snap to tick spacing	貼齊刻度間距
+Add angle	新增角度
+Delete angle	刪除角度
+Angled	傾斜
+Show at scale	依比例顯示
+Modify	修改
+Add Guideline	新增導線
+Modify Guideline	修改導線
+Unlock guideline	解除鎖定導線
+Delete guideline	刪除導線
+Unlock Guideline	解除鎖定導線
+Lock Guideline	鎖定導線
+Delete Guideline	刪除導線
+Note	便箋
+Arrow Markup	箭頭標記
+Highlighter	螢光筆
+Freehand Markup	手繪標記
+Rectangle Markup	矩形標記
+Ellipse Markup	橢圓形標記
+Show Annotations	顯示註解
+Show Resolved	顯示已解決
+Resolve All	全部解決
+Delete All	全部刪除
+{}  ·  Page {}	{}  ·  第 {} 頁
+Type a comment	輸入註解
+Reply	回覆
+Re-open	重新開啟
+Resolve	解決
+Actions ⏷	動作 ⏷
+Copy Text	複製文字
+User	使用者
+Comment	註解
+Resolve Comment	解決註解
+Delete Comment	刪除註解
+Delete All Comments	刪除所有註解
+Copy Data From	複製資料自
+Open spreadsheet	開啟試算表
+Open field editor	開啟欄位編輯器
+Copy data from	複製資料自
+Clear all fields	清除所有欄位
+Clear Object Data	清除物件資料
+Value	值
+Delete Symbol	刪除符號
+Insert Symbol	插入符號
+{} instances	{} 個實例
+Linked	已連結
+Local	本機
+Nested	巢狀
+Unnested	非巢狀
+Scale to world units	縮放至實際單位
+Delete unused symbols	刪除未使用的符號
+Linked Symbols	連結的符號
+Local Symbols	本機符號
+Network Symbols	網路符號
+Rename Symbol	重新命名符號
+Rename	重新命名
+Delete Unused Symbols	刪除未使用的符號
+In the document, select objects and click Add > Selection.	在文件中選取物件，然後按一下 新增 > 選取範圍。
+Or click Add > Current Page to add the current page.	或按一下 新增 > 目前頁面 以新增目前頁面。
+Or click Add > All Pages to add all pages.	或按一下 新增 > 所有頁面 以新增所有頁面。
+Select item	選取項目
+Destination folder	目的地資料夾
+Export Item	匯出項目
+Add Asset with These Settings	以這些設定新增資產
+&Selection	選取範圍(&S)
+&Current Page	目前頁面(&C)
+&All Pages	所有頁面(&A)
+Choose a default file format for new items.	選擇新項目的預設檔案格式。
+Could not export {}:\n{}	無法匯出 {}：\n{}
+Exported {} item(s).	已匯出 {} 個項目。
+{} objects	{} 個物件
+Open tray file	開啟匣檔案
+Insert from Tray	從匣插入
+Tray 1	匣 1
+Tray management	匣管理
+Add tray	新增匣
+Tray {}	匣 {}
+Delete tray	刪除匣
+Rename tray	重新命名匣
+Open tray file...	開啟匣檔案...
+Add to tray	新增至匣
+Remove from tray	從匣移除
+Behavior:	行為：
+Bookmark	書籤
+Bookmark:	書籤：
+Add descriptive information about a bookmark or anchor.	新增書籤或錨點的描述資訊。
+URL:	URL：
+Assign a hyperlink to the Web object or bookmark.	將超連結指派給 Web 物件或書籤。
+Hyperlink	超連結
+(no bookmarks)	(無書籤)
+Target:	目標：
+Target Frame	目標框架
+Alt Comments	替代註解
+Define hotspot using:	定義作用點的方式：
+Bounds	邊界
+Hotspot	作用點
+Cross-hatch:	交叉網紋：
+Background:	背景：
+Active rollover state:	作用中滑鼠變換狀態：
+Show or hide hotspots on objects.	顯示或隱藏物件上的作用點。
+Add linked file	新增連結的檔案
+Sync Linked File	同步連結的檔案
+Could not read the linked file:\n{}	無法讀取連結的檔案：\n{}
+Open source file	開啟來源檔案
+Sync linked file	同步連結的檔案
+Break link	中斷連結
+Refresh	重新整理
+Add linked file...	新增連結的檔案...
+Zoom One-Shot	單次縮放
+Zoom to Selected	縮放至選取的物件
+Zoom to All Objects	縮放至所有物件
+Add current view	新增目前檢視
+Delete current view	刪除目前檢視
+Page {}, {}%	第 {} 頁，{}%
+View-{}	檢視-{}
+File Open	開啟檔案
+File New	新增檔案
+Displays documents UNDO and REDO history	顯示文件的復原與重做歷程記錄
+New script	新增指令碼
+Load...	載入...
+Simple mode	簡易模式
+User Scripts	使用者指令碼
+Unload	卸載
+Could not rename {} to {}	無法將 {} 重新命名為 {}
+Run	執行
+Could not delete {}: {}	無法刪除 {}：{}
+Draw shapes	繪製形狀
+Use the Rectangle (F6), Ellipse (F7) and Polygon (Y) tools. Hold Ctrl to constrain and Shift to draw from the center.	使用矩形 (F6)、橢圓形 (F7) 和多邊形 (Y) 工具。按住 Ctrl 可限制形狀，按住 Shift 可從中心繪製。
+Edit curves	編輯曲線
+Select a curve and press F10 for the Shape tool. Double-click a curve to add a node; drag nodes and control handles.	選取曲線並按 F10 使用形狀工具。在曲線上按兩下可新增節點；拖曳節點和控制點。
+Click a palette swatch to fill, right-click to set the outline. Drag colors onto objects.	按一下調色盤色樣可填色，按一下右鍵可設定外框。可將色彩拖曳到物件上。
+Combine shapes	組合形狀
+Select two or more objects and use Weld, Trim or Intersect from the property bar or the Shape docker.	選取兩個以上的物件，然後使用屬性列或形狀泊塢視窗中的焊接、修剪或相交。
+Press F8 for the Text tool. Click to type artistic text, or drag a frame for paragraph text.	按 F8 使用文字工具。按一下可輸入美工文字，或拖曳出框架以輸入段落文字。
+File > Export (Ctrl+E) saves PNG, JPG, SVG, PDF and more. File > Publish to PDF creates print-ready PDFs.	檔案 > 匯出 (Ctrl+E) 可儲存為 PNG、JPG、SVG、PDF 等格式。檔案 > 發佈為 PDF 可建立可供印刷的 PDF。
+Describe what you want in the AI Generate docker; the result is editable vector artwork.	在 AI 產生泊塢視窗中描述您想要的內容；結果是可編輯的向量作品。
+P&roperties	屬性(&R)
+&Objects	物件(&O)
+&Pages	頁面(&P)
+Co&mments	註解(&M)
+Object &Data	物件資料(&D)
+Object St&yles	物件樣式(&Y)
+&Symbols	符號(&S)
+&Find and Replace	尋找及取代(&F)
+E&xport	匯出(&X)
+&AI Generate	AI 產生(&A)
+&Transform	變形(&T)
+Coord&inates	座標(&I)
+&Live Guides	即時導線(&L)
+&Guidelines	導線(&G)
+Align and Dis&tribute	對齊與分佈(&T)
+Fit Objects to Pat&h	使物件適合路徑(&H)
+St&ep and Repeat	逐步與重複(&E)
+S&hape	形狀(&H)
+Cor&ners	轉角(&N)
+&Join Curves	連接曲線(&J)
+Te&xt	文字(&X)
+Font Sa&mpler	字型取樣器(&M)
+&Glyphs	字符(&G)
+Artistic Me&dia	藝術筆(&D)
+Be&vel	斜角(&V)
+Bitmap &Mask	點陣圖遮罩(&M)
+&Blend	調和(&B)
+&Contour	輪廓圖(&C)
+&Envelope	封套(&E)
+E&xtrude	立體化(&X)
+&Lens	透鏡(&L)
+&Color	色彩(&C)
+&Palettes	調色盤(&P)
+Color St&yles	色彩樣式(&Y)
+Color Pr&oofing	色彩校樣(&O)
+&Assets	資產(&A)
+T&ray	匣(&R)
+&Links and Rollovers	連結與滑鼠變換(&L)
+So&urces	來源(&U)
+&Views	檢視(&V)
+&History	歷程記錄(&H)
+Scr&ipts	指令碼(&I)
+Lear&n	學習(&N)
+Open or create a document to use this docker.	請開啟或建立文件以使用此泊塢視窗。
+View Pages, Layers, and Objects	檢視頁面、圖層和物件
+View Layers and Objects	檢視圖層和物件
+Click the layer to copy the selected objects to.	按一下要將選取物件複製到的圖層。
+Click the layer to move the selected objects to.	按一下要將選取物件移動到的圖層。
+&Edit Across Layers	跨圖層編輯(&E)
+E&xpand to Show Selection	展開以顯示選取範圍(&X)
+&Keep Desktop Objects on Layer	將桌面物件保留在圖層上(&K)
+&Select Object to Activate Layer	選取物件以啟動圖層(&S)
+Show Object Properties	顯示物件屬性
+&Layer	圖層(&L)
+&New Layer	新增圖層(&N)
+New Master Layer (&all pages)	新增主圖層 (所有頁面)(&A)
+New Master Layer (&odd pages)	新增主圖層 (奇數頁)(&O)
+New Master Layer (&even pages)	新增主圖層 (偶數頁)(&E)
+&Delete Layer	刪除圖層(&D)
+Delete E&mpty Layers	刪除空白圖層(&M)
+&Move to Layer...	移至圖層(&M)...
+&Copy to Layer...	複製到圖層(&C)...
+&Page	頁面(&P)
+Show Master Layers on Pages	在頁面上顯示主圖層
+&View Pages, Layers, and Objects	檢視頁面、圖層和物件(&V)
+&View Layers and Objects	檢視圖層和物件(&V)
+&New Page	新增頁面(&N)
+&Insert Page...	插入頁面(&I)...
+&Duplicate Page...	再製頁面(&D)...
+D&elete Page	刪除頁面(&E)
+New Layer	新增圖層
+Layer {}	圖層 {}
+New Master Layer	新增主圖層
+Delete Layer	刪除圖層
+Delete Empty Layers	刪除空白圖層
+Guides	導線
+Master Page	主頁面
+Guides (all pages)	導線 (所有頁面)
+Desktop	桌面
+Show or hide	顯示或隱藏
+Lock or unlock	鎖定或解除鎖定
+Enable or disable printing and exporting	啟用或停用列印和匯出
+&Rename	重新命名(&R)
+&Delete	刪除(&D)
+Un&lock	解除鎖定(&L)
+&Lock	鎖定(&L)
+&Change Layer To	將圖層變更為(&C)
+&Local Layer	本機圖層(&L)
+Master Layer (&all pages)	主圖層 (所有頁面)(&A)
+Master Layer (&odd pages)	主圖層 (奇數頁)(&O)
+Master Layer (&even pages)	主圖層 (偶數頁)(&E)
+Change Layer To	將圖層變更為
+ (all pages)	 (所有頁面)
+ (odd pages)	 (奇數頁)
+ (even pages)	 (偶數頁)
+Layer Properties	圖層屬性
+Visibility	可見度
+Copy to Layer	複製到圖層
+Move to Layer	移至圖層
+Add Effects	新增效果
+Resize list	調整清單大小
+Single page view	單頁檢視
+Multipage view settings	多頁檢視設定
+New Page	新增頁面
+List view	清單檢視
+Graphic	圖形
+New Style Set	新增樣式集
+New Style	新增樣式
+Style Sets	樣式集
+Default Object Properties	預設物件屬性
+Import, export, or save defaults	匯入、匯出或儲存預設值
+The styles are the defaults of new documents.	這些樣式為新文件的預設值。
+&Outline	外框(&O)
+&Fill	填色(&F)
+&Transparency	透明度(&T)
+&Character	字元(&C)
+&Paragraph	段落(&P)
+F&rame	框架(&R)
+&Apply Style	套用樣式(&A)
+D&uplicate	再製(&U)
+&Select Objects Using Style	選取使用此樣式的物件(&S)
+Rename Style	重新命名樣式
+Duplicate Style	再製樣式
+Delete Style	刪除樣式
+Import Style Sheet	匯入樣式表
+AnyVector Style Sheet (*.vstyles)	AnyVector 樣式表 (*.vstyles)
+The style sheet could not be read.	無法讀取樣式表。
+Export Style Sheet	匯出樣式表
+The style sheet could not be saved.	無法儲存樣式表。
+Misc	其他
+Nature	自然
+People	人物
+Things	物品
+256 Colors	256 色
+TRUMATCH Colors	TRUMATCH 色彩
+DIC Colors	DIC 色彩
+FOCOLTONE Colors	FOCOLTONE 色彩
+SpectraMaster® Colors	SpectraMaster® 色彩
+{}% Black	{}% 黑
+Not included in AnyVector	未包含於 AnyVector
+New Folder	新增資料夾
+New Blank Palette	新增空白調色盤
+Edit Palette...	編輯調色盤...
+New palette	新增調色盤
+New empty Color Palette	新增空白調色盤
+New Palette from Selected objects	從選取的物件新增調色盤
+New Palette from the Document	從文件新增調色盤
+Untitled Palette	未命名的調色盤
+Relative colorimetric	相對色度
+Absolute colorimetric	絕對色度
+Perceptual	感應式
+(Document) {}	(文件) {}
+(Document) Dot Gain 20%	(文件) 網點擴大 20%
+Default profiles	預設設定檔
+(Default) sRGB IEC61966-2.1	(預設) sRGB IEC61966-2.1
+(Default) Dot Gain 20%	(預設) 網點擴大 20%
+CMYK output profiles	CMYK 輸出設定檔
+RGB output profiles	RGB 輸出設定檔
+Grayscale output profiles	灰階輸出設定檔
+Show the colors of the document as they will look in the proofing environment.	依校樣環境中的外觀顯示文件的色彩。
+Gamut warning	色域警告
+Out-of-gamut colors	超出色域的色彩
+Highlight the colors that the proofing environment cannot reproduce.	醒目提示校樣環境無法重現的色彩。
+Choose the color of the out-of-gamut overlay.	選擇超出色域覆蓋的色彩。
+Set the transparency of the out-of-gamut overlay.	設定超出色域覆蓋的透明度。
+Proof preset:	校樣預設集：
+Choose a proof preset.	選擇校樣預設集。
+Save all current proof settings as a proof preset. Out-of-gamut settings are not included in the proof preset.	將目前所有校樣設定儲存為校樣預設集。超出色域設定不包含在校樣預設集中。
+Proof preset {}	校樣預設集 {}
+Delete the selected proof preset.	刪除選取的校樣預設集。
+Simulate environment:	模擬環境：
+Choose the printer, press or display whose colors the soft proof simulates.	選擇螢幕校樣所模擬色彩的印表機、印刷機或顯示器。
+Preserve {} numbers	保留 {} 數值
+Keep the RGB color values of the document in the soft proof. RGB colors will not be converted from the document color profile to the color profile of the proofing environment.	在螢幕校樣中保留文件的 RGB 色彩值。RGB 色彩不會從文件色彩設定檔轉換為校樣環境的色彩設定檔。
+Keep the Grayscale color values of the document in the soft proof. Grayscale colors will not be converted from the document color profile to the color profile of the proofing environment.	在螢幕校樣中保留文件的灰階色彩值。灰階色彩不會從文件色彩設定檔轉換為校樣環境的色彩設定檔。
+Keep the CMYK color values of the document in the soft proof. CMYK colors will not be converted from the document color profile to the color profile of the proofing environment.	在螢幕校樣中保留文件的 CMYK 色彩值。CMYK 色彩不會從文件色彩設定檔轉換為校樣環境的色彩設定檔。
+The rendering intent determines how out-of-gamut colors are interpreted in the soft proof.	演算意圖決定螢幕校樣中如何解讀超出色域的色彩。
+Export soft proof...	匯出螢幕校樣...
+Save the soft proof as a JPG, TIFF, Adobe Portable Document Format (PDF), or Corel PHOTO-PAINT (CPT ) file. Note that the colors of the saved proof will be different from the colors of the active document.	將螢幕校樣儲存為 JPG、TIFF、Adobe Portable Document Format (PDF) 或 Corel PHOTO-PAINT (CPT) 檔案。請注意，儲存的校樣色彩會與作用中文件的色彩不同。
+Print proof...	列印校樣...
+Print the document with the colors of the proofing environment.	以校樣環境的色彩列印文件。
+Show or hide the description.	顯示或隱藏描述。
+Point to a control to learn how it affects colors in the file or when you should use it.	將游標指向控制項，即可了解它對檔案色彩的影響或使用時機。
+Export Soft Proof	匯出螢幕校樣
+{} proof.png	{} 校樣.png
+The soft proof could not be saved.	無法儲存螢幕校樣。
+Save as new	另存為新的
+Jump to the rectangle properties.	跳至矩形屬性。
+Jump to the ellipse properties.	跳至橢圓形屬性。
+Jump to the star properties.	跳至星形屬性。
+Jump to the polygon properties.	跳至多邊形屬性。
+Jump to the bitmap properties.	跳至點陣圖屬性。
+Jump to the symbol properties.	跳至符號屬性。
+Jump to the frame properties.	跳至框架屬性。
+Jump to the curve properties.	跳至曲線屬性。
+Jump to the outline properties.	跳至外框屬性。
+Jump to the fill properties.	跳至填色屬性。
+Jump to the transparency properties.	跳至透明度屬性。
+Jump to the effects properties.	跳至效果屬性。
+Jump to the Painterly brushstroke properties.	跳至繪畫筆刷筆觸屬性。
+Jump to the summary properties.	跳至摘要屬性。
+Show or hide the summary.	顯示或隱藏摘要。
+Show or hide all properties.	顯示或隱藏所有屬性。
+Summary	摘要
+Hairline	細線
+Line style\nChoose a style for the line or outline.	線條樣式\n選擇線條或外框的樣式。
+Default dashes	預設虛線
+Align dashes	對齊虛線
+Fixed dashes	固定虛線
+Dashes	虛線
+Miter limit:	斜接限制：
+Miter Limit	斜接限制
+Corners:	轉角：
+Miter corners	斜接轉角
+Line caps:	線條端點：
+Square cap	方形端點
+Round cap	圓形端點
+Extended square cap	延伸方形端點
+Line Caps	線條端點
+Outside outline	外部外框
+Centered outline	置中外框
+Inside outline	內部外框
+Outline Position	外框位置
+Arrowheads	箭頭
+Arrowhead settings\nModify arrowhead attributes such as size, offset, and rotation angle.	箭頭設定\n修改箭頭屬性，例如大小、位移和旋轉角度。
+Attributes...	屬性...
+Arrowhead	箭頭
+Share Attributes	共用屬性
+Calligraphy	書法
+Default nib	預設筆尖
+Behind fill	填色之後
+Behind Fill	填色之後
+Scale with object	隨物件縮放
+Scale Outline	縮放外框
+Overprint outline	疊印外框
+Start arrowhead\nAdd an arrowhead at the start of the line.	起始箭頭\n在線條的起點新增箭頭。
+End arrowhead\nAdd an arrowhead at the end of the line.	結束箭頭\n在線條的終點新增箭頭。
+No arrowhead	無箭頭
+Side 1:	側邊 1：
+Side 2:	側邊 2：
+Lock side widths	鎖定側邊寬度
+Total:	總計：
+More\nDisplay other fill types.	更多\n顯示其他填色類型。
+The object has no fill.	此物件沒有填色。
+Fill winding	填色纏繞
+Fill Winding	填色纏繞
+Overprint fill	疊印填色
+Transparency:	透明度：
+Blend direction:	調和方向：
+Linear color blend	線性色彩調和
+Arrangement:	排列：
+Reverse fill:	反轉填色：
+Acceleration:	加速：
+Smooth transition	平滑過渡
+New source	新增來源
+New source from document	從文件新增來源
+New source from file...	從檔案新增來源...
+Foreground:	前景：
+Swap	交換
+Transparency target:	透明度目標：
+Front color:	前景色彩：
+Back color:	背景色彩：
+Mirror tiles:	鏡射拼貼：
+Blend type:	調和類型：
+Radial blend	放射狀調和
+Linear blend	線性調和
+Edge match	邊緣相符
+Row offset	列位移
+Column offset	欄位移
+Pattern Fill	圖樣填色
+More\nDisplay other transparency types.	更多\n顯示其他透明度類型。
+Transparency Target	透明度目標
+All presets	所有預設集
+Bright Midtones	明亮中間調
+Dark Midtones	暗沉中間調
+High Contrast	高對比
+Low Contrast	低對比
+Effect Order	效果順序
+Add effect	新增效果
+Delete effect	刪除效果
+Delete Effect	刪除效果
+Points:	點數：
+Sides:	邊數：
+Sharpness:	銳利度：
+Text or web address	文字或網址
+QR Code Text	QR 碼文字
+Showing the {} state	正在顯示 {} 狀態
+Select it with the Impact tool to change it on the property bar	使用衝擊工具選取它，即可在屬性列上變更
+1 mirror line; double-click to edit	1 條鏡射線；按兩下以編輯
+{} mirror lines; double-click to edit	{} 條鏡射線；按兩下以編輯
+{} perspective; double-click to edit	{} 透視；按兩下以編輯
+{}; double-click to open it in its program	{}；按兩下以在其程式中開啟
+Brush Size	筆刷大小
+{} Objects Selected	已選取 {} 個物件
+Layer:	圖層：
+Multiple Objects	多個物件
+Selection dimension:	選取範圍尺寸：
+Selection center:	選取範圍中心：
+Rotation center:	旋轉中心：
+Wrap paragraph text:	段落文字繞圖：
+Contour - Flow Left	輪廓 - 靠左排列
+Contour - Flow Right	輪廓 - 靠右排列
+Contour - Straddle Text	輪廓 - 跨越式文字
+Square - Flows Left	正方形 - 靠左排列
+Square - Flows Right	正方形 - 靠右排列
+Square - Straddle Text	正方形 - 跨越式文字
+Square - Above/Below	正方形 - 上/下
+Text Wrap Offset	文字繞圖位移
+{} on {} layers	{} 位於 {} 個圖層
+{} dpi	{} dpi
+Choose a typeface for new or selected text.	選擇新文字或選取文字的字體。
+Show a single line of text.	顯示單行文字。
+Show a paragraph of text.	顯示一段文字。
+Show single line of text in increasing sizes.	以遞增大小顯示單行文字。
+Change the size of the sample text.	變更範例文字的大小。
+{} Normal	{} 一般
+Add another sample	新增其他範例
+Arrows	箭號
+Currency	貨幣
+Mathematical Symbols	數學符號
+Marks	標記
+Punctuation & Separators	標點符號與分隔符號
+Latin	拉丁
+Cyrillic	斯拉夫
+Arabic	阿拉伯
+Recent glyphs:	最近使用的字符：
+Shows the most recently used glyphs	顯示最近使用的字符
+Entire Font	整個字型
+Common	通用
+Find characters and glyphs for specific OpenType features, languages, categories, and more.	尋找特定 OpenType 功能、語言、類別等的字元和字符。
+Glyph ID:	字符 ID：
+Unicode:	Unicode：
+Keystroke:	按鍵：
+OpenType:	OpenType：
+Show all glyph variations.	顯示所有字符變化。
+Change the glyph size in the Glyph Preview area.	變更字符預覽區域中的字符大小。
+&Revert to style	還原為樣式(&R)
+Jump to the character properties.	跳至字元屬性。
+Jump to the paragraph properties.	跳至段落屬性。
+Display or hide the style indicators.	顯示或隱藏樣式指示器。
+&Justification...	對齊方式(&J)...
+&Tabs...	定位點(&T)...
+&Bullets and Numbering...	項目符號與編號(&B)...
+&Drop Cap...	首字放大(&D)...
+&Hyphenation Settings...	連字設定(&H)...
+Normal-Italic	一般-斜體
+Bold-Italic	粗體-斜體
+2 Color Pattern	雙色圖樣
+Single Thin	單細線
+Single Thin Word	單細字線
+Single Thick	單粗線
+Single Thick Word	單粗字線
+Double Thin	雙細線
+Double Thin Word	雙細字線
+Choose a font style for the text.	選擇文字的字型樣式。
+Font Style	字型樣式
+Adjust variable font properties.	調整可變字型屬性。
+Range Kerning	範圍字距微調
+Underline the text.	為文字加上底線。
+Choose the type of fill to apply to the characters.	選擇要套用至字元的填色類型。
+Text Fill	文字填色
+Text Color	文字色彩
+Background Fill	背景填色
+Choose the type of background fill for the characters.	選擇字元的背景填色類型。
+Set an outline width for the characters.	設定字元的外框寬度。
+Change the position of a selected character relative to the surrounding characters.	變更選取字元相對於周圍字元的位置。
+Superscript (auto)	上標 (自動)
+Subscript (auto)	下標 (自動)
+Superscript (synthesized)	上標 (合成)
+Subscript (synthesized)	下標 (合成)
+Change text capitalization.	變更文字大小寫。
+Caps	大寫
+All Caps	全部大寫
+Titling Caps	標題大寫
+Small Caps (synthesized)	小型大寫字母 (合成)
+All Small Caps	全部小型大寫字母
+Small Caps from Caps	從大寫轉成小型大寫字母
+Petite Caps	超小型大寫字母
+All Petite Caps	全部超小型大寫字母
+Unicase	單一大小寫
+Capital Spacing	大寫間距
+Alternate Annotation Forms	替代註解格式
+Character Strikethrough	字元刪除線
+Apply a line through the selected text.	在選取的文字上加上刪除線。
+Strikethrough	刪除線
+Character Overline	字元頂線
+Apply a line above the selected text.	在選取的文字上方加上線條。
+Let the outline print on top of the underlying colors.	讓外框印在下層色彩之上。
+Let the fill print on top of the underlying colors.	讓填色印在下層色彩之上。
+Number Styles	數字樣式
+Fraction	分數
+Ordinals	序數
+Stylistic Alternates	樣式替代字
+Font	字型
+Do not align text with the text frame.	不將文字與文字框對齊。
+Align text with the left side of the text frame.	將文字與文字框的左側對齊。
+Center text between the left and right sides of the text frame.	將文字置於文字框左右兩側之間的中央。
+Align text with the right side of the text frame.	將文字與文字框的右側對齊。
+Align text, excluding the last line, with the left and right sides of the text frame.	將最後一行以外的文字對齊文字框的左右兩側。
+Align text with both left and right sides of the text frame.	將文字同時對齊文字框的左右兩側。
+Line Spacing	行距
+% of Char. height	字元高度的 %
+% of Pt. size	點大小的 %
+Set the unit of measurement for spacing text.	設定文字間距的測量單位。
+Left indent	左縮排
+Before Paragraph Spacing	段落前間距
+First Line	第一行
+After Paragraph Spacing	段落後間距
+Right indent	右縮排
+Character Spacing	字元間距
+Word Spacing	字詞間距
+Add or remove bulleted-list formatting.	新增或移除項目符號清單格式。
+Add or remove numbered-list formatting.	新增或移除編號清單格式。
+Move the list item to the right.	將清單項目向右移。
+Move the list item to the left.	將清單項目向左移。
+Add or remove a drop cap.	新增或移除首字放大。
+Modify tab settings.	修改定位點設定。
+Use hyphenation	使用連字
+Text Direction:	文字方向：
+Make text flow from left to right	讓文字由左至右排列
+Make text flow from right to left	讓文字由右至左排列
+Align the text inside the text frame to the document's baseline grid.	將文字框內的文字對齊文件的基線格點。
+Choose a method of aligning text vertically.	選擇垂直對齊文字的方法。
+Number Of Columns	欄數
+Adjust the width of text frame columns equally.	平均調整文字框欄寬。
+Equal Column Width	等欄寬
+Modify column settings.	修改欄設定。
+Apply right-to-left text flow to the columns.	對欄套用由右至左的文字排列。
+Text Orientation:	文字方向：
+Changes the text to horizontal direction	將文字變更為水平方向
+Changes the text to vertical	將文字變更為垂直方向
+Acrylics	壓克力
+Airbrushes	噴槍
+Digital Effects	數位效果
+Fluid	流體
+Glazing	罩染
+Gouache	不透明水彩
+Inks	墨水
+Markers	麥克筆
+Oils	油彩
+Particles	粒子
+Pastels & Chalks	粉彩與粉筆
+Pencils	鉛筆
+Sponges	海綿
+Basic Paper	基本紙張
+Contour - Follow	輪廓 - 跟隨
+Text flow left	文字靠左排列
+Text flow right	文字靠右排列
+Straddle text	跨越式文字
+Above/below	上/下
+Center Distortion	變形置中
+Scale Variable Outline	縮放可變外框
+Rounded Rectangle	圓角矩形
+Object acceleration	物件加速
+Color acceleration	色彩加速
+Link accelerations	連結加速
+VP Locked to Object	消失點鎖定至物件
+VP Locked to Page	消失點鎖定至頁面
+Create Gap	建立間隙
+Automatic	自動
+Convert Outlines to Objects	外框轉換為物件
+Keep Outlines	保留外框
+Margins:	邊界：
+Fixed Direction	固定方向
+Use Default	使用預設值
+Specify	指定
+Parallel	平行
+Aligned Start and End	對齊起點與終點
+Random Start	隨機起點
+Random End	隨機終點
+Random Start and End	隨機起點與終點
+Min:	最小：
+Max:	最大：
+Wedge	楔形
+Tapered Both Ends	兩端漸細
+Tapered Start	起點漸細
+Table Fill	表格填色
+Cell Fill	儲存格填色
+Table Border	表格框線
+Automatically resize cells while typing	輸入時自動調整儲存格大小
+Separated cell borders	分隔儲存格框線
+Horizontal cell spacing:	水平儲存格間距：
+Vertical cell spacing:	垂直儲存格間距：
+Table Options	表格選項
+Top:	上：
+Bottom:	下：
+Left:	左：
+Right:	右：
+Lock margins	鎖定邊界
+Cell Margins	儲存格邊界
+Cell Size	儲存格大小
+Text wrap offset:	文字繞圖位移：
+Gap to object:	與物件的間隙：
+Extend beyond dimension line:	延伸超過尺度線：
+Clear All	全部清除
+Presets...	預設集...
+No presets saved	未儲存預設集
+Extrude Rotation	立體化旋轉
+Extrude Color	立體化色彩
+Extrude Bevel	立體化斜角
+Extrude Lighting	立體化光源
+Autofit Page	自動調整頁面
+Node Align	節點對齊
+Align horizontal	水平對齊
+Align vertical	垂直對齊
+Align control points	對齊控制點
+Align Nodes	對齊節點
+Lowest	最低
+Highest	最高
+Shape Recognition Level:	形狀辨識等級：
+Smart Smoothing Level:	智慧平滑等級：
+Taper	漸細
+Taper end	終點漸細
+Taper start	起點漸細
+Move	移動
+Outline Style	外框樣式
+Clear Block Shadow	清除區塊陰影
+Click an object twice for rotating/skewing; dbl-clicking tool selects all objects; Shift+click multi-selects; Alt+click digs; Ctrl+click selects in a group	在物件上按兩次可旋轉/傾斜；按兩下工具可選取所有物件；Shift+按一下可多重選取；Alt+按一下可選取下層物件；Ctrl+按一下可選取群組內物件
+Drag around objects to select them with a freehand marquee	在物件周圍拖曳，以手繪框選方式選取物件
+Drag to rotate, reflect, scale or skew the selection freely	拖曳以自由旋轉、反射、縮放或傾斜選取範圍
+Click a curve object to select it; drag nodes to reshape; double-click a curve to add a node	按一下曲線物件以選取；拖曳節點以重新塑形；在曲線上按兩下以新增節點
+Drag along the edge of a curve object to smooth it	沿著曲線物件的邊緣拖曳以使其平滑
+Drag along the outline to smear (distort) it	沿著外框拖曳以塗抹 (扭曲) 外框
+Click and hold over the edge of an object to add twirls	在物件邊緣上按住滑鼠以新增漩渦
+Click and hold to attract nodes; hold Ctrl to repel	按住滑鼠以吸引節點；按住 Ctrl 以排斥
+Drag across the edge of a curve to smudge it	拖曳過曲線的邊緣以進行沾染
+Drag along the outline of a curve to roughen it	沿著曲線的外框拖曳以使其粗糙
+Drag to define the area to keep; double-click inside or press Enter to crop	拖曳以定義要保留的區域；在內部按兩下或按 Enter 以裁剪
+Click or drag across an object to split it	在物件上按一下或拖曳以分割物件
+Click a segment between intersections to delete it	按一下交點之間的線段以將其刪除
+Drag over a selected object to erase parts of it	在選取的物件上拖曳以擦除部分內容
+Click to zoom in; right-click to zoom out; drag to zoom to an area	按一下以拉近；按一下右鍵以拉遠；拖曳以縮放至某個區域
+Drag to pan the drawing window	拖曳以平移繪圖視窗
+Drag to draw a freehand curve; click start and end points to draw a straight line	拖曳以繪製手繪曲線；按一下起點和終點以繪製直線
+Drag to draw a straight line between two points	拖曳以在兩點之間繪製直線
+Click to add straight segments; drag to add curved segments; double-click or press Enter to finish	按一下以新增直線線段；拖曳以新增曲線線段；按兩下或按 Enter 以完成
+Click to add points, drag to create curves; double-click to finish	按一下以新增點，拖曳以建立曲線；按兩下以完成
+Click to add control points; double-click to finish	按一下以新增控制點；按兩下以完成
+Click to add straight segments; drag to draw freehand; double-click to finish	按一下以新增直線線段；拖曳以手繪；按兩下以完成
+Drag to set the start and end points, then click to set the curvature	拖曳以設定起點和終點，然後按一下以設定曲率
+Sketch strokes; nearby strokes are merged into smooth curves	繪製草圖筆觸；鄰近的筆觸會合併為平滑曲線
+Draw a shape freehand; it is recognized and converted into a basic shape	手繪形狀；系統會辨識並將其轉換為基本形狀
+Drag to draw a brush, sprayer, calligraphic or pressure stroke	拖曳以繪製筆刷、噴灑器、書法或壓力筆觸
+Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center	拖曳以繪製矩形；Ctrl 可限制為正方形；Shift 可從中心繪製
+Drag to set the baseline, then click to set the height	拖曳以設定基線，然後按一下以設定高度
+Drag to draw an ellipse; Ctrl constrains to a circle; Shift draws from the center	拖曳以繪製橢圓形；Ctrl 可限制為圓形；Shift 可從中心繪製
+Drag to set the center line, then click to set the height	拖曳以設定中心線，然後按一下以設定高度
+Drag to draw a polygon; Ctrl constrains; Shift draws from the center	拖曳以繪製多邊形；Ctrl 可限制形狀；Shift 可從中心繪製
+Drag to draw a star; Ctrl constrains; Shift draws from the center	拖曳以繪製星形；Ctrl 可限制形狀；Shift 可從中心繪製
+Drag to draw a spiral	拖曳以繪製螺旋
+Drag to draw a grid of rectangles	拖曳以繪製矩形格線
+Choose a shape on the property bar and drag to draw it	在屬性列上選擇形狀，然後拖曳以繪製
+Click to add artistic text; drag to add paragraph text	按一下以新增美工文字；拖曳以新增段落文字
+Drag to draw a table	拖曳以繪製表格
+Drag to set the start and end points, then click to place the dimension line	拖曳以設定起點和終點，然後按一下以放置尺度線
+Click the vertex, then the two arms, then place the arc	按一下頂點，再按一下兩邊，然後放置弧線
+Click a segment to measure it	按一下線段以進行測量
+Drag to draw the leader, then click to set the shoulder and type the text	拖曳以繪製引線，然後按一下以設定轉折點並輸入文字
+Drag from one object to another to connect them	從一個物件拖曳至另一個物件以連接兩者
+Drag from one object to another to connect them with a right-angle line	從一個物件拖曳至另一個物件，以直角線連接兩者
+Drag from one object to another to connect them with a rounded right-angle line	從一個物件拖曳至另一個物件，以圓直角線連接兩者
+Click an object to show its anchors; drag anchors to move them	按一下物件以顯示其錨點；拖曳錨點以移動
+Drag from an object to add a drop shadow	從物件拖曳以新增陰影
+Drag inside an object to add an inner shadow	在物件內部拖曳以新增內陰影
+Drag from an object to add a block shadow	從物件拖曳以新增區塊陰影
+Drag from the center to the edge, or from the edge out, to add a contour	從中心拖曳至邊緣，或從邊緣向外拖曳，以新增輪廓圖
+Drag from one object to another to create a blend	從一個物件拖曳至另一個物件以建立調和
+Drag on an object to distort it (Push and Pull, Zipper or Twister)	在物件上拖曳以使其變形 (推拉、拉鍊或扭轉)
+Click an object, then drag the envelope nodes to shape it	按一下物件，然後拖曳封套節點以塑形
+Drag from an object to extrude it	從物件拖曳以使其立體化
+Click an object, then choose a transparency type on the property bar; drag to set a gradient transparency	按一下物件，然後在屬性列上選擇透明度類型；拖曳以設定漸層透明度
+Click to sample a color; then click an object to apply it (Shift+click applies to the outline)	按一下以取樣色彩；然後按一下物件以套用 (Shift+按一下會套用至外框)
+Click an object to copy its properties, then click other objects to apply them	按一下物件以複製其屬性，然後按一下其他物件以套用
+Click an object to select it; drag to set a gradient fill	按一下物件以選取；拖曳以設定漸層填色
+Click an object to create a mesh; click a patch and choose a color from the palette	按一下物件以建立網狀；按一下區塊並從調色盤選擇色彩
+Click inside an enclosed area to create a filled object	在封閉區域內按一下以建立已填色的物件
+Drag to paint with realistic brush strokes	拖曳以使用逼真的筆刷筆觸繪畫
+Click an outline to add a width node; drag a node away from the path to widen that side	按一下外框以新增寬度節點；將節點拖離路徑以加寬該側
+Impact	衝擊
+Drag to create an impact effect of radial or parallel lines	拖曳以建立放射狀或平行線的衝擊效果
+Create B-Spline	建立 B 雲形線
+Create Polyline	建立折線
+Create {}	建立{}
+Click a segment of a curve to measure it	按一下曲線的線段以進行測量
+Create Curve	建立曲線
+Delete Node	刪除節點
+Move Nodes	移動節點
+Edit Curve	編輯曲線
+Round Corners	圓角化轉角
+Edit Anchor	編輯錨點
+Drag a marquee around the area to make the pattern from	在要用來製作圖樣的區域周圍拖曳框選
+{} was added to the pattern fills	{} 已新增至圖樣填色
+Nothing to make a pattern from in that area	該區域中沒有可製作圖樣的內容
+Create Connector	建立連接器
+Create 2-Point Line	建立 2 點直線
+Move Guideline	移動導線
+Erase	擦除
+Create Line	建立線條
+Add Anchor	新增錨點
+A copy will be left at the original position	原始位置將保留一份複本
+Add Comment	新增註解
+No object was clicked	未按到任何物件
+Click a closed curve	請按一下封閉曲線
+Groups, text and impact effects can't be boundaries	群組、文字和衝擊效果不能作為邊界
+PowerClip Inside	PowerClip 內部
+The object clicked does not have that effect	按到的物件沒有該效果
+In Front Of	在此之前
+Behind	在此之後
+Click a PowerClip object	請按一下 PowerClip 物件
+Copy PowerClip From	複製 PowerClip 自
+The object clicked has no shape to take	按到的物件沒有可採用的形狀
+Select a text object, then click a curve	請選取文字物件，然後按一下曲線
+Sampled color R{} G{} B{}	已取樣色彩 R{} G{} B{}
+Attributes sampled; click objects to apply them	已取樣屬性；按一下物件以套用
+Apply Attributes	套用屬性
+Click inside an area enclosed by objects	在物件所圍成的區域內按一下
+Click a curve segment between intersections	按一下交點之間的曲線線段
+Impact Effect	衝擊效果
+Symmetry line	對稱線
+Perspective line	透視線
+Corner	轉角
+Page corner	頁面角落
+Guideline	導線
+Baseline grid	基線格點
+Dynamic guide	動態導線
+Margin guide	邊界導線
+Alignment guide	對齊導線
+Edit Table Text	編輯表格文字
+Create Text	建立文字
+Delete Text	刪除文字
+Click to place a note (Esc to cancel)	按一下以放置便箋 (按 Esc 取消)
+Drag to draw the markup (Esc to cancel)	拖曳以繪製標記 (按 Esc 取消)
+Click the frame object to place the selection inside it (Esc to cancel)	按一下框架物件以將選取範圍置入其中 (按 Esc 取消)
+Click the object to copy properties from (Esc to cancel)	按一下要從中複製屬性的物件 (按 Esc 取消)
+Click the object to copy the effect from (Esc to cancel)	按一下要從中複製效果的物件 (按 Esc 取消)
+Click the object to place the selection in front of (Esc to cancel)	按一下要將選取範圍置於其前面的物件 (按 Esc 取消)
+Click the object to place the selection behind (Esc to cancel)	按一下要將選取範圍置於其後面的物件 (按 Esc 取消)
+Click the PowerClip to copy the contents from (Esc to cancel)	按一下要從中複製內容的 PowerClip (按 Esc 取消)
+Click the path to fit the text to (Esc to cancel)	按一下要使文字適合的路徑 (按 Esc 取消)
+Click the object whose shape the envelope takes (Esc to cancel)	按一下要讓封套採用其形狀的物件 (按 Esc 取消)
+Click the object that makes the inner boundary (Esc to cancel)	按一下構成內部邊界的物件 (按 Esc 取消)
+Click the object that makes the outer boundary (Esc to cancel)	按一下構成外部邊界的物件 (按 Esc 取消)
+Click a color in the bitmap (Esc to cancel)	按一下點陣圖中的色彩 (按 Esc 取消)
+Click the closed curve to use as the tile (Esc to cancel)	按一下要作為拼貼的封閉曲線 (按 Esc 取消)
+Click the first point (Esc to cancel)	按一下第一個點 (按 Esc 取消)
+Click the second point (Esc to cancel)	按一下第二個點 (按 Esc 取消)
+Click a point on the page (Esc to cancel)	按一下頁面上的一點 (按 Esc 取消)
+Click the target object (Esc to cancel)	按一下目標物件 (按 Esc 取消)
+Click to add nodes, drag to set curve handles; double-click, Enter or Space to finish; click the first node to close	按一下以新增節點，拖曳以設定曲線控點；按兩下、Enter 或空格鍵以完成；按一下第一個節點以封閉
+Move the pointer to set the shape, then click	移動指標以設定形狀，然後按一下
+Click to place the dimension line and text	按一下以放置尺度線和文字
+Click the second and third points, then place the text	按一下第二和第三個點，然後放置文字
+Click to place the elbow, then click to place the text	按一下以放置轉折點，然後按一下以放置文字
+Double-click inside the crop area or press Enter to crop; Esc to cancel	在裁剪區域內按兩下或按 Enter 以裁剪；按 Esc 取消
+Click objects to apply the sampled color (right-click: outline); Shift+click to sample again	按一下物件以套用取樣的色彩 (按右鍵：外框)；Shift+按一下以重新取樣
+Click objects to apply the sampled attributes; Shift+click to sample again	按一下物件以套用取樣的屬性；Shift+按一下以重新取樣
+Reverse Direction	反轉方向
+Add Nodes	新增節點
+Delete Nodes	刪除節點
+Join Nodes	連接節點
+Break Curve	中斷曲線
+Extend Curve to Close	延伸曲線以封閉
+Extract Subpath	擷取子路徑
+Insert Text	插入文字
+Parallelogram	平行四邊形
+Trapezoid	梯形
+Triangle	三角形
+Right Triangle	直角三角形
+Diamond	菱形
+Pentagon	五邊形
+Hexagon	六邊形
+Octagon	八邊形
+Heart	心形
+Lightning	閃電
+Moon	月亮
+Ring	圓環
+Right Arrow	向右箭號
+Left Arrow	向左箭號
+Up Arrow	向上箭號
+Down Arrow	向下箭號
+Left-Right Arrow	左右箭號
+Up-Down Arrow	上下箭號
+Chevron	V 形
+Decision	決策
+Terminator	結束點
+Banner	橫幅
+Rectangle Callout	矩形圖說文字
+Round Callout	圓形圖說文字
+Con&vert To Paragraph Text	轉換為段落文字(&V)
+Con&vert To Artistic Text	轉換為美工文字(&V)
+&Break Dimension Apart	打散尺度(&B)
+inches	英吋
+millimeters	公釐
+centimeters	公分
+meters	公尺
+points	點
+pixels	像素
+feet	英呎
+yards	碼
+ciceros	西塞羅
+didots	迪多點
+Invalid file: {}	無效的檔案：{}
+Unsupported file type: {}	不支援的檔案類型：{}
+this drawing was saved by CorelDRAW 1 or 2, a format older than AnyVector can read. Open it in CorelDRAW 3 or later and save it again.	此繪圖是以 CorelDRAW 1 或 2 儲存，格式比 AnyVector 能讀取的還要舊。請在 CorelDRAW 3 或更新版本中開啟並重新儲存。
+not a CorelDRAW drawing	不是 CorelDRAW 繪圖
+the CorelDRAW drawing is empty or damaged	CorelDRAW 繪圖是空的或已損毀
+the CorelDRAW drawing has no pages	CorelDRAW 繪圖沒有頁面
+CDT - CorelDRAW Template (*.cdt;*.cdrt)	CDT - CorelDRAW 範本 (*.cdt;*.cdrt)
+{} came in with these differences from the original:	開啟 {} 時與原始檔案有以下差異：
+Left out: {} object(s) of a kind AnyVector doesn't read yet (type {})	已略過：{} 個 AnyVector 尚無法讀取之類型的物件 (類型 {})
+Texture "{}" isn't in CorelDRAW's texture library, so it's shown as a plain texture ({} fill(s))	材質「{}」不在 CorelDRAW 的材質庫中，因此以一般材質顯示 ({} 個填色)
+Text uses a font the drawing doesn't list (font {}), so it's shown in the default font ({} text(s))	文字使用了繪圖未列出的字型 (字型 {})，因此以預設字型顯示 ({} 段文字)
+The font "{}" isn't installed, so its text is shown in "{}"	未安裝字型「{}」，因此其文字以「{}」顯示
+Its settings are shown only: they can't be changed here yet.	僅顯示其設定：目前還無法在此變更。
+Please wait a minute	請稍候一分鐘
+Several reports were sent from this connection in the last minute. Try again in a minute.	過去一分鐘內已從此連線傳送多份報告。請在一分鐘後再試一次。
+AnyVector closes to install it as soon as the download finishes (it asks to save your drawings first).	下載完成後，AnyVector 會立即關閉以進行安裝 (會先要求您儲存繪圖)。
+Vector pattern "{}": {} object(s)	向量圖樣「{}」：{} 個物件
+Vector pattern: its objects are missing	向量圖樣：缺少其物件
+Texture fill: {}	材質填色：{}
+Color {}:	色彩 {}：
+Texture #:	材質編號：
+Setting {}:	設定 {}：
+This style isn't in CorelDRAW's texture library: its settings are shown only.	此樣式不在 CorelDRAW 的材質庫中：僅顯示其設定。
+PostScript fill {}	PostScript 填色 {}
+Convert to bitmap pattern	轉換為點陣圖圖樣
+Keep the tile's picture and forget what it is made of	保留拼貼的圖片，並捨棄其組成內容
+Overline	頂線
+Pattern	圖樣
+(Document)	(文件)
+(Default)	(預設)
+Light|theme	淺色
+Dark|theme	深色

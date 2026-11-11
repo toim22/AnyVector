@@ -3994,7 +3994,6 @@ Print file (*.prn)	Arquivo de impressão (*.prn)
 PostScript file (*.ps)	Arquivo PostScript (*.ps)
 Printing...	Imprimindo...
 Composite	Composto
-{} Issue{}	{} problema{}
 Print Preview	Visualizar impressão
 Mini preview	Minivisualização
 Apply	Aplicar
@@ -5127,7 +5126,8 @@ Text or web address	Texto ou endereço da Web
 QR Code Text	Texto do código QR
 Showing the {} state	Mostrando o estado {}
 Select it with the Impact tool to change it on the property bar	Selecione-o com a ferramenta Impacto para alterá-lo na barra de propriedades
-{} mirror line{}; double-click to edit	{} linha{} de espelhamento; clique duas vezes para editar
+1 mirror line; double-click to edit	1 linha de espelhamento; clique duas vezes para editar
+{} mirror lines; double-click to edit	{} linhas de espelhamento; clique duas vezes para editar
 {} perspective; double-click to edit	{} perspectiva; clique duas vezes para editar
 {}; double-click to open it in its program	{}; clique duas vezes para abri-lo no programa dele
 Brush Size	Tamanho do pincel
@@ -5555,5 +5555,19 @@ Its settings are shown only: they can't be changed here yet.	As configurações 
 Please wait a minute	Aguarde um minuto
 Several reports were sent from this connection in the last minute. Try again in a minute.	Várias mensagens foram enviadas desta conexão no último minuto. Tente de novo em um minuto.
 AnyVector closes to install it as soon as the download finishes (it asks to save your drawings first).	O AnyVector fecha para instalá-lo assim que o download terminar (pedindo antes para salvar seus desenhos).
+Vector pattern "{}": {} object(s)	Padrão vetorial "{}": {} objeto(s)
+Vector pattern: its objects are missing	Padrão vetorial: os objetos dele estão faltando
+Texture fill: {}	Preenchimento de textura: {}
+Color {}:	Cor {}:
+Texture #:	Textura nº:
+Setting {}:	Configuração {}:
+This style isn't in CorelDRAW's texture library: its settings are shown only.	Este estilo não está na biblioteca de texturas do CorelDRAW: só as configurações dele são mostradas.
+PostScript fill {}	Preenchimento PostScript {}
+Convert to bitmap pattern	Converter em padrão de bitmap
+Keep the tile's picture and forget what it is made of	Manter a imagem do ladrilho e esquecer do que ela é feita
+Overline	Sobrelinha
+Pattern	Padrão
+(Document)	(Documento)
+(Default)	(Padrão)
 Light|theme	Claro
 Dark|theme	Escuro

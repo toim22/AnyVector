@@ -13,8 +13,8 @@
 ; Updating an install made while the program was called Vector moves it from its "Vector" folder to an "AnyVector"
 ; folder and replaces the Vector shortcuts (see FindOldVector in [Code]).
 ;
-; The "Product language" page chooses the language AnyVector starts in (English or Brazilian Portuguese); the choice
-; is written to Software\AnyVector (Language, LanguageStamp) and AnyVector applies it once, at its next start. A silent
+; The "Product language" page chooses the language AnyVector starts in (one of CorelDRAW's 15, Windows' display
+; language preselected); the choice is written to Software\AnyVector (Language, LanguageStamp) and AnyVector applies it once, at its next start. A silent
 ; setup (the in-app update) leaves the language alone, and /RELAUNCH=1 starts AnyVector again when it is done.
 
 #define AppName      "AnyVector"
@@ -103,8 +103,6 @@ english.DirNotWritable=Setup cannot write to the selected folder:%n%n%1%n%nPleas
 english.LangCaption=Product language
 english.LangDescription=Choose the language AnyVector starts in.
 english.LangSub=AnyVector starts in this language after setup. You can change it later in Tools ▸ Options ▸ Global ▸ General ▸ User interface language.
-english.LangEnglish=English
-english.LangPortuguese=Portuguese (Brazilian)
 brazilianportuguese.AssocGroup=Tipos de arquivo:
 brazilianportuguese.AssocCdrOpenWith=Incluir o {#AppName} em "Abrir com" para desenhos .cdr
 brazilianportuguese.AssocCdrDefault=Abrir desenhos .cdr com o {#AppName} por padrão (substitui o programa atual do .cdr)
@@ -117,8 +115,6 @@ brazilianportuguese.DirNotWritable=Não é possível gravar na pasta escolhida:%
 brazilianportuguese.LangCaption=Idioma do produto
 brazilianportuguese.LangDescription=Escolha o idioma em que o AnyVector será iniciado.
 brazilianportuguese.LangSub=O AnyVector será iniciado neste idioma após a instalação. Você pode alterá-lo depois em Ferramentas ▸ Opções ▸ Global ▸ Geral ▸ Idioma da interface do usuário.
-brazilianportuguese.LangEnglish=Inglês
-brazilianportuguese.LangPortuguese=Português Brasileiro
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
@@ -197,6 +193,7 @@ Filename: "{app}\{#AppExe}"; Flags: nowait runasoriginaluser; Check: ShouldRelau
 var
   Relaunching: Boolean;
   LangPage: TInputOptionWizardPage;
+  LangCodes: TArrayOfString;
   OldVectorDir: String;
 
 // Before 0.1.0 the program was called Vector and was installed in a "Vector" folder. Updating such an install puts
@@ -244,26 +241,79 @@ begin
     Log('Kept the old folder ' + OldVectorDir + ' (it still has other files, or a file is in use)');
 end;
 
-// Product language: the language AnyVector starts in, the setup's own language unless the user picks the other one
+// Product language: the language AnyVector starts in, listed as in AnyVector (crates/anyvector/src/i18n.rs,
+// Lang::ALL), by its own name. Brazilian Portuguese when the setup runs in Portuguese, else Windows' display language.
+procedure AddLang(Code, Name: String);
+var
+  N: Integer;
+begin
+  N := GetArrayLength(LangCodes);
+  SetArrayLength(LangCodes, N + 1);
+  LangCodes[N] := Code;
+  LangPage.Add(Name);
+end;
+
+// the language of a Windows language id (as Lang::from_langid), English when AnyVector doesn't have it
+function LangOfId(Id: Integer): String;
+var
+  Sub: Integer;
+begin
+  Sub := Id shr 10;
+  case Id and $3FF of
+    $04: if (Sub = 1) or (Sub = 3) or (Sub = 5) then Result := 'zh-TW' else Result := 'zh-CN';
+    $05: Result := 'cs-CZ';
+    $07: Result := 'de-DE';
+    $0A: Result := 'es-ES';
+    $0C: Result := 'fr-FR';
+    $10: Result := 'it-IT';
+    $11: Result := 'ja-JP';
+    $13: Result := 'nl-NL';
+    $15: Result := 'pl-PL';
+    $16: Result := 'pt-BR';
+    $19: Result := 'ru-RU';
+    $1D: Result := 'sv-SE';
+    $1F: Result := 'tr-TR';
+  else
+    Result := 'en-US';
+  end;
+end;
+
 procedure InitializeWizard;
+var
+  I: Integer;
+  Pick: String;
 begin
   FindOldVector;
   LangPage := CreateInputOptionPage(wpSelectTasks, CustomMessage('LangCaption'), CustomMessage('LangDescription'),
-    CustomMessage('LangSub'), True, False);
-  LangPage.Add(CustomMessage('LangEnglish'));
-  LangPage.Add(CustomMessage('LangPortuguese'));
+    CustomMessage('LangSub'), True, True);
+  AddLang('en-US', 'English (United States)');
+  AddLang('zh-CN', '中文(简体)');
+  AddLang('zh-TW', '中文 (繁體)');
+  AddLang('cs-CZ', 'Čeština');
+  AddLang('nl-NL', 'Nederlands');
+  AddLang('fr-FR', 'Français');
+  AddLang('de-DE', 'Deutsch');
+  AddLang('it-IT', 'Italiano');
+  AddLang('ja-JP', '日本語');
+  AddLang('pl-PL', 'Polski');
+  AddLang('pt-BR', 'Português Brasileiro');
+  AddLang('ru-RU', 'Русский');
+  AddLang('es-ES', 'Español');
+  AddLang('sv-SE', 'Svenska');
+  AddLang('tr-TR', 'Türkçe');
   if ActiveLanguage = 'brazilianportuguese' then
-    LangPage.SelectedValueIndex := 1
+    Pick := 'pt-BR'
   else
-    LangPage.SelectedValueIndex := 0;
+    Pick := LangOfId(GetUILanguage);
+  LangPage.SelectedValueIndex := 0;
+  for I := 0 to GetArrayLength(LangCodes) - 1 do
+    if LangCodes[I] = Pick then
+      LangPage.SelectedValueIndex := I;
 end;
 
 function AppLanguage(Param: String): String;
 begin
-  if LangPage.SelectedValueIndex = 1 then
-    Result := 'pt-BR'
-  else
-    Result := 'en-US';
+  Result := LangCodes[LangPage.SelectedValueIndex];
 end;
 
 // a new stamp on every interactive setup, so AnyVector applies the choice once

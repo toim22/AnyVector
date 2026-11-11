@@ -274,7 +274,9 @@ impl AnyVectorApp {
     fn ui_impl(&mut self, ui: &mut egui::Ui) {
         let ctx = ui.ctx().clone();
         self.frame_count += 1;
-        crate::i18n::sync(&self.settings.language);
+        if crate::i18n::sync(&self.settings.language) {
+            crate::theme::install_fonts(&ctx);
+        }
         if let Some(old) = theme::sync(&ctx, &self.settings.theme_name) {
             theme::follow_desktop(&mut self.settings.desktop_color, old);
             for d in self.docs.iter_mut() {
