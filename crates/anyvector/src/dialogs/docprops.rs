@@ -239,7 +239,7 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
                 info.rating = r as u8;
             }
         });
-        egui::Frame::new().fill(theme::FIELD).stroke(egui::Stroke::new(1.0, theme::SEP)).inner_margin(6.0).show(ui, |ui| {
+        egui::Frame::new().fill(theme::FIELD()).stroke(egui::Stroke::new(1.0, theme::SEP())).inner_margin(6.0).show(ui, |ui| {
             ui.set_width(ui.available_width());
             egui::ScrollArea::vertical().id_salt("dp_stats").max_height(370.0).auto_shrink([false, false]).show(ui, |ui| {
                 ui.spacing_mut().item_spacing.y = 8.0;

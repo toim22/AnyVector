@@ -1264,9 +1264,36 @@ fn effects(name: &str) -> Option<&'static str> {
     })
 }
 
-/// Complete SVG document for an icon.
-pub fn svg(name: &str, color: &str) -> Option<String> {
-    let b = body(name)?;
+/// Gray shades of the dark-theme drawings and what they become on the Light theme's bars:
+/// background knock-outs turn light, bright fills dark, dim strokes lighter.
+const LIGHT_MAP: [(&str, &str); 8] = [
+    ("#262626", "#f0f0f0"),
+    ("#e8e8e8", "#2a2a2a"),
+    ("#6a6a6a", "#a8a8a8"),
+    ("#3a3a3a", "#d4d4d4"),
+    ("#2b2b2b", "#d4d4d4"),
+    ("#e0e0e0", "#363636"),
+    ("#d8d8d8", "#3e3e3e"),
+    ("#d0d0d0", "#464646"),
+];
+
+/// `body`, with its grays remapped for a light background when `light` is set.
+pub fn themed_body(name: &str, light: bool) -> Option<String> {
+    let mut b = body(name)?;
+    if light {
+        for (from, to) in LIGHT_MAP {
+            if b.contains(from) {
+                b = b.replace(from, to);
+            }
+        }
+    }
+    Some(b)
+}
+
+/// Complete SVG document for an icon, with its grays remapped for a light background when
+/// `light` is set (colored accents and white marks stay as they are).
+pub fn svg_for(name: &str, color: &str, light: bool) -> Option<String> {
+    let b = themed_body(name, light)?;
     let b = if color != G { b.replace(G, color) } else { b };
     Some(format!(
         r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="{color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">{b}</svg>"#
@@ -1311,7 +1338,7 @@ pub enum Tone {
 /// Texture cache for icons.
 #[derive(Default)]
 pub struct Icons {
-    cache: HashMap<(String, u32, Tone), Option<TextureHandle>>,
+    cache: HashMap<(String, u32, Tone, u8), Option<TextureHandle>>,
 }
 
 impl Icons {
@@ -1319,15 +1346,21 @@ impl Icons {
     pub fn get(&mut self, ctx: &egui::Context, name: &str, size: f32, tone: Tone) -> Option<egui::load::SizedTexture> {
         let ppp = ctx.pixels_per_point();
         let px = (size * ppp).round().max(1.0) as u32;
-        let key = (name.to_string(), px, tone);
+        let theme = crate::theme::index();
+        let key = (name.to_string(), px, tone, theme);
         if !self.cache.contains_key(&key) {
-            let color = match tone {
-                Tone::Normal => G,
-                Tone::Disabled => "#808080",
-                Tone::Bright => "#f0f0f0",
-                Tone::Dark => "#2b2b2b",
+            // Tone::Dark is already meant for a light background, in every theme
+            let light = crate::theme::is_light() && tone != Tone::Dark;
+            let color = match (tone, light) {
+                (Tone::Normal, false) => G,
+                (Tone::Normal, true) => "#3c3c3c",
+                (Tone::Disabled, false) => "#808080",
+                (Tone::Disabled, true) => "#a4a4a4",
+                (Tone::Bright, false) => "#f0f0f0",
+                (Tone::Bright, true) => "#141414",
+                (Tone::Dark, _) => "#2b2b2b",
             };
-            let tex = svg(name, color).and_then(|s| rasterize_svg(&s, px, px)).map(|mut img| {
+            let tex = svg_for(name, color, light).and_then(|s| rasterize_svg(&s, px, px)).map(|mut img| {
                 if tone == Tone::Disabled {
                     // Desaturate colored accents and compress them toward mid-gray, so a
                     // disabled icon reads as clearly dimmed but its shape stays legible on
@@ -1340,12 +1373,12 @@ impl Icons {
                         let af = a as f32 / 255.0;
                         // un-premultiply, take luminance, map 0..255 -> 58..198
                         let l = (r as f32 * 0.3 + g as f32 * 0.6 + b as f32 * 0.1) / af;
-                        let l = (l * 0.55 + 58.0).min(255.0);
+                        let l = if light { (l * 0.35 + 125.0).min(255.0) } else { (l * 0.55 + 58.0).min(255.0) };
                         let v = (l * af).round().min(a as f32) as u8;
                         *p = Color32::from_rgba_premultiplied(v, v, v, a);
                     }
                 }
-                ctx.load_texture(format!("icon:{name}:{px}:{tone:?}"), img, TextureOptions::LINEAR)
+                ctx.load_texture(format!("icon:{name}:{px}:{tone:?}:{theme}"), img, TextureOptions::LINEAR)
             });
             self.cache.insert(key.clone(), tex);
         }

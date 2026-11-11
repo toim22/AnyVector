@@ -272,7 +272,7 @@ fn script_editor(app: &mut AnyVectorApp, ctx: &egui::Context) {
                 }
             }
             ui.separator();
-            if ui.add(egui::Button::new(egui::RichText::new("▶ Run").color(Color32::WHITE)).fill(theme::ACCENT)).clicked() {
+            if ui.add(egui::Button::new(egui::RichText::new("▶ Run").color(Color32::WHITE)).fill(theme::PRIMARY())).clicked() {
                 run = true;
             }
             ui.separator();
@@ -285,7 +285,7 @@ fn script_editor(app: &mut AnyVectorApp, ctx: &egui::Context) {
             }
         });
         let avail = ui.available_height() - 120.0;
-        egui::Frame::new().fill(theme::FIELD).stroke(egui::Stroke::new(1.0, theme::SEP)).show(ui, |ui| {
+        egui::Frame::new().fill(theme::FIELD()).stroke(egui::Stroke::new(1.0, theme::SEP())).show(ui, |ui| {
             egui::ScrollArea::vertical().id_salt("script_code").max_height(avail).auto_shrink([false, false]).show(ui, |ui| {
                 let r = ui.add(egui::TextEdit::multiline(&mut st.code).code_editor().desired_width(f32::INFINITY).desired_rows(24).frame(egui::Frame::NONE));
                 if r.changed() {
@@ -294,9 +294,9 @@ fn script_editor(app: &mut AnyVectorApp, ctx: &egui::Context) {
             });
         });
         ui.label("Output:");
-        egui::Frame::new().fill(theme::FIELD).stroke(egui::Stroke::new(1.0, theme::SEP)).inner_margin(4.0).show(ui, |ui| {
+        egui::Frame::new().fill(theme::FIELD()).stroke(egui::Stroke::new(1.0, theme::SEP())).inner_margin(4.0).show(ui, |ui| {
             egui::ScrollArea::vertical().id_salt("script_out").max_height(60.0).auto_shrink([false, false]).show(ui, |ui| {
-                ui.label(egui::RichText::new(&st.output).monospace().color(theme::TEXT_DIM));
+                ui.label(egui::RichText::new(&st.output).monospace().color(theme::TEXT_DIM()));
             });
         });
         ui.with_layout(egui::Layout::bottom_up(egui::Align::Max), |ui| {

@@ -143,7 +143,7 @@ fn columns(ui: &mut Ui, st: &mut MergeState) {
                 }
             }
             if st.data.fields.is_empty() {
-                ui.label(egui::RichText::new("No columns yet.").color(theme::TEXT_DIM));
+                ui.label(egui::RichText::new("No columns yet.").color(theme::TEXT_DIM()));
             }
         });
         ui.add_space(6.0);
@@ -195,10 +195,10 @@ fn records(ui: &mut Ui, st: &mut MergeState) {
         });
     });
     let cols = st.data.fields.len();
-    egui::Frame::new().fill(theme::FIELD).stroke(egui::Stroke::new(1.0, theme::SEP)).inner_margin(6.0).show(ui, |ui| {
+    egui::Frame::new().fill(theme::FIELD()).stroke(egui::Stroke::new(1.0, theme::SEP())).inner_margin(6.0).show(ui, |ui| {
         ui.set_min_size(vec2(ui.available_width(), 300.0));
         if cols == 0 {
-            ui.label(egui::RichText::new("Add columns, or import a data source (CSV or text file).").color(theme::TEXT_DIM));
+            ui.label(egui::RichText::new("Add columns, or import a data source (CSV or text file).").color(theme::TEXT_DIM()));
             return;
         }
         match st.single {

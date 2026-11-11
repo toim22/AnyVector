@@ -16,11 +16,11 @@ pub fn icon_button_sized(icons: &mut Icons, ui: &mut Ui, icon: &str, tip: &str, 
     if ui.is_rect_visible(rect) {
         let p = ui.painter();
         if checked {
-            p.rect_filled(rect.shrink(1.0), 2.0, theme::PRESSED);
+            p.rect_filled(rect.shrink(1.0), 2.0, theme::PRESSED());
         } else if enabled && resp.is_pointer_button_down_on() {
-            p.rect_filled(rect.shrink(1.0), 2.0, theme::PRESSED);
+            p.rect_filled(rect.shrink(1.0), 2.0, theme::PRESSED());
         } else if enabled && resp.hovered() {
-            p.rect_filled(rect.shrink(1.0), 2.0, theme::HOVER);
+            p.rect_filled(rect.shrink(1.0), 2.0, theme::HOVER());
         }
         let tone = if !enabled {
             Tone::Disabled
@@ -45,9 +45,9 @@ pub fn icon_button_sized(icons: &mut Icons, ui: &mut Ui, icon: &str, tip: &str, 
 pub fn arrow_button(ui: &mut Ui, enabled: bool, tip: &str) -> Response {
     let (rect, resp) = ui.allocate_exact_size(vec2(14.0, 26.0), if enabled { Sense::click() } else { Sense::hover() });
     if enabled && resp.hovered() {
-        ui.painter().rect_filled(rect.shrink2(vec2(0.0, 1.0)), 2.0, theme::HOVER);
+        ui.painter().rect_filled(rect.shrink2(vec2(0.0, 1.0)), 2.0, theme::HOVER());
     }
-    let c = if enabled { theme::TEXT } else { theme::DISABLED };
+    let c = if enabled { theme::TEXT() } else { theme::DISABLED() };
     chevron(ui.painter(), rect.center(), 3.0, c);
     if tip.is_empty() {
         resp
@@ -76,7 +76,7 @@ pub fn vsep(ui: &mut Ui) {
     let h = ui.available_height().min(30.0);
     let (rect, _) = ui.allocate_exact_size(vec2(9.0, h), Sense::hover());
     let x = rect.center().x;
-    ui.painter().line_segment([pos2(x, rect.top() + 4.0), pos2(x, rect.bottom() - 4.0)], Stroke::new(1.0, theme::SEP));
+    ui.painter().line_segment([pos2(x, rect.top() + 4.0), pos2(x, rect.bottom() - 4.0)], Stroke::new(1.0, theme::SEP()));
 }
 
 /// Numeric field with unit suffix and stacked up/down chevrons (property bar style).
@@ -90,7 +90,7 @@ pub fn unit_field(ui: &mut Ui, id: egui::Id, value: &mut f64, unit: Unit, dpi: f
     }
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 0.0;
-        let te = egui::TextEdit::singleline(&mut text).id(id).desired_width(width).margin(vec2(4.0, 2.0)).text_color(if enabled { theme::TEXT } else { theme::DISABLED });
+        let te = egui::TextEdit::singleline(&mut text).id(id).desired_width(width).margin(vec2(4.0, 2.0)).text_color(if enabled { theme::TEXT() } else { theme::DISABLED() });
         let r = ui.add_enabled(enabled, te);
         if r.lost_focus() {
             if let Some(v) = Unit::parse_value(&text, unit, dpi) {
@@ -111,7 +111,7 @@ pub fn unit_field(ui: &mut Ui, id: egui::Id, value: &mut f64, unit: Unit, dpi: f
         let down = Rect::from_min_max(pos2(rect.min.x, rect.center().y), rect.max);
         let ru = ui.interact(up, id.with("up"), if enabled { Sense::click() } else { Sense::hover() });
         let rd = ui.interact(down, id.with("dn"), if enabled { Sense::click() } else { Sense::hover() });
-        let col = |r: &Response| if !enabled { theme::DISABLED } else if r.hovered() { Color32::WHITE } else { theme::TEXT_DIM };
+        let col = |r: &Response| if !enabled { theme::DISABLED() } else if r.hovered() { theme::STRONG() } else { theme::TEXT_DIM() };
         chevron_up(ui.painter(), up.center(), 3.0, col(&ru));
         chevron(ui.painter(), down.center(), 3.0, col(&rd));
         if ru.clicked() {
@@ -205,13 +205,13 @@ pub fn plain(text: &str) -> String {
 
 /// A combo-like dropdown button showing `text`; returns the response (open a popup on click).
 pub fn dropdown_button(ui: &mut Ui, text: &str, width: f32, enabled: bool) -> Response {
-    let c = if enabled { theme::TEXT } else { theme::DISABLED };
+    let c = if enabled { theme::TEXT() } else { theme::DISABLED() };
     // a longer (translated) caption widens the button so the arrow stays clear of it
     let g = ui.painter().layout_no_wrap(text.to_owned(), egui::FontId::proportional(12.5), c);
     let width = width.max(g.size().x + 26.0);
     let (rect, resp) = ui.allocate_exact_size(vec2(width, 22.0), if enabled { Sense::click() } else { Sense::hover() });
     let p = ui.painter();
-    p.rect_filled(rect, 2.0, if resp.hovered() && enabled { Color32::from_rgb(0x2a, 0x2a, 0x2a) } else { theme::FIELD });
+    p.rect_filled(rect, 2.0, if resp.hovered() && enabled { theme::gray(0x2a) } else { theme::FIELD() });
     p.galley(pos2(rect.left() + 6.0, rect.center().y - g.size().y / 2.0), g, c);
     chevron(p, pos2(rect.right() - 10.0, rect.center().y), 3.5, c);
     resp

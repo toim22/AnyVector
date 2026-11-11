@@ -76,14 +76,14 @@ pub fn palette_column(app: &mut AnyVectorApp, ui: &mut Ui, idx: usize) {
     // dock arrow ›
     let r = Rect::from_min_size(pos2(x0, y), vec2(full.width() - 2.0, 14.0));
     let resp = ui.interact(r, ui.scope_id().with("pal_menu"), Sense::click()).on_hover_text("Palette options");
-    crate::widgets::chevron_right(&p, r.center(), 3.0, if resp.hovered() { Color32::WHITE } else { theme::TEXT_DIM });
+    crate::widgets::chevron_right(&p, r.center(), 3.0, if resp.hovered() { theme::STRONG() } else { theme::TEXT_DIM() });
     egui::Popup::menu(&resp).show(|ui| palette_options_menu(app, ui));
     y += 16.0;
     // eyedropper
     let r = Rect::from_min_size(pos2(x0, y), vec2(full.width() - 2.0, 18.0));
     let resp = ui.interact(r, ui.scope_id().with("pal_eye"), Sense::click()).on_hover_text("Eyedropper: sample a color and apply it to the selection");
     if resp.hovered() || app.palettes.eyedropper {
-        p.rect_filled(r, 2.0, if app.palettes.eyedropper { theme::PRESSED } else { theme::HOVER });
+        p.rect_filled(r, 2.0, if app.palettes.eyedropper { theme::PRESSED() } else { theme::HOVER() });
     }
     if let Some(t) = app.icons.get(ui.ctx(), "eyedropper", 14.0, crate::icons::Tone::Normal) {
         p.image(t.id, Rect::from_center_size(r.center(), vec2(14.0, 14.0)), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
@@ -95,7 +95,7 @@ pub fn palette_column(app: &mut AnyVectorApp, ui: &mut Ui, idx: usize) {
     // scroll up
     let r = Rect::from_min_size(pos2(x0, y), vec2(full.width() - 2.0, 12.0));
     let up = ui.interact(r, ui.scope_id().with("pal_up"), Sense::click());
-    crate::widgets::chevron_up(&p, r.center(), 3.0, if app.palettes.scroll[idx] > 0 { theme::TEXT } else { theme::DISABLED });
+    crate::widgets::chevron_up(&p, r.center(), 3.0, if app.palettes.scroll[idx] > 0 { theme::TEXT() } else { theme::DISABLED() });
     if up.clicked() && app.palettes.scroll[idx] > 0 {
         app.palettes.scroll[idx] -= cols;
     }
@@ -167,13 +167,13 @@ pub fn palette_column(app: &mut AnyVectorApp, ui: &mut Ui, idx: usize) {
     let yb = full.bottom() - bottom_reserved + 2.0;
     let r = Rect::from_min_size(pos2(x0, yb), vec2(full.width() - 2.0, 12.0));
     let dn = ui.interact(r, ui.scope_id().with("pal_dn"), Sense::click());
-    crate::widgets::chevron(&p, r.center(), 3.0, if app.palettes.scroll[idx] < max_scroll { theme::TEXT } else { theme::DISABLED });
+    crate::widgets::chevron(&p, r.center(), 3.0, if app.palettes.scroll[idx] < max_scroll { theme::TEXT() } else { theme::DISABLED() });
     if dn.clicked() {
         app.palettes.scroll[idx] = (app.palettes.scroll[idx] + cols).min(max_scroll);
     }
     let r = Rect::from_min_size(pos2(x0, yb + 13.0), vec2(full.width() - 2.0, 12.0));
     let ex = ui.interact(r, ui.scope_id().with("pal_ex"), Sense::click()).on_hover_text("Expand palette");
-    p.text(r.center(), egui::Align2::CENTER_CENTER, "»", egui::FontId::proportional(11.0), if ex.hovered() { Color32::WHITE } else { theme::TEXT_DIM });
+    p.text(r.center(), egui::Align2::CENTER_CENTER, "»", egui::FontId::proportional(11.0), if ex.hovered() { theme::STRONG() } else { theme::TEXT_DIM() });
     if ex.clicked() {
         app.settings.palette_rows = if app.settings.palette_rows >= 3 { 1 } else { app.settings.palette_rows + 1 };
     }
@@ -237,7 +237,7 @@ pub fn document_palette(app: &mut AnyVectorApp, ui: &mut Ui) {
             egui::Align2::CENTER_CENTER,
             "Drag colors (or objects) here to store these colors with your document",
             egui::FontId::new(12.0, egui::FontFamily::Proportional),
-            if hovering_drop { Color32::WHITE } else { theme::TEXT_DIM },
+            if hovering_drop { theme::STRONG() } else { theme::TEXT_DIM() },
         );
         // italic look: draw via galley with italics is unavailable for system fonts; dim text matches.
     } else {
@@ -271,8 +271,8 @@ pub fn document_palette(app: &mut AnyVectorApp, ui: &mut Ui) {
     let r2 = Rect::from_center_size(pos2(full.right() - 13.0, full.center().y), vec2(12.0, 14.0));
     let b1 = ui.interact(r1, ui.scope_id().with("dp_menu"), Sense::click()).on_hover_text("Document palette options");
     let b2 = ui.interact(r2, ui.scope_id().with("dp_more"), Sense::click()).on_hover_text("Show more");
-    crate::widgets::chevron_right(&p, r1.center(), 3.0, if b1.hovered() { Color32::WHITE } else { theme::TEXT_DIM });
-    p.text(r2.center(), egui::Align2::CENTER_CENTER, "»", egui::FontId::proportional(11.0), if b2.hovered() { Color32::WHITE } else { theme::TEXT_DIM });
+    crate::widgets::chevron_right(&p, r1.center(), 3.0, if b1.hovered() { theme::STRONG() } else { theme::TEXT_DIM() });
+    p.text(r2.center(), egui::Align2::CENTER_CENTER, "»", egui::FontId::proportional(11.0), if b2.hovered() { theme::STRONG() } else { theme::TEXT_DIM() });
     egui::Popup::menu(&b1).show(|ui| {
         ui.set_min_width(220.0);
         if ui.button("Add Colors from Selection").clicked() {

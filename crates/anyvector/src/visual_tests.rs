@@ -1,5 +1,7 @@
 //! Headless renders of the main window for visual comparison with the design screenshots.
 //! Run with `cargo test -p anyvector visual -- --ignored`; images go to `target/visual/`.
+//! With `ANYVECTOR_VISUAL_THEME=Light` every render uses the Light theme instead and the images
+//! go to `target/visual/light/`.
 
 use crate::app::AnyVectorApp;
 use crate::commands::Cmd;
@@ -8,8 +10,16 @@ use kurbo::{Affine, Point};
 use vector_core::object::{EllipseKind, EllipseShape, PolygonKind, PolygonShape, RectShape, CornerType};
 use vector_core::{Color, Fill, ObjKind, Object, Style};
 
+/// The theme named by `ANYVECTOR_VISUAL_THEME`, if it is not the default Dark.
+fn visual_theme() -> Option<String> {
+    std::env::var("ANYVECTOR_VISUAL_THEME").ok().filter(|t| !t.trim().is_empty() && !t.eq_ignore_ascii_case("dark"))
+}
+
 fn out_dir() -> std::path::PathBuf {
-    let d = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/visual");
+    let mut d = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/visual");
+    if let Some(t) = visual_theme() {
+        d = d.join(t.to_lowercase());
+    }
     std::fs::create_dir_all(&d).unwrap();
     d
 }
@@ -19,6 +29,9 @@ fn harness<'a>() -> Harness<'a, AnyVectorApp> {
         let mut app = AnyVectorApp::new(cc);
         app.splash = None;
         app.pending.clear();
+        if let Some(t) = visual_theme() {
+            app.settings.theme_name = t;
+        }
         app
     });
     for _ in 0..3 {
@@ -579,12 +592,14 @@ fn visual_icon_sheet() {
     }
     let (cols, cw, ch) = (8usize, 190u32, 60u32);
     let (w, h) = (cols as u32 * cw, names.len().div_ceil(cols) as u32 * ch);
-    let mut svg = format!(r##"<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}"><rect width="{w}" height="{h}" fill="#262626"/>"##);
+    let light = visual_theme().is_some();
+    let (bg, fg) = if light { ("#f0f0f0", "#3c3c3c") } else { ("#262626", "#c4c4c4") };
+    let mut svg = format!(r##"<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}"><rect width="{w}" height="{h}" fill="{bg}"/>"##);
     for (i, n) in names.iter().enumerate() {
         let (x, y) = ((i % cols) as u32 * cw, (i / cols) as u32 * ch);
-        let body = crate::icons::body(n).unwrap_or_default();
+        let body = crate::icons::themed_body(n, light).unwrap_or_default().replace("#c4c4c4", fg);
         svg += &format!(
-            r##"<g transform="translate({} {}) scale(2)" fill="none" stroke="#c4c4c4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">{body}</g><text x="{}" y="{}" font-family="Segoe UI" font-size="12" fill="#c4c4c4">{n}</text>"##,
+            r##"<g transform="translate({} {}) scale(2)" fill="none" stroke="{fg}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">{body}</g><text x="{}" y="{}" font-family="Segoe UI" font-size="12" fill="{fg}">{n}</text>"##,
             x + 6,
             y + 6,
             x + 62,

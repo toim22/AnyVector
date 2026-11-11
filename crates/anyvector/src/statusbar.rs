@@ -22,7 +22,7 @@ pub fn status_bar(app: &mut AnyVectorApp, ui: &mut Ui) {
     let gr = Rect::from_center_size(pos2(full.left() + 12.0, cy), vec2(22.0, 22.0));
     let g = ui.interact(gr, ui.scope_id().with("sb_gear"), Sense::click());
     if g.hovered() {
-        ui.painter().rect_filled(gr, 2.0, theme::HOVER);
+        ui.painter().rect_filled(gr, 2.0, theme::HOVER());
     }
     icon(app, ui, "gear", gr, 16.0);
     egui::Popup::menu(&g).align(egui::RectAlign::TOP_START).show(|ui| {
@@ -38,10 +38,10 @@ pub fn status_bar(app: &mut AnyVectorApp, ui: &mut Ui) {
     let mode = app.settings.show_tool_hints as usize;
     let (first, second) = left_texts(app, mode);
     let p = ui.painter().clone();
-    p.text(pos2(full.left() + 32.0, cy), egui::Align2::LEFT_CENTER, &first, font.clone(), theme::TEXT);
-    let w1 = p.layout_no_wrap(first.clone(), font.clone(), theme::TEXT).size().x;
+    p.text(pos2(full.left() + 32.0, cy), egui::Align2::LEFT_CENTER, &first, font.clone(), theme::TEXT());
+    let w1 = p.layout_no_wrap(first.clone(), font.clone(), theme::TEXT()).size().x;
     let x2 = (full.left() + 156.0).max(full.left() + 32.0 + w1 + 24.0);
-    p.text(pos2(x2, cy), egui::Align2::LEFT_CENTER, &second, font.clone(), theme::TEXT);
+    p.text(pos2(x2, cy), egui::Align2::LEFT_CENTER, &second, font.clone(), theme::TEXT());
 
     // right side: fill · outline · │ · document colour settings
     let (fill, outline) = current_fill_outline(app);
@@ -49,13 +49,13 @@ pub fn status_bar(app: &mut AnyVectorApp, ui: &mut Ui) {
     let dc = Rect::from_center_size(pos2(right - 16.0, cy), vec2(24.0, 22.0));
     let dcr = ui.interact(dc, ui.scope_id().with("sb_dc"), Sense::click()).on_hover_text("Document Color Settings");
     if dcr.hovered() {
-        p.rect_filled(dc, 2.0, theme::HOVER);
+        p.rect_filled(dc, 2.0, theme::HOVER());
     }
     icon(app, ui, "doc_color", dc, 18.0);
     if dcr.clicked() {
         app.run(crate::commands::Cmd::ColorManagement);
     }
-    p.line_segment([pos2(right - 36.0, full.top() + 6.0), pos2(right - 36.0, full.bottom() - 6.0)], egui::Stroke::new(1.0, theme::SEP));
+    p.line_segment([pos2(right - 36.0, full.top() + 6.0), pos2(right - 36.0, full.bottom() - 6.0)], egui::Stroke::new(1.0, theme::SEP()));
     let ox = right - 238.0;
     let fx = right - 438.0;
     // fill
@@ -64,7 +64,7 @@ pub fn status_bar(app: &mut AnyVectorApp, ui: &mut Ui) {
     icon(app, ui, "fill_icon", Rect::from_center_size(pos2(fx + 10.0, cy), vec2(18.0, 18.0)), 16.0);
     let sw = Rect::from_center_size(pos2(fx + 33.0, cy), vec2(19.0, 19.0));
     swatch(&p, sw, &fill);
-    p.text(pos2(fx + 50.0, cy), egui::Align2::LEFT_CENTER, fit(&p, &fill_text(&fill), &font, 136.0), font.clone(), theme::TEXT);
+    p.text(pos2(fx + 50.0, cy), egui::Align2::LEFT_CENTER, fit(&p, &fill_text(&fill), &font, 136.0), font.clone(), theme::TEXT());
     if fresp.double_clicked() && app.has_doc() {
         app.run(crate::commands::Cmd::Docker(crate::dockers::DockerId::Properties));
     }
@@ -85,7 +85,7 @@ pub fn status_bar(app: &mut AnyVectorApp, ui: &mut Ui) {
         // the outline width in points, as the reference writes it
         Some((Some(c), w)) => format!("{}  {:.3} pt", color_text(c), w),
     };
-    p.text(pos2(ox + 50.0, cy), egui::Align2::LEFT_CENTER, fit(&p, &otext, &font, 136.0), font, theme::TEXT);
+    p.text(pos2(ox + 50.0, cy), egui::Align2::LEFT_CENTER, fit(&p, &otext, &font, 136.0), font, theme::TEXT());
     if oresp.double_clicked() && app.has_doc() {
         app.run(crate::commands::Cmd::Docker(crate::dockers::DockerId::Properties));
     }
@@ -107,7 +107,7 @@ fn color_text(c: vector_core::Color) -> String {
 
 /// `text` cut to `width` with "..." at the end, as the status bar fields show long values.
 fn fit(p: &egui::Painter, text: &str, font: &egui::FontId, width: f32) -> String {
-    let w = |s: &str| p.layout_no_wrap(s.to_string(), font.clone(), theme::TEXT).size().x;
+    let w = |s: &str| p.layout_no_wrap(s.to_string(), font.clone(), theme::TEXT()).size().x;
     if w(text) <= width {
         return text.to_string();
     }

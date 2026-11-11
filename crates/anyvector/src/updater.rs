@@ -368,7 +368,7 @@ fn release_notes(ui: &mut egui::Ui, r: &Release, room: f32) {
     let h = (ui.available_height() - room).clamp(36.0, 180.0);
     egui::ScrollArea::vertical().max_height(h).auto_shrink([false, true]).show(ui, |ui| {
         if r.notes.trim().is_empty() {
-            ui.label(RichText::new("This release has no notes.").color(theme::TEXT).size(12.0));
+            ui.label(RichText::new("This release has no notes.").color(theme::TEXT()).size(12.0));
         } else {
             notes_ui(ui, &r.notes);
         }
@@ -440,7 +440,7 @@ fn notes_ui(ui: &mut egui::Ui, md: &str) {
     let job = |runs: &[(String, bool)], size: f32, base: Color32| {
         let mut job = egui::text::LayoutJob::default();
         for (t, bold) in runs {
-            let color = if *bold { Color32::WHITE } else { base };
+            let color = if *bold { crate::theme::STRONG() } else { base };
             job.append(t, 0.0, egui::TextFormat { font_id: egui::FontId::proportional(size), color, ..Default::default() });
         }
         job
@@ -452,16 +452,16 @@ fn notes_ui(ui: &mut egui::Ui, md: &str) {
                 if i > 0 {
                     ui.add_space(6.0);
                 }
-                ui.add(egui::Label::new(job(runs, 13.0, Color32::WHITE)).wrap());
+                ui.add(egui::Label::new(job(runs, 13.0, crate::theme::STRONG())).wrap());
             }
             NoteBlock::Para(runs) => {
-                ui.add(egui::Label::new(job(runs, 12.0, theme::TEXT)).wrap());
+                ui.add(egui::Label::new(job(runs, 12.0, theme::TEXT())).wrap());
             }
             NoteBlock::Item(depth, runs) => {
                 ui.horizontal_top(|ui| {
                     ui.add_space(4.0 + 14.0 * *depth as f32);
-                    ui.label(RichText::new(if *depth == 0 { "•" } else { "◦" }).color(theme::TEXT).size(12.0));
-                    ui.add(egui::Label::new(job(runs, 12.0, theme::TEXT)).wrap());
+                    ui.label(RichText::new(if *depth == 0 { "•" } else { "◦" }).color(theme::TEXT()).size(12.0));
+                    ui.add(egui::Label::new(job(runs, 12.0, theme::TEXT())).wrap());
                 });
             }
         }

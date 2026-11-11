@@ -252,7 +252,7 @@ fn title(ui: &mut Ui, text: &str) {
 /// The title of a fill or transparency type, `add`: with Save as new at its right.
 fn subtitle(app: &mut AnyVectorApp, ui: &mut Ui, text: &str, add: bool) {
     ui.horizontal(|ui| {
-        ui.label(egui::RichText::new(text).color(theme::TEXT));
+        ui.label(egui::RichText::new(text).color(theme::TEXT()));
         if add {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.add_space(6.0);
@@ -283,11 +283,11 @@ fn row<R>(ui: &mut Ui, f: impl FnOnce(&mut Ui) -> R) -> R {
 /// A label in a column `w` points wide, right-aligned.
 fn rlabel(ui: &mut Ui, text: &str, w: f32, enabled: bool) {
     let (r, _) = ui.allocate_exact_size(vec2(w, 22.0), Sense::hover());
-    ui.painter().text(pos2(r.right() - 6.0, r.center().y), egui::Align2::RIGHT_CENTER, text, egui::FontId::proportional(12.5), if enabled { theme::TEXT } else { theme::DISABLED });
+    ui.painter().text(pos2(r.right() - 6.0, r.center().y), egui::Align2::RIGHT_CENTER, text, egui::FontId::proportional(12.5), if enabled { theme::TEXT() } else { theme::DISABLED() });
 }
 
 fn label(ui: &mut Ui, text: &str, enabled: bool) {
-    ui.label(egui::RichText::new(text).color(if enabled { theme::TEXT } else { theme::DISABLED }));
+    ui.label(egui::RichText::new(text).color(if enabled { theme::TEXT() } else { theme::DISABLED() }));
 }
 
 /// An icon button that shows whether it is on.
@@ -299,7 +299,7 @@ fn tbtn(app: &mut AnyVectorApp, ui: &mut Ui, icon: &str, tip: &str, enabled: boo
 fn fold(ui: &mut Ui, open: &mut bool) {
     let w = ui.available_width() - 14.0;
     let (r, resp) = ui.allocate_exact_size(vec2(w, 14.0), Sense::click());
-    let c = if resp.hovered() { Color32::WHITE } else { theme::TEXT_DIM };
+    let c = if resp.hovered() { theme::STRONG() } else { theme::TEXT_DIM() };
     if *open {
         crate::widgets::chevron_up(ui.painter(), r.center(), 3.5, c);
     } else {
@@ -331,7 +331,7 @@ fn plus_field_d(ui: &mut Ui, v: &mut f64, range: std::ops::RangeInclusive<f64>, 
     let (lo, hi) = (*range.start(), *range.end());
     let r = ui.add_sized(vec2(w, 22.0), egui::DragValue::new(v).range(range).speed(((hi - lo) / 200.0).max(0.1)).fixed_decimals(decimals).suffix(suffix));
     let c = pos2(r.rect.right() - 9.0, r.rect.center().y);
-    let col = if ui.is_enabled() { theme::TEXT } else { theme::DISABLED };
+    let col = if ui.is_enabled() { theme::TEXT() } else { theme::DISABLED() };
     ui.painter().line_segment([c - vec2(4.0, 0.0), c + vec2(4.0, 0.0)], Stroke::new(1.0, col));
     ui.painter().line_segment([c - vec2(0.0, 4.0), c + vec2(0.0, 4.0)], Stroke::new(1.0, col));
     r.changed()
@@ -340,10 +340,10 @@ fn plus_field_d(ui: &mut Ui, v: &mut f64, range: std::ops::RangeInclusive<f64>, 
 /// A preview box with a drop arrow (the pickers of fills and transparencies).
 fn picker_box(ui: &mut Ui, w: f32, h: f32, paint: impl FnOnce(&egui::Painter, Rect)) -> egui::Response {
     let (r, resp) = ui.allocate_exact_size(vec2(w + 18.0, h), Sense::click());
-    ui.painter().rect_filled(r, 2.0, Color32::from_rgb(0x33, 0x33, 0x33));
+    ui.painter().rect_filled(r, 2.0, theme::BUTTON());
     let inner = Rect::from_min_size(r.min, vec2(w, h));
     paint(ui.painter(), inner);
-    crate::widgets::chevron(ui.painter(), pos2(r.right() - 9.0, r.center().y), 3.0, theme::TEXT);
+    crate::widgets::chevron(ui.painter(), pos2(r.right() - 9.0, r.center().y), 3.0, theme::TEXT());
     resp
 }
 
@@ -496,7 +496,7 @@ pub fn properties(app: &mut AnyVectorApp, ui: &mut Ui) {
                 }
             }
             let (r, _) = ui.allocate_exact_size(vec2(1.0, 22.0), Sense::hover());
-            ui.painter().line_segment([r.center_top(), r.center_bottom()], Stroke::new(1.0, theme::SEP));
+            ui.painter().line_segment([r.center_top(), r.center_bottom()], Stroke::new(1.0, theme::SEP()));
             if tbtn(app, ui, if st.tabbed { "pr_tabbed" } else { "pr_all" }, "Show or hide all properties.", true, st.tabbed) {
                 st.tabbed = !st.tabbed;
             }
@@ -536,11 +536,11 @@ pub fn properties(app: &mut AnyVectorApp, ui: &mut Ui) {
             let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width() - 20.0, 20.0), Sense::click());
             let c = pos2(r.left() + 7.0, r.center().y);
             if st.folded[s as usize] {
-                crate::widgets::chevron(ui.painter(), c, 3.0, theme::TEXT);
+                crate::widgets::chevron(ui.painter(), c, 3.0, theme::TEXT());
             } else {
-                crate::widgets::chevron_up(ui.painter(), c, 3.0, theme::TEXT);
+                crate::widgets::chevron_up(ui.painter(), c, 3.0, theme::TEXT());
             }
-            ui.painter().text(pos2(r.left() + 16.0, r.center().y), egui::Align2::LEFT_CENTER, names[s as usize], egui::FontId::proportional(13.0), Color32::WHITE);
+            ui.painter().text(pos2(r.left() + 16.0, r.center().y), egui::Align2::LEFT_CENTER, names[s as usize], egui::FontId::proportional(13.0), theme::STRONG());
             if resp.clicked() {
                 st.folded[s as usize] = !st.folded[s as usize];
             }
@@ -647,8 +647,8 @@ fn outline(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, st: &mut PropsUi) {
             }
         }
         let (ar, aresp) = ui.allocate_exact_size(vec2(16.0, 22.0), Sense::click());
-        ui.painter().rect_filled(ar, 2.0, Color32::from_rgb(0x33, 0x33, 0x33));
-        crate::widgets::chevron(ui.painter(), ar.center(), 3.0, theme::TEXT);
+        ui.painter().rect_filled(ar, 2.0, theme::BUTTON());
+        crate::widgets::chevron(ui.painter(), ar.center(), 3.0, theme::TEXT());
         egui::Popup::menu(&aresp).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
             ui.set_min_width(80.0);
             if ui.selectable_label(!has, "None").clicked() {
@@ -684,9 +684,9 @@ fn outline(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, st: &mut PropsUi) {
     row(ui, |ui| {
         let styles = line_styles(app);
         let (r, resp) = ui.allocate_exact_size(vec2(170.0, 22.0), Sense::click());
-        ui.painter().rect_filled(r, 2.0, Color32::from_rgb(0x33, 0x33, 0x33));
-        dash_line(ui.painter(), Rect::from_min_max(r.min + vec2(6.0, 0.0), r.max - vec2(22.0, 0.0)), &ol.dash, theme::TEXT);
-        crate::widgets::chevron(ui.painter(), pos2(r.right() - 9.0, r.center().y), 3.0, theme::TEXT);
+        ui.painter().rect_filled(r, 2.0, theme::BUTTON());
+        dash_line(ui.painter(), Rect::from_min_max(r.min + vec2(6.0, 0.0), r.max - vec2(22.0, 0.0)), &ol.dash, theme::TEXT());
+        crate::widgets::chevron(ui.painter(), pos2(r.right() - 9.0, r.center().y), 3.0, theme::TEXT());
         let resp = resp.on_hover_text("Line style\nChoose a style for the line or outline.");
         let mut pick = None;
         egui::Popup::menu(&resp).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
@@ -694,9 +694,9 @@ fn outline(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, st: &mut PropsUi) {
                 for d in &styles {
                     let (rr, rs) = ui.allocate_exact_size(vec2(164.0, 16.0), Sense::click());
                     if *d == ol.dash || rs.hovered() {
-                        ui.painter().rect_filled(rr, 0.0, if *d == ol.dash { theme::ACCENT } else { theme::HOVER });
+                        ui.painter().rect_filled(rr, 0.0, if *d == ol.dash { theme::ACCENT() } else { theme::HOVER() });
                     }
-                    dash_line(ui.painter(), rr.shrink2(vec2(6.0, 0.0)), d, theme::TEXT);
+                    dash_line(ui.painter(), rr.shrink2(vec2(6.0, 0.0)), d, theme::TEXT());
                     if rs.clicked() {
                         pick = Some(d.clone());
                         ui.close();
@@ -769,9 +769,9 @@ fn outline(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, st: &mut PropsUi) {
             let (ar, _) = ui.allocate_exact_size(vec2(18.0, 22.0), Sense::hover());
             let c = ar.center();
             let d = if start { -1.0 } else { 1.0 };
-            ui.painter().line_segment([c - vec2(6.0, 0.0), c + vec2(6.0, 0.0)], Stroke::new(1.5, theme::TEXT));
-            ui.painter().line_segment([c + vec2(6.0 * d, 0.0), c + vec2(2.0 * d, -4.0)], Stroke::new(1.5, theme::TEXT));
-            ui.painter().line_segment([c + vec2(6.0 * d, 0.0), c + vec2(2.0 * d, 4.0)], Stroke::new(1.5, theme::TEXT));
+            ui.painter().line_segment([c - vec2(6.0, 0.0), c + vec2(6.0, 0.0)], Stroke::new(1.5, theme::TEXT()));
+            ui.painter().line_segment([c + vec2(6.0 * d, 0.0), c + vec2(2.0 * d, -4.0)], Stroke::new(1.5, theme::TEXT()));
+            ui.painter().line_segment([c + vec2(6.0 * d, 0.0), c + vec2(2.0 * d, 4.0)], Stroke::new(1.5, theme::TEXT()));
             ui.add_space(4.0);
             let cur = if start { ol.start_arrow } else { ol.end_arrow };
             arrow_combo(app, ui, cur, start, ol.share_arrows);
@@ -913,10 +913,10 @@ fn miter_from_degrees(deg: f64) -> f64 {
 /// The arrowhead list: a grid of the arrowheads (the first one: none).
 fn arrow_combo(app: &mut AnyVectorApp, ui: &mut Ui, cur: Option<ArrowHead>, start: bool, share: bool) {
     let (r, resp) = ui.allocate_exact_size(vec2(64.0, 22.0), Sense::click());
-    ui.painter().rect_filled(r, 2.0, Color32::from_rgb(0x33, 0x33, 0x33));
+    ui.painter().rect_filled(r, 2.0, theme::BUTTON());
     let a = Rect::from_min_max(r.min + vec2(4.0, 0.0), r.max - vec2(18.0, 0.0));
     paint_arrow(ui.painter(), a, cur, start);
-    crate::widgets::chevron(ui.painter(), pos2(r.right() - 9.0, r.center().y), 3.0, theme::TEXT);
+    crate::widgets::chevron(ui.painter(), pos2(r.right() - 9.0, r.center().y), 3.0, theme::TEXT());
     let tip = if start { "Start arrowhead\nAdd an arrowhead at the start of the line." } else { "End arrowhead\nAdd an arrowhead at the end of the line." };
     let resp = resp.on_hover_text(tip);
     let choices = crate::dialogs::object::arrow_choices(app);
@@ -927,7 +927,7 @@ fn arrow_combo(app: &mut AnyVectorApp, ui: &mut Ui, cur: Option<ArrowHead>, star
             for (i, (a, name)) in all.iter().enumerate() {
                 let (rr, rs) = ui.allocate_exact_size(vec2(34.0, 24.0), Sense::click());
                 if *a == cur || rs.hovered() {
-                    ui.painter().rect_filled(rr, 2.0, if *a == cur { theme::ACCENT } else { theme::HOVER });
+                    ui.painter().rect_filled(rr, 2.0, if *a == cur { theme::ACCENT() } else { theme::HOVER() });
                 }
                 paint_arrow(ui.painter(), rr.shrink(4.0), *a, start);
                 if rs.on_hover_text(name.as_str()).clicked() {
@@ -958,7 +958,7 @@ fn arrow_combo(app: &mut AnyVectorApp, ui: &mut Ui, cur: Option<ArrowHead>, star
 /// A short line with the arrowhead at its end (at its start for the start arrowhead).
 fn paint_arrow(p: &egui::Painter, r: Rect, a: Option<ArrowHead>, start: bool) {
     let y = r.center().y;
-    let c = theme::TEXT;
+    let c = theme::TEXT();
     let (tip, tail) = if start { (pos2(r.left() + 2.0, y), pos2(r.right() - 2.0, y)) } else { (pos2(r.right() - 2.0, y), pos2(r.left() + 2.0, y)) };
     match a {
         None => {
@@ -992,7 +992,7 @@ fn variable_outline(app: &mut AnyVectorApp, ui: &mut Ui, ol: &vector_core::style
         for (i, n) in nodes.iter().enumerate() {
             let x = r.left() + 4.0 + (r.width() - 8.0) * n.t as f32;
             let sel = st.vo_node == Some(i);
-            ui.painter().rect_filled(Rect::from_center_size(pos2(x, y), vec2(7.0, 11.0)), 1.0, if sel { theme::FOCUS } else { theme::TEXT });
+            ui.painter().rect_filled(Rect::from_center_size(pos2(x, y), vec2(7.0, 11.0)), 1.0, if sel { theme::FOCUS() } else { theme::TEXT() });
         }
         if let Some(p) = resp.interact_pointer_pos().filter(|_| resp.clicked()) {
             let t = ((p.x - r.left() - 4.0) / (r.width() - 8.0)).clamp(0.0, 1.0) as f64;
@@ -1070,11 +1070,11 @@ fn variable_outline(app: &mut AnyVectorApp, ui: &mut Ui, ol: &vector_core::style
 fn color_pick_tabs(ui: &mut Ui, id: &str, c: &mut Option<Color>, w: f32) -> bool {
     let (r, resp) = ui.allocate_exact_size(vec2(w, 22.0), Sense::click());
     let p = ui.painter();
-    p.rect_filled(r, 2.0, Color32::from_rgb(0x33, 0x33, 0x33));
+    p.rect_filled(r, 2.0, theme::BUTTON());
     let sw = Rect::from_min_size(r.min + vec2(4.0, 5.0), vec2(w - 24.0, 12.0));
     crate::widgets::paint_well(p, sw, *c);
     p.rect_stroke(sw, 0.0, Stroke::new(1.0, Color32::from_gray(140)), egui::StrokeKind::Outside);
-    crate::widgets::chevron(p, pos2(r.right() - 9.0, r.center().y), 3.0, theme::TEXT);
+    crate::widgets::chevron(p, pos2(r.right() - 9.0, r.center().y), 3.0, theme::TEXT());
     let mut changed = false;
     let open = egui::Popup::menu(&resp).id(egui::Id::unique(("pr_color", id))).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
         changed = coled::picker_ex(ui, id, c, true, true);
@@ -1127,7 +1127,7 @@ fn fill(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, st: &mut PropsUi) {
     gap(ui);
     match f {
         Fill::None => {
-            ui.label(egui::RichText::new("The object has no fill.").color(theme::TEXT));
+            ui.label(egui::RichText::new("The object has no fill.").color(theme::TEXT()));
         }
         Fill::Solid(c) => {
             let mut c = c;
@@ -1154,7 +1154,7 @@ fn fill(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, st: &mut PropsUi) {
             for (k, v) in coled::value_lines(c) {
                 ui.horizontal(|ui| {
                     rlabel(ui, k, 60.0, true);
-                    ui.label(egui::RichText::new(v).color(theme::TEXT));
+                    ui.label(egui::RichText::new(v).color(theme::TEXT()));
                 });
             }
         }
@@ -1471,7 +1471,7 @@ fn node_bar(ui: &mut Ui, g: &mut Gradient, sel: &mut usize, transp: bool) -> boo
     if stops.len() >= 2 {
         let mid = (stops[0].pos + stops[1].pos) / 2.0;
         let x = band.left() + band.width() * mid as f32;
-        ui.painter().add(egui::Shape::convex_polygon(vec![pos2(x - 4.0, band.top() - 5.0), pos2(x + 4.0, band.top() - 5.0), pos2(x, band.top())], theme::TEXT, Stroke::NONE));
+        ui.painter().add(egui::Shape::convex_polygon(vec![pos2(x - 4.0, band.top() - 5.0), pos2(x + 4.0, band.top() - 5.0), pos2(x, band.top())], theme::TEXT(), Stroke::NONE));
     }
     let n = g.stops.len();
     let mut remove = None;
@@ -1481,7 +1481,7 @@ fn node_bar(ui: &mut Ui, g: &mut Gradient, sel: &mut usize, transp: bool) -> boo
         let nresp = ui.interact(nr, ui.scope_id().with(("pr_node", transp, i)), Sense::click_and_drag());
         ui.painter().rect_filled(nr, 1.0, theme::to_c32(g.stops[i].color.with_alpha(255)));
         let on = *sel == i;
-        ui.painter().rect_stroke(nr, 1.0, Stroke::new(if on { 2.0 } else { 1.0 }, if on { theme::FOCUS } else { Color32::from_gray(160) }), egui::StrokeKind::Outside);
+        ui.painter().rect_stroke(nr, 1.0, Stroke::new(if on { 2.0 } else { 1.0 }, if on { theme::FOCUS() } else { Color32::from_gray(160) }), egui::StrokeKind::Outside);
         if nresp.clicked() || nresp.drag_started() {
             *sel = i;
         }
@@ -1609,9 +1609,9 @@ fn pattern(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, p: PatternFill, kind
     let named = app.doc().map(|d| d.doc.patterns.clone()).unwrap_or_default();
     ui.horizontal(|ui| {
         let (r, resp) = ui.allocate_exact_size(vec2(70.0, 52.0), Sense::click());
-        ui.painter().rect_filled(r, 2.0, Color32::from_rgb(0x33, 0x33, 0x33));
+        ui.painter().rect_filled(r, 2.0, theme::BUTTON());
         paint_pattern(app, ui.painter(), Rect::from_min_size(r.min, vec2(52.0, 52.0)), &p);
-        crate::widgets::chevron(ui.painter(), pos2(r.right() - 9.0, r.center().y), 3.0, theme::TEXT);
+        crate::widgets::chevron(ui.painter(), pos2(r.right() - 9.0, r.center().y), 3.0, theme::TEXT());
         egui::Popup::menu(&resp).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
             let mut list: Vec<PatternFill> = vec![];
             match kind {
@@ -1654,7 +1654,7 @@ fn pattern(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, p: PatternFill, kind
             dot(ui);
         }
         let (sr, _) = ui.allocate_exact_size(vec2(1.0, 52.0), Sense::hover());
-        ui.painter().line_segment([sr.center_top(), sr.center_bottom()], Stroke::new(1.0, theme::SEP));
+        ui.painter().line_segment([sr.center_top(), sr.center_bottom()], Stroke::new(1.0, theme::SEP()));
         ui.vertical(|ui| {
             // a vector pattern opens as its own document (with View ▸ Pattern Preview)
             // (its objects when the fill keeps them, else the picture of a named pattern)
@@ -1769,7 +1769,7 @@ fn pattern(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, p: PatternFill, kind
                 row(ui, |ui| {
                     let mut on = false;
                     ui.add_enabled(false, egui::Checkbox::new(&mut on, ""));
-                    ui.add_sized(vec2(90.0, 20.0), egui::Label::new(egui::RichText::new(lab).color(theme::TEXT)));
+                    ui.add_sized(vec2(90.0, 20.0), egui::Label::new(egui::RichText::new(lab).color(theme::TEXT())));
                     ui.add_enabled_ui(false, |ui| {
                         let mut v = v;
                         plus_field(ui, &mut v, -100.0..=100.0, "", 56.0);
@@ -2081,9 +2081,9 @@ fn effects(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, st: &mut PropsUi) {
     let w = ui.available_width() - 20.0;
     row(ui, |ui| {
         let (r, resp) = ui.allocate_exact_size(vec2(w, 22.0), Sense::click());
-        ui.painter().rect_filled(r, 2.0, Color32::from_rgb(0x33, 0x33, 0x33));
-        ui.painter().text(pos2(r.left() + 6.0, r.center().y), egui::Align2::LEFT_CENTER, "Presets", egui::FontId::proportional(12.5), theme::TEXT);
-        crate::widgets::chevron(ui.painter(), pos2(r.right() - 9.0, r.center().y), 3.0, theme::TEXT);
+        ui.painter().rect_filled(r, 2.0, theme::BUTTON());
+        ui.painter().text(pos2(r.left() + 6.0, r.center().y), egui::Align2::LEFT_CENTER, "Presets", egui::FontId::proportional(12.5), theme::TEXT());
+        crate::widgets::chevron(ui.painter(), pos2(r.right() - 9.0, r.center().y), 3.0, theme::TEXT());
         egui::Popup::menu(&resp).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
             ui.set_width(w - 12.0);
             ui.horizontal(|ui| {
@@ -2105,7 +2105,7 @@ fn effects(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, st: &mut PropsUi) {
                         let (tr, resp) = ui.allocate_exact_size(vec2(58.0, 48.0), Sense::click());
                         ui.painter().rect_filled(tr, 0.0, c);
                         ui.painter().rect_stroke(tr, 0.0, Stroke::new(1.0, Color32::from_gray(110)), egui::StrokeKind::Outside);
-                        ui.label(egui::RichText::new(name).size(11.0).color(theme::TEXT));
+                        ui.label(egui::RichText::new(name).size(11.0).color(theme::TEXT()));
                         if resp.clicked() {
                             st.fx_sel = apply_preset(app, name);
                         }
@@ -2128,7 +2128,7 @@ fn effects(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, st: &mut PropsUi) {
     let drag_id = ui.scope_id().with("pr_fx_drag");
     let mut drag: Option<usize> = ui.ctx().data(|d| d.get_temp(drag_id)).flatten();
     let mut drop: Option<(usize, usize)> = None;
-    egui::Frame::new().fill(Color32::from_rgb(0x26, 0x26, 0x26)).stroke(Stroke::new(1.0, Color32::from_gray(0x5a))).inner_margin(1.0).show(ui, |ui| {
+    egui::Frame::new().fill(theme::BG()).stroke(Stroke::new(1.0, theme::gray(0x5a))).inner_margin(1.0).show(ui, |ui| {
         ui.set_width(w - 2.0);
         ui.set_min_height(158.0);
         egui::ScrollArea::vertical().id_salt("pr_fx_list").max_height(158.0).auto_shrink([false, true]).show(ui, |ui| {
@@ -2137,11 +2137,11 @@ fn effects(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, st: &mut PropsUi) {
             for (i, e) in list.iter().enumerate() {
                 let (rr, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 22.0), Sense::click_and_drag());
                 if st.fx_sel == Some(i) {
-                    ui.painter().rect_filled(rr, 0.0, theme::ACCENT);
+                    ui.painter().rect_filled(rr, 0.0, theme::ACCENT());
                 } else if resp.hovered() {
-                    ui.painter().rect_filled(rr, 0.0, theme::HOVER);
+                    ui.painter().rect_filled(rr, 0.0, theme::HOVER());
                 }
-                let c = if e.enabled { theme::TEXT } else { theme::TEXT_DIM };
+                let c = if e.enabled { theme::TEXT() } else { theme::TEXT_DIM() };
                 ui.painter().text(pos2(rr.left() + 6.0, rr.center().y), egui::Align2::LEFT_CENTER, crate::fx::name(e), egui::FontId::proportional(12.5), c);
                 if resp.clicked() {
                     st.fx_sel = Some(i);
@@ -2158,7 +2158,7 @@ fn effects(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, st: &mut PropsUi) {
                         let to = rows.iter().position(|r| p.y < r.center().y).unwrap_or(rows.len());
                         if let Some(r) = rows.get(to.min(rows.len().saturating_sub(1))) {
                             let y = if to < rows.len() { r.top() } else { r.bottom() };
-                            ui.painter().line_segment([pos2(r.left(), y), pos2(r.right(), y)], Stroke::new(2.0, theme::ACCENT));
+                            ui.painter().line_segment([pos2(r.left(), y), pos2(r.right(), y)], Stroke::new(2.0, theme::ACCENT()));
                         }
                         if ui.ctx().input(|i| i.pointer.any_released()) {
                             drop = Some((from, to));
@@ -2388,7 +2388,7 @@ fn object(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object) {
             ui.add_space(4.0);
             special_section(app, ui, o);
             let info = crate::statusbar::object_info(app);
-            ui.label(egui::RichText::new(info).color(theme::TEXT_DIM));
+            ui.label(egui::RichText::new(info).color(theme::TEXT_DIM()));
         }
     }
 }
@@ -2397,7 +2397,7 @@ fn object(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object) {
 fn special_section(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object) {
     use vector_core::codes::Special;
     let dim = |ui: &mut Ui, s: &str| {
-        ui.label(egui::RichText::new(s).color(theme::TEXT_DIM));
+        ui.label(egui::RichText::new(s).color(theme::TEXT_DIM()));
     };
     match &o.special {
         Some(Special::QrCode { text }) => {
@@ -2439,9 +2439,9 @@ fn brush(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object) {
         let text = if painterly { brushes[cur].0 } else { "" };
         let w = ui.available_width() - 20.0;
         let (r, resp) = ui.allocate_exact_size(vec2(w, 22.0), Sense::click());
-        ui.painter().rect_filled(r, 2.0, Color32::from_rgb(0x33, 0x33, 0x33));
-        ui.painter().text(pos2(r.left() + 6.0, r.center().y), egui::Align2::LEFT_CENTER, text, egui::FontId::proportional(12.5), if painterly { theme::TEXT } else { theme::TEXT_DIM });
-        crate::widgets::chevron(ui.painter(), pos2(r.right() - 9.0, r.center().y), 3.0, theme::TEXT);
+        ui.painter().rect_filled(r, 2.0, theme::BUTTON());
+        ui.painter().text(pos2(r.left() + 6.0, r.center().y), egui::Align2::LEFT_CENTER, text, egui::FontId::proportional(12.5), if painterly { theme::TEXT() } else { theme::TEXT_DIM() });
+        crate::widgets::chevron(ui.painter(), pos2(r.right() - 9.0, r.center().y), 3.0, theme::TEXT());
         let mut pick = None;
         egui::Popup::menu(&resp).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
             ui.set_min_width(w - 12.0);
@@ -2549,7 +2549,7 @@ fn summary(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object) {
     for (k, v) in lines {
         ui.horizontal(|ui| {
             rlabel(ui, k, 126.0, true);
-            ui.label(egui::RichText::new(v).color(theme::TEXT));
+            ui.label(egui::RichText::new(v).color(theme::TEXT()));
         });
     }
     ui.add_space(20.0);
@@ -2602,8 +2602,8 @@ fn doc_summary(app: &AnyVectorApp, ui: &mut Ui) {
         ("Objects:", format!("{count} on {} layers", p.layers.len())),
         ("Resolution:", format!("{dpi} dpi")),
     ] {
-        ui.label(egui::RichText::new(k).color(theme::TEXT_DIM));
-        ui.label(egui::RichText::new(v).color(theme::TEXT));
+        ui.label(egui::RichText::new(k).color(theme::TEXT_DIM()));
+        ui.label(egui::RichText::new(v).color(theme::TEXT()));
         ui.add_space(2.0);
     }
 }

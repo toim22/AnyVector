@@ -9,6 +9,9 @@ product name: wherever the screenshots say the original product name, AnyVector 
 Theme: dark. Window/desktop background `#262626`, bars `#2b2b2b`/`#262626`,
 separators `#3c3c3c`, text `#d4d4d4`, disabled text `#6e6e6e`, accent/selection blue
 `#1f4e8c` (dialog OK button `#1d4a85`, hover rows `#3a3a3a`), focused field highlight `#0a6fd6`.
+A Light theme (Tools > Options > Customization > Appearance > Theme, as in the reference: Light /
+Dark) swaps these for light-gray bars `#f0f0f0`, white fields, near-black text `#1e1e1e`, separators
+`#c8c8c8` and pale-blue selection `#cce2f8`; the palette lives in `theme.rs` (`theme::LIGHT` / `theme::DARK`).
 Fonts: Segoe UI 9pt-ish (≈12.5 px).
 
 ## 1. Main window layout (top → bottom)
@@ -137,7 +140,7 @@ Left list, right page, bottom: `?` · `OK` (blue) · `Cancel`.
 - **Plug-ins** — Plug-ins Folders list with checkboxes; Add... · Edit... · Remove
 
 ### Customization
-- **Appearance** — ☑ Center dialog boxes │ Size: slider [100 %] Reset to Default; explanation │ Color: Theme [Dark ▾]; Window border [■▾]; Desktop [■▾]
+- **Appearance** — ☑ Center dialog boxes │ Size: slider [100 %] Reset to Default; explanation │ Color: Theme [Light / Dark ▾]; Window border [■▾]; Desktop [■▾]
 - **Command Bars** — Global button size [Small ▾]; checklist (Menu bar, Context menu bar, Status bar, Project timer, Layout, Zoom, Internet, Property bar, Toolbox, Macros, Standard, Parallel Drawing, Text, Transform); New · Reset │ Button properties: Size [Small ▾], Style [Default ▾] │ Toolbar properties: ☑ Show title when toolbar is floating; ☑ Lock toolbars │ Menu bar mode: ○ Normal mode ● File mode
 - **Commands** — category combo [File ▾]; Search…; command list with icons; tabs `General` `Shortcut Keys`; Caption [&Acquire...]; Icon (preview) Browse... / Restore Defaults; Tooltip; Available on: …
 - **Color Palette** — ☑ Automatically update the document palette │ Palette options: Maximum palette rows when docked [1] │ Color wells: ☐ Wide borders ☐ Large swatches ☑ Show "No Color" well │ Secondary mouse button: ○ Context menu ● Set outline color │ hint

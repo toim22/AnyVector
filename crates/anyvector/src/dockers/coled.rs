@@ -117,9 +117,9 @@ fn tex_button(ui: &mut Ui, env: &Env, icon: &str, tip: &str, enabled: bool, chec
     let (r, resp) = ui.allocate_exact_size(vec2(26.0, 24.0), if enabled { Sense::click() } else { Sense::hover() });
     let resp = resp.on_hover_text(tip);
     if checked || (enabled && resp.is_pointer_button_down_on()) {
-        ui.painter().rect_filled(r.shrink(1.0), 2.0, theme::PRESSED);
+        ui.painter().rect_filled(r.shrink(1.0), 2.0, theme::PRESSED());
     } else if enabled && resp.hovered() {
-        ui.painter().rect_filled(r.shrink(1.0), 2.0, theme::HOVER);
+        ui.painter().rect_filled(r.shrink(1.0), 2.0, theme::HOVER());
     }
     if let Some((_, a, b)) = env.icons.iter().find(|x| x.0 == icon) {
         ui.painter().image(if enabled { *a } else { *b }, Rect::from_center_size(r.center(), vec2(16.0, 16.0)), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);

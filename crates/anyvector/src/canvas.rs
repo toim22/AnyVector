@@ -190,16 +190,16 @@ pub fn drawing_window(app: &mut AnyVectorApp, ui: &mut Ui) {
     if let Some(tex) = &app.docs[ai].cache.tex {
         painter.image(tex.id(), canvas, Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
     } else {
-        painter.rect_filled(canvas, 0.0, theme::DESKTOP);
+        painter.rect_filled(canvas, 0.0, theme::DESKTOP());
     }
     tools::draw_overlay(app, &painter);
     crate::dockers::draw_hotspots(app, &painter, &app.docs[ai]);
     printable_area(app, &painter, ai);
     if let Some((text, r)) = finish {
         let b = ui.interact(r, Id::unique(("finish_edit", app.docs[ai].uid)), Sense::click());
-        let fill = if b.hovered() { theme::HOVER } else { Color32::from_rgb(0x2b, 0x2b, 0x2b) };
+        let fill = if b.hovered() { theme::HOVER() } else { Color32::from_rgb(0x2b, 0x2b, 0x2b) };
         painter.rect(r, 3.0, fill, egui::Stroke::new(1.0, Color32::from_gray(90)), egui::StrokeKind::Inside);
-        painter.text(r.center(), egui::Align2::CENTER_CENTER, text, egui::FontId::proportional(12.0), theme::TEXT);
+        painter.text(r.center(), egui::Align2::CENTER_CENTER, text, egui::FontId::proportional(12.0), theme::TEXT());
         if b.clicked() && !modal {
             app.run(crate::commands::Cmd::PowerClipFinish);
         }
@@ -477,7 +477,7 @@ fn scrollbars(app: &mut AnyVectorApp, ui: &mut Ui, ai: usize, canvas: Rect, hbar
     {
         let p = ui.painter();
         for r in [hbar, vbar, corner] {
-            p.rect_filled(r, 0.0, theme::DESKTOP);
+            p.rect_filled(r, 0.0, theme::DESKTOP());
         }
     }
     let ext = scroll_extent(&app.docs[ai]);
@@ -528,7 +528,7 @@ fn scrollbars(app: &mut AnyVectorApp, ui: &mut Ui, ai: usize, canvas: Rect, hbar
     {
         let p = ui.painter();
         let c = corner.center() + vec2(-1.0, -1.0);
-        let col = if resp.hovered() { theme::TEXT } else { theme::TEXT_DIM };
+        let col = if resp.hovered() { theme::TEXT() } else { theme::TEXT_DIM() };
         p.circle_stroke(c, 3.2, Stroke::new(1.2, col));
         p.line_segment([c + vec2(2.3, 2.3), c + vec2(5.0, 5.0)], Stroke::new(1.5, col));
     }
@@ -552,9 +552,9 @@ fn scrollbars(app: &mut AnyVectorApp, ui: &mut Ui, ai: usize, canvas: Rect, hbar
     }
     let d = &app.docs[ai];
     let p = ctx.layer_painter(egui::LayerId::new(egui::Order::Foreground, Id::unique(("navigator_popup", uid))));
-    p.rect_filled(popup.expand(4.0), 2.0, theme::BAR);
-    p.rect_stroke(popup.expand(4.0), 2.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Inside);
-    p.rect_filled(popup, 0.0, theme::DESKTOP);
+    p.rect_filled(popup.expand(4.0), 2.0, theme::BAR());
+    p.rect_stroke(popup.expand(4.0), 2.0, Stroke::new(1.0, theme::SEP()), egui::StrokeKind::Inside);
+    p.rect_filled(popup, 0.0, theme::DESKTOP());
     let pages: Vec<(usize, kurbo::Vec2)> = if d.doc.settings.multipage_view { page_offsets(&d.doc, d.page) } else { vec![(d.page, kurbo::Vec2::ZERO)] };
     for (i, dv) in pages {
         let pr = d.doc.pages[i].rect() + dv;
@@ -570,7 +570,7 @@ fn scrollbars(app: &mut AnyVectorApp, ui: &mut Ui, ai: usize, canvas: Rect, hbar
     }
     let (a, b) = (d.to_doc(canvas.min), d.to_doc(canvas.max));
     let vr = Rect::from_two_pos(to_pop(a), to_pop(b)).intersect(popup);
-    p.rect_stroke(vr, 0.0, Stroke::new(1.5, theme::FOCUS), egui::StrokeKind::Middle);
+    p.rect_stroke(vr, 0.0, Stroke::new(1.5, theme::FOCUS()), egui::StrokeKind::Middle);
 }
 
 fn cursor_for(app: &AnyVectorApp, pos: Pos2) -> CursorIcon {
@@ -653,13 +653,13 @@ fn rulers(app: &mut AnyVectorApp, ui: &mut Ui, ai: usize, area: Rect, canvas: Re
     let tick = Color32::from_gray(0x8c);
     let label_col = Color32::from_gray(0xb0);
     let font = egui::FontId::proportional(9.0);
-    painter.rect_filled(top, 0.0, theme::RULER);
-    painter.rect_filled(left, 0.0, theme::RULER);
-    painter.rect_filled(corner, 0.0, theme::RULER);
-    painter.line_segment([pos2(top.min.x, top.max.y - 0.5), pos2(top.max.x, top.max.y - 0.5)], Stroke::new(1.0, theme::SEP));
-    painter.line_segment([pos2(left.max.x - 0.5, left.min.y), pos2(left.max.x - 0.5, left.max.y)], Stroke::new(1.0, theme::SEP));
-    painter.line_segment([pos2(corner.max.x - 0.5, corner.min.y), pos2(corner.max.x - 0.5, corner.max.y)], Stroke::new(1.0, theme::SEP));
-    painter.line_segment([pos2(corner.min.x, corner.max.y - 0.5), pos2(corner.max.x, corner.max.y - 0.5)], Stroke::new(1.0, theme::SEP));
+    painter.rect_filled(top, 0.0, theme::RULER());
+    painter.rect_filled(left, 0.0, theme::RULER());
+    painter.rect_filled(corner, 0.0, theme::RULER());
+    painter.line_segment([pos2(top.min.x, top.max.y - 0.5), pos2(top.max.x, top.max.y - 0.5)], Stroke::new(1.0, theme::SEP()));
+    painter.line_segment([pos2(left.max.x - 0.5, left.min.y), pos2(left.max.x - 0.5, left.max.y)], Stroke::new(1.0, theme::SEP()));
+    painter.line_segment([pos2(corner.max.x - 0.5, corner.min.y), pos2(corner.max.x - 0.5, corner.max.y)], Stroke::new(1.0, theme::SEP()));
+    painter.line_segment([pos2(corner.min.x, corner.max.y - 0.5), pos2(corner.max.x, corner.max.y - 0.5)], Stroke::new(1.0, theme::SEP()));
     // corner: crosshair glyph (drag to move the ruler origin)
     let cc = corner.center();
     painter.line_segment([cc - vec2(5.0, 0.0), cc + vec2(5.0, 0.0)], Stroke::new(1.0, tick));
@@ -770,9 +770,9 @@ fn nav_button(ui: &mut Ui, rect: Rect, id: Id, kind: u8, enabled: bool, tip: &st
     let r = ui.interact(rect, id, if enabled { Sense::click() } else { Sense::hover() });
     let p = ui.painter();
     if r.hovered() && enabled {
-        p.rect_filled(rect.shrink(1.0), 2.0, theme::HOVER);
+        p.rect_filled(rect.shrink(1.0), 2.0, theme::HOVER());
     }
-    let col = if enabled { theme::TEXT } else { theme::DISABLED };
+    let col = if enabled { theme::TEXT() } else { theme::DISABLED() };
     let c = rect.center();
     let tri = |dir: f32, at: Pos2| {
         vec![at + vec2(-3.0 * dir, -4.0), at + vec2(3.0 * dir, 0.0), at + vec2(-3.0 * dir, 4.0)]
@@ -804,8 +804,8 @@ fn nav_button(ui: &mut Ui, rect: Rect, id: Id, kind: u8, enabled: bool, tip: &st
 fn page_navigator(app: &mut AnyVectorApp, ui: &mut Ui, rect: Rect) {
     let Some(ai) = app.active else { return };
     let p = ui.painter();
-    p.rect_filled(rect, 0.0, theme::BAR);
-    p.line_segment([rect.left_top(), rect.right_top()], Stroke::new(1.0, theme::SEP));
+    p.rect_filled(rect, 0.0, theme::BAR());
+    p.line_segment([rect.left_top(), rect.right_top()], Stroke::new(1.0, theme::SEP()));
     let uid = app.docs[ai].uid;
     let n = app.docs[ai].doc.pages.len();
     let cur = app.docs[ai].page;
@@ -824,7 +824,7 @@ fn page_navigator(app: &mut AnyVectorApp, ui: &mut Ui, rect: Rect) {
     let label = format!("{} of {}", cur + 1, n);
     let lr = Rect::from_min_size(pos2(x, y), vec2(54.0, NAV_H - 2.0));
     let lresp = ui.interact(lr, Id::unique(("nav_label", uid)), Sense::click());
-    ui.painter().text(lr.center(), egui::Align2::CENTER_CENTER, label, egui::FontId::proportional(12.0), theme::TEXT);
+    ui.painter().text(lr.center(), egui::Align2::CENTER_CENTER, label, egui::FontId::proportional(12.0), theme::TEXT());
     if lresp.clicked() {
         app.run(Cmd::GoToPage);
     }
@@ -854,7 +854,7 @@ fn page_navigator(app: &mut AnyVectorApp, ui: &mut Ui, rect: Rect) {
     let font = egui::FontId::proportional(12.0);
     for i in 0..n {
         let name = app.docs[ai].doc.page_name(i);
-        let w = ui.painter().layout_no_wrap(name.clone(), font.clone(), theme::TEXT).size().x + 18.0;
+        let w = ui.painter().layout_no_wrap(name.clone(), font.clone(), theme::TEXT()).size().x + 18.0;
         let tr = Rect::from_min_size(pos2(x, rect.min.y), vec2(w, NAV_H));
         if tr.min.x > rect.max.x {
             break;
@@ -862,12 +862,12 @@ fn page_navigator(app: &mut AnyVectorApp, ui: &mut Ui, rect: Rect) {
         let resp = ui.interact(tr, Id::unique(("page_tab", uid, i)), Sense::click());
         let p = ui.painter();
         if i == cur {
-            p.rect_filled(tr.shrink2(vec2(0.0, 1.0)), 0.0, theme::BG_CANVAS_TAB);
-            p.line_segment([pos2(tr.min.x, tr.max.y - 1.5), pos2(tr.max.x, tr.max.y - 1.5)], Stroke::new(2.0, theme::FOCUS));
+            p.rect_filled(tr.shrink2(vec2(0.0, 1.0)), 0.0, theme::BG_CANVAS_TAB());
+            p.line_segment([pos2(tr.min.x, tr.max.y - 1.5), pos2(tr.max.x, tr.max.y - 1.5)], Stroke::new(2.0, theme::FOCUS()));
         } else if resp.hovered() {
-            p.rect_filled(tr.shrink2(vec2(0.0, 1.0)), 0.0, theme::HOVER);
+            p.rect_filled(tr.shrink2(vec2(0.0, 1.0)), 0.0, theme::HOVER());
         }
-        p.text(tr.center(), egui::Align2::CENTER_CENTER, &name, font.clone(), if i == cur { theme::TEXT } else { theme::TEXT_DIM });
+        p.text(tr.center(), egui::Align2::CENTER_CENTER, &name, font.clone(), if i == cur { theme::TEXT() } else { theme::TEXT_DIM() });
         if resp.clicked() {
             goto = Some(i);
         }
@@ -879,7 +879,7 @@ fn page_navigator(app: &mut AnyVectorApp, ui: &mut Ui, rect: Rect) {
         }
         resp.context_menu(|ui| crate::menus::context_menu(app, ui, "Page Tab"));
         x += w;
-        ui.painter().line_segment([pos2(x, rect.min.y + 5.0), pos2(x, rect.max.y - 5.0)], Stroke::new(1.0, theme::SEP));
+        ui.painter().line_segment([pos2(x, rect.min.y + 5.0), pos2(x, rect.max.y - 5.0)], Stroke::new(1.0, theme::SEP()));
     }
     if let Some(g) = goto {
         if let Some(d) = app.doc_mut() {
@@ -901,7 +901,7 @@ fn page_navigator(app: &mut AnyVectorApp, ui: &mut Ui, rect: Rect) {
 fn page_sorter(app: &mut AnyVectorApp, ui: &mut Ui, area: Rect) {
     let Some(ai) = app.active else { return };
     let ctx = ui.ctx().clone();
-    ui.painter().rect_filled(area, 0.0, theme::DESKTOP);
+    ui.painter().rect_filled(area, 0.0, theme::DESKTOP());
     let n = app.docs[ai].doc.pages.len();
     let thumb = 160.0f32;
     let gap = 28.0f32;
@@ -937,12 +937,12 @@ fn page_sorter(app: &mut AnyVectorApp, ui: &mut Ui, area: Rect) {
                 ui.painter().rect_filled(ir.translate(vec2(3.0, 3.0)), 0.0, Color32::from_black_alpha(90));
                 ui.painter().image(tex.id(), ir, Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
                 if selected {
-                    ui.painter().rect_stroke(ir.expand(3.0), 0.0, Stroke::new(2.0, theme::FOCUS), egui::StrokeKind::Middle);
+                    ui.painter().rect_stroke(ir.expand(3.0), 0.0, Stroke::new(2.0, theme::FOCUS()), egui::StrokeKind::Middle);
                 } else if resp.hovered() {
-                    ui.painter().rect_stroke(ir.expand(3.0), 0.0, Stroke::new(1.0, theme::TEXT_DIM), egui::StrokeKind::Middle);
+                    ui.painter().rect_stroke(ir.expand(3.0), 0.0, Stroke::new(1.0, theme::TEXT_DIM()), egui::StrokeKind::Middle);
                 }
             }
-            ui.painter().text(pos2(cell.center().x, cell.max.y + 12.0), egui::Align2::CENTER_CENTER, d.doc.page_name(i), egui::FontId::proportional(12.0), theme::TEXT);
+            ui.painter().text(pos2(cell.center().x, cell.max.y + 12.0), egui::Align2::CENTER_CENTER, d.doc.page_name(i), egui::FontId::proportional(12.0), theme::TEXT());
             if resp.clicked() {
                 let d = &mut app.docs[ai];
                 d.page = i;
@@ -1035,7 +1035,7 @@ pub fn fullscreen_preview(app: &mut AnyVectorApp, ui: &mut Ui) {
 pub fn arranged_windows(app: &mut AnyVectorApp, ui: &mut Ui) {
     let area = ui.available_rect_before_wrap();
     ui.allocate_rect(area, Sense::hover());
-    ui.painter().rect_filled(area, 0.0, theme::BG);
+    ui.painter().rect_filled(area, 0.0, theme::BG());
     let n = app.docs.len();
     let ai = app.active.unwrap_or(0).min(n - 1);
     let area = area.shrink(2.0);
@@ -1072,8 +1072,8 @@ pub fn arranged_windows(app: &mut AnyVectorApp, ui: &mut Ui) {
         let title = Rect::from_min_size(r.min, vec2(r.width(), 26.0));
         let body = Rect::from_min_max(pos2(r.min.x + 1.0, title.max.y), pos2(r.max.x - 1.0, r.max.y - 1.0));
         let p = ui.painter().clone();
-        p.rect_filled(r, 0.0, theme::BAR);
-        p.rect_stroke(r, 0.0, Stroke::new(1.0, if active { theme::FOCUS } else { theme::SEP }), egui::StrokeKind::Inside);
+        p.rect_filled(r, 0.0, theme::BAR());
+        p.rect_stroke(r, 0.0, Stroke::new(1.0, if active { theme::FOCUS() } else { theme::SEP() }), egui::StrokeKind::Inside);
         let t = ui.interact(title, Id::unique(("doc_win_title", app.docs[i].uid)), Sense::click());
         if t.clicked() || t.double_clicked() {
             activate = Some(i);
@@ -1082,16 +1082,16 @@ pub fn arranged_windows(app: &mut AnyVectorApp, ui: &mut Ui) {
             maximize = Some(i);
         }
         let name = app.docs[i].display_name();
-        p.text(pos2(title.left() + 10.0, title.center().y), egui::Align2::LEFT_CENTER, name, theme::body(12.0), if active { theme::TEXT } else { theme::TEXT_DIM });
+        p.text(pos2(title.left() + 10.0, title.center().y), egui::Align2::LEFT_CENTER, name, theme::body(12.0), if active { theme::TEXT() } else { theme::TEXT_DIM() });
         // Maximize (back to the tabs with this document) and Close
         for (k, tip) in [(0, "Close"), (1, "Maximize")] {
             let b = Rect::from_center_size(pos2(title.right() - 16.0 - k as f32 * 30.0, title.center().y), vec2(28.0, 22.0));
             let resp = ui.interact(b, Id::unique(("doc_win_btn", app.docs[i].uid, k)), Sense::click()).on_hover_text(tip);
             if resp.hovered() {
-                p.rect_filled(b, 2.0, if k == 0 { Color32::from_rgb(0xc4, 0x2b, 0x1c) } else { theme::HOVER });
+                p.rect_filled(b, 2.0, if k == 0 { Color32::from_rgb(0xc4, 0x2b, 0x1c) } else { theme::HOVER() });
             }
             let c = b.center();
-            let st = Stroke::new(1.1, theme::TEXT);
+            let st = Stroke::new(1.1, theme::TEXT());
             if k == 0 {
                 p.line_segment([c + vec2(-5.0, -5.0), c + vec2(5.0, 5.0)], st);
                 p.line_segment([c + vec2(-5.0, 5.0), c + vec2(5.0, -5.0)], st);
@@ -1139,10 +1139,10 @@ fn passive_window(app: &mut AnyVectorApp, ui: &mut Ui, i: usize, full: Rect) -> 
     let r = if app.docs[i].doc.settings.show_rulers { RULER } else { 0.0 };
     let canvas = Rect::from_min_max(area.min + vec2(r, r), area.max);
     let p = ui.painter_at(full);
-    p.rect_filled(full, 0.0, theme::BG);
+    p.rect_filled(full, 0.0, theme::BG());
     if r > 0.0 {
-        p.rect_filled(Rect::from_min_max(area.min, pos2(area.max.x, area.min.y + r)), 0.0, theme::RULER);
-        p.rect_filled(Rect::from_min_max(area.min, pos2(area.min.x + r, area.max.y)), 0.0, theme::RULER);
+        p.rect_filled(Rect::from_min_max(area.min, pos2(area.max.x, area.min.y + r)), 0.0, theme::RULER());
+        p.rect_filled(Rect::from_min_max(area.min, pos2(area.min.x + r, area.max.y)), 0.0, theme::RULER());
     }
     if canvas.width() < 8.0 || canvas.height() < 8.0 {
         return false;

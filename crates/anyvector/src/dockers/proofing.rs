@@ -115,7 +115,7 @@ pub fn proofing(app: &mut AnyVectorApp, ui: &mut Ui) {
     ui.horizontal(|ui| {
         ui.label("Gamut warning");
         let rr = ui.available_rect_before_wrap();
-        ui.painter().line_segment([egui::pos2(rr.left() + 4.0, rr.center().y), egui::pos2(rr.right() - 4.0, rr.center().y)], egui::Stroke::new(1.0, theme::SEP));
+        ui.painter().line_segment([egui::pos2(rr.left() + 4.0, rr.center().y), egui::pos2(rr.right() - 4.0, rr.center().y)], egui::Stroke::new(1.0, theme::SEP()));
     });
     let mut gamut = app.settings.proof_gamut;
     let r = ui.checkbox(&mut gamut, "Out-of-gamut colors");
@@ -211,9 +211,9 @@ pub fn proofing(app: &mut AnyVectorApp, ui: &mut Ui) {
             match row {
                 None => {
                     ui.horizontal(|ui| {
-                        ui.label(egui::RichText::new(*head).color(theme::FOCUS));
+                        ui.label(egui::RichText::new(*head).color(theme::FOCUS()));
                         let rr = ui.available_rect_before_wrap();
-                        ui.painter().line_segment([egui::pos2(rr.left() + 4.0, rr.center().y), egui::pos2(rr.right(), rr.center().y)], egui::Stroke::new(1.0, theme::SEP));
+                        ui.painter().line_segment([egui::pos2(rr.left() + 4.0, rr.center().y), egui::pos2(rr.right(), rr.center().y)], egui::Stroke::new(1.0, theme::SEP()));
                     });
                 }
                 Some(e) if e.kind <= 2 => {
@@ -286,7 +286,7 @@ pub fn proofing(app: &mut AnyVectorApp, ui: &mut Ui) {
                 app.settings.proof_show_desc = !on;
             }
             let rr = ui.available_rect_before_wrap();
-            ui.painter().line_segment([egui::pos2(rr.left() + 4.0, rr.center().y), egui::pos2(rr.right() - 4.0, rr.center().y)], egui::Stroke::new(1.0, theme::SEP));
+            ui.painter().line_segment([egui::pos2(rr.left() + 4.0, rr.center().y), egui::pos2(rr.right() - 4.0, rr.center().y)], egui::Stroke::new(1.0, theme::SEP()));
         });
     });
     if app.settings.proof_show_desc {
@@ -294,7 +294,7 @@ pub fn proofing(app: &mut AnyVectorApp, ui: &mut Ui) {
         if app.dockers.ui.proof_desc.is_some() {
             app.dockers.ui.proof_last_desc = app.dockers.ui.proof_desc;
         }
-        ui.add(egui::Label::new(egui::RichText::new(t).color(theme::TEXT)).wrap());
+        ui.add(egui::Label::new(egui::RichText::new(t).color(theme::TEXT())).wrap());
     }
 }
 

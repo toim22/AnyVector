@@ -732,7 +732,7 @@ fn outline_style(app: &mut AnyVectorApp, ui: &mut Ui, it: &Item) {
 fn paint_dash(ui: &Ui, rect: egui::Rect, dash: &[f64], enabled: bool) {
     let y = rect.center().y;
     let (x0, x1) = (rect.left() + 6.0, rect.right() - 20.0);
-    let c = if enabled { crate::theme::TEXT } else { crate::theme::DISABLED };
+    let c = if enabled { crate::theme::TEXT() } else { crate::theme::DISABLED() };
     if dash.is_empty() {
         ui.painter().line_segment([egui::pos2(x0, y), egui::pos2(x1, y)], egui::Stroke::new(1.0, c));
         return;

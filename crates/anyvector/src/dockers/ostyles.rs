@@ -11,7 +11,10 @@ use egui::{pos2, vec2, Color32, Rect, Sense, Stroke, Ui};
 use vector_core::document::ObjectStyle;
 use vector_core::{Fill, Style, Transparency};
 
-const SEL: Color32 = Color32::from_rgb(29, 68, 112);
+/// Selected row (the active docker tab blue).
+fn sel_fill() -> Color32 {
+    crate::theme::TAB_ACTIVE()
+}
 const GREEN: Color32 = Color32::from_rgb(0x36, 0xb2, 0x4a);
 
 /// The kinds of styles: a style set holds the outline, the fill and the transparency.
@@ -203,7 +206,7 @@ fn body(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut OsUi) {
     let (gr, gresp) = ui.allocate_exact_size(vec2(ui.available_width(), 8.0), Sense::drag());
     let gresp = gresp.on_hover_cursor(egui::CursorIcon::ResizeVertical);
     for k in -1..=1 {
-        ui.painter().circle_filled(pos2(gr.center().x + k as f32 * 4.0, gr.center().y - 2.0), 1.1, theme::TEXT);
+        ui.painter().circle_filled(pos2(gr.center().x + k as f32 * 4.0, gr.center().y - 2.0), 1.1, theme::TEXT());
     }
     if gresp.dragged() {
         st.list_h = (st.list_h + gresp.drag_delta().y).clamp(48.0, 600.0);
@@ -277,7 +280,7 @@ fn body(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut OsUi) {
         }
     });
     let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), 1.0), Sense::hover());
-    ui.painter().hline(r.x_range(), r.center().y, Stroke::new(1.0, theme::SEP));
+    ui.painter().hline(r.x_range(), r.center().y, Stroke::new(1.0, theme::SEP()));
     // the editor of the selected style or default properties
     match st.sel {
         OsSel::Style(i) => {
@@ -328,9 +331,9 @@ fn row(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut OsUi, sel: OsSel, depth: us
     let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 24.0), Sense::click());
     let p = ui.painter().clone();
     if st.sel == sel {
-        p.rect_filled(r, 0.0, SEL);
+        p.rect_filled(r, 0.0, sel_fill());
     } else if resp.hovered() {
-        p.rect_filled(r, 0.0, theme::HOVER);
+        p.rect_filled(r, 0.0, theme::HOVER());
     }
     let cy = r.center().y;
     let x0 = r.left() + 8.0 + depth as f32 * 19.0;
@@ -338,7 +341,7 @@ fn row(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut OsUi, sel: OsSel, depth: us
     if let Some(open) = fold {
         let c = pos2(x0, cy);
         let pts = if open { vec![c + vec2(-3.5, -1.5), c + vec2(0.0, 2.0), c + vec2(3.5, -1.5)] } else { vec![c + vec2(-1.5, -3.5), c + vec2(2.0, 0.0), c + vec2(-1.5, 3.5)] };
-        p.add(egui::Shape::line(pts, Stroke::new(1.2, theme::TEXT)));
+        p.add(egui::Shape::line(pts, Stroke::new(1.2, theme::TEXT())));
         if resp.clicked() && resp.interact_pointer_pos().is_some_and(|q| (q.x - x0).abs() < 7.0) {
             out = Some(1);
         }
@@ -360,7 +363,7 @@ fn row(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut OsUi, sel: OsSel, depth: us
             return out;
         }
     }
-    p.text(pos2(x, cy), egui::Align2::LEFT_CENTER, name, if bold { theme::bold(12.5) } else { theme::body(12.5) }, theme::TEXT);
+    p.text(pos2(x, cy), egui::Align2::LEFT_CENTER, name, if bold { theme::bold(12.5) } else { theme::body(12.5) }, theme::TEXT());
     // the buttons at the right: New Style (a menu), New Style Set, Revert All
     let br = Rect::from_center_size(pos2(r.right() - 12.0, cy), vec2(18.0, 18.0));
     if matches!(sel, OsSel::Styles | OsSel::Sets) {

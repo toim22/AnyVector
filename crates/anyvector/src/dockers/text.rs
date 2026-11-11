@@ -114,7 +114,9 @@ pub fn font_sampler(app: &mut AnyVectorApp, ui: &mut Ui) {
         for (k, (i, size)) in samples.into_iter().enumerate() {
             let font = st.fonts[i].clone();
             let wrap = (st.view == 1).then_some((bw - 16.0) as f64);
-            let tex = sample_texture_wrapped(app, ui.ctx(), &font, &st.text, size, wrap, Color32::WHITE);
+            // black cards with white text in Dark, white cards with black text in Light
+            let (card, ink) = if crate::theme::is_light() { (crate::theme::FIELD(), Color32::BLACK) } else { (Color32::BLACK, Color32::WHITE) };
+            let tex = sample_texture_wrapped(app, ui.ctx(), &font, &st.text, size, wrap, ink);
             let ppp = ui.ctx().pixels_per_point();
             let th = tex.as_ref().map(|t| t.size_vec2().y / ppp).unwrap_or(size);
             // the name under each sample, or once under the waterfall
@@ -122,7 +124,7 @@ pub fn font_sampler(app: &mut AnyVectorApp, ui: &mut Ui) {
             let h = th + 12.0 + if named { 16.0 } else { 0.0 };
             let (r, resp) = ui.allocate_exact_size(vec2(bw, h), Sense::click());
             let p = ui.painter_at(r);
-            p.rect_filled(r, 0.0, Color32::BLACK);
+            p.rect_filled(r, 0.0, card);
             if let Some(t) = &tex {
                 let s = t.size_vec2() / ppp;
                 let room = r.width() - 16.0;
@@ -134,13 +136,13 @@ pub fn font_sampler(app: &mut AnyVectorApp, ui: &mut Ui) {
                     let keep = (room - dw).max(10.0);
                     let clip = Rect::from_min_size(ir.min, vec2(keep, s.y));
                     ui.painter_at(clip).image(t.id(), ir, Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
-                    p.text(pos2(clip.right() + 1.0, ir.bottom() - s.y * 0.12), egui::Align2::LEFT_BOTTOM, "...", dots, Color32::WHITE);
+                    p.text(pos2(clip.right() + 1.0, ir.bottom() - s.y * 0.12), egui::Align2::LEFT_BOTTOM, "...", dots, ink);
                 } else {
                     p.image(t.id(), ir, Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
                 }
             }
             if named {
-                p.text(pos2(r.left() + 6.0, r.bottom() - 5.0), egui::Align2::LEFT_BOTTOM, format!("{font} Normal"), egui::FontId::proportional(11.0), crate::theme::TEXT_DIM);
+                p.text(pos2(r.left() + 6.0, r.bottom() - 5.0), egui::Align2::LEFT_BOTTOM, format!("{font} Normal"), egui::FontId::proportional(11.0), crate::theme::TEXT_DIM());
             }
             if resp.clicked() {
                 st.sel = i;
@@ -200,7 +202,7 @@ fn copy_sample(app: &mut AnyVectorApp, font: &str, text: &str, size: f32) {
 
 /// Render a text sample with the document text engine (so it shows the real font).
 pub(crate) fn sample_texture(app: &mut AnyVectorApp, ctx: &egui::Context, family: &str, text: &str, size: f32) -> Option<egui::TextureHandle> {
-    sample_texture_wrapped(app, ctx, family, text, size, None, Color32::from_gray(0xd4))
+    sample_texture_wrapped(app, ctx, family, text, size, None, crate::theme::TEXT())
 }
 
 /// [`sample_texture`], wrapped to `wrap` points when given, in `color`.
@@ -303,10 +305,10 @@ pub fn glyphs(app: &mut AnyVectorApp, ui: &mut Ui) {
     // the recent glyphs
     let w = ui.available_width() - 6.0;
     let (rr, _) = ui.allocate_exact_size(vec2(w, 72.0), Sense::hover());
-    ui.painter().rect_stroke(rr, 0.0, Stroke::new(1.0, crate::theme::SEP), egui::StrokeKind::Inside);
+    ui.painter().rect_stroke(rr, 0.0, Stroke::new(1.0, crate::theme::SEP()), egui::StrokeKind::Inside);
     let mut use_recent = None;
     if st.recent.is_empty() {
-        ui.painter().text(pos2(rr.center().x, rr.top() + 20.0), egui::Align2::CENTER_CENTER, "Shows the most recently used glyphs", egui::FontId::proportional(11.5), crate::theme::TEXT_DIM);
+        ui.painter().text(pos2(rr.center().x, rr.top() + 20.0), egui::Align2::CENTER_CENTER, "Shows the most recently used glyphs", egui::FontId::proportional(11.5), crate::theme::TEXT_DIM());
     } else {
         let cell = 30.0;
         let cols = ((rr.width() - 4.0) / cell).floor().max(1.0) as usize;
@@ -314,7 +316,7 @@ pub fn glyphs(app: &mut AnyVectorApp, ui: &mut Ui) {
             let cr = Rect::from_min_size(rr.min + vec2(2.0 + (k % cols) as f32 * cell, 4.0 + (k / cols) as f32 * cell), vec2(cell, cell));
             let resp = ui.interact(cr, ui.scope_id().with(("gl_recent", k)), Sense::click());
             if resp.hovered() {
-                ui.painter().rect_filled(cr, 2.0, crate::theme::HOVER);
+                ui.painter().rect_filled(cr, 2.0, crate::theme::HOVER());
             }
             if let Some(t) = sample_texture(app, ui.ctx(), font, &c.to_string(), 20.0) {
                 let s = (t.size_vec2() / ui.ctx().pixels_per_point()).min(vec2(cell - 6.0, cell - 6.0));
@@ -386,11 +388,11 @@ pub fn glyphs(app: &mut AnyVectorApp, ui: &mut Ui) {
             }
             let resp = ui.interact(cr, ui.scope_id().with(("gl", k)), Sense::click());
             if st.sel == Some(*c) {
-                ui.painter().rect_filled(cr.shrink(1.0), 2.0, crate::theme::ACCENT);
+                ui.painter().rect_filled(cr.shrink(1.0), 2.0, crate::theme::ACCENT());
             } else if resp.hovered() {
-                ui.painter().rect_filled(cr.shrink(1.0), 2.0, crate::theme::HOVER);
+                ui.painter().rect_filled(cr.shrink(1.0), 2.0, crate::theme::HOVER());
             }
-            if let Some(t) = sample_texture_wrapped(app, ui.ctx(), &font, &c.to_string(), st.size * 0.75, None, Color32::WHITE) {
+            if let Some(t) = sample_texture_wrapped(app, ui.ctx(), &font, &c.to_string(), st.size * 0.75, None, crate::theme::TEXT()) {
                 let s = (t.size_vec2() / ui.ctx().pixels_per_point()).min(vec2(cell - 4.0, cell - 4.0));
                 ui.painter().image(t.id(), Rect::from_center_size(cr.center(), s), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
             }
@@ -408,7 +410,7 @@ pub fn glyphs(app: &mut AnyVectorApp, ui: &mut Ui) {
     }
     // the fold of the glyph info
     let (fr, fresp) = ui.allocate_exact_size(vec2(ui.available_width() - 6.0, 12.0), Sense::click());
-    let col = if fresp.hovered() { Color32::WHITE } else { crate::theme::TEXT_DIM };
+    let col = if fresp.hovered() { Color32::WHITE } else { crate::theme::TEXT_DIM() };
     if st.info {
         crate::widgets::chevron_up(ui.painter(), fr.center(), 3.5, col);
     } else {
@@ -430,7 +432,7 @@ pub fn glyphs(app: &mut AnyVectorApp, ui: &mut Ui) {
                 ("Language:", String::new()),
             ];
             for (k, val) in rows {
-                ui.label(egui::RichText::new(k).color(crate::theme::TEXT_DIM));
+                ui.label(egui::RichText::new(k).color(crate::theme::TEXT_DIM()));
                 ui.label(val);
                 ui.end_row();
             }

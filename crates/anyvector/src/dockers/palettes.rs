@@ -6,7 +6,7 @@ use super::{drop_mark, icon_button, icon_button_resp};
 use crate::app::AnyVectorApp;
 use crate::commands::Cmd;
 use crate::theme;
-use egui::{pos2, vec2, Color32, Rect, Sense, Stroke, Ui};
+use egui::{pos2, vec2, Rect, Sense, Stroke, Ui};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use vector_core::color::{NamedColor, Palette};
@@ -227,15 +227,15 @@ fn row(ui: &mut Ui, key: &str, depth: usize, folder: Option<bool>, check: Option
     let (r, resp) = ui.allocate_exact_size(vec2(w, 24.0), Sense::click());
     let p = ui.painter();
     if selected {
-        p.rect_filled(r, 0.0, theme::ACCENT);
+        p.rect_filled(r, 0.0, theme::ACCENT());
     } else if resp.hovered() && enabled {
-        p.rect_filled(r, 0.0, theme::HOVER);
+        p.rect_filled(r, 0.0, theme::HOVER());
     }
     let x = r.left() + 7.0 + depth as f32 * 19.0;
     let mut act = None;
     let chev = Rect::from_center_size(pos2(x + 6.0, r.center().y), vec2(14.0, 23.0));
     if let Some(open) = folder {
-        let c = if enabled { theme::TEXT_DIM } else { theme::DISABLED };
+        let c = if enabled { theme::TEXT_DIM() } else { theme::DISABLED() };
         if open {
             crate::widgets::chevron(p, chev.center(), 3.2, c);
         } else {
@@ -244,9 +244,9 @@ fn row(ui: &mut Ui, key: &str, depth: usize, folder: Option<bool>, check: Option
     }
     let cb = Rect::from_center_size(pos2(x + 21.0, r.center().y), vec2(13.0, 13.0));
     if let Some(state) = check {
-        p.rect_filled(cb, 2.0, if enabled { Color32::from_gray(64) } else { Color32::from_gray(48) });
-        p.rect_stroke(cb, 2.0, Stroke::new(1.0, Color32::from_gray(if enabled { 96 } else { 70 })), egui::StrokeKind::Inside);
-        let ink = if enabled { theme::TEXT } else { theme::DISABLED };
+        p.rect_filled(cb, 2.0, if enabled { crate::theme::gray(64) } else { crate::theme::gray(48) });
+        p.rect_stroke(cb, 2.0, Stroke::new(1.0, crate::theme::gray(if enabled { 96 } else { 70 })), egui::StrokeKind::Inside);
+        let ink = if enabled { theme::TEXT() } else { theme::DISABLED() };
         match state {
             Some(true) => {
                 p.line_segment([pos2(cb.left() + 3.0, cb.center().y), pos2(cb.left() + 5.5, cb.bottom() - 3.5)], Stroke::new(1.5, ink));
@@ -259,7 +259,7 @@ fn row(ui: &mut Ui, key: &str, depth: usize, folder: Option<bool>, check: Option
         }
     }
     let tx = if check.is_some() { cb.right() + 6.0 } else { x + 14.0 };
-    p.text(pos2(tx, r.center().y), egui::Align2::LEFT_CENTER, label, egui::FontId::proportional(12.5), if enabled { theme::TEXT } else { theme::DISABLED });
+    p.text(pos2(tx, r.center().y), egui::Align2::LEFT_CENTER, label, egui::FontId::proportional(12.5), if enabled { theme::TEXT() } else { theme::DISABLED() });
     let resp = if enabled { resp } else { resp.on_hover_text("Not included in AnyVector") };
     if !enabled {
         return None;
@@ -359,7 +359,7 @@ pub fn palettes(app: &mut AnyVectorApp, ui: &mut Ui) {
     });
     // the tree
     let h = ui.available_height() - 30.0;
-    egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP)).inner_margin(egui::Margin::same(1)).show(ui, |ui| {
+    egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP())).inner_margin(egui::Margin::same(1)).show(ui, |ui| {
         ui.set_min_height(h.max(60.0));
         egui::ScrollArea::vertical().id_salt("pm_tree").max_height(h.max(60.0)).auto_shrink([false, false]).show(ui, |ui| {
             ui.spacing_mut().item_spacing.y = 0.0;

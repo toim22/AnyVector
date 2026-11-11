@@ -4,7 +4,7 @@
 use super::{button, ok_button, window};
 use crate::app::AnyVectorApp;
 use crate::theme;
-use egui::{vec2, Color32};
+use egui::vec2;
 
 /// The formats Paste Special can paste.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -93,7 +93,7 @@ pub fn paste_special(app: &mut AnyVectorApp, ctx: &egui::Context) {
                     });
                     ui.vertical(|ui| {
                         ui.label("As:");
-                        egui::Frame::new().fill(theme::FIELD).stroke(egui::Stroke::new(1.0, theme::SEP)).inner_margin(2.0).show(ui, |ui| {
+                        egui::Frame::new().fill(theme::FIELD()).stroke(egui::Stroke::new(1.0, theme::SEP())).inner_margin(2.0).show(ui, |ui| {
                             ui.set_min_size(vec2(226.0, 80.0));
                             egui::ScrollArea::vertical().max_height(80.0).show(ui, |ui| {
                                 for (i, k) in st.kinds.iter().enumerate() {
@@ -160,7 +160,7 @@ pub fn copy_properties(app: &mut AnyVectorApp, ctx: &egui::Context) {
                 ui.add_enabled(has_text, egui::Checkbox::new(&mut st.text, "Text Properties"));
             });
             ui.vertical(|ui| {
-                egui::Frame::new().stroke(egui::Stroke::new(1.0, theme::SEP)).inner_margin(10.0).show(ui, |ui| {
+                egui::Frame::new().stroke(egui::Stroke::new(1.0, theme::SEP())).inner_margin(10.0).show(ui, |ui| {
                     ui.set_width(196.0);
                     ui.set_min_height(86.0);
                     ui.add(egui::Label::new("Hint: You may copy properties by dragging one object onto another using the right mouse button.").wrap());
@@ -176,7 +176,7 @@ pub fn copy_properties(app: &mut AnyVectorApp, ctx: &egui::Context) {
         });
         ui.add_space(10.0);
         ui.separator();
-        ui.label(egui::RichText::new("After pressing OK, choose the object to copy from.").color(Color32::from_gray(0xc8)));
+        ui.label(egui::RichText::new("After pressing OK, choose the object to copy from.").color(crate::theme::gray(0xc8)));
     });
     if ok {
         app.set_tool(crate::tools::ToolId::Pick);

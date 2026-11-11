@@ -9,7 +9,7 @@ use crate::menus::BarSpot;
 use crate::settings::Settings;
 use crate::theme;
 use crate::tools::{ToolId, ToolState};
-use egui::{Color32, Frame, Margin};
+use egui::{Frame, Margin};
 use vector_core::{Color, Object};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, serde::Serialize, serde::Deserialize)]
@@ -142,6 +142,8 @@ impl AnyVectorApp {
         }
         crate::i18n::init(&settings.language);
         cc.egui_ctx.set_zoom_factor((settings.ui_scale / 100.0) as f32);
+        theme::select(&cc.egui_ctx, &settings.theme_name);
+        theme::follow_desktop(&mut settings.desktop_color, &theme::DARK);
         // warm the font database in the background (first text layout is otherwise slow)
         std::thread::spawn(vector_core::text::preload_fonts);
         let mut app = AnyVectorApp {
@@ -275,6 +277,12 @@ impl AnyVectorApp {
         if crate::i18n::sync(&self.settings.language) {
             crate::theme::install_fonts(&ctx);
         }
+        if let Some(old) = theme::sync(&ctx, &self.settings.theme_name) {
+            theme::follow_desktop(&mut self.settings.desktop_color, old);
+            for d in self.docs.iter_mut() {
+                d.cache.key = 0;
+            }
+        }
         if self.splash.is_some() {
             if crate::splash::show(self, ui) {
                 return;
@@ -293,9 +301,9 @@ impl AnyVectorApp {
             return;
         }
 
-        let bar = Frame::new().fill(theme::BAR).inner_margin(Margin::symmetric(2, 0));
+        let bar = Frame::new().fill(theme::BAR()).inner_margin(Margin::symmetric(2, 0));
         if self.settings.show_menu_bar {
-            let r = egui::Panel::top("menubar").frame(Frame::new().fill(theme::BAR_DARK).inner_margin(Margin::symmetric(4, 0))).exact_size(crate::menus::MENU_BAR_HEIGHT).show(ui, |ui| {
+            let r = egui::Panel::top("menubar").frame(Frame::new().fill(theme::BAR_DARK()).inner_margin(Margin::symmetric(4, 0))).exact_size(crate::menus::MENU_BAR_HEIGHT).show(ui, |ui| {
                 crate::menus::menu_bar(self, ui);
             });
             crate::menus::command_bar_context(self, &r.response, BarSpot::MenuBar);
@@ -321,13 +329,13 @@ impl AnyVectorApp {
             crate::menus::command_bar_context(self, &r.response, BarSpot::Toolbar("Property Bar"));
         }
         if self.settings.show_status_bar {
-            let r = egui::Panel::bottom("status").frame(Frame::new().fill(theme::BAR).inner_margin(Margin::symmetric(4, 0))).exact_size(30.0).show(ui, |ui| {
+            let r = egui::Panel::bottom("status").frame(Frame::new().fill(theme::BAR()).inner_margin(Margin::symmetric(4, 0))).exact_size(30.0).show(ui, |ui| {
                 crate::statusbar::status_bar(self, ui);
             });
             crate::menus::command_bar_context(self, &r.response, BarSpot::StatusBar);
         }
         if self.settings.show_toolbox {
-            let r = egui::Panel::left("toolbox").frame(Frame::new().fill(theme::BAR).inner_margin(Margin { left: 2, right: 0, top: 4, bottom: 4 })).exact_size(33.0).show(ui, |ui| {
+            let r = egui::Panel::left("toolbox").frame(Frame::new().fill(theme::BAR()).inner_margin(Margin { left: 2, right: 0, top: 4, bottom: 4 })).exact_size(33.0).show(ui, |ui| {
                 crate::toolbox::toolbox(self, ui);
             });
             crate::menus::command_bar_context(self, &r.response, BarSpot::Toolbar("Toolbox"));
@@ -338,18 +346,18 @@ impl AnyVectorApp {
                 continue;
             }
             let id = if i == 0 { "palette".to_string() } else { format!("palette{i}") };
-            egui::Panel::right(id.as_str()).frame(Frame::new().fill(theme::BAR).inner_margin(Margin::symmetric(1, 2))).exact_size(crate::palette::column_width(&self.settings)).show(ui, |ui| {
+            egui::Panel::right(id.as_str()).frame(Frame::new().fill(theme::BAR()).inner_margin(Margin::symmetric(1, 2))).exact_size(crate::palette::column_width(&self.settings)).show(ui, |ui| {
                 crate::palette::palette_column(self, ui, i);
             });
         }
         if self.dockers.visible() {
             let w = self.settings.docker_width;
             if self.dockers.collapsed {
-                egui::Panel::right("dockers_folded").frame(Frame::new().fill(theme::BG).inner_margin(Margin::same(0))).exact_size(crate::dockers::TAB_STRIP + 2.0).show(ui, |ui| {
+                egui::Panel::right("dockers_folded").frame(Frame::new().fill(theme::BG()).inner_margin(Margin::same(0))).exact_size(crate::dockers::TAB_STRIP + 2.0).show(ui, |ui| {
                     crate::dockers::dockers_panel(self, ui);
                 });
             } else {
-                let mut panel = egui::Panel::right("dockers").frame(Frame::new().fill(theme::BG).inner_margin(Margin::same(0))).resizable(true).default_size(w).size_range(220.0..=600.0);
+                let mut panel = egui::Panel::right("dockers").frame(Frame::new().fill(theme::BG()).inner_margin(Margin::same(0))).resizable(true).default_size(w).size_range(220.0..=600.0);
                 if let Some(w) = self.dockers.set_width.take() {
                     panel = panel.exact_size(w);
                 }
@@ -360,11 +368,11 @@ impl AnyVectorApp {
             }
         }
         if self.settings.doc_palette_visible {
-            egui::Panel::bottom("docpalette").frame(Frame::new().fill(theme::BG).inner_margin(Margin::symmetric(2, 0))).exact_size(24.0).show(ui, |ui| {
+            egui::Panel::bottom("docpalette").frame(Frame::new().fill(theme::BG()).inner_margin(Margin::symmetric(2, 0))).exact_size(24.0).show(ui, |ui| {
                 crate::palette::document_palette(self, ui);
             });
         }
-        egui::CentralPanel::default().frame(Frame::new().fill(theme::BG)).show(ui, |ui| {
+        egui::CentralPanel::default().frame(Frame::new().fill(theme::BG())).show(ui, |ui| {
             if self.doc_layout != 0 && self.docs.len() > 1 && self.active.is_some() {
                 crate::canvas::arranged_windows(self, ui);
             } else {
@@ -447,8 +455,8 @@ impl AnyVectorApp {
             }
             let text = m.text.clone();
             egui::Area::new(egui::Id::unique("flash")).anchor(egui::Align2::CENTER_BOTTOM, egui::vec2(0.0, -70.0)).order(egui::Order::Tooltip).interactable(false).show(ctx, |ui| {
-                Frame::new().fill(Color32::from_rgb(0x33, 0x33, 0x33)).stroke(egui::Stroke::new(1.0, theme::SEP)).corner_radius(3.0).inner_margin(Margin::symmetric(14, 8)).show(ui, |ui| {
-                    ui.add(egui::Label::new(egui::RichText::new(text).color(theme::TEXT)).extend());
+                Frame::new().fill(theme::BUTTON()).stroke(egui::Stroke::new(1.0, theme::SEP())).corner_radius(3.0).inner_margin(Margin::symmetric(14, 8)).show(ui, |ui| {
+                    ui.add(egui::Label::new(egui::RichText::new(text).color(theme::TEXT())).extend());
                 });
             });
             ctx.request_repaint_after(std::time::Duration::from_millis(250));
@@ -536,22 +544,22 @@ impl AnyVectorApp {
                 .title_bar(false)
                 .resizable(false)
                 .default_pos(next)
-                .frame(Frame::window(&ctx.global_style()).fill(theme::BAR).inner_margin(Margin::symmetric(6, 3)).corner_radius(2))
+                .frame(Frame::window(&ctx.global_style()).fill(theme::BAR()).inner_margin(Margin::symmetric(6, 3)).corner_radius(2))
                 .show(ctx, |ui| {
                     ui.set_max_width(860.0);
                     // a small title row: the name, and × at the right end once the width is known
                     let (title, _) = ui.allocate_exact_size(egui::vec2(60.0, 18.0), egui::Sense::hover());
                     crate::toolbar::extra(self, ui, tb);
                     let right = ui.min_rect().right();
-                    ui.painter().text(title.left_center(), egui::Align2::LEFT_CENTER, tb.name(), egui::FontId::proportional(12.0), theme::TEXT);
+                    ui.painter().text(title.left_center(), egui::Align2::LEFT_CENTER, tb.name(), egui::FontId::proportional(12.0), theme::TEXT());
                     let x = egui::Rect::from_center_size(egui::pos2(right - 7.0, title.center().y), egui::vec2(16.0, 16.0));
                     let xr = ui.interact(x, ui.scope_id().with("close"), egui::Sense::click());
                     if xr.hovered() {
-                        ui.painter().rect_filled(x, 2.0, theme::HOVER);
+                        ui.painter().rect_filled(x, 2.0, theme::HOVER());
                     }
                     let c = x.center();
                     for d in [egui::vec2(4.0, 4.0), egui::vec2(4.0, -4.0)] {
-                        ui.painter().line_segment([c - d, c + d], egui::Stroke::new(1.2, theme::TEXT));
+                        ui.painter().line_segment([c - d, c + d], egui::Stroke::new(1.2, theme::TEXT()));
                     }
                     if xr.clicked() {
                         open = false;

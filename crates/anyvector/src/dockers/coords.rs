@@ -403,17 +403,17 @@ fn curve_table(app: &mut AnyVectorApp, ui: &mut Ui, c: &mut CoUi) {
     };
     let (hr, _) = ui.allocate_exact_size(vec2(w, 22.0), Sense::hover());
     let p = ui.painter();
-    p.rect_filled(hr, 0.0, theme::BAR);
-    p.line_segment([pos2(hr.center().x, hr.top()), pos2(hr.center().x, hr.bottom())], Stroke::new(1.0, theme::SEP));
+    p.rect_filled(hr, 0.0, theme::BAR());
+    p.line_segment([pos2(hr.center().x, hr.top()), pos2(hr.center().x, hr.bottom())], Stroke::new(1.0, theme::SEP()));
     for (k, t) in ["X", "Y"].iter().enumerate() {
-        p.text(pos2(hr.left() + w * (0.25 + 0.5 * k as f32), hr.center().y), egui::Align2::CENTER_CENTER, *t, egui::FontId::proportional(12.0), theme::TEXT);
+        p.text(pos2(hr.left() + w * (0.25 + 0.5 * k as f32), hr.center().y), egui::Align2::CENTER_CENTER, *t, egui::FontId::proportional(12.0), theme::TEXT());
     }
     let mut remove = None;
     egui::ScrollArea::vertical().id_salt("co_pts").max_height(ui.available_height() - 90.0).show(ui, |ui| {
         for i in 0..c.pts.len() {
             let (r, resp) = ui.allocate_exact_size(vec2(w, 20.0), Sense::click());
             if i == c.row {
-                ui.painter().rect_filled(r, 0.0, theme::ACCENT);
+                ui.painter().rect_filled(r, 0.0, theme::ACCENT());
             }
             if i == c.row && resp.double_clicked() {
                 ui.memory_mut(|m| m.request_focus(egui::Id::unique(("co", "ptx"))));
@@ -422,7 +422,7 @@ fn curve_table(app: &mut AnyVectorApp, ui: &mut Ui, c: &mut CoUi) {
                 c.row = i;
             }
             for k in 0..2 {
-                ui.painter().text(pos2(r.left() + 8.0 + w * 0.5 * k as f32, r.center().y), egui::Align2::LEFT_CENTER, fmt(c.pts[i][k]), egui::FontId::proportional(12.0), theme::TEXT);
+                ui.painter().text(pos2(r.left() + 8.0 + w * 0.5 * k as f32, r.center().y), egui::Align2::LEFT_CENTER, fmt(c.pts[i][k]), egui::FontId::proportional(12.0), theme::TEXT());
             }
         }
     });

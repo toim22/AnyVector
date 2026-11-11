@@ -127,13 +127,13 @@ fn accel_track(ui: &mut Ui, v: &mut f64, enabled: bool) -> bool {
         changed = true;
     }
     let kx = x0 + ((*v + 100.0) / 200.0).clamp(0.0, 1.0) as f32 * (x1 - x0);
-    let blue = if enabled { egui::Color32::from_rgb(0x1e, 0x88, 0xd8) } else { egui::Color32::from_gray(90) };
+    let blue = if enabled { egui::Color32::from_rgb(0x1e, 0x88, 0xd8) } else { crate::theme::gray(90) };
     let p = ui.painter();
-    p.line_segment([egui::pos2(x0, y), egui::pos2(x1, y)], egui::Stroke::new(3.0, egui::Color32::from_gray(80)));
+    p.line_segment([egui::pos2(x0, y), egui::pos2(x1, y)], egui::Stroke::new(3.0, crate::theme::gray(80)));
     p.line_segment([egui::pos2(x0, y), egui::pos2(kx, y)], egui::Stroke::new(3.0, blue));
     let mx = (x0 + x1) / 2.0;
-    p.line_segment([egui::pos2(mx, y + 5.0), egui::pos2(mx, y + 8.0)], egui::Stroke::new(1.0, crate::theme::TEXT));
-    p.circle_filled(egui::pos2(kx, y), 5.5, crate::theme::BG);
+    p.line_segment([egui::pos2(mx, y + 5.0), egui::pos2(mx, y + 8.0)], egui::Stroke::new(1.0, crate::theme::TEXT()));
+    p.circle_filled(egui::pos2(kx, y), 5.5, crate::theme::BG());
     p.circle_stroke(egui::pos2(kx, y), 5.5, egui::Stroke::new(1.5, blue));
     changed
 }
@@ -142,17 +142,17 @@ fn accel_track(ui: &mut Ui, v: &mut f64, enabled: bool) -> bool {
 fn line_title(ui: &mut Ui, title: &str) {
     let w = ui.available_width();
     let (r, _) = ui.allocate_exact_size(egui::vec2(w, 20.0), egui::Sense::hover());
-    let g = ui.painter().layout_no_wrap(title.to_string(), egui::FontId::proportional(12.5), crate::theme::TEXT);
+    let g = ui.painter().layout_no_wrap(title.to_string(), egui::FontId::proportional(12.5), crate::theme::TEXT());
     let tw = g.size().x;
-    ui.painter().galley(egui::pos2(r.left(), r.center().y - g.size().y / 2.0), g, crate::theme::TEXT);
-    ui.painter().hline(r.left() + tw + 20.0..=r.right() - 4.0, r.center().y, egui::Stroke::new(1.0, crate::theme::SEP));
+    ui.painter().galley(egui::pos2(r.left(), r.center().y - g.size().y / 2.0), g, crate::theme::TEXT());
+    ui.painter().hline(r.left() + tw + 20.0..=r.right() - 4.0, r.center().y, egui::Stroke::new(1.0, crate::theme::SEP()));
 }
 
 /// An acceleration slider: -100..100, the middle marked.
 fn accel_slider(ui: &mut Ui, label: &str, v: &mut f64, enabled: bool) {
     ui.horizontal(|ui| {
         let (lr, _) = ui.allocate_exact_size(egui::vec2(70.0, 22.0), egui::Sense::hover());
-        ui.painter().text(egui::pos2(lr.right() - 6.0, lr.center().y), egui::Align2::RIGHT_CENTER, label, egui::FontId::proportional(12.5), if enabled { crate::theme::TEXT } else { crate::theme::DISABLED });
+        ui.painter().text(egui::pos2(lr.right() - 6.0, lr.center().y), egui::Align2::RIGHT_CENTER, label, egui::FontId::proportional(12.5), if enabled { crate::theme::TEXT() } else { crate::theme::DISABLED() });
         let w = ui.available_width() - 6.0;
         let (r, resp) = ui.allocate_exact_size(egui::vec2(w, 22.0), if enabled { egui::Sense::click_and_drag() } else { egui::Sense::hover() });
         let (x0, x1, y) = (r.left() + 6.0, r.right() - 6.0, r.center().y);
@@ -160,12 +160,12 @@ fn accel_slider(ui: &mut Ui, label: &str, v: &mut f64, enabled: bool) {
             *v = (((p.x - x0) / (x1 - x0)).clamp(0.0, 1.0) as f64 * 200.0 - 100.0).round();
         }
         let kx = x0 + ((*v + 100.0) / 200.0) as f32 * (x1 - x0);
-        let blue = if enabled { egui::Color32::from_rgb(0x1e, 0x88, 0xd8) } else { egui::Color32::from_gray(90) };
+        let blue = if enabled { egui::Color32::from_rgb(0x1e, 0x88, 0xd8) } else { crate::theme::gray(90) };
         let p = ui.painter();
-        p.line_segment([egui::pos2(x0, y), egui::pos2(x1, y)], egui::Stroke::new(3.0, egui::Color32::from_gray(80)));
+        p.line_segment([egui::pos2(x0, y), egui::pos2(x1, y)], egui::Stroke::new(3.0, crate::theme::gray(80)));
         p.line_segment([egui::pos2(x0, y), egui::pos2(kx, y)], egui::Stroke::new(3.0, blue));
-        p.line_segment([egui::pos2((x0 + x1) / 2.0, y + 5.0), egui::pos2((x0 + x1) / 2.0, y + 7.0)], egui::Stroke::new(1.0, crate::theme::TEXT_DIM));
-        p.circle_filled(egui::pos2(kx, y), 5.5, crate::theme::BG);
+        p.line_segment([egui::pos2((x0 + x1) / 2.0, y + 5.0), egui::pos2((x0 + x1) / 2.0, y + 7.0)], egui::Stroke::new(1.0, crate::theme::TEXT_DIM()));
+        p.circle_filled(egui::pos2(kx, y), 5.5, crate::theme::BG());
         p.circle_stroke(egui::pos2(kx, y), 5.5, egui::Stroke::new(1.5, blue));
     });
 }
@@ -255,7 +255,7 @@ pub fn blend(app: &mut AnyVectorApp, ui: &mut Ui) {
     let reset = ui
         .with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
             ui.add_space(4.0);
-            ui.add(egui::Button::new("Reset").fill(egui::Color32::from_rgb(0x33, 0x33, 0x33)).min_size(egui::vec2(80.0, 24.0))).clicked()
+            ui.add(egui::Button::new("Reset").fill(crate::theme::BUTTON()).min_size(egui::vec2(80.0, 24.0))).clicked()
         })
         .inner;
     if reset {
@@ -277,15 +277,15 @@ pub fn blend(app: &mut AnyVectorApp, ui: &mut Ui) {
     let apply = ui
         .with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
             ui.add_space(4.0);
-            ui.add_enabled(n == 2 || is_blend, egui::Button::new("Apply").fill(egui::Color32::from_rgb(0x33, 0x33, 0x33)).min_size(egui::vec2(80.0, 24.0))).clicked()
+            ui.add_enabled(n == 2 || is_blend, egui::Button::new("Apply").fill(crate::theme::BUTTON()).min_size(egui::vec2(80.0, 24.0))).clicked()
         })
         .inner;
     // more options
     let (r, resp) = ui.allocate_exact_size(egui::vec2(full_w, 12.0), egui::Sense::click());
     if u.blend_more {
-        crate::widgets::chevron_up(ui.painter(), r.center(), 3.0, crate::theme::TEXT_DIM);
+        crate::widgets::chevron_up(ui.painter(), r.center(), 3.0, crate::theme::TEXT_DIM());
     } else {
-        crate::widgets::chevron(ui.painter(), r.center(), 3.0, crate::theme::TEXT_DIM);
+        crate::widgets::chevron(ui.painter(), r.center(), 3.0, crate::theme::TEXT_DIM());
     }
     if resp.clicked() {
         u.blend_more = !u.blend_more;
@@ -296,7 +296,7 @@ pub fn blend(app: &mut AnyVectorApp, ui: &mut Ui) {
         ui.columns(2, |c| {
             for (k, t) in ["Map nodes", "Split", "Fuse start", "Fuse end"].into_iter().enumerate() {
                 let ui = &mut c[k / 2];
-                ui.add_enabled(false, egui::Button::new(t).fill(egui::Color32::from_rgb(0x2c, 0x2c, 0x2c)).min_size(egui::vec2(ui.available_width(), 26.0)));
+                ui.add_enabled(false, egui::Button::new(t).fill(crate::theme::gray(0x2c)).min_size(egui::vec2(ui.available_width(), 26.0)));
             }
         });
         separator(ui);
@@ -648,15 +648,15 @@ pub fn envelope(app: &mut AnyVectorApp, ui: &mut Ui) {
     }
     let full_w = ui.available_width();
     let (mode, mapping, keep) = (app.dockers.ui.env_mode, app.dockers.ui.env_mapping as u8, app.dockers.ui.env_keep);
-    let add = ui.add_enabled_ui(sel, |ui| ui.add_sized(egui::vec2(full_w, 24.0), egui::Button::new("Add New").fill(egui::Color32::from_rgb(0x33, 0x33, 0x33)))).inner;
+    let add = ui.add_enabled_ui(sel, |ui| ui.add_sized(egui::vec2(full_w, 24.0), egui::Button::new("Add New").fill(crate::theme::BUTTON()))).inner;
     if add.clicked() {
         crate::propbar::bake_warps_with(app, "Add New Envelope", Some(EnvelopeEffect { mode, mapping, keep_lines: keep, ..Default::default() }));
     }
     ui.add_space(2.0);
-    ui.label(egui::RichText::new("Choose Preset").color(if sel { crate::theme::TEXT_DIM } else { crate::theme::DISABLED }));
+    ui.label(egui::RichText::new("Choose Preset").color(if sel { crate::theme::TEXT_DIM() } else { crate::theme::DISABLED() }));
     // the presets: thumbnails of their shapes, five to a row
     let mut picked = None;
-    egui::Frame::new().stroke(egui::Stroke::new(1.0, crate::theme::SEP)).inner_margin(egui::Margin::same(2)).show(ui, |ui| {
+    egui::Frame::new().stroke(egui::Stroke::new(1.0, crate::theme::SEP())).inner_margin(egui::Margin::same(2)).show(ui, |ui| {
         let w = full_w - 6.0;
         egui::ScrollArea::vertical().id_salt("env_presets").max_height(196.0).show(ui, |ui| {
             ui.set_width(w);
@@ -673,11 +673,11 @@ pub fn envelope(app: &mut AnyVectorApp, ui: &mut Ui) {
                             let (r, resp) = ui.allocate_exact_size(egui::vec2(cw, 33.0), if sel { egui::Sense::click() } else { egui::Sense::hover() });
                             let on = app.dockers.ui.env_preset == Some(i);
                             if on {
-                                ui.painter().rect_filled(r.shrink(1.0), 2.0, crate::theme::ACCENT);
+                                ui.painter().rect_filled(r.shrink(1.0), 2.0, crate::theme::ACCENT());
                             } else if resp.hovered() && sel {
-                                ui.painter().rect_filled(r.shrink(1.0), 2.0, crate::theme::HOVER);
+                                ui.painter().rect_filled(r.shrink(1.0), 2.0, crate::theme::HOVER());
                             }
-                            let col = if sel { crate::theme::TEXT } else { egui::Color32::from_gray(0x9a) };
+                            let col = if sel { crate::theme::TEXT() } else { crate::theme::TEXT_DIM() };
                             for (pts, closed) in vector_core::geom::flatten_polylines(&envelope_preset(i), 0.2) {
                                 let pts: Vec<egui::Pos2> = pts.iter().map(|p| r.center() + egui::vec2(p.x as f32, p.y as f32)).collect();
                                 let shape = if closed { egui::Shape::closed_line(pts, egui::Stroke::new(1.0, col)) } else { egui::Shape::line(pts, egui::Stroke::new(1.0, col)) };

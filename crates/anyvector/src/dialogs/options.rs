@@ -301,16 +301,16 @@ fn body(app: &mut AnyVectorApp, ui: &mut Ui, cat: OptionsPage, page: &str) -> (b
     let r = ui.max_rect();
     let ctx = ui.ctx().clone();
     // header: category title + category buttons
-    ui.painter().text(pos2(r.left(), r.top() + 21.0), Align2::LEFT_CENTER, title_of(cat), theme::bold(13.0), theme::TEXT);
+    ui.painter().text(pos2(r.left(), r.top() + 21.0), Align2::LEFT_CENTER, title_of(cat), theme::bold(13.0), theme::TEXT());
     for (k, (c, icon, name)) in CATEGORIES.iter().enumerate() {
         let cx = r.right() - 12.0 - 32.0 * (5 - k) as f32;
         let br = Rect::from_center_size(pos2(cx, r.top() + 21.0), vec2(24.0, 24.0));
         let enabled = *c != OptionsPage::Document || app.has_doc();
         let resp = ui.interact(br, Id::unique(("optcat", k)), if enabled { Sense::click() } else { Sense::hover() }).on_hover_text(*name);
         if *c == cat {
-            ui.painter().rect_filled(br, 3.0, theme::ACCENT);
+            ui.painter().rect_filled(br, 3.0, theme::ACCENT());
         } else if resp.hovered() && enabled {
-            ui.painter().rect_filled(br, 3.0, theme::HOVER);
+            ui.painter().rect_filled(br, 3.0, theme::HOVER());
         }
         let tone = if !enabled {
             Tone::Disabled
@@ -333,16 +333,16 @@ fn body(app: &mut AnyVectorApp, ui: &mut Ui, cat: OptionsPage, page: &str) -> (b
     if cat == OptionsPage::Workspaces {
         super::workspace::options_list(app, ui, list);
     } else {
-        ui.painter().rect_stroke(list, 0.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Inside);
+        ui.painter().rect_stroke(list, 0.0, Stroke::new(1.0, theme::SEP()), egui::StrokeKind::Inside);
     }
     let page_list: &[(&str, Option<ToolId>)] = if cat == OptionsPage::Workspaces { &[] } else { pages(cat) };
     for (i, (name, tool)) in page_list.iter().enumerate() {
         let row = Rect::from_min_size(pos2(list.left() + 1.0, list.top() + 1.0 + 25.0 * i as f32), vec2(list.width() - 2.0, 25.0));
         let resp = ui.interact(row, Id::unique(("optpage", cat as u8, i)), Sense::click());
         if *name == page {
-            ui.painter().rect_filled(row, 0.0, Color32::from_rgb(0x3a, 0x3a, 0x3a));
+            ui.painter().rect_filled(row, 0.0, theme::HOVER());
         } else if resp.hovered() {
-            ui.painter().rect_filled(row, 0.0, Color32::from_rgb(0x31, 0x31, 0x31));
+            ui.painter().rect_filled(row, 0.0, theme::gray(0x31));
         }
         let mut tx = row.left() + 3.0;
         if let Some(t) = tool {
@@ -351,7 +351,7 @@ fn body(app: &mut AnyVectorApp, ui: &mut Ui, cat: OptionsPage, page: &str) -> (b
             }
             tx = row.left() + 31.0;
         }
-        ui.painter().text(pos2(tx, row.center().y), Align2::LEFT_CENTER, *name, FontId::proportional(13.0), theme::TEXT);
+        ui.painter().text(pos2(tx, row.center().y), Align2::LEFT_CENTER, *name, FontId::proportional(13.0), theme::TEXT());
         if resp.clicked() && *name != page {
             app.dialogs.options.page = Some(name.to_string());
             app.dialogs.options.tab = 0;
@@ -359,7 +359,7 @@ fn body(app: &mut AnyVectorApp, ui: &mut Ui, cat: OptionsPage, page: &str) -> (b
     }
     // page panel
     let panel = Rect::from_min_max(pos2(r.left() + 188.0, list.top()), pos2(r.right(), list.bottom()));
-    ui.painter().rect_stroke(panel, 0.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Inside);
+    ui.painter().rect_stroke(panel, 0.0, Stroke::new(1.0, theme::SEP()), egui::StrokeKind::Inside);
     let tabbed = matches!((cat, page), (OptionsPage::App, "Text") | (OptionsPage::Global, "Printing"));
     let inner = if tabbed { panel.shrink2(vec2(6.0, 10.0)) } else { Rect::from_min_max(panel.min + vec2(15.0, 14.0), panel.max - vec2(8.0, 8.0)) };
     let mut child = ui.new_child(UiBuilder::new().max_rect(inner).layout(egui::Layout::top_down(egui::Align::Min)));
@@ -429,15 +429,15 @@ fn page_content(app: &mut AnyVectorApp, ui: &mut Ui, cat: OptionsPage, page: &st
 /// A label in a column of width `w`; a longer (translated) label widens its row instead of being
 /// covered by the control next to it.
 fn label_w(ui: &mut Ui, text: &str, w: f32) {
-    let g = ui.painter().layout_no_wrap(text.to_owned(), FontId::proportional(13.0), theme::TEXT);
+    let g = ui.painter().layout_no_wrap(text.to_owned(), FontId::proportional(13.0), theme::TEXT());
     let (r, _) = ui.allocate_exact_size(vec2(w.max(g.size().x + 6.0), 22.0), Sense::hover());
-    ui.painter().galley(pos2(r.left(), r.center().y - g.size().y / 2.0), g, theme::TEXT);
+    ui.painter().galley(pos2(r.left(), r.center().y - g.size().y / 2.0), g, theme::TEXT());
 }
 
 fn label_right(ui: &mut Ui, text: &str, w: f32) {
-    let g = ui.painter().layout_no_wrap(text.to_owned(), FontId::proportional(13.0), theme::TEXT);
+    let g = ui.painter().layout_no_wrap(text.to_owned(), FontId::proportional(13.0), theme::TEXT());
     let (r, _) = ui.allocate_exact_size(vec2(w.max(g.size().x + 12.0), 22.0), Sense::hover());
-    ui.painter().galley(pos2(r.right() - 8.0 - g.size().x, r.center().y - g.size().y / 2.0), g, theme::TEXT);
+    ui.painter().galley(pos2(r.right() - 8.0 - g.size().x, r.center().y - g.size().y / 2.0), g, theme::TEXT());
 }
 
 fn combo(ui: &mut Ui, id: &str, cur: &mut usize, items: &[&str], w: f32) -> bool {
@@ -501,8 +501,8 @@ fn tabs(ui: &mut Ui, cur: &mut usize, names: &[&str]) {
         ui.spacing_mut().item_spacing.x = 4.0;
         for (i, n) in names.iter().enumerate() {
             let sel = *cur == i;
-            let b = egui::Button::new(egui::RichText::new(*n).color(if sel { Color32::WHITE } else { theme::TEXT }))
-                .fill(if sel { theme::ACCENT } else { Color32::from_rgb(0x33, 0x33, 0x33) })
+            let b = egui::Button::new(egui::RichText::new(*n).color(if sel { theme::STRONG() } else { theme::TEXT() }))
+                .fill(if sel { theme::ACCENT() } else { theme::BUTTON() })
                 .corner_radius(egui::CornerRadius { nw: 3, ne: 3, sw: 0, se: 0 })
                 .min_size(vec2(64.0, 24.0));
             if ui.add(b).clicked() {
@@ -515,7 +515,7 @@ fn tabs(ui: &mut Ui, cur: &mut usize, names: &[&str]) {
 /// The bordered content area below a tab strip.
 fn tab_body(ui: &mut Ui, add: impl FnOnce(&mut Ui)) {
     let r = Rect::from_min_max(ui.cursor().min - vec2(0.0, 7.0), ui.max_rect().max);
-    ui.painter().rect_stroke(r, 0.0, Stroke::new(1.0, theme::SEP), egui::StrokeKind::Inside);
+    ui.painter().rect_stroke(r, 0.0, Stroke::new(1.0, theme::SEP()), egui::StrokeKind::Inside);
     let inner = r.shrink2(vec2(24.0, 10.0));
     let mut child = ui.new_child(UiBuilder::new().max_rect(inner).layout(egui::Layout::top_down(egui::Align::Min)));
     child.set_clip_rect(inner);
@@ -743,7 +743,7 @@ fn doc_page(app: &mut AnyVectorApp, ui: &mut Ui, page: &str) {
                     e.guides.push(Guide { kind: GuideKind::Vertical, pos: kurbo::Point::new(st.guide_pos, 0.0), locked: false, color: Color::rgb(0, 153, 255) });
                 }
             });
-            egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP)).inner_margin(4.0).show(ui, |ui| {
+            egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP())).inner_margin(4.0).show(ui, |ui| {
                 ui.set_min_size(vec2(400.0, 200.0));
                 egui::ScrollArea::vertical().id_salt("guides_list").max_height(200.0).show(ui, |ui| {
                     for (i, g) in e.guides.iter().enumerate() {
@@ -1026,7 +1026,7 @@ fn snapping(app: &mut AnyVectorApp, ui: &mut Ui) {
     ui.checkbox(&mut s.show_snap_tip, "Show snapping mode in screen tip");
     separator(ui);
     heading(ui, "Modes");
-    egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP)).inner_margin(6.0).show(ui, |ui| {
+    egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP())).inner_margin(6.0).show(ui, |ui| {
         ui.set_width(320.0);
         for (i, (n, sym)) in SNAP_MODES.iter().enumerate() {
             ui.horizontal(|ui| {
@@ -1235,7 +1235,7 @@ fn quickcorrect(app: &mut AnyVectorApp, ui: &mut Ui) {
         ui.add(egui::TextEdit::singleline(&mut st.replace_with).desired_width(110.0));
     });
     ui.horizontal(|ui| {
-        egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP)).inner_margin(4.0).show(ui, |ui| {
+        egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP())).inner_margin(4.0).show(ui, |ui| {
             ui.set_width(350.0);
             egui::ScrollArea::vertical().id_salt("qc_list").max_height(150.0).show(ui, |ui| {
                 for (i, (a, b)) in s.replacements.iter().enumerate() {
@@ -1316,7 +1316,7 @@ fn warnings(app: &mut AnyVectorApp, ui: &mut Ui) {
     if app.settings.warnings.len() < 10 {
         app.settings.warnings = default_warnings();
     }
-    egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP)).inner_margin(egui::Margin { left: 4, right: 4, top: 2, bottom: 2 }).show(ui, |ui| {
+    egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP())).inner_margin(egui::Margin { left: 4, right: 4, top: 2, bottom: 2 }).show(ui, |ui| {
         ui.set_width(ui.available_width());
         egui::ScrollArea::vertical().id_salt("warn_list").max_height(370.0).auto_shrink([false, false]).show(ui, |ui| {
             ui.spacing_mut().item_spacing.y = 5.0;
@@ -1333,7 +1333,7 @@ fn scripts(app: &mut AnyVectorApp, ui: &mut Ui) {
         app.dialogs.options.security_dialog = !app.dialogs.options.security_dialog;
     }
     if app.dialogs.options.security_dialog {
-        egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP)).inner_margin(8.0).show(ui, |ui| {
+        egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP())).inner_margin(8.0).show(ui, |ui| {
             ui.label(egui::RichText::new("Security Level").strong());
             let mut lvl = if app.settings.trust_scripts { 0 } else { 1 };
             ui.radio_value(&mut lvl, 0, "Low: run all scripts");
@@ -1351,7 +1351,7 @@ fn plugins(app: &mut AnyVectorApp, ui: &mut Ui) {
     ui.label("Plug-ins Folders");
     let st = &mut app.dialogs.options;
     let s = &mut app.settings;
-    egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP)).inner_margin(4.0).show(ui, |ui| {
+    egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP())).inner_margin(4.0).show(ui, |ui| {
         ui.set_min_size(vec2(ui.available_width(), 300.0));
         for (i, (p, on)) in s.plugin_folders.iter_mut().enumerate() {
             ui.horizontal(|ui| {
@@ -1410,11 +1410,26 @@ fn appearance(app: &mut AnyVectorApp, ui: &mut Ui) {
     heading(ui, "Color");
     ui.horizontal(|ui| {
         label_w(ui, "Theme:", 110.0);
-        combo_str(ui, "theme", &mut s.theme_name, &["Dark"], 120.0);
+        let label = |n: &str| {
+            // "Light" alone is the lighting sense in the dictionaries; the "|theme" key is the color theme
+            let t = crate::i18n::t(&format!("{n}|theme"));
+            t.split('|').next().unwrap_or(n).to_string()
+        };
+        let before = s.theme_name.clone();
+        egui::ComboBox::from_id_salt("theme").selected_text(label(&s.theme_name)).width(120.0).show_ui(ui, |ui| {
+            for p in theme::THEMES {
+                ui.selectable_value(&mut s.theme_name, p.name.to_string(), label(p.name));
+            }
+        });
+        if s.theme_name != before {
+            // the app switches on the next frame (and the desktop color with it)
+            ctx.request_repaint();
+        }
     });
     ui.horizontal(|ui| {
         label_w(ui, "Window border:", 110.0);
-        let mut c = [0x2b, 0x2b, 0x2b];
+        let b = theme::BAR();
+        let mut c = [b.r(), b.g(), b.b()];
         rgb_edit(ui, &mut c);
     });
     ui.horizontal(|ui| {
@@ -1461,7 +1476,7 @@ fn command_bars(app: &mut AnyVectorApp, ui: &mut Ui) {
     ];
     let mut toggle = None;
     ui.horizontal(|ui| {
-        egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP)).inner_margin(4.0).show(ui, |ui| {
+        egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP())).inner_margin(4.0).show(ui, |ui| {
             ui.set_width(260.0);
             ui.spacing_mut().item_spacing.y = 3.0;
             for (name, tb) in list {
@@ -1573,7 +1588,7 @@ fn commands(app: &mut AnyVectorApp, ui: &mut Ui) {
     let entries = app.dialogs.options.catalog.iter().find(|(k, _)| *k == mi).map(|(_, e)| e.clone()).unwrap_or_default();
     let q = app.dialogs.options.commands_search.to_lowercase();
     ui.horizontal_top(|ui| {
-        egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP)).inner_margin(4.0).show(ui, |ui| {
+        egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP())).inner_margin(4.0).show(ui, |ui| {
             ui.set_width(250.0);
             egui::ScrollArea::vertical().id_salt("cmd_list").max_height(470.0).auto_shrink([false, false]).show(ui, |ui| {
                 ui.spacing_mut().item_spacing.y = 1.0;
@@ -1831,7 +1846,7 @@ fn tool_page(app: &mut AnyVectorApp, ui: &mut Ui, page: &str) {
             let sp = vector_core::object::SpiralShape { w: 80.0, h: 80.0, revolutions: s.spiral_revs as f64, logarithmic: s.spiral_log, expansion: s.spiral_expansion };
             let path = vector_core::object::spiral_path(&sp);
             let pts: Vec<egui::Pos2> = vector_core::geom::flatten_polylines(&path, 0.5).into_iter().flat_map(|(p, _)| p).map(|p| r.center() + vec2(p.x as f32, p.y as f32)).collect();
-            ui.painter().add(egui::Shape::line(pts, Stroke::new(1.0, theme::TEXT)));
+            ui.painter().add(egui::Shape::line(pts, Stroke::new(1.0, theme::TEXT())));
             ui.horizontal(|ui| {
                 label_w(ui, "Number of revolutions:", 160.0);
                 spin_u32(ui, &mut s.spiral_revs, 1..=100);
@@ -2028,7 +2043,7 @@ fn printing(app: &mut AnyVectorApp, ui: &mut Ui) {
             egui::Grid::new("print_special").num_columns(2).striped(true).spacing(vec2(20.0, 4.0)).show(ui, |ui| {
                 for (a, b) in PRINT_SETTINGS {
                     ui.label(a);
-                    ui.label(egui::RichText::new(b).color(theme::TEXT_DIM));
+                    ui.label(egui::RichText::new(b).color(theme::TEXT_DIM()));
                     ui.end_row();
                 }
             });
@@ -2046,7 +2061,7 @@ fn file_locations(app: &mut AnyVectorApp, ui: &mut Ui) {
     let base = crate::settings::config_dir();
     let st = &mut app.dialogs.options;
     let s = &mut app.settings;
-    egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP)).inner_margin(4.0).show(ui, |ui| {
+    egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP())).inner_margin(4.0).show(ui, |ui| {
         ui.set_width(ui.available_width());
         egui::ScrollArea::vertical().id_salt("file_locs").max_height(470.0).auto_shrink([false, false]).show(ui, |ui| {
             egui::Grid::new("fl_grid").num_columns(2).striped(true).spacing(vec2(16.0, 4.0)).show(ui, |ui| {
@@ -2064,7 +2079,7 @@ fn file_locations(app: &mut AnyVectorApp, ui: &mut Ui) {
                     if ui.selectable_label(st.file_loc_sel == Some(i), *n).clicked() {
                         st.file_loc_sel = Some(i);
                     }
-                    ui.label(egui::RichText::new(loc).color(theme::TEXT_DIM));
+                    ui.label(egui::RichText::new(loc).color(theme::TEXT_DIM()));
                     ui.end_row();
                 }
             });
@@ -2089,7 +2104,7 @@ fn file_formats(ui: &mut Ui) {
     ui.horizontal_top(|ui| {
         ui.vertical(|ui| {
             ui.label("Available file types:");
-            egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP)).inner_margin(4.0).show(ui, |ui| {
+            egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP())).inner_margin(4.0).show(ui, |ui| {
                 ui.set_width(250.0);
                 ui.set_min_height(400.0);
                 egui::CollapsingHeader::new("Raster").default_open(true).show(ui, |ui| {
@@ -2119,7 +2134,7 @@ fn file_formats(ui: &mut Ui) {
         });
         ui.vertical(|ui| {
             ui.label("Active filters:");
-            egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP)).inner_margin(4.0).show(ui, |ui| {
+            egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP())).inner_margin(4.0).show(ui, |ui| {
                 ui.set_width(220.0);
                 ui.set_min_height(400.0);
                 for t in vector_io::IMPORT_TYPES.iter().chain(vector_io::EXPORT_TYPES.iter().filter(|t| t.extensions[0] == "pdf")) {
@@ -2196,7 +2211,7 @@ fn privacy(app: &mut AnyVectorApp, ui: &mut Ui) {
         });
     }
     if let Some((ok, m)) = &st.ai_key_msg {
-        let c = if *ok { theme::TEXT } else { egui::Color32::from_rgb(0xe8, 0x6a, 0x6a) };
+        let c = if *ok { theme::TEXT() } else { egui::Color32::from_rgb(0xe8, 0x6a, 0x6a) };
         ui.label(egui::RichText::new(m).color(c).size(12.0));
     }
     note(ui, if has { "An API key was found in this environment variable." } else { "AI Generate needs an API key. Paste it above and click Save Key, or set this environment variable yourself." });

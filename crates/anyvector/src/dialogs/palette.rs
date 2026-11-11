@@ -238,7 +238,7 @@ fn icon_btn(app: &mut AnyVectorApp, ui: &mut Ui, c: egui::Pos2, icon: &str, tip:
     let r = Rect::from_center_size(c, vec2(26.0, 26.0));
     let resp = ui.interact(r, ui.scope_id().with(("pe_icon", icon)), if enabled { Sense::click() } else { Sense::hover() }).on_hover_text(tip);
     if resp.hovered() && enabled {
-        ui.painter().rect_filled(r, 3.0, theme::HOVER);
+        ui.painter().rect_filled(r, 3.0, theme::HOVER());
     }
     let tone = if enabled { Tone::Normal } else { Tone::Disabled };
     if let Some(t) = app.icons.get(ui.ctx(), icon, 22.0, tone) {
@@ -266,7 +266,7 @@ fn palette_combo(ui: &mut Ui, r: Rect, id: &str, cur: &mut usize, items: &[(Stri
                         changed = true;
                     }
                 } else {
-                    ui.label(egui::RichText::new(t).color(theme::TEXT));
+                    ui.label(egui::RichText::new(t).color(theme::TEXT()));
                 }
             }
         });
@@ -394,7 +394,7 @@ fn editor_window(app: &mut AnyVectorApp, ctx: &egui::Context, st: &mut EditorSta
             st.sel = Some(0);
         }
         // Selected color
-        ui.painter().text(at(40.0, 381.0), Align2::LEFT_CENTER, "Selected color", FontId::proportional(13.0), theme::TEXT);
+        ui.painter().text(at(40.0, 381.0), Align2::LEFT_CENTER, "Selected color", FontId::proportional(13.0), theme::TEXT());
         hline(ui, o.x + 135.0, o.x + 441.0, o.y + 381.0);
         label_left(ui, at(40.0, 419.0), "Name:");
         label_left(ui, at(40.0, 451.0), "Treat as:");
@@ -409,7 +409,7 @@ fn editor_window(app: &mut AnyVectorApp, ctx: &egui::Context, st: &mut EditorSta
                     super::combo(ui, "pe_treat", &mut spot, &["Process", "Spot"], 66.0);
                 });
                 nc.spot = spot == 1;
-                ui.painter().text(at(133.0, 479.0), Align2::LEFT_CENTER, components(nc.color, cmyk), FontId::proportional(13.0), theme::TEXT);
+                ui.painter().text(at(133.0, 479.0), Align2::LEFT_CENTER, components(nc.color, cmyk), FontId::proportional(13.0), theme::TEXT());
                 let pr = Rect::from_min_max(at(242.0, 406.0), at(321.0, 463.0));
                 swatch(ui, pr, nc.color);
                 ui.painter().rect_stroke(pr, 0.0, Stroke::new(1.0, Color32::from_gray(0x70)), egui::StrokeKind::Inside);
@@ -553,7 +553,7 @@ fn sort_menu(ui: &mut Ui, r: Rect, st: &mut EditorState) {
         .scope_builder(UiBuilder::new().max_rect(r).layout(egui::Layout::centered_and_justified(egui::Direction::LeftToRight)), |ui| ui.add_enabled(enabled, egui::Button::new("Sort Colors        ").min_size(r.size())))
         .inner;
     let c = pos2(r.right() - 12.0, r.center().y);
-    ui.painter().line(vec![c + vec2(-4.0, -2.0), c + vec2(0.0, 2.0), c + vec2(4.0, -2.0)], Stroke::new(1.2, if enabled { theme::TEXT } else { theme::DISABLED }));
+    ui.painter().line(vec![c + vec2(-4.0, -2.0), c + vec2(0.0, 2.0), c + vec2(4.0, -2.0)], Stroke::new(1.2, if enabled { theme::TEXT() } else { theme::DISABLED() }));
     let colors = &mut st.edits[st.cur].palette.colors;
     let sel_color = st.sel.and_then(|i| colors.get(i)).cloned();
     egui::Popup::menu(&resp).close_behavior(egui::PopupCloseBehavior::CloseOnClick).show(|ui| {
@@ -689,7 +689,7 @@ fn select_color(app: &mut AnyVectorApp, ctx: &egui::Context, st: &mut EditorStat
                 let resp = ui.interact(r, Id::unique(("sc_sw", sc.pal, k)), Sense::click()).on_hover_text(&c.name);
                 swatch(ui, sw, c.color);
                 if sc.show_names {
-                    ui.painter().text(pos2(sw.right() + 8.0, r.center().y), Align2::LEFT_CENTER, &c.name, FontId::proportional(12.5), theme::TEXT);
+                    ui.painter().text(pos2(sw.right() + 8.0, r.center().y), Align2::LEFT_CENTER, &c.name, FontId::proportional(12.5), theme::TEXT());
                 }
                 if sc.sel == Some(k) {
                     ui.painter().rect_stroke(sw, 0.0, Stroke::new(1.5, Color32::WHITE), egui::StrokeKind::Inside);
@@ -737,11 +737,11 @@ fn select_color(app: &mut AnyVectorApp, ctx: &egui::Context, st: &mut EditorStat
         let swap = Rect::from_center_size(at(73.0, 367.0), vec2(24.0, 24.0));
         let swr = ui.interact(swap, Id::unique("sc_swap"), Sense::click()).on_hover_text("Swap Colors");
         if swr.hovered() {
-            ui.painter().rect_filled(swap, 3.0, theme::HOVER);
+            ui.painter().rect_filled(swap, 3.0, theme::HOVER());
         }
         {
             let c = swap.center();
-            let s = Stroke::new(1.3, theme::TEXT);
+            let s = Stroke::new(1.3, theme::TEXT());
             let p = ui.painter();
             p.line(vec![c + vec2(-6.0, 5.0), c + vec2(-6.0, -4.0), c + vec2(6.0, -4.0), c + vec2(6.0, 2.0)], s);
             p.line(vec![c + vec2(3.5, 0.0), c + vec2(6.0, 3.0), c + vec2(8.5, 0.0)], s);
@@ -762,7 +762,7 @@ fn select_color(app: &mut AnyVectorApp, ctx: &egui::Context, st: &mut EditorStat
         let cresp = ui.interact(chev, Id::unique("sc_names"), Sense::click());
         {
             let c = chev.center();
-            ui.painter().line(vec![c + vec2(-4.0, -2.0), c + vec2(0.0, 2.0), c + vec2(4.0, -2.0)], Stroke::new(1.2, theme::TEXT));
+            ui.painter().line(vec![c + vec2(-4.0, -2.0), c + vec2(0.0, 2.0), c + vec2(4.0, -2.0)], Stroke::new(1.2, theme::TEXT()));
         }
         egui::Popup::menu(&cresp).close_behavior(egui::PopupCloseBehavior::CloseOnClick).show(|ui| {
             ui.set_min_width(280.0);

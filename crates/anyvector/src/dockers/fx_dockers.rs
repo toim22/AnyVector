@@ -187,7 +187,7 @@ fn stroke_preview(ui: &mut Ui, p: &WidthProfile, size: egui::Vec2, selected: boo
     let painter = ui.painter();
     painter.rect_filled(r, 0.0, Color32::WHITE);
     if selected {
-        painter.rect_stroke(r, 0.0, Stroke::new(2.0, theme::FOCUS), egui::StrokeKind::Inside);
+        painter.rect_stroke(r, 0.0, Stroke::new(2.0, theme::FOCUS()), egui::StrokeKind::Inside);
     }
     let n = 40;
     let mut mesh = egui::Mesh::default();
@@ -258,7 +258,7 @@ pub fn artistic_media(app: &mut AnyVectorApp, ui: &mut Ui) {
     ui.label("Last Used:");
     let recent = app.dockers.ui.fx.am_recent.clone();
     let mut pick = None;
-    egui::Frame::new().fill(theme::BG).stroke(Stroke::new(1.0, theme::SEP)).show(ui, |ui| {
+    egui::Frame::new().fill(theme::BG()).stroke(Stroke::new(1.0, theme::SEP())).show(ui, |ui| {
         ui.set_min_size(vec2(full_w - 2.0, 150.0));
         egui::ScrollArea::vertical().id_salt("am_recent").max_height(150.0).show(ui, |ui| {
             for p in &recent {
@@ -290,7 +290,7 @@ pub fn artistic_media(app: &mut AnyVectorApp, ui: &mut Ui) {
     };
     let sel = app.dockers.ui.fx.am_sel;
     let list_h = (ui.available_height() - 40.0).max(160.0);
-    egui::Frame::new().fill(theme::BG).stroke(Stroke::new(1.0, theme::SEP)).show(ui, |ui| {
+    egui::Frame::new().fill(theme::BG()).stroke(Stroke::new(1.0, theme::SEP())).show(ui, |ui| {
         ui.set_min_width(full_w - 2.0);
         egui::ScrollArea::vertical().id_salt("am_list").max_height(list_h).auto_shrink([false, false]).show(ui, |ui| {
             ui.spacing_mut().item_spacing.y = 5.0;
@@ -435,7 +435,7 @@ pub fn bitmap_mask(app: &mut AnyVectorApp, ui: &mut Ui) {
             }
         });
     });
-    egui::Frame::new().fill(theme::BG).stroke(Stroke::new(1.0, theme::SEP)).show(ui, |ui| {
+    egui::Frame::new().fill(theme::BG()).stroke(Stroke::new(1.0, theme::SEP())).show(ui, |ui| {
         ui.set_min_width(full_w - 2.0);
         egui::ScrollArea::vertical().id_salt("bm_rows").max_height(180.0).show(ui, |ui| {
             for i in 0..10 {
@@ -443,13 +443,13 @@ pub fn bitmap_mask(app: &mut AnyVectorApp, ui: &mut Ui) {
                 let selected = fx.bm_row == i;
                 let (r, resp) = ui.allocate_exact_size(vec2(full_w - 14.0, 24.0), Sense::click());
                 if selected {
-                    ui.painter().rect_filled(r, 0.0, theme::HOVER);
+                    ui.painter().rect_filled(r, 0.0, theme::HOVER());
                 }
                 let cb = egui::Rect::from_min_size(pos2(r.left() + 4.0, r.center().y - 6.0), vec2(12.0, 12.0));
-                ui.painter().rect_stroke(cb, 1.0, Stroke::new(1.0, theme::TEXT_DIM), egui::StrokeKind::Inside);
+                ui.painter().rect_stroke(cb, 1.0, Stroke::new(1.0, theme::TEXT_DIM()), egui::StrokeKind::Inside);
                 if fx.bm_rows[i].0 {
-                    ui.painter().line_segment([cb.left_center() + vec2(2.0, 0.0), cb.center_bottom() - vec2(0.0, 3.0)], Stroke::new(1.5, theme::TEXT));
-                    ui.painter().line_segment([cb.center_bottom() - vec2(0.0, 3.0), cb.right_top() + vec2(-2.0, 3.0)], Stroke::new(1.5, theme::TEXT));
+                    ui.painter().line_segment([cb.left_center() + vec2(2.0, 0.0), cb.center_bottom() - vec2(0.0, 3.0)], Stroke::new(1.5, theme::TEXT()));
+                    ui.painter().line_segment([cb.center_bottom() - vec2(0.0, 3.0), cb.right_top() + vec2(-2.0, 3.0)], Stroke::new(1.5, theme::TEXT()));
                 }
                 let c = fx.bm_rows[i].1;
                 let sw = egui::Rect::from_min_max(pos2(cb.right() + 8.0, r.top() + 2.0), pos2(r.right() - 40.0, r.bottom() - 2.0));

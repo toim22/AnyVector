@@ -320,7 +320,7 @@ pub fn dialog(app: &mut AnyVectorApp, ctx: &egui::Context, idea: bool) {
         ui.checkbox(&mut st.include_system, "Include system information");
         if st.include_system {
             ui.indent("sys", |ui| {
-                ui.label(RichText::new(system.as_str()).color(theme::TEXT_DIM).size(11.5));
+                ui.label(RichText::new(system.as_str()).color(theme::TEXT_DIM()).size(11.5));
             });
         }
         ui.add_space((ui.available_height() - 34.0).max(0.0));
