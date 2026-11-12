@@ -95,8 +95,8 @@ export async function createIssue(c: AppCredentials, issue: { title: string; bod
   return html_url;
 }
 
-/** The pre-release that holds the files sent with reports. GitHub has no API for the files people drag into an
- *  issue, so the relay keeps them as assets of this release; `/releases/latest` (AnyVector's update check) skips it. */
+/** The release that holds the files sent with reports, in the attachments repository (ATTACHMENTS_REPO). GitHub has
+ *  no API for the files people drag into an issue, so the relay keeps them as assets of this release. */
 export const ATTACHMENTS_TAG = "report-attachments";
 
 async function attachmentsRelease(c: AppCredentials, token: string): Promise<number> {
@@ -109,10 +109,8 @@ async function attachmentsRelease(c: AppCredentials, token: string): Promise<num
     headers: { ...auth, "Content-Type": "application/json" },
     body: JSON.stringify({
       tag_name: ATTACHMENTS_TAG,
-      name: "Report attachments (not a release)",
-      body: "Files sent with bug reports and ideas from AnyVector (Help ▸ Report a Bug). Each issue links to its file. This is not a version of AnyVector.",
-      prerelease: true,
-      make_latest: "false",
+      name: "Report attachments",
+      body: "Files sent with bug reports and ideas from AnyVector (Help ▸ Report a Bug and Help ▸ Submit Ideas and Feedback). Each issue on toim22/AnyVector links to its file.",
     }),
   });
   if (!made.ok) throw new Error(`create attachments release: ${made.status} ${await made.text()}`);

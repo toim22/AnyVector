@@ -9,9 +9,10 @@ AnyVector's *Help › Report a Bug* and *Help › Submit Ideas and Feedback* sen
 ## Attachments
 
 GitHub has no API for the files people drag into an issue, so the Worker keeps each attached file as an asset of the
-pre-release **Report attachments (not a release)** (tag `report-attachments`). It creates that pre-release the
+release **Report attachments** (tag `report-attachments`) in a repository of its own,
+[`toim22/AnyVector-attachments`](https://github.com/toim22/AnyVector-attachments) (`ATTACHMENTS_REPO` in
+`cloudflare.config.ts`). That keeps AnyVector's Releases page for versions only. The Worker creates the release the
 first time. The issue gets an *Attachment* section with a link to the file, and the picture itself for an image.
-AnyVector's update check reads `/releases/latest`, which skips pre-releases.
 
 The Worker takes the same types and sizes GitHub takes in an issue (`src/attachment.ts`, the same lists as
 `ATTACH_*` in `crates/anyvector/src/bugreport.rs`):
@@ -19,7 +20,7 @@ The Worker takes the same types and sizes GitHub takes in an issue (`src/attachm
 - the other types GitHub lists (.pdf, .zip, .txt, .log, Office files and so on): up to 25 MB
 
 A `.cdr` or `.vct` drawing has to go in a `.zip`, as on GitHub. If the issue can't be created, the uploaded file is
-deleted. To remove a file later, delete its asset on the pre-release's page.
+deleted. To remove a file later, delete its asset on the release's page.
 
 The person reporting needs no GitHub account. No key ships inside AnyVector: the app's private key lives only in the
 Worker's secrets.
@@ -51,7 +52,7 @@ repository.
 3. **Homepage URL**: `https://github.com/toim22/AnyVector`.
 4. **Webhook**: untick **Active** (the app receives nothing).
 5. **Permissions › Repository permissions**: **Issues: Read and write** and **Contents: Read and write** (for the
-   attachments pre-release). Leave everything else as it is (*Metadata: Read-only* is added by itself).
+   attachments release). Leave everything else as it is (*Metadata: Read-only* is added by itself).
 6. **Where can this GitHub App be installed?** **Only on this account**.
 7. **Create GitHub App**.
 
@@ -64,7 +65,8 @@ repository.
 ### 3. Install it on the repository
 
 1. In the app's settings, left menu, **Install App** → **Install** next to `toim22`.
-2. **Only select repositories** → `AnyVector` → **Install**.
+2. **Only select repositories** → `AnyVector` and `AnyVector-attachments` → **Install**. The attachments repository
+   is a public repository with only a README; it needs a first commit so the release can have a tag.
 
 ### 4. Publish the Worker
 
@@ -104,7 +106,9 @@ rebuilding, set the environment variable `ANYVECTOR_ISSUE_RELAY` to its address 
 2. **Repository permissions › Contents**: **Read and write** › **Save changes**.
 3. GitHub asks the installation to accept it: GitHub › Settings › Applications › AnyVector Reports › **Configure**
    (or the e-mail GitHub sends) › **Review request** › **Accept new permissions**.
-4. Run `npm.cmd run deploy` in this folder.
+4. Create the public repository `toim22/AnyVector-attachments` with a README, and add it to the installation:
+   **Configure** › **Repository access** › **Select repositories** › **Save**.
+5. Run `npm.cmd run deploy` in this folder.
 
 Until then, a report with a file fails at the Worker and AnyVector opens GitHub's page in the browser instead, with
 Explorer showing the file to drag in.

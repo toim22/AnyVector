@@ -5,7 +5,7 @@
 //   POST /issues   {"kind":"bug"|"idea","title","text","more","expected","version","program","system"}
 //                  or multipart/form-data with that JSON in the part "report" and one file in the part "file"
 //                  (GitHub's attachment types and sizes, attachment.ts): the file is kept as an asset of the
-//                  "report-attachments" pre-release and the issue links to it (shows it, for an image)
+//                  "report-attachments" release of ATTACHMENTS_REPO and the issue links to it (shows it, for an image)
 //                  → 201 {"url":"https://github.com/toim22/AnyVector/issues/12"}
 //                  → 400 {"error":"…"} (refused), 429 (too many), 502 (GitHub failed: the program opens the browser)
 //   GET  /         → 200 "ok" (a check that it is up)
@@ -25,6 +25,8 @@ export interface Env {
   GITHUB_APP_PRIVATE_KEY: string;
   /** owner/name; set in cloudflare.config.ts */
   GITHUB_REPO: string;
+  /** owner/name of the repository whose release keeps the attached files; GITHUB_REPO when empty */
+  ATTACHMENTS_REPO?: string;
   /** 2 reports a minute per address */
   PER_MINUTE: RateLimiter;
 }
@@ -85,14 +87,14 @@ export default {
     try {
       let section = "";
       if (file) {
-        asset = await uploadAttachment(app, assetName(file.name, new Date(), crypto.randomUUID().slice(0, 6)), file.type, await file.arrayBuffer());
+        asset = await uploadAttachment({ ...app, repo: env.ATTACHMENTS_REPO || env.GITHUB_REPO }, assetName(file.name, new Date(), crypto.randomUUID().slice(0, 6)), file.type, await file.arrayBuffer());
         section = attachmentSection(file.name, file.size, asset.url);
       }
       const issue = await createIssue(app, issueOf(report, section));
       console.log(`issue created: ${issue} (${report.kind}, ${report.program} ${report.version}${file ? `, file ${file.size} bytes` : ""})`);
       return json(201, { url: issue });
     } catch (e) {
-      if (asset) await deleteAttachment(app, asset.id).catch(() => {});
+      if (asset) await deleteAttachment({ ...app, repo: env.ATTACHMENTS_REPO || env.GITHUB_REPO }, asset.id).catch(() => {});
       console.error(`GitHub refused the report: ${e instanceof Error ? e.message : String(e)}`);
       return json(502, { error: "GitHub could not take the report now" });
     }
