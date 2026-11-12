@@ -1,6 +1,7 @@
 // Tests without network access and without GitHub. Use: npm test (deploy runs them first).
 import assert from "node:assert/strict";
 import { generateKeyPairSync } from "node:crypto";
+import { assetName, attachmentSection, checkAttachment } from "./src/attachment.ts";
 import { pemToPkcs8 } from "./src/github.ts";
 import { defuse, issueOf, parseReport, type Report } from "./src/report.ts";
 
@@ -64,6 +65,27 @@ const good = { kind: "bug", title: "Crash", text: "It closed", more: "", version
   }
   const pkcs8 = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
   await crypto.subtle.importKey("pkcs8", pemToPkcs8(pkcs8), { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
+}
+
+// 5) Attachments: GitHub's types and sizes, a safe unique asset name, the issue section
+{
+  const MB = 1024 * 1024;
+  assert.equal(checkAttachment("shot.PNG", 10 * MB), null);
+  assert.match(checkAttachment("shot.png", 10 * MB + 1)!, /10 MB/);
+  assert.match(checkAttachment("clip.mp4", 11 * MB)!, /10 MB/);
+  assert.equal(checkAttachment("drawing.zip", 25 * MB), null);
+  assert.match(checkAttachment("drawing.zip", 25 * MB + 1)!, /25 MB/);
+  assert.match(checkAttachment("drawing.cdr", 100)!, /\.cdr/);
+  assert.match(checkAttachment("setup.exe", 100)!, /\.exe/);
+  assert.match(checkAttachment("noext", 100)!, /type/);
+  assert.match(checkAttachment("a.txt", 0)!, /empty/);
+  assert.equal(assetName("My drawing (1).zip", new Date("2026-11-12T10:20:30Z"), "ab12cd"), "20261112-102030-ab12cd-My-drawing-1.zip");
+  assert.equal(assetName("...zip", new Date("2026-11-12T10:20:30Z"), "x"), "20261112-102030-x-file.zip");
+  const u = "https://github.com/toim22/AnyVector/releases/download/report-attachments/a.png";
+  assert.equal(attachmentSection("a [b].png", 2048, u), `![a b.png](${u})\n\n[a b.png](${u}) (2 KB)`);
+  assert.equal(attachmentSection("d.zip", 3 * MB, u), `[d.zip](${u}) (3.0 MB)`);
+  const bug = issueOf(parseReport(good) as Report, "[d.zip](u) (1 KB)");
+  assert.ok(bug.body.includes("### What happened\n\nIt closed\n\n### Attachment\n\n[d.zip](u) (1 KB)\n\n### AnyVector version"));
 }
 
 console.log("relay tests: ok");

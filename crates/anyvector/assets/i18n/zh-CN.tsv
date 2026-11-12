@@ -5572,3 +5572,15 @@ Pattern	图样
 (Default)	(默认)
 Light|theme	浅色
 Dark|theme	深色
+Attach a file (optional):	附加文件(可选):
+Attach File...	附加文件...
+Attach a File	附加文件
+Files GitHub accepts	GitHub 接受的文件
+Videos	视频
+Archives (.zip, .gz, .tgz)	压缩文件 (.zip、.gz、.tgz)
+Images and videos up to 10 MB, other files up to 25 MB, of the types GitHub accepts. Put a drawing (.cdr, .vct) in a .zip file.	GitHub 接受的类型中，图像和视频最大 10 MB，其他文件最大 25 MB。请将绘图 (.cdr、.vct) 放入 .zip 文件。
+GitHub doesn't accept "{}" because it has no file type. Put it in a .zip file.	GitHub 不接受“{}”，因为它没有文件类型。请将其放入 .zip 文件。
+GitHub doesn't accept .{} files. Put "{}" in a .zip file.	GitHub 不接受 .{} 文件。请将“{}”放入 .zip 文件。
+"{}" is empty.	“{}”为空。
+"{}" is {}. GitHub accepts at most {} MB for this type.	“{}”大小为 {}。此类型 GitHub 最多接受 {} MB。
+To attach "{}", drag it from the folder that opened into the description box on GitHub.	要附加“{}”，请将其从打开的文件夹拖到 GitHub 上的描述框中。

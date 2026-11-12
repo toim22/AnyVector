@@ -5572,3 +5572,15 @@ Pattern	パターン
 (Default)	(デフォルト)
 Light|theme	ライト
 Dark|theme	ダーク
+Attach a file (optional):	ファイルを添付 (省略可):
+Attach File...	ファイルを添付...
+Attach a File	ファイルを添付
+Files GitHub accepts	GitHub で使えるファイル
+Videos	ビデオ
+Archives (.zip, .gz, .tgz)	アーカイブ (.zip、.gz、.tgz)
+Images and videos up to 10 MB, other files up to 25 MB, of the types GitHub accepts. Put a drawing (.cdr, .vct) in a .zip file.	GitHub で使える種類の、10 MB までの画像とビデオ、25 MB までのその他のファイル。図面 (.cdr、.vct) は .zip ファイルに入れてください。
+GitHub doesn't accept "{}" because it has no file type. Put it in a .zip file.	"{}" にはファイルの種類がないため、GitHub は受け付けません。.zip ファイルに入れてください。
+GitHub doesn't accept .{} files. Put "{}" in a .zip file.	GitHub は .{} ファイルを受け付けません。"{}" を .zip ファイルに入れてください。
+"{}" is empty.	"{}" は空です。
+"{}" is {}. GitHub accepts at most {} MB for this type.	"{}" は {} です。この種類で GitHub が受け付けるのは {} MB までです。
+To attach "{}", drag it from the folder that opened into the description box on GitHub.	"{}" を添付するには、開いたフォルダーから GitHub の説明欄にドラッグしてください。

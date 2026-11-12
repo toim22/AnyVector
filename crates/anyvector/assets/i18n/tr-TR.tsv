@@ -5572,3 +5572,15 @@ Pattern	Desen
 (Default)	(Varsayılan)
 Light|theme	Açık
 Dark|theme	Koyu
+Attach a file (optional):	Dosya ekle (isteğe bağlı):
+Attach File...	Dosya Ekle...
+Attach a File	Dosya Ekle
+Files GitHub accepts	GitHub'ın kabul ettiği dosyalar
+Videos	Videolar
+Archives (.zip, .gz, .tgz)	Arşivler (.zip, .gz, .tgz)
+Images and videos up to 10 MB, other files up to 25 MB, of the types GitHub accepts. Put a drawing (.cdr, .vct) in a .zip file.	GitHub'ın kabul ettiği türlerde, 10 MB'a kadar resim ve video, 25 MB'a kadar diğer dosyalar. Bir çizimi (.cdr, .vct) bir .zip dosyasına koyun.
+GitHub doesn't accept "{}" because it has no file type. Put it in a .zip file.	GitHub "{}" dosyasını kabul etmiyor çünkü dosya türü yok. Bir .zip dosyasına koyun.
+GitHub doesn't accept .{} files. Put "{}" in a .zip file.	GitHub .{} dosyalarını kabul etmiyor. "{}" dosyasını bir .zip dosyasına koyun.
+"{}" is empty.	"{}" boş.
+"{}" is {}. GitHub accepts at most {} MB for this type.	"{}" {} boyutunda. GitHub bu tür için en fazla {} MB kabul ediyor.
+To attach "{}", drag it from the folder that opened into the description box on GitHub.	"{}" dosyasını eklemek için açılan klasörden GitHub'daki açıklama kutusuna sürükleyin.

@@ -5572,3 +5572,15 @@ Pattern	Mönster
 (Default)	(Standard)
 Light|theme	Ljust
 Dark|theme	Mörkt
+Attach a file (optional):	Bifoga en fil (valfritt):
+Attach File...	Bifoga fil...
+Attach a File	Bifoga en fil
+Files GitHub accepts	Filer som GitHub godtar
+Videos	Videor
+Archives (.zip, .gz, .tgz)	Arkiv (.zip, .gz, .tgz)
+Images and videos up to 10 MB, other files up to 25 MB, of the types GitHub accepts. Put a drawing (.cdr, .vct) in a .zip file.	Bilder och videor upp till 10 MB, andra filer upp till 25 MB, av de typer som GitHub godtar. Lägg en teckning (.cdr, .vct) i en .zip-fil.
+GitHub doesn't accept "{}" because it has no file type. Put it in a .zip file.	GitHub godtar inte "{}" eftersom den saknar filtyp. Lägg den i en .zip-fil.
+GitHub doesn't accept .{} files. Put "{}" in a .zip file.	GitHub godtar inte .{}-filer. Lägg "{}" i en .zip-fil.
+"{}" is empty.	"{}" är tom.
+"{}" is {}. GitHub accepts at most {} MB for this type.	"{}" är {}. GitHub godtar högst {} MB för den här typen.
+To attach "{}", drag it from the folder that opened into the description box on GitHub.	Bifoga "{}" genom att dra den från mappen som öppnades till beskrivningsrutan på GitHub.

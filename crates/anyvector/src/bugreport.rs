@@ -7,11 +7,16 @@
 //! 2. when the relay can't be reached, the browser opens GitHub's "New issue" page with the title,
 //!    description and system information already filled in, so the user only has to press "Create"
 //!    (that needs a GitHub account).
+//!
+//! A report may carry one file, with the types and sizes GitHub accepts when a file is dragged into an
+//! issue. The relay keeps it on GitHub and the issue links to it (an image shows in the issue). On the
+//! browser path, Explorer opens on the file so the user can drag it into GitHub's page.
 
 use crate::app::AnyVectorApp;
 use crate::dialogs::{heading, note, separator, window};
 use crate::theme;
 use egui::{vec2, Color32, RichText};
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::mpsc::{channel, Receiver};
 
@@ -41,6 +46,84 @@ pub enum Sent {
     Failed(String),
 }
 
+const MB: u64 = 1024 * 1024;
+/// Images, shown in the issue: 10 MB. The lists are GitHub's (docs.github.com › Attaching files) and
+/// the relay's (`services/issue-relay/src/attachment.ts`).
+pub const ATTACH_IMAGES: &[&str] = &["png", "gif", "jpg", "jpeg", "svg"];
+/// Videos: 10 MB, as GitHub allows on a repository of a free account.
+pub const ATTACH_VIDEOS: &[&str] = &["mp4", "mov", "webm"];
+/// Every other type GitHub takes in an issue: 25 MB.
+pub const ATTACH_OTHERS: &[&str] = &[
+    "pdf", "docx", "pptx", "xlsx", "xls", "xlsm", "odt", "fodt", "ods", "fods", "odp", "fodp", "odg", "fodg", "odf", "rtf", "doc", "txt", "md", "copilotmd", "csv", "tsv", "log", "json", "jsonc", "c", "cs", "cpp", "css", "drawio", "dmp", "html", "htm", "java",
+    "js", "ipynb", "patch", "php", "cpuprofile", "pdb", "py", "sh", "sql", "ts", "tsx", "xml", "yaml", "yml", "zip", "gz", "tgz", "debug", "msg", "eml", "bmp", "tif", "tiff", "mp3", "wav",
+];
+
+fn extension(path: &Path) -> String {
+    path.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default()
+}
+
+fn file_name(path: &Path) -> String {
+    path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
+}
+
+/// The largest file GitHub takes with this extension, or 0 when it doesn't take the type.
+pub fn attach_limit(path: &Path) -> u64 {
+    let ext = extension(path);
+    if ATTACH_IMAGES.contains(&ext.as_str()) || ATTACH_VIDEOS.contains(&ext.as_str()) {
+        10 * MB
+    } else if ATTACH_OTHERS.contains(&ext.as_str()) {
+        25 * MB
+    } else {
+        0
+    }
+}
+
+/// Why GitHub would refuse a file of this name and size, or `None`.
+pub fn attach_problem(path: &Path, size: u64) -> Option<String> {
+    let name = file_name(path);
+    let max = attach_limit(path);
+    if max == 0 {
+        let ext = extension(path);
+        return Some(if ext.is_empty() { format!("GitHub doesn't accept \"{name}\" because it has no file type. Put it in a .zip file.") } else { format!("GitHub doesn't accept .{ext} files. Put \"{name}\" in a .zip file.") });
+    }
+    if size == 0 {
+        return Some(format!("\"{name}\" is empty."));
+    }
+    (size > max).then(|| format!("\"{name}\" is {}. GitHub accepts at most {} MB for this type.", size_text(size), max / MB))
+}
+
+pub fn size_text(size: u64) -> String {
+    if size < MB { format!("{} KB", size.div_ceil(1024).max(1)) } else { format!("{:.1} MB", size as f64 / MB as f64) }
+}
+
+fn content_type(path: &Path) -> &'static str {
+    match extension(path).as_str() {
+        "png" => "image/png",
+        "gif" => "image/gif",
+        "jpg" | "jpeg" => "image/jpeg",
+        "svg" => "image/svg+xml",
+        "mp4" => "video/mp4",
+        "mov" => "video/quicktime",
+        "webm" => "video/webm",
+        "pdf" => "application/pdf",
+        "zip" => "application/zip",
+        "txt" | "log" | "md" => "text/plain",
+        _ => "application/octet-stream",
+    }
+}
+
+/// The report in the part "report" and the file in the part "file", as the relay reads them.
+pub fn multipart_body(boundary: &str, report: &str, file_name: &str, file_type: &str, data: &[u8]) -> Vec<u8> {
+    let name = file_name.replace(['"', '\r', '\n'], "_");
+    let mut b = Vec::with_capacity(data.len() + report.len() + 512);
+    b.extend_from_slice(format!("--{boundary}\r\nContent-Disposition: form-data; name=\"report\"\r\nContent-Type: application/json; charset=utf-8\r\n\r\n").as_bytes());
+    b.extend_from_slice(report.as_bytes());
+    b.extend_from_slice(format!("\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{name}\"\r\nContent-Type: {file_type}\r\n\r\n").as_bytes());
+    b.extend_from_slice(data);
+    b.extend_from_slice(format!("\r\n--{boundary}--\r\n").as_bytes());
+    b
+}
+
 #[derive(Default)]
 pub struct BugReportState {
     /// Submit Ideas and Feedback instead of Report a Bug.
@@ -50,6 +133,10 @@ pub struct BugReportState {
     pub steps: String,
     pub expected: String,
     pub include_system: bool,
+    /// The file sent with the report, and its size.
+    pub attachment: Option<(PathBuf, u64)>,
+    /// Why the last chosen file can't be attached.
+    pub attach_error: Option<String>,
     pub sending: Option<Receiver<Sent>>,
     pub result: Option<Sent>,
 }
@@ -166,6 +253,18 @@ pub fn open_in_browser(url: &str) -> bool {
     }
 }
 
+/// Open Explorer with the file selected.
+fn show_in_explorer(path: &Path) {
+    #[cfg(windows)]
+    {
+        let _ = Command::new("explorer").arg(format!("/select,{}", path.display())).spawn();
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = path.parent().map(|p| Command::new("xdg-open").arg(p).spawn());
+    }
+}
+
 /// Run the GitHub CLI without a console window; `None` when it is not installed.
 pub(crate) fn gh(args: &[&str]) -> Option<std::process::Output> {
     let mut cmd = Command::new("gh");
@@ -194,12 +293,22 @@ pub fn relay_body(st: &BugReportState, system: Option<&str>) -> String {
     .to_string()
 }
 
-/// Post the report to the relay: the issue's URL, or the HTTP status (0 when unreachable) and why.
-fn send_to_relay(base: &str, body: &str) -> Result<String, (u16, String)> {
-    let agent: ureq::Agent = ureq::Agent::config_builder().http_status_as_error(false).timeout_global(Some(std::time::Duration::from_secs(20))).build().into();
+/// Post the report (and the file) to the relay: the issue's URL, or the HTTP status (0 when unreachable) and why.
+fn send_to_relay(base: &str, body: &str, file: Option<&Path>) -> Result<String, (u16, String)> {
+    let (kind, payload) = match file {
+        Some(path) => {
+            let data = std::fs::read(path).map_err(|e| (0, format!("reading {}: {e}", path.display())))?;
+            let boundary = format!("anyvector-{:x}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0));
+            (format!("multipart/form-data; boundary={boundary}"), multipart_body(&boundary, body, &file_name(path), content_type(path), &data))
+        }
+        None => ("application/json".to_string(), body.as_bytes().to_vec()),
+    };
+    // a 25 MB file needs time on a slow connection
+    let secs = 20 + payload.len() as u64 / (64 * 1024);
+    let agent: ureq::Agent = ureq::Agent::config_builder().http_status_as_error(false).timeout_global(Some(std::time::Duration::from_secs(secs))).build().into();
     let url = format!("{}/issues", base.trim_end_matches('/'));
     let ua = format!("AnyVector/{}", env!("CARGO_PKG_VERSION"));
-    match agent.post(&url).header("Content-Type", "application/json").header("User-Agent", &ua).send(body) {
+    match agent.post(&url).header("Content-Type", &kind).header("User-Agent", &ua).send(&payload[..]) {
         Ok(mut r) => {
             let status = r.status().as_u16();
             let text = r.body_mut().read_to_string().unwrap_or_default();
@@ -216,15 +325,19 @@ fn send_to_relay(base: &str, body: &str) -> Result<String, (u16, String)> {
 
 /// Send in the background; the dialog polls the receiver. The relay first; when it can't take the
 /// report (other than asking to wait), GitHub's prefilled page in the browser.
-fn send(relay: String, label: &'static str, title: String, body: String) -> Receiver<Sent> {
+fn send(relay: String, label: &'static str, title: String, body: String, file: Option<PathBuf>) -> Receiver<Sent> {
     let (tx, rx) = channel();
     std::thread::spawn(move || {
-        let r = match send_to_relay(&relay_url(), &relay) {
+        let r = match send_to_relay(&relay_url(), &relay, file.as_deref()) {
             Ok(url) => Sent::Created(url),
             Err((429, _)) => Sent::Later,
             Err((status, e)) => {
                 log::warn!("issue relay did not take the report ({status} {e}); opening the browser");
                 if open_in_browser(&new_issue_url(label, &title, &body)) {
+                    // GitHub's page can't be handed the file: show it in Explorer, ready to drag in
+                    if let Some(f) = &file {
+                        show_in_explorer(f);
+                    }
                     Sent::Browser
                 } else {
                     Sent::Failed(format!("Could not open the browser. Please send it at {}", issues_url()))
@@ -234,6 +347,43 @@ fn send(relay: String, label: &'static str, title: String, body: String) -> Rece
         let _ = tx.send(r);
     });
     rx
+}
+
+/// "Attach a file (optional)": Attach File..., then the chosen file with its size and Remove.
+fn attachment_row(ui: &mut egui::Ui, st: &mut BugReportState) {
+    ui.label("Attach a file (optional):");
+    ui.horizontal(|ui| {
+        let enabled = st.sending.is_none();
+        if ui.add_enabled(enabled, egui::Button::new("Attach File...")).clicked() {
+            let mut all: Vec<&str> = ATTACH_IMAGES.iter().chain(ATTACH_VIDEOS).chain(ATTACH_OTHERS).copied().collect();
+            all.sort_unstable();
+            let picked = rfd::FileDialog::new()
+                .set_title("Attach a File")
+                .add_filter("Files GitHub accepts", &all)
+                .add_filter("Images", ATTACH_IMAGES)
+                .add_filter("Videos", ATTACH_VIDEOS)
+                .add_filter("Archives (.zip, .gz, .tgz)", &["zip", "gz", "tgz"])
+                .pick_file();
+            if let Some(p) = picked {
+                let size = std::fs::metadata(&p).map(|m| m.len()).unwrap_or(0);
+                st.attach_error = attach_problem(&p, size);
+                if st.attach_error.is_none() {
+                    st.attachment = Some((p, size));
+                }
+            }
+        }
+        if let Some((path, size)) = &st.attachment {
+            ui.label(format!("{} ({})", file_name(path), size_text(*size))).on_hover_text(path.display().to_string());
+            if enabled && ui.link("Remove").clicked() {
+                st.attachment = None;
+            }
+        }
+    });
+    if let Some(e) = &st.attach_error {
+        ui.colored_label(Color32::from_rgb(0xe0, 0x70, 0x60), e.as_str());
+    } else {
+        ui.label(RichText::new("Images and videos up to 10 MB, other files up to 25 MB, of the types GitHub accepts. Put a drawing (.cdr, .vct) in a .zip file.").color(theme::TEXT_DIM()).size(11.5));
+    }
 }
 
 /// Report a Bug (`idea` false) or Submit Ideas and Feedback (`idea` true).
@@ -251,7 +401,7 @@ pub fn dialog(app: &mut AnyVectorApp, ctx: &egui::Context, idea: bool) {
     let system = system_info(ctx);
     let mut close = false;
     let (id, title) = if idea { ("feedback", "Submit Ideas and Feedback") } else { ("bug_report", "Report a Bug") };
-    let ((), dismissed) = window(ctx, id, title, vec2(560.0, 560.0), |ui| {
+    let ((), dismissed) = window(ctx, id, title, vec2(560.0, 640.0), |ui| {
         ui.add_space(8.0);
         ui.spacing_mut().item_spacing.y = 6.0;
         if let Some(r) = &st.result {
@@ -273,6 +423,9 @@ pub fn dialog(app: &mut AnyVectorApp, ctx: &egui::Context, idea: bool) {
                 }
                 Sent::Browser => {
                     ui.label(if st.idea { "GitHub opened in your browser with your idea already filled in." } else { "GitHub opened in your browser with the report already filled in." });
+                    if let Some((path, _)) = &st.attachment {
+                        ui.label(format!("To attach \"{}\", drag it from the folder that opened into the description box on GitHub.", file_name(path)));
+                    }
                     ui.label("Sign in if asked, review it and click \"Create\" to send it.");
                 }
                 Sent::Later => {
@@ -316,6 +469,7 @@ pub fn dialog(app: &mut AnyVectorApp, ctx: &egui::Context, idea: bool) {
             ui.label("What did you expect to happen? (optional)");
             ui.add(egui::TextEdit::multiline(&mut st.expected).desired_rows(2).desired_width(f32::INFINITY));
         }
+        attachment_row(ui, &mut st);
         separator(ui);
         ui.checkbox(&mut st.include_system, "Include system information");
         if st.include_system {
@@ -336,7 +490,8 @@ pub fn dialog(app: &mut AnyVectorApp, ctx: &egui::Context, idea: bool) {
                 if crate::dialogs::ok_button(ui, label, st.can_send()) {
                     let sys = st.include_system.then_some(system.as_str());
                     let body = issue_body(&st, sys);
-                    st.sending = Some(send(relay_body(&st, sys), st.label(), st.title.trim().to_string(), body));
+                    let file = st.attachment.as_ref().map(|(p, _)| p.clone());
+                    st.sending = Some(send(relay_body(&st, sys), st.label(), st.title.trim().to_string(), body, file));
                 }
                 if st.sending.is_some() {
                     ui.spinner();
@@ -382,5 +537,26 @@ mod tests {
         let v: serde_json::Value = serde_json::from_str(&relay_body(&BugReportState { expected: "x".into(), title: "é".repeat(300), ..idea }, None)).unwrap();
         assert_eq!((v["kind"].as_str(), v["expected"].as_str(), v["system"].as_str()), (Some("idea"), Some(""), Some("")));
         assert_eq!(v["title"].as_str().unwrap().chars().count(), 200);
+    }
+
+    #[test]
+    fn attachments_follow_github_rules() {
+        let p = |s: &str| PathBuf::from(s);
+        assert_eq!(attach_problem(&p("C:/a/shot.PNG"), 10 * MB), None);
+        assert!(attach_problem(&p("shot.png"), 10 * MB + 1).unwrap().contains("10 MB"));
+        assert!(attach_problem(&p("clip.mp4"), 11 * MB).unwrap().contains("10 MB"));
+        assert_eq!(attach_problem(&p("drawing.zip"), 25 * MB), None);
+        assert!(attach_problem(&p("drawing.zip"), 25 * MB + 1).unwrap().contains("25 MB"));
+        assert!(attach_problem(&p("drawing.cdr"), 100).unwrap().contains(".cdr"));
+        assert!(attach_problem(&p("noext"), 100).unwrap().contains("no file type"));
+        assert!(attach_problem(&p("a.txt"), 0).unwrap().contains("empty"));
+        assert_eq!((size_text(1), size_text(2048), size_text(3 * MB)), ("1 KB".into(), "2 KB".into(), "3.0 MB".into()));
+
+        let body = multipart_body("B", "{\"title\":\"T\"}", "my \"file\".zip", "application/zip", b"PK");
+        let text = String::from_utf8(body).unwrap();
+        assert_eq!(
+            text,
+            "--B\r\nContent-Disposition: form-data; name=\"report\"\r\nContent-Type: application/json; charset=utf-8\r\n\r\n{\"title\":\"T\"}\r\n--B\r\nContent-Disposition: form-data; name=\"file\"; filename=\"my _file_.zip\"\r\nContent-Type: application/zip\r\n\r\nPK\r\n--B--\r\n"
+        );
     }
 }

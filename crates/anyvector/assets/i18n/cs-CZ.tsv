@@ -5572,3 +5572,15 @@ Pattern	Vzorek
 (Default)	(Výchozí)
 Light|theme	Světlý
 Dark|theme	Tmavý
+Attach a file (optional):	Připojit soubor (volitelné):
+Attach File...	Připojit soubor...
+Attach a File	Připojit soubor
+Files GitHub accepts	Soubory, které GitHub přijímá
+Videos	Videa
+Archives (.zip, .gz, .tgz)	Archivy (.zip, .gz, .tgz)
+Images and videos up to 10 MB, other files up to 25 MB, of the types GitHub accepts. Put a drawing (.cdr, .vct) in a .zip file.	Obrázky a videa do 10 MB, ostatní soubory do 25 MB, v typech, které GitHub přijímá. Kresbu (.cdr, .vct) vložte do souboru .zip.
+GitHub doesn't accept "{}" because it has no file type. Put it in a .zip file.	GitHub nepřijímá „{}“, protože nemá typ souboru. Vložte ho do souboru .zip.
+GitHub doesn't accept .{} files. Put "{}" in a .zip file.	GitHub nepřijímá soubory .{}. Vložte „{}“ do souboru .zip.
+"{}" is empty.	„{}“ je prázdný.
+"{}" is {}. GitHub accepts at most {} MB for this type.	„{}“ má {}. GitHub pro tento typ přijímá nejvýše {} MB.
+To attach "{}", drag it from the folder that opened into the description box on GitHub.	Chcete-li připojit „{}“, přetáhněte ho z otevřené složky do pole popisu na GitHubu.

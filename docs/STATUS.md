@@ -6,6 +6,7 @@ Last updated: 2026-11-12.
 
 | Version | Date | What it brings |
 | --- | --- | --- |
+| [0.4.1](RELEASE-NOTES-0.4.1.md) | 2026-11-12 | A file can be attached to Help ▸ Report a Bug and Submit Ideas and Feedback, with the types and sizes GitHub accepts; it goes to the issue. |
 | [0.4.0](RELEASE-NOTES-0.4.0.md) | 2026-11-12 | Keyboard shortcuts as in CorelDRAW 2026, cusp nodes with C, double-click to edit text on the page, Ctrl+C / Ctrl+V and pictures pasted from the web, Break Apart on the property bar, deleting a guideline, a Light theme and 13 more languages. |
 | [0.3.1](RELEASE-NOTES-0.3.1.md) | 2026-11-11 | Help ▸ Updates shows the release notes formatted (headings, lists, bold) instead of their raw text. |
 | [0.3.0](RELEASE-NOTES-0.3.0.md) | 2026-11-11 | CorelDRAW import, second round: import messages, look-alike fonts, CorelDRAW 12 textures, full-color pattern and PostScript fills drawn, Corel clipart (CMX), editable pattern tiles and texture settings; bug reports and ideas without a GitHub account; Install Now while an update downloads. |
