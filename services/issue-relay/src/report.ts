@@ -60,8 +60,9 @@ export function defuse(s: string): string {
     .replace(/\b(close[sd]?|fix(e[sd])?|resolve[sd]?)(\s+)#/gi, "$1$3#​");
 }
 
-/** The issue: the same headings AnyVector used when it filed issues itself, and the GitHub label. */
-export function issueOf(r: Report): { title: string; body: string; labels: string[] } {
+/** The issue: the same headings AnyVector used when it filed issues itself, and the GitHub label. `attachment` is the
+ *  Markdown of the file sent with the report (attachment.ts › attachmentSection), already safe. */
+export function issueOf(r: Report, attachment = ""): { title: string; body: string; labels: string[] } {
   const bug = r.kind === "bug";
   const sections: [string, string][] = [[bug ? "What happened" : "Idea or feedback", r.text]];
   if (r.more) sections.push([bug ? "Steps to reproduce" : "Why it would help", r.more]);
@@ -70,6 +71,8 @@ export function issueOf(r: Report): { title: string; body: string; labels: strin
   if (r.system) sections.push(["System information", r.system]);
   let body = "";
   for (const [h, t] of sections) {
+    // the file goes right after the reporter's own text
+    if (h === "AnyVector version" && attachment) body += `### Attachment\n\n${attachment}\n\n`;
     body += `### ${h}\n\n${defuse(t)}\n\n`;
   }
   const menu = bug ? "Help ▸ Report a Bug" : "Help ▸ Submit Ideas and Feedback";

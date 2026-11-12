@@ -5572,3 +5572,15 @@ Pattern	Узор
 (Default)	(По умолчанию)
 Light|theme	Светлая
 Dark|theme	Тёмная
+Attach a file (optional):	Прикрепить файл (необязательно):
+Attach File...	Прикрепить файл...
+Attach a File	Прикрепить файл
+Files GitHub accepts	Файлы, которые принимает GitHub
+Videos	Видео
+Archives (.zip, .gz, .tgz)	Архивы (.zip, .gz, .tgz)
+Images and videos up to 10 MB, other files up to 25 MB, of the types GitHub accepts. Put a drawing (.cdr, .vct) in a .zip file.	Изображения и видео до 10 МБ, другие файлы до 25 МБ, тех типов, которые принимает GitHub. Поместите рисунок (.cdr, .vct) в файл .zip.
+GitHub doesn't accept "{}" because it has no file type. Put it in a .zip file.	GitHub не принимает «{}», так как у файла нет типа. Поместите его в файл .zip.
+GitHub doesn't accept .{} files. Put "{}" in a .zip file.	GitHub не принимает файлы .{}. Поместите «{}» в файл .zip.
+"{}" is empty.	Файл «{}» пуст.
+"{}" is {}. GitHub accepts at most {} MB for this type.	Размер «{}» — {}. Для этого типа GitHub принимает не более {} МБ.
+To attach "{}", drag it from the folder that opened into the description box on GitHub.	Чтобы прикрепить «{}», перетащите его из открывшейся папки в поле описания на GitHub.

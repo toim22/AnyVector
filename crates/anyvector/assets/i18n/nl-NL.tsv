@@ -5572,3 +5572,15 @@ Pattern	Patroon
 (Default)	(Standaard)
 Light|theme	Licht
 Dark|theme	Donker
+Attach a file (optional):	Een bestand bijvoegen (optioneel):
+Attach File...	Bestand bijvoegen...
+Attach a File	Een bestand bijvoegen
+Files GitHub accepts	Bestanden die GitHub accepteert
+Videos	Video's
+Archives (.zip, .gz, .tgz)	Archieven (.zip, .gz, .tgz)
+Images and videos up to 10 MB, other files up to 25 MB, of the types GitHub accepts. Put a drawing (.cdr, .vct) in a .zip file.	Afbeeldingen en video's tot 10 MB, andere bestanden tot 25 MB, van de typen die GitHub accepteert. Zet een tekening (.cdr, .vct) in een .zip-bestand.
+GitHub doesn't accept "{}" because it has no file type. Put it in a .zip file.	GitHub accepteert "{}" niet omdat het geen bestandstype heeft. Zet het in een .zip-bestand.
+GitHub doesn't accept .{} files. Put "{}" in a .zip file.	GitHub accepteert geen .{}-bestanden. Zet "{}" in een .zip-bestand.
+"{}" is empty.	"{}" is leeg.
+"{}" is {}. GitHub accepts at most {} MB for this type.	"{}" is {}. GitHub accepteert voor dit type maximaal {} MB.
+To attach "{}", drag it from the folder that opened into the description box on GitHub.	Sleep "{}" uit de map die is geopend naar het beschrijvingsvak op GitHub om het bij te voegen.

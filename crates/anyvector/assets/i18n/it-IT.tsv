@@ -5572,3 +5572,15 @@ Pattern	Motivo
 (Default)	(Predefinito)
 Light|theme	Chiaro
 Dark|theme	Scuro
+Attach a file (optional):	Allega un file (facoltativo):
+Attach File...	Allega file...
+Attach a File	Allega un file
+Files GitHub accepts	File accettati da GitHub
+Videos	Video
+Archives (.zip, .gz, .tgz)	Archivi (.zip, .gz, .tgz)
+Images and videos up to 10 MB, other files up to 25 MB, of the types GitHub accepts. Put a drawing (.cdr, .vct) in a .zip file.	Immagini e video fino a 10 MB, altri file fino a 25 MB, dei tipi accettati da GitHub. Inserire un disegno (.cdr, .vct) in un file .zip.
+GitHub doesn't accept "{}" because it has no file type. Put it in a .zip file.	GitHub non accetta "{}" perché non ha un tipo di file. Inserirlo in un file .zip.
+GitHub doesn't accept .{} files. Put "{}" in a .zip file.	GitHub non accetta file .{}. Inserire "{}" in un file .zip.
+"{}" is empty.	"{}" è vuoto.
+"{}" is {}. GitHub accepts at most {} MB for this type.	"{}" è di {}. GitHub accetta al massimo {} MB per questo tipo.
+To attach "{}", drag it from the folder that opened into the description box on GitHub.	Per allegare "{}", trascinarlo dalla cartella che si è aperta nella casella della descrizione su GitHub.

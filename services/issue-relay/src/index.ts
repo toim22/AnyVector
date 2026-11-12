@@ -3,11 +3,15 @@
 // one address may send, and creates the issue as the AnyVector Reports GitHub App (labels bug or enhancement).
 //
 //   POST /issues   {"kind":"bug"|"idea","title","text","more","expected","version","program","system"}
+//                  or multipart/form-data with that JSON in the part "report" and one file in the part "file"
+//                  (GitHub's attachment types and sizes, attachment.ts): the file is kept as an asset of the
+//                  "report-attachments" pre-release and the issue links to it (shows it, for an image)
 //                  → 201 {"url":"https://github.com/toim22/AnyVector/issues/12"}
 //                  → 400 {"error":"…"} (refused), 429 (too many), 502 (GitHub failed: the program opens the browser)
 //   GET  /         → 200 "ok" (a check that it is up)
 
-import { createIssue } from "./github.ts";
+import { assetName, attachmentSection, checkAttachment, MAX_OTHER } from "./attachment.ts";
+import { createIssue, deleteAttachment, uploadAttachment } from "./github.ts";
 import { issueOf, parseReport } from "./report.ts";
 
 interface RateLimiter {
@@ -42,8 +46,30 @@ export default {
     if (!(await env.PER_MINUTE.limit({ key: ip })).success) return json(429, { error: "too many reports, try again in a minute" });
 
     const length = Number(request.headers.get("Content-Length") ?? "0");
-    if (length > MAX_BODY) return json(413, { error: "too large" });
-    const text = await request.text();
+    const multipart = (request.headers.get("Content-Type") ?? "").toLowerCase().startsWith("multipart/form-data");
+    if (length > (multipart ? MAX_BODY + MAX_OTHER + 64 * 1024 : MAX_BODY)) return json(413, { error: "too large" });
+    let text: string;
+    let file: File | null = null;
+    if (multipart) {
+      let form: FormData;
+      try {
+        form = await request.formData();
+      } catch {
+        return json(400, { error: "not multipart form data" });
+      }
+      const report = form.get("report");
+      const part = form.get("file");
+      if (typeof report !== "string") return json(400, { error: "the part \"report\" is missing" });
+      text = report;
+      if (part !== null) {
+        if (typeof part === "string") return json(400, { error: "the part \"file\" is not a file" });
+        const why = checkAttachment(part.name, part.size);
+        if (why) return json(why.includes("larger") ? 413 : 400, { error: why });
+        file = part;
+      }
+    } else {
+      text = await request.text();
+    }
     if (text.length > MAX_BODY) return json(413, { error: "too large" });
     let raw: unknown;
     try {
@@ -54,12 +80,19 @@ export default {
     const report = parseReport(raw);
     if (typeof report === "string") return json(400, { error: report });
 
+    const app = { appId: env.GITHUB_APP_ID, privateKey: env.GITHUB_APP_PRIVATE_KEY, repo: env.GITHUB_REPO };
+    let asset: { id: number; url: string } | null = null;
     try {
-      const issue = await createIssue({ appId: env.GITHUB_APP_ID, privateKey: env.GITHUB_APP_PRIVATE_KEY, repo: env.GITHUB_REPO },
-                                      issueOf(report));
-      console.log(`issue created: ${issue} (${report.kind}, ${report.program} ${report.version})`);
+      let section = "";
+      if (file) {
+        asset = await uploadAttachment(app, assetName(file.name, new Date(), crypto.randomUUID().slice(0, 6)), file.type, await file.arrayBuffer());
+        section = attachmentSection(file.name, file.size, asset.url);
+      }
+      const issue = await createIssue(app, issueOf(report, section));
+      console.log(`issue created: ${issue} (${report.kind}, ${report.program} ${report.version}${file ? `, file ${file.size} bytes` : ""})`);
       return json(201, { url: issue });
     } catch (e) {
+      if (asset) await deleteAttachment(app, asset.id).catch(() => {});
       console.error(`GitHub refused the report: ${e instanceof Error ? e.message : String(e)}`);
       return json(502, { error: "GitHub could not take the report now" });
     }

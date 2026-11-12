@@ -94,3 +94,48 @@ export async function createIssue(c: AppCredentials, issue: { title: string; bod
   const { html_url } = (await r.json()) as { html_url: string };
   return html_url;
 }
+
+/** The pre-release that holds the files sent with reports. GitHub has no API for the files people drag into an
+ *  issue, so the relay keeps them as assets of this release; `/releases/latest` (AnyVector's update check) skips it. */
+export const ATTACHMENTS_TAG = "report-attachments";
+
+async function attachmentsRelease(c: AppCredentials, token: string): Promise<number> {
+  const auth = { ...HEADERS, Authorization: `Bearer ${token}` };
+  const got = await fetch(`${API}/repos/${c.repo}/releases/tags/${ATTACHMENTS_TAG}`, { headers: auth });
+  if (got.ok) return ((await got.json()) as { id: number }).id;
+  if (got.status !== 404) throw new Error(`attachments release: ${got.status} ${await got.text()}`);
+  const made = await fetch(`${API}/repos/${c.repo}/releases`, {
+    method: "POST",
+    headers: { ...auth, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      tag_name: ATTACHMENTS_TAG,
+      name: "Report attachments (not a release)",
+      body: "Files sent with bug reports and ideas from AnyVector (Help ▸ Report a Bug). Each issue links to its file. This is not a version of AnyVector.",
+      prerelease: true,
+      make_latest: "false",
+    }),
+  });
+  if (!made.ok) throw new Error(`create attachments release: ${made.status} ${await made.text()}`);
+  return ((await made.json()) as { id: number }).id;
+}
+
+/** Uploads the file as an asset of the attachments release; its id and download address. */
+export async function uploadAttachment(c: AppCredentials, name: string, type: string, data: ArrayBuffer): Promise<{ id: number; url: string }> {
+  const token = await installationToken(c);
+  const release = await attachmentsRelease(c, token);
+  const r = await fetch(`https://uploads.github.com/repos/${c.repo}/releases/${release}/assets?name=${encodeURIComponent(name)}`, {
+    method: "POST",
+    headers: { ...HEADERS, Authorization: `Bearer ${token}`, "Content-Type": type || "application/octet-stream" },
+    body: data,
+  });
+  if (r.status === 401) cached = null;
+  if (!r.ok) throw new Error(`upload attachment: ${r.status} ${await r.text()}`);
+  const a = (await r.json()) as { id: number; browser_download_url: string };
+  return { id: a.id, url: a.browser_download_url };
+}
+
+/** Removes an uploaded file whose issue could not be created. */
+export async function deleteAttachment(c: AppCredentials, id: number): Promise<void> {
+  const token = await installationToken(c);
+  await fetch(`${API}/repos/${c.repo}/releases/assets/${id}`, { method: "DELETE", headers: { ...HEADERS, Authorization: `Bearer ${token}` } });
+}
