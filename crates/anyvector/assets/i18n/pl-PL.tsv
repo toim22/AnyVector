@@ -4250,10 +4250,10 @@ Click the two ends of the part of the object to measure	Kliknij dwa końce mierz
 Use anchor point	Użyj punktu zakotwiczenia
 Copies:	Kopie:
 Align left (L)	Wyrównaj do lewej (L)
-Align centers horizontally (E)	Wyrównaj środki w poziomie (E)
+Align centers horizontally (C)	Wyrównaj środki w poziomie (C)
 Align right (R)	Wyrównaj do prawej (R)
 Align top (T)	Wyrównaj do góry (T)
-Align centers vertically (C)	Wyrównaj środki w pionie (C)
+Align centers vertically (E)	Wyrównaj środki w pionie (E)
 Align bottom (B)	Wyrównaj do dołu (B)
 Align to:	Wyrównaj do:
 Active objects	Aktywne obiekty
@@ -5487,6 +5487,7 @@ Click the second point (Esc to cancel)	Kliknij drugi punkt (Esc, aby anulować)
 Click a point on the page (Esc to cancel)	Kliknij punkt na stronie (Esc, aby anulować)
 Click the target object (Esc to cancel)	Kliknij obiekt docelowy (Esc, aby anulować)
 Click to add nodes, drag to set curve handles; double-click, Enter or Space to finish; click the first node to close	Kliknij, aby dodać węzły, przeciągnij, aby ustawić uchwyty krzywej; kliknij dwukrotnie albo naciśnij Enter lub spację, aby zakończyć; kliknij pierwszy węzeł, aby zamknąć
+Drag to set the curve handles; hold C for a cusp node, Ctrl to constrain the angle, Alt to move the node	Przeciągnij, aby ustawić uchwyty krzywej; przytrzymaj C, aby utworzyć węzeł ostry, Ctrl, aby ograniczyć kąt, Alt, aby przesunąć węzeł
 Move the pointer to set the shape, then click	Przesuń wskaźnik, aby ustawić kształt, a następnie kliknij
 Click to place the dimension line and text	Kliknij, aby umieścić linię wymiarową i tekst
 Click the second and third points, then place the text	Kliknij drugi i trzeci punkt, a następnie umieść tekst

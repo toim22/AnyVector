@@ -643,7 +643,8 @@ pub fn enabled(app: &AnyVectorApp, id: &str) -> Option<bool> {
         Cmd::CopyPropertiesFrom => sel > 0,
         Cmd::Save => d.is_some_and(|d| d.history.is_modified() || d.path.is_none()),
         Cmd::ZoomToSelected => sel > 0,
-        Cmd::Cut | Cmd::Copy | Cmd::Delete => sel > 0,
+        Cmd::Cut | Cmd::Copy => sel > 0,
+        Cmd::Delete => sel > 0 || d.is_some_and(|d| d.guide_sel.is_some_and(|(p, _)| p == d.page)),
         Cmd::DeletePage | Cmd::DeletePageNow | Cmd::GoToPage => pages > 1,
         // Merge: a block of more than one cell; Unmerge: merged cells in the block; Split: one cell
         Cmd::TableMerge => crate::dialogs::table::selected_range(app).is_some_and(|(t, g)| t.anchors_in(g).len() > 1),
@@ -695,6 +696,12 @@ pub fn enabled(app: &AnyVectorApp, id: &str) -> Option<bool> {
         Cmd::RolloverDeleteState => crate::dialogs::object::active_state(app).is_some(),
         Cmd::InsertPageNumber(3) => pages > 1,
         Cmd::Group | Cmd::Combine => sel > 1,
+        // a curve with several subpaths, or text
+        Cmd::BreakApart => d.is_some_and(|d| d.selection.iter().filter_map(|id| d.doc.find(*id)).any(|o| match &o.kind {
+            ObjKind::Path(p) => p.subpaths.len() > 1,
+            ObjKind::Text(_) => true,
+            _ => false,
+        })),
         Cmd::StartRecording => d.is_some() && !rec,
         Cmd::PauseRecording | Cmd::StopRecording | Cmd::CancelRecording => rec,
         Cmd::RunTemporary => d.is_some() && !app.temp_script.is_empty(),

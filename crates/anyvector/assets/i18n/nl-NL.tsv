@@ -4250,10 +4250,10 @@ Click the two ends of the part of the object to measure	Klik op de twee uiteinde
 Use anchor point	Ankerpunt gebruiken
 Copies:	Kopieën:
 Align left (L)	Links uitlijnen (L)
-Align centers horizontally (E)	Middelpunten horizontaal uitlijnen (E)
+Align centers horizontally (C)	Middelpunten horizontaal uitlijnen (C)
 Align right (R)	Rechts uitlijnen (R)
 Align top (T)	Boven uitlijnen (T)
-Align centers vertically (C)	Middelpunten verticaal uitlijnen (C)
+Align centers vertically (E)	Middelpunten verticaal uitlijnen (E)
 Align bottom (B)	Onder uitlijnen (B)
 Align to:	Uitlijnen op:
 Active objects	Actieve objecten
@@ -5487,6 +5487,7 @@ Click the second point (Esc to cancel)	Klik op het tweede punt (Esc om te annule
 Click a point on the page (Esc to cancel)	Klik op een punt op de pagina (Esc om te annuleren)
 Click the target object (Esc to cancel)	Klik op het doelobject (Esc om te annuleren)
 Click to add nodes, drag to set curve handles; double-click, Enter or Space to finish; click the first node to close	Klik om knooppunten toe te voegen, sleep om krommegrepen in te stellen; dubbelklik, Enter of spatiebalk om te voltooien; klik op het eerste knooppunt om te sluiten
+Drag to set the curve handles; hold C for a cusp node, Ctrl to constrain the angle, Alt to move the node	Sleep om de krommegrepen in te stellen; houd C ingedrukt voor een scherp knooppunt, Ctrl om de hoek te beperken, Alt om het knooppunt te verplaatsen
 Move the pointer to set the shape, then click	Beweeg de aanwijzer om de vorm in te stellen en klik
 Click to place the dimension line and text	Klik om de maatlijn en de tekst te plaatsen
 Click the second and third points, then place the text	Klik op het tweede en derde punt en plaats vervolgens de tekst

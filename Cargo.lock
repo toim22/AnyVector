@@ -200,9 +200,10 @@ checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
 name = "anyvector"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "arboard",
+ "clipboard-win",
  "dirs",
  "eframe",
  "egui",
@@ -4411,7 +4412,7 @@ dependencies = [
 
 [[package]]
 name = "vector-core"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "fontdb",
  "hyphenation",
@@ -4427,7 +4428,7 @@ dependencies = [
 
 [[package]]
 name = "vector-io"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "encoding_rs",
  "flate2",
@@ -4445,7 +4446,7 @@ dependencies = [
 
 [[package]]
 name = "vector-render"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "kurbo",
  "tiny-skia 0.12.0",
@@ -5318,7 +5319,7 @@ checksum = "ec7a2a501ed189703dba8b08142f057e887dfc4b2cc4db2d343ac6376ba3e0b9"
 
 [[package]]
 name = "xtask"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "image",
  "resvg",

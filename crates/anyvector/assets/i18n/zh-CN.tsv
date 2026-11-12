@@ -4250,10 +4250,10 @@ Click the two ends of the part of the object to measure	单击对象要测量部
 Use anchor point	使用锚点
 Copies:	副本：
 Align left (L)	左对齐(L)
-Align centers horizontally (E)	水平居中对齐(E)
+Align centers horizontally (C)	水平居中对齐(C)
 Align right (R)	右对齐(R)
 Align top (T)	顶端对齐(T)
-Align centers vertically (C)	垂直居中对齐(C)
+Align centers vertically (E)	垂直居中对齐(E)
 Align bottom (B)	底端对齐(B)
 Align to:	对齐对象到：
 Active objects	活动对象
@@ -5487,6 +5487,7 @@ Click the second point (Esc to cancel)	单击第二个点(按 Esc 取消)
 Click a point on the page (Esc to cancel)	单击页面上的一个点(按 Esc 取消)
 Click the target object (Esc to cancel)	单击目标对象(按 Esc 取消)
 Click to add nodes, drag to set curve handles; double-click, Enter or Space to finish; click the first node to close	单击可添加节点，拖动可设置曲线手柄；双击、按 Enter 或空格键完成；单击第一个节点可闭合
+Drag to set the curve handles; hold C for a cusp node, Ctrl to constrain the angle, Alt to move the node	拖动可设置曲线手柄；按住 C 创建尖突节点，按住 Ctrl 限制角度，按住 Alt 移动节点
 Move the pointer to set the shape, then click	移动指针以设置形状，然后单击
 Click to place the dimension line and text	单击以放置尺寸线和文本
 Click the second and third points, then place the text	单击第二个和第三个点，然后放置文本

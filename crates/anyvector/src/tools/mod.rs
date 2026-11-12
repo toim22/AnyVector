@@ -90,7 +90,9 @@ pub enum Drag {
     Connector { start: Point, from: Option<(ObjId, Point)> },
     ConnectorEnd { obj: ObjId, is_start: bool },
     Envelope { obj: ObjId, handle: usize, start: Point, orig: [Vec2; 8], moved: bool },
-    BezierHandle { node: Point },
+    /// Bézier / Pen: dragging out the handles of the node just placed; `last` is the previous
+    /// pointer (Alt moves the node), `cusp` once C was held (the handles stay independent).
+    BezierHandle { node: Point, last: Point, cusp: bool },
     /// Table tool: dragging across the cells of a table.
     TableCells { obj: ObjId },
     /// Variable Outline tool: dragging the width of a node (`node` into the profile's nodes).
@@ -341,6 +343,7 @@ impl ToolState {
             .into();
         }
         match t {
+            ToolId::Bezier | ToolId::Pen if matches!(self.drag, Drag::BezierHandle { .. }) => "Drag to set the curve handles; hold C for a cusp node, Ctrl to constrain the angle, Alt to move the node".into(),
             ToolId::Bezier | ToolId::Pen | ToolId::Polyline | ToolId::BSpline if !self.curve.is_empty() => "Click to add nodes, drag to set curve handles; double-click, Enter or Space to finish; click the first node to close".into(),
             ToolId::ThreePointCurve | ToolId::Rect3 | ToolId::Ellipse3 if self.stage.len() == 2 => "Move the pointer to set the shape, then click".into(),
             ToolId::ParallelDim | ToolId::HvDim | ToolId::SegmentDim if !self.stage.is_empty() => "Click to place the dimension line and text".into(),

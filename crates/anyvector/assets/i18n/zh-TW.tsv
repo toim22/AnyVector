@@ -4250,10 +4250,10 @@ Click the two ends of the part of the object to measure	按一下要測量之物
 Use anchor point	使用錨點
 Copies:	份數：
 Align left (L)	靠左對齊 (L)
-Align centers horizontally (E)	水平置中對齊 (E)
+Align centers horizontally (C)	水平置中對齊 (C)
 Align right (R)	靠右對齊 (R)
 Align top (T)	靠上對齊 (T)
-Align centers vertically (C)	垂直置中對齊 (C)
+Align centers vertically (E)	垂直置中對齊 (E)
 Align bottom (B)	靠下對齊 (B)
 Align to:	對齊至：
 Active objects	作用中物件
@@ -5487,6 +5487,7 @@ Click the second point (Esc to cancel)	按一下第二個點 (按 Esc 取消)
 Click a point on the page (Esc to cancel)	按一下頁面上的一點 (按 Esc 取消)
 Click the target object (Esc to cancel)	按一下目標物件 (按 Esc 取消)
 Click to add nodes, drag to set curve handles; double-click, Enter or Space to finish; click the first node to close	按一下以新增節點，拖曳以設定曲線控點；按兩下、Enter 或空格鍵以完成；按一下第一個節點以封閉
+Drag to set the curve handles; hold C for a cusp node, Ctrl to constrain the angle, Alt to move the node	拖曳以設定曲線控點；按住 C 建立尖角節點，按住 Ctrl 限制角度，按住 Alt 移動節點
 Move the pointer to set the shape, then click	移動指標以設定形狀，然後按一下
 Click to place the dimension line and text	按一下以放置尺度線和文字
 Click the second and third points, then place the text	按一下第二和第三個點，然後放置文字

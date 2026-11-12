@@ -1921,3 +1921,476 @@ fn visual_pattern_preview() {
     }
     save(&mut h, "pat_03_pattern_applied");
 }
+
+/// Issue #55: a guideline clicked with the Pick tool is selected (drawn red) and Delete removes it; Undo brings it
+/// back. A click that doesn't move it adds no undo step.
+#[test]
+#[ignore]
+fn visual_delete_guideline() {
+    let mut h = harness();
+    h.state_mut().new_default_document();
+    h.step();
+    let screen_y = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let page = d.page;
+        d.doc.pages[page].guides.push(vector_core::Guide {
+            kind: vector_core::GuideKind::Horizontal,
+            pos: kurbo::Point::new(0.0, 300.0),
+            locked: false,
+            color: vector_core::Color::rgb(0x00, 0x99, 0xff),
+        });
+        d.to_screen(kurbo::Point::new(0.0, 300.0)).y
+    };
+    let x = { let r = h.state_mut().doc().unwrap().canvas_rect; r.left() + 40.0 };
+    let undo_before = h.state_mut().doc().unwrap().history.can_undo();
+    click(&mut h, egui::pos2(x, screen_y));
+    {
+        let d = h.state_mut().doc().unwrap();
+        assert_eq!(d.guide_sel, Some((d.page, 0)), "the click selects the guideline");
+        assert_eq!(d.page_ref().guides.len(), 1);
+        assert_eq!(d.history.can_undo(), undo_before, "a click adds no undo step");
+    }
+    save(&mut h, "93_guideline_selected");
+    h.key_press(egui::Key::Delete);
+    h.step();
+    assert!(h.state_mut().doc().unwrap().page_ref().guides.is_empty(), "Delete removes the guideline");
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    assert_eq!(h.state_mut().doc().unwrap().page_ref().guides.len(), 1, "Undo brings it back");
+    // a click elsewhere drops the guideline's selection: Delete does nothing
+    let mid = h.state_mut().doc().unwrap().canvas_rect.center();
+    click(&mut h, egui::pos2(mid.x, screen_y + 120.0));
+    h.key_press(egui::Key::Delete);
+    h.step();
+    assert_eq!(h.state_mut().doc().unwrap().page_ref().guides.len(), 1);
+}
+
+// ---- clipboard agent ----
+
+/// A harness without a GPU, so these tests run with a plain `cargo test`; one selected rectangle.
+fn clip_harness<'a>() -> Harness<'a, AnyVectorApp> {
+    let mut h = Harness::builder().with_size(egui::vec2(1600.0, 900.0)).build_eframe(|cc| {
+        let mut app = AnyVectorApp::new(cc);
+        app.splash = None;
+        app.pending.clear();
+        app
+    });
+    h.state_mut().new_default_document();
+    h.state_mut().dialogs.new_doc = None;
+    for _ in 0..3 {
+        h.step();
+    }
+    let d = h.state_mut().doc_mut().unwrap();
+    let r = kurbo::Shape::to_path(&kurbo::Rect::new(10.0, 10.0, 90.0, 60.0), 0.1);
+    let o = Object::new(d.doc.new_id(), ObjKind::Path(vector_core::path::NodePath::from_bez(&r)), Affine::IDENTITY, Style::default());
+    let id = o.id;
+    d.add_objects("Rect", vec![o]);
+    d.selection = vec![id];
+    h
+}
+
+fn clip_count(h: &Harness<'_, AnyVectorApp>) -> usize {
+    h.state().doc().unwrap().page_ref().all_objects().count()
+}
+
+/// Send events with the modifiers held, then a frame to run the commands.
+fn clip_send(h: &mut Harness<'_, AnyVectorApp>, mods: egui::Modifiers, events: Vec<egui::Event>) {
+    h.input_mut().events.push(egui::Event::ModifiersChanged(mods));
+    h.input_mut().events.extend(events);
+    h.step();
+    h.input_mut().events.push(egui::Event::ModifiersChanged(egui::Modifiers::NONE));
+    h.step();
+}
+
+const CLIP_CTRL: egui::Modifiers = egui::Modifiers { alt: false, ctrl: true, shift: false, mac_cmd: false, command: true };
+
+fn clip_key(key: egui::Key, pressed: bool) -> egui::Event {
+    egui::Event::Key { key, physical_key: Some(key), pressed, repeat: false, modifiers: CLIP_CTRL }
+}
+
+/// Ctrl+C / Ctrl+V / Ctrl+X as eframe delivers them on Windows: Event::Copy / Paste / PasteImage /
+/// Cut, with no key press.
+#[test]
+fn clip_copy_paste_events() {
+    let mut h = clip_harness();
+    assert_eq!(clip_count(&h), 1);
+    clip_send(&mut h, CLIP_CTRL, vec![egui::Event::Copy]);
+    assert_eq!(h.state().clip.objects.len(), 1, "Ctrl+C (Event::Copy) did not copy");
+    clip_send(&mut h, CLIP_CTRL, vec![egui::Event::Paste("<svg data-vector-clip=\"1\"></svg>".into())]);
+    assert_eq!(clip_count(&h), 2, "Ctrl+V (Event::Paste) did not paste");
+    // an image-only clipboard: eframe sends PasteImage
+    clip_send(&mut h, CLIP_CTRL, vec![egui::Event::PasteImage(std::sync::Arc::new(egui::ColorImage::filled([1, 1], egui::Color32::RED)))]);
+    assert_eq!(clip_count(&h), 3, "Ctrl+V (Event::PasteImage) did not paste");
+    // Ctrl+X cuts the selection (the pasted copy)
+    clip_send(&mut h, CLIP_CTRL, vec![egui::Event::Cut]);
+    assert_eq!(clip_count(&h), 2, "Ctrl+X (Event::Cut) did not cut");
+}
+
+/// Plain key presses (kittest, other backends) still work, and a key press together with the
+/// clipboard event in one frame pastes once.
+#[test]
+fn clip_copy_paste_keys() {
+    let mut h = clip_harness();
+    clip_send(&mut h, CLIP_CTRL, vec![clip_key(egui::Key::C, true), clip_key(egui::Key::C, false)]);
+    assert_eq!(h.state().clip.objects.len(), 1, "Ctrl+C key did not copy");
+    clip_send(&mut h, CLIP_CTRL, vec![clip_key(egui::Key::V, true), clip_key(egui::Key::V, false)]);
+    assert_eq!(clip_count(&h), 2, "Ctrl+V key did not paste");
+    clip_send(&mut h, CLIP_CTRL, vec![clip_key(egui::Key::V, true), egui::Event::Paste("x".into()), clip_key(egui::Key::V, false)]);
+    assert_eq!(clip_count(&h), 3, "one Ctrl+V pasted more than once");
+}
+
+/// While text is typed in place the clipboard events belong to the text.
+#[test]
+fn clip_events_left_to_text_editing() {
+    let mut h = clip_harness();
+    h.state_mut().run(Cmd::Copy);
+    h.step();
+    assert_eq!(h.state().clip.objects.len(), 1);
+    h.state_mut().ts.pending_text = Some((Point::new(100.0, 100.0), None));
+    clip_send(&mut h, CLIP_CTRL, vec![egui::Event::Paste("typed".into())]);
+    let paths = h.state().doc().unwrap().page_ref().all_objects().filter(|o| matches!(o.kind, ObjKind::Path(_))).count();
+    assert_eq!(paths, 1, "Ctrl+V while typing pasted objects");
+}
+
+/// A 32-bit bottom-up BI_RGB DIB with an unused (zero) alpha byte, as browsers put on CF_DIB.
+#[test]
+fn clip_decode_dib_rgb32() {
+    let mut dib = vec![];
+    for v in [40u32, 2, 2] {
+        dib.extend_from_slice(&v.to_le_bytes());
+    }
+    dib.extend_from_slice(&1u16.to_le_bytes());
+    dib.extend_from_slice(&32u16.to_le_bytes());
+    dib.extend_from_slice(&[0; 24]);
+    // bottom row first (BGRA): blue, green; then the top row: red, white
+    dib.extend_from_slice(&[255, 0, 0, 0, 0, 255, 0, 0, 0, 0, 255, 0, 255, 255, 255, 0]);
+    let img = crate::dialogs::clipboard::decode_dib(&dib).expect("decode");
+    assert_eq!((img.width, img.height), (2, 2));
+    assert_eq!(&img.rgba[0..4], &[255, 0, 0, 255], "top-left is red and opaque");
+    assert_eq!(&img.rgba[4..8], &[255, 255, 255, 255]);
+    assert_eq!(&img.rgba[8..12], &[0, 0, 255, 255]);
+    assert_eq!(&img.rgba[12..16], &[0, 255, 0, 255]);
+}
+
+/// A top-down 24-bit DIB (rows padded to 4 bytes) and a BI_BITFIELDS one with its masks after
+/// the 40-byte header.
+#[test]
+fn clip_decode_dib_24_and_bitfields() {
+    let header = |w: i32, h: i32, bits: u16, comp: u32| {
+        let mut v = vec![];
+        v.extend_from_slice(&40u32.to_le_bytes());
+        v.extend_from_slice(&w.to_le_bytes());
+        v.extend_from_slice(&h.to_le_bytes());
+        v.extend_from_slice(&1u16.to_le_bytes());
+        v.extend_from_slice(&bits.to_le_bytes());
+        v.extend_from_slice(&comp.to_le_bytes());
+        v.extend_from_slice(&[0; 20]);
+        v
+    };
+    let mut dib = header(1, -2, 24, 0);
+    dib.extend_from_slice(&[0, 0, 255, 0, 255, 0, 0, 0]);
+    let img = crate::dialogs::clipboard::decode_dib(&dib).expect("24-bit");
+    assert_eq!((img.width, img.height), (1, 2));
+    assert_eq!(&img.rgba[..], &[255, 0, 0, 255, 0, 0, 255, 255]);
+    let mut dib = header(1, 1, 32, 3);
+    for m in [0x00ff_0000u32, 0x0000_ff00, 0x0000_00ff] {
+        dib.extend_from_slice(&m.to_le_bytes());
+    }
+    dib.extend_from_slice(&[10, 20, 30, 0]);
+    let img = crate::dialogs::clipboard::decode_dib(&dib).expect("bitfields");
+    assert_eq!(&img.rgba[0..3], &[30, 20, 10]);
+    assert!(crate::dialogs::clipboard::decode_dib(&[1, 2, 3]).is_none());
+}
+
+#[test]
+fn clip_decode_png_and_links() {
+    use crate::dialogs::clipboard::{decode_png, text_is_image_link};
+    let mut png = vec![];
+    image::RgbaImage::from_pixel(3, 2, image::Rgba([1, 2, 3, 4])).write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
+    let img = decode_png(&png).expect("png");
+    assert_eq!((img.width, img.height, &img.rgba[0..4]), (3, 2, &[1u8, 2, 3, 4][..]));
+    assert_eq!(img.png, png, "the PNG bytes are kept");
+    assert!(text_is_image_link("https://example.com/a.png"));
+    assert!(text_is_image_link("<img src=\"https://example.com/a.png\">"));
+    assert!(!text_is_image_link("Hello world"));
+    assert!(!text_is_image_link("<svg data-vector-clip=\"1\"></svg>"));
+}
+
+/// Put a bitmap on the real Windows clipboard the way a browser's "Copy image" does (bitmap +
+/// "PNG" + the URL as text) and paste it with Ctrl+V; then a DIB-only bitmap; then Copy/Paste
+/// inside the program. Run with `cargo test -p anyvector clip_real -- --ignored`; it overwrites
+/// the clipboard.
+#[cfg(windows)]
+#[test]
+#[ignore]
+fn clip_real_browser_image() {
+    let run = |s: &str| {
+        let ok = std::process::Command::new("powershell").args(["-NoProfile", "-STA", "-Command", s]).status().map(|s| s.success()).unwrap_or(false);
+        assert!(ok, "powershell could not set the clipboard");
+    };
+    run("Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+$bmp = New-Object System.Drawing.Bitmap 120, 80
+$g = [System.Drawing.Graphics]::FromImage($bmp); $g.Clear([System.Drawing.Color]::OrangeRed); $g.Dispose()
+$png = New-Object System.IO.MemoryStream; $bmp.Save($png, [System.Drawing.Imaging.ImageFormat]::Png)
+$d = New-Object System.Windows.Forms.DataObject
+$d.SetData([System.Windows.Forms.DataFormats]::Bitmap, $bmp)
+$d.SetData('PNG', $png)
+$d.SetText('https://example.com/picture.png')
+[System.Windows.Forms.Clipboard]::SetDataObject($d, $true)");
+    crate::dialogs::clipboard::SYSTEM_CLIPBOARD.with(|c| c.set(true));
+    assert!(crate::dialogs::clipboard::system_has_content());
+    let img = crate::dialogs::clipboard::system_image().expect("clipboard bitmap");
+    assert_eq!((img.width, img.height), (120, 80));
+    assert!(!img.png.is_empty(), "the PNG format was read");
+    assert_eq!(&img.rgba[0..4], &[255, 69, 0, 255]);
+    let mut h = clip_harness();
+    let n = clip_count(&h);
+    clip_send(&mut h, CLIP_CTRL, vec![egui::Event::Paste("https://example.com/picture.png".into())]);
+    let widths: Vec<f64> = h.state().doc().unwrap().page_ref().all_objects().filter_map(|o| if let ObjKind::Image(i) = &o.kind { Some(i.w) } else { None }).collect();
+    assert_eq!(clip_count(&h), n + 1);
+    assert_eq!(widths.len(), 1, "the bitmap was not pasted as an image");
+    // 96 dpi, as File ▸ Import
+    assert!((widths[0] - 120.0 * 72.0 / 96.0).abs() < 1e-6);
+    // only a bitmap (no "PNG", no text), as Paint does
+    run("Add-Type -AssemblyName System.Windows.Forms, System.Drawing; $b = New-Object System.Drawing.Bitmap 30, 20; $g = [System.Drawing.Graphics]::FromImage($b); $g.Clear([System.Drawing.Color]::Blue); $g.Dispose(); [System.Windows.Forms.Clipboard]::SetImage($b)");
+    let img = crate::dialogs::clipboard::system_image().expect("DIB bitmap");
+    assert_eq!((img.width, img.height), (30, 20));
+    assert_eq!(&img.rgba[0..4], &[0, 0, 255, 255]);
+    clip_send(&mut h, CLIP_CTRL, vec![egui::Event::PasteImage(std::sync::Arc::new(egui::ColorImage::filled([30, 20], egui::Color32::BLUE)))]);
+    assert_eq!(clip_count(&h), n + 2);
+    // Copy then Paste inside the program restores the objects, not a bitmap
+    let rect = h.state().doc().unwrap().page_ref().all_objects().find(|o| matches!(o.kind, ObjKind::Path(_))).unwrap().id;
+    h.state_mut().doc_mut().unwrap().selection = vec![rect];
+    clip_send(&mut h, CLIP_CTRL, vec![egui::Event::Copy]);
+    let t = crate::dialogs::clipboard::system_text().unwrap_or_default();
+    assert!(t.contains("data-vector-clip"));
+    clip_send(&mut h, CLIP_CTRL, vec![egui::Event::Paste(t)]);
+    assert_eq!(clip_count(&h), n + 3);
+    let paths = h.state().doc().unwrap().page_ref().all_objects().filter(|o| matches!(o.kind, ObjKind::Path(_))).count();
+    assert_eq!(paths, 2, "the copied rectangle came back as a rectangle");
+    crate::dialogs::clipboard::SYSTEM_CLIPBOARD.with(|c| c.set(false));
+}
+
+// ---- tools agent ----
+
+fn key(h: &mut Harness<'_, AnyVectorApp>, k: egui::Key, down: bool) {
+    h.input_mut().events.push(egui::Event::Key { key: k, physical_key: None, pressed: down, repeat: false, modifiers: egui::Modifiers::NONE });
+}
+
+fn doc_harness<'a>() -> Harness<'a, AnyVectorApp> {
+    let mut h = harness();
+    h.state_mut().new_default_document();
+    h.state_mut().dialogs.new_doc = None;
+    for _ in 0..3 {
+        h.step();
+    }
+    h
+}
+
+/// Bézier tool: holding C while dragging a node's handles makes it a cusp; the C shortcut
+/// (Align Centers Vertically) must not fire meanwhile.
+#[test]
+#[ignore]
+fn visual_bezier_cusp_with_c() {
+    use crate::tools::ToolId;
+    use vector_core::path::NodeKind;
+    let mut h = doc_harness();
+    // a selected rectangle away from the page center: an Align would move it
+    let rid = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let id = d.doc.new_id();
+        let o = Object::new(id, ObjKind::Rect(RectShape { w: 40.0, h: 30.0, radii: [0.0; 4], corner: CornerType::Round }), Affine::translate((20.0, 20.0)), Style::default());
+        d.add_objects("test", vec![o]);
+        d.selection = vec![id];
+        id
+    };
+    let bounds0 = h.state().doc().unwrap().doc.find(rid).unwrap().bounds();
+    h.state_mut().set_tool(ToolId::Bezier);
+    let a = egui::pos2(800.0, 400.0);
+    let b = egui::pos2(950.0, 400.0);
+    click(&mut h, a);
+    // second node: drag symmetric handles first, then hold C and swing the outgoing one
+    move_to(&mut h, b);
+    h.step();
+    press(&mut h, b, true);
+    h.step();
+    for k in 1..=4 {
+        move_to(&mut h, b + egui::vec2(15.0 * k as f32, 0.0));
+        h.step();
+    }
+    key(&mut h, egui::Key::C, true);
+    h.step();
+    for k in 1..=4 {
+        move_to(&mut h, b + egui::vec2(60.0, -20.0 * k as f32));
+        h.step();
+    }
+    save(&mut h, "tools_01_bezier_cusp_drag");
+    press(&mut h, b + egui::vec2(60.0, -80.0), false);
+    h.step();
+    key(&mut h, egui::Key::C, false);
+    h.step();
+    h.state_mut().finish_tool();
+    h.step();
+    let d = h.state().doc().unwrap();
+    assert_eq!(d.doc.find(rid).unwrap().bounds(), bounds0, "the C shortcut fired while dragging");
+    let np = d
+        .page_ref()
+        .all_objects()
+        .find_map(|o| match &o.kind {
+            ObjKind::Path(np) if np.node_count() == 2 => Some(np.clone()),
+            _ => None,
+        })
+        .expect("the curve was not created");
+    let n = &np.subpaths[0].nodes[1];
+    assert_eq!(n.kind, NodeKind::Cusp);
+    let (vi, vo) = (n.c_in - n.p, n.c_out - n.p);
+    assert!(vi.hypot() > 1.0 && vo.hypot() > 1.0, "handles missing: {vi:?} {vo:?}");
+    assert!((vi + vo).hypot() > 1.0, "handles are still symmetric: {vi:?} {vo:?}");
+    save(&mut h, "tools_02_bezier_cusp");
+}
+
+/// Pick tool: double-clicking text edits it in place (no Edit Text dialog).
+#[test]
+#[ignore]
+fn visual_double_click_text_in_place() {
+    use crate::tools::ToolId;
+    use vector_core::text::{CharFormat, TextObj};
+    let mut h = doc_harness();
+    let (id, at) = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let id = d.doc.new_id();
+        let mut st = Style::default();
+        st.fill = Fill::Solid(Color::BLACK);
+        let f = CharFormat { size: 48.0, ..CharFormat::default() };
+        let o = Object::new(id, ObjKind::Text(TextObj::artistic("Hello world", f)), Affine::translate((100.0, 200.0)), st);
+        d.add_objects("test", vec![o]);
+        d.selection.clear();
+        let c = d.doc.find(id).unwrap().bounds().center();
+        (id, d.to_screen(c))
+    };
+    h.state_mut().set_tool(ToolId::Pick);
+    h.step();
+    move_to(&mut h, at);
+    h.step();
+    // a step is 0.25 s and a double-click must come within 0.3 s: one click per step
+    for _ in 0..2 {
+        press(&mut h, at, true);
+        press(&mut h, at, false);
+        h.step();
+    }
+    h.step();
+    let a = h.state();
+    assert_eq!(a.tool, ToolId::Text);
+    assert!(a.dialogs.edit_text.is_none(), "the Edit Text dialog opened");
+    let te = a.doc().unwrap().text_edit.clone().expect("not editing in place");
+    assert_eq!(te.obj, id);
+    assert!(te.caret > 0 && te.caret < 11, "caret not at the click: {}", te.caret);
+    save(&mut h, "tools_03_text_in_place");
+}
+
+// ---- shortcuts agent ----
+
+/// The reference's chords reach the right commands: C and E align centers on the two axes,
+/// Shift+L distributes (not Align Left), Ctrl+Shift+D is Step and Repeat (not Duplicate),
+/// Alt+F8 opens the Transform docker's Rotate page, C on a selected node toggles it.
+#[test]
+#[ignore]
+fn visual_shortcuts_reference_chords() {
+    use egui::{Key, Modifiers};
+    use kurbo::Shape;
+    let mut h = harness();
+    h.state_mut().new_default_document();
+    for _ in 0..3 {
+        h.step();
+    }
+    let ids = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let mut objs = vec![];
+        for (x, y, w) in [(20.0, 20.0, 40.0), (100.0, 60.0, 20.0), (200.0, 30.0, 60.0)] {
+            let r = kurbo::Rect::new(x, y, x + w, y + 30.0).to_path(0.1);
+            objs.push(Object::new(d.doc.new_id(), ObjKind::Path(vector_core::path::NodePath::from_bez(&r)), Affine::IDENTITY, Style::default()));
+        }
+        let ids: Vec<_> = objs.iter().map(|o| o.id).collect();
+        d.add_objects("test", objs);
+        d.selection = ids.clone();
+        ids
+    };
+    let centers = |h: &Harness<'_, AnyVectorApp>| -> Vec<kurbo::Point> {
+        let d = h.state().doc().unwrap();
+        ids.iter().map(|i| d.doc.bounds_of(d.doc.find(*i).unwrap()).center()).collect()
+    };
+    let n = |h: &Harness<'_, AnyVectorApp>| h.state().doc().unwrap().doc.pages[0].layers.iter().map(|l| l.objects.len()).sum::<usize>();
+    let before = centers(&h);
+    h.key_press(Key::C);
+    h.step();
+    let c = centers(&h);
+    assert!(c.iter().all(|p| (p.x - c[0].x).abs() < 1e-6), "C lines the centers up on a vertical line: {c:?}");
+    assert!(c.iter().zip(&before).all(|(a, b)| (a.y - b.y).abs() < 1e-6), "C moves only horizontally");
+    h.key_press(Key::E);
+    h.step();
+    let c = centers(&h);
+    assert!(c.iter().all(|p| (p.y - c[0].y).abs() < 1e-6), "E lines the centers up on a horizontal line: {c:?}");
+    // Shift+L must not run Align Left (L): the objects stay on one vertical center line
+    h.key_press_modifiers(Modifiers::SHIFT, Key::L);
+    h.step();
+    let c = centers(&h);
+    assert!(c.iter().all(|p| (p.x - c[0].x).abs() < 1e-6), "Shift+L did not align left: {c:?}");
+    let count = n(&h);
+    let was = h.state().dockers.active == Some(crate::dockers::DockerId::StepRepeat);
+    h.key_press_modifiers(Modifiers { ctrl: true, command: true, shift: true, ..Default::default() }, Key::D);
+    h.step();
+    h.step();
+    assert_eq!(n(&h), count, "Ctrl+Shift+D did not duplicate");
+    assert_ne!(h.state().dockers.active == Some(crate::dockers::DockerId::StepRepeat), was, "Ctrl+Shift+D toggles Step and Repeat");
+    h.key_press_modifiers(Modifiers::ALT, Key::F8);
+    h.step();
+    h.step();
+    assert!(h.state().dockers.active == Some(crate::dockers::DockerId::Transform));
+    assert_eq!(h.state().dockers.ui.transform_tab, 1);
+    // NodeToggle: C on a cusp node makes it smooth, again makes it cusp
+    {
+        let d = h.state_mut().doc_mut().unwrap();
+        d.selection = vec![ids[0]];
+        d.node_sel = vec![(ids[0], 0, 1)];
+    }
+    let kind = |h: &Harness<'_, AnyVectorApp>| match &h.state().doc().unwrap().doc.find(ids[0]).unwrap().kind {
+        ObjKind::Path(np) => np.subpaths[0].nodes[1].kind,
+        _ => unreachable!(),
+    };
+    assert_eq!(kind(&h), vector_core::path::NodeKind::Cusp);
+    h.state_mut().run(Cmd::NodeToggle(0));
+    h.step();
+    assert_eq!(kind(&h), vector_core::path::NodeKind::Smooth);
+    h.state_mut().run(Cmd::NodeToggle(0));
+    h.step();
+    assert_eq!(kind(&h), vector_core::path::NodeKind::Cusp);
+    save(&mut h, "shortcuts_01_reference_chords");
+}
+
+// ---- break apart ----
+
+/// The property bar's Break Apart is on for a curve with several subpaths (it was always off for
+/// curves) and off for a curve with one.
+#[test]
+fn break_apart_enabled_for_combined_curves() {
+    let mut h = clip_harness();
+    let on = |h: &Harness<'_, AnyVectorApp>| crate::ui::bind::enabled(h.state(), "d5669070-c0f3-4fc0-b524-e33aeea7925f");
+    let d = h.state_mut().doc_mut().unwrap();
+    let mut ids = vec![];
+    for x in [0.0, 200.0] {
+        let r = kurbo::Shape::to_path(&kurbo::Rect::new(x, 0.0, x + 100.0, 100.0), 0.1);
+        let o = Object::new(d.doc.new_id(), ObjKind::Path(vector_core::path::NodePath::from_bez(&r)), Affine::IDENTITY, Style::default());
+        ids.push(o.id);
+        d.add_objects("test", vec![o]);
+    }
+    d.selection = vec![ids[0]];
+    assert_eq!(on(&h), Some(false));
+    h.state_mut().doc_mut().unwrap().selection = ids;
+    h.state_mut().run(Cmd::Combine);
+    h.step();
+    assert_eq!(h.state().doc().unwrap().selection.len(), 1);
+    assert_eq!(on(&h), Some(true));
+    h.state_mut().run(Cmd::BreakApart);
+    h.step();
+    assert_eq!(h.state().doc().unwrap().selection.len(), 2);
+}

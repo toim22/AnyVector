@@ -56,6 +56,8 @@ pub struct DocView {
     pub path: Option<PathBuf>,
     pub title: String,
     pub selection: Vec<ObjId>,
+    /// The guideline clicked with the Pick tool (page, index into its `guides`): Delete removes it.
+    pub guide_sel: Option<(usize, usize)>,
     pub page: usize,
     pub layer: usize,
     /// The active layer is a master layer (stored with the first page; `layer` indexes the
@@ -114,6 +116,7 @@ impl DocView {
             path: None,
             title,
             selection: vec![],
+            guide_sel: None,
             page: 0,
             layer: 0,
             on_master: false,

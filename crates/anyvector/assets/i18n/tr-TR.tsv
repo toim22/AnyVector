@@ -4250,10 +4250,10 @@ Click the two ends of the part of the object to measure	Nesnenin ölçülecek b�
 Use anchor point	Bağlantı noktasını kullan
 Copies:	Kopyalar:
 Align left (L)	Sola hizala (L)
-Align centers horizontally (E)	Merkezleri yatay hizala (E)
+Align centers horizontally (C)	Merkezleri yatay hizala (C)
 Align right (R)	Sağa hizala (R)
 Align top (T)	Üste hizala (T)
-Align centers vertically (C)	Merkezleri dikey hizala (C)
+Align centers vertically (E)	Merkezleri dikey hizala (E)
 Align bottom (B)	Alta hizala (B)
 Align to:	Hizalama hedefi:
 Active objects	Etkin nesneler
@@ -5487,6 +5487,7 @@ Click the second point (Esc to cancel)	İkinci noktaya tıklayın (iptal için E
 Click a point on the page (Esc to cancel)	Sayfada bir noktaya tıklayın (iptal için Esc)
 Click the target object (Esc to cancel)	Hedef nesneye tıklayın (iptal için Esc)
 Click to add nodes, drag to set curve handles; double-click, Enter or Space to finish; click the first node to close	Düğüm eklemek için tıklayın, eğri tutamaçlarını ayarlamak için sürükleyin; bitirmek için çift tıklayın, Enter veya Ara Çubuğu'na basın; kapatmak için ilk düğüme tıklayın
+Drag to set the curve handles; hold C for a cusp node, Ctrl to constrain the angle, Alt to move the node	Eğri tutamaçlarını ayarlamak için sürükleyin; sivri düğüm için C, açıyı sınırlamak için Ctrl, düğümü taşımak için Alt tuşunu basılı tutun
 Move the pointer to set the shape, then click	Şekli ayarlamak için işaretçiyi hareket ettirin, ardından tıklayın
 Click to place the dimension line and text	Ölçü çizgisini ve metni yerleştirmek için tıklayın
 Click the second and third points, then place the text	İkinci ve üçüncü noktalara tıklayın, ardından metni yerleştirin
