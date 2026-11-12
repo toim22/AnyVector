@@ -132,6 +132,7 @@ pub fn drawing_window(app: &mut AnyVectorApp, ui: &mut Ui) {
             double: resp.double_clicked(),
             secondary: sec_pressed && hovered,
             mods,
+            key_c: ctx.input(|i| i.key_down(egui::Key::C)),
             time,
             dt,
         };

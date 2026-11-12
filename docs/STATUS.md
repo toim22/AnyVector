@@ -1,11 +1,12 @@
 # AnyVector — Status
 
-Last updated: 2026-11-11.
+Last updated: 2026-11-12.
 
 ## Version history
 
 | Version | Date | What it brings |
 | --- | --- | --- |
+| [0.4.0](RELEASE-NOTES-0.4.0.md) | 2026-11-12 | Keyboard shortcuts as in CorelDRAW 2026, cusp nodes with C, double-click to edit text on the page, Ctrl+C / Ctrl+V and pictures pasted from the web, Break Apart on the property bar, deleting a guideline, a Light theme and 13 more languages. |
 | [0.3.1](RELEASE-NOTES-0.3.1.md) | 2026-11-11 | Help ▸ Updates shows the release notes formatted (headings, lists, bold) instead of their raw text. |
 | [0.3.0](RELEASE-NOTES-0.3.0.md) | 2026-11-11 | CorelDRAW import, second round: import messages, look-alike fonts, CorelDRAW 12 textures, full-color pattern and PostScript fills drawn, Corel clipart (CMX), editable pattern tiles and texture settings; bug reports and ideas without a GitHub account; Install Now while an update downloads. |
 | [0.2.0](RELEASE-NOTES-0.2.0.md) | 2026-11-10 | Opens CorelDRAW drawings natively, from CorelDRAW 1 to 2026: pages, layers, shapes, fills (uniform, fountain, bitmap, two-color, texture, vector pattern, PostScript), outlines and arrowheads, text with its layout, bitmaps, lenses, perspective, envelopes, PowerLines, blends, extrusions, drop shadows, contours, guidelines and CMYK through the drawing's profile. |

@@ -4250,10 +4250,10 @@ Click the two ends of the part of the object to measure	Clique nas duas extremid
 Use anchor point	Usar ponto de ancoragem
 Copies:	Cópias:
 Align left (L)	Alinhar à esquerda (L)
-Align centers horizontally (E)	Alinhar centros horizontalmente (E)
+Align centers horizontally (C)	Alinhar centros horizontalmente (C)
 Align right (R)	Alinhar à direita (R)
 Align top (T)	Alinhar acima (T)
-Align centers vertically (C)	Alinhar centros verticalmente (C)
+Align centers vertically (E)	Alinhar centros verticalmente (E)
 Align bottom (B)	Alinhar abaixo (B)
 Align to:	Alinhar a:
 Active objects	Objetos ativos
@@ -5487,6 +5487,7 @@ Click the second point (Esc to cancel)	Clique no segundo ponto (Esc para cancela
 Click a point on the page (Esc to cancel)	Clique em um ponto na página (Esc para cancelar)
 Click the target object (Esc to cancel)	Clique no objeto de destino (Esc para cancelar)
 Click to add nodes, drag to set curve handles; double-click, Enter or Space to finish; click the first node to close	Clique para adicionar nós, arraste para definir as alças da curva; clique duas vezes, Enter ou Espaço para concluir; clique no primeiro nó para fechar
+Drag to set the curve handles; hold C for a cusp node, Ctrl to constrain the angle, Alt to move the node	Arraste para definir as alças da curva; mantenha C pressionada para um nó cúspide, Ctrl para restringir o ângulo, Alt para mover o nó
 Move the pointer to set the shape, then click	Mova o ponteiro para definir a forma e clique
 Click to place the dimension line and text	Clique para posicionar a linha de dimensão e o texto
 Click the second and third points, then place the text	Clique no segundo e no terceiro pontos e posicione o texto

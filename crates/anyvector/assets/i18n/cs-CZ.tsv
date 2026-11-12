@@ -4250,10 +4250,10 @@ Click the two ends of the part of the object to measure	Klikněte na dva konce �
 Use anchor point	Použít kotevní bod
 Copies:	Kopie:
 Align left (L)	Zarovnat vlevo (L)
-Align centers horizontally (E)	Zarovnat středy vodorovně (E)
+Align centers horizontally (C)	Zarovnat středy vodorovně (C)
 Align right (R)	Zarovnat vpravo (R)
 Align top (T)	Zarovnat nahoru (T)
-Align centers vertically (C)	Zarovnat středy svisle (C)
+Align centers vertically (E)	Zarovnat středy svisle (E)
 Align bottom (B)	Zarovnat dolů (B)
 Align to:	Zarovnat k:
 Active objects	Aktivní objekty
@@ -5487,6 +5487,7 @@ Click the second point (Esc to cancel)	Klikněte na druhý bod (Esc zruší)
 Click a point on the page (Esc to cancel)	Klikněte na bod na stránce (Esc zruší)
 Click the target object (Esc to cancel)	Klikněte na cílový objekt (Esc zruší)
 Click to add nodes, drag to set curve handles; double-click, Enter or Space to finish; click the first node to close	Kliknutím přidáte uzly, tažením nastavíte úchyty křivky; poklepáním, klávesou Enter nebo mezerníkem dokončíte; kliknutím na první uzel křivku uzavřete
+Drag to set the curve handles; hold C for a cusp node, Ctrl to constrain the angle, Alt to move the node	Tažením nastavíte úchyty křivky; podržením C vytvoříte ostrý uzel, Ctrl omezí úhel, Alt přesune uzel
 Move the pointer to set the shape, then click	Pohybem ukazatele nastavte tvar a klikněte
 Click to place the dimension line and text	Kliknutím umístíte kótovací čáru a text
 Click the second and third points, then place the text	Klikněte na druhý a třetí bod a umístěte text

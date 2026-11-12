@@ -4250,10 +4250,10 @@ Click the two ends of the part of the object to measure	測定するオブジェ
 Use anchor point	アンカー ポイントを使用
 Copies:	コピー数:
 Align left (L)	左揃え (L)
-Align centers horizontally (E)	水平方向に中央揃え (E)
+Align centers horizontally (C)	水平方向に中央揃え (C)
 Align right (R)	右揃え (R)
 Align top (T)	上揃え (T)
-Align centers vertically (C)	垂直方向に中央揃え (C)
+Align centers vertically (E)	垂直方向に中央揃え (E)
 Align bottom (B)	下揃え (B)
 Align to:	整列の基準:
 Active objects	アクティブなオブジェクト
@@ -5487,6 +5487,7 @@ Click the second point (Esc to cancel)	2 番目の点をクリックしてくだ
 Click a point on the page (Esc to cancel)	ページ上の点をクリックしてください (Esc でキャンセル)
 Click the target object (Esc to cancel)	ターゲット オブジェクトをクリックしてください (Esc でキャンセル)
 Click to add nodes, drag to set curve handles; double-click, Enter or Space to finish; click the first node to close	クリックでノードを追加し、ドラッグでカーブ ハンドルを設定します。ダブルクリック、Enter、Space で終了し、最初のノードをクリックすると閉じます
+Drag to set the curve handles; hold C for a cusp node, Ctrl to constrain the angle, Alt to move the node	ドラッグでカーブ ハンドルを設定します。C を押したままでカスプ ノード、Ctrl で角度を制限、Alt でノードを移動します
 Move the pointer to set the shape, then click	ポインタを動かして形状を設定し、クリックします
 Click to place the dimension line and text	クリックして寸法線とテキストを配置します
 Click the second and third points, then place the text	2 番目と 3 番目の点をクリックしてから、テキストを配置します

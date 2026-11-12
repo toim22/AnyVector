@@ -266,8 +266,10 @@ fn draw_guides(painter: &Painter, d: &DocView, drag: &Drag, style: usize) {
         if i.is_some() && i == moving {
             continue;
         }
-        let col = Color32::from_rgb(g.color.r, g.color.g, g.color.b);
-        let stroke = Stroke::new(1.0, col);
+        // the selected guideline is red, as in CorelDRAW
+        let selected = i.is_some() && i == d.guide_sel.filter(|(p, _)| *p == d.page && d.selection.is_empty()).map(|(_, i)| i);
+        let col = if selected { Color32::from_rgb(0xff, 0x00, 0x00) } else { Color32::from_rgb(g.color.r, g.color.g, g.color.b) };
+        let stroke = Stroke::new(if selected { 1.5 } else { 1.0 }, col);
         match g.kind {
             vector_core::GuideKind::Horizontal => {
                 let y = d.to_screen(Point::new(0.0, g.pos.y)).y;

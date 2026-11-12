@@ -32,6 +32,8 @@ thesaurus-wordnet = "0.2"
 
 [target.'cfg(windows)'.dependencies]
 windows-core = "0.62"
+# cheap clipboard format checks and a CF_DIB fallback for pasted bitmaps; already in the tree via arboard
+clipboard-win = "5.4"
 windows = { version = "0.62", features = [
     "Win32_Foundation",
     "Win32_Globalization",

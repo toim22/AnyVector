@@ -274,10 +274,10 @@ pub fn align(app: &mut AnyVectorApp, ui: &mut Ui) {
         ui.spacing_mut().item_spacing.x = 8.0;
         for (k, (icon, tip, a)) in [
             ("align_left", "Align left (L)", Align::Left),
-            ("align_hcenter", "Align centers horizontally (E)", Align::CenterH),
+            ("align_hcenter", "Align centers horizontally (C)", Align::CenterH),
             ("align_right", "Align right (R)", Align::Right),
             ("align_top", "Align top (T)", Align::Top),
-            ("align_vcenter", "Align centers vertically (C)", Align::CenterV),
+            ("align_vcenter", "Align centers vertically (E)", Align::CenterV),
             ("align_bottom", "Align bottom (B)", Align::Bottom),
         ]
         .into_iter()

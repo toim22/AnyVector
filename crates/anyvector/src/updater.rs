@@ -665,7 +665,7 @@ onto a second line.
             NoteBlock::Item(0, vec![run("Last", false)]),
         ]);
         // the real notes have no Markdown marks left
-        for b in [include_str!("../../../docs/RELEASE-NOTES-0.3.0.md"), include_str!("../../../docs/RELEASE-NOTES-0.3.1.md")].iter().flat_map(|md| note_blocks(md)) {
+        for b in [include_str!("../../../docs/RELEASE-NOTES-0.3.0.md"), include_str!("../../../docs/RELEASE-NOTES-0.3.1.md"), include_str!("../../../docs/RELEASE-NOTES-0.4.0.md")].iter().flat_map(|md| note_blocks(md)) {
             let (NoteBlock::Heading(r) | NoteBlock::Item(_, r) | NoteBlock::Para(r)) = b;
             for (t, _) in r {
                 assert!(!t.contains("**") && !t.contains('`') && !t.starts_with('#') && !t.starts_with("- "), "{t}");

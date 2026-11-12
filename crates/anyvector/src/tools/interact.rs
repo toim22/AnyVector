@@ -26,6 +26,8 @@ pub struct Input {
     pub double: bool,
     pub secondary: bool,
     pub mods: egui::Modifiers,
+    /// C is held (Bézier / Pen: the node being dragged becomes a cusp).
+    pub key_c: bool,
     pub time: f64,
     pub dt: f64,
 }
@@ -35,6 +37,8 @@ struct Out {
     tool: Option<ToolId>,
     flash: Option<String>,
     cmds: Vec<Cmd>,
+    /// In-place text editing to start once the tool switch (which ends editing) is done.
+    text_edit: Option<crate::docview::TextEdit>,
 }
 
 pub fn handle_input(app: &mut AnyVectorApp, inp: &Input) {
@@ -69,6 +73,11 @@ pub fn handle_input(app: &mut AnyVectorApp, inp: &Input) {
     }
     if let Some(t) = out.tool {
         app.set_tool(t);
+    }
+    if let Some(te) = out.text_edit {
+        if let Some(d) = app.docs.get_mut(ai) {
+            d.text_edit = Some(te);
+        }
     }
     if let Some(m) = out.flash {
         app.flash(m);
@@ -686,13 +695,16 @@ impl<'a> Cx<'a> {
     fn pick_press(&mut self) {
         let p = self.raw;
         let pos = self.inp.pos;
-        // guides can be dragged with the Pick tool
+        // a click on a guideline selects it (Delete removes it), a drag moves it
         if let Some((idx, vertical)) = guide_at(self.d, pos) {
             if self.hit(p).is_none() {
+                self.d.guide_sel = Some((self.d.page, idx));
+                self.d.selection.clear();
                 self.ts.drag = Drag::Guide { index: Some(idx), vertical };
                 return;
             }
         }
+        self.d.guide_sel = None;
         if let Some(bb) = self.d.selection_bounds() {
             let e = self.d.doc_len(6.0);
             let eb = bb.inflate(e, e);
@@ -851,7 +863,7 @@ impl<'a> Cx<'a> {
         if self.tool == ToolId::Pen && self.s.topts.pen_auto_add && self.ts.curve.is_empty() && self.pen_auto_add_delete() {
             return;
         }
-        let s = self.snap(self.raw, &[]);
+        let mut s = self.snap(self.raw, &[]);
         if self.ts.curve.len() >= 2 && self.screen_dist(self.ts.curve[0].p, s) <= 6.0 {
             let first = self.ts.curve[0].p;
             let mut nodes = std::mem::take(&mut self.ts.curve);
@@ -872,10 +884,12 @@ impl<'a> Cx<'a> {
             if self.screen_dist(l.p, s) < 2.0 {
                 return; // second press of a double-click
             }
+            // Ctrl: the segment from the last node keeps to the constrain angle
+            s = constrain_line(l.p, s, self.mods(), self.s.constrain_angle).1;
         }
         self.ts.curve.push(Node::corner(s));
         self.ts.bspline = false;
-        self.ts.drag = Drag::BezierHandle { node: s };
+        self.ts.drag = Drag::BezierHandle { node: s, last: self.raw, cusp: false };
     }
 
     /// Pen ▸ Auto add or delete nodes: clicking a node of a selected curve deletes it, clicking
@@ -1331,7 +1345,15 @@ impl<'a> Cx<'a> {
                 }
                 if *started {
                     let start_pt = *start;
-                    let dv = cur - start_pt;
+                    let mut dv = cur - start_pt;
+                    // Ctrl: horizontal or vertical only
+                    if self.mods().ctrl && self.ts.node_mode == 0 {
+                        if dv.x.abs() > dv.y.abs() {
+                            dv.y = 0.0;
+                        } else {
+                            dv.x = 0.0;
+                        }
+                    }
                     let elastic = self.ts.elastic;
                     let mode = self.ts.node_mode;
                     let (rh, rv) = (self.s.topts.reflect_h, self.s.topts.reflect_v);
@@ -1398,8 +1420,12 @@ impl<'a> Cx<'a> {
                     *started = true;
                 }
                 if *started {
+                    let mods = self.mods();
+                    let angle = self.s.constrain_angle;
                     if let Some(o) = self.d.doc.find_mut(*obj) {
-                        let lc = o.transform.inverse() * p;
+                        // Ctrl: the handle keeps to the constrain angle
+                        let wp = orig.node((*si, *ni)).map(|n| o.transform * n.p).unwrap_or(p);
+                        let lc = o.transform.inverse() * constrain_line(wp, p, mods, angle).1;
                         let mut np = orig.clone();
                         let closed = np.subpaths.get(*si).map(|s| s.closed).unwrap_or(false);
                         let count = np.subpaths.get(*si).map(|s| s.nodes.len()).unwrap_or(0);
@@ -1641,21 +1667,36 @@ impl<'a> Cx<'a> {
                 }
                 self.ts.cur = p;
             }
-            Drag::BezierHandle { node } => {
-                if moved {
-                    let h = p - *node;
-                    let n = self.ts.curve.len();
-                    if n >= 1 {
-                        let last = &mut self.ts.curve[n - 1];
-                        last.c_out = *node + h;
-                        last.c_in = *node - h;
-                        last.kind = NodeKind::Symmetric;
-                        last.line_out = false;
+            Drag::BezierHandle { node, last, cusp } => {
+                let n = self.ts.curve.len();
+                let mods = self.mods();
+                if mods.alt && n >= 1 {
+                    // Alt: move the node being placed, handles and all
+                    let dv = p - *last;
+                    *node += dv;
+                    let l = &mut self.ts.curve[n - 1];
+                    l.p += dv;
+                    l.c_in += dv;
+                    l.c_out += dv;
+                } else if moved && n >= 1 {
+                    // Ctrl: the handle keeps to the constrain angle
+                    let h = constrain_line(*node, p, mods, self.s.constrain_angle).1 - *node;
+                    // C: a cusp, the outgoing handle moves on its own
+                    *cusp |= self.inp.key_c;
+                    let l = &mut self.ts.curve[n - 1];
+                    l.c_out = *node + h;
+                    l.line_out = false;
+                    if *cusp {
+                        l.kind = NodeKind::Cusp;
+                    } else {
+                        l.c_in = *node - h;
+                        l.kind = NodeKind::Symmetric;
                         if n >= 2 {
                             self.ts.curve[n - 2].line_out = false;
                         }
                     }
                 }
+                *last = p;
                 self.ts.cur = p;
             }
         }
@@ -1963,6 +2004,13 @@ impl<'a> Cx<'a> {
         let p = self.raw;
         let inside = self.d.canvas_rect.contains(self.inp.pos);
         let page = self.d.page;
+        // a click without moving only selects the guideline
+        if index.is_some() && !self.ts.moved {
+            return;
+        }
+        if index.is_some() && !inside {
+            self.d.guide_sel = None;
+        }
         self.d.modify(if index.is_some() { "Move Guideline" } else { "Add Guideline" }, |doc, _| {
             let guides = &mut doc.pages[page].guides;
             match index {
@@ -2159,11 +2207,21 @@ impl<'a> Cx<'a> {
                         self.out.cmds.push(c);
                         return;
                     }
+                    // text: edit in place, the caret at the character clicked
+                    let caret = self.d.doc.find(id).and_then(|o| match &o.kind {
+                        ObjKind::Text(t) => Some(vector_core::text::layout(t).hit(o.transform.inverse() * p)),
+                        _ => None,
+                    });
+                    if let Some(caret) = caret {
+                        self.d.selection = vec![id];
+                        // the second click toggled rotate mode
+                        self.d.rotate_mode = false;
+                        self.ts.drag = Drag::None;
+                        self.out.tool = Some(Text);
+                        self.out.text_edit = Some(crate::docview::TextEdit { obj: id, caret, anchor: caret, blink: self.inp.time });
+                        return;
+                    }
                     match self.d.doc.find(id).map(|o| &o.kind) {
-                        Some(ObjKind::Text(_)) => {
-                            self.out.tool = Some(Text);
-                            self.out.cmds.push(Cmd::EditText);
-                        }
                         Some(ObjKind::Path(_)) => self.out.tool = Some(Shape),
                         Some(ObjKind::Group(_)) | Some(ObjKind::PowerClip { .. }) if self.s.dblclick_focus_mode => {
                             self.d.focus = vec![id];
@@ -3433,7 +3491,7 @@ pub fn tick(app: &mut AnyVectorApp, ctx: &egui::Context) {
         if app.tool != ToolId::LiveSketch || left <= 0.0 {
             if let Some(ai) = app.active.filter(|a| *a < app.docs.len()) {
                 let mut out = Out::default();
-                let inp = Input { pos: Pos2::ZERO, hovered: false, pressed: false, released: false, down: false, double: false, secondary: false, mods: Default::default(), time: now, dt: 0.0 };
+                let inp = Input { pos: Pos2::ZERO, hovered: false, pressed: false, released: false, down: false, double: false, secondary: false, mods: Default::default(), key_c: false, time: now, dt: 0.0 };
                 let default_fill = app.default_fill;
                 let tool = app.tool;
                 let mut cx = Cx { ts: &mut app.ts, d: &mut app.docs[ai], s: &app.settings, tool, inp: &inp, out: &mut out, default_fill, raw: Point::ZERO };

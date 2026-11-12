@@ -23,7 +23,7 @@ pub fn system_clipboard_has_content() -> bool {
             return v;
         }
     }
-    let v = arboard::Clipboard::new().map(|mut cb| cb.get_text().map(|t| !t.is_empty()).unwrap_or(false) || cb.get_image().is_ok()).unwrap_or(false);
+    let v = crate::dialogs::clipboard::system_has_content();
     *c = Some((std::time::Instant::now(), v));
     v
 }
@@ -755,7 +755,7 @@ impl AnyVectorApp {
         // system clipboard: SVG text + PNG image
         let svg = vector_io::svg_export::objects_to_svg(&d.doc, &objs);
         let png = vector_render::render_objects_image(&d.doc, &objs, 1024, None);
-        if let Ok(mut cb) = arboard::Clipboard::new() {
+        if let Some(mut cb) = arboard::Clipboard::new().ok().filter(|_| crate::dialogs::clipboard::system_enabled()) {
             let _ = cb.set_text(svg.replacen("<svg", "<svg data-vector-clip=\"1\"", 1));
             if let Some(pm) = png {
                 let rgba = vector_render::pixmap_to_rgba(&pm);
@@ -777,21 +777,13 @@ impl AnyVectorApp {
             self.new_default_document();
         }
         // what is on the system clipboard?
-        let mut text = None;
-        let mut image = None;
-        if let Ok(mut cb) = arboard::Clipboard::new() {
-            text = cb.get_text().ok();
-            if text.is_none() {
-                image = cb.get_image().ok();
-            }
-        }
-        if kind == Some(PasteKind::Bitmap) {
-            text = None;
-            if let Ok(mut cb) = arboard::Clipboard::new() {
-                image = cb.get_image().ok();
-            }
-        }
+        let mut text = if kind == Some(PasteKind::Bitmap) { None } else { crate::dialogs::clipboard::system_text() };
         let ours = text.as_deref().map(|t| t.contains("data-vector-clip")).unwrap_or(false);
+        let image = if ours || kind.is_some_and(|k| k != PasteKind::Bitmap) { None } else { crate::dialogs::clipboard::system_image() };
+        // a browser's "Copy image" may add the image URL as text: paste the bitmap
+        if image.is_some() && kind.is_none() && text.as_deref().is_some_and(crate::dialogs::clipboard::text_is_image_link) {
+            text = None;
+        }
         if (kind == Some(PasteKind::Native) || (kind.is_none() && (ours || (text.is_none() && image.is_none())))) && !self.clip.objects.is_empty() {
             let clip = self.clip.clone();
             let d = self.doc_mut().unwrap();
@@ -815,7 +807,7 @@ impl AnyVectorApp {
             if (t.starts_with("<svg") || t.starts_with("<?xml")) && want(PasteKind::Svg) {
                 let d = self.doc_mut().unwrap();
                 if let Ok(mut objs) = vector_io::svg_import::objects_from_svg(&mut d.doc, t.as_bytes()) {
-                    let c = at.unwrap_or_else(|| d.page_ref().rect().center());
+                    let c = at.unwrap_or_else(|| crate::dialogs::clipboard::paste_center(d));
                     let bb = vector_core::object::union_bounds(objs.iter().map(|o| o.bounds()));
                     for o in objs.iter_mut() {
                         o.apply_transform(Affine::translate(c - bb.center()));
@@ -832,15 +824,17 @@ impl AnyVectorApp {
         if let Some(img) = image {
             let d = self.doc_mut().unwrap();
             let data = vector_core::document::ImageData {
-                width: img.width as u32,
-                height: img.height as u32,
-                rgba: std::sync::Arc::new(img.bytes.into_owned()),
-                encoded: Default::default(),
+                width: img.width,
+                height: img.height,
+                rgba: std::sync::Arc::new(img.rgba),
+                encoded: std::sync::Arc::new(img.png),
                 format: "png".into(),
                 name: "Pasted image".into(),
             };
-            let mut o = vector_io::image_io::image_object(&mut d.doc, data, 96.0);
-            let c = at.unwrap_or_else(|| d.page_ref().rect().center());
+            // screen bitmaps come in at 96 dpi, as File ▸ Import sizes them
+            let dpi = 96.0;
+            let mut o = vector_io::image_io::image_object(&mut d.doc, data, dpi);
+            let c = at.unwrap_or_else(|| crate::dialogs::clipboard::paste_center(d));
             let b = o.bounds();
             o.apply_transform(Affine::translate(c - b.center()));
             d.add_objects("Paste", vec![o]);
@@ -1452,7 +1446,15 @@ impl AnyVectorApp {
                 self.paste_as(None, None);
             }
             Cmd::Delete => {
-                if self.tool == ToolId::Shape && self.doc().map(|d| !d.node_sel.is_empty()).unwrap_or(false) {
+                // a guideline clicked with the Pick tool (locked ones stay)
+                if let Some(d) = self.doc_mut().filter(|d| d.selection.is_empty() && d.guide_sel.is_some_and(|(p, _)| p == d.page)) {
+                    let (page, i) = d.guide_sel.take().unwrap_or_default();
+                    if d.doc.pages.get(page).and_then(|p| p.guides.get(i)).is_some_and(|g| !g.locked) {
+                        d.modify("Delete Guideline", |doc, _| {
+                            doc.pages[page].guides.remove(i);
+                        });
+                    }
+                } else if self.tool == ToolId::Shape && self.doc().map(|d| !d.node_sel.is_empty()).unwrap_or(false) {
                     crate::tools::node_op(self, crate::tools::NodeOp::Delete);
                 } else {
                     self.modify_sel("Delete", |doc, sel| {
@@ -2413,6 +2415,48 @@ impl AnyVectorApp {
                 }
             }
             Cmd::Docker(id) => self.dockers.toggle(id),
+            Cmd::TransformTab(i) => {
+                self.dockers.show(DockerId::Transform);
+                self.dockers.ui.transform_tab = (i as usize).min(4);
+            }
+            Cmd::TogglePickState => {
+                if self.tool == ToolId::Pick {
+                    if let Some(prev) = self.ts.previous_tool {
+                        self.set_tool(prev);
+                    }
+                } else {
+                    self.ts.previous_tool = Some(self.tool);
+                    self.set_tool(ToolId::Pick);
+                }
+            }
+            Cmd::NodeToggle(k) => {
+                use crate::tools::NodeOp;
+                use vector_core::path::NodeKind;
+                // the first selected node decides which way the toggle goes
+                let node = self.doc().and_then(|d| {
+                    let (id, si, ni) = *d.node_sel.first()?;
+                    match &d.doc.find(id)?.kind {
+                        ObjKind::Path(np) => np.subpaths.get(si)?.nodes.get(ni).copied(),
+                        _ => None,
+                    }
+                });
+                if let Some(n) = node {
+                    let op = match k {
+                        0 if n.kind == NodeKind::Cusp => NodeOp::Smooth,
+                        0 => NodeOp::Cusp,
+                        1 if n.kind == NodeKind::Smooth => NodeOp::Symmetric,
+                        1 => NodeOp::Smooth,
+                        _ if n.line_out => NodeOp::ToCurve,
+                        _ => NodeOp::ToLine,
+                    };
+                    // the nodes stay selected, so the key toggles back and forth
+                    let keep = self.doc().map(|d| d.node_sel.clone()).unwrap_or_default();
+                    crate::tools::node_op(self, op);
+                    if let Some(d) = self.doc_mut() {
+                        d.node_sel = keep;
+                    }
+                }
+            }
             Cmd::ToggleToolbar(t) => self.toggle_toolbar(t),
             Cmd::ButtonSize(s) => self.settings.button_size = s,
             Cmd::LockToolbars => self.settings.lock_toolbars = !self.settings.lock_toolbars,

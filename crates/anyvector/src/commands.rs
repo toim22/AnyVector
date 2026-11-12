@@ -401,12 +401,35 @@ pub enum Cmd {
     AiGenerate,
     NewFromClipboard,
     ShowHome,
+    /// The Transform docker on a page: 0 Position, 1 Rotate, 2 Scale and Mirror, 3 Size, 4 Skew.
+    TransformTab(u8),
+    /// Toggle Pick State (Ctrl+Space): the Pick tool and back to the previous tool.
+    TogglePickState,
+    /// Shape tool keys on the selected nodes: 0 Toggle Cusp and Smooth (C), 1 Toggle Smooth and
+    /// Symmetrical (S), 2 Toggle Line (L).
+    NodeToggle(u8),
 }
 
-/// Default keyboard shortcuts (text shown in menus and parsed for input).
+/// Where a context shortcut table applies (the reference's tables other than the global one).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum KeyContext {
+    /// Text being edited (artistic or paragraph).
+    Text,
+    /// The Shape tool with nodes selected.
+    Nodes,
+    /// The Table tool with cells selected.
+    TableCells,
+}
+
+/// Default keyboard shortcuts (text shown in menus and parsed for input). The chords are the
+/// reference's global table (`DrawUI.xml`, the same in every UI language); the spelling follows
+/// its menus ("Shift+PgUp"). More chords for the same command: [`alt_shortcuts`].
 pub fn default_shortcut(cmd: Cmd) -> Option<&'static str> {
+    use crate::dockers::DockerId as D;
+    use vector_core::ops::{Align as Al, Distribute as Di, Order as Or};
     use Cmd::*;
     Some(match cmd {
+        // File
         New => "Ctrl+N",
         Open => "Ctrl+O",
         Save => "Ctrl+S",
@@ -415,57 +438,103 @@ pub fn default_shortcut(cmd: Cmd) -> Option<&'static str> {
         Export => "Ctrl+E",
         Print => "Ctrl+P",
         Exit => "Alt+F4",
+        // Edit
         Undo => "Ctrl+Z",
         Redo => "Ctrl+Shift+Z",
         Repeat => "Ctrl+R",
         Cut => "Ctrl+X",
         Copy => "Ctrl+C",
         Paste => "Ctrl+V",
+        PasteInView => "Ctrl+Shift+V",
         Delete => "Delete",
         Duplicate => "Ctrl+D",
         StepAndRepeat => "Ctrl+Shift+D",
         FindReplace => "Ctrl+F",
         SelectAll => "Ctrl+A",
+        ExitFocusMode => "Shift+Esc",
+        // View
         FullScreenPreview => "F9",
         ZoomToSelected => "Shift+F2",
         ZoomToAll => "F4",
         ZoomToPage => "Shift+F4",
         ZoomOut => "F3",
-        ZoomIn => "F2",
-        Group => "Ctrl+G",
-        Ungroup => "Ctrl+U",
-        Combine => "Ctrl+L",
-        BreakApart => "Ctrl+K",
-        ConvertToCurves => "Ctrl+Q",
-        OutlineToObject => "Ctrl+Shift+Q",
-        Order(vector_core::ops::Order::ToFront) => "Shift+PageUp",
-        Order(vector_core::ops::Order::ToBack) => "Shift+PageDown",
-        Order(vector_core::ops::Order::ForwardOne) => "Ctrl+PageUp",
-        Order(vector_core::ops::Order::BackOne) => "Ctrl+PageDown",
-        Align(vector_core::ops::Align::Left) => "L",
-        Align(vector_core::ops::Align::Right) => "R",
-        Align(vector_core::ops::Align::Top) => "T",
-        Align(vector_core::ops::Align::Bottom) => "B",
-        Align(vector_core::ops::Align::CenterH) => "E",
-        Align(vector_core::ops::Align::CenterV) => "C",
-        Options(OptionsPage::App) => "Ctrl+J",
-        ScriptEditor => "Alt+F11",
-        VsEditor => "Alt+Shift+F12",
-        StopRecording => "Ctrl+Shift+O",
-        RecordTemporary => "Ctrl+Shift+R",
-        RunTemporary => "Ctrl+Shift+P",
-        RefreshWindow => "Ctrl+W",
-        CloseWindow => "Ctrl+F4",
-        EditText => "Ctrl+Shift+T",
-        ObjectProperties => "Alt+Enter",
-        NextPage => "PageDown",
-        PrevPage => "PageUp",
+        ZoomIn => "Ctrl++",
         ToggleRulers => "Alt+Shift+R",
         SnapOff => "Alt+Q",
         SnapToGrid => "Alt+Y",
         SnapToObjects => "Alt+Z",
         ToggleAlignmentGuides => "Alt+Shift+A",
         ToggleDynamicGuides => "Alt+Shift+D",
+        // Layout
+        NextPage => "PgDn",
+        PrevPage => "PgUp",
+        // Object
+        Group => "Ctrl+G",
+        Ungroup => "Ctrl+U",
+        Combine => "Ctrl+L",
+        BreakApart => "Ctrl+K",
+        ConvertToCurves => "Ctrl+Q",
+        OutlineToObject => "Ctrl+Shift+Q",
+        JoinCurves => "Ctrl+Shift+J",
+        Order(Or::ToFront) => "Shift+PgUp",
+        Order(Or::ToBack) => "Shift+PgDn",
+        Order(Or::ForwardOne) => "Ctrl+PgUp",
+        Order(Or::BackOne) => "Ctrl+PgDn",
+        Align(Al::Left) => "L",
+        Align(Al::Right) => "R",
+        Align(Al::Top) => "T",
+        Align(Al::Bottom) => "B",
+        // the reference's menu: Align Centers Horizontally C, Align Centers Vertically E (its
+        // icons: C lines the centers up on a vertical line, E on a horizontal one)
+        Align(Al::CenterH) => "C",
+        Align(Al::CenterV) => "E",
+        CenterToPage => "P",
+        Distribute(Di::Left) => "Shift+L",
+        Distribute(Di::CenterH) => "Shift+E",
+        Distribute(Di::Right) => "Shift+R",
+        Distribute(Di::SpacingH) => "Shift+P",
+        Distribute(Di::Top) => "Shift+T",
+        Distribute(Di::CenterV) => "Shift+C",
+        Distribute(Di::Bottom) => "Shift+B",
+        Distribute(Di::SpacingV) => "Shift+A",
+        SymmetryCreate => "Alt+S",
+        SymmetryRemove => "Alt+Shift+S",
+        SymmetryBreak => "Alt+X",
+        SymmetryEdit => "Alt+Shift+Y",
+        SymmetryFinish => "Alt+Shift+E",
+        TransformTab(1) => "Alt+F8",
+        TransformTab(2) => "Alt+F9",
+        TransformTab(3) => "Alt+F10",
+        ObjectProperties => "Alt+Enter",
+        // Effects and Bitmaps: Adjust ▸ Light, Color Balance, Hue/Saturation/Lightness
+        BitmapEffect(i) => match crate::fx::FX.get(i as usize).and_then(|f| f.guid.get(..8)) {
+            Some("b6f2f97d") => "Ctrl+B",
+            Some("2f08faa9") => "Ctrl+Shift+B",
+            Some("aee88264") => "Ctrl+Shift+U",
+            _ => return None,
+        },
+        // Text
+        EditText => "Ctrl+Shift+T",
+        ConvertText => "Ctrl+F8",
+        AlignToBaseline => "Alt+F12",
+        WritingTools(0) => "Ctrl+F12",
+        // Text ▸ Bullets and the mesh fill's Sample Color (property bar items)
+        BarOption(0xfa26e7e3) => "Ctrl+M",
+        BarOption(0x0d1dd68e) => "Ctrl+Shift+E",
+        // Tools
+        Options(OptionsPage::App) => "Ctrl+J",
+        ScriptEditor => "Alt+F11",
+        VsEditor => "Alt+Shift+F12",
+        StopRecording => "Ctrl+Shift+O",
+        RecordTemporary => "Ctrl+Shift+R",
+        RunTemporary => "Ctrl+Shift+P",
+        // Window
+        RefreshWindow => "Ctrl+W",
+        CloseWindow => "Ctrl+F4",
+        TogglePickState => "Ctrl+Space",
+        Docker(D::Lens) => "Alt+F3",
+        Docker(D::Contour) => "Ctrl+F9",
+        Docker(D::Envelope) => "Ctrl+F7",
         Docker(d) => return crate::dockers::shortcut(d),
         Tool(t) => {
             let s = crate::tools::info(t).shortcut;
@@ -478,6 +547,94 @@ pub fn default_shortcut(cmd: Cmd) -> Option<&'static str> {
     })
 }
 
+/// The reference's other chords for a command (it binds some commands to several keys).
+pub fn alt_shortcuts(cmd: Cmd) -> &'static [&'static str] {
+    use vector_core::ops::Order as Or;
+    use Cmd::*;
+    match cmd {
+        Delete => &["Backspace"],
+        Undo => &["Alt+Backspace"],
+        Cut => &["Shift+Delete"],
+        Copy => &["Ctrl+Insert"],
+        Paste => &["Shift+Insert"],
+        ZoomIn => &["Ctrl+Num +", "Ctrl+="],
+        ZoomOut => &["Ctrl+-", "Ctrl+Num -", "Ctrl+_"],
+        // To Front / To Back of Page (AnyVector orders within the layer for both)
+        Order(Or::ToFront) => &["Ctrl+Home"],
+        Order(Or::ToBack) => &["Ctrl+End"],
+        _ => &[],
+    }
+}
+
+/// The reference's context tables: chords that mean something else while the context is
+/// active. `None` = the chord is the reference's but AnyVector has no command for it (or the
+/// text editor handles the key itself): the global command must not run.
+pub fn context_shortcuts(c: KeyContext) -> &'static [(&'static str, Option<Cmd>)] {
+    use Cmd::*;
+    match c {
+        KeyContext::Text => &[
+            ("Ctrl+B", Some(BarOption(0xbbf8b8dd))),
+            ("Ctrl+I", Some(BarOption(0xa2e29751))),
+            ("Ctrl+U", Some(BarOption(0x4e23866f))),
+            ("Ctrl+L", Some(BarOption(0x808ee536))),
+            ("Ctrl+E", Some(BarOption(0xb8f147f2))),
+            ("Ctrl+R", Some(BarOption(0x40a3ad42))),
+            ("Ctrl+J", Some(BarOption(0xeed5a12c))),
+            ("Ctrl+H", Some(BarOption(0x4edf17b6))),
+            ("Ctrl+N", Some(BarOption(0x6fca7424))),
+            ("Ctrl+Shift+D", Some(BarOption(0x6123599f))),
+            ("Shift+F3", Some(ChangeCaseDialog)),
+            ("Ctrl+Shift+C", Some(ToggleNonPrinting)),
+            ("Ctrl+Shift+M", Some(InsertFormatCode(0))),
+            ("Ctrl+Shift+N", Some(InsertFormatCode(1))),
+            ("Ctrl+Alt+Space", Some(InsertFormatCode(2))),
+            ("Ctrl+Shift+Space", Some(InsertFormatCode(3))),
+            ("Ctrl+Enter", Some(InsertFormatCode(5))),
+            ("Alt+_", Some(InsertFormatCode(6))),
+            ("Alt+-", Some(InsertFormatCode(7))),
+            ("Ctrl+Shift+-", Some(InsertFormatCode(8))),
+            ("Ctrl+_", Some(InsertFormatCode(8))),
+            ("Ctrl+-", Some(InsertFormatCode(9))),
+            // no command yet: Font List, Font Size, Style List, Font Style, Small Capitals, the
+            // HTML font size list, the Text docker (Ctrl+F10), Find and Replace Text
+            ("Ctrl+Shift+F", None),
+            ("Ctrl+Shift+P", None),
+            ("Ctrl+Shift+S", None),
+            ("Ctrl+Shift+W", None),
+            ("Ctrl+Shift+K", None),
+            ("Ctrl+Shift+H", None),
+            ("Ctrl+F10", None),
+            ("Alt+F3", None),
+            // caret movement and selection: the text editor
+            ("Ctrl+A", None),
+            ("Delete", None),
+            ("Ctrl+Delete", None),
+            ("Ctrl+Left", None),
+            ("Ctrl+Right", None),
+            ("Ctrl+Up", None),
+            ("Ctrl+Down", None),
+            ("Ctrl+Shift+Left", None),
+            ("Ctrl+Shift+Right", None),
+            ("Ctrl+Shift+Up", None),
+            ("Ctrl+Shift+Down", None),
+            ("PgUp", None),
+            ("PgDn", None),
+            ("Shift+PgUp", None),
+            ("Shift+PgDn", None),
+            ("Ctrl+PgUp", None),
+            ("Ctrl+PgDn", None),
+            ("Ctrl+Shift+PgUp", None),
+            ("Ctrl+Shift+PgDn", None),
+            ("Ctrl+Home", None),
+            ("Ctrl+End", None),
+            ("Ctrl+Shift+Home", None),
+            ("Ctrl+Shift+End", None),
+        ],
+        KeyContext::Nodes => &[("C", Some(NodeToggle(0))), ("S", Some(NodeToggle(1))), ("L", Some(NodeToggle(2)))],
+        KeyContext::TableCells => &[("Ctrl+M", Some(TableMerge)), ("Ctrl+A", None)],
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Shortcut {
     pub ctrl: bool,
@@ -486,48 +643,144 @@ pub struct Shortcut {
     pub key: egui::Key,
 }
 
+/// Parses "Ctrl+Shift+S", also the reference spellings: "Shift+PgUp", "Ctrl++", "Ctrl+Num +",
+/// "Ctrl+_" (Shift and the minus key), "Ctrl+Num 8".
 pub fn parse_shortcut(s: &str) -> Option<Shortcut> {
     let mut sc = Shortcut { ctrl: false, shift: false, alt: false, key: egui::Key::A };
-    let mut key = None;
-    for part in s.split('+') {
+    let s = s.trim();
+    // the key itself may be "+" ("Ctrl++", "Ctrl+Num +")
+    let (mods, last) = match s.strip_suffix("++") {
+        Some(m) => (m, "+"),
+        None => match s.rfind('+') {
+            Some(i) if s.ends_with("Num +") => (s[..i.saturating_sub(4)].trim_end_matches('+'), "+"),
+            Some(i) => (&s[..i], &s[i + 1..]),
+            None => ("", s),
+        },
+    };
+    for part in mods.split('+').filter(|p| !p.trim().is_empty()) {
         match part.trim() {
             "Ctrl" => sc.ctrl = true,
             "Shift" => sc.shift = true,
             "Alt" => sc.alt = true,
-            k => {
-                key = match k {
-                    "Delete" => Some(egui::Key::Delete),
-                    "PageUp" => Some(egui::Key::PageUp),
-                    "PageDown" => Some(egui::Key::PageDown),
-                    "Enter" => Some(egui::Key::Enter),
-                    _ => egui::Key::from_name(k),
-                }
-            }
+            _ => return None,
         }
     }
-    sc.key = key?;
+    let k = last.trim();
+    let k = k.strip_prefix("Num ").unwrap_or(k);
+    sc.key = match k {
+        "PgUp" | "Page Up" => egui::Key::PageUp,
+        "PgDn" | "Page Down" => egui::Key::PageDown,
+        "Esc" => egui::Key::Escape,
+        "_" => {
+            sc.shift = true;
+            egui::Key::Minus
+        }
+        _ => egui::Key::from_name(k)?,
+    };
     Some(sc)
 }
 
-/// All commands that have default shortcuts, for dispatch.
+/// All commands that have default shortcuts, for dispatch. The most specific chords come first:
+/// egui matches a chord with extra Shift or Alt held too, so "Ctrl+S" must not be tried before
+/// "Ctrl+Shift+S", nor "L" before "Shift+L".
 pub fn shortcut_commands() -> Vec<Cmd> {
+    use vector_core::ops::{Align as Al, Distribute as Di, Order as Or};
     use Cmd::*;
     let mut v = vec![
-        New, Open, Save, SaveAs, Import, Export, Print, Undo, Redo, Repeat, Cut, Copy, Paste, Delete, Duplicate, StepAndRepeat, FindReplace, SelectAll, FullScreenPreview, ZoomToSelected, ZoomToAll, ZoomToPage, ZoomOut, Group, Ungroup, Combine, BreakApart, ConvertToCurves, OutlineToObject,
-        Order(vector_core::ops::Order::ToFront), Order(vector_core::ops::Order::ToBack), Order(vector_core::ops::Order::ForwardOne), Order(vector_core::ops::Order::BackOne),
-        Align(vector_core::ops::Align::Left), Align(vector_core::ops::Align::Right), Align(vector_core::ops::Align::Top), Align(vector_core::ops::Align::Bottom), Align(vector_core::ops::Align::CenterH), Align(vector_core::ops::Align::CenterV),
-        Options(OptionsPage::App), ScriptEditor, StopRecording, RecordTemporary, RunTemporary, RefreshWindow, CloseWindow, EditText, NextPage, PrevPage,
+        New, Open, Save, SaveAs, Import, Export, Print, Undo, Redo, Repeat, Cut, Copy, Paste, PasteInView, Delete, Duplicate, SelectAll, ExitFocusMode,
+        FullScreenPreview, ZoomToSelected, ZoomToAll, ZoomToPage, ZoomOut, ZoomIn, Group, Ungroup, Combine, BreakApart, ConvertToCurves, OutlineToObject, JoinCurves,
+        Order(Or::ToFront), Order(Or::ToBack), Order(Or::ForwardOne), Order(Or::BackOne),
+        Align(Al::Left), Align(Al::Right), Align(Al::Top), Align(Al::Bottom), Align(Al::CenterH), Align(Al::CenterV), CenterToPage,
+        Distribute(Di::Left), Distribute(Di::CenterH), Distribute(Di::Right), Distribute(Di::SpacingH), Distribute(Di::Top), Distribute(Di::CenterV), Distribute(Di::Bottom), Distribute(Di::SpacingV),
+        SymmetryCreate, SymmetryRemove, SymmetryBreak, SymmetryEdit, SymmetryFinish, TransformTab(1), TransformTab(2), TransformTab(3),
+        EditText, ConvertText, AlignToBaseline, WritingTools(0), BarOption(0xfa26e7e3), BarOption(0x0d1dd68e),
+        Options(OptionsPage::App), ScriptEditor, VsEditor, StopRecording, RecordTemporary, RunTemporary, RefreshWindow, CloseWindow, TogglePickState, NextPage, PrevPage,
         ToggleRulers, SnapOff, SnapToGrid, SnapToObjects, ToggleAlignmentGuides, ToggleDynamicGuides,
     ];
+    for g in ["b6f2f97d", "2f08faa9", "aee88264"] {
+        if let Some((i, _)) = crate::fx::by_guid(g) {
+            v.push(BitmapEffect(i as u8));
+        }
+    }
     for d in crate::dockers::ALL {
-        if crate::dockers::shortcut(*d).is_some() {
+        if default_shortcut(Docker(*d)).is_some() {
             v.push(Docker(*d));
         }
     }
     for t in crate::tools::TOOLS {
-        if !t.shortcut.is_empty() {
+        if default_shortcut(Tool(t.id)).is_some() {
             v.push(Tool(t.id));
         }
     }
+    v.sort_by_key(|c| std::cmp::Reverse(default_shortcut(*c).and_then(parse_shortcut).map(|s| s.ctrl as u8 + s.shift as u8 + s.alt as u8).unwrap_or(0)));
     v
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn same(a: &str, b: &str) -> bool {
+        parse_shortcut(a).is_some() && parse_shortcut(a) == parse_shortcut(b)
+    }
+
+    #[test]
+    fn parses_reference_spellings() {
+        let k = |s: &str| parse_shortcut(s).map(|s| (s.ctrl, s.shift, s.alt, s.key));
+        use egui::Key;
+        assert_eq!(k("Ctrl++"), Some((true, false, false, Key::Plus)));
+        assert_eq!(k("Ctrl+Num +"), Some((true, false, false, Key::Plus)));
+        assert_eq!(k("Ctrl+Num -"), Some((true, false, false, Key::Minus)));
+        assert_eq!(k("Ctrl+-"), Some((true, false, false, Key::Minus)));
+        assert_eq!(k("Ctrl+_"), Some((true, true, false, Key::Minus)));
+        assert_eq!(k("Alt+_"), Some((false, true, true, Key::Minus)));
+        assert_eq!(k("Ctrl+="), Some((true, false, false, Key::Equals)));
+        assert_eq!(k("Shift+PgUp"), Some((false, true, false, Key::PageUp)));
+        assert_eq!(k("Ctrl+PgDn"), Some((true, false, false, Key::PageDown)));
+        assert_eq!(k("Shift+Esc"), Some((false, true, false, Key::Escape)));
+        assert_eq!(k("Ctrl+Alt+Space"), Some((true, false, true, Key::Space)));
+        assert_eq!(k("Ctrl+Num 8"), Some((true, false, false, Key::Num8)));
+        assert_eq!(k("Alt+Shift+F12"), Some((false, true, true, Key::F12)));
+        assert_eq!(k("Ctrl+Shift+S"), Some((true, true, false, Key::S)));
+        assert_eq!(k("Delete"), Some((false, false, false, Key::Delete)));
+        assert_eq!(k("Ctrl+Foo"), None);
+    }
+
+    #[test]
+    fn menu_keys_match_dispatch() {
+        // every chord the menus show for an item runs that item's command
+        for b in crate::ui::bars() {
+            for it in b.items {
+                let Some(c) = crate::ui::bind::cmd(it.id) else { continue };
+                for k in it.keys {
+                    let ok = default_shortcut(c).is_some_and(|d| same(d, k)) || alt_shortcuts(c).iter().any(|a| same(a, k));
+                    assert!(ok, "{} ({}) shows {k} but {c:?} has {:?} {:?}", it.text, it.id, default_shortcut(c), alt_shortcuts(c));
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn dispatch_chords_are_unique_and_ordered() {
+        let v: Vec<(Cmd, Shortcut)> = shortcut_commands().into_iter().map(|c| (c, default_shortcut(c).and_then(parse_shortcut).unwrap_or_else(|| panic!("{c:?}")))).collect();
+        for (i, (a, sa)) in v.iter().enumerate() {
+            for (b, sb) in &v[i + 1..] {
+                assert!(sa != sb, "{a:?} and {b:?} share a chord");
+                // egui matches a chord with extra Shift/Alt held: a less specific chord tried
+                // first would take the other one
+                let takes = sa.key == sb.key && sa.ctrl == sb.ctrl && (!sa.shift || sb.shift) && (!sa.alt || sb.alt);
+                assert!(!takes, "{a:?} would take {b:?}'s chord");
+            }
+        }
+        for c in [KeyContext::Text, KeyContext::Nodes, KeyContext::TableCells] {
+            for (k, _) in context_shortcuts(c) {
+                assert!(parse_shortcut(k).is_some(), "{k}");
+            }
+        }
+        for c in shortcut_commands() {
+            for k in alt_shortcuts(c) {
+                assert!(parse_shortcut(k).is_some(), "{k}");
+            }
+        }
+    }
 }

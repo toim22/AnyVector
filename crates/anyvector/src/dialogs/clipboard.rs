@@ -41,18 +41,184 @@ pub struct PasteSpecialState {
     pub chosen: usize,
 }
 
+// ------------------------------------------------------------------------------------------
+// system clipboard
+
+/// A bitmap read from the system clipboard (RGBA, plus the PNG bytes when it came as PNG).
+pub struct ClipImage {
+    pub width: u32,
+    pub height: u32,
+    pub rgba: Vec<u8>,
+    pub png: Vec<u8>,
+}
+
+#[cfg(test)]
+thread_local! {
+    /// Tests run without touching the user's clipboard unless they turn it on.
+    pub static SYSTEM_CLIPBOARD: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// Whether the system clipboard is used (always, outside tests).
+pub fn system_enabled() -> bool {
+    #[cfg(test)]
+    return SYSTEM_CLIPBOARD.with(|c| c.get());
+    #[cfg(not(test))]
+    true
+}
+
+/// Whether the system clipboard holds text or a bitmap (cheap: no data is read on Windows).
+pub fn system_has_content() -> bool {
+    if !system_enabled() {
+        return false;
+    }
+    #[cfg(windows)]
+    {
+        use clipboard_win::{formats, is_format_avail, register_format};
+        let named = ["PNG", "image/png"].iter().any(|n| register_format(n).is_some_and(|f| is_format_avail(f.get())));
+        named || [formats::CF_UNICODETEXT, formats::CF_DIB, formats::CF_DIBV5, formats::CF_BITMAP].iter().any(|f| is_format_avail(*f))
+    }
+    #[cfg(not(windows))]
+    {
+        arboard::Clipboard::new().map(|mut cb| cb.get_text().is_ok_and(|t| !t.is_empty()) || cb.get_image().is_ok()).unwrap_or(false)
+    }
+}
+
+/// The text on the system clipboard (None when there is none or it is empty).
+pub fn system_text() -> Option<String> {
+    if !system_enabled() {
+        return None;
+    }
+    arboard::Clipboard::new().ok()?.get_text().ok().filter(|t| !t.is_empty())
+}
+
+/// The bitmap on the system clipboard: the "PNG" format first (browsers, Office), then
+/// CF_DIBV5 / CF_DIB (Windows synthesizes these from CF_BITMAP too).
+pub fn system_image() -> Option<ClipImage> {
+    if !system_enabled() {
+        return None;
+    }
+    #[cfg(windows)]
+    {
+        use clipboard_win::{formats, raw, register_format, Clipboard};
+        let read = || -> Option<ClipImage> {
+            let _open = Clipboard::new_attempts(10).ok()?;
+            for name in ["PNG", "image/png"] {
+                if let Some(f) = register_format(name).filter(|f| raw::is_format_avail(f.get())) {
+                    let mut v = vec![];
+                    if raw::get_vec(f.get(), &mut v).is_ok() {
+                        if let Some(img) = decode_png(&v) {
+                            return Some(img);
+                        }
+                    }
+                }
+            }
+            for f in [formats::CF_DIBV5, formats::CF_DIB] {
+                if raw::is_format_avail(f) {
+                    let mut v = vec![];
+                    if raw::get_vec(f, &mut v).is_ok() {
+                        if let Some(img) = decode_dib(&v) {
+                            return Some(img);
+                        }
+                    }
+                }
+            }
+            None
+        };
+        if let Some(img) = read() {
+            return Some(img);
+        }
+    }
+    let img = arboard::Clipboard::new().ok()?.get_image().ok()?;
+    let mut rgba = img.bytes.into_owned();
+    fix_zero_alpha(&mut rgba);
+    Some(ClipImage { width: img.width as u32, height: img.height as u32, rgba, png: vec![] })
+}
+
+/// Decode PNG bytes from the clipboard.
+pub fn decode_png(data: &[u8]) -> Option<ClipImage> {
+    let img = image::load_from_memory_with_format(data, image::ImageFormat::Png).ok()?.into_rgba8();
+    let (width, height) = img.dimensions();
+    (width > 0 && height > 0).then(|| ClipImage { width, height, rgba: img.into_raw(), png: data.to_vec() })
+}
+
+/// Decode a packed DIB (CF_DIB / CF_DIBV5: a BITMAPINFOHEADER/V4/V5 header, optional masks or
+/// palette, then the pixels) by giving it a BMP file header.
+pub fn decode_dib(dib: &[u8]) -> Option<ClipImage> {
+    let u32_at = |o: usize| dib.get(o..o + 4).map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]));
+    let u16_at = |o: usize| dib.get(o..o + 2).map(|b| u16::from_le_bytes([b[0], b[1]]));
+    let hsize = u32_at(0)? as usize;
+    if !(12..=dib.len()).contains(&hsize) {
+        return None;
+    }
+    let (bits, compression, clr_used) = if hsize == 12 { (u16_at(10)?, 0, 0) } else { (u16_at(14)?, u32_at(16)?, u32_at(32)?) };
+    // BI_BITFIELDS (3) / BI_ALPHABITFIELDS (6) after a 40-byte header: the masks follow it
+    let masks = match (hsize, compression) {
+        (40, 3) => 12,
+        (40, 6) => 16,
+        _ => 0,
+    };
+    let entry = if hsize == 12 { 3 } else { 4 };
+    let colors = if clr_used > 0 { clr_used as usize } else if bits <= 8 { 1usize << bits } else { 0 };
+    let offset = 14 + hsize + masks + colors * entry;
+    let mut file = Vec::with_capacity(14 + dib.len());
+    file.extend_from_slice(b"BM");
+    file.extend_from_slice(&((14 + dib.len()) as u32).to_le_bytes());
+    file.extend_from_slice(&[0; 4]);
+    file.extend_from_slice(&(offset as u32).to_le_bytes());
+    file.extend_from_slice(dib);
+    let img = image::load_from_memory_with_format(&file, image::ImageFormat::Bmp).ok()?.into_rgba8();
+    let (width, height) = img.dimensions();
+    let mut rgba = img.into_raw();
+    fix_zero_alpha(&mut rgba);
+    (width > 0 && height > 0).then_some(ClipImage { width, height, rgba, png: vec![] })
+}
+
+/// 32-bit DIBs often carry an unused (all zero) alpha byte: treat such a bitmap as opaque.
+fn fix_zero_alpha(rgba: &mut [u8]) {
+    if !rgba.is_empty() && rgba.chunks_exact(4).all(|p| p[3] == 0) {
+        for p in rgba.chunks_exact_mut(4) {
+            p[3] = 255;
+        }
+    }
+}
+
+/// Text that only names the copied bitmap (a browser's "Copy image" may add the image URL or
+/// an `<img>` tag as text): the bitmap is pasted instead of the text.
+pub fn text_is_image_link(t: &str) -> bool {
+    let t = t.trim();
+    if t.is_empty() {
+        return true;
+    }
+    let lower = t.to_ascii_lowercase();
+    if lower.starts_with("<img") && !t.contains('\n') {
+        return true;
+    }
+    !t.contains(char::is_whitespace) && ["http://", "https://", "file:", "data:image/", "blob:"].iter().any(|p| lower.starts_with(p))
+}
+
+/// Where pasted outside content goes: the center of the view (the page center before the view
+/// has been laid out).
+pub fn paste_center(d: &crate::docview::DocView) -> kurbo::Point {
+    if d.canvas_rect.is_positive() {
+        d.to_doc(d.canvas_rect.center())
+    } else {
+        d.page_ref().rect().center()
+    }
+}
+
 /// What the clipboard holds, best format first.
 pub fn clipboard_kinds(app: &AnyVectorApp) -> (Vec<PasteKind>, String) {
     let mut kinds = vec![];
-    let mut text = None;
-    let mut image = false;
-    if let Ok(mut cb) = arboard::Clipboard::new() {
-        text = cb.get_text().ok();
-        image = cb.get_image().is_ok();
-    }
+    let text = system_text();
+    let image = system_image().is_some();
     let ours = text.as_deref().is_some_and(|t| t.contains("data-vector-clip"));
     if (ours || (text.is_none() && !image)) && !app.clip.objects.is_empty() {
         kinds.push(PasteKind::Native);
+    }
+    // a bitmap with only its URL as text: the bitmap comes first
+    let link = text.as_deref().is_some_and(text_is_image_link);
+    if image && link {
+        kinds.push(PasteKind::Bitmap);
     }
     if let Some(t) = &text {
         let t = t.trim();
@@ -63,7 +229,7 @@ pub fn clipboard_kinds(app: &AnyVectorApp) -> (Vec<PasteKind>, String) {
             kinds.push(PasteKind::Text);
         }
     }
-    if image {
+    if image && !link {
         kinds.push(PasteKind::Bitmap);
     }
     let source = if ours || kinds.first() == Some(&PasteKind::Native) { vector_core::APP_NAME.to_string() } else { "Unknown Source".to_string() };
