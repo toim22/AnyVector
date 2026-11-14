@@ -2394,3 +2394,190 @@ fn break_apart_enabled_for_combined_curves() {
     h.step();
     assert_eq!(h.state().doc().unwrap().selection.len(), 2);
 }
+
+// ---- freehand-family auto-join (issue #65) ----
+
+/// A document with snapping off (so drawn points land where the pointer is) and `tool` active.
+fn join_harness<'a>(tool: crate::tools::ToolId) -> Harness<'a, AnyVectorApp> {
+    let mut h = Harness::builder().with_size(egui::vec2(1600.0, 900.0)).build_eframe(|cc| {
+        let mut app = AnyVectorApp::new(cc);
+        app.splash = None;
+        app.pending.clear();
+        app
+    });
+    h.state_mut().new_default_document();
+    h.state_mut().dialogs.new_doc = None;
+    for _ in 0..3 {
+        h.step();
+    }
+    h.state_mut().doc_mut().unwrap().doc.settings.snap_off = true;
+    h.state_mut().set_tool(tool);
+    h
+}
+
+/// Feed one frame of pointer input straight to the active tool (no egui frame in between).
+fn tool_input(h: &mut Harness<'_, AnyVectorApp>, pos: egui::Pos2, pressed: bool, down: bool, released: bool) {
+    let inp = crate::tools::Input { pos, hovered: true, pressed, released, down, double: false, secondary: false, mods: egui::Modifiers::NONE, key_c: false, time: 100.0, dt: 0.016 };
+    crate::tools::handle_input(h.state_mut(), &inp);
+}
+
+/// Screen position of a document point.
+fn scr(h: &Harness<'_, AnyVectorApp>, p: (f64, f64)) -> egui::Pos2 {
+    h.state().doc().unwrap().to_screen(Point::new(p.0, p.1))
+}
+
+/// Drag through document points (a freehand stroke).
+fn tool_stroke(h: &mut Harness<'_, AnyVectorApp>, pts: &[(f64, f64)]) {
+    let s: Vec<egui::Pos2> = pts.iter().map(|p| scr(h, *p)).collect();
+    tool_input(h, s[0], true, true, false);
+    for w in s.windows(2) {
+        for k in 1..=8 {
+            tool_input(h, w[0] + (w[1] - w[0]) * (k as f32 / 8.0), false, true, false);
+        }
+    }
+    tool_input(h, *s.last().unwrap(), false, false, true);
+}
+
+/// Click at a document point, with a screen offset.
+fn tool_click(h: &mut Harness<'_, AnyVectorApp>, p: (f64, f64), off: egui::Vec2) {
+    let s = scr(h, p) + off;
+    tool_input(h, s, true, true, false);
+    tool_input(h, s, false, false, true);
+}
+
+/// The curves on the page.
+fn curves(h: &Harness<'_, AnyVectorApp>) -> Vec<vector_core::path::NodePath> {
+    h.state()
+        .doc()
+        .unwrap()
+        .page_ref()
+        .all_objects()
+        .filter_map(|o| match &o.kind {
+            ObjKind::Path(np) => Some(np.clone()),
+            _ => None,
+        })
+        .collect()
+}
+
+fn near(a: Point, b: (f64, f64)) -> bool {
+    (a - Point::new(b.0, b.1)).hypot() < 0.5
+}
+
+/// Freehand: a stroke started on the end node of the curve just drawn continues that curve (one
+/// object, one subpath), each stroke is one undo step, and ending on the start node closes it.
+#[test]
+fn freehand_strokes_continue_the_curve() {
+    use crate::tools::ToolId;
+    let mut h = join_harness(ToolId::Freehand);
+    let (a, b, c) = ((100.0, 100.0), (200.0, 120.0), (220.0, 220.0));
+    tool_stroke(&mut h, &[a, (150.0, 80.0), b]);
+    assert_eq!(curves(&h).len(), 1);
+    let first_nodes = curves(&h)[0].node_count();
+    let end = curves(&h)[0].subpaths[0].nodes.last().unwrap().p;
+    // the second stroke starts 2 pixels off the end node: within the Auto-join distance
+    let s = scr(&h, b) + egui::vec2(2.0, 1.0);
+    let bs = h.state().doc().unwrap().to_doc(s);
+    tool_stroke(&mut h, &[(bs.x, bs.y), (240.0, 160.0), c]);
+    let cs = curves(&h);
+    assert_eq!(cs.len(), 1, "the second stroke became a separate object");
+    let sp = &cs[0].subpaths;
+    assert_eq!(sp.len(), 1, "the strokes are not one continuous subpath");
+    assert!(!sp[0].closed);
+    assert!(near(sp[0].nodes[0].p, a) && near(sp[0].nodes.last().unwrap().p, c), "{:?}", sp[0].nodes);
+    // the joint is the old end node itself
+    assert!(sp[0].nodes.iter().any(|n| (n.p - end).hypot() < 1e-6), "{:?}", sp[0].nodes);
+    // one undo step per stroke
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    let cs = curves(&h);
+    assert_eq!(cs.len(), 1);
+    assert_eq!(cs[0].node_count(), first_nodes);
+    h.state_mut().run(Cmd::Redo);
+    h.step();
+    assert_eq!(curves(&h)[0].subpaths[0].nodes.len(), sp[0].nodes.len());
+    // ending a stroke on the start node closes the curve
+    tool_stroke(&mut h, &[c, (120.0, 200.0), (a.0 + 1.0, a.1 + 1.0)]);
+    let cs = curves(&h);
+    assert_eq!(cs.len(), 1);
+    assert_eq!(cs[0].subpaths.len(), 1);
+    assert!(cs[0].subpaths[0].closed, "ending on the start node did not close the curve");
+    assert!(near(cs[0].subpaths[0].nodes[0].p, a));
+    // a stroke away from the ends of the (now closed) curve is a new object
+    tool_stroke(&mut h, &[(400.0, 100.0), (450.0, 150.0)]);
+    assert_eq!(curves(&h).len(), 2);
+}
+
+/// Freehand click-click lines: a line started on the end of the selected curve continues it;
+/// started on its start node it goes in front of it; ending on the other end closes the curve.
+#[test]
+fn freehand_lines_continue_the_curve() {
+    use crate::tools::ToolId;
+    let mut h = join_harness(ToolId::Freehand);
+    let z = egui::Vec2::ZERO;
+    let (a, b, c, d) = ((100.0, 100.0), (200.0, 100.0), (200.0, 200.0), (100.0, 200.0));
+    tool_click(&mut h, a, z);
+    tool_click(&mut h, b, z);
+    assert_eq!(curves(&h).len(), 1);
+    // start the next line on the end node (a pixel off), as a double-click there does
+    tool_click(&mut h, b, egui::vec2(1.0, -1.0));
+    tool_click(&mut h, c, z);
+    let cs = curves(&h);
+    assert_eq!(cs.len(), 1, "the second line became a separate object");
+    let pts: Vec<Point> = cs[0].subpaths[0].nodes.iter().map(|n| n.p).collect();
+    assert_eq!(pts.len(), 3, "{pts:?}");
+    assert!(near(pts[0], a) && near(pts[1], b) && near(pts[2], c));
+    // from the start node: the new line goes in front, the curve still runs a -> c
+    tool_click(&mut h, a, z);
+    tool_click(&mut h, d, z);
+    let pts: Vec<Point> = curves(&h)[0].subpaths[0].nodes.iter().map(|n| n.p).collect();
+    assert_eq!(pts.len(), 4, "{pts:?}");
+    assert!(near(pts[0], d) && near(pts[1], a) && near(pts[3], c), "{pts:?}");
+    // c -> d closes the square
+    tool_click(&mut h, c, z);
+    tool_click(&mut h, d, egui::vec2(2.0, 2.0));
+    let cs = curves(&h);
+    assert_eq!(cs.len(), 1);
+    assert!(cs[0].subpaths[0].closed);
+    assert_eq!(cs[0].subpaths[0].nodes.len(), 4);
+}
+
+/// Polyline, Bézier and Pen: a curve started on the end node of the selected curve continues
+/// it, and ending on its start node closes it; 2-Point Line continues it too.
+#[test]
+fn polyline_bezier_and_line_continue_the_curve() {
+    use crate::tools::ToolId;
+    let z = egui::Vec2::ZERO;
+    for tool in [ToolId::Polyline, ToolId::Bezier, ToolId::Pen] {
+        let mut h = join_harness(ToolId::Freehand);
+        tool_click(&mut h, (100.0, 100.0), z);
+        tool_click(&mut h, (200.0, 100.0), z);
+        h.state_mut().set_tool(tool);
+        tool_click(&mut h, (200.0, 100.0), egui::vec2(1.0, 1.0));
+        tool_click(&mut h, (200.0, 200.0), z);
+        tool_click(&mut h, (300.0, 200.0), z);
+        h.state_mut().finish_tool();
+        let cs = curves(&h);
+        assert_eq!(cs.len(), 1, "{tool:?}: a separate object");
+        let pts: Vec<Point> = cs[0].subpaths[0].nodes.iter().map(|n| n.p).collect();
+        assert_eq!(pts.len(), 4, "{tool:?}: {pts:?}");
+        assert!(near(pts[0], (100.0, 100.0)) && near(pts[3], (300.0, 200.0)), "{tool:?}: {pts:?}");
+        // and back to the start node closes it
+        tool_click(&mut h, (300.0, 200.0), z);
+        tool_click(&mut h, (100.0, 200.0), z);
+        tool_click(&mut h, (100.0, 100.0), egui::vec2(-1.0, 1.0));
+        h.state_mut().finish_tool();
+        let cs = curves(&h);
+        assert_eq!(cs.len(), 1, "{tool:?}: closing made a separate object");
+        assert!(cs[0].subpaths[0].closed, "{tool:?}: not closed");
+        assert_eq!(cs[0].subpaths[0].nodes.len(), 5, "{tool:?}");
+    }
+    let mut h = join_harness(ToolId::TwoPointLine);
+    tool_stroke(&mut h, &[(100.0, 100.0), (200.0, 100.0)]);
+    tool_stroke(&mut h, &[(200.0, 100.0), (200.0, 200.0)]);
+    let cs = curves(&h);
+    assert_eq!(cs.len(), 1, "2-Point Line: a separate object");
+    assert_eq!(cs[0].subpaths[0].nodes.len(), 3);
+    // away from the ends: a new line
+    tool_stroke(&mut h, &[(400.0, 100.0), (500.0, 100.0)]);
+    assert_eq!(curves(&h).len(), 2);
+}

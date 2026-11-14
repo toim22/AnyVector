@@ -468,6 +468,23 @@ impl<'a> Cx<'a> {
         self.inp.mods
     }
 
+    /// Auto-join distance (Options ▸ Freehand/Bézier tool), in screen pixels.
+    fn auto_join_px(&self) -> f64 {
+        self.s.auto_join.max(1.0)
+    }
+
+    /// The end of the selected curve a curve started at `p` continues (see [`join_target`]).
+    fn join_at(&self, p: Point) -> Option<(ObjId, bool, Point)> {
+        super::join_target(self.d, p, self.auto_join_px())
+    }
+
+    /// While continuing a curve: the other end of the joined subpath when `p` is on it (ending
+    /// there closes the curve).
+    fn joined_close_at(&self, p: Point) -> Option<Point> {
+        let f = super::joined_far_end(self.d, self.ts.join?)?;
+        ((self.screen_dist(f, p) as f64) < self.auto_join_px()).then_some(f)
+    }
+
     fn run(&mut self) {
         let p = self.raw;
         if !self.ts.ls_pending.is_empty() && self.tool != ToolId::LiveSketch {
@@ -593,8 +610,21 @@ impl<'a> Cx<'a> {
                 self.ts.bspline = true;
             }
             Polyline => {
-                let s = self.snap(p, &[]);
-                if self.ts.curve.len() >= 2 && self.screen_dist(self.ts.curve[0].p, s) <= 6.0 {
+                let mut s = self.snap(p, &[]);
+                if self.ts.curve.is_empty() {
+                    // Auto-join: starting on an end of the selected curve continues it
+                    self.ts.join = self.join_at(s).map(|(id, at_end, q)| {
+                        s = q;
+                        (id, at_end)
+                    });
+                } else if let Some(f) = self.joined_close_at(s) {
+                    // ending on the other end of the joined curve closes it
+                    let mut nodes = std::mem::take(&mut self.ts.curve);
+                    nodes.push(Node::corner(f));
+                    commit_curve(self.ts, self.d, nodes, true, "Create Polyline");
+                    return;
+                }
+                if self.ts.join.is_none() && self.ts.curve.len() >= 2 && self.screen_dist(self.ts.curve[0].p, s) <= 6.0 {
                     let mut nodes = std::mem::take(&mut self.ts.curve);
                     if let Some(l) = nodes.last_mut() {
                         l.line_out = true;
@@ -860,11 +890,29 @@ impl<'a> Cx<'a> {
     }
 
     fn bezier_press(&mut self) {
-        if self.tool == ToolId::Pen && self.s.topts.pen_auto_add && self.ts.curve.is_empty() && self.pen_auto_add_delete() {
+        // Auto-join: starting on an end of the selected curve continues it (before the Pen's
+        // auto add/delete, as CorelDRAW tests the join first)
+        let join = if self.ts.curve.is_empty() { self.join_at(self.raw) } else { None };
+        if join.is_none() && self.tool == ToolId::Pen && self.s.topts.pen_auto_add && self.ts.curve.is_empty() && self.pen_auto_add_delete() {
             return;
         }
         let mut s = self.snap(self.raw, &[]);
-        if self.ts.curve.len() >= 2 && self.screen_dist(self.ts.curve[0].p, s) <= 6.0 {
+        if self.ts.curve.is_empty() {
+            self.ts.join = join.map(|(id, at_end, q)| {
+                s = q;
+                (id, at_end)
+            });
+        } else if let Some(f) = self.joined_close_at(s) {
+            // ending on the other end of the joined curve closes it
+            let mut nodes = std::mem::take(&mut self.ts.curve);
+            if let Some(l) = nodes.last_mut() {
+                l.line_out = l.c_out == l.p;
+            }
+            nodes.push(Node::corner(f));
+            commit_curve(self.ts, self.d, nodes, true, "Create Curve");
+            return;
+        }
+        if self.ts.join.is_none() && self.ts.curve.len() >= 2 && self.screen_dist(self.ts.curve[0].p, s) <= 6.0 {
             let first = self.ts.curve[0].p;
             let mut nodes = std::mem::take(&mut self.ts.curve);
             let _ = first;
@@ -1941,6 +1989,18 @@ impl<'a> Cx<'a> {
                     }
                 }
             }
+            TwoPointLine if moved && self.s.topts.line2_mode == 0 && self.join_at(start).is_some() => {
+                // Auto-join: a line dragged from an end of the selected curve continues it;
+                // ending on the curve's other end closes it
+                let (id, at_end, q) = self.join_at(start).unwrap();
+                let (a, mut b) = constrain_line(q, cur, mods, self.s.constrain_angle);
+                if (b - a).hypot() > 1e-6 {
+                    self.ts.join = Some((id, at_end));
+                    let close = self.joined_close_at(b).map(|f| b = f).is_some();
+                    let nodes = polyline(&[a, b], false).subpaths.remove(0).nodes;
+                    commit_curve(self.ts, self.d, nodes, close, "Create 2-Point Line");
+                }
+            }
             TwoPointLine if moved && self.s.topts.line2_mode != 0 => {
                 // perpendicular or tangent to the curve the line starts on
                 let tol = self.tol();
@@ -2080,12 +2140,21 @@ impl<'a> Cx<'a> {
                 let p = points[0];
                 match self.ts.line_start.take() {
                     Some(a) => {
-                        let (a, b) = constrain_line(a, p, self.mods(), self.s.constrain_angle);
+                        let (a, mut b) = constrain_line(a, p, self.mods(), self.s.constrain_angle);
                         if (b - a).hypot() > 1e-6 {
-                            add_curve(self.ts, self.d, polyline(&[a, b], false), "Create Line");
+                            // continuing a curve: ending on its other end closes it
+                            let close = self.joined_close_at(b).map(|f| b = f).is_some();
+                            let nodes = polyline(&[a, b], false).subpaths.remove(0).nodes;
+                            commit_curve(self.ts, self.d, nodes, close, "Create Line");
                         }
+                        self.ts.join = None;
                     }
-                    None => self.ts.line_start = Some(p),
+                    None => {
+                        // Auto-join: a line started on an end of the selected curve continues it
+                        let j = self.join_at(p);
+                        self.ts.join = j.map(|(id, at_end, _)| (id, at_end));
+                        self.ts.line_start = Some(j.map_or(p, |j| j.2));
+                    }
                 }
             }
             _ => {
@@ -2102,6 +2171,25 @@ impl<'a> Cx<'a> {
                     np
                 };
                 match self.tool {
+                    Freehand if self.ts.line_start.is_none() && self.join_at(points[0]).is_some() => {
+                        // Auto-join: a stroke started on an end of the selected curve continues it;
+                        // ending on the curve's other end closes it
+                        let (id, at_end, q) = self.join_at(points[0]).unwrap();
+                        let mut points = points;
+                        points[0] = q;
+                        self.ts.join = Some((id, at_end));
+                        let end = self.joined_close_at(*points.last().unwrap());
+                        if let Some(f) = end {
+                            *points.last_mut().unwrap() = f;
+                        }
+                        let mut np = fit(&points, self.s.freehand_smoothing, false);
+                        let close = self.ts.auto_close || end.is_some();
+                        if np.subpaths.is_empty() {
+                            self.ts.join = None;
+                            return;
+                        }
+                        commit_curve(self.ts, self.d, np.subpaths.remove(0).nodes, close, "Freehand");
+                    }
                     Freehand => {
                         let closed = self.ts.auto_close || closed_by_proximity;
                         let np = fit(&points, self.s.freehand_smoothing, closed);
@@ -2272,12 +2360,12 @@ impl<'a> Cx<'a> {
         if n >= 2 && (self.ts.curve[n - 1].p - self.ts.curve[n - 2].p).hypot() < self.d.doc_len(3.0) {
             self.ts.curve.pop();
         }
-        if self.ts.curve.len() >= 3 {
+        if self.ts.curve.len() >= 3 || (self.ts.join.is_some() && self.ts.curve.len() >= 2) {
             let mut nodes = std::mem::take(&mut self.ts.curve);
             if let Some(l) = nodes.last_mut() {
                 l.line_out = true;
             }
-            add_curve(self.ts, self.d, NodePath { subpaths: vec![SubPath { nodes, closed: true }] }, "Create Polyline");
+            commit_curve(self.ts, self.d, nodes, true, "Create Polyline");
         }
     }
 
