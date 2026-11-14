@@ -398,6 +398,8 @@ pub struct Settings {
     pub last_new_doc: Option<NewDocDefaults>,
     /// Save Drawing options (also under Options ▸ Document ▸ Save and the Advanced... button).
     pub save: SaveSettings,
+    /// Tools ▸ Color Management ▸ Default: the default color settings and the color engine.
+    pub color_management: crate::dialogs::colormgmt::CmPrefs,
 }
 
 /// A user-defined page preset.
@@ -741,6 +743,7 @@ impl Default for Settings {
             recent_page_presets: Vec::new(),
             last_new_doc: None,
             save: SaveSettings::default(),
+            color_management: Default::default(),
         }
     }
 }

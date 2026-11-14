@@ -375,6 +375,8 @@ impl NewDocState {
     /// (Settings::last_new_doc), else Letter in the default unit.
     pub fn from_settings(n: usize, settings: &crate::settings::Settings) -> NewDocState {
         let mut st = NewDocState::new(n, settings.default_unit);
+        // the default color settings (Tools ▸ Color Management ▸ Default)
+        st.color = settings.color_management.defaults.clone();
         if let Some(l) = &settings.last_new_doc {
             if l.width > 0.0 && l.height > 0.0 {
                 st.selected = l.preset.clone();

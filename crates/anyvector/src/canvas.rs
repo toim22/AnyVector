@@ -251,6 +251,7 @@ fn render_cache(app: &mut AnyVectorApp, ctx: &egui::Context, ai: usize, canvas: 
     d.doc.settings.multipage_view.hash(&mut h);
     d.simulate_overprint.hash(&mut h);
     (settings.proof_colors, settings.proof_env_kind, settings.proof_preserve, gamut).hash(&mut h);
+    crate::dialogs::colormgmt::hash_view(settings, &d.doc.settings.color, &mut h);
     let key = h.finish() | 1;
     if d.cache.key == key && d.cache.tex.is_some() {
         return;
@@ -355,8 +356,8 @@ fn render_cache(app: &mut AnyVectorApp, ctx: &egui::Context, ai: usize, canvas: 
     }
     if settings.proof_colors || gamut.is_some() {
         // without Proof colors the view keeps its colors and shows the gamut warning only
-        let kind = if settings.proof_colors { settings.proof_env_kind } else { 9 };
-        proof_pixmap(&mut pm, kind, gamut, [dc[0], dc[1], dc[2], 255]);
+        let lut = crate::dockers::proof_lut(settings, &d.doc.settings.color);
+        proof_pixmap(&mut pm, lut.as_deref(), settings.proof_colors, gamut, [dc[0], dc[1], dc[2], 255]);
     }
     let img = egui::ColorImage::from_rgba_premultiplied([pw as usize, ph as usize], pm.data());
     match &mut d.cache.tex {
@@ -366,32 +367,26 @@ fn render_cache(app: &mut AnyVectorApp, ctx: &egui::Context, ai: usize, canvas: 
     d.cache.key = key;
 }
 
-/// View ▸ Proof Colors: the colors as the proofing environment shows them (`kind` 0: the press,
-/// U.S. Web Coated (SWOP); 1: an RGB device, unchanged; 2: grayscale; else unchanged), and the
-/// colors the press cannot print covered with the `gamut` overlay. Pixels of the desktop color
-/// are left alone.
-pub fn proof_pixmap(pm: &mut tiny_skia::Pixmap, kind: u8, gamut: Option<[u8; 4]>, skip: [u8; 4]) {
+/// View ▸ Proof Colors: the colors as the proofing environment shows them (`lut`, see
+/// `vector_core::cms::ProofLut`) when `proof` is on, and the colors the environment cannot
+/// print covered with the `gamut` overlay. Pixels of the desktop color are left alone.
+pub fn proof_pixmap(pm: &mut tiny_skia::Pixmap, lut: Option<&vector_core::cms::ProofLut>, proof: bool, gamut: Option<[u8; 4]>, skip: [u8; 4]) {
+    let Some(lut) = lut else { return };
+    if !proof && gamut.is_none() {
+        return;
+    }
     for px in pm.data_mut().chunks_exact_mut(4) {
         if *px == skip || px[3] == 0 {
             continue;
         }
         let a = px[3] as f32;
         let un = |c: u8| (c as f32 * 255.0 / a).min(255.0);
-        let (r, g, b) = (un(px[0]), un(px[1]), un(px[2]));
-        let press = press_rgb(r / 255.0, g / 255.0, b / 255.0);
-        let (r0, g0, b0) = (r, g, b);
-        let (mut r, mut g, mut b) = match kind {
-            0 => press,
-            2 => {
-                let l = 0.299 * r + 0.587 * g + 0.114 * b;
-                (l, l, l)
-            }
-            _ => (r, g, b),
-        };
+        let rgb = [un(px[0]), un(px[1]), un(px[2])];
+        let (proofed, delta) = lut.apply(rgb);
+        let [mut r, mut g, mut b] = if proof { proofed } else { rgb };
         if let Some([gr, gg, gb, ga]) = gamut {
-            // out of gamut: the press moves the color far from the original
-            let dist = (press.0 - r0).abs() + (press.1 - g0).abs() + (press.2 - b0).abs();
-            if dist > 60.0 {
+            // out of gamut: the environment cannot print it within a color difference of 5
+            if delta > 5.0 {
                 let t = ga as f32 / 255.0;
                 r = r * (1.0 - t) + gr as f32 * t;
                 g = g * (1.0 - t) + gg as f32 * t;
@@ -403,28 +398,6 @@ pub fn proof_pixmap(pm: &mut tiny_skia::Pixmap, kind: u8, gamut: Option<[u8; 4]>
         px[1] = pre(g);
         px[2] = pre(b);
     }
-}
-
-/// RGB (0..1) → CMYK → the RGB that CMYK prints as on coated stock (0..255).
-pub fn press_rgb(r: f32, g: f32, b: f32) -> (f32, f32, f32) {
-    let k = 1.0 - r.max(g).max(b);
-    let (c, m, y) = if k >= 1.0 { (0.0, 0.0, 0.0) } else { ((1.0 - r - k) / (1.0 - k), (1.0 - g - k) / (1.0 - k), (1.0 - b - k) / (1.0 - k)) };
-    let r = 255.0
-        + c * (-4.387332 * c + 54.486152 * m + 18.822905 * y + 212.256625 * k - 285.233103)
-        + m * (1.714976 * m - 5.609674 * y - 17.873871 * k - 5.497006)
-        + y * (-2.521734 * y - 21.248923 * k + 17.511927)
-        + k * (-21.861221 * k - 189.481808);
-    let g = 255.0
-        + c * (8.841041 * c + 60.118027 * m + 6.871426 * y + 31.159100 * k - 79.297084)
-        + m * (-15.310361 * m + 17.575251 * y + 131.352509 * k - 190.945330)
-        + y * (4.444339 * y + 9.863286 * k - 24.867416)
-        + k * (-20.737325 * k - 187.804537);
-    let b = 255.0
-        + c * (0.884252 * c + 8.078678 * m + 30.899783 * y - 0.238832 * k - 14.183577)
-        + m * (10.495933 * m + 63.023785 * y + 50.606958 * k - 112.238843)
-        + y * (0.032960 * y + 115.603844 * k - 193.582094)
-        + k * (-22.338168 * k - 180.126140);
-    (r.clamp(0.0, 255.0), g.clamp(0.0, 255.0), b.clamp(0.0, 255.0))
 }
 
 /// View ▸ Page ▸ Printable Area: the part of the page the default printer can print on, with

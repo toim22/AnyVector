@@ -6,6 +6,7 @@ pub mod forms;
 pub mod layout;
 pub mod linestyle;
 pub mod clipboard;
+pub mod colormgmt;
 pub mod docprops;
 pub mod export;
 pub mod merge;
@@ -50,6 +51,8 @@ pub struct Dialogs {
     pub export: Option<ExportState>,
     pub print: Option<PrintState>,
     pub doc_props: bool,
+    /// Tools ▸ Color Management.
+    pub color_mgmt: Option<colormgmt::CmState>,
     pub script_editor: Option<ScriptEditorState>,
     /// Object Data docker: the spreadsheet (Object Data Manager), its levels, and the field editor.
     pub object_data_manager: bool,
@@ -132,6 +135,7 @@ impl Dialogs {
             || self.export.is_some()
             || self.print.is_some()
             || self.doc_props
+            || self.color_mgmt.is_some()
             || self.script_editor.is_some()
             || self.about
             || self.palette_editor.as_ref().is_some_and(|e| !e.sampling())
@@ -206,6 +210,9 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
     }
     if app.dialogs.merge.is_some() {
         merge::show(app, ctx);
+    }
+    if app.dialogs.color_mgmt.is_some() {
+        colormgmt::show(app, ctx);
     }
     if app.dialogs.export.is_some() {
         export::show_export(app, ctx);
