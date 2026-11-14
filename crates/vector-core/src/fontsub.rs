@@ -129,6 +129,27 @@ pub fn squeeze(s: &str) -> String {
     s.chars().filter(|c| c.is_alphanumeric()).flat_map(|c| c.to_lowercase()).collect()
 }
 
+/// A font name as Windows lists it: without the spaces or NULs a file may pad it with, and
+/// without the "@" that names the vertical form of an East Asian font ("@MS Gothic").
+pub fn undecorated(name: &str) -> &str {
+    fn t(s: &str) -> &str {
+        s.trim_matches(|c: char| c.is_whitespace() || c == '\0')
+    }
+    let s = t(name);
+    s.strip_prefix('@').map(t).unwrap_or(s)
+}
+
+/// A font name without the script that old font lists add to it ("Arial Cyr", "Times New Roman
+/// CE": Windows 3.1 and 9x listed a font once per character set); the name itself when it ends
+/// in none.
+pub fn without_script(name: &str) -> &str {
+    const SCRIPTS: [&str; 10] = ["cyr", "cyrillic", "ce", "baltic", "greek", "tur", "turkish", "hebrew", "arabic", "thai"];
+    match name.rsplit_once(' ') {
+        Some((base, last)) if !base.trim().is_empty() && SCRIPTS.contains(&last.to_lowercase().as_str()) => base.trim_end(),
+        _ => name,
+    }
+}
+
 /// The look-alikes of a font that isn't installed, best first (empty when it has none).
 pub fn aliases(name: &str) -> &'static [&'static str] {
     let find = |key: &str| ALIASES.iter().find(|(n, _)| squeeze(n) == key).map(|(_, s)| *s);
@@ -260,6 +281,80 @@ mod tests {
             assert_eq!(db.substitute(family), None);
             // other capitals are the same font
             assert_eq!(db.resolve(&family.to_uppercase()).how, How::Installed, "{family}");
+        }
+    }
+
+    #[test]
+    fn names_lose_padding_vertical_marks_and_scripts() {
+        assert_eq!(undecorated(" Arial\0\0"), "Arial");
+        assert_eq!(undecorated("@MS Gothic"), "MS Gothic");
+        assert_eq!(undecorated("Futura PT Book"), "Futura PT Book");
+        assert_eq!(without_script("Arial Cyr"), "Arial");
+        assert_eq!(without_script("Times New Roman CYR"), "Times New Roman");
+        assert_eq!(without_script("Arial CE"), "Arial");
+        assert_eq!(without_script("Courier New Baltic"), "Courier New");
+        assert_eq!(without_script("Arial"), "Arial");
+        assert_eq!(without_script("Cyr"), "Cyr");
+        assert_eq!(without_script("Futura PT Book"), "Futura PT Book");
+    }
+
+    /// The family names (name id 1, every language) and full names (id 4) of a face.
+    fn names_of(db: &crate::text::FontDb, id: fontdb::ID) -> Vec<(u16, String)> {
+        db.db
+            .with_face_data(id, |data, index| {
+                let face = ttf_parser::Face::parse(data, index).ok()?;
+                Some(face.names().into_iter().filter(|n| n.is_unicode() && matches!(n.name_id, 1 | 4)).filter_map(|n| Some((n.name_id, n.to_string()?))).collect::<Vec<_>>())
+            })
+            .flatten()
+            .unwrap_or_default()
+    }
+
+    /// Issue #64: CorelDRAW writes the family name Windows lists (name id 1), which for many
+    /// fonts isn't the family fontdb files them under (the typographic family, id 16):
+    /// "Futura PT Book" is "Futura PT", "Sitka Text" is "Sitka", and a font can have a name in
+    /// the user's language. Every such name of an installed face is that font, never a stand-in.
+    #[test]
+    fn every_name_an_installed_face_goes_by_is_installed() {
+        let db = crate::text::fonts().lock();
+        for f in db.db.faces() {
+            for (id, name) in names_of(&db, f.id) {
+                let name = undecorated(&name);
+                if name.is_empty() {
+                    continue;
+                }
+                assert_eq!(db.substitute(name), None, "{name} (name id {id}) of {:?}", f.families);
+                // a family name of older programs shows one of the faces that go by it
+                let r = db.resolve(name);
+                if id == 1 && r.name != r.family {
+                    let shown = db.query(name, false, false).unwrap();
+                    assert!(names_of(&db, shown).iter().any(|(i, n)| *i == 1 && undecorated(n).eq_ignore_ascii_case(name)), "{name} -> {:?}", db.db.face(shown).map(|f| &f.post_script_name));
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn odd_names_of_installed_fonts_are_found() {
+        let db = crate::text::fonts().lock();
+        let ps = |name: &str, bold: bool, italic: bool| db.query(name, bold, italic).and_then(|id| db.db.face(id)).map(|f| f.post_script_name.clone()).unwrap_or_default();
+        if db.resolve("Arial").how == How::Installed {
+            for name in ["Arial Cyr", "Arial CE", "@Arial", "Arial\0", " Arial ", "Arial Bold", "Arial-BoldMT"] {
+                assert_eq!(db.substitute(name), None, "{name}");
+            }
+            assert_eq!(ps("Arial Cyr", false, false), ps("Arial", false, false));
+            // a face's own name shows that face, and its slanted form when italic
+            assert_eq!(ps("Arial Bold", false, false), ps("Arial", true, false));
+            assert_eq!(ps("Arial Bold", false, true), ps("Arial", true, true));
+        }
+        // Windows 11's Sitka: fontdb calls it "Sitka", Windows and CorelDRAW "Sitka Text"
+        if db.families().iter().any(|f| f == "Sitka") && db.db.faces().any(|f| names_of(&db, f.id).contains(&(1, "Sitka Text".to_string()))) {
+            assert_eq!(db.substitute("Sitka Text"), None);
+            assert!(ps("Sitka Text", false, false).starts_with("SitkaText"));
+            assert!(ps("Sitka Text", false, true).contains("Italic"));
+        }
+        // bold of a name listed under a weight of its own is the family's bold
+        if db.families().iter().any(|f| f == "Segoe UI") && db.resolve("Segoe UI Semibold").how == How::Installed {
+            assert_eq!(ps("Segoe UI Semibold", true, false), ps("Segoe UI", true, false));
         }
     }
 
