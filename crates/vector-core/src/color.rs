@@ -150,7 +150,18 @@ impl NamedColor {
     pub fn new(name: impl Into<String>, color: Color) -> Self {
         NamedColor { name: name.into(), color, spot: false }
     }
+
+    /// The spot color print-and-cut workflows use for the cut line: 100% magenta, named
+    /// "CutContour" (the name RIP software looks for).
+    pub fn cut_contour() -> Self {
+        NamedColor { name: CUT_CONTOUR_NAME.into(), color: CUT_CONTOUR, spot: true }
+    }
 }
+
+pub const CUT_CONTOUR_NAME: &str = "CutContour";
+/// The screen color of the CutContour spot color (100% magenta as CorelDRAW shows it). Writers
+/// that know spot colors recognize CutContour by this value.
+pub const CUT_CONTOUR: Color = Color::rgb(236, 0, 140);
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Palette {

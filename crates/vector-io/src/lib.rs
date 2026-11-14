@@ -3,7 +3,10 @@
 
 pub mod cdr;
 pub mod corel;
+pub mod cutter;
+pub mod dxf;
 pub mod flat;
+pub mod hpgl;
 pub mod image_io;
 pub mod native;
 pub mod pdf;
@@ -90,6 +93,8 @@ pub const EXPORT_TYPES: &[FileType] = &[
     FileType { name: "TIF - TIFF Bitmap (*.tif)", extensions: &["tif", "tiff"], vector: false },
     FileType { name: "WEBP - WebP Image (*.webp)", extensions: &["webp"], vector: false },
     FileType { name: "GIF - CompuServe Bitmap (*.gif)", extensions: &["gif"], vector: false },
+    FileType { name: "PLT - HPGL Plotter File (*.plt;*.hgl)", extensions: &["plt", "hgl"], vector: true },
+    FileType { name: "DXF - AutoCAD (*.dxf)", extensions: &["dxf"], vector: true },
 ];
 
 pub fn extension(path: &Path) -> String {
