@@ -1370,14 +1370,15 @@ impl Interp {
     }
 
     /// A color in a color space, as display RGB. CMYK goes through CorelDRAW's default
-    /// profile, as CorelDRAW shows it.
+    /// profile, as CorelDRAW shows it, and keeps its inks.
     pub fn rgb(&mut self, space: &CSpace, c: &[f64]) -> Color {
         let g = |k: usize| c.get(k).copied().unwrap_or(0.0).clamp(0.0, 1.0);
         let b = |v: f64| (v.clamp(0.0, 1.0) * 255.0).round() as u8;
         match space {
             CSpace::Gray => Color::rgb(b(g(0)), b(g(0)), b(g(0))),
             CSpace::Rgb => Color::rgb(b(g(0)), b(g(1)), b(g(2))),
-            CSpace::Cmyk => crate::corel::color::cmyk(g(0), g(1), g(2), g(3)),
+            // the inks are kept, so CMYK output writes them as they were
+            CSpace::Cmyk => crate::corel::color::cmyk(g(0), g(1), g(2), g(3)).with_cmyk([g(0), g(1), g(2), g(3)].map(|v| v * 100.0)),
             CSpace::Lab => crate::corel::color::lab(c.first().copied().unwrap_or(0.0), c.get(1).copied().unwrap_or(0.0), c.get(2).copied().unwrap_or(0.0)),
             CSpace::Sep { alt, tint, name } => {
                 if name == "All" {

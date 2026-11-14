@@ -88,7 +88,7 @@ fn cmyk_gray_hsb_and_spot_colors() {
     let objs = objects(&doc);
     assert_eq!(objs.len(), 5);
     // CMYK through CorelDRAW's default profile, as CorelDRAW shows it
-    assert_eq!(solid(&objs[0]), crate::corel::color::cmyk(0.0, 1.0, 1.0, 0.0));
+    assert_eq!(solid(&objs[0]), ink(0.0, 1.0, 1.0, 0.0));
     assert_eq!(solid(&objs[1]), Color::rgb(128, 128, 128));
     assert_eq!(solid(&objs[3]), Color::rgb(255, 0, 0));
     // spot colors join the document palette
@@ -277,9 +277,9 @@ fn illustrator_operators_without_their_procset() {
     assert!(notes.is_empty(), "{notes:?}");
     let objs = objects(&doc);
     assert_eq!(objs.len(), 3);
-    assert_eq!(solid(&objs[0]), crate::corel::color::cmyk(0.0, 0.0, 1.0, 0.0));
+    assert_eq!(solid(&objs[0]), ink(0.0, 0.0, 1.0, 0.0));
     assert!(near(objs[0].style.outline.width, 2.0));
-    assert_eq!(objs[0].style.outline.color, Some(crate::corel::color::cmyk(0.0, 0.0, 0.0, 1.0)));
+    assert_eq!(objs[0].style.outline.color, Some(ink(0.0, 0.0, 0.0, 1.0)));
     // the compound path: one curve of two subpaths
     let ObjKind::Path(p) = &objs[1].kind else { panic!() };
     assert_eq!(p.subpaths.len(), 2);
@@ -403,4 +403,9 @@ fn all_objects_have_distinct_ids() {
     ids.sort();
     ids.dedup();
     assert_eq!(ids.len(), n);
+}
+
+/// A CMYK color (each 0..1) as the importer makes it: CorelDRAW's look, and the inks kept.
+fn ink(c: f64, m: f64, y: f64, k: f64) -> Color {
+    crate::corel::color::cmyk(c, m, y, k).with_cmyk([c, m, y, k].map(|v| v * 100.0))
 }
