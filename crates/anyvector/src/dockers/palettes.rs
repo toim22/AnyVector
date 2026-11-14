@@ -64,6 +64,7 @@ fn library() -> Vec<Node> {
                 MissingFolder("HKS"),
                 MissingFolder("ONYX Graphics"),
                 MissingFolder("PANTONE®"),
+                Lib("printcut", "Print and Cut"),
                 MissingFolder("Roland"),
                 Missing("DIC Colors"),
                 Missing("FOCOLTONE Colors"),
@@ -84,6 +85,8 @@ pub fn library_palette(key: &str) -> Option<Palette> {
     let named = |name: &str, colors: Vec<NamedColor>| Some(Palette { name: name.into(), colors });
     match key {
         "default" => Some(Palette::default_palette()),
+        // the spot color print-and-cut RIPs cut along
+        "printcut" => named("Print and Cut", vec![NamedColor::cut_contour()]),
         "websafe" => {
             let mut p = Palette::rgb_palette();
             p.name = "Web Safe Colors".into();
