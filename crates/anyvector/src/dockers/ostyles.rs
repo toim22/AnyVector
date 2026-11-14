@@ -44,11 +44,13 @@ pub struct OsUi {
     pub rename: Option<(usize, String)>,
     /// The editor sections unfolded: Outline, Fill, Transparency.
     pub sections: [bool; 3],
+    /// The search box over the list: only the styles whose names hold it are listed.
+    pub filter: String,
 }
 
 impl Default for OsUi {
     fn default() -> Self {
-        OsUi { sel: OsSel::None, open: [true, true, false], list_h: 72.0, rename: None, sections: [true; 3] }
+        OsUi { sel: OsSel::None, open: [true, true, false], list_h: 72.0, rename: None, sections: [true; 3], filter: String::new() }
     }
 }
 
@@ -177,7 +179,12 @@ fn body(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut OsUi) {
         }
     }
     let has_sel = !d.selection.is_empty();
-    // the list: Styles, Style Sets and Default Object Properties
+    // the search box, then the list: Styles, Style Sets and Default Object Properties
+    let search = ui.add(egui::TextEdit::singleline(&mut st.filter).hint_text("Search").desired_width(f32::INFINITY));
+    if search.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+        st.filter.clear();
+    }
+    let q = st.filter.trim().to_lowercase();
     let list_h = st.list_h;
     let mut acts: Vec<(OsSel, u8)> = vec![];
     egui::ScrollArea::vertical().id_salt("os_list").max_height(list_h).min_scrolled_height(list_h).auto_shrink([false, false]).show(ui, |ui| {
@@ -188,12 +195,17 @@ fn body(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut OsUi) {
                 1 => styles.iter().filter(|s| s.2 == 0).map(|s| (OsSel::Style(s.0), s.1.clone(), "os_style")).collect(),
                 _ => DEFAULTS.iter().enumerate().map(|(i, n)| (OsSel::Default(i), n.to_string(), "os_style")).collect(),
             };
+            let kids: Vec<_> = kids.into_iter().filter(|kid| q.is_empty() || kid.1.to_lowercase().contains(&q) || crate::i18n::t(&kid.1).to_lowercase().contains(&q)).collect();
+            if !q.is_empty() && kids.is_empty() {
+                continue;
+            }
             let fold = (!kids.is_empty()).then_some(st.open[k]);
             let right = if k == 2 { "os_revert" } else { "" };
             if let Some(a) = row(app, ui, st, root, 0, fold, "os_styles", title, true, right) {
                 acts.push((root, a));
             }
-            if st.open[k] {
+            // a search shows what it finds, folded or not
+            if st.open[k] || !q.is_empty() {
                 for (sel, name, icon) in kids {
                     if let Some(a) = row(app, ui, st, sel, 1, None, icon, &name, false, "") {
                         acts.push((sel, a));

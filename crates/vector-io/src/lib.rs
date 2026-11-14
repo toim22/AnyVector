@@ -79,6 +79,7 @@ pub const IMPORT_TYPES: &[FileType] = &[
     FileType { name: "BMP - Windows Bitmap (*.bmp)", extensions: &["bmp"], vector: false },
     FileType { name: "TIF - TIFF Bitmap (*.tif;*.tiff)", extensions: &["tif", "tiff"], vector: false },
     FileType { name: "WEBP - WebP Image (*.webp)", extensions: &["webp"], vector: false },
+    FileType { name: "JXL - JPEG XL (*.jxl)", extensions: &["jxl"], vector: false },
     FileType { name: "GIF - CompuServe Bitmap (*.gif)", extensions: &["gif"], vector: false },
     FileType { name: "ICO - Windows Icon (*.ico)", extensions: &["ico"], vector: false },
     FileType { name: "TGA - Targa Bitmap (*.tga)", extensions: &["tga"], vector: false },
@@ -95,6 +96,7 @@ pub const EXPORT_TYPES: &[FileType] = &[
     FileType { name: "GIF - CompuServe Bitmap (*.gif)", extensions: &["gif"], vector: false },
     FileType { name: "PLT - HPGL Plotter File (*.plt;*.hgl)", extensions: &["plt", "hgl"], vector: true },
     FileType { name: "DXF - AutoCAD (*.dxf)", extensions: &["dxf"], vector: true },
+    FileType { name: "JXL - JPEG XL, lossless (*.jxl)", extensions: &["jxl"], vector: false },
 ];
 
 pub fn extension(path: &Path) -> String {

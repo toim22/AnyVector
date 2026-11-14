@@ -241,7 +241,7 @@ pub struct ExportItem {
 }
 
 /// File formats offered by the Export docker.
-pub const EXPORT_DOCKER_FORMATS: [&str; 8] = ["PDF", "JPG", "PNG", "SVG", "TIF", "GIF", "BMP", "WEBP"];
+pub const EXPORT_DOCKER_FORMATS: [&str; 9] = ["PDF", "JPG", "PNG", "SVG", "TIF", "GIF", "BMP", "WEBP", "JXL"];
 
 pub struct DockerUi {
     pub transform_tab: usize,
