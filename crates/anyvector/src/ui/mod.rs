@@ -167,7 +167,7 @@ pub fn context_bit(app: &AnyVectorApp) -> u32 {
     let Some(d) = app.doc() else {
         return 1 << 18;
     };
-    let objs: Vec<&vector_core::Object> = d.selection.iter().filter_map(|id| d.doc.find(*id)).collect();
+    let objs: Vec<&vector_core::Object> = d.doc.find_all(&d.selection);
     if objs.is_empty() {
         return if d.doc.pages.len() > 1 { 1 << 15 } else { 1 };
     }
