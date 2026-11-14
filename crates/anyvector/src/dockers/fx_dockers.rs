@@ -542,13 +542,13 @@ const THUMB: u32 = 48;
 
 fn load_library(folder: &Path) -> Vec<LibImage> {
     let Ok(rd) = std::fs::read_dir(folder) else { return vec![] };
-    let mut files: Vec<PathBuf> = rd.filter_map(|e| e.ok().map(|e| e.path())).filter(|p| p.extension().and_then(|e| e.to_str()).is_some_and(|e| matches!(e.to_ascii_lowercase().as_str(), "jpg" | "jpeg" | "png" | "bmp" | "gif" | "webp" | "tif" | "tiff"))).collect();
+    let mut files: Vec<PathBuf> = rd.filter_map(|e| e.ok().map(|e| e.path())).filter(|p| p.extension().and_then(|e| e.to_str()).is_some_and(|e| matches!(e.to_ascii_lowercase().as_str(), "jpg" | "jpeg" | "png" | "bmp" | "gif" | "webp" | "tif" | "tiff" | "jxl"))).collect();
     files.sort();
     files.truncate(2000);
     files
         .into_iter()
         .filter_map(|p| {
-            let img = image::open(&p).ok()?;
+            let img = image::open(&p).ok().or_else(|| vector_io::image_io::load_dynamic(&std::fs::read(&p).ok()?).ok())?;
             let thumb = img.resize_to_fill(THUMB, THUMB, image::imageops::FilterType::Triangle).to_rgba8();
             let n = (THUMB * THUMB) as f64;
             let mut avg = [0.0; 3];

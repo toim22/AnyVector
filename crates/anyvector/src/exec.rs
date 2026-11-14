@@ -118,7 +118,7 @@ pub fn export_item(app: &mut AnyVectorApp, it: &crate::dockers::ExportItem) -> R
         (_, Some(o)) => (selection_document(&d.doc, &[o]).ok_or("The object no longer exists.")?, 0),
         _ => return Err("Nothing to export".into()),
     };
-    let fmt = crate::dockers::EXPORT_DOCKER_FORMATS[it.format.min(7)].to_lowercase();
+    let fmt = crate::dockers::EXPORT_DOCKER_FORMATS[it.format.min(crate::dockers::EXPORT_DOCKER_FORMATS.len() - 1)].to_lowercase();
     let _ = std::fs::create_dir_all(&it.folder);
     let path = it.folder.join(format!("{}{}.{fmt}", it.name, it.suffix));
     match fmt.as_str() {
@@ -129,7 +129,7 @@ pub fn export_item(app: &mut AnyVectorApp, it: &crate::dockers::ExportItem) -> R
         }
         "svg" => vector_io::svg_export::export(&doc, page, &path, &Default::default()).map_err(|e| e.to_string())?,
         _ => {
-            let bg = if matches!(fmt.as_str(), "png" | "webp" | "tif" | "gif") { None } else { Some(Color::WHITE) };
+            let bg = if matches!(fmt.as_str(), "png" | "webp" | "tif" | "gif" | "jxl") { None } else { Some(Color::WHITE) };
             let opts = vector_io::image_io::RasterOptions { dpi: it.dpi, antialias: true, background: bg, jpeg_quality: 85, area: None, size: None };
             vector_io::image_io::export_raster(&doc, page, &path, &opts).map_err(|e| e.to_string())?;
         }
