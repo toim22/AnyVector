@@ -409,17 +409,20 @@ fn pdf_name(s: &str) -> String {
     out
 }
 
+/// The CMYK (each 0..1) of a color: the inks of a CMYK color exactly as entered, an RGB color
+/// converted with the document's color profiles and rendering intent.
 fn cmyk_of(c: Color) -> [f64; 4] {
-    let (r, g, b) = (c.r as f64 / 255.0, c.g as f64 / 255.0, c.b as f64 / 255.0);
-    let k = 1.0 - r.max(g).max(b);
-    if k >= 1.0 {
-        return [0.0, 0.0, 0.0, 1.0];
-    }
-    [(1.0 - r - k) / (1.0 - k), (1.0 - g - k) / (1.0 - k), (1.0 - b - k) / (1.0 - k), k]
+    c.to_cmyk().map(|v| (v / 100.0).clamp(0.0, 1.0))
 }
 
+/// The gray level (0..1) of a color through the document's grayscale profile.
 fn gray_of(c: Color) -> f64 {
-    (0.299 * c.r as f64 + 0.587 * c.g as f64 + 0.114 * c.b as f64) / 255.0
+    let e = vector_core::cms::current();
+    let g = match c.cmyk {
+        Some(k) => e.cmyk_to_gray(k.map(|v| v as f64)),
+        None => e.rgb_to_gray(c),
+    };
+    (g / 255.0).clamp(0.0, 1.0)
 }
 
 fn color_components(c: Color, space: PdfColor) -> String {
@@ -432,6 +435,8 @@ fn color_components(c: Color, space: PdfColor) -> String {
 
 /// The fill (`stroke` = false) or stroke color operator.
 fn color_op(c: Color, space: PdfColor, stroke: bool) -> String {
+    // Native: CMYK colors stay CMYK, RGB colors RGB
+    let space = if space == PdfColor::Native && c.cmyk.is_some() { PdfColor::Cmyk } else { space };
     let op = match space {
         PdfColor::Cmyk => "k",
         PdfColor::Grayscale => "g",
@@ -449,14 +454,19 @@ fn color_space(space: PdfColor) -> &'static str {
 }
 
 fn is_black(c: Color) -> bool {
-    c.r == 0 && c.g == 0 && c.b == 0 && c.a == 255
+    c.a == 255 && match c.cmyk {
+        Some(k) => k == [0, 0, 0, 100],
+        None => c.r == 0 && c.g == 0 && c.b == 0,
+    }
 }
 
 /// A color with its alpha flattened against white (for versions without transparency).
 fn over_white(c: Color) -> Color {
     let a = c.a as f64 / 255.0;
     let m = |v: u8| (v as f64 * a + 255.0 * (1.0 - a)).round() as u8;
-    Color { r: m(c.r), g: m(c.g), b: m(c.b), a: 255, ..c }
+    // CMYK inks thin out the same way
+    let cmyk = c.cmyk.map(|k| k.map(|v| (v as f64 * a).round() as u8));
+    Color { r: m(c.r), g: m(c.g), b: m(c.b), a: 255, cmyk }
 }
 
 fn path_ops(p: &BezPath, out: &mut String) {
@@ -740,10 +750,14 @@ impl<'a> Ctx<'a> {
                 }
             }
             match space {
-                PdfColor::Cmyk => px_out.extend(cmyk_of(c).iter().map(|v| (v * 255.0).round() as u8)),
-                PdfColor::Grayscale => px_out.push((gray_of(c) * 255.0).round() as u8),
+                // converted all at once below
+                PdfColor::Cmyk => px_out.extend_from_slice(&[c.r, c.g, c.b]),
+                PdfColor::Grayscale => px_out.push(((0.299 * c.r as f64 + 0.587 * c.g as f64 + 0.114 * c.b as f64)).round().clamp(0.0, 255.0) as u8),
                 _ => px_out.extend_from_slice(&[c.r, c.g, c.b]),
             }
+        }
+        if space == PdfColor::Cmyk {
+            px_out = vector_core::cms::current().rgb_pixels_to_cmyk(&px_out);
         }
         let smask = if has_alpha {
             let id = self.w.alloc();
@@ -1010,6 +1024,11 @@ fn spot_colors(doc: &Document) -> Vec<vector_core::color::NamedColor> {
 }
 
 pub fn export_bytes(doc: &Document, opts: &PdfOptions) -> Result<Vec<u8>> {
+    // colors convert with the document's own color profiles
+    vector_core::cms::with_settings(&doc.settings.color, || export_with_profiles(doc, opts))
+}
+
+fn export_with_profiles(doc: &Document, opts: &PdfOptions) -> Result<Vec<u8>> {
     let seed = opts.id_seed.unwrap_or_else(|| std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos() as u64).unwrap_or(0));
     let id = crate::pdf_crypt::md5(format!("{seed}/{}/{}", opts.file_name, doc.pages.len()).as_bytes());
     let security = opts.security.as_ref().filter(|_| opts.compat.allows_security());
@@ -1309,16 +1328,22 @@ pub fn export_bytes(doc: &Document, opts: &PdfOptions) -> Result<Vec<u8>> {
     let i = &doc.info;
     match opts.compat {
         PdfCompat::PdfX1a | PdfCompat::PdfX3 => {
+            // the document's CMYK profile is the printing condition: its registered name, and
+            // the profile itself when it is installed
+            let profile = doc.settings.color.cmyk_profile.clone();
+            let icc = vector_core::cms::current().cmyk_icc();
+            let mut oi_dict = match vector_core::cms::output_condition(&profile) {
+                Some((id, cond)) => format!("<< /Type /OutputIntent /S /GTS_PDFX /OutputConditionIdentifier {} /OutputCondition {} /RegistryName {} /Info {}", pdf_string(id), pdf_string(cond), pdf_string("http://www.color.org"), pdf_string(&profile)),
+                None => format!("<< /Type /OutputIntent /S /GTS_PDFX /OutputConditionIdentifier {} /Info {}", pdf_string("Custom"), pdf_string(&profile)),
+            };
+            if let Some(icc) = icc {
+                let pid = ctx.w.alloc();
+                ctx.w.stream(pid, "/N 4", &icc, true);
+                write!(oi_dict, " /DestOutputProfile {pid} 0 R").unwrap();
+            }
+            oi_dict.push_str(" >>");
             let oi = ctx.w.alloc();
-            ctx.w.obj(
-                oi,
-                &format!(
-                    "<< /Type /OutputIntent /S /GTS_PDFX /OutputConditionIdentifier {} /RegistryName {} /Info {} >>",
-                    pdf_string("CGATS TR 001"),
-                    pdf_string("http://www.color.org"),
-                    pdf_string("U.S. Web Coated (SWOP) v2")
-                ),
-            );
+            ctx.w.obj(oi, &oi_dict);
             write!(extra, " /OutputIntents [{oi} 0 R]").unwrap();
         }
         PdfCompat::PdfA1b => {
@@ -1444,6 +1469,58 @@ mod tests {
         // ASCII85 wraps every stream
         let a = export_bytes(&doc, &PdfOptions { ascii85: true, ..Default::default() }).unwrap();
         assert!(String::from_utf8_lossy(&a).contains("/Filter [/ASCII85Decode /FlateDecode]"));
+    }
+
+    fn cmyk_doc(profile: &str) -> Document {
+        let mut doc = Document::new(200.0, 100.0);
+        doc.settings.color.cmyk_profile = profile.into();
+        let ink = vector_core::cms::with_settings(&doc.settings.color, || Color::from_cmyk(10.0, 20.0, 30.0, 40.0));
+        for (i, c) in [ink, Color::rgb(255, 0, 0)].into_iter().enumerate() {
+            let id = doc.new_id();
+            let o = Object::new(id, ObjKind::Rect(RectShape { w: 50.0, h: 40.0, radii: [0.0; 4], corner: CornerType::default() }), Affine::translate((10.0 + 60.0 * i as f64, 10.0)), Style::filled(c));
+            doc.pages[0].layers[0].objects.push(o);
+        }
+        doc
+    }
+
+    #[test]
+    fn cmyk_colors_keep_their_values() {
+        vector_core::cms::without_installed_profiles(|| {
+            let doc = cmyk_doc("U.S. Web Coated (SWOP) v2");
+            let opts = PdfOptions { color: PdfColor::Cmyk, compress: false, ..Default::default() };
+            let s = String::from_utf8_lossy(&export_bytes(&doc, &opts).unwrap()).to_string();
+            assert!(s.contains("0.1 0.2 0.3 0.4 k\n"), "the inks as entered");
+            // RGB red goes through the profile, not the plain formula (0 1 1 0)
+            assert!(!s.contains("0 1 1 0 k\n"));
+            // Native: CMYK stays CMYK, RGB stays RGB
+            let n = String::from_utf8_lossy(&export_bytes(&doc, &PdfOptions { color: PdfColor::Native, compress: false, ..Default::default() }).unwrap()).to_string();
+            assert!(n.contains("0.1 0.2 0.3 0.4 k\n") && n.contains("1 0 0 rg\n"));
+        });
+    }
+
+    #[test]
+    fn pdf_x_output_intent_is_the_document_cmyk_profile() {
+        vector_core::cms::without_installed_profiles(|| {
+            let doc = cmyk_doc("Coated FOGRA39 (ISO 12647-2:2004)");
+            let s = String::from_utf8_lossy(&export_bytes(&doc, &PdfOptions { compat: PdfCompat::PdfX1a, compress: false, ..Default::default() }).unwrap()).to_string();
+            assert!(s.contains("/Type /OutputIntent /S /GTS_PDFX"));
+            assert!(s.contains("0.1 0.2 0.3 0.4 k\n"));
+            // the registered condition stands in for the profile file when it is not installed
+            assert!(!s.contains("/DestOutputProfile"));
+            // a profile that is not registered: a custom condition
+            let doc = cmyk_doc("My Press");
+            let s = String::from_utf8_lossy(&export_bytes(&doc, &PdfOptions { compat: PdfCompat::PdfX3, compress: false, ..Default::default() }).unwrap()).to_string();
+            assert!(s.contains("/Type /OutputIntent"));
+        });
+        // with the profile installed, it is embedded
+        if vector_core::cms::profile_data("U.S. Web Coated (SWOP) v2").is_some() {
+            let doc = cmyk_doc("U.S. Web Coated (SWOP) v2");
+            let b = export_bytes(&doc, &PdfOptions { compat: PdfCompat::PdfX1a, compress: false, ..Default::default() }).unwrap();
+            let s = String::from_utf8_lossy(&b);
+            assert!(s.contains("/DestOutputProfile"));
+            assert!(s.contains("/N 4"));
+            assert!(s.contains("0.1 0.2 0.3 0.4 k\n"));
+        }
     }
 
     #[test]

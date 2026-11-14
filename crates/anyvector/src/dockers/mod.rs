@@ -19,7 +19,7 @@ mod fx_dockers;
 mod fxpage;
 pub(crate) mod misc;
 pub use misc::draw_hotspots;
-pub use proofing::gamut_overlay;
+pub use proofing::{gamut_overlay, proof_lut};
 mod objects;
 pub(crate) mod palettes;
 mod proofing;

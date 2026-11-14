@@ -101,7 +101,7 @@ fn shapes_keep_their_kind_and_look() {
         assert!((r.style.outline.width - 1.0 / 25.4 * 72.0).abs() < 0.01, "{name}");
         // CMYK red as CorelDRAW shows it, and no outline
         let c = find(&doc, 0, "rect-round-cmyk");
-        assert_eq!(c.style.fill, Fill::Solid(Color::rgb(237, 50, 55)), "{name}");
+        assert_eq!(c.style.fill, Fill::Solid(Color::rgb(237, 50, 55).with_cmyk([0.0, 100.0, 100.0, 0.0])), "{name}");
         assert_eq!(c.style.outline.color, None, "{name}");
         match &c.kind {
             ObjKind::Rect(s) => assert!(s.radii.iter().all(|r| *r > 0.5), "{name}: {:?}", s.radii),
@@ -611,9 +611,13 @@ fn cmyk_follows_the_drawings_color_profile() {
         let doc = open(name);
         let o = doc.pages[0].all_objects().next().unwrap_or_else(|| panic!("{name}: no object"));
         match &o.style.fill {
-            Fill::Solid(c) => assert_eq!((c.r, c.g, c.b), (0, 160, 227), "{name}"),
+            Fill::Solid(c) => {
+                assert_eq!((c.r, c.g, c.b), (0, 160, 227), "{name}");
+            }
             f => panic!("{name}: {f:?}"),
         }
+        // the document takes the drawing's profile, so its CMYK keeps that look
+        assert!(doc.settings.color.cmyk_profile.contains("FOGRA39"), "{name}: {}", doc.settings.color.cmyk_profile);
     }
 }
 

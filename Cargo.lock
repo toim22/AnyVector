@@ -4848,6 +4848,7 @@ dependencies = [
  "hyphenation",
  "i_overlay",
  "kurbo",
+ "moxcms",
  "parking_lot",
  "qrcode",
  "rustybuzz",

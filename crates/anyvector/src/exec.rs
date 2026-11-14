@@ -2349,7 +2349,7 @@ impl AnyVectorApp {
                 self.settings.save();
                 self.flash("Settings saved as default");
             }
-            Cmd::ColorManagement => self.info_box("Color Management", "AnyVector works in sRGB. CMYK values shown in the color dockers are converted with a standard (uncalibrated) formula; use Color Proofing to preview print output."),
+            Cmd::ColorManagement => crate::dialogs::colormgmt::open(self),
             Cmd::ScriptEditor | Cmd::VsEditor => {
                 if self.dialogs.script_editor.is_none() {
                     self.dialogs.script_editor = Some(ScriptEditorState { code: crate::dialogs::forms::SCRIPT_TEMPLATE.to_string(), ..Default::default() });

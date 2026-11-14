@@ -1,5 +1,6 @@
 //! AnyVector — document model, geometry and text engine.
 
+pub mod cms;
 pub mod codes;
 pub mod color;
 pub mod document;

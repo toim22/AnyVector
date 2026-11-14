@@ -8,6 +8,10 @@ pub struct Color {
     pub g: u8,
     pub b: u8,
     pub a: u8,
+    /// The CMYK inks (each 0..100) of a color defined in CMYK, kept exactly as entered; `r`,
+    /// `g` and `b` are then its RGB equivalent through the document's color profiles.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cmyk: Option<[u8; 4]>,
 }
 
 impl Default for Color {
@@ -21,13 +25,28 @@ impl Color {
     pub const WHITE: Color = Color::rgb(255, 255, 255);
     pub const RED: Color = Color::rgb(237, 27, 35);
     pub const BLUE: Color = Color::rgb(46, 48, 146);
-    pub const TRANSPARENT: Color = Color { r: 0, g: 0, b: 0, a: 0 };
+    pub const TRANSPARENT: Color = Color { r: 0, g: 0, b: 0, a: 0, cmyk: None };
 
     pub const fn rgb(r: u8, g: u8, b: u8) -> Self {
-        Color { r, g, b, a: 255 }
+        Color { r, g, b, a: 255, cmyk: None }
     }
     pub const fn rgba(r: u8, g: u8, b: u8, a: u8) -> Self {
-        Color { r, g, b, a }
+        Color { r, g, b, a, cmyk: None }
+    }
+
+    /// The color with its CMYK inks (each 0..100) recorded, its RGB unchanged.
+    pub fn with_cmyk(self, cmyk: [f64; 4]) -> Color {
+        Color { cmyk: Some(cmyk.map(|v| v.round().clamp(0.0, 100.0) as u8)), ..self }
+    }
+
+    /// The same RGB color without its CMYK definition.
+    pub fn plain(self) -> Color {
+        Color { cmyk: None, ..self }
+    }
+
+    /// Defined in CMYK.
+    pub fn is_cmyk(&self) -> bool {
+        self.cmyk.is_some()
     }
 
     pub fn from_hex(s: &str) -> Option<Color> {
@@ -63,28 +82,33 @@ impl Color {
     pub fn lerp(a: Color, b: Color, t: f64) -> Color {
         let t = t.clamp(0.0, 1.0);
         let l = |x: u8, y: u8| ((x as f64) + (y as f64 - x as f64) * t).round().clamp(0.0, 255.0) as u8;
-        Color::rgba(l(a.r, b.r), l(a.g, b.g), l(a.b, b.b), l(a.a, b.a))
-    }
-
-    /// Naive (device) CMYK, values 0..100.
-    pub fn to_cmyk(&self) -> [f64; 4] {
-        let r = self.r as f64 / 255.0;
-        let g = self.g as f64 / 255.0;
-        let b = self.b as f64 / 255.0;
-        let k = 1.0 - r.max(g).max(b);
-        if k >= 0.9999 {
-            return [0.0, 0.0, 0.0, 100.0];
+        let mut c = Color::rgba(l(a.r, b.r), l(a.g, b.g), l(a.b, b.b), l(a.a, b.a));
+        // between two CMYK colors: the inks blend too
+        if let (Some(x), Some(y)) = (a.cmyk, b.cmyk) {
+            c.cmyk = Some([0, 1, 2, 3].map(|i| l(x[i], y[i])));
         }
-        let c = (1.0 - r - k) / (1.0 - k);
-        let m = (1.0 - g - k) / (1.0 - k);
-        let y = (1.0 - b - k) / (1.0 - k);
-        [c * 100.0, m * 100.0, y * 100.0, k * 100.0]
+        c
     }
 
+    /// CMYK, values 0..100: the inks of a color defined in CMYK, otherwise the RGB converted
+    /// with the color profiles in force (see [`crate::cms`]).
+    pub fn to_cmyk(&self) -> [f64; 4] {
+        match self.cmyk {
+            Some(k) => k.map(|v| v as f64),
+            None => crate::cms::current().rgb_to_cmyk(*self),
+        }
+    }
+
+    /// A color defined in CMYK (inks 0..100): the inks are kept, and the RGB is their
+    /// equivalent with the color profiles in force.
     pub fn from_cmyk(c: f64, m: f64, y: f64, k: f64) -> Color {
-        let (c, m, y, k) = (c / 100.0, m / 100.0, y / 100.0, k / 100.0);
-        let f = |x: f64| ((1.0 - x) * (1.0 - k) * 255.0).round().clamp(0.0, 255.0) as u8;
-        Color::rgb(f(c), f(m), f(y))
+        let inks = [c, m, y, k].map(|v| v.clamp(0.0, 100.0));
+        crate::cms::current().cmyk_to_rgb(inks).with_cmyk(inks)
+    }
+
+    /// Plain (device) CMYK of the RGB, values 0..100, without color management.
+    pub fn to_cmyk_uncalibrated(&self) -> [f64; 4] {
+        crate::cms::naive_rgb_to_cmyk(*self)
     }
 
     /// HSB with h in 0..360, s/b in 0..100.
@@ -414,6 +438,11 @@ impl Palette {
             }
         };
         let rgb = |c: &Color| format!("{},{},{}", num(c.r as f64 / 255.0), num(c.g as f64 / 255.0), num(c.b as f64 / 255.0));
+        // a CMYK color keeps its inks
+        let space = |c: &Color| match c.cmyk {
+            Some(k) => ("CMYK", k.iter().map(|v| num(*v as f64 / 100.0)).collect::<Vec<_>>().join(",")),
+            None => ("RGB", rgb(c)),
+        };
         let mut h: u64 = 0xcbf29ce484222325;
         for b in self.name.bytes().chain(self.colors.iter().flat_map(|c| [c.color.r, c.color.g, c.color.b])) {
             h = (h ^ b as u64).wrapping_mul(0x100000001b3);
@@ -425,7 +454,8 @@ impl Palette {
         if !spots.is_empty() {
             s.push_str("<colorspaces>\n");
             for (i, c) in spots.iter().enumerate() {
-                s.push_str(&format!("<cs name=\"{}\" fixedID=\"{}\">\n<color cs=\"RGB\" tints=\"{}\"/>\n</cs>\n", xml_escape(&c.name), i + 1, rgb(&c.color)));
+                let (cs, tints) = space(&c.color);
+                s.push_str(&format!("<cs name=\"{}\" fixedID=\"{}\">\n<color cs=\"{cs}\" tints=\"{tints}\"/>\n</cs>\n", xml_escape(&c.name), i + 1));
             }
             s.push_str("</colorspaces>\n");
         }
@@ -434,7 +464,8 @@ impl Palette {
             if c.spot {
                 s.push_str(&format!("<color cs=\"{0}\" tints=\"1\" name=\"{0}\"/>\n", xml_escape(&c.name)));
             } else {
-                s.push_str(&format!("<color cs=\"RGB\" tints=\"{}\" name=\"{}\"/>\n", rgb(&c.color), xml_escape(&c.name)));
+                let (cs, tints) = space(&c.color);
+                s.push_str(&format!("<color cs=\"{cs}\" tints=\"{tints}\" name=\"{}\"/>\n", xml_escape(&c.name)));
             }
         }
         s.push_str("</page>\n</colors>\n</palette>\n");
@@ -559,7 +590,10 @@ mod xml_tests {
         assert!(q.colors[1].spot && q.colors[1].name == "Spot One");
         assert_eq!(q.colors[1].color, Color::rgb(0, 128, 255));
         let cmyk = Palette::parse("x", "<?xml version=\"1.0\"?><palette name=\"P\"><colors><page><color cs=\"CMYK\" tints=\"0,0,0,1\" name=\"Black\"/><color cs=\"GRAY\" tints=\"0.5\" name=\"Mid\"/></page></colors></palette>");
-        assert_eq!(cmyk.colors[0].color, Color::rgb(0, 0, 0));
+        assert_eq!(cmyk.colors[0].color.cmyk, Some([0, 0, 0, 100]));
+        // CMYK colors are written with their inks
+        let back = Palette::parse("x", &cmyk.to_xml());
+        assert_eq!(back.colors[0].color.cmyk, Some([0, 0, 0, 100]));
         assert_eq!(cmyk.colors[1].color, Color::rgb(128, 128, 128));
     }
 }
