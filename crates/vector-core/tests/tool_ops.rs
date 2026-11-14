@@ -262,3 +262,45 @@ fn contour_outside_mitered_keeps_square_corners() {
     let r = contour_rings(&o, &round)[0].0.area().abs();
     assert!(r < a - 100.0, "{r} {a}");
 }
+
+/// Issue #56: ungrouping puts the pieces where the group was, in their order, and `find_all`
+/// (the one-walk lookup the editor uses for big selections) finds what `find` finds, in the
+/// order asked.
+#[test]
+fn ungroup_keeps_order_and_find_all_matches_find() {
+    let (mut doc, below) = doc_with_square();
+    let square = |doc: &mut Document, x: f64| {
+        let r = RectShape { w: 10.0, h: 10.0, radii: [0.0; 4], corner: CornerType::default() };
+        Object::new(doc.new_id(), ObjKind::Rect(r), Affine::translate((x, 0.0)), Style::default())
+    };
+    let inner_kids: Vec<Object> = (0..3).map(|i| square(&mut doc, 200.0 + i as f64 * 20.0)).collect();
+    let inner = Object::new(doc.new_id(), ObjKind::Group(inner_kids), Affine::IDENTITY, Style::default());
+    let mut kids: Vec<Object> = (0..12).map(|i| square(&mut doc, i as f64 * 15.0)).collect();
+    kids.insert(5, inner);
+    let order: Vec<u64> = kids.iter().map(|o| o.id).collect();
+    let g = Object::new(doc.new_id(), ObjKind::Group(kids), Affine::IDENTITY, Style::default());
+    let gid = g.id;
+    let above = square(&mut doc, 300.0);
+    let above_id = above.id;
+    let layer = doc.pages[0].layers.last_mut().unwrap();
+    layer.objects.push(g);
+    layer.objects.push(above);
+
+    // nested ids, a missing id and a repeated one, in no particular order
+    let mut ask: Vec<u64> = order.iter().rev().copied().collect();
+    ask.push(9999);
+    ask.push(order[0]);
+    ask.extend(doc.find(order[5]).unwrap().children().iter().map(|o| o.id));
+    let one_by_one: Vec<u64> = ask.iter().filter_map(|id| doc.find(*id)).map(|o| o.id).collect();
+    let together: Vec<u64> = doc.find_all(&ask).iter().map(|o| o.id).collect();
+    assert_eq!(together, one_by_one);
+
+    let out = ops::ungroup(&mut doc, &[gid], false);
+    assert_eq!(out, order, "the pieces come out in their stacking order");
+    let top: Vec<u64> = doc.pages[0].layers.last().unwrap().objects.iter().map(|o| o.id).collect();
+    let mut expect = vec![below];
+    expect.extend(&order);
+    expect.push(above_id);
+    assert_eq!(top, expect, "between what was below and above the group");
+    assert!(doc.all_ids().contains(&doc.find(order[5]).unwrap().children()[0].id), "the inner group stays a group");
+}

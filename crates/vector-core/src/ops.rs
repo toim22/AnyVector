@@ -117,10 +117,8 @@ pub fn ungroup(doc: &mut Document, ids: &[ObjId], all: bool) -> Vec<ObjId> {
                     insert.push(c);
                 }
             }
-            for (k, c) in insert.into_iter().enumerate() {
-                out.push(c.id);
-                doc.pages[p].layers[l].objects.insert(i + k, c);
-            }
+            out.extend(insert.iter().map(|c| c.id));
+            doc.pages[p].layers[l].objects.splice(i..i, insert);
         } else {
             out.push(*id);
         }

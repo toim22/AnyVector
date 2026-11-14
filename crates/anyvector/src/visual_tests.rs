@@ -2394,3 +2394,45 @@ fn break_apart_enabled_for_combined_curves() {
     h.step();
     assert_eq!(h.state().doc().unwrap().selection.len(), 2);
 }
+
+// ---- ungroup ----
+
+/// Issue #56: ungrouping a CorelDRAW drawing selects every piece of it, thousands of objects.
+/// Each frame looked every selected object up with a walk of the whole document (the selection
+/// box, the toolbars' selection kind, the text buttons), so a frame took seconds and the window
+/// went blank. The drawing stays whole and a frame stays quick.
+#[test]
+fn ungroup_of_a_large_drawing_stays_responsive() {
+    const N: usize = 8000;
+    let mut h = clip_harness();
+    let gid = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let mut kids = vec![];
+        for i in 0..N {
+            let (x, y) = ((i % 100) as f64 * 5.0, (i / 100) as f64 * 5.0);
+            let r = kurbo::Shape::to_path(&kurbo::Rect::new(x, y, x + 4.0, y + 4.0), 0.1);
+            kids.push(Object::new(d.doc.new_id(), ObjKind::Path(vector_core::path::NodePath::from_bez(&r)), Affine::IDENTITY, Style::default()));
+        }
+        let g = Object::new(d.doc.new_id(), ObjKind::Group(kids), Affine::IDENTITY, Style::default());
+        let id = g.id;
+        d.add_objects("Group", vec![g]);
+        d.selection = vec![id];
+        id
+    };
+    h.step();
+    let before = h.state().doc().unwrap().selection_bounds().unwrap();
+    h.state_mut().run(Cmd::Ungroup);
+    h.step();
+    let d = h.state().doc().unwrap();
+    assert!(d.doc.find(gid).is_none(), "the group is gone");
+    assert_eq!(d.selection.len(), N, "every piece is selected");
+    assert_eq!(d.page_ref().all_objects().count(), N + 1, "the pieces and the rectangle are on the page");
+    assert_eq!(d.selection_bounds(), Some(before), "the pieces stay where they were");
+    let t = std::time::Instant::now();
+    for _ in 0..3 {
+        h.step();
+    }
+    let frame = t.elapsed() / 3;
+    // about 40 ms here; seconds when each selected object was looked up on its own
+    assert!(frame < std::time::Duration::from_millis(500), "a frame with {N} selected objects took {frame:?}");
+}

@@ -177,9 +177,11 @@ impl DocView {
         self.doc.update_connectors();
         self.doc.update_page_numbers();
         self.doc.update_text_flow();
-        let doc = &self.doc;
-        self.selection.retain(|id| doc.find(*id).is_some());
-        self.node_sel.retain(|(id, _, _)| doc.find(*id).is_some());
+        // one walk of the document, not one per selected object: after an ungroup the selection
+        // can hold every object of a large drawing
+        let ids = self.doc.all_ids();
+        self.selection.retain(|id| ids.contains(id));
+        self.node_sel.retain(|(id, _, _)| ids.contains(id));
         if self.page >= self.doc.pages.len() {
             self.page = self.doc.pages.len().saturating_sub(1);
         }

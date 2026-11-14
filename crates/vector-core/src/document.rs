@@ -1197,13 +1197,59 @@ impl Document {
 
     pub fn selection_bounds(&self, ids: &[ObjId]) -> Option<Rect> {
         let mut acc: Option<Rect> = None;
-        for id in ids {
-            if let Some(o) = self.find(*id) {
-                let b = self.bounds_of(o);
-                acc = Some(acc.map_or(b, |a| a.union(b)));
-            }
+        for o in self.find_all(ids) {
+            let b = self.bounds_of(o);
+            acc = Some(acc.map_or(b, |a| a.union(b)));
         }
         acc
+    }
+
+    /// The objects with these ids, in the order of `ids` (the same as `find` on each id), found
+    /// in one walk of the document. Looking each id up with `find` walks the document once per
+    /// id, which a selection of thousands of objects (all the pieces of an ungrouped drawing)
+    /// turns into seconds per frame.
+    pub fn find_all(&self, ids: &[ObjId]) -> Vec<&Object> {
+        if ids.len() <= 8 {
+            return ids.iter().filter_map(|id| self.find(*id)).collect();
+        }
+        let mut want: std::collections::HashMap<ObjId, Option<&Object>> = ids.iter().map(|id| (*id, None)).collect();
+        let mut left = want.len();
+        fn rec<'a>(o: &'a Object, want: &mut std::collections::HashMap<ObjId, Option<&'a Object>>, left: &mut usize) {
+            if *left == 0 {
+                return;
+            }
+            if let Some(slot @ None) = want.get_mut(&o.id) {
+                // the first one in document order, as `find` returns
+                *slot = Some(o);
+                *left -= 1;
+            }
+            for c in o.children() {
+                rec(c, want, left);
+            }
+        }
+        for p in &self.pages {
+            for l in &p.layers {
+                for o in &l.objects {
+                    rec(o, &mut want, &mut left);
+                }
+            }
+        }
+        ids.iter().filter_map(|id| want.get(id).copied().flatten()).collect()
+    }
+
+    /// Every object id in the document's pages, nested ones included.
+    pub fn all_ids(&self) -> std::collections::HashSet<ObjId> {
+        let mut s = std::collections::HashSet::new();
+        for p in &self.pages {
+            for l in &p.layers {
+                for o in &l.objects {
+                    o.walk(&mut |x| {
+                        s.insert(x.id);
+                    });
+                }
+            }
+        }
+        s
     }
 
     pub fn add_image(&mut self, data: ImageData) -> u64 {

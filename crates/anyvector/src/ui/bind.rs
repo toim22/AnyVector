@@ -616,7 +616,7 @@ pub fn enabled(app: &AnyVectorApp, id: &str) -> Option<bool> {
         // PowerClip ▸ Fit Contents, Lock Contents to PowerClip, Extract Contents, Edit PowerClip
         "78030281" | "6ea9b15a" | "6ad732d1" | "cd3ae51f" | "273d95de" | "a369e3ae" | "56a4aae7" | "8ab3326a" => return Some(one_is(|k| matches!(k, ObjKind::PowerClip { .. }))),
         // Hide ▸ Show: hidden objects in the selection
-        "edd19eb3" => return Some(d.is_some_and(|d| d.selection.iter().any(|id| d.doc.find(*id).is_some_and(|o| !o.visible)))),
+        "edd19eb3" => return Some(d.is_some_and(|d| d.doc.find_all(&d.selection).iter().any(|o| !o.visible))),
         // Finish Editing PowerClip (the right-click and the toolbar ones)
         "22eabb92" | "1b67872b" => return Some(d.is_some_and(|d| !d.focus.is_empty() && d.symbol_edit.is_none() && d.rollover_edit.is_none())),
         // Pixel Grid and Snap To ▸ Pixels work in Pixels view only
@@ -628,7 +628,10 @@ pub fn enabled(app: &AnyVectorApp, id: &str) -> Option<bool> {
         // Wrap Paragraph Text, Wrap Connector Line: not for dimension lines
         "55f2e8c4" | "c40ff90e" if one_is(|k| matches!(k, ObjKind::Dimension(_))) => return Some(false),
         // PowerClip Inside…: needs another object to be the container
-        "da1efe7f" | "3f1c813c" => return Some(sel > 0 && d.is_some_and(|d| d.doc.pages.get(d.page).into_iter().flat_map(|p| p.layers.iter()).flat_map(|l| l.objects.iter()).any(|o| !d.selection.contains(&o.id)))),
+        "da1efe7f" | "3f1c813c" => return Some(sel > 0 && d.is_some_and(|d| {
+            let sel_set: std::collections::HashSet<_> = d.selection.iter().copied().collect();
+            d.doc.pages.get(d.page).into_iter().flat_map(|p| p.layers.iter()).flat_map(|l| l.objects.iter()).any(|o| !sel_set.contains(&o.id))
+        })),
         _ => {}
     }
     Some(match cmd(id)? {
@@ -656,7 +659,7 @@ pub fn enabled(app: &AnyVectorApp, id: &str) -> Option<bool> {
         // Object
         Cmd::CreateArrowhead => one.is_some_and(|o| o.bounds().width() > 0.0) && !one_is(|k| matches!(k, ObjKind::Image(_) | ObjKind::Table(_))),
         Cmd::CreatePattern | Cmd::InsertQrCode | Cmd::InsertBarcode => d.is_some(),
-        Cmd::ValidateBarcode => d.is_some_and(|d| d.selection.iter().filter_map(|id| d.doc.find(*id)).any(|o| matches!(o.special, Some(vector_core::codes::Special::Barcode { .. })))),
+        Cmd::ValidateBarcode => d.is_some_and(|d| d.doc.find_all(&d.selection).into_iter().any(|o| matches!(o.special, Some(vector_core::codes::Special::Barcode { .. })))),
         Cmd::AiGuided(_) => sel > 0,
         // Text
         Cmd::TextTabs | Cmd::TextColumns | Cmd::TextBullets | Cmd::TextDropCap | Cmd::ToggleHyphenation => d.is_some() && !one_is(is_artistic),
@@ -668,10 +671,10 @@ pub fn enabled(app: &AnyVectorApp, id: &str) -> Option<bool> {
         Cmd::MakeWebCompatible => one_is(is_paragraph) || d.is_some_and(|d| d.text_edit.as_ref().is_some_and(|te| d.doc.find(te.obj).is_some_and(|o| is_paragraph(&o.kind)))),
         Cmd::CreateEmptyFrame => one_is(|k| matches!(k, ObjKind::Rect(_) | ObjKind::Ellipse(_) | ObjKind::Polygon(_) | ObjKind::Path(_) | ObjKind::PowerClip { .. })),
         Cmd::LinkFrames => d.is_some_and(|d| {
-            let objs: Vec<_> = d.selection.iter().filter_map(|id| d.doc.find(*id)).collect();
+            let objs: Vec<_> = d.doc.find_all(&d.selection);
             objs.len() >= 2 && objs.iter().all(|o| is_paragraph(&o.kind)) && objs.iter().skip(1).all(|o| matches!(&o.kind, ObjKind::Text(t) if t.link_prev.is_none()))
         }),
-        Cmd::UnlinkFrames => d.is_some_and(|d| d.selection.iter().filter_map(|id| d.doc.find(*id)).any(|o| matches!(&o.kind, ObjKind::Text(t) if t.link_next.is_some() || t.link_prev.is_some()))),
+        Cmd::UnlinkFrames => d.is_some_and(|d| d.doc.find_all(&d.selection).into_iter().any(|o| matches!(&o.kind, ObjKind::Text(t) if t.link_next.is_some() || t.link_prev.is_some()))),
         Cmd::AlignToBaseline => one_is(|k| matches!(k, ObjKind::Text(_))),
         Cmd::SymbolEditMaster => d.is_some_and(|d| d.symbol_edit.is_none()) && crate::dialogs::object::selected_symbol(app).is_some(),
         Cmd::SymbolFinish => d.is_some_and(|d| d.symbol_edit.is_some()),
@@ -697,7 +700,7 @@ pub fn enabled(app: &AnyVectorApp, id: &str) -> Option<bool> {
         Cmd::InsertPageNumber(3) => pages > 1,
         Cmd::Group | Cmd::Combine => sel > 1,
         // a curve with several subpaths, or text
-        Cmd::BreakApart => d.is_some_and(|d| d.selection.iter().filter_map(|id| d.doc.find(*id)).any(|o| match &o.kind {
+        Cmd::BreakApart => d.is_some_and(|d| d.doc.find_all(&d.selection).into_iter().any(|o| match &o.kind {
             ObjKind::Path(p) => p.subpaths.len() > 1,
             ObjKind::Text(_) => true,
             _ => false,
