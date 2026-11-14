@@ -64,17 +64,9 @@ pub fn drawing_window(app: &mut AnyVectorApp, ui: &mut Ui) {
     let show_rulers = app.docs[ai].doc.settings.show_rulers;
     let r = if show_rulers { RULER } else { 0.0 };
     let canvas = Rect::from_min_max(area.min + vec2(r, r), area.max);
-    {
-        let d = &mut app.docs[ai];
-        if d.canvas_rect != canvas {
-            // keep the view anchored at the top-left when the window is resized
-            d.canvas_rect = canvas;
-        }
-        if d.needs_fit && canvas.width() > 40.0 && canvas.height() > 40.0 {
-            d.zoom_page();
-            d.needs_fit = false;
-        }
-    }
+    // a resized window keeps the view anchored at the top-left, unless the view is still the
+    // automatic page fit (a new or just opened document): then the page is fitted again
+    app.docs[ai].set_canvas(canvas, 40.0);
 
     // ------------------------------------------------------------------ input
     let ctx = ui.ctx().clone();
@@ -1148,14 +1140,7 @@ fn passive_window(app: &mut AnyVectorApp, ui: &mut Ui, i: usize, full: Rect) -> 
     if canvas.width() < 8.0 || canvas.height() < 8.0 {
         return false;
     }
-    {
-        let d = &mut app.docs[i];
-        d.canvas_rect = canvas;
-        if d.needs_fit {
-            d.zoom_page();
-            d.needs_fit = false;
-        }
-    }
+    app.docs[i].set_canvas(canvas, 0.0);
     render_cache(app, ui.ctx(), i, canvas);
     if let Some(tex) = &app.docs[i].cache.tex {
         p.image(tex.id(), canvas, Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);

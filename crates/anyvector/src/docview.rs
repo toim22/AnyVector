@@ -68,6 +68,11 @@ pub struct DocView {
     /// Screen position (relative to the canvas rect min) of document point (0,0).
     pub origin: Vec2,
     pub needs_fit: bool,
+    /// The view (zoom, origin) the last automatic page fit produced. While the view is still
+    /// exactly that one (not zoomed or scrolled since), a change of the canvas size fits the
+    /// page again: at start-up the window grows from the splash size to its real size (and
+    /// the display scale is applied) after the first document has already been fitted.
+    pub auto_fit: Option<(f64, Vec2)>,
     pub view_mode: ViewMode,
     /// View ▸ Simulate Overprints.
     pub simulate_overprint: bool,
@@ -123,6 +128,7 @@ impl DocView {
             zoom: 1.0,
             origin: Vec2::ZERO,
             needs_fit: true,
+            auto_fit: None,
             view_mode: ViewMode::Enhanced,
             simulate_overprint: false,
             cache: RenderCache::default(),
@@ -177,9 +183,11 @@ impl DocView {
         self.doc.update_connectors();
         self.doc.update_page_numbers();
         self.doc.update_text_flow();
-        let doc = &self.doc;
-        self.selection.retain(|id| doc.find(*id).is_some());
-        self.node_sel.retain(|(id, _, _)| doc.find(*id).is_some());
+        // one walk of the document, not one per selected object: after an ungroup the selection
+        // can hold every object of a large drawing
+        let ids = self.doc.all_ids();
+        self.selection.retain(|id| ids.contains(id));
+        self.node_sel.retain(|(id, _, _)| ids.contains(id));
         if self.page >= self.doc.pages.len() {
             self.page = self.doc.pages.len().saturating_sub(1);
         }
@@ -256,6 +264,26 @@ impl DocView {
         self.zoom = zx.min(zy).clamp(0.002, 2000.0);
         let c = r.center();
         self.origin = egui::vec2((cs.x as f64 / 2.0 - c.x * self.zoom) as f32, (cs.y as f64 / 2.0 - c.y * self.zoom) as f32);
+    }
+
+    /// Sets the canvas rect for this frame. Fits the page when a fit is pending (`needs_fit`)
+    /// and the canvas is at least `min` points each way, and fits it again when the canvas
+    /// changes size while the view is still the automatic fit.
+    pub fn set_canvas(&mut self, canvas: ERect, min: f32) {
+        let resized = self.canvas_rect.size() != canvas.size();
+        self.canvas_rect = canvas;
+        let untouched = self.auto_fit.is_some_and(|(z, o)| z == self.zoom && o == self.origin);
+        if !untouched {
+            self.auto_fit = None;
+        }
+        if canvas.width() <= min || canvas.height() <= min {
+            return;
+        }
+        if self.needs_fit || (resized && untouched) {
+            self.zoom_page();
+            self.needs_fit = false;
+            self.auto_fit = Some((self.zoom, self.origin));
+        }
     }
 
     pub fn zoom_page(&mut self) {

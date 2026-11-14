@@ -2394,3 +2394,296 @@ fn break_apart_enabled_for_combined_curves() {
     h.step();
     assert_eq!(h.state().doc().unwrap().selection.len(), 2);
 }
+
+// ---- start-up document view (issue #63) ----
+
+/// The page's screen rect is centred in the canvas and fits it (the 24-point fit margin on
+/// the tighter side).
+fn assert_page_fitted(h: &Harness<'_, AnyVectorApp>) {
+    let d = h.state().doc().unwrap();
+    let c = d.canvas_rect;
+    let p = d.to_screen_rect(d.page_ref().rect());
+    assert!((p.center().x - c.center().x).abs() < 1.0 && (p.center().y - c.center().y).abs() < 1.0, "page {p:?} not centred in canvas {c:?}");
+    assert!(c.contains_rect(p), "page {p:?} does not fit canvas {c:?}");
+    let slack = ((c.width() - p.width()) / 2.0).min((c.height() - p.height()) / 2.0);
+    assert!((slack - 24.0).abs() < 1.0, "page {p:?} not zoomed to fit canvas {c:?}");
+}
+
+/// Start-up with "Create a new blank document": the document is made while the window still
+/// has the splash size and only then grows to its real size (2560 × 1307 px at 125%); the
+/// page must end up fitted and centred, with the paper size used last (A4).
+#[test]
+fn startup_document_fits_and_centres_page() {
+    let a4 = vector_core::units::page_presets().into_iter().find(|p| p.0 == "A4").unwrap();
+    let mut h = Harness::builder().with_size(egui::vec2(620.0, 380.0)).with_pixels_per_point(1.25).build_eframe(|cc| {
+        let mut app = AnyVectorApp::new(cc);
+        app.splash = None;
+        app.pending.clear();
+        app.docs.clear();
+        app.active = None;
+        app.settings.show_new_doc_dialog = false;
+        app.settings.startup = crate::settings::StartupAction::NewDocument;
+        app.settings.last_new_doc = Some(crate::settings::NewDocDefaults { preset: Some("A4".into()), width: a4.1, height: a4.2, unit: vector_core::Unit::Millimeters, ..Default::default() });
+        // what AnyVectorApp::new queues for this start-up action
+        app.pending.push(Cmd::New);
+        app
+    });
+    for _ in 0..3 {
+        h.step();
+    }
+    {
+        let d = h.state().doc().expect("start-up document");
+        assert!((d.page_ref().width - a4.1).abs() < 0.01 && (d.page_ref().height - a4.2).abs() < 0.01, "page is not A4");
+        assert_eq!(d.doc.settings.unit, vector_core::Unit::Millimeters);
+    }
+    // the window becomes the main window: 2560 × 1307 pixels at 125%
+    h.set_size(egui::vec2(2560.0 / 1.25, 1307.0 / 1.25));
+    for _ in 0..3 {
+        h.step();
+    }
+    assert!(h.state().doc().unwrap().canvas_rect.width() > 1500.0);
+    assert_page_fitted(&h);
+
+    // once the user zooms, a resize keeps the view where it is
+    let (zoom, origin) = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let c = d.canvas_rect.center();
+        d.zoom_at(c, 2.0);
+        (d.zoom, d.origin)
+    };
+    h.set_size(egui::vec2(1600.0, 900.0));
+    for _ in 0..3 {
+        h.step();
+    }
+    let d = h.state().doc().unwrap();
+    assert_eq!((d.zoom, d.origin), (zoom, origin));
+}
+
+// ---- freehand-family auto-join (issue #65) ----
+
+/// A document with snapping off (so drawn points land where the pointer is) and `tool` active.
+fn join_harness<'a>(tool: crate::tools::ToolId) -> Harness<'a, AnyVectorApp> {
+    let mut h = Harness::builder().with_size(egui::vec2(1600.0, 900.0)).build_eframe(|cc| {
+        let mut app = AnyVectorApp::new(cc);
+        app.splash = None;
+        app.pending.clear();
+        app
+    });
+    h.state_mut().new_default_document();
+    h.state_mut().dialogs.new_doc = None;
+    for _ in 0..3 {
+        h.step();
+    }
+    h.state_mut().doc_mut().unwrap().doc.settings.snap_off = true;
+    h.state_mut().set_tool(tool);
+    h
+}
+
+/// Feed one frame of pointer input straight to the active tool (no egui frame in between).
+fn tool_input(h: &mut Harness<'_, AnyVectorApp>, pos: egui::Pos2, pressed: bool, down: bool, released: bool) {
+    let inp = crate::tools::Input { pos, hovered: true, pressed, released, down, double: false, secondary: false, mods: egui::Modifiers::NONE, key_c: false, time: 100.0, dt: 0.016 };
+    crate::tools::handle_input(h.state_mut(), &inp);
+}
+
+/// Screen position of a document point.
+fn scr(h: &Harness<'_, AnyVectorApp>, p: (f64, f64)) -> egui::Pos2 {
+    h.state().doc().unwrap().to_screen(Point::new(p.0, p.1))
+}
+
+/// Drag through document points (a freehand stroke).
+fn tool_stroke(h: &mut Harness<'_, AnyVectorApp>, pts: &[(f64, f64)]) {
+    let s: Vec<egui::Pos2> = pts.iter().map(|p| scr(h, *p)).collect();
+    tool_input(h, s[0], true, true, false);
+    for w in s.windows(2) {
+        for k in 1..=8 {
+            tool_input(h, w[0] + (w[1] - w[0]) * (k as f32 / 8.0), false, true, false);
+        }
+    }
+    tool_input(h, *s.last().unwrap(), false, false, true);
+}
+
+/// Click at a document point, with a screen offset.
+fn tool_click(h: &mut Harness<'_, AnyVectorApp>, p: (f64, f64), off: egui::Vec2) {
+    let s = scr(h, p) + off;
+    tool_input(h, s, true, true, false);
+    tool_input(h, s, false, false, true);
+}
+
+/// The curves on the page.
+fn curves(h: &Harness<'_, AnyVectorApp>) -> Vec<vector_core::path::NodePath> {
+    h.state()
+        .doc()
+        .unwrap()
+        .page_ref()
+        .all_objects()
+        .filter_map(|o| match &o.kind {
+            ObjKind::Path(np) => Some(np.clone()),
+            _ => None,
+        })
+        .collect()
+}
+
+fn near(a: Point, b: (f64, f64)) -> bool {
+    (a - Point::new(b.0, b.1)).hypot() < 0.5
+}
+
+/// Freehand: a stroke started on the end node of the curve just drawn continues that curve (one
+/// object, one subpath), each stroke is one undo step, and ending on the start node closes it.
+#[test]
+fn freehand_strokes_continue_the_curve() {
+    use crate::tools::ToolId;
+    let mut h = join_harness(ToolId::Freehand);
+    let (a, b, c) = ((100.0, 100.0), (200.0, 120.0), (220.0, 220.0));
+    tool_stroke(&mut h, &[a, (150.0, 80.0), b]);
+    assert_eq!(curves(&h).len(), 1);
+    let first_nodes = curves(&h)[0].node_count();
+    let end = curves(&h)[0].subpaths[0].nodes.last().unwrap().p;
+    // the second stroke starts 2 pixels off the end node: within the Auto-join distance
+    let s = scr(&h, b) + egui::vec2(2.0, 1.0);
+    let bs = h.state().doc().unwrap().to_doc(s);
+    tool_stroke(&mut h, &[(bs.x, bs.y), (240.0, 160.0), c]);
+    let cs = curves(&h);
+    assert_eq!(cs.len(), 1, "the second stroke became a separate object");
+    let sp = &cs[0].subpaths;
+    assert_eq!(sp.len(), 1, "the strokes are not one continuous subpath");
+    assert!(!sp[0].closed);
+    assert!(near(sp[0].nodes[0].p, a) && near(sp[0].nodes.last().unwrap().p, c), "{:?}", sp[0].nodes);
+    // the joint is the old end node itself
+    assert!(sp[0].nodes.iter().any(|n| (n.p - end).hypot() < 1e-6), "{:?}", sp[0].nodes);
+    // one undo step per stroke
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    let cs = curves(&h);
+    assert_eq!(cs.len(), 1);
+    assert_eq!(cs[0].node_count(), first_nodes);
+    h.state_mut().run(Cmd::Redo);
+    h.step();
+    assert_eq!(curves(&h)[0].subpaths[0].nodes.len(), sp[0].nodes.len());
+    // ending a stroke on the start node closes the curve
+    tool_stroke(&mut h, &[c, (120.0, 200.0), (a.0 + 1.0, a.1 + 1.0)]);
+    let cs = curves(&h);
+    assert_eq!(cs.len(), 1);
+    assert_eq!(cs[0].subpaths.len(), 1);
+    assert!(cs[0].subpaths[0].closed, "ending on the start node did not close the curve");
+    assert!(near(cs[0].subpaths[0].nodes[0].p, a));
+    // a stroke away from the ends of the (now closed) curve is a new object
+    tool_stroke(&mut h, &[(400.0, 100.0), (450.0, 150.0)]);
+    assert_eq!(curves(&h).len(), 2);
+}
+
+/// Freehand click-click lines: a line started on the end of the selected curve continues it;
+/// started on its start node it goes in front of it; ending on the other end closes the curve.
+#[test]
+fn freehand_lines_continue_the_curve() {
+    use crate::tools::ToolId;
+    let mut h = join_harness(ToolId::Freehand);
+    let z = egui::Vec2::ZERO;
+    let (a, b, c, d) = ((100.0, 100.0), (200.0, 100.0), (200.0, 200.0), (100.0, 200.0));
+    tool_click(&mut h, a, z);
+    tool_click(&mut h, b, z);
+    assert_eq!(curves(&h).len(), 1);
+    // start the next line on the end node (a pixel off), as a double-click there does
+    tool_click(&mut h, b, egui::vec2(1.0, -1.0));
+    tool_click(&mut h, c, z);
+    let cs = curves(&h);
+    assert_eq!(cs.len(), 1, "the second line became a separate object");
+    let pts: Vec<Point> = cs[0].subpaths[0].nodes.iter().map(|n| n.p).collect();
+    assert_eq!(pts.len(), 3, "{pts:?}");
+    assert!(near(pts[0], a) && near(pts[1], b) && near(pts[2], c));
+    // from the start node: the new line goes in front, the curve still runs a -> c
+    tool_click(&mut h, a, z);
+    tool_click(&mut h, d, z);
+    let pts: Vec<Point> = curves(&h)[0].subpaths[0].nodes.iter().map(|n| n.p).collect();
+    assert_eq!(pts.len(), 4, "{pts:?}");
+    assert!(near(pts[0], d) && near(pts[1], a) && near(pts[3], c), "{pts:?}");
+    // c -> d closes the square
+    tool_click(&mut h, c, z);
+    tool_click(&mut h, d, egui::vec2(2.0, 2.0));
+    let cs = curves(&h);
+    assert_eq!(cs.len(), 1);
+    assert!(cs[0].subpaths[0].closed);
+    assert_eq!(cs[0].subpaths[0].nodes.len(), 4);
+}
+
+/// Polyline, Bézier and Pen: a curve started on the end node of the selected curve continues
+/// it, and ending on its start node closes it; 2-Point Line continues it too.
+#[test]
+fn polyline_bezier_and_line_continue_the_curve() {
+    use crate::tools::ToolId;
+    let z = egui::Vec2::ZERO;
+    for tool in [ToolId::Polyline, ToolId::Bezier, ToolId::Pen] {
+        let mut h = join_harness(ToolId::Freehand);
+        tool_click(&mut h, (100.0, 100.0), z);
+        tool_click(&mut h, (200.0, 100.0), z);
+        h.state_mut().set_tool(tool);
+        tool_click(&mut h, (200.0, 100.0), egui::vec2(1.0, 1.0));
+        tool_click(&mut h, (200.0, 200.0), z);
+        tool_click(&mut h, (300.0, 200.0), z);
+        h.state_mut().finish_tool();
+        let cs = curves(&h);
+        assert_eq!(cs.len(), 1, "{tool:?}: a separate object");
+        let pts: Vec<Point> = cs[0].subpaths[0].nodes.iter().map(|n| n.p).collect();
+        assert_eq!(pts.len(), 4, "{tool:?}: {pts:?}");
+        assert!(near(pts[0], (100.0, 100.0)) && near(pts[3], (300.0, 200.0)), "{tool:?}: {pts:?}");
+        // and back to the start node closes it
+        tool_click(&mut h, (300.0, 200.0), z);
+        tool_click(&mut h, (100.0, 200.0), z);
+        tool_click(&mut h, (100.0, 100.0), egui::vec2(-1.0, 1.0));
+        h.state_mut().finish_tool();
+        let cs = curves(&h);
+        assert_eq!(cs.len(), 1, "{tool:?}: closing made a separate object");
+        assert!(cs[0].subpaths[0].closed, "{tool:?}: not closed");
+        assert_eq!(cs[0].subpaths[0].nodes.len(), 5, "{tool:?}");
+    }
+    let mut h = join_harness(ToolId::TwoPointLine);
+    tool_stroke(&mut h, &[(100.0, 100.0), (200.0, 100.0)]);
+    tool_stroke(&mut h, &[(200.0, 100.0), (200.0, 200.0)]);
+    let cs = curves(&h);
+    assert_eq!(cs.len(), 1, "2-Point Line: a separate object");
+    assert_eq!(cs[0].subpaths[0].nodes.len(), 3);
+    // away from the ends: a new line
+    tool_stroke(&mut h, &[(400.0, 100.0), (500.0, 100.0)]);
+    assert_eq!(curves(&h).len(), 2);
+}
+
+// ---- ungroup ----
+
+/// Issue #56: ungrouping a CorelDRAW drawing selects every piece of it, thousands of objects.
+/// Each frame looked every selected object up with a walk of the whole document (the selection
+/// box, the toolbars' selection kind, the text buttons), so a frame took seconds and the window
+/// went blank. The drawing stays whole and a frame stays quick.
+#[test]
+fn ungroup_of_a_large_drawing_stays_responsive() {
+    const N: usize = 8000;
+    let mut h = clip_harness();
+    let gid = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let mut kids = vec![];
+        for i in 0..N {
+            let (x, y) = ((i % 100) as f64 * 5.0, (i / 100) as f64 * 5.0);
+            let r = kurbo::Shape::to_path(&kurbo::Rect::new(x, y, x + 4.0, y + 4.0), 0.1);
+            kids.push(Object::new(d.doc.new_id(), ObjKind::Path(vector_core::path::NodePath::from_bez(&r)), Affine::IDENTITY, Style::default()));
+        }
+        let g = Object::new(d.doc.new_id(), ObjKind::Group(kids), Affine::IDENTITY, Style::default());
+        let id = g.id;
+        d.add_objects("Group", vec![g]);
+        d.selection = vec![id];
+        id
+    };
+    h.step();
+    let before = h.state().doc().unwrap().selection_bounds().unwrap();
+    h.state_mut().run(Cmd::Ungroup);
+    h.step();
+    let d = h.state().doc().unwrap();
+    assert!(d.doc.find(gid).is_none(), "the group is gone");
+    assert_eq!(d.selection.len(), N, "every piece is selected");
+    assert_eq!(d.page_ref().all_objects().count(), N + 1, "the pieces and the rectangle are on the page");
+    assert_eq!(d.selection_bounds(), Some(before), "the pieces stay where they were");
+    let t = std::time::Instant::now();
+    for _ in 0..3 {
+        h.step();
+    }
+    let frame = t.elapsed() / 3;
+    // about 40 ms here; seconds when each selected object was looked up on its own
+    assert!(frame < std::time::Duration::from_millis(500), "a frame with {N} selected objects took {frame:?}");
+}

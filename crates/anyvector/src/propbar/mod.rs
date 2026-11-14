@@ -491,6 +491,9 @@ fn set_page_size(app: &mut AnyVectorApp, w: f64, h: f64) {
         }
     });
     d.needs_fit = true;
+    // new documents start with the paper size set last
+    let unit = d.doc.settings.unit;
+    crate::dialogs::new_doc::remember_page_size(&mut app.settings, w, h, unit);
 }
 
 fn page_wh(app: &AnyVectorApp) -> Option<(f64, f64)> {

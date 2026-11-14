@@ -225,7 +225,7 @@ pub(super) fn font(cx: &mut Ctx, b: &[u8]) {
     if cx.ver < 600 && matches!(charset, 0x80 | 0x81 | 0x86 | 0x88) {
         charset = 0;
     }
-    let mut name = cx.string(r.bytes(r.left()));
+    let mut name = font_name(cx, r.bytes(r.left()), charset);
     let mut named = false;
     if let Some((base, c)) = charset_of_name(&name) {
         name = base;
@@ -250,6 +250,18 @@ pub(super) fn font(cx: &mut Ctx, b: &[u8]) {
         }
         _ => {}
     }
+}
+
+/// The family name of a `font` record. Before X4 it is one byte per character in the code page
+/// of the record's character set (a Cyrillic font's own Russian name in Windows-1251), not
+/// always Windows-1252.
+fn font_name(cx: &Ctx, b: &[u8], charset: u16) -> String {
+    if cx.ver >= 1200 {
+        return cx.string(b);
+    }
+    let b: Vec<u8> = b.iter().copied().take_while(|c| *c != 0).collect();
+    let raw: String = b.iter().map(|c| if *c < 0x80 { *c as char } else { char::from_u32(RAW + *c as u32).unwrap_or('?') }).collect();
+    decode(&raw, Some(charset))
 }
 
 /// The style table (versions 7 to X5): the records styles are made of, then the styles.
@@ -1709,6 +1721,28 @@ mod tests {
         assert_eq!(decode(&format!("A{raw}"), Some(0xcc)), "A\u{41f}\u{440}\u{438}");
         assert_eq!(decode(&raw, None), "\u{cf}\u{f0}\u{e8}");
         assert_eq!(charset_of_name("Arial Cyr"), Some(("Arial".to_string(), 0xcc)));
+    }
+
+    /// A `font` record: id, character set, 14 bytes, then the name.
+    fn font_record(id: u16, charset: u16, name: &[u8]) -> Vec<u8> {
+        let mut b = vec![];
+        b.extend(id.to_le_bytes());
+        b.extend(charset.to_le_bytes());
+        b.extend([0u8; 14]);
+        b.extend_from_slice(name);
+        b
+    }
+
+    #[test]
+    fn a_font_name_is_read_in_its_character_set() {
+        // before X4 a Cyrillic font's Russian name is in Windows-1251 ("Шрифт"), not 1252
+        let mut cx = super::super::build::tests::ctx(1100);
+        font(&mut cx, &font_record(5, 0xcc, &[0xd8, 0xf0, 0xe8, 0xf4, 0xf2, 0]));
+        font(&mut cx, &font_record(6, 0, &[b'C', b'a', b'f', 0xe9, 0]));
+        font(&mut cx, &font_record(7, 0xcc, b"Arial Cyr\0"));
+        assert_eq!(cx.fonts.get(&5).map(String::as_str), Some("\u{428}\u{440}\u{438}\u{444}\u{442}"));
+        assert_eq!(cx.fonts.get(&6).map(String::as_str), Some("Caf\u{e9}"));
+        assert_eq!((cx.fonts.get(&7).map(String::as_str), cx.charsets.get(&7)), (Some("Arial"), Some(&0xcc)));
     }
 
     #[test]

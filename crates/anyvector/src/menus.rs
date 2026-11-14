@@ -499,7 +499,7 @@ pub fn canvas_menu(app: &AnyVectorApp) -> Option<&'static str> {
         Bezier | Pen | Polyline | BSpline if app.ts.is_busy() => return None,
         _ => {}
     }
-    let objs: Vec<&vector_core::Object> = d.selection.iter().filter_map(|id| d.doc.find(*id)).collect();
+    let objs: Vec<&vector_core::Object> = d.doc.find_all(&d.selection);
     if let Some(te) = &d.text_edit {
         let para = d.doc.find(te.obj).is_some_and(|o| matches!(&o.kind, ObjKind::Text(t) if matches!(t.kind, vector_core::text::TextKind::Paragraph { .. })));
         return Some(if para { "Paragraph Text Editing" } else { "Artistic Text Editing" });

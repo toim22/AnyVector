@@ -603,9 +603,34 @@ pub struct FontDb {
     /// Families already resolved (see `resolve`).
     resolved: std::cell::RefCell<HashMap<String, crate::fontsub::Resolved>>,
     /// See `legacy`.
-    legacy: std::cell::OnceCell<Vec<(String, String, fontdb::Stretch, fontdb::Weight)>>,
+    legacy: std::cell::OnceCell<Legacy>,
     face_cache: HashMap<fontdb::ID, Arc<FaceData>>,
     glyph_cache: HashMap<(fontdb::ID, u16, u64), Arc<BezPath>>,
+}
+
+/// The names faces answer to besides their family (see `FontDb::legacy`).
+#[derive(Default)]
+struct Legacy {
+    names: Vec<LegacyName>,
+    /// Index into `names` by the name's lowercase form.
+    by_lower: HashMap<String, usize>,
+}
+
+/// A name some faces of an installed family go by in other programs.
+struct LegacyName {
+    name: String,
+    /// Where the name comes from: 0 the family name of older programs (name id 1), 1 the full
+    /// name (id 4, "Arial Bold"), 2 the PostScript name (id 6, "Arial-BoldMT").
+    kind: u8,
+    /// An English name (the one to show when there are several).
+    english: bool,
+    /// The faces that answer to it.
+    faces: Vec<fontdb::ID>,
+    /// The family of its upright face nearest to a regular weight, with that face's width and
+    /// weight.
+    family: String,
+    stretch: fontdb::Stretch,
+    weight: fontdb::Weight,
 }
 
 pub struct FaceData {
@@ -703,50 +728,119 @@ impl FontDb {
     }
 
     /// The family's installed name, when a face answers to it: its family (ignoring case), or
-    /// the name Windows lists for a width or weight of a family (fontdb files "Arial Narrow"
-    /// under "Arial" with a condensed width).
+    /// another name its faces go by (see `legacy`): the name Windows lists for a width, weight
+    /// or optical size of a family (fontdb files "Arial Narrow" under "Arial" with a condensed
+    /// width, "Futura PT Book" under "Futura PT", "Sitka Text" under "Sitka"), in any of the
+    /// font's languages, or the name of one face ("Arial Bold", "Arial-BoldMT").
     fn installed(&self, family: &str) -> Option<crate::fontsub::Resolved> {
         use crate::fontsub::{How, Resolved};
-        if let Some(f) = self.by_lower.get(&family.to_lowercase()) {
+        let lower = family.to_lowercase();
+        if let Some(f) = self.by_lower.get(&lower) {
             return Some(Resolved { family: f.clone(), name: f.clone(), stretch: fontdb::Stretch::Normal, weight: None, how: How::Installed });
         }
-        let lower = family.to_lowercase();
-        self.legacy().iter().find(|l| l.0.to_lowercase() == lower).map(|l| Resolved { family: l.1.clone(), name: l.0.clone(), stretch: l.2, weight: Some(l.3), how: How::Installed })
+        let legacy = self.legacy();
+        legacy.by_lower.get(&lower).map(|&i| {
+            let l = &legacy.names[i];
+            Resolved { family: l.family.clone(), name: l.name.clone(), stretch: l.stretch, weight: Some(l.weight), how: How::Installed }
+        })
     }
 
-    /// The faces of a family's other widths and weights, under the family name their files give
-    /// them for older programs (name id 1): (that name, family, width, weight). Read once.
-    fn legacy(&self) -> &[(String, String, fontdb::Stretch, fontdb::Weight)] {
+    /// The names faces go by besides their family (which fontdb takes from the typographic
+    /// family, name id 16, when the font has one): the family names their files give older
+    /// programs (name id 1), which is what Windows lists and what CorelDRAW writes in drawings,
+    /// then full names (id 4) and PostScript names (id 6), in every language the font has.
+    /// Read once, the first time a name isn't a family.
+    fn legacy(&self) -> &Legacy {
         self.legacy.get_or_init(|| {
-            let mut out: Vec<(String, String, fontdb::Stretch, fontdb::Weight, (bool, i32))> = vec![];
+            use ttf_parser::name_id::{FAMILY, FULL_NAME, POST_SCRIPT_NAME};
+            let mut out = Legacy::default();
             for f in self.db.faces() {
-                if f.stretch == fontdb::Stretch::Normal && matches!(f.weight.0, 400 | 700) {
-                    continue;
-                }
-                let Some((family, _)) = f.families.first() else { continue };
-                let name = self
+                let names = self
                     .db
                     .with_face_data(f.id, |data, index| {
-                        let face = ttf_parser::Face::parse(data, index).ok()?;
-                        let names: Vec<_> = face.names().into_iter().filter(|n| n.name_id == ttf_parser::name_id::FAMILY && n.is_unicode()).collect();
-                        // the English name, as drawings give it
-                        names.iter().find(|n| n.language_id == 0x0409).or(names.first()).and_then(|n| n.to_string())
+                        // only the name table: this reads every installed face
+                        let raw = ttf_parser::RawFace::parse(data, index).ok()?;
+                        let table = ttf_parser::name::Table::parse(raw.table(ttf_parser::Tag::from_bytes(b"name"))?)?;
+                        let names: Vec<(String, u8, bool)> = table
+                            .names
+                            .into_iter()
+                            .filter(|n| n.is_unicode())
+                            .filter_map(|n| {
+                                let kind = match n.name_id {
+                                    FAMILY => 0,
+                                    FULL_NAME => 1,
+                                    POST_SCRIPT_NAME => 2,
+                                    _ => return None,
+                                };
+                                Some((n.to_string()?, kind, n.language_id == 0x0409))
+                            })
+                            .collect();
+                        Some(names)
                     })
-                    .flatten();
-                if let Some(name) = name.filter(|n| n != family) {
-                    // one entry per name: its upright face nearest to a regular weight (bold and
-                    // italic faces of "Arial Narrow" carry the same name)
-                    let rank = |s: fontdb::Style, w: fontdb::Weight| (s != fontdb::Style::Normal, (w.0 as i32 - 400).abs());
-                    match out.iter_mut().find(|o| o.0 == name) {
-                        Some(o) if rank(f.style, f.weight) < o.4 => *o = (name, family.clone(), f.stretch, f.weight, rank(f.style, f.weight)),
+                    .flatten()
+                    .unwrap_or_default();
+                for (name, kind, english) in names {
+                    let name = crate::fontsub::undecorated(&name).to_string();
+                    let lower = name.to_lowercase();
+                    // a family's own name is found as a family
+                    if name.is_empty() || self.by_lower.contains_key(&lower) {
+                        continue;
+                    }
+                    match out.by_lower.get(&lower).map(|&i| &mut out.names[i]) {
+                        // a family name of older programs comes before a face's own names
+                        Some(l) if kind < l.kind => {
+                            l.kind = kind;
+                            l.english = english;
+                            l.faces = vec![f.id];
+                        }
+                        Some(l) if kind == l.kind => {
+                            l.english |= english;
+                            if !l.faces.contains(&f.id) {
+                                l.faces.push(f.id);
+                            }
+                        }
                         Some(_) => {}
-                        None => out.push((name, family.clone(), f.stretch, f.weight, rank(f.style, f.weight))),
+                        None => {
+                            out.by_lower.insert(lower, out.names.len());
+                            let family = f.families.first().map(|(n, _)| n.clone()).unwrap_or_default();
+                            out.names.push(LegacyName { name, kind, english, faces: vec![f.id], family, stretch: f.stretch, weight: f.weight });
+                        }
                     }
                 }
             }
-            out.sort_by(|a, b| a.0.cmp(&b.0));
-            out.into_iter().map(|o| (o.0, o.1, o.2, o.3)).collect()
+            // each name stands for its upright face nearest to a regular weight (bold and italic
+            // faces of "Arial Narrow" carry the same name)
+            let rank = |f: &fontdb::FaceInfo| (f.style != fontdb::Style::Normal, (f.weight.0 as i32 - 400).abs());
+            for l in &mut out.names {
+                if let Some(f) = l.faces.iter().filter_map(|id| self.db.face(*id)).min_by_key(|f| rank(f)) {
+                    l.family = f.families.first().map(|(n, _)| n.clone()).unwrap_or_default();
+                    l.stretch = f.stretch;
+                    l.weight = f.weight;
+                }
+            }
+            out
         })
+    }
+
+    /// The face of a name from `legacy` for bold and italic: one of the faces that go by the
+    /// name ("Sitka Text" is one of several optical sizes of "Sitka", all of the same weight
+    /// and width, so the family alone can't tell them apart). None when none of them has the
+    /// slant, or bold is asked for and none is heavier (bold "Segoe UI Semibold" is Segoe UI
+    /// Bold); the family then has the face.
+    fn legacy_face(&self, name: &str, bold: bool, italic: bool) -> Option<fontdb::ID> {
+        let legacy = self.legacy.get()?;
+        let l = &legacy.names[*legacy.by_lower.get(&name.to_lowercase())?];
+        let base = l.weight.0;
+        let want = if bold { base.max(700) } else { base };
+        let (dist, id) = l
+            .faces
+            .iter()
+            .filter_map(|id| self.db.face(*id))
+            .filter(|f| (f.style != fontdb::Style::Normal) == italic)
+            .filter(|f| !bold || f.weight.0 > base || (base >= 700 && f.weight.0 >= base))
+            .map(|f| ((f.weight.0 as i32 - want as i32).abs(), f.id))
+            .min()?;
+        (bold || dist <= 100).then_some(id)
     }
 
     fn resolve_uncached(&self, family: &str) -> crate::fontsub::Resolved {
@@ -755,6 +849,12 @@ impl FontDb {
             return Resolved { family: family.to_string(), name: family.to_string(), stretch: fontdb::Stretch::Normal, weight: None, how: How::Installed };
         }
         if let Some(r) = self.installed(family) {
+            return r;
+        }
+        // the name as Windows has it: without spaces or NULs around it, the "@" of a vertical
+        // East Asian font, or the script an old font list adds ("Arial Cyr", "Times New Roman CE")
+        let plain = crate::fontsub::undecorated(family);
+        if let Some(r) = [plain, crate::fontsub::without_script(plain)].into_iter().filter(|n| *n != family && !n.is_empty()).find_map(|n| self.installed(n)) {
             return r;
         }
         let with = |r: Resolved, how| Resolved { how, ..r };
@@ -784,7 +884,16 @@ impl FontDb {
                 .filter_map(|f| f.families.first().map(|(n, _)| ((f.stretch.to_number() as i32 - target.to_number() as i32).abs(), (f.weight.0 as i32 - 400).abs(), n.to_lowercase(), n, f.stretch)))
                 .min();
             if let Some((.., n, stretch)) = best {
-                let name = self.legacy().iter().find(|l| &l.1 == n && l.2 == stretch).map(|l| l.0.clone()).unwrap_or_else(|| n.clone());
+                // the name Windows lists for that width of the family ("Arial Narrow"), in English
+                // when it has one
+                let name = self
+                    .legacy()
+                    .names
+                    .iter()
+                    .filter(|l| l.kind == 0 && &l.family == n && l.stretch == stretch)
+                    .min_by_key(|l| (!l.english, l.name.clone()))
+                    .map(|l| l.name.clone())
+                    .unwrap_or_else(|| n.clone());
                 return Resolved { family: n.clone(), name, stretch, weight: None, how: How::Width };
             }
         }
@@ -802,6 +911,11 @@ impl FontDb {
 
     pub fn query(&self, family: &str, bold: bool, italic: bool) -> Option<fontdb::ID> {
         let r = self.resolve(family);
+        if r.name != r.family {
+            if let Some(id) = self.legacy_face(&r.name, bold, italic) {
+                return Some(id);
+            }
+        }
         let fams = [fontdb::Family::Name(&r.family), fontdb::Family::SansSerif];
         let q = fontdb::Query {
             families: &fams,

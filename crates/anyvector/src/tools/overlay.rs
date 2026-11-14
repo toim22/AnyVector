@@ -362,8 +362,9 @@ fn draw_text_frames(painter: &Painter, d: &DocView, s: &Settings) {
     let sa = screen_affine(d);
     let blue = Color32::from_rgb(0x1e, 0x88, 0xe5);
     let red = Color32::from_rgb(0xe0, 0x30, 0x30);
+    let sel: std::collections::HashSet<vector_core::ObjId> = if texts.is_empty() { Default::default() } else { d.selection.iter().copied().collect() };
     for (id, xf, t) in &texts {
-        let selected = d.selection.contains(id) || editing == Some(*id);
+        let selected = sel.contains(id) || editing == Some(*id);
         let m = sa * *xf;
         let scale = m.determinant().abs().sqrt() as f32;
         let to = |p: Point| {

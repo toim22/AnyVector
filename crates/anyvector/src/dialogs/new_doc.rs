@@ -371,6 +371,43 @@ impl NewDocState {
         }
     }
 
+    /// The state a new document starts from: the settings of the last new document, if any
+    /// (Settings::last_new_doc), else Letter in the default unit.
+    pub fn from_settings(n: usize, settings: &crate::settings::Settings) -> NewDocState {
+        let mut st = NewDocState::new(n, settings.default_unit);
+        if let Some(l) = &settings.last_new_doc {
+            if l.width > 0.0 && l.height > 0.0 {
+                st.selected = l.preset.clone();
+                st.width = l.width;
+                st.height = l.height;
+                st.unit = l.unit;
+                st.dpi = if l.dpi > 0.0 { l.dpi } else { 300.0 };
+                st.pages = l.pages.max(1);
+                st.multipage = l.multipage;
+                st.bleed_on = l.bleed_on;
+                st.bleed = l.bleed.max(0.0);
+                st.color = l.color.clone();
+            }
+        }
+        st
+    }
+
+    /// The settings to remember for the next new document.
+    pub fn defaults(&self) -> crate::settings::NewDocDefaults {
+        crate::settings::NewDocDefaults {
+            preset: self.selected.clone(),
+            width: self.width,
+            height: self.height,
+            unit: self.unit,
+            dpi: self.dpi,
+            pages: self.pages,
+            multipage: self.multipage,
+            bleed_on: self.bleed_on,
+            bleed: self.bleed,
+            color: self.color.clone(),
+        }
+    }
+
     /// The template chosen on the Templates tab, if that tab is active.
     pub fn template(&self) -> Option<&TemplateInfo> {
         if self.tab != 1 {
@@ -387,6 +424,18 @@ impl NewDocState {
         self.dpi = p.dpi;
         self.color.cmyk = p.cmyk;
     }
+}
+
+/// Remembers a page size set on a document (property bar Paper Type or page width/height) as
+/// the page size of the next new document; the other remembered settings stay.
+pub fn remember_page_size(settings: &mut crate::settings::Settings, width: f64, height: f64, unit: Unit) {
+    let mut l = settings.last_new_doc.clone().unwrap_or_else(|| crate::settings::NewDocDefaults { unit, ..Default::default() });
+    let same = |a: f64, b: f64| (a - b).abs() < 0.5;
+    l.preset = builtin_presets().into_iter().find(|p| p.kind == Kind::Print && ((same(p.width, width) && same(p.height, height)) || (same(p.width, height) && same(p.height, width)))).map(|p| p.name);
+    l.width = width;
+    l.height = height;
+    l.unit = unit;
+    settings.last_new_doc = Some(l);
 }
 
 fn all_presets(app: &AnyVectorApp) -> Vec<Preset> {
@@ -652,6 +701,8 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
             app.settings.recent_page_presets.insert(0, n);
             app.settings.recent_page_presets.truncate(20);
         }
+        // the next new document (and the one made at start-up) starts from these settings
+        app.settings.last_new_doc = Some(st.defaults());
         app.create_document(&st);
     } else if !(cancel || dismissed) {
         app.dialogs.new_doc = Some(st);
@@ -1018,6 +1069,61 @@ fn templates_tab(_app: &mut AnyVectorApp, ui: &mut Ui, st: &mut NewDocState, top
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn a4() -> crate::settings::NewDocDefaults {
+        let p = builtin_presets().into_iter().find(|p| p.name == "A4").unwrap();
+        crate::settings::NewDocDefaults { preset: Some("A4".into()), width: p.width, height: p.height, unit: Unit::Millimeters, ..Default::default() }
+    }
+
+    #[test]
+    fn last_new_doc_settings_round_trip() {
+        let mut s = crate::settings::Settings::default();
+        assert!(s.last_new_doc.is_none());
+        s.last_new_doc = Some(crate::settings::NewDocDefaults { pages: 3, multipage: true, bleed_on: true, ..a4() });
+        let json = serde_json::to_vec(&s).unwrap();
+        let back: crate::settings::Settings = serde_json::from_slice(&json).unwrap();
+        assert_eq!(back.last_new_doc, s.last_new_doc);
+        // settings saved by older versions have no remembered document
+        let mut v: serde_json::Value = serde_json::from_slice(&json).unwrap();
+        v.as_object_mut().unwrap().remove("last_new_doc");
+        let old: crate::settings::Settings = serde_json::from_value(v).unwrap();
+        assert!(old.last_new_doc.is_none());
+    }
+
+    #[test]
+    fn new_documents_start_from_the_last_settings() {
+        let mut s = crate::settings::Settings::default();
+        s.default_unit = Unit::Points;
+        // nothing remembered yet: Letter in the default unit
+        let st = NewDocState::from_settings(1, &s);
+        assert_eq!((st.width, st.height, st.unit, st.selected.as_deref()), (612.0, 792.0, Unit::Points, Some("Letter")));
+        // the last document was A4, landscape
+        let mut st = NewDocState::from_settings(1, &s);
+        st.apply(&builtin_presets().into_iter().find(|p| p.name == "A4").unwrap());
+        std::mem::swap(&mut st.width, &mut st.height);
+        st.pages = 2;
+        s.last_new_doc = Some(st.defaults());
+        let next = NewDocState::from_settings(2, &s);
+        assert_eq!(next.selected.as_deref(), Some("A4"));
+        assert_eq!((next.width, next.height, next.unit, next.pages), (st.width, st.height, Unit::Millimeters, 2));
+        assert!(next.width > next.height);
+        assert_eq!(next.name, "Untitled-2");
+    }
+
+    #[test]
+    fn property_bar_page_size_is_remembered() {
+        let mut s = crate::settings::Settings::default();
+        let a4 = a4();
+        // landscape A4 set on the property bar
+        remember_page_size(&mut s, a4.height, a4.width, Unit::Millimeters);
+        let l = s.last_new_doc.clone().unwrap();
+        assert_eq!((l.preset.as_deref(), l.width, l.height, l.unit), (Some("A4"), a4.height, a4.width, Unit::Millimeters));
+        // a custom size keeps the other remembered settings
+        s.last_new_doc.as_mut().unwrap().dpi = 150.0;
+        remember_page_size(&mut s, 100.0, 200.0, Unit::Millimeters);
+        let l = s.last_new_doc.unwrap();
+        assert_eq!((l.preset, l.width, l.height, l.dpi), (None, 100.0, 200.0, 150.0));
+    }
 
     #[test]
     fn presets_match_reference() {

@@ -392,6 +392,10 @@ pub struct Settings {
     pub custom_page_presets: Vec<CustomPagePreset>,
     /// Names of presets used most recently (newest first).
     pub recent_page_presets: Vec<String>,
+    /// The settings of the last new document (Create a New Document, or the page size last
+    /// set on the property bar): new documents, including the one made at start-up, start
+    /// from them, as CorelDRAW remembers its last paper type. `None` until the first one.
+    pub last_new_doc: Option<NewDocDefaults>,
     /// Save Drawing options (also under Options ▸ Document ▸ Save and the Advanced... button).
     pub save: SaveSettings,
 }
@@ -406,6 +410,42 @@ pub struct CustomPagePreset {
     pub unit: vector_core::Unit,
     pub dpi: f64,
     pub cmyk: bool,
+}
+
+/// The remembered Create a New Document settings.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct NewDocDefaults {
+    /// The page preset chosen (None for a custom size).
+    pub preset: Option<String>,
+    /// Page size in points (the orientation is width > height).
+    pub width: f64,
+    pub height: f64,
+    pub unit: vector_core::Unit,
+    pub dpi: f64,
+    pub pages: usize,
+    pub multipage: bool,
+    pub bleed_on: bool,
+    /// Bleed in points.
+    pub bleed: f64,
+    pub color: vector_core::document::ColorSettings,
+}
+
+impl Default for NewDocDefaults {
+    fn default() -> Self {
+        NewDocDefaults {
+            preset: Some("Letter".into()),
+            width: 612.0,
+            height: 792.0,
+            unit: vector_core::Unit::Inches,
+            dpi: 300.0,
+            pages: 1,
+            multipage: false,
+            bleed_on: false,
+            bleed: 9.0,
+            color: Default::default(),
+        }
+    }
 }
 
 /// Options used when saving drawings.
@@ -699,6 +739,7 @@ impl Default for Settings {
             update_mode: crate::updater::KEEP_UP_TO_DATE,
             custom_page_presets: Vec::new(),
             recent_page_presets: Vec::new(),
+            last_new_doc: None,
             save: SaveSettings::default(),
         }
     }

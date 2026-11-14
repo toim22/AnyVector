@@ -45,6 +45,11 @@ const T_GUIDE: u32 = 0x16;
 const ARG_GUIDE: u32 = 0x3e80;
 const T_PATH: u32 = 0x25;
 const T_POWERLINE4: u32 = 0x0e;
+/// An import filter's metadata object (CorelDRAW's `OT_FILTER_METAOBJECT`, "Metadata"): an
+/// empty object with no fill and no outline that keeps what a filter read from the original
+/// file (an SVG's attributes, for one) so the matching export can write it back. CorelDRAW
+/// draws nothing for it, so neither do we, and nothing is left out.
+const T_FILTER_META: u32 = 0x1f;
 
 /// A fill as stored, before it is fitted to an object.
 #[derive(Clone, Debug)]
@@ -1508,7 +1513,7 @@ impl<'a> Ctx<'a> {
         // a CorelDRAW 4 PowerLine is the outline of the shapes CorelDRAW drew for it, which the
         // group next to it holds: nothing is left out (CorelDRAW 5 and 6 keep only the PowerLine)
         let powerline = kind == T_POWERLINE4 && self.ver < 500;
-        if !has_children && &lt == b"obj " && !powerline {
+        if !has_children && &lt == b"obj " && !powerline && kind != T_FILTER_META {
             *self.skipped.entry(kind).or_default() += 1;
         }
     }
@@ -2256,6 +2261,33 @@ pub(crate) mod tests {
         assert_eq!(cx.notes.get(&ImportNote::MissingFontId { id: 7 }), Some(&2));
         let report = Report { skipped: vec![(0x20, 3)], notes: vec![(ImportNote::SkippedObjects { kind: 0x20 }, 3)] };
         assert_eq!(report.lines(), vec!["Left out: 3 object(s) of a kind AnyVector doesn't read yet (type 32)".to_string()]);
+    }
+
+    /// An `obj ` list holding only a `loda` record of type `kind` with no arguments, in the
+    /// 32-bit layout of CorelDRAW 6 and later.
+    fn bare_object(kind: u32) -> Chunk {
+        let mut loda = vec![];
+        for v in [20u32, 0, 20, 20, kind] {
+            loda.extend_from_slice(&v.to_le_bytes());
+        }
+        let leaf = |tag: &[u8; 4], data: Vec<u8>| Chunk { tag: *tag, list: None, data, children: vec![] };
+        let list = |t: &[u8; 4], children: Vec<Chunk>| Chunk { tag: *b"LIST", list: Some(*t), data: vec![], children };
+        list(b"obj ", vec![leaf(b"spnd", 9u32.to_le_bytes().to_vec()), list(b"lgob", vec![leaf(b"loda", loda)])])
+    }
+
+    #[test]
+    fn a_filter_metadata_object_is_not_reported_as_left_out() {
+        // CorelDRAW 2022 files can hold type 31 objects, the empty carriers of an import filter's
+        // metadata: CorelDRAW draws nothing for them
+        let mut cx = ctx(2400);
+        let mut out = vec![];
+        cx.object(&bare_object(T_FILTER_META), Affine::IDENTITY, Affine::IDENTITY, &mut out);
+        assert!(out.is_empty());
+        assert!(cx.skipped.is_empty(), "{:?}", cx.skipped);
+        // an object of a kind still unread is counted as before
+        cx.object(&bare_object(0x20), Affine::IDENTITY, Affine::IDENTITY, &mut out);
+        assert!(out.is_empty());
+        assert_eq!(cx.skipped.iter().collect::<Vec<_>>(), vec![(&0x20, &1)]);
     }
 
     #[test]

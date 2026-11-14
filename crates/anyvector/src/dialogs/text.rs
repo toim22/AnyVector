@@ -32,14 +32,12 @@ pub fn target_ids(app: &AnyVectorApp) -> Vec<ObjId> {
         return vec![te.obj];
     }
     let mut out = vec![];
-    for id in &d.selection {
-        if let Some(o) = d.doc.find(*id) {
-            o.walk(&mut |x| {
-                if matches!(x.kind, ObjKind::Text(_)) {
-                    out.push(x.id);
-                }
-            });
-        }
+    for o in d.doc.find_all(&d.selection) {
+        o.walk(&mut |x| {
+            if matches!(x.kind, ObjKind::Text(_)) {
+                out.push(x.id);
+            }
+        });
     }
     out
 }
