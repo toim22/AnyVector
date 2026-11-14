@@ -407,7 +407,16 @@ impl AnyVectorApp {
             self.active = Some(i);
             return true;
         }
-        match vector_io::open_with_notes(p) {
+        if vector_io::extension(p) == "pdf" {
+            return crate::dialogs::pdf_import::start(self, p, true, None);
+        }
+        let r = vector_io::open_with_notes(p);
+        self.finish_open(p, r)
+    }
+
+    /// Show a drawing that was read from `p` in a new tab (or say why it couldn't be read).
+    pub(crate) fn finish_open(&mut self, p: &Path, r: vector_io::Result<(vector_core::Document, Vec<String>)>) -> bool {
+        match r {
             Ok((mut doc, notes)) => {
                 doc.ensure_next_id();
                 let title = p.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
@@ -435,7 +444,7 @@ impl AnyVectorApp {
 
     /// Tell the user what a drawing that just opened or was imported differs in from the original
     /// (`notes` from the importer, in English, translated here line by line).
-    fn show_import_notes(&mut self, title: &str, p: &Path, notes: &[String]) {
+    pub(crate) fn show_import_notes(&mut self, title: &str, p: &Path, notes: &[String]) {
         if notes.is_empty() {
             return;
         }
@@ -462,41 +471,49 @@ impl AnyVectorApp {
 
     /// Import a file into the active document, centered on the page (or at a point).
     pub fn import_path(&mut self, p: &Path, at: Option<Point>) {
+        if vector_io::extension(p) == "pdf" {
+            crate::dialogs::pdf_import::start(self, p, false, at);
+            return;
+        }
         if !self.has_doc() {
             self.new_default_document();
         }
-        let warn_large = self.settings.warnings.iter().any(|(t, on)| *on && t.contains("large bitmap"));
         let Some(d) = self.doc_mut() else { return };
         match vector_io::import_with_notes(&mut d.doc, p) {
-            Ok((mut objs, notes)) => {
-                if objs.is_empty() {
-                    return;
-                }
-                let bb = vector_core::object::union_bounds(objs.iter().map(|o| o.bounds()));
-                let target = at.unwrap_or_else(|| d.page_ref().rect().center());
-                let mut a = Affine::translate(target - bb.center());
-                // fit very large imports to the page
-                let pr = d.page_ref().rect();
-                if at.is_none() && (bb.width() > pr.width() * 1.5 || bb.height() > pr.height() * 1.5) {
-                    let s = (pr.width() / bb.width()).min(pr.height() / bb.height()) * 0.9;
-                    a = Affine::translate(target.to_vec2()) * Affine::scale(s) * Affine::translate(-bb.center().to_vec2());
-                }
-                for o in objs.iter_mut() {
-                    o.apply_transform(a);
-                }
-                d.add_objects("Import", objs);
-                let name = p.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
-                self.settings.last_dir = p.parent().map(|x| x.to_path_buf());
-                let large = self.doc().and_then(|d| d.doc.images.values().map(|i| i.width as u64 * i.height as u64).max()).unwrap_or(0) > 40_000_000;
-                if large && warn_large {
-                    self.flash(format!("Imported {name} (large bitmap: editing may be slower)"));
-                } else {
-                    self.flash(format!("Imported {name}"));
-                }
-                self.show_import_notes("Import", p, &notes);
-            }
+            Ok((objs, notes)) => self.place_import(p, at, objs, notes),
             Err(e) => self.dialogs.message_box = Some(("Import".into(), format!("Could not import {}:\n{e}", p.display()))),
         }
+    }
+
+    /// Put imported objects on the active page, centered (or at a point), and select them.
+    pub(crate) fn place_import(&mut self, p: &Path, at: Option<Point>, mut objs: Vec<vector_core::Object>, notes: Vec<String>) {
+        let warn_large = self.settings.warnings.iter().any(|(t, on)| *on && t.contains("large bitmap"));
+        let Some(d) = self.doc_mut() else { return };
+        if objs.is_empty() {
+            return;
+        }
+        let bb = vector_core::object::union_bounds(objs.iter().map(|o| o.bounds()));
+        let target = at.unwrap_or_else(|| d.page_ref().rect().center());
+        let mut a = Affine::translate(target - bb.center());
+        // fit very large imports to the page
+        let pr = d.page_ref().rect();
+        if at.is_none() && (bb.width() > pr.width() * 1.5 || bb.height() > pr.height() * 1.5) {
+            let s = (pr.width() / bb.width()).min(pr.height() / bb.height()) * 0.9;
+            a = Affine::translate(target.to_vec2()) * Affine::scale(s) * Affine::translate(-bb.center().to_vec2());
+        }
+        for o in objs.iter_mut() {
+            o.apply_transform(a);
+        }
+        d.add_objects("Import", objs);
+        let name = p.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+        self.settings.last_dir = p.parent().map(|x| x.to_path_buf());
+        let large = self.doc().and_then(|d| d.doc.images.values().map(|i| i.width as u64 * i.height as u64).max()).unwrap_or(0) > 40_000_000;
+        if large && warn_large {
+            self.flash(format!("Imported {name} (large bitmap: editing may be slower)"));
+        } else {
+            self.flash(format!("Imported {name}"));
+        }
+        self.show_import_notes("Import", p, &notes);
     }
 
     /// The `.cdr` save options for a document from the current settings.

@@ -14,6 +14,7 @@ pub mod objdata;
 pub mod object;
 pub mod palette;
 pub mod options;
+pub mod pdf_import;
 pub mod print;
 pub mod symmetry;
 pub mod table;
@@ -91,6 +92,8 @@ pub struct Dialogs {
     pub pdf: Option<export::PdfState>,
     /// SVG Export options.
     pub svg: Option<export::SvgState>,
+    /// File > Open / Import of a PDF: Import PDF.
+    pub pdf_import: Option<pdf_import::PdfImportState>,
     /// Export to <bitmap>, Export For Office / Web / WordPress.
     pub bitmap: Option<export::BitmapState>,
     pub paste_special: Option<clipboard::PasteSpecialState>,
@@ -150,6 +153,7 @@ impl Dialogs {
             || self.merge.is_some()
             || self.pdf.is_some()
             || self.svg.is_some()
+            || self.pdf_import.is_some()
             || self.bitmap.is_some()
             || self.paste_special.is_some()
             || self.copy_props.is_some()
@@ -215,6 +219,9 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
     }
     if app.dialogs.svg.is_some() {
         export::show_svg(app, ctx);
+    }
+    if app.dialogs.pdf_import.is_some() {
+        pdf_import::show(app, ctx);
     }
     if app.dialogs.bitmap.is_some() {
         export::show_bitmap(app, ctx);
