@@ -56,7 +56,9 @@ pub fn to_sk(a: Affine) -> sk::Transform {
     sk::Transform::from_row(c[0] as f32, c[1] as f32, c[2] as f32, c[3] as f32, c[4] as f32, c[5] as f32)
 }
 
+/// A color as drawn: shown through the document's color profiles (see `vector_core::cms`).
 pub fn sk_color(c: Color) -> sk::Color {
+    let c = vector_core::cms::display(c);
     sk::Color::from_rgba8(c.r, c.g, c.b, c.a)
 }
 
@@ -298,7 +300,10 @@ impl Renderer {
             }
             if let Some(b) = &o.effects.bevel {
                 let depth = if b.to_center { (layer.width().min(layer.height()) as f32) / 2.0 } else { (b.distance * view_scale(ctx.view)) as f32 };
-                let col = |c: vector_core::Color| [c.r as f32, c.g as f32, c.b as f32];
+                let col = |c: vector_core::Color| {
+                    let c = vector_core::cms::display(c);
+                    [c.r as f32, c.g as f32, c.b as f32]
+                };
                 fx::bevel_lit(&mut layer, depth, &fx::BevelLight {
                     emboss: b.emboss,
                     shadow: b.shadow.map(col),
@@ -1007,7 +1012,8 @@ impl Renderer {
         let sub = Ctx { doc: ctx.doc, view: Affine::translate((dv.x - x0 as f64, dv.y - y0 as f64)) * ctx.view, opts: ctx.opts };
         self.silhouette(&sub, o, &mut layer);
         fx::blur(&mut layer, feather as f32);
-        fx::tint(&mut layer, [s.color.r, s.color.g, s.color.b], (s.opacity / 100.0) as f32);
+        let sc = vector_core::cms::display(s.color);
+        fx::tint(&mut layer, [sc.r, sc.g, sc.b], (s.opacity / 100.0) as f32);
         if s.fade > 0.0 {
             // fade from the near end (the object's base) to the far end
             let bb = o.bounds();
@@ -1032,7 +1038,8 @@ impl Renderer {
         clear.blend_mode = sk::BlendMode::Clear;
         layer.fill_path(&sp, &clear, sk::FillRule::Winding, to_sk(Affine::translate(dv.to_vec2()) * ctx.view), None);
         fx::blur(&mut layer, feather);
-        fx::tint(&mut layer, [s.color.r, s.color.g, s.color.b], (s.opacity / 100.0) as f32);
+        let sc = vector_core::cms::display(s.color);
+        fx::tint(&mut layer, [sc.r, sc.g, sc.b], (s.opacity / 100.0) as f32);
         let mut mask = sk::Mask::new(w, h).unwrap();
         mask.fill_path(&sp, if o.style.even_odd { sk::FillRule::EvenOdd } else { sk::FillRule::Winding }, true, to_sk(ctx.view));
         target.draw_pixmap(0, 0, layer.as_ref(), &sk::PixmapPaint::default(), sk::Transform::identity(), Some(&mask));
@@ -1273,7 +1280,7 @@ impl Renderer {
                 let vb = ctx.view.transform_rect_bbox(path.bounding_box());
                 fx::fish_eye(&seen, &mut copy, (c.x as f32, c.y as f32), (vb.width().max(vb.height()) / 2.0) as f32, (l.rate / 100.0) as f32);
             }
-            LensKind::Wireframe => fx::wireframe(&mut copy, l.outline.map(|c| [c.r, c.g, c.b]), l.fill.map(|c| [c.r, c.g, c.b])),
+            LensKind::Wireframe => fx::wireframe(&mut copy, l.outline.map(vector_core::cms::display).map(|c| [c.r, c.g, c.b]), l.fill.map(vector_core::cms::display).map(|c| [c.r, c.g, c.b])),
             LensKind::BitmapEffect => {}
             _ => fx::map_colors(&mut copy, |r, g, b| {
                 let [r, g, b] = vector_core::object::lens_color(l, [r, g, b]);
