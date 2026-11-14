@@ -3,6 +3,8 @@
 
 pub mod cdr;
 pub mod corel;
+pub mod emf;
+pub mod emf_import;
 pub mod flat;
 pub mod image_io;
 pub mod native;
@@ -71,6 +73,7 @@ pub const IMPORT_TYPES: &[FileType] = &[
     FileType { name: "CMX - Corel Presentation Exchange (*.cmx)", extensions: &["cmx"], vector: true },
     FileType { name: "AnyVector Drawing (*.vct)", extensions: &["vct"], vector: true },
     FileType { name: "SVG - Scalable Vector Graphics (*.svg;*.svgz)", extensions: &["svg", "svgz"], vector: true },
+    FileType { name: "EMF - Enhanced Windows Metafile (*.emf)", extensions: &["emf"], vector: true },
     FileType { name: "PNG - Portable Network Graphics (*.png)", extensions: &["png"], vector: false },
     FileType { name: "JPG - JPEG Bitmaps (*.jpg;*.jpeg;*.jfif)", extensions: &["jpg", "jpeg", "jfif"], vector: false },
     FileType { name: "BMP - Windows Bitmap (*.bmp)", extensions: &["bmp"], vector: false },
@@ -90,6 +93,7 @@ pub const EXPORT_TYPES: &[FileType] = &[
     FileType { name: "TIF - TIFF Bitmap (*.tif)", extensions: &["tif", "tiff"], vector: false },
     FileType { name: "WEBP - WebP Image (*.webp)", extensions: &["webp"], vector: false },
     FileType { name: "GIF - CompuServe Bitmap (*.gif)", extensions: &["gif"], vector: false },
+    FileType { name: "EMF - Enhanced Windows Metafile (*.emf)", extensions: &["emf"], vector: true },
 ];
 
 pub fn extension(path: &Path) -> String {
@@ -190,6 +194,7 @@ pub fn import(doc: &mut Document, path: &Path) -> Result<Vec<Object>> {
             let other = svg_import::document_from_svg(&bytes)?;
             Ok(merge_document(doc, other))
         }
+        "emf" => emf_import::objects_from_emf(doc, &bytes),
         e if image_io::is_image_ext(e) => {
             let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
             let img = image_io::decode(&bytes, &name)?;
