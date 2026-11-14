@@ -301,6 +301,7 @@ pub fn cmd(id: &str) -> Option<Cmd> {
         "68000526" => ConvertToCurves,
         "c44919b9" => ConvertToBitmap,
         "e64806d9" => OutlineToObject,
+        "c7a1e5d2" => CreateCutContour,
         // Bitmaps
         "f9d61ad8" => AutoAdjust,
         "f85cb8c1" => ResampleBitmap,

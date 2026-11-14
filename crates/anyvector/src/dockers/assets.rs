@@ -84,7 +84,7 @@ fn thumbnail(ctx: &egui::Context, p: &Path) -> Option<egui::TextureHandle> {
     let (w, h, rgba) = if ["cdr", "cdt", "vct"].contains(&ext.as_str()) {
         vector_io::read_thumbnail(p)?
     } else if is_raster(p) {
-        let img = image::open(p).ok()?.thumbnail(160, 160).to_rgba8();
+        let img = image::open(p).ok().or_else(|| vector_io::image_io::load_dynamic(&std::fs::read(p).ok()?).ok())?.thumbnail(160, 160).to_rgba8();
         (img.width(), img.height(), img.into_raw())
     } else if ext == "svg" || ext == "svgz" {
         let doc = vector_io::open(p).ok()?;

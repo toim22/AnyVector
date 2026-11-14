@@ -16,62 +16,35 @@ pub struct Env {
 
 pub const INTENTS: [&str; 4] = ["Relative colorimetric", "Absolute colorimetric", "Perceptual", "Saturation"];
 
-const DEFAULT_ENV: &str = "U.S. Web Coated (SWOP) v2";
-
-/// The installed color profiles (Windows color folder): description and color space.
+/// The installed color profiles (Windows and CorelDRAW color folders, see `vector_core::cms`):
+/// description and color space.
 pub fn installed_profiles() -> Vec<Env> {
-    let dir = std::env::var("SystemRoot").map(|r| std::path::PathBuf::from(r).join("System32/spool/drivers/color")).unwrap_or_default();
-    let mut v: Vec<Env> = std::fs::read_dir(dir)
-        .map(|rd| {
-            rd.flatten()
-                .filter_map(|e| {
-                    let p = e.path();
-                    let ext = p.extension()?.to_string_lossy().to_lowercase();
-                    if ext != "icc" && ext != "icm" {
-                        return None;
-                    }
-                    let data = std::fs::read(&p).ok()?;
-                    let (kind, desc) = icc_info(&data)?;
-                    let name = desc.unwrap_or_else(|| p.file_name().unwrap_or_default().to_string_lossy().to_string());
-                    Some(Env { name, kind })
-                })
-                .collect()
-        })
-        .unwrap_or_default();
+    let mut v: Vec<Env> = vector_core::cms::installed_profiles()
+        .iter()
+        .filter(|p| matches!(&p.class, b"prtr" | b"mntr" | b"spac"))
+        .map(|p| Env { name: p.description.clone(), kind: match p.space {
+            "CMYK" => 0,
+            "RGB" => 1,
+            _ => 2,
+        } })
+        .collect();
     v.sort_by(|a, b| a.kind.cmp(&b.kind).then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase())));
     v.dedup();
     v
 }
 
-/// The color space and the description of an ICC profile (output, display or color space
-/// profiles only).
-fn icc_info(d: &[u8]) -> Option<(u8, Option<String>)> {
-    if d.len() < 132 || &d[36..40] != b"acsp" {
-        return None;
-    }
-    let class = &d[12..16];
-    if !(class == b"prtr" || class == b"mntr" || class == b"spac") {
-        return None;
-    }
-    let kind = match &d[16..20] {
-        b"CMYK" => 0,
-        b"RGB " => 1,
-        b"GRAY" => 2,
-        _ => return None,
-    };
-    let desc = crate::color_profiles::icc_description(d);
-    Some((kind, desc.filter(|s| !s.is_empty())))
-}
-
-/// The rows of the Simulate environment list: (row, header?).
+/// The rows of the Simulate environment list: (row, header?). The document's and the default
+/// profiles come first.
 fn env_rows(app: &AnyVectorApp) -> Vec<(Option<Env>, &'static str)> {
+    let def = &app.settings.color_management.defaults;
+    let doc = app.doc().map(|d| d.doc.settings.color.clone()).unwrap_or_else(|| def.clone());
     let mut v: Vec<(Option<Env>, &'static str)> = vec![
-        (Some(Env { name: format!("(Document) {DEFAULT_ENV}"), kind: 0 }), ""),
-        (Some(Env { name: "(Document) Dot Gain 20%".into(), kind: 2 }), ""),
+        (Some(Env { name: format!("(Document) {}", doc.cmyk_profile), kind: 0 }), ""),
+        (Some(Env { name: format!("(Document) {}", doc.gray_profile), kind: 2 }), ""),
         (None, "Default profiles"),
-        (Some(Env { name: "(Default) sRGB IEC61966-2.1".into(), kind: 1 }), ""),
-        (Some(Env { name: format!("(Default) {DEFAULT_ENV}"), kind: 0 }), ""),
-        (Some(Env { name: "(Default) Dot Gain 20%".into(), kind: 2 }), ""),
+        (Some(Env { name: format!("(Default) {}", def.rgb_profile), kind: 1 }), ""),
+        (Some(Env { name: format!("(Default) {}", def.cmyk_profile), kind: 0 }), ""),
+        (Some(Env { name: format!("(Default) {}", def.gray_profile), kind: 2 }), ""),
     ];
     let profiles = &app.dockers.ui.proof_profiles;
     for (k, head) in [(0u8, "CMYK output profiles"), (1, "RGB output profiles"), (2, "Grayscale output profiles")] {
@@ -82,6 +55,26 @@ fn env_rows(app: &AnyVectorApp) -> Vec<(Option<Env>, &'static str)> {
         }
     }
     v
+}
+
+/// The soft proof of the proofing environment in the settings, for a document's color
+/// settings: its profile, through the Color Proofing rendering intent.
+pub fn proof_lut(s: &crate::settings::Settings, doc: &vector_core::document::ColorSettings) -> Option<std::sync::Arc<vector_core::cms::ProofLut>> {
+    use vector_core::document::RenderingIntent as I;
+    let intent = match s.proof_intent {
+        0 => I::RelativeColorimetric,
+        1 => I::AbsoluteColorimetric,
+        2 => I::Perceptual,
+        _ => I::Saturation,
+    };
+    // "(Document) ...": the profile of the document shown, whichever it is
+    let env = if s.proof_env.starts_with("(Document) ") {
+        if s.proof_env_kind == 2 { doc.gray_profile.as_str() } else { doc.cmyk_profile.as_str() }
+    } else {
+        short(&s.proof_env)
+    };
+    let env = if env.trim().is_empty() { doc.cmyk_profile.as_str() } else { env };
+    Some(vector_core::cms::engine(doc).proof(env, intent))
 }
 
 /// The environment's name without the (Document)/(Default) mark.
@@ -313,7 +306,8 @@ fn export_proof(app: &mut AnyVectorApp) {
     let Some(d) = app.doc() else { return };
     let Some(path) = rfd::FileDialog::new().set_title("Export Soft Proof").add_filter("PNG", &["png"]).add_filter("JPG", &["jpg", "jpeg"]).add_filter("TIFF", &["tif", "tiff"]).set_file_name(format!("{} proof.png", d.display_name())).save_file() else { return };
     let Some(mut pm) = vector_render::render_page_image(&d.doc, d.page, 150.0, Some(Color::WHITE), None, true) else { return };
-    crate::canvas::proof_pixmap(&mut pm, app.settings.proof_env_kind, None, [0, 0, 0, 0]);
+    let lut = proof_lut(&app.settings, &d.doc.settings.color);
+    crate::canvas::proof_pixmap(&mut pm, lut.as_deref(), true, None, [0, 0, 0, 0]);
     let img = image::RgbaImage::from_raw(pm.width(), pm.height(), pm.data().to_vec());
     let ok = img.map(|i| image::DynamicImage::ImageRgba8(i).to_rgb8().save(&path).is_ok()).unwrap_or(false);
     if !ok {

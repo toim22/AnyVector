@@ -258,11 +258,31 @@ pub struct GlUi {
     pub size: f32,
     pub info: bool,
     pub variations: bool,
+    /// The search box: a character, or its Unicode code ("U+00A9", "a9").
+    pub search: String,
 }
 
 impl Default for GlUi {
     fn default() -> Self {
-        GlUi { font: vector_core::text::default_font_family(), filter: vec![], sel: None, recent: vec![], size: 38.0, info: false, variations: false }
+        GlUi { font: vector_core::text::default_font_family(), filter: vec![], sel: None, recent: vec![], size: 38.0, info: false, variations: false, search: String::new() }
+    }
+}
+
+/// Whether a glyph answers the search: the character itself (either case) or the start of its
+/// Unicode code.
+fn glyph_matches(c: char, query: &str) -> bool {
+    let q = query.trim();
+    let mut it = q.chars();
+    match (it.next(), it.next()) {
+        (None, _) => true,
+        (Some(one), None) => c == one || c.to_lowercase().eq(one.to_lowercase()),
+        _ => {
+            let hex = q.strip_prefix("U+").or_else(|| q.strip_prefix("u+")).or_else(|| q.strip_prefix("0x")).unwrap_or(q);
+            !hex.is_empty() && hex.chars().all(|h| h.is_ascii_hexdigit()) && {
+                let code = format!("{:04X}", c as u32);
+                code.starts_with(&hex.to_uppercase()) || format!("{:X}", c as u32) == hex.to_uppercase()
+            }
+        }
     }
 }
 
@@ -369,8 +389,16 @@ pub fn glyphs(app: &mut AnyVectorApp, ui: &mut Ui) {
         .on_hover_text("Find characters and glyphs for specific OpenType features, languages, categories, and more.");
     let _ = filter_open;
     ui.add_space(4.0);
+    let search = ui.add(egui::TextEdit::singleline(&mut st.search).hint_text("Search").desired_width(w - 4.0)).on_hover_text("Type a character or its Unicode value (U+00A9).");
+    if search.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+        st.search.clear();
+    }
+    ui.add_space(4.0);
     // the glyphs, the glyph info, the bottom bar
-    let chars: Vec<char> = vector_core::text::font_chars(&st.font, false, false, 6000).into_iter().filter(|c| st.filter.is_empty() || st.filter.iter().any(|n| category(*c, n))).collect();
+    let chars: Vec<char> = vector_core::text::font_chars(&st.font, false, false, 6000).into_iter().filter(|c| (st.filter.is_empty() || st.filter.iter().any(|n| category(*c, n))) && glyph_matches(*c, &st.search)).collect();
+    if chars.is_empty() && !st.search.trim().is_empty() {
+        ui.label(egui::RichText::new("No matching glyphs").color(crate::theme::TEXT_DIM()));
+    }
     let info_h = if st.info { 120.0 } else { 0.0 };
     let grid_h = (ui.clip_rect().bottom() - ui.cursor().top() - 54.0 - info_h).max(80.0);
     let cell = st.size + 6.0;
@@ -457,4 +485,19 @@ pub fn glyphs(app: &mut AnyVectorApp, ui: &mut Ui) {
         }
     }
     app.dockers.ui.gl = st;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::glyph_matches;
+
+    #[test]
+    fn glyph_search_by_character_or_code() {
+        assert!(glyph_matches('©', ""));
+        assert!(glyph_matches('A', "a") && glyph_matches('a', "A"));
+        assert!(!glyph_matches('B', "a"));
+        assert!(glyph_matches('©', "U+00A9") && glyph_matches('©', "a9") && glyph_matches('©', "00a"));
+        assert!(glyph_matches('€', "u+20ac") && glyph_matches('€', "0x20AC"));
+        assert!(!glyph_matches('©', "U+00AA") && !glyph_matches('©', "copyright"));
+    }
 }

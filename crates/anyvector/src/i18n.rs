@@ -219,7 +219,8 @@ pub fn set_lang(l: Lang) {
 
 /// Install the translator in egui and choose the language of the settings.
 pub fn init(setting: &str) {
-    egui::set_text_translator(Some(translator));
+    // the same translation, also feeding the Options search index while it is made
+    egui::set_text_translator(Some(crate::dialogs::options::search::recording_translator));
     set_lang(Lang::resolve(setting));
 }
 

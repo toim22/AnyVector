@@ -5584,3 +5584,16 @@ GitHub doesn't accept .{} files. Put "{}" in a .zip file.	GitHub godtar inte .{}
 "{}" is empty.	"{}" är tom.
 "{}" is {}. GitHub accepts at most {} MB for this type.	"{}" är {}. GitHub godtar högst {} MB för den här typen.
 To attach "{}", drag it from the folder that opened into the description box on GitHub.	Bifoga "{}" genom att dra den från mappen som öppnades till beskrivningsrutan på GitHub.
+EPS - Encapsulated PostScript (*.eps)	EPS - Encapsulated PostScript (*.eps)
+PS - PostScript (*.ps;*.prn)	PS - PostScript (*.ps;*.prn)
+AI - Adobe Illustrator (*.ai)	AI - Adobe Illustrator (*.ai)
+Left out: {} use(s) of PostScript operators AnyVector doesn't run ({})	Utelämnat: {} användning(ar) av PostScript-operatorer som AnyVector inte kör ({})
+Skipped {} PostScript error(s) ({})	Hoppade över {} PostScript-fel ({})
+Pattern fills are shown as plain colors ({} fill(s))	Mönsterfyllningar visas som enfärgade ({} fyllning(ar))
+Shadings that aren't linear or radial are shown as plain colors ({})	Toningar som varken är linjära eller radiella visas som enfärgade ({})
+Left out: {} image(s) whose data couldn't be read	Utelämnat: {} bild(er) vars data inte kunde läsas
+Left out: {} text string(s) in composite (CID) fonts	Utelämnat: {} text(er) i sammansatta teckensnitt (CID)
+Left out: {} other file(s) the PostScript asked to read	Utelämnat: {} annan/andra fil(er) som PostScript ville läsa
+The PostScript program was stopped before its end; what it drew until then was imported	PostScript-programmet stoppades före slutet; det som ritats dittills importerades
+Only the first of {} pages was imported	Bara den första av {} sidor importerades
+The PostScript couldn't be read, so the file's preview image was imported instead	PostScript-koden kunde inte läsas, så filens förhandsvisningsbild importerades i stället

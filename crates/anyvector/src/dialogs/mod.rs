@@ -6,6 +6,8 @@ pub mod forms;
 pub mod layout;
 pub mod linestyle;
 pub mod clipboard;
+pub mod colormgmt;
+pub mod cutter;
 pub mod docprops;
 pub mod export;
 pub mod merge;
@@ -14,6 +16,7 @@ pub mod objdata;
 pub mod object;
 pub mod palette;
 pub mod options;
+pub mod pdf_import;
 pub mod print;
 pub mod symmetry;
 pub mod table;
@@ -50,6 +53,8 @@ pub struct Dialogs {
     pub export: Option<ExportState>,
     pub print: Option<PrintState>,
     pub doc_props: bool,
+    /// Tools ▸ Color Management.
+    pub color_mgmt: Option<colormgmt::CmState>,
     pub script_editor: Option<ScriptEditorState>,
     /// Object Data docker: the spreadsheet (Object Data Manager), its levels, and the field editor.
     pub object_data_manager: bool,
@@ -91,6 +96,8 @@ pub struct Dialogs {
     pub pdf: Option<export::PdfState>,
     /// SVG Export options.
     pub svg: Option<export::SvgState>,
+    /// File > Open / Import of a PDF: Import PDF.
+    pub pdf_import: Option<pdf_import::PdfImportState>,
     /// Export to <bitmap>, Export For Office / Web / WordPress.
     pub bitmap: Option<export::BitmapState>,
     pub paste_special: Option<clipboard::PasteSpecialState>,
@@ -122,6 +129,8 @@ pub struct Dialogs {
     pub change_case: Option<usize>,
     pub encode: Option<text::EncodeState>,
     pub edit_text: Option<text::EditTextState>,
+    /// HPGL Export, DXF Export and Create Cut Contour.
+    pub cutter: cutter::CutterDialogs,
 }
 
 impl Dialogs {
@@ -132,6 +141,7 @@ impl Dialogs {
             || self.export.is_some()
             || self.print.is_some()
             || self.doc_props
+            || self.color_mgmt.is_some()
             || self.script_editor.is_some()
             || self.about
             || self.palette_editor.as_ref().is_some_and(|e| !e.sampling())
@@ -150,6 +160,7 @@ impl Dialogs {
             || self.merge.is_some()
             || self.pdf.is_some()
             || self.svg.is_some()
+            || self.pdf_import.is_some()
             || self.bitmap.is_some()
             || self.paste_special.is_some()
             || self.copy_props.is_some()
@@ -172,6 +183,7 @@ impl Dialogs {
             || self.encode.is_some()
             || self.edit_text.is_some()
             || self.ws.any_open()
+            || self.cutter.any_open()
     }
 }
 
@@ -207,6 +219,9 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
     if app.dialogs.merge.is_some() {
         merge::show(app, ctx);
     }
+    if app.dialogs.color_mgmt.is_some() {
+        colormgmt::show(app, ctx);
+    }
     if app.dialogs.export.is_some() {
         export::show_export(app, ctx);
     }
@@ -216,9 +231,13 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
     if app.dialogs.svg.is_some() {
         export::show_svg(app, ctx);
     }
+    if app.dialogs.pdf_import.is_some() {
+        pdf_import::show(app, ctx);
+    }
     if app.dialogs.bitmap.is_some() {
         export::show_bitmap(app, ctx);
     }
+    cutter::show(app, ctx);
     if app.dialogs.paste_special.is_some() {
         clipboard::paste_special(app, ctx);
     }

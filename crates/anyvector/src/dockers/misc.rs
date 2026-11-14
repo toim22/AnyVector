@@ -1279,7 +1279,7 @@ fn image_page(doc: &vector_core::Document, image: u64) -> Option<usize> {
 
 /// Add linked file: import an image that stays linked to its file.
 fn add_linked_file(app: &mut AnyVectorApp) {
-    let exts = ["png", "jpg", "jpeg", "jfif", "bmp", "tif", "tiff", "webp", "gif", "ico", "tga"];
+    let exts = ["png", "jpg", "jpeg", "jfif", "bmp", "tif", "tiff", "webp", "jxl", "gif", "ico", "tga"];
     let mut fd = rfd::FileDialog::new().set_title("Add linked file").add_filter("Bitmaps", &exts);
     if let Some(d) = app.settings.last_dir.clone() {
         fd = fd.set_directory(d);

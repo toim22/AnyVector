@@ -274,6 +274,8 @@ pub struct Settings {
     pub export_format: usize,
     pub export_dpi: Option<f64>,
     pub svg_unit: usize,
+    /// HPGL Export, DXF Export and Create Cut Contour: the last settings.
+    pub cutter: crate::dialogs::cutter::CutterSettings,
     /// Export For ▸ WordPress: the last site and user name (never the password).
     pub wordpress_site: Option<String>,
     pub wordpress_user: Option<String>,
@@ -305,6 +307,10 @@ pub struct Settings {
     pub ai_api_key_env: String,
     /// AI Generate: the Generative AI terms were accepted.
     pub ai_terms_accepted: bool,
+    /// AI Generate: the provider (Anthropic, OpenAI-compatible, Ollama, LM Studio), its model
+    /// and server, and ComfyUI for images. `ai_provider_url` and `ai_api_key_env` stay the
+    /// Anthropic ones. Never holds an API key.
+    pub ai_config: crate::ai_provider::AiConfig,
     /// Links and Rollovers: cross-hatch the Web links' hotspots on the page.
     pub show_hotspots: bool,
     /// Assets docker: the folders of local and network assets, the options, the favorite and
@@ -398,6 +404,8 @@ pub struct Settings {
     pub last_new_doc: Option<NewDocDefaults>,
     /// Save Drawing options (also under Options ▸ Document ▸ Save and the Advanced... button).
     pub save: SaveSettings,
+    /// Tools ▸ Color Management ▸ Default: the default color settings and the color engine.
+    pub color_management: crate::dialogs::colormgmt::CmPrefs,
 }
 
 /// A user-defined page preset.
@@ -652,6 +660,7 @@ impl Default for Settings {
             export_format: 2,
             export_dpi: None,
             svg_unit: 0,
+            cutter: Default::default(),
             wordpress_site: None,
             wordpress_user: None,
             wia_device: None,
@@ -675,6 +684,7 @@ impl Default for Settings {
             ai_provider_url: String::new(),
             ai_api_key_env: "ANTHROPIC_API_KEY".into(),
             ai_terms_accepted: false,
+            ai_config: Default::default(),
             show_hotspots: true,
             asset_folders: vec![],
             asset_single_folder: true,
@@ -741,6 +751,7 @@ impl Default for Settings {
             recent_page_presets: Vec::new(),
             last_new_doc: None,
             save: SaveSettings::default(),
+            color_management: Default::default(),
         }
     }
 }

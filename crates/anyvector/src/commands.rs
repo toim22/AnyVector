@@ -196,6 +196,8 @@ pub enum Cmd {
     /// A Shape tool node command (Add, Delete, To Line, …) on the selected nodes.
     Node(crate::tools::NodeOp),
     OutlineToObject,
+    /// Object ▸ Create Cut Contour: a CutContour hairline around the selection (print-and-cut).
+    CreateCutContour,
     JoinCurves,
     PowerClipInside,
     PowerClipExtract,

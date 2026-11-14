@@ -9,7 +9,8 @@ mod bitmap;
 mod build;
 pub mod cmx;
 mod cmx3;
-mod color;
+pub(crate) mod color;
+mod fonts;
 mod palettes;
 mod psfill;
 mod persp;
@@ -77,7 +78,11 @@ pub fn load_from_bytes(bytes: &[u8]) -> Result<Document> {
         return cmx::load_from_bytes(bytes);
     }
     let root = root(bytes)?;
-    color::with_profile(cmyk_profile(bytes).as_deref(), || build::document(&root))
+    fonts::register(bytes);
+    let profile = cmyk_profile(bytes);
+    let mut doc = color::with_profile(profile.as_deref(), || build::document(&root))?;
+    keep_cmyk_profile(&mut doc, profile);
+    Ok(doc)
 }
 
 /// Open a drawing and also say what was left out or approximated.
@@ -86,7 +91,19 @@ pub fn load_with_report(bytes: &[u8]) -> Result<(Document, Report)> {
         return cmx::load_with_report(bytes);
     }
     let root = root(bytes)?;
-    color::with_profile(cmyk_profile(bytes).as_deref(), || build::document_with_report(&root))
+    // text in a font embedded in the drawing shows in it, so it isn't noted as substituted
+    fonts::register(bytes);
+    let profile = cmyk_profile(bytes);
+    let (mut doc, report) = color::with_profile(profile.as_deref(), || build::document_with_report(&root))?;
+    keep_cmyk_profile(&mut doc, profile);
+    Ok((doc, report))
+}
+
+/// The drawing's CMYK profile becomes the document's, so its CMYK colors keep their look.
+fn keep_cmyk_profile(doc: &mut Document, profile: Option<String>) {
+    if let Some(p) = profile.filter(|p| !p.trim().is_empty()) {
+        doc.settings.color.cmyk_profile = p;
+    }
 }
 
 /// The CMYK color profile the drawing was made with, from the metadata of X4 and later files:
@@ -167,6 +184,9 @@ mod tests {
                 }
             }
             println!("{path}: {} page(s), {} arrowheads", doc.pages.len(), doc.arrowheads.len());
+            for (name, data) in super::fonts::embedded(&bytes) {
+                println!(" embedded font {name} ({} bytes)", data.len());
+            }
             for (i, p) in doc.pages.iter().enumerate() {
                 println!(" page {} {:.1}x{:.1} pt", i + 1, p.width, p.height);
                 for l in &p.layers {

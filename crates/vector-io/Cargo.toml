@@ -13,6 +13,14 @@ serde_json = { workspace = true }
 image = { workspace = true }
 usvg = { workspace = true }
 zip = { workspace = true }
+ttf-parser = { workspace = true }
 flate2 = { workspace = true }
 weezl = "0.1"
 encoding_rs = "0.8"
+jxl-oxide = { version = "0.12", features = ["moxcms"] }
+zune-jpegxl = "0.5"
+zune-core = "0.5"
+lopdf = { version = "0.47", default-features = false }
+
+[dev-dependencies]
+fontdb = { workspace = true }

@@ -12,6 +12,8 @@ use egui::{pos2, vec2, Align2, Color32, FontId, Id, Rect, Sense, Stroke, Ui, UiB
 use vector_core::document::{DocInfo, DocSettings, GridKind};
 use vector_core::{Color, Guide, GuideKind, Unit};
 
+pub(crate) mod search;
+
 pub const SIZE: egui::Vec2 = egui::vec2(806.0, 681.0);
 
 /// Document-category edits (applied to the active document on OK).
@@ -40,6 +42,8 @@ pub struct OptionsState {
     pub replace_sel: Option<usize>,
     pub commands_menu: usize,
     pub commands_search: String,
+    /// The search box over the page list.
+    pub search: search::SearchState,
     pub commands_sel: Option<Cmd>,
     pub commands_tab: usize,
     pub capture: Option<String>,
@@ -241,6 +245,7 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
     st.category = Some(cat);
     st.page = Some(page.clone());
 
+    search::escape(app, ctx);
     let mut result = (false, false);
     let ((), dismissed) = super::window(ctx, "options", "Options", SIZE, |ui| {
         result = body(app, ui, cat, &page);
@@ -328,14 +333,18 @@ fn body(app: &mut AnyVectorApp, ui: &mut Ui, cat: OptionsPage, page: &str) -> (b
             app.dialogs.options.tab = 0;
         }
     }
-    // left list
-    let list = Rect::from_min_max(pos2(r.left(), r.top() + 41.0), pos2(r.left() + 178.0, r.bottom() - 33.0));
-    if cat == OptionsPage::Workspaces {
+    // search box, then the left list (or the pages the search found)
+    let panel = Rect::from_min_max(pos2(r.left() + 188.0, r.top() + 41.0), pos2(r.right(), r.bottom() - 33.0));
+    let searching = search::search_box(app, ui, Rect::from_min_size(pos2(r.left(), r.top() + 41.0), vec2(178.0, 24.0)), panel);
+    let list = Rect::from_min_max(pos2(r.left(), r.top() + 71.0), pos2(r.left() + 178.0, r.bottom() - 33.0));
+    if searching {
+        search::results(app, ui, list, cat, page);
+    } else if cat == OptionsPage::Workspaces {
         super::workspace::options_list(app, ui, list);
     } else {
         ui.painter().rect_stroke(list, 0.0, Stroke::new(1.0, theme::SEP()), egui::StrokeKind::Inside);
     }
-    let page_list: &[(&str, Option<ToolId>)] = if cat == OptionsPage::Workspaces { &[] } else { pages(cat) };
+    let page_list: &[(&str, Option<ToolId>)] = if searching || cat == OptionsPage::Workspaces { &[] } else { pages(cat) };
     for (i, (name, tool)) in page_list.iter().enumerate() {
         let row = Rect::from_min_size(pos2(list.left() + 1.0, list.top() + 1.0 + 25.0 * i as f32), vec2(list.width() - 2.0, 25.0));
         let resp = ui.interact(row, Id::unique(("optpage", cat as u8, i)), Sense::click());
@@ -358,23 +367,39 @@ fn body(app: &mut AnyVectorApp, ui: &mut Ui, cat: OptionsPage, page: &str) -> (b
         }
     }
     // page panel
-    let panel = Rect::from_min_max(pos2(r.left() + 188.0, list.top()), pos2(r.right(), list.bottom()));
     ui.painter().rect_stroke(panel, 0.0, Stroke::new(1.0, theme::SEP()), egui::StrokeKind::Inside);
-    let tabbed = matches!((cat, page), (OptionsPage::App, "Text") | (OptionsPage::Global, "Printing"));
-    let inner = if tabbed { panel.shrink2(vec2(6.0, 10.0)) } else { Rect::from_min_max(panel.min + vec2(15.0, 14.0), panel.max - vec2(8.0, 8.0)) };
+    let inner = page_rect(panel, cat, page);
     let mut child = ui.new_child(UiBuilder::new().max_rect(inner).layout(egui::Layout::top_down(egui::Align::Min)));
     child.set_clip_rect(inner.expand(1.0));
     child.spacing_mut().item_spacing.y = 7.0;
+    search::arm_jump(app, &child, cat, page);
     page_ui(app, &mut child, cat, page);
+    if searching {
+        search::highlight(app, ui, inner.expand(1.0));
+    }
     // buttons
     super::ok_cancel_row(ui, "OK", true)
+}
+
+/// The area of the page panel that a page fills (tabbed pages draw their own border).
+fn page_rect(panel: Rect, cat: OptionsPage, page: &str) -> Rect {
+    let tabbed = matches!((cat, page), (OptionsPage::App, "Text") | (OptionsPage::Global, "Printing"));
+    if tabbed {
+        panel.shrink2(vec2(6.0, 10.0))
+    } else {
+        Rect::from_min_max(panel.min + vec2(15.0, 14.0), panel.max - vec2(8.0, 8.0))
+    }
 }
 
 fn page_ui(app: &mut AnyVectorApp, ui: &mut Ui, cat: OptionsPage, page: &str) {
     let id = format!("optscroll_{cat:?}_{page}");
     let scroll_pages = matches!(page, "Display" | "Nodes and Handles" | "PowerClip" | "Snapping" | "Save" | "Commands" | "Command Bars" | "Appearance");
     if scroll_pages {
-        egui::ScrollArea::vertical().id_salt(id).auto_shrink([false, false]).show(ui, |ui| {
+        let mut area = egui::ScrollArea::vertical().id_salt(id).auto_shrink([false, false]);
+        if let Some(y) = search::take_jump(ui, false) {
+            area = area.vertical_scroll_offset(y);
+        }
+        area.show(ui, |ui| {
             ui.set_width(ui.available_width() - 14.0);
             page_content(app, ui, cat, page);
         });
@@ -520,7 +545,12 @@ fn tab_body(ui: &mut Ui, add: impl FnOnce(&mut Ui)) {
     let mut child = ui.new_child(UiBuilder::new().max_rect(inner).layout(egui::Layout::top_down(egui::Align::Min)));
     child.set_clip_rect(inner);
     child.spacing_mut().item_spacing.y = 7.0;
-    egui::ScrollArea::vertical().id_salt(("tabbody", ui.scope_id())).auto_shrink([false, false]).show(&mut child, |ui| {
+    search::mark_tab_top(ui, inner.top());
+    let mut area = egui::ScrollArea::vertical().id_salt(("tabbody", ui.scope_id())).auto_shrink([false, false]);
+    if let Some(y) = search::take_jump(ui, true) {
+        area = area.vertical_scroll_offset(y);
+    }
+    area.show(&mut child, |ui| {
         ui.set_width(ui.available_width() - 14.0);
         add(ui)
     });
@@ -1320,7 +1350,12 @@ fn warnings(app: &mut AnyVectorApp, ui: &mut Ui) {
         ui.set_width(ui.available_width());
         egui::ScrollArea::vertical().id_salt("warn_list").max_height(370.0).auto_shrink([false, false]).show(ui, |ui| {
             ui.spacing_mut().item_spacing.y = 5.0;
+            // a search in progress narrows the list to the warnings it finds
+            let filter = search::filter(&app.dialogs.options.search);
             for (t, on) in app.settings.warnings.iter_mut() {
+                if !filter(&crate::i18n::t(t)) {
+                    continue;
+                }
                 ui.checkbox(on, t.as_str()).on_hover_text(t.as_str());
             }
         });
@@ -1594,7 +1629,8 @@ fn commands(app: &mut AnyVectorApp, ui: &mut Ui) {
                 ui.spacing_mut().item_spacing.y = 1.0;
                 for e in &entries {
                     let plain = crate::widgets::plain(&e.label);
-                    if !q.is_empty() && !plain.to_lowercase().contains(&q) {
+                    // by caption or by shortcut key ("ctrl+g")
+                    if !q.is_empty() && !plain.to_lowercase().contains(&q) && !crate::shortcuts::shortcut_text(app, e.cmd).is_some_and(|s| s.to_lowercase().contains(&q)) {
                         continue;
                     }
                     let sel = app.dialogs.options.commands_sel == Some(e.cmd);
@@ -2181,15 +2217,101 @@ fn user_id(app: &mut AnyVectorApp, ui: &mut Ui) {
 
 fn privacy(app: &mut AnyVectorApp, ui: &mut Ui) {
     ui.checkbox(&mut app.settings.usage_stats, "Share anonymous usage statistics to help improve AnyVector");
-    note(ui, "AnyVector stores your documents and settings on this computer only. AI Generate sends only your prompt to the AI provider when you use it.");
+    note(ui, "AnyVector stores your documents and settings on this computer only. AI Generate contacts the AI provider below only when you use it.");
     separator(ui);
     heading(ui, "AI Generate");
+    ai_provider(app, ui);
+    ai_images(app, ui);
+    note(ui, &crate::ai_provider::disclosure(&app.settings.ai_config, &app.settings.ai_provider_url));
+}
+
+/// Privacy ▸ AI Generate: the provider, its server and model, and the API key.
+fn ai_provider(app: &mut AnyVectorApp, ui: &mut Ui) {
+    use crate::ai_provider::{Provider, ANTHROPIC_URL, LMSTUDIO_URL, OLLAMA_URL, OPENAI_URL};
+    const W: f32 = 130.0;
+    let mut refresh = false;
+    let mut changed = false;
+    {
+        let s = &mut app.settings;
+        let c = &mut s.ai_config;
+        ui.horizontal(|ui| {
+            label_w(ui, "Provider:", W);
+            egui::ComboBox::from_id_salt("ai_provider").selected_text(c.provider.label()).width(220.0).show_ui(ui, |ui| {
+                for p in Provider::ALL {
+                    changed |= ui.selectable_value(&mut c.provider, p, p.label()).changed();
+                }
+            });
+        });
+        let p = c.provider;
+        let (url, hint, model, vision) = match p {
+            Provider::Anthropic => (&mut s.ai_provider_url, ANTHROPIC_URL, &mut c.anthropic_model, None),
+            Provider::OpenAi => (&mut c.openai_url, OPENAI_URL, &mut c.openai_model, Some(&mut c.openai_vision)),
+            Provider::Ollama => (&mut c.ollama_url, OLLAMA_URL, &mut c.ollama_model, Some(&mut c.ollama_vision)),
+            Provider::LmStudio => (&mut c.lmstudio_url, LMSTUDIO_URL, &mut c.lmstudio_model, Some(&mut c.lmstudio_vision)),
+        };
+        ui.horizontal(|ui| {
+            label_w(ui, if p == Provider::OpenAi { "Base URL:" } else if p.is_local() { "Server URL:" } else { "Endpoint URL:" }, W);
+            ui.add(egui::TextEdit::singleline(url).desired_width(280.0).hint_text(hint));
+        });
+        let models = &app.ai.models;
+        ui.horizontal(|ui| {
+            label_w(ui, "Model:", W);
+            let mhint = if p == Provider::Anthropic { crate::ai::MODEL } else { "Model name" };
+            ui.add(egui::TextEdit::singleline(model).desired_width(200.0).hint_text(mhint));
+            if !models.items.is_empty() {
+                egui::ComboBox::from_id_salt("ai_models").selected_text("Choose").width(70.0).show_ui(ui, |ui| {
+                    for m in &models.items {
+                        if ui.selectable_label(model == m, m).clicked() {
+                            *model = m.clone();
+                        }
+                    }
+                });
+            }
+            refresh = ui.add_enabled(!models.busy, egui::Button::new("Refresh models")).clicked();
+            if models.busy {
+                ui.spinner();
+            }
+        });
+        if let Some(m) = &models.msg {
+            note(ui, m);
+        }
+        if p == Provider::Ollama {
+            ui.horizontal(|ui| {
+                ui.add_space(W + 4.0);
+                ui.checkbox(&mut c.ollama_native, "Use Ollama's own API (/api/chat) instead of its OpenAI-compatible API (/v1)");
+            });
+        }
+        if let Some(v) = vision {
+            ui.horizontal(|ui| {
+                ui.add_space(W + 4.0);
+                ui.checkbox(v, "The model accepts images").on_hover_text("Vision models (such as GPT-4o, llava, gemma3, qwen2.5-vl) see a reference as an image. Other models get the reference as SVG text.");
+            });
+        }
+        ui.horizontal(|ui| {
+            label_w(ui, "Time limit:", W);
+            ui.add_sized(vec2(80.0, 22.0), egui::DragValue::new(&mut c.timeout_secs).range(10..=7200).suffix(" s"));
+        });
+        match p {
+            Provider::OpenAi => note(ui, "For OpenAI, OpenRouter, Groq, Together, Azure OpenAI (the deployment URL with its ?api-version=) and other OpenAI-compatible servers, including local ones."),
+            Provider::Ollama => note(ui, "Runs on your computer; no API key needed. Install models with ollama pull, for example ollama pull llava for a model that takes images."),
+            Provider::LmStudio => note(ui, "Runs on your computer; no API key needed. Load a model in LM Studio and start its local server (Developer ▸ Start Server)."),
+            Provider::Anthropic => {}
+        }
+    }
+    if changed {
+        app.ai.models = Default::default();
+    }
+    if refresh {
+        crate::ai::refresh_models(app);
+    }
+    let Some(var) = crate::ai::key_var(app) else { return };
     ui.horizontal(|ui| {
-        label_w(ui, "API key variable:", 130.0);
-        ui.add(egui::TextEdit::singleline(&mut app.settings.ai_api_key_env).desired_width(220.0));
+        label_w(ui, "API key variable:", W);
+        let name = if app.settings.ai_config.provider == Provider::OpenAi { &mut app.settings.ai_config.openai_key_env } else { &mut app.settings.ai_api_key_env };
+        ui.add(egui::TextEdit::singleline(name).desired_width(220.0));
     });
-    let var = crate::ai::key_var(app);
     let has = crate::ai::api_key(app).is_some();
+    let needed = crate::ai::needs_key(app);
     let st = &mut app.dialogs.options;
     let mut save: Option<String> = None;
     ui.horizontal(|ui| {
@@ -2214,8 +2336,115 @@ fn privacy(app: &mut AnyVectorApp, ui: &mut Ui) {
         let c = if *ok { theme::TEXT() } else { egui::Color32::from_rgb(0xe8, 0x6a, 0x6a) };
         ui.label(egui::RichText::new(m).color(c).size(12.0));
     }
-    note(ui, if has { "An API key was found in this environment variable." } else { "AI Generate needs an API key. Paste it above and click Save Key, or set this environment variable yourself." });
+    note(
+        ui,
+        if has {
+            "An API key was found in this environment variable."
+        } else if needed {
+            "AI Generate needs an API key. Paste it above and click Save Key, or set this environment variable yourself."
+        } else {
+            "This server is on your computer, so the key is optional."
+        },
+    );
     note(ui, "Save Key writes the key into this environment variable of your Windows account, right away. AnyVector never saves the key in its own settings or documents.");
+}
+
+/// Privacy ▸ AI Generate ▸ AI images: what makes the images of Create image and Remix image
+/// (the AI model above, or ComfyUI with its workflow, checkpoint and size).
+fn ai_images(app: &mut AnyVectorApp, ui: &mut Ui) {
+    use crate::ai_provider::{ImageProvider, COMFY_URL};
+    const W: f32 = 130.0;
+    separator(ui);
+    heading(ui, "AI images");
+    let mut refresh = false;
+    let mut load = false;
+    {
+        let c = &mut app.settings.ai_config;
+        ui.horizontal(|ui| {
+            label_w(ui, "Images made by:", W);
+            ui.radio_value(&mut c.image_provider, ImageProvider::Llm, "The AI model above");
+            ui.radio_value(&mut c.image_provider, ImageProvider::ComfyUi, "ComfyUI");
+        });
+        if c.image_provider == ImageProvider::Llm {
+            note(ui, "Create image and Remix image ask the AI model for a detailed drawing and place it as a bitmap.");
+            return;
+        }
+        ui.horizontal(|ui| {
+            label_w(ui, "Server URL:", W);
+            ui.add(egui::TextEdit::singleline(&mut c.comfy_url).desired_width(280.0).hint_text(COMFY_URL));
+        });
+        ui.horizontal(|ui| {
+            label_w(ui, "Workflow:", W);
+            let name = if c.comfy_workflow.trim().is_empty() {
+                "Built-in (text to image, image to image)".to_string()
+            } else {
+                std::path::Path::new(c.comfy_workflow.trim()).file_name().map(|f| f.to_string_lossy().into_owned()).unwrap_or_else(|| c.comfy_workflow.clone())
+            };
+            ui.label(name).on_hover_text(&c.comfy_workflow);
+            load = ui.button("Load Workflow...").clicked();
+            if !c.comfy_workflow.is_empty() && ui.button("Use Built-in").clicked() {
+                c.comfy_workflow.clear();
+                app.ai.workflow_msg = None;
+            }
+        });
+        if let Some((ok, m)) = &app.ai.workflow_msg {
+            let col = if *ok { theme::TEXT_DIM() } else { egui::Color32::from_rgb(0xe8, 0x6a, 0x6a) };
+            ui.label(egui::RichText::new(m).color(col).size(12.0));
+        }
+        let cps = &app.ai.checkpoints;
+        ui.horizontal(|ui| {
+            label_w(ui, "Checkpoint:", W);
+            ui.add(egui::TextEdit::singleline(&mut c.comfy_checkpoint).desired_width(200.0).hint_text("The first one installed"));
+            if !cps.items.is_empty() {
+                egui::ComboBox::from_id_salt("ai_checkpoints").selected_text("Choose").width(70.0).show_ui(ui, |ui| {
+                    for m in &cps.items {
+                        if ui.selectable_label(&c.comfy_checkpoint == m, m).clicked() {
+                            c.comfy_checkpoint = m.clone();
+                        }
+                    }
+                });
+            }
+            refresh = ui.add_enabled(!cps.busy, egui::Button::new("Refresh")).clicked();
+            if cps.busy {
+                ui.spinner();
+            }
+        });
+        if let Some(m) = &cps.msg {
+            note(ui, m);
+        }
+        ui.horizontal(|ui| {
+            label_w(ui, "Size:", W);
+            spin_u32(ui, &mut c.comfy_width, 64..=8192);
+            ui.label("×");
+            spin_u32(ui, &mut c.comfy_height, 64..=8192);
+            ui.label("pixels");
+            ui.add_space(12.0);
+            ui.label("Steps:");
+            spin_u32(ui, &mut c.comfy_steps, 1..=200);
+        });
+        ui.horizontal(|ui| {
+            label_w(ui, "Negative prompt:", W);
+            ui.add(egui::TextEdit::singleline(&mut c.comfy_negative).desired_width(280.0));
+        });
+        note(ui, &format!("A workflow of your own must be saved in ComfyUI with Workflow ▸ Export (API) and contain %prompt%. It can also use {}.", crate::comfyui::PLACEHOLDERS));
+        note(ui, "Create Image Guided by Selection and Remix Selection send the selection to ComfyUI as the source image (%image%).");
+    }
+    if load {
+        if let Some(p) = rfd::FileDialog::new().set_title("Load ComfyUI Workflow (API format)").add_filter("ComfyUI workflow (*.json)", &["json"]).pick_file() {
+            let checked = std::fs::read_to_string(&p).map_err(|e| e.to_string()).and_then(|t| crate::comfyui::parse_workflow(&t));
+            app.ai.workflow_msg = Some(match checked {
+                Ok(wf) => {
+                    app.settings.ai_config.comfy_workflow = p.to_string_lossy().into_owned();
+                    let ph = if crate::comfyui::substitute(&wf, &crate::comfyui::Params { image: Some(String::new()), ..Default::default() }).is_ok() { "" } else { " It has no %prompt% placeholder yet." };
+                    (ph.is_empty(), format!("Loaded {} nodes.{ph}", wf.as_object().map_or(0, |m| m.len())))
+                }
+                Err(e) => (false, e),
+            });
+        }
+    }
+    if refresh {
+        crate::ai::refresh_checkpoints(app);
+    }
 }
 
 // ------------------------------------------------------------------------------------------

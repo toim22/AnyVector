@@ -1675,7 +1675,7 @@ fn pattern(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, p: PatternFill, kind
                         ui.close();
                     }
                     if ui.button("New source from file...").clicked() {
-                        if let Some(path) = rfd::FileDialog::new().add_filter("Images", &["png", "jpg", "jpeg", "bmp", "gif", "tif", "tiff", "webp"]).pick_file() {
+                        if let Some(path) = rfd::FileDialog::new().add_filter("Images", &["png", "jpg", "jpeg", "bmp", "gif", "tif", "tiff", "webp", "jxl"]).pick_file() {
                             if let Some(id) = load_pattern_image(app, &path) {
                                 p.image = Some(id);
                                 p.vector = false;
@@ -1947,10 +1947,12 @@ fn pattern_source(app: &mut AnyVectorApp, ui: &mut Ui, p: &mut PatternFill, src:
 /// An image file as a bitmap pattern of the document.
 fn load_pattern_image(app: &mut AnyVectorApp, path: &std::path::Path) -> Option<u64> {
     let bytes = std::fs::read(path).ok()?;
-    let img = image::load_from_memory(&bytes).ok()?.to_rgba8();
+    let img = vector_io::image_io::load_dynamic(&bytes).ok()?.to_rgba8();
     let (w, h) = img.dimensions();
     let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
     let ext = path.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_else(|| "png".into());
+    // JPEG XL is not kept as is: the drawing stores the pixels (as PNG)
+    let (bytes, ext) = if vector_io::image_io::is_jxl(&bytes) { (vec![], "png".to_string()) } else { (bytes, ext) };
     let d = app.doc_mut()?;
     let id = d.doc.add_image(vector_core::document::ImageData { width: w, height: h, rgba: std::sync::Arc::new(img.into_raw()), encoded: std::sync::Arc::new(bytes), format: ext, name: name.clone() });
     let fill = PatternFill { kind: PatternKind::Checker, fg: Color::BLACK, bg: Color::WHITE, tile: 72.0, angle: 0.0, image: Some(id), transform_with_object: true, vector: false, mirror: 0, source: None };

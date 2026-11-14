@@ -53,9 +53,9 @@ The *Reference* column is a path inside the reference folder.
 | File > Acquire Image > Select WIA Source... | opens a window |  | ✅ done | Windows WIA device chooser |  |
 | File > Acquire Image > Acquire... | opens a window |  | ✅ done | scans with the WIA device and imports the image |  |
 | File > Import... | opens a window | 3 | ✅ done | Windows open dialog, then click or drag to place | `03-telas\doc-vazio\01 File\013 File ▸ Import.png` |
-| File > Export... | opens a window |  | ✅ done | Export dialog, then the format settings (PDF, SVG, bitmaps, ...) |  |
+| File > Export... | opens a window |  | ✅ done | Export dialog, then the format settings (PDF, SVG, EMF, bitmaps, ...) |  |
 | File > Export For | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\01 File\004 File ▸ Export For.png` |
-| File > Export For > Office... | opens a window |  | ✅ done | Export for Office: bitmap settings for Office |  |
+| File > Export For > Office... | opens a window |  | ✅ done | Export for Office: PNG for Compatibility, EMF for Editing |  |
 | File > Export For > Web... | opens a window |  | ✅ done | Export for Web: bitmap settings with preview and size estimate |  |
 | File > Export For > WordPress... | opens a window |  | ✅ done | uploads to the WordPress media library (password never saved) |  |
 | File > Export Docker | submenu |  | ✅ done | items, order and enabled states from the reference | `02-menus\doc-vazio\01 File\005 File ▸ Export Docker.png` |
@@ -89,9 +89,9 @@ The *Reference* column is a path inside the reference folder.
 | Edit > Bring into Focus | command |  | ✅ done | focus mode on the selection; other objects dimmed |  |
 | Edit > Exit Focus Mode | command |  | ✅ done | leaves focus mode |  |
 | Edit > Cut | command |  | ✅ done |  |  |
-| Edit > Copy | command |  | ✅ done |  |  |
+| Edit > Copy | command |  | ✅ done | SVG, EMF+, PNG and DIB on the clipboard: Office pastes vectors |  |
 | Edit > Copy Properties From... | opens a window | 1 | ✅ done | Copy Properties dialog, then click the source object | `03-telas\selecao-multipla\02 Edit\001 Edit ▸ Copy Properties From.png` |
-| Edit > Paste | command |  | ✅ done | AnyVector objects, SVG, text or bitmap from the clipboard |  |
+| Edit > Paste | command |  | ✅ done | AnyVector objects, SVG, text, Enhanced Metafile or bitmap from the clipboard |  |
 | Edit > Paste in View | command |  | ✅ done | pastes centered in the window |  |
 | Edit > Paste Special... | opens a window | 1 | ✅ done | Paste Special dialog with the clipboard formats | `03-telas\doc-vazio\02 Edit\002 Edit ▸ Paste Special.png` |
 | Edit > Delete | command |  | ✅ done |  |  |

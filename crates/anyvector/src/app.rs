@@ -511,6 +511,8 @@ fn egui_extras_install(_ctx: &egui::Context) {}
 
 impl eframe::App for AnyVectorApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        // colors show and convert through the active document's color profiles
+        crate::dialogs::colormgmt::sync(self);
         self.ui_impl(ui);
     }
 

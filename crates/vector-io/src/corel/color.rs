@@ -4,73 +4,37 @@ use super::palettes::Kind;
 use super::riff::Rd;
 use vector_core::color::Color;
 
-/// How CMYK looks on screen with CorelDRAW's default color management (U.S. Web Coated SWOP to
-/// sRGB), as CorelDRAW 2026 converts it: RGB bytes at every eighth of each ink, 9 levels each.
-/// Index: ((c * 9 + m) * 9 + y) * 9 + k.
-const CMYK_GRID: &[u8; 9 * 9 * 9 * 9 * 3] = include_bytes!("cmyk9.bin");
-const LEVELS: usize = 9;
-const GRID_LEN: usize = 9 * 9 * 9 * 9 * 3;
-
-/// The same grid for each of the other CMYK profiles CorelDRAW 2026 comes with: the profile's
-/// name (a length byte, then UTF-8), then its grid.
-const PROFILE_GRIDS: &[u8] = include_bytes!("cmyk-profiles.bin");
+use vector_core::cms::grid::{self, DEFAULT_GRID};
 
 thread_local! {
-    /// The grid of the drawing being read.
-    static GRID: std::cell::Cell<&'static [u8]> = const { std::cell::Cell::new(CMYK_GRID) };
-}
-
-/// The grid of a CMYK profile, by the name CorelDRAW gives it.
-fn profile_grid(name: &str) -> Option<&'static [u8]> {
-    let mut at = 0;
-    while at < PROFILE_GRIDS.len() {
-        let n = PROFILE_GRIDS[at] as usize;
-        let here = PROFILE_GRIDS.get(at + 1..at + 1 + n)?;
-        let grid = PROFILE_GRIDS.get(at + 1 + n..at + 1 + n + GRID_LEN)?;
-        if here.eq_ignore_ascii_case(name.trim().as_bytes()) {
-            return Some(grid);
-        }
-        at += 1 + n + GRID_LEN;
-    }
-    None
+    /// How CMYK looks on screen through the drawing's CMYK profile, as CorelDRAW 2026 shows it
+    /// (sampled grids, see `vector_core::cms::grid`).
+    static GRID: std::cell::Cell<&'static [u8]> = const { std::cell::Cell::new(DEFAULT_GRID) };
 }
 
 /// Run `f` with CMYK shown through the named profile (the drawing's own), or the default one
 /// when it is not known.
 pub fn with_profile<T>(name: Option<&str>, f: impl FnOnce() -> T) -> T {
-    let grid = name.and_then(profile_grid).unwrap_or(CMYK_GRID);
-    let before = GRID.with(|g| g.replace(grid));
+    let g = name.and_then(grid::profile_grid).unwrap_or(DEFAULT_GRID);
+    let before = GRID.with(|c| c.replace(g));
     let out = f();
-    GRID.with(|g| g.set(before));
+    GRID.with(|c| c.set(before));
     out
 }
 
 /// CMYK (each 0..1) to display RGB, interpolating the sampled grid.
 pub fn cmyk(c: f64, m: f64, y: f64, k: f64) -> Color {
-    let grid = GRID.with(|g| g.get());
-    // pure white paper stays white
     if c <= 0.0 && m <= 0.0 && y <= 0.0 && k <= 0.0 {
+        // pure white paper stays white
         return Color::WHITE;
     }
-    let ink = [c, m, y, k].map(|v| v.clamp(0.0, 1.0) * (LEVELS - 1) as f64);
-    let lo = ink.map(|v| (v.floor() as usize).min(LEVELS - 2));
-    let t = [0, 1, 2, 3].map(|i| ink[i] - lo[i] as f64);
-    let mut rgb = [0.0f64; 3];
-    for corner in 0..16usize {
-        let mut w = 1.0;
-        let mut idx = 0usize;
-        for i in 0..4 {
-            let hi = (corner >> i) & 1;
-            w *= if hi == 1 { t[i] } else { 1.0 - t[i] };
-            idx = idx * LEVELS + lo[i] + hi;
-        }
-        if w > 0.0 {
-            for (ch, v) in rgb.iter_mut().enumerate() {
-                *v += w * grid[idx * 3 + ch] as f64;
-            }
-        }
-    }
+    let rgb = grid::sample(GRID.with(|g| g.get()), [c, m, y, k]);
     Color::rgb(rgb[0].round() as u8, rgb[1].round() as u8, rgb[2].round() as u8)
+}
+
+/// A CMYK color (each 0..1) of the drawing: its look, and its inks kept.
+fn cmyk_color(c: f64, m: f64, y: f64, k: f64) -> Color {
+    cmyk(c, m, y, k).with_cmyk([c, m, y, k].map(|v| v * 100.0))
 }
 
 fn hsb(h: f64, s: f64, v: f64) -> Color {
@@ -94,7 +58,7 @@ fn hls(h: f64, l: f64, s: f64) -> Color {
     Color::rgb(f(r), f(g), f(b))
 }
 
-fn lab(l: f64, a: f64, b: f64) -> Color {
+pub(crate) fn lab(l: f64, a: f64, b: f64) -> Color {
     let fy = (l + 16.0) / 116.0;
     let fx = fy + a / 500.0;
     let fz = fy - b / 200.0;
@@ -118,10 +82,10 @@ pub fn convert(model: u16, v: u32) -> Color {
     let f = |i: usize| b[i] as f64;
     match model {
         // CMYK, inks 0..100
-        0x01 | 0x02 | 0x15 => cmyk(f(0) / 100.0, f(1) / 100.0, f(2) / 100.0, f(3) / 100.0),
+        0x01 | 0x02 | 0x15 => cmyk_color(f(0) / 100.0, f(1) / 100.0, f(2) / 100.0, f(3) / 100.0),
         // CMYK, inks 0..255
-        0x03 | 0x11 => cmyk(f(0) / 255.0, f(1) / 255.0, f(2) / 255.0, f(3) / 255.0),
-        0x04 => cmyk(f(0) / 255.0, f(1) / 255.0, f(2) / 255.0, 0.0),
+        0x03 | 0x11 => cmyk_color(f(0) / 255.0, f(1) / 255.0, f(2) / 255.0, f(3) / 255.0),
+        0x04 => cmyk_color(f(0) / 255.0, f(1) / 255.0, f(2) / 255.0, 0.0),
         0x05 => Color::rgb(b[2], b[1], b[0]),
         0x06 => hsb(u16::from_le_bytes([b[0], b[1]]) as f64, f(2) / 255.0, f(3) / 255.0),
         0x07 => hls(u16::from_le_bytes([b[0], b[1]]) as f64, f(2) / 255.0, f(3) / 255.0),
@@ -264,7 +228,7 @@ mod tests {
     fn models() {
         // RGB is stored blue first
         assert_eq!(convert(5, u32::from_le_bytes([220, 80, 32, 0])), Color::rgb(32, 80, 220));
-        assert_eq!(convert(2, u32::from_le_bytes([0, 100, 100, 0])), Color::rgb(237, 50, 55));
+        assert_eq!(convert(2, u32::from_le_bytes([0, 100, 100, 0])), Color::rgb(237, 50, 55).with_cmyk([0.0, 100.0, 100.0, 0.0]));
         assert_eq!(convert(9, 128), Color::rgb(128, 128, 128));
         let mut r = Rd::new(&[5, 0, 5, 0, 0, 0, 0, 0, 0, 0, 200, 0]);
         assert_eq!(read(&mut r, 1500), Color::rgb(200, 0, 0));

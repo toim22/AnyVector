@@ -771,6 +771,8 @@ pub struct ExportState {
     pub selected_only: bool,
     pub this_page_only: bool,
     pub no_filter_dialog: bool,
+    /// Formats added by device plugins, listed after the built-in ones.
+    pub devices: Vec<crate::scripting::devices::DeviceFormat>,
 }
 
 impl ExportState {
@@ -786,6 +788,7 @@ impl ExportState {
             selected_only: app.has_selection(),
             this_page_only: true,
             no_filter_dialog: false,
+            devices: crate::scripting::devices::scan(),
         }
     }
 }
@@ -796,6 +799,9 @@ pub fn show_export(app: &mut AnyVectorApp, ctx: &egui::Context) {
         return;
     }
     let types = vector_io::EXPORT_TYPES;
+    // the built-in types, then the device plugins' formats: (name, extensions)
+    let all: Vec<(String, Vec<String>)> = types.iter().map(|t| (t.name.to_string(), t.extensions.iter().map(|e| e.to_string()).collect())).chain(st.devices.iter().map(|d| (d.name.clone(), vec![d.ext.clone()]))).collect();
+    st.format = st.format.min(all.len() - 1);
     let has_sel = app.has_selection();
     let multi = app.doc().map(|d| d.doc.pages.len() > 1).unwrap_or(false);
     let mut go = false;
@@ -805,9 +811,9 @@ pub fn show_export(app: &mut AnyVectorApp, ctx: &egui::Context) {
         row(ui, "File name:", 100.0, |ui| {
             ui.add(egui::TextEdit::singleline(&mut st.path).desired_width(380.0));
             if button(ui, "Browse...", true) {
-                let t = &types[st.format];
+                let (name, exts) = &all[st.format];
                 let p = PathBuf::from(&st.path);
-                let mut fd = rfd::FileDialog::new().set_title("Export").add_filter(t.name, t.extensions);
+                let mut fd = rfd::FileDialog::new().set_title("Export").add_filter(name, exts);
                 if let Some(dir) = p.parent() {
                     fd = fd.set_directory(dir);
                 }
@@ -820,9 +826,9 @@ pub fn show_export(app: &mut AnyVectorApp, ctx: &egui::Context) {
             }
         });
         row(ui, "Save as type:", 100.0, |ui| {
-            let names: Vec<&str> = types.iter().map(|t| t.name).collect();
+            let names: Vec<&str> = all.iter().map(|t| t.0.as_str()).collect();
             if combo(ui, "ex_type", &mut st.format, &names, 380.0) {
-                let ext = types[st.format].extensions[0];
+                let ext = &all[st.format].1[0];
                 st.path = PathBuf::from(&st.path).with_extension(ext).display().to_string();
             }
         });
@@ -845,17 +851,26 @@ pub fn show_export(app: &mut AnyVectorApp, ctx: &egui::Context) {
         });
     });
     if go {
-        let t = &types[st.format];
+        let exts = &all[st.format].1;
         let mut path = PathBuf::from(st.path.trim());
-        if !t.extensions.iter().any(|e| path.extension().map(|x| x.to_string_lossy().eq_ignore_ascii_case(e)).unwrap_or(false)) {
-            path = path.with_extension(t.extensions[0]);
+        if !exts.iter().any(|e| path.extension().map(|x| x.to_string_lossy().eq_ignore_ascii_case(e)).unwrap_or(false)) {
+            path = path.with_extension(&exts[0]);
         }
-        app.settings.export_format = st.format;
+        if st.format < types.len() {
+            app.settings.export_format = st.format;
+        }
         app.settings.last_export_dir = path.parent().map(|p| p.to_path_buf());
         let sel = st.selected_only && has_sel;
         let d = app.doc().unwrap();
         let pages: Vec<usize> = if sel || st.this_page_only || !multi { vec![d.page] } else { (0..d.doc.pages.len()).collect() };
-        match t.extensions[0] {
+        if let Some(dev) = st.format.checked_sub(types.len()).and_then(|i| st.devices.get(i)) {
+            let target = super::cutter::Target::new(app, path, pages, sel);
+            super::cutter::run_device(app, dev, &target);
+            return;
+        }
+        match types[st.format].extensions[0] {
+            "plt" => super::cutter::start_hpgl(app, super::cutter::Target::new(app, path, pages, sel), st.no_filter_dialog),
+            "dxf" => super::cutter::start_dxf(app, super::cutter::Target::new(app, path, pages, sel), st.no_filter_dialog),
             "pdf" => {
                 let mut p = PdfState::new(app, false);
                 p.path = path.display().to_string();
@@ -880,6 +895,7 @@ pub fn show_export(app: &mut AnyVectorApp, ctx: &egui::Context) {
                     app.dialogs.svg = Some(s);
                 }
             }
+            "emf" => run_emf(app, &path, &pages, sel),
             ext => {
                 let b = BitmapState::new(app, BitmapMode::Export, Some(path), ext, pages, sel);
                 if st.no_filter_dialog {
@@ -952,6 +968,25 @@ fn run_svg(app: &mut AnyVectorApp, st: &SvgState) {
     }
 }
 
+/// EMF export: an EMF+ dual metafile per page (curves, transparency and text as curves).
+fn run_emf(app: &mut AnyVectorApp, path: &Path, pages: &[usize], selection: bool) {
+    let Some(d) = app.doc() else { return };
+    let (doc, pages) = if selection {
+        match crate::exec::selection_document(&d.doc, &d.selection) {
+            Some(sd) => (sd, vec![0]),
+            None => return,
+        }
+    } else {
+        (d.doc.clone(), pages.to_vec())
+    };
+    let opts = vector_io::emf::EmfOptions::default();
+    let res: Result<(), String> = pages.iter().try_for_each(|p| vector_io::emf::export(&doc, *p, &numbered(path, *p, pages.len()), &opts).map_err(|e| e.to_string()));
+    match res {
+        Ok(()) => app.flash(format!("Exported {}", path.display())),
+        Err(e) => app.dialogs.message_box = Some(("Export".into(), format!("Export failed:\n{e}"))),
+    }
+}
+
 fn numbered(path: &Path, page: usize, count: usize) -> PathBuf {
     if count <= 1 {
         return path.to_path_buf();
@@ -1002,7 +1037,7 @@ pub struct BitmapState {
     est_key: u64,
 }
 
-const WEB_FORMATS: [&str; 4] = ["jpg", "png", "gif", "webp"];
+const WEB_FORMATS: [&str; 5] = ["jpg", "png", "gif", "webp", "jxl"];
 const OFFICE_DPI: [f64; 3] = [96.0, 150.0, 300.0];
 
 impl BitmapState {
@@ -1032,7 +1067,7 @@ impl BitmapState {
             height: 0,
             keep_ratio: true,
             anti_alias: true,
-            transparent: matches!(ext, "png" | "webp" | "gif" | "tif") && mode != BitmapMode::Office,
+            transparent: matches!(ext, "png" | "webp" | "gif" | "tif" | "jxl") && mode != BitmapMode::Office,
             color_mode: 0,
             quality: 85,
             office_target: 0,
@@ -1086,7 +1121,7 @@ impl BitmapState {
 
 /// Render one page (or the selection document's only page) with the bitmap settings.
 fn render(doc: &Document, page: usize, st: &BitmapState, size: (u32, u32)) -> Option<(u32, u32, Vec<u8>)> {
-    let bg = if st.transparent && matches!(st.ext.as_str(), "png" | "webp" | "gif" | "tif") { None } else { Some(Color::WHITE) };
+    let bg = if st.transparent && matches!(st.ext.as_str(), "png" | "webp" | "gif" | "tif" | "jxl") { None } else { Some(Color::WHITE) };
     let opts = vector_io::image_io::RasterOptions { dpi: st.dpi, antialias: st.anti_alias, background: bg, jpeg_quality: st.quality, area: None, size: Some(size) };
     let (w, h, mut rgba) = vector_io::image_io::render_rgba(doc, page, &opts)?;
     if st.color_mode == 1 {
@@ -1101,6 +1136,10 @@ fn render(doc: &Document, page: usize, st: &BitmapState, size: (u32, u32)) -> Op
 }
 
 fn encode(doc: &Document, page: usize, st: &BitmapState) -> Result<Vec<u8>, String> {
+    if st.ext == "emf" {
+        // Export For Office ▸ Editing: vectors; the resolution is for effects kept as bitmaps
+        return Ok(vector_io::emf::page_to_emf(doc, page, &vector_io::emf::EmfOptions { raster_dpi: st.dpi, ..Default::default() }));
+    }
     let (w, h, rgba) = render(doc, page, st, (st.width, st.height)).ok_or("The image is too large.")?;
     vector_io::image_io::encode_raster(w, h, rgba, &st.ext, st.quality, st.dpi).map_err(|e| e.to_string())
 }
@@ -1205,7 +1244,7 @@ fn settings_panel(ui: &mut Ui, st: &mut BitmapState) {
             });
             group(ui, "Graphic best suited for", |ui| {
                 ui.radio_value(&mut st.office_best, 0, "Compatibility");
-                ui.add_enabled_ui(false, |ui| ui.radio_value(&mut st.office_best, 1, "Editing")).response.on_disabled_hover_text("EMF files are not written.");
+                ui.radio_value(&mut st.office_best, 1, "Editing").on_hover_text("An EMF metafile: curves stay curves, editable in Office.");
             });
             row(ui, "Optimized for:", 110.0, |ui| {
                 if combo(ui, "office_for", &mut st.office_for, &["Presentation", "Desktop printing", "Commercial printing"], 180.0) {
@@ -1213,14 +1252,16 @@ fn settings_panel(ui: &mut Ui, st: &mut BitmapState) {
                     st.size_from_dpi();
                 }
             });
-            st.ext = "png".into();
+            st.ext = if st.office_best == 1 { "emf" } else { "png" }.into();
             st.transparent = false;
             return;
         }
         BitmapMode::Web | BitmapMode::WordPress => {
             let mut i = WEB_FORMATS.iter().position(|f| *f == st.ext).unwrap_or(0);
+            // WordPress media libraries do not take JPEG XL
+            let n = if st.mode == BitmapMode::WordPress { 4 } else { 5 };
             row(ui, "Format:", 110.0, |ui| {
-                if combo(ui, "web_fmt", &mut i, &["JPEG", "PNG", "GIF", "WEBP"], 140.0) {
+                if combo(ui, "web_fmt", &mut i, &["JPEG", "PNG", "GIF", "WEBP", "JPEG XL"][..n], 140.0) {
                     st.ext = WEB_FORMATS[i].into();
                     st.transparent = st.transparent && st.ext != "jpg";
                 }
@@ -1234,11 +1275,14 @@ fn settings_panel(ui: &mut Ui, st: &mut BitmapState) {
         row(ui, "Color mode:", 100.0, |ui| {
             combo(ui, "bm_mode", &mut st.color_mode, &["RGB color (24-bit)", "Grayscale (8-bit)"], 180.0);
         });
-        let alpha = matches!(st.ext.as_str(), "png" | "webp" | "gif" | "tif");
+        let alpha = matches!(st.ext.as_str(), "png" | "webp" | "gif" | "tif" | "jxl");
         ui.add_enabled(alpha, egui::Checkbox::new(&mut st.transparent, "Transparent background"));
     });
     if matches!(st.ext.as_str(), "jpg" | "webp") {
         row(ui, "Quality:", 110.0, |ui| ui.add(egui::Slider::new(&mut st.quality, 1..=100)));
+    }
+    if st.ext == "jxl" {
+        note(ui, "JPEG XL images are saved lossless.");
     }
     group(ui, "Transformations", |ui| {
         let ratio = st.area.height() / st.area.width().max(1e-9);

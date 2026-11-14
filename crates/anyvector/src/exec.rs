@@ -118,7 +118,7 @@ pub fn export_item(app: &mut AnyVectorApp, it: &crate::dockers::ExportItem) -> R
         (_, Some(o)) => (selection_document(&d.doc, &[o]).ok_or("The object no longer exists.")?, 0),
         _ => return Err("Nothing to export".into()),
     };
-    let fmt = crate::dockers::EXPORT_DOCKER_FORMATS[it.format.min(7)].to_lowercase();
+    let fmt = crate::dockers::EXPORT_DOCKER_FORMATS[it.format.min(crate::dockers::EXPORT_DOCKER_FORMATS.len() - 1)].to_lowercase();
     let _ = std::fs::create_dir_all(&it.folder);
     let path = it.folder.join(format!("{}{}.{fmt}", it.name, it.suffix));
     match fmt.as_str() {
@@ -129,7 +129,7 @@ pub fn export_item(app: &mut AnyVectorApp, it: &crate::dockers::ExportItem) -> R
         }
         "svg" => vector_io::svg_export::export(&doc, page, &path, &Default::default()).map_err(|e| e.to_string())?,
         _ => {
-            let bg = if matches!(fmt.as_str(), "png" | "webp" | "tif" | "gif") { None } else { Some(Color::WHITE) };
+            let bg = if matches!(fmt.as_str(), "png" | "webp" | "tif" | "gif" | "jxl") { None } else { Some(Color::WHITE) };
             let opts = vector_io::image_io::RasterOptions { dpi: it.dpi, antialias: true, background: bg, jpeg_quality: 85, area: None, size: None };
             vector_io::image_io::export_raster(&doc, page, &path, &opts).map_err(|e| e.to_string())?;
         }
@@ -214,6 +214,16 @@ fn wia_error(e: &str) -> String {
     } else {
         format!("The image could not be acquired:\n{}", e.lines().next().unwrap_or(e))
     }
+}
+
+/// Add pasted objects centered at `at` (else in the middle of the view).
+fn paste_placed(d: &mut crate::docview::DocView, mut objs: Vec<Object>, at: Option<Point>) {
+    let c = at.unwrap_or_else(|| crate::dialogs::clipboard::paste_center(d));
+    let bb = vector_core::object::union_bounds(objs.iter().map(|o| o.bounds()));
+    for o in objs.iter_mut() {
+        o.apply_transform(Affine::translate(c - bb.center()));
+    }
+    d.add_objects("Paste", objs);
 }
 
 fn rotate_about(c: Point, deg: f64) -> Affine {
@@ -407,7 +417,16 @@ impl AnyVectorApp {
             self.active = Some(i);
             return true;
         }
-        match vector_io::open_with_notes(p) {
+        if vector_io::extension(p) == "pdf" {
+            return crate::dialogs::pdf_import::start(self, p, true, None);
+        }
+        let r = vector_io::open_with_notes(p);
+        self.finish_open(p, r)
+    }
+
+    /// Show a drawing that was read from `p` in a new tab (or say why it couldn't be read).
+    pub(crate) fn finish_open(&mut self, p: &Path, r: vector_io::Result<(vector_core::Document, Vec<String>)>) -> bool {
+        match r {
             Ok((mut doc, notes)) => {
                 doc.ensure_next_id();
                 let title = p.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
@@ -435,7 +454,7 @@ impl AnyVectorApp {
 
     /// Tell the user what a drawing that just opened or was imported differs in from the original
     /// (`notes` from the importer, in English, translated here line by line).
-    fn show_import_notes(&mut self, title: &str, p: &Path, notes: &[String]) {
+    pub(crate) fn show_import_notes(&mut self, title: &str, p: &Path, notes: &[String]) {
         if notes.is_empty() {
             return;
         }
@@ -462,41 +481,49 @@ impl AnyVectorApp {
 
     /// Import a file into the active document, centered on the page (or at a point).
     pub fn import_path(&mut self, p: &Path, at: Option<Point>) {
+        if vector_io::extension(p) == "pdf" {
+            crate::dialogs::pdf_import::start(self, p, false, at);
+            return;
+        }
         if !self.has_doc() {
             self.new_default_document();
         }
-        let warn_large = self.settings.warnings.iter().any(|(t, on)| *on && t.contains("large bitmap"));
         let Some(d) = self.doc_mut() else { return };
         match vector_io::import_with_notes(&mut d.doc, p) {
-            Ok((mut objs, notes)) => {
-                if objs.is_empty() {
-                    return;
-                }
-                let bb = vector_core::object::union_bounds(objs.iter().map(|o| o.bounds()));
-                let target = at.unwrap_or_else(|| d.page_ref().rect().center());
-                let mut a = Affine::translate(target - bb.center());
-                // fit very large imports to the page
-                let pr = d.page_ref().rect();
-                if at.is_none() && (bb.width() > pr.width() * 1.5 || bb.height() > pr.height() * 1.5) {
-                    let s = (pr.width() / bb.width()).min(pr.height() / bb.height()) * 0.9;
-                    a = Affine::translate(target.to_vec2()) * Affine::scale(s) * Affine::translate(-bb.center().to_vec2());
-                }
-                for o in objs.iter_mut() {
-                    o.apply_transform(a);
-                }
-                d.add_objects("Import", objs);
-                let name = p.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
-                self.settings.last_dir = p.parent().map(|x| x.to_path_buf());
-                let large = self.doc().and_then(|d| d.doc.images.values().map(|i| i.width as u64 * i.height as u64).max()).unwrap_or(0) > 40_000_000;
-                if large && warn_large {
-                    self.flash(format!("Imported {name} (large bitmap: editing may be slower)"));
-                } else {
-                    self.flash(format!("Imported {name}"));
-                }
-                self.show_import_notes("Import", p, &notes);
-            }
+            Ok((objs, notes)) => self.place_import(p, at, objs, notes),
             Err(e) => self.dialogs.message_box = Some(("Import".into(), format!("Could not import {}:\n{e}", p.display()))),
         }
+    }
+
+    /// Put imported objects on the active page, centered (or at a point), and select them.
+    pub(crate) fn place_import(&mut self, p: &Path, at: Option<Point>, mut objs: Vec<vector_core::Object>, notes: Vec<String>) {
+        let warn_large = self.settings.warnings.iter().any(|(t, on)| *on && t.contains("large bitmap"));
+        let Some(d) = self.doc_mut() else { return };
+        if objs.is_empty() {
+            return;
+        }
+        let bb = vector_core::object::union_bounds(objs.iter().map(|o| o.bounds()));
+        let target = at.unwrap_or_else(|| d.page_ref().rect().center());
+        let mut a = Affine::translate(target - bb.center());
+        // fit very large imports to the page
+        let pr = d.page_ref().rect();
+        if at.is_none() && (bb.width() > pr.width() * 1.5 || bb.height() > pr.height() * 1.5) {
+            let s = (pr.width() / bb.width()).min(pr.height() / bb.height()) * 0.9;
+            a = Affine::translate(target.to_vec2()) * Affine::scale(s) * Affine::translate(-bb.center().to_vec2());
+        }
+        for o in objs.iter_mut() {
+            o.apply_transform(a);
+        }
+        d.add_objects("Import", objs);
+        let name = p.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+        self.settings.last_dir = p.parent().map(|x| x.to_path_buf());
+        let large = self.doc().and_then(|d| d.doc.images.values().map(|i| i.width as u64 * i.height as u64).max()).unwrap_or(0) > 40_000_000;
+        if large && warn_large {
+            self.flash(format!("Imported {name} (large bitmap: editing may be slower)"));
+        } else {
+            self.flash(format!("Imported {name}"));
+        }
+        self.show_import_notes("Import", p, &notes);
     }
 
     /// The `.cdr` save options for a document from the current settings.
@@ -752,17 +779,14 @@ impl AnyVectorApp {
             });
         }
         let symbols = d.doc.symbols.clone();
-        // system clipboard: SVG text + PNG image
-        let svg = vector_io::svg_export::objects_to_svg(&d.doc, &objs);
-        let png = vector_render::render_objects_image(&d.doc, &objs, 1024, None);
-        if let Some(mut cb) = arboard::Clipboard::new().ok().filter(|_| crate::dialogs::clipboard::system_enabled()) {
-            let _ = cb.set_text(svg.replacen("<svg", "<svg data-vector-clip=\"1\"", 1));
-            if let Some(pm) = png {
-                let rgba = vector_render::pixmap_to_rgba(&pm);
-                let _ = cb.set_image(arboard::ImageData { width: pm.width() as usize, height: pm.height() as usize, bytes: std::borrow::Cow::Owned(rgba) });
-                // set_image replaces the text on Windows; keep the SVG as text for other apps
-                let _ = cb.set_text(svg.replacen("<svg", "<svg data-vector-clip=\"1\"", 1));
-            }
+        // system clipboard: SVG, EMF+ metafile, PNG and DIB together (Office pastes vectors)
+        if crate::dialogs::clipboard::system_enabled() {
+            let svg = vector_io::svg_export::objects_to_svg(&d.doc, &objs);
+            let emf = vector_io::emf::objects_to_emf(&d.doc, &objs, &Default::default());
+            let png = vector_render::render_objects_image(&d.doc, &objs, 1024, None);
+            let rgba = png.as_ref().map(vector_render::pixmap_to_rgba);
+            let bitmap = png.as_ref().zip(rgba.as_deref()).map(|(pm, px)| (pm.width(), pm.height(), px));
+            crate::dialogs::clipboard::set_system(&crate::dialogs::clipboard::copy_formats(&svg, emf, bitmap));
         }
         self.clip = crate::app::Clip { objects: objs, images, symbols };
         true
@@ -777,14 +801,19 @@ impl AnyVectorApp {
             self.new_default_document();
         }
         // what is on the system clipboard?
-        let mut text = if kind == Some(PasteKind::Bitmap) { None } else { crate::dialogs::clipboard::system_text() };
-        let ours = text.as_deref().map(|t| t.contains("data-vector-clip")).unwrap_or(false);
+        let own = crate::dialogs::clipboard::system_own();
+        let mut text = if matches!(kind, Some(PasteKind::Bitmap | PasteKind::Metafile)) { None } else { crate::dialogs::clipboard::system_text() };
+        let ours = own.is_some() || text.as_deref().map(|t| t.contains("data-vector-clip")).unwrap_or(false);
         let image = if ours || kind.is_some_and(|k| k != PasteKind::Bitmap) { None } else { crate::dialogs::clipboard::system_image() };
         // a browser's "Copy image" may add the image URL as text: paste the bitmap
         if image.is_some() && kind.is_none() && text.as_deref().is_some_and(crate::dialogs::clipboard::text_is_image_link) {
             text = None;
         }
-        if (kind == Some(PasteKind::Native) || (kind.is_none() && (ours || (text.is_none() && image.is_none())))) && !self.clip.objects.is_empty() {
+        // vectors from another program: an SVG picture or a metafile
+        let foreign_svg = if ours || !want(PasteKind::Svg) || kind == Some(PasteKind::Native) { None } else { crate::dialogs::clipboard::system_svg() };
+        let foreign_emf = !ours && want(PasteKind::Metafile) && crate::dialogs::clipboard::system_has_emf();
+        let outside = text.is_some() || image.is_some() || foreign_svg.is_some() || foreign_emf;
+        if (kind == Some(PasteKind::Native) || (kind.is_none() && (ours || !outside))) && !self.clip.objects.is_empty() {
             let clip = self.clip.clone();
             let d = self.doc_mut().unwrap();
             let mut tmp = Document::new(1.0, 1.0);
@@ -802,23 +831,37 @@ impl AnyVectorApp {
             d.add_objects("Paste", objs);
             return;
         }
+        // an SVG picture: ours (Paste Special, or copied in another AnyVector) or another program's
+        let svg = if ours && want(PasteKind::Svg) && kind != Some(PasteKind::Native) { own } else { foreign_svg };
+        if let Some(svg) = svg {
+            let d = self.doc_mut().unwrap();
+            if let Ok(objs) = vector_io::svg_import::objects_from_svg(&mut d.doc, svg.trim().as_bytes()) {
+                paste_placed(d, objs, at);
+                return;
+            }
+        }
         if let Some(t) = text {
             let t = t.trim().to_string();
             if (t.starts_with("<svg") || t.starts_with("<?xml")) && want(PasteKind::Svg) {
                 let d = self.doc_mut().unwrap();
-                if let Ok(mut objs) = vector_io::svg_import::objects_from_svg(&mut d.doc, t.as_bytes()) {
-                    let c = at.unwrap_or_else(|| crate::dialogs::clipboard::paste_center(d));
-                    let bb = vector_core::object::union_bounds(objs.iter().map(|o| o.bounds()));
-                    for o in objs.iter_mut() {
-                        o.apply_transform(Affine::translate(c - bb.center()));
-                    }
-                    d.add_objects("Paste", objs);
+                if let Ok(objs) = vector_io::svg_import::objects_from_svg(&mut d.doc, t.as_bytes()) {
+                    paste_placed(d, objs, at);
                     return;
                 }
             }
             if !t.is_empty() && want(PasteKind::Text) {
                 crate::tools::insert_text_at(self, &t, None, at);
                 return;
+            }
+        }
+        // a metafile (Office, other drawing programs): its GDI records as curves
+        if foreign_emf {
+            if let Some(bytes) = crate::dialogs::clipboard::system_emf() {
+                let d = self.doc_mut().unwrap();
+                if let Ok(objs) = vector_io::emf_import::objects_from_emf(&mut d.doc, &bytes) {
+                    paste_placed(d, objs, at);
+                    return;
+                }
             }
         }
         if let Some(img) = image {
@@ -1887,6 +1930,7 @@ impl AnyVectorApp {
                 let ids = sel.clone();
                 *sel = ops::outline_to_object(doc, &ids);
             }),
+            Cmd::CreateCutContour => crate::dialogs::cutter::start_contour(self),
             Cmd::JoinCurves => {
                 let tol = self.dockers.ui.join_tolerance.max(0.01);
                 self.modify_sel("Join Curves", |doc, sel| {
@@ -2331,7 +2375,7 @@ impl AnyVectorApp {
                 self.settings.save();
                 self.flash("Settings saved as default");
             }
-            Cmd::ColorManagement => self.info_box("Color Management", "AnyVector works in sRGB. CMYK values shown in the color dockers are converted with a standard (uncalibrated) formula; use Color Proofing to preview print output."),
+            Cmd::ColorManagement => crate::dialogs::colormgmt::open(self),
             Cmd::ScriptEditor | Cmd::VsEditor => {
                 if self.dialogs.script_editor.is_none() {
                     self.dialogs.script_editor = Some(ScriptEditorState { code: crate::dialogs::forms::SCRIPT_TEMPLATE.to_string(), ..Default::default() });

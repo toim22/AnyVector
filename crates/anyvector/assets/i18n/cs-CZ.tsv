@@ -5584,3 +5584,16 @@ GitHub doesn't accept .{} files. Put "{}" in a .zip file.	GitHub nepřijímá so
 "{}" is empty.	„{}“ je prázdný.
 "{}" is {}. GitHub accepts at most {} MB for this type.	„{}“ má {}. GitHub pro tento typ přijímá nejvýše {} MB.
 To attach "{}", drag it from the folder that opened into the description box on GitHub.	Chcete-li připojit „{}“, přetáhněte ho z otevřené složky do pole popisu na GitHubu.
+EPS - Encapsulated PostScript (*.eps)	EPS - Encapsulated PostScript (*.eps)
+PS - PostScript (*.ps;*.prn)	PS - PostScript (*.ps;*.prn)
+AI - Adobe Illustrator (*.ai)	AI - Adobe Illustrator (*.ai)
+Left out: {} use(s) of PostScript operators AnyVector doesn't run ({})	Vynecháno: {} použití operátorů PostScriptu, které AnyVector nespouští ({})
+Skipped {} PostScript error(s) ({})	Přeskočené chyby PostScriptu: {} ({})
+Pattern fills are shown as plain colors ({} fill(s))	Vzorkové výplně jsou zobrazeny jako jednolité barvy (výplní: {})
+Shadings that aren't linear or radial are shown as plain colors ({})	Stínování, která nejsou lineární ani radiální, jsou zobrazena jako jednolité barvy ({})
+Left out: {} image(s) whose data couldn't be read	Vynechány obrázky, jejichž data nešlo přečíst: {}
+Left out: {} text string(s) in composite (CID) fonts	Vynechány texty ve složených písmech (CID): {}
+Left out: {} other file(s) the PostScript asked to read	Vynechány další soubory, které chtěl PostScript číst: {}
+The PostScript program was stopped before its end; what it drew until then was imported	Program PostScriptu byl zastaven před koncem; importovalo se to, co do té doby nakreslil
+Only the first of {} pages was imported	Importována byla jen první z {} stránek
+The PostScript couldn't be read, so the file's preview image was imported instead	PostScript nešlo přečíst, a tak se místo něj importoval náhledový obrázek souboru

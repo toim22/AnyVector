@@ -616,6 +616,7 @@ fn select_choices(app: &AnyVectorApp) -> Vec<Choice> {
         v.push(pal(n, 2, crate::dockers::palettes::library_palette(k)));
     }
     v.push(pal("Spot", 1, None));
+    v.push(pal("Print and Cut", 2, crate::dockers::palettes::library_palette("printcut")));
     for (k, n) in [("gray256", "256 shades of Gray"), ("cmyk", "CMYK Palette"), ("default", "Default Palette"), ("percent", "Percent Gray"), ("rgb", "RGB Palette")] {
         v.push(pal(n, 1, crate::dockers::palettes::library_palette(k)));
     }

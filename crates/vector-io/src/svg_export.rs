@@ -303,6 +303,11 @@ pub fn export(doc: &Document, page: usize, path: &Path, opts: &SvgOptions) -> Re
 
 /// SVG for a list of objects (clipboard export).
 pub fn objects_to_svg(doc: &Document, objs: &[vector_core::Object]) -> String {
+    page_to_svg(&objects_document(doc, objs), 0, &SvgOptions::default())
+}
+
+/// A one-page document the size of the objects' bounding box, holding them (clipboard export).
+pub fn objects_document(doc: &Document, objs: &[vector_core::Object]) -> Document {
     let b = vector_core::object::union_bounds(objs.iter().map(|o| o.visual_bounds()));
     let mut d = Document::new(b.width().max(1.0), b.height().max(1.0));
     d.images = doc.images.clone();
@@ -312,5 +317,5 @@ pub fn objects_to_svg(doc: &Document, objs: &[vector_core::Object]) -> String {
         o2.apply_transform(Affine::translate((-b.x0, -b.y0)));
         d.pages[0].layers[0].objects.push(o2);
     }
-    page_to_svg(&d, 0, &SvgOptions::default())
+    d
 }

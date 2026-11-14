@@ -2162,13 +2162,79 @@ $d.SetText('https://example.com/picture.png')
     let rect = h.state().doc().unwrap().page_ref().all_objects().find(|o| matches!(o.kind, ObjKind::Path(_))).unwrap().id;
     h.state_mut().doc_mut().unwrap().selection = vec![rect];
     clip_send(&mut h, CLIP_CTRL, vec![egui::Event::Copy]);
-    let t = crate::dialogs::clipboard::system_text().unwrap_or_default();
+    let t = crate::dialogs::clipboard::system_own().unwrap_or_default();
     assert!(t.contains("data-vector-clip"));
-    clip_send(&mut h, CLIP_CTRL, vec![egui::Event::Paste(t)]);
+    assert!(crate::dialogs::clipboard::system_text().is_none(), "no text for Office to paste as SVG source");
+    // eframe finds the DIB and sends PasteImage
+    clip_send(&mut h, CLIP_CTRL, vec![egui::Event::PasteImage(std::sync::Arc::new(egui::ColorImage::filled([1, 1], egui::Color32::BLUE)))]);
     assert_eq!(clip_count(&h), n + 3);
     let paths = h.state().doc().unwrap().page_ref().all_objects().filter(|o| matches!(o.kind, ObjKind::Path(_))).count();
     assert_eq!(paths, 2, "the copied rectangle came back as a rectangle");
     crate::dialogs::clipboard::SYSTEM_CLIPBOARD.with(|c| c.set(false));
+}
+
+/// What Copy puts on the clipboard, in order, without touching the real clipboard.
+#[test]
+fn clip_copy_formats() {
+    use crate::dialogs::clipboard::{copy_formats, ClipFormat, OWN_FORMAT, SVG_FORMAT};
+    let svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10pt\" height=\"10pt\"></svg>";
+    let px = [255u8, 0, 0, 128];
+    let f = copy_formats(svg, vec![1, 2, 3, 4], Some((1, 1, &px)));
+    let kinds: Vec<ClipFormat> = f.iter().map(|(k, _)| *k).collect();
+    assert_eq!(kinds, vec![ClipFormat::Named(OWN_FORMAT), ClipFormat::Named(SVG_FORMAT), ClipFormat::EnhMetafile, ClipFormat::Named("PNG"), ClipFormat::Dib]);
+    assert!(String::from_utf8_lossy(&f[0].1).contains("data-vector-clip"), "the private copy is marked");
+    assert_eq!(f[1].1, svg.as_bytes(), "Office gets the plain SVG");
+    assert_eq!(f[2].1, vec![1, 2, 3, 4]);
+    assert_eq!(&f[3].1[1..4], b"PNG");
+    assert_eq!(&f[4].1[40..44], &[127, 127, 255, 255], "the DIB is opaque, on white");
+    // no metafile, no bitmap: only the SVG formats
+    assert_eq!(copy_formats(svg, vec![], None).len(), 2);
+}
+
+/// Copy puts SVG, EMF, PNG and DIB on the real Windows clipboard together; the EMF reads back
+/// and pastes as curves (Paste Special ▸ Picture (Enhanced Metafile)). Run with
+/// `cargo test -p anyvector clip_real -- --ignored`; it overwrites the clipboard.
+#[cfg(windows)]
+#[test]
+#[ignore]
+fn clip_real_office_formats() {
+    use crate::dialogs::clipboard::{self as cb, PasteKind};
+    cb::SYSTEM_CLIPBOARD.with(|c| c.set(true));
+    let mut h = clip_harness();
+    clip_send(&mut h, CLIP_CTRL, vec![egui::Event::Copy]);
+    {
+        use clipboard_win::{formats, is_format_avail, register_format};
+        for name in [cb::OWN_FORMAT, cb::SVG_FORMAT, "PNG"] {
+            assert!(register_format(name).is_some_and(|f| is_format_avail(f.get())), "{name} is on the clipboard");
+        }
+        assert!(is_format_avail(formats::CF_ENHMETAFILE), "EMF");
+        assert!(is_format_avail(formats::CF_DIB), "DIB");
+    }
+    let emf = cb::system_emf().expect("the metafile reads back");
+    assert!(vector_io::emf_import::is_emf(&emf));
+    let size = vector_io::emf_import::frame_size(&emf).unwrap();
+    // the rectangle's visual bounds (its outline included)
+    assert!((size.0 - 80.0).abs() < 3.0 && (size.1 - 50.0).abs() < 3.0, "the 80 x 50 pt rectangle: {size:?}");
+    let svg = String::from_utf8_lossy(&cb::system_named(cb::SVG_FORMAT).unwrap()).to_string();
+    assert!(svg.contains("<svg") && !svg.contains("data-vector-clip"));
+    let n = clip_count(&h);
+    // our own copy: Paste brings the objects back; the metafile is offered to other programs only
+    let (kinds, source) = cb::clipboard_kinds(h.state());
+    assert_eq!(kinds.first(), Some(&PasteKind::Native));
+    assert_eq!(source, vector_core::APP_NAME);
+    // a metafile from another program: put only the EMF back and paste it
+    {
+        let _ = cb::set_system(&[(cb::ClipFormat::EnhMetafile, emf)]);
+    }
+    assert!(cb::system_own().is_none());
+    let (kinds, _) = cb::clipboard_kinds(h.state());
+    assert_eq!(kinds, vec![PasteKind::Metafile]);
+    h.state_mut().paste_as(None, None);
+    h.step();
+    assert_eq!(clip_count(&h), n + 1, "the metafile was pasted");
+    let pasted = h.state().doc().unwrap().page_ref().all_objects().filter(|o| matches!(o.kind, ObjKind::Path(_))).count();
+    assert_eq!(pasted, 2, "as a curve");
+    cb::SYSTEM_CLIPBOARD.with(|c| c.set(false));
 }
 
 // ---- tools agent ----

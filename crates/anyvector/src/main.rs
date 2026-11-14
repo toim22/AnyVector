@@ -3,11 +3,13 @@
 
 mod about;
 mod ai;
+mod ai_provider;
 mod app;
 mod bugreport;
 mod canvas;
 mod cmdbar;
 mod color_profiles;
+mod comfyui;
 mod commands;
 mod dialogs;
 mod dockers;
