@@ -157,6 +157,9 @@ pub struct ToolState {
     pub curve: Vec<Node>,
     /// First click of a two-click line (Freehand / 2-point line).
     pub line_start: Option<Point>,
+    /// Auto-join: the curve the one being drawn continues, and whether it continues from that
+    /// curve's end (`true`) or its start (see [`join_target`]).
+    pub join: Option<(ObjId, bool)>,
     /// Points collected by multi-click tools (dimensions, 3-point shapes).
     pub stage: Vec<Point>,
     pub pick_target: Option<PickTarget>,
@@ -262,6 +265,7 @@ impl Default for ToolState {
             cur: Point::ZERO,
             curve: vec![],
             line_start: None,
+            join: None,
             stage: vec![],
             pick_target: None,
             table_cell: None,
@@ -365,6 +369,7 @@ impl ToolState {
         self.curve.clear();
         self.crop_rect = None;
         self.line_start = None;
+        self.join = None;
         self.stage.clear();
         self.pick_target = None;
         self.pending_text = None;
@@ -399,13 +404,12 @@ pub fn finish(ts: &mut ToolState, d: &mut DocView, _settings: &Settings) {
     }
     if ts.curve.len() >= 2 {
         let nodes = std::mem::take(&mut ts.curve);
-        let np = if ts.bspline {
+        if ts.bspline {
             let pts: Vec<Point> = nodes.iter().map(|n| n.p).collect();
-            interact::bspline_path(&pts, false)
+            add_curve(ts, d, interact::bspline_path(&pts, false), "Create B-Spline");
         } else {
-            NodePath { subpaths: vec![SubPath { nodes, closed: false }] }
-        };
-        add_curve(ts, d, np, if ts.bspline { "Create B-Spline" } else { "Create Curve" });
+            commit_curve(ts, d, nodes, false, "Create Curve");
+        }
     }
     ts.bspline = false;
     ts.curve.clear();
@@ -476,6 +480,147 @@ pub fn add_curve(ts: &ToolState, d: &mut DocView, np: NodePath, label: &str) {
     }
     objs.insert(0, base);
     d.add_objects(label, objs);
+}
+
+/// Freehand / Bézier tool ▸ Auto-join: the end of the selected curve that a new curve started
+/// at `p` continues, as (curve, `true` for its end / `false` for its start, the end node).
+///
+/// As CorelDRAW's `CBezierCore::CanWeJoinToSelected` with `CheckAJPoints`: exactly one object is
+/// selected, it is a curve whose first and last nodes are open, and `p` is closer than the
+/// Auto-join distance (Options ▸ Freehand/Bézier tool, in screen pixels) to its first node
+/// (tested first) or its last node.
+pub fn join_target(d: &DocView, p: Point, reach_px: f64) -> Option<(ObjId, bool, Point)> {
+    let [id] = d.selection[..] else { return None };
+    let o = d.doc.find(id)?;
+    if o.locked || !o.visible {
+        return None;
+    }
+    let ObjKind::Path(np) = &o.kind else { return None };
+    let (first, last) = (np.subpaths.first()?, np.subpaths.last()?);
+    if first.closed || last.closed || first.nodes.is_empty() || last.nodes.is_empty() {
+        return None;
+    }
+    let (s, e) = (o.transform * first.nodes[0].p, o.transform * last.nodes[last.nodes.len() - 1].p);
+    let at = d.to_screen(p);
+    let near = |q: Point| ((d.to_screen(q) - at).length() as f64) < reach_px;
+    if near(s) {
+        Some((id, false, s))
+    } else if near(e) {
+        Some((id, true, e))
+    } else {
+        None
+    }
+}
+
+/// The other end of the subpath a joined curve continues: where ending the new part closes it.
+pub fn joined_far_end(d: &DocView, (id, at_end): (ObjId, bool)) -> Option<Point> {
+    let o = d.doc.find(id)?;
+    let ObjKind::Path(np) = &o.kind else { return None };
+    let sp = if at_end { np.subpaths.last()? } else { np.subpaths.first()? };
+    let n = if at_end { sp.nodes.first()? } else { sp.nodes.last()? };
+    Some(o.transform * n.p)
+}
+
+/// Continue curve `id` with `nodes` (document coordinates, starting at the end node it joins at)
+/// as one undo step. `at_end`: the nodes continue the last subpath from its last node, otherwise
+/// the first subpath from its first node. `close` closes that subpath; a last new node on the
+/// subpath's other end merges into it. Returns false when there is no such curve.
+pub fn append_to_curve(d: &mut DocView, id: ObjId, at_end: bool, nodes: Vec<Node>, close: bool, label: &str) -> bool {
+    let Some(o) = d.doc.find(id) else { return false };
+    let ok = match &o.kind {
+        ObjKind::Path(np) => np.subpaths.first().is_some_and(|s| !s.nodes.is_empty()) && np.subpaths.last().is_some_and(|s| !s.nodes.is_empty()),
+        _ => false,
+    };
+    if !ok || nodes.len() < 2 {
+        return false;
+    }
+    let inv = o.transform.inverse();
+    let mut add = SubPath {
+        nodes: nodes
+            .into_iter()
+            .map(|mut n| {
+                n.p = inv * n.p;
+                n.c_in = inv * n.c_in;
+                n.c_out = inv * n.c_out;
+                n
+            })
+            .collect(),
+        closed: false,
+    };
+    // the new nodes run away from the joined end; at the start of the curve they must run into it
+    if !at_end {
+        add.reverse();
+    }
+    // "the same point", in the curve's own units
+    let same = |a: Point, b: Point| (a - b).hypot() <= 1e-6 * (1.0 + a.to_vec2().hypot());
+    d.modify(label, |doc, sel| {
+        let Some(o) = doc.find_mut(id) else { return };
+        let ObjKind::Path(np) = &mut o.kind else { return };
+        let Some(sp) = (if at_end { np.subpaths.last_mut() } else { np.subpaths.first_mut() }) else { return };
+        let mut new = add.nodes;
+        // no trivial closed shape (CorelDRAW's WouldProduceATrivialClosedShape): closing needs
+        // three nodes once the new nodes on the curve's ends are merged into them
+        let far = if at_end { sp.nodes[0].p } else { sp.nodes[sp.nodes.len() - 1].p };
+        let on_far = if at_end { new.last() } else { new.first() }.is_some_and(|n| same(n.p, far));
+        let close = close && sp.nodes.len() + new.len() - 1 - on_far as usize >= 3;
+        if at_end {
+            // the first new node is the joined end node: it starts the new segments
+            let j = new.remove(0);
+            let l = sp.nodes.last_mut().unwrap();
+            l.c_out = j.c_out;
+            l.line_out = j.line_out;
+            l.kind = NodeKind::Cusp;
+            if close {
+                if on_far {
+                    let n = new.pop().unwrap();
+                    sp.nodes[0].c_in = n.c_in;
+                    sp.nodes[0].kind = NodeKind::Cusp;
+                } else if let Some(n) = new.last_mut() {
+                    n.line_out = true;
+                }
+            }
+            sp.nodes.extend(new);
+        } else {
+            // the last new node is the joined start node: it ends the new segments
+            let j = new.pop().unwrap();
+            sp.nodes[0].c_in = j.c_in;
+            sp.nodes[0].kind = NodeKind::Cusp;
+            if close {
+                let l = sp.nodes.len() - 1;
+                if on_far {
+                    let n = new.remove(0);
+                    sp.nodes[l].c_out = n.c_out;
+                    sp.nodes[l].line_out = n.line_out;
+                    sp.nodes[l].kind = NodeKind::Cusp;
+                } else {
+                    sp.nodes[l].line_out = true;
+                }
+            }
+            new.extend(sp.nodes.drain(..));
+            sp.nodes = new;
+        }
+        sp.closed |= close;
+        *sel = vec![id];
+    });
+    true
+}
+
+/// Commit the open curve a drawing tool made (document coordinates): continue the curve it was
+/// joined to (Auto-join), or add it as a new curve. `closed` closes it.
+pub fn commit_curve(ts: &mut ToolState, d: &mut DocView, mut nodes: Vec<Node>, closed: bool, label: &str) {
+    if let Some((id, at_end)) = ts.join.take() {
+        if append_to_curve(d, id, at_end, nodes.clone(), closed, label) {
+            return;
+        }
+    }
+    if closed {
+        if let Some(l) = nodes.last_mut() {
+            if l.c_out == l.p {
+                l.line_out = true;
+            }
+        }
+    }
+    add_curve(ts, d, NodePath { subpaths: vec![SubPath { nodes, closed }] }, label);
 }
 
 pub fn default_shadow(inner: bool) -> DropShadow {
