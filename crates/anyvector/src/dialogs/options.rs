@@ -12,7 +12,7 @@ use egui::{pos2, vec2, Align2, Color32, FontId, Id, Rect, Sense, Stroke, Ui, UiB
 use vector_core::document::{DocInfo, DocSettings, GridKind};
 use vector_core::{Color, Guide, GuideKind, Unit};
 
-mod search;
+pub(crate) mod search;
 
 pub const SIZE: egui::Vec2 = egui::vec2(806.0, 681.0);
 

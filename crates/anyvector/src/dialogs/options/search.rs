@@ -86,8 +86,10 @@ thread_local! {
     static RECORDED: RefCell<Option<Vec<String>>> = const { RefCell::new(None) };
 }
 
-/// The user interface translator, also keeping every caption it is given (as shown).
-fn recording_translator(text: &str) -> Option<String> {
+/// The user interface translator, also keeping every caption it is given (as shown) while an
+/// index is being made on this thread. It is the translator installed in egui (`i18n::init`), so
+/// laying out other windows at the same time cannot switch the recording off.
+pub(crate) fn recording_translator(text: &str) -> Option<String> {
     let t = crate::i18n::translator(text);
     RECORDED.with(|r| {
         if let Some(v) = r.borrow_mut().as_mut() {
@@ -169,7 +171,6 @@ pub fn build_index(app: &mut AnyVectorApp, style: std::sync::Arc<egui::Style>, p
             }
         }
     }
-    egui::set_text_translator(Some(crate::i18n::translator));
     RECORDED.with(|r| *r.borrow_mut() = None);
     (app.dialogs.options.tab, app.dialogs.options.doc_edit) = saved;
     app.dialogs.options.search.query = query;
