@@ -220,8 +220,13 @@ mod tests {
 
     #[test]
     fn device_spaces() {
-        assert_eq!(Cs::Cmyk.to_color(&[0.0, 0.0, 0.0, 1.0]), Color::BLACK);
-        assert_eq!(Cs::Cmyk.to_color(&[1.0, 0.0, 0.0, 0.0]), Color::rgb(0, 255, 255));
+        // CMYK keeps its inks; the RGB is what the color profiles make of them
+        let black = Cs::Cmyk.to_color(&[0.0, 0.0, 0.0, 1.0]);
+        assert_eq!(black.cmyk, Some([0, 0, 0, 100]));
+        assert!(black.r < 80 && black.g < 80 && black.b < 80);
+        let cyan = Cs::Cmyk.to_color(&[1.0, 0.0, 0.0, 0.0]);
+        assert_eq!(cyan.cmyk, Some([100, 0, 0, 0]));
+        assert!(cyan.r < 80 && cyan.b > 180);
         assert_eq!(Cs::Gray.to_color(&[0.5]), Color::rgb(128, 128, 128));
         let idx = Cs::Indexed { base: Box::new(Cs::Rgb), hival: 1, lookup: Rc::new(vec![255, 0, 0, 0, 0, 255]) };
         assert_eq!(idx.to_color(&[1.0]), Color::rgb(0, 0, 255));

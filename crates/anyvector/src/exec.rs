@@ -216,6 +216,16 @@ fn wia_error(e: &str) -> String {
     }
 }
 
+/// Add pasted objects centered at `at` (else in the middle of the view).
+fn paste_placed(d: &mut crate::docview::DocView, mut objs: Vec<Object>, at: Option<Point>) {
+    let c = at.unwrap_or_else(|| crate::dialogs::clipboard::paste_center(d));
+    let bb = vector_core::object::union_bounds(objs.iter().map(|o| o.bounds()));
+    for o in objs.iter_mut() {
+        o.apply_transform(Affine::translate(c - bb.center()));
+    }
+    d.add_objects("Paste", objs);
+}
+
 fn rotate_about(c: Point, deg: f64) -> Affine {
     Affine::translate(c.to_vec2()) * Affine::rotate(-deg.to_radians()) * Affine::translate(-c.to_vec2())
 }
@@ -769,17 +779,14 @@ impl AnyVectorApp {
             });
         }
         let symbols = d.doc.symbols.clone();
-        // system clipboard: SVG text + PNG image
-        let svg = vector_io::svg_export::objects_to_svg(&d.doc, &objs);
-        let png = vector_render::render_objects_image(&d.doc, &objs, 1024, None);
-        if let Some(mut cb) = arboard::Clipboard::new().ok().filter(|_| crate::dialogs::clipboard::system_enabled()) {
-            let _ = cb.set_text(svg.replacen("<svg", "<svg data-vector-clip=\"1\"", 1));
-            if let Some(pm) = png {
-                let rgba = vector_render::pixmap_to_rgba(&pm);
-                let _ = cb.set_image(arboard::ImageData { width: pm.width() as usize, height: pm.height() as usize, bytes: std::borrow::Cow::Owned(rgba) });
-                // set_image replaces the text on Windows; keep the SVG as text for other apps
-                let _ = cb.set_text(svg.replacen("<svg", "<svg data-vector-clip=\"1\"", 1));
-            }
+        // system clipboard: SVG, EMF+ metafile, PNG and DIB together (Office pastes vectors)
+        if crate::dialogs::clipboard::system_enabled() {
+            let svg = vector_io::svg_export::objects_to_svg(&d.doc, &objs);
+            let emf = vector_io::emf::objects_to_emf(&d.doc, &objs, &Default::default());
+            let png = vector_render::render_objects_image(&d.doc, &objs, 1024, None);
+            let rgba = png.as_ref().map(vector_render::pixmap_to_rgba);
+            let bitmap = png.as_ref().zip(rgba.as_deref()).map(|(pm, px)| (pm.width(), pm.height(), px));
+            crate::dialogs::clipboard::set_system(&crate::dialogs::clipboard::copy_formats(&svg, emf, bitmap));
         }
         self.clip = crate::app::Clip { objects: objs, images, symbols };
         true
@@ -794,14 +801,19 @@ impl AnyVectorApp {
             self.new_default_document();
         }
         // what is on the system clipboard?
-        let mut text = if kind == Some(PasteKind::Bitmap) { None } else { crate::dialogs::clipboard::system_text() };
-        let ours = text.as_deref().map(|t| t.contains("data-vector-clip")).unwrap_or(false);
+        let own = crate::dialogs::clipboard::system_own();
+        let mut text = if matches!(kind, Some(PasteKind::Bitmap | PasteKind::Metafile)) { None } else { crate::dialogs::clipboard::system_text() };
+        let ours = own.is_some() || text.as_deref().map(|t| t.contains("data-vector-clip")).unwrap_or(false);
         let image = if ours || kind.is_some_and(|k| k != PasteKind::Bitmap) { None } else { crate::dialogs::clipboard::system_image() };
         // a browser's "Copy image" may add the image URL as text: paste the bitmap
         if image.is_some() && kind.is_none() && text.as_deref().is_some_and(crate::dialogs::clipboard::text_is_image_link) {
             text = None;
         }
-        if (kind == Some(PasteKind::Native) || (kind.is_none() && (ours || (text.is_none() && image.is_none())))) && !self.clip.objects.is_empty() {
+        // vectors from another program: an SVG picture or a metafile
+        let foreign_svg = if ours || !want(PasteKind::Svg) || kind == Some(PasteKind::Native) { None } else { crate::dialogs::clipboard::system_svg() };
+        let foreign_emf = !ours && want(PasteKind::Metafile) && crate::dialogs::clipboard::system_has_emf();
+        let outside = text.is_some() || image.is_some() || foreign_svg.is_some() || foreign_emf;
+        if (kind == Some(PasteKind::Native) || (kind.is_none() && (ours || !outside))) && !self.clip.objects.is_empty() {
             let clip = self.clip.clone();
             let d = self.doc_mut().unwrap();
             let mut tmp = Document::new(1.0, 1.0);
@@ -819,23 +831,37 @@ impl AnyVectorApp {
             d.add_objects("Paste", objs);
             return;
         }
+        // an SVG picture: ours (Paste Special, or copied in another AnyVector) or another program's
+        let svg = if ours && want(PasteKind::Svg) && kind != Some(PasteKind::Native) { own } else { foreign_svg };
+        if let Some(svg) = svg {
+            let d = self.doc_mut().unwrap();
+            if let Ok(objs) = vector_io::svg_import::objects_from_svg(&mut d.doc, svg.trim().as_bytes()) {
+                paste_placed(d, objs, at);
+                return;
+            }
+        }
         if let Some(t) = text {
             let t = t.trim().to_string();
             if (t.starts_with("<svg") || t.starts_with("<?xml")) && want(PasteKind::Svg) {
                 let d = self.doc_mut().unwrap();
-                if let Ok(mut objs) = vector_io::svg_import::objects_from_svg(&mut d.doc, t.as_bytes()) {
-                    let c = at.unwrap_or_else(|| crate::dialogs::clipboard::paste_center(d));
-                    let bb = vector_core::object::union_bounds(objs.iter().map(|o| o.bounds()));
-                    for o in objs.iter_mut() {
-                        o.apply_transform(Affine::translate(c - bb.center()));
-                    }
-                    d.add_objects("Paste", objs);
+                if let Ok(objs) = vector_io::svg_import::objects_from_svg(&mut d.doc, t.as_bytes()) {
+                    paste_placed(d, objs, at);
                     return;
                 }
             }
             if !t.is_empty() && want(PasteKind::Text) {
                 crate::tools::insert_text_at(self, &t, None, at);
                 return;
+            }
+        }
+        // a metafile (Office, other drawing programs): its GDI records as curves
+        if foreign_emf {
+            if let Some(bytes) = crate::dialogs::clipboard::system_emf() {
+                let d = self.doc_mut().unwrap();
+                if let Ok(objs) = vector_io::emf_import::objects_from_emf(&mut d.doc, &bytes) {
+                    paste_placed(d, objs, at);
+                    return;
+                }
             }
         }
         if let Some(img) = image {

@@ -147,14 +147,17 @@ its status in AnyVector.
     nine presets plus your own. It supports PDF/X-1a, PDF/X-3 and PDF/A-1b, LZW, ZIP and JPEG compression, ASCII85,
     bookmarks, thumbnails, the start view, printer's marks and bleed, and 128-bit passwords with print, edit and copy
     permissions.
-  - Export opens the format's own settings (PDF, SVG, PNG, JPEG and other bitmaps). Export For Office, Web (with a
-    preview and size estimate) and WordPress all work. WordPress uploads to the site's media library; the password
+  - Export opens the format's own settings (PDF, SVG, PNG, JPEG and other bitmaps); EMF is written as an EMF+ dual
+    metafile (curves, transparency, gradients, text as curves). Export For Office (PNG for Compatibility, EMF for
+    Editing), Web (with a preview and size estimate) and WordPress all work. WordPress uploads to the site's media library; the password
     is asked for each time and never saved.
   - The Export docker takes the selection, the current page or all pages.
   - Send To ▸ Mail attaches the drawing to a new mail message. Send To Links lists the Windows Send To folder.
   - Acquire Image scans from a WIA scanner or camera and imports the image.
   - Document Properties shows all of the reference's sections.
 - Edit:
+  - Copy puts SVG (image/svg+xml), an EMF+ metafile, PNG and a DIB on the clipboard together, so Office pastes
+    clean vectors; Paste reads metafiles from other programs as curves (their GDI records).
   - Paste Special lets you choose the clipboard format.
   - Paste in View pastes at the center of the window.
   - Copy Properties From has the reference dialog: Outline Pen, Outline Color, Fill and Text Properties, then you

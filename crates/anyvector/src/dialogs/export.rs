@@ -895,6 +895,7 @@ pub fn show_export(app: &mut AnyVectorApp, ctx: &egui::Context) {
                     app.dialogs.svg = Some(s);
                 }
             }
+            "emf" => run_emf(app, &path, &pages, sel),
             ext => {
                 let b = BitmapState::new(app, BitmapMode::Export, Some(path), ext, pages, sel);
                 if st.no_filter_dialog {
@@ -963,6 +964,25 @@ fn run_svg(app: &mut AnyVectorApp, st: &SvgState) {
     let res: Result<(), String> = pages.iter().try_for_each(|p| vector_io::svg_export::export(&doc, *p, &numbered(&st.path, *p, pages.len()), &opts).map_err(|e| e.to_string()));
     match res {
         Ok(()) => app.flash(format!("Exported {}", st.path.display())),
+        Err(e) => app.dialogs.message_box = Some(("Export".into(), format!("Export failed:\n{e}"))),
+    }
+}
+
+/// EMF export: an EMF+ dual metafile per page (curves, transparency and text as curves).
+fn run_emf(app: &mut AnyVectorApp, path: &Path, pages: &[usize], selection: bool) {
+    let Some(d) = app.doc() else { return };
+    let (doc, pages) = if selection {
+        match crate::exec::selection_document(&d.doc, &d.selection) {
+            Some(sd) => (sd, vec![0]),
+            None => return,
+        }
+    } else {
+        (d.doc.clone(), pages.to_vec())
+    };
+    let opts = vector_io::emf::EmfOptions::default();
+    let res: Result<(), String> = pages.iter().try_for_each(|p| vector_io::emf::export(&doc, *p, &numbered(path, *p, pages.len()), &opts).map_err(|e| e.to_string()));
+    match res {
+        Ok(()) => app.flash(format!("Exported {}", path.display())),
         Err(e) => app.dialogs.message_box = Some(("Export".into(), format!("Export failed:\n{e}"))),
     }
 }
@@ -1116,6 +1136,10 @@ fn render(doc: &Document, page: usize, st: &BitmapState, size: (u32, u32)) -> Op
 }
 
 fn encode(doc: &Document, page: usize, st: &BitmapState) -> Result<Vec<u8>, String> {
+    if st.ext == "emf" {
+        // Export For Office ▸ Editing: vectors; the resolution is for effects kept as bitmaps
+        return Ok(vector_io::emf::page_to_emf(doc, page, &vector_io::emf::EmfOptions { raster_dpi: st.dpi, ..Default::default() }));
+    }
     let (w, h, rgba) = render(doc, page, st, (st.width, st.height)).ok_or("The image is too large.")?;
     vector_io::image_io::encode_raster(w, h, rgba, &st.ext, st.quality, st.dpi).map_err(|e| e.to_string())
 }
@@ -1220,7 +1244,7 @@ fn settings_panel(ui: &mut Ui, st: &mut BitmapState) {
             });
             group(ui, "Graphic best suited for", |ui| {
                 ui.radio_value(&mut st.office_best, 0, "Compatibility");
-                ui.add_enabled_ui(false, |ui| ui.radio_value(&mut st.office_best, 1, "Editing")).response.on_disabled_hover_text("EMF files are not written.");
+                ui.radio_value(&mut st.office_best, 1, "Editing").on_hover_text("An EMF metafile: curves stay curves, editable in Office.");
             });
             row(ui, "Optimized for:", 110.0, |ui| {
                 if combo(ui, "office_for", &mut st.office_for, &["Presentation", "Desktop printing", "Commercial printing"], 180.0) {
@@ -1228,7 +1252,7 @@ fn settings_panel(ui: &mut Ui, st: &mut BitmapState) {
                     st.size_from_dpi();
                 }
             });
-            st.ext = "png".into();
+            st.ext = if st.office_best == 1 { "emf" } else { "png" }.into();
             st.transparent = false;
             return;
         }

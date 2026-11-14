@@ -5,6 +5,8 @@ pub mod cdr;
 pub mod corel;
 pub mod cutter;
 pub mod dxf;
+pub mod emf;
+pub mod emf_import;
 pub mod flat;
 pub mod hpgl;
 pub mod image_io;
@@ -84,6 +86,7 @@ pub const IMPORT_TYPES: &[FileType] = &[
     FileType { name: "EPS - Encapsulated PostScript (*.eps)", extensions: &["eps", "epsf"], vector: true },
     FileType { name: "PS - PostScript (*.ps;*.prn)", extensions: &["ps", "prn"], vector: true },
     FileType { name: "AI - Adobe Illustrator (*.ai)", extensions: &["ai"], vector: true },
+    FileType { name: "EMF - Enhanced Windows Metafile (*.emf)", extensions: &["emf"], vector: true },
     FileType { name: "PNG - Portable Network Graphics (*.png)", extensions: &["png"], vector: false },
     FileType { name: "JPG - JPEG Bitmaps (*.jpg;*.jpeg;*.jfif)", extensions: &["jpg", "jpeg", "jfif"], vector: false },
     FileType { name: "BMP - Windows Bitmap (*.bmp)", extensions: &["bmp"], vector: false },
@@ -107,6 +110,7 @@ pub const EXPORT_TYPES: &[FileType] = &[
     FileType { name: "PLT - HPGL Plotter File (*.plt;*.hgl)", extensions: &["plt", "hgl"], vector: true },
     FileType { name: "DXF - AutoCAD (*.dxf)", extensions: &["dxf"], vector: true },
     FileType { name: "JXL - JPEG XL, lossless (*.jxl)", extensions: &["jxl"], vector: false },
+    FileType { name: "EMF - Enhanced Windows Metafile (*.emf)", extensions: &["emf"], vector: true },
 ];
 
 pub fn extension(path: &Path) -> String {
@@ -239,6 +243,7 @@ pub fn import(doc: &mut Document, path: &Path) -> Result<Vec<Object>> {
             let opts = pdf_import::PdfImportOptions { pages: vec![0], text_as_curves: false };
             Ok(pdf_import::import_pages(doc, &bytes, &opts)?.0.pop().map(|p| p.0).unwrap_or_default())
         }
+        "emf" => emf_import::objects_from_emf(doc, &bytes),
         e if image_io::is_image_ext(e) => {
             let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
             let img = image_io::decode(&bytes, &name)?;

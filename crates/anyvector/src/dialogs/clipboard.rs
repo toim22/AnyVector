@@ -13,6 +13,8 @@ pub enum PasteKind {
     Native,
     Svg,
     Text,
+    /// An Enhanced Metafile (CF_ENHMETAFILE) from another program.
+    Metafile,
     Bitmap,
 }
 
@@ -22,6 +24,7 @@ impl PasteKind {
             PasteKind::Native => "AnyVector Graphic",
             PasteKind::Svg => "SVG Document",
             PasteKind::Text => "Text",
+            PasteKind::Metafile => "Picture (Enhanced Metafile)",
             PasteKind::Bitmap => "Device Independent Bitmap",
         }
     }
@@ -30,9 +33,168 @@ impl PasteKind {
             PasteKind::Native => "Inserts the contents of the clipboard into your document as AnyVector objects.",
             PasteKind::Svg => "Inserts the contents of the clipboard into your document as SVG objects.",
             PasteKind::Text => "Inserts the contents of the clipboard into your document as Text.",
+            PasteKind::Metafile => "Inserts the contents of the clipboard into your document as Picture (Enhanced Metafile).",
             PasteKind::Bitmap => "Inserts the contents of the clipboard into your document as a bitmap.",
         }
     }
+}
+
+// ------------------------------------------------------------------------------------------
+// copying to the system clipboard
+
+/// The private clipboard format that marks a copy made in AnyVector (it holds the SVG).
+pub const OWN_FORMAT: &str = "AnyVector Graphic";
+/// The SVG picture format current Office versions paste as an editable SVG graphic.
+pub const SVG_FORMAT: &str = "image/svg+xml";
+
+/// A format put on the system clipboard by Copy.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ClipFormat {
+    /// A format registered by name (RegisterClipboardFormat).
+    Named(&'static str),
+    /// CF_ENHMETAFILE: the bytes become a metafile handle.
+    EnhMetafile,
+    /// CF_DIB: a packed device independent bitmap.
+    Dib,
+}
+
+/// What Copy puts on the system clipboard, in order of preference, all at once: AnyVector's own
+/// marker (so Paste brings back the objects), the SVG (Office 365 pastes an editable SVG
+/// picture), the EMF+ metafile (older Office and other programs: curves kept), and PNG / DIB
+/// bitmaps. There is deliberately no text: Office would paste the SVG source as text.
+pub fn copy_formats(svg: &str, emf: Vec<u8>, bitmap: Option<(u32, u32, &[u8])>) -> Vec<(ClipFormat, Vec<u8>)> {
+    let mut v = vec![];
+    let own = svg.replacen("<svg", "<svg data-vector-clip=\"1\"", 1);
+    v.push((ClipFormat::Named(OWN_FORMAT), own.into_bytes()));
+    v.push((ClipFormat::Named(SVG_FORMAT), svg.as_bytes().to_vec()));
+    if !emf.is_empty() {
+        v.push((ClipFormat::EnhMetafile, emf));
+    }
+    if let Some((w, h, rgba)) = bitmap {
+        v.push((ClipFormat::Named("PNG"), vector_io::image_io::encode_png(w, h, rgba)));
+        // the DIB is opaque (many programs ignore its alpha): composited on white
+        v.push((ClipFormat::Dib, vector_io::emf::dib_from_rgba(w, h, rgba, false, Some(vector_core::Color::WHITE))));
+    }
+    v
+}
+
+#[cfg(windows)]
+#[link(name = "user32")]
+unsafe extern "system" {
+    fn SetClipboardData(format: u32, mem: *mut std::ffi::c_void) -> *mut std::ffi::c_void;
+}
+
+/// Put the formats on the system clipboard together (one open, so none replaces another).
+/// False when the clipboard could not be opened.
+pub fn set_system(formats: &[(ClipFormat, Vec<u8>)]) -> bool {
+    if !system_enabled() {
+        return false;
+    }
+    #[cfg(windows)]
+    {
+        use clipboard_win::{formats as cf, raw, register_format, Clipboard};
+        let Ok(_open) = Clipboard::new_attempts(10) else { return false };
+        if raw::empty().is_err() {
+            return false;
+        }
+        for (f, data) in formats {
+            match f {
+                ClipFormat::Named(name) => {
+                    if let Some(id) = register_format(name) {
+                        let _ = raw::set_without_clear(id.get(), data);
+                    }
+                }
+                ClipFormat::Dib => {
+                    let _ = raw::set_without_clear(cf::CF_DIB, data);
+                }
+                ClipFormat::EnhMetafile => unsafe {
+                    let h = windows::Win32::Graphics::Gdi::SetEnhMetaFileBits(data);
+                    if !h.is_invalid() && SetClipboardData(cf::CF_ENHMETAFILE, h.0).is_null() {
+                        // not taken by the clipboard: still ours to free
+                        let _ = windows::Win32::Graphics::Gdi::DeleteEnhMetaFile(Some(h));
+                    }
+                },
+            }
+        }
+        true
+    }
+    #[cfg(not(windows))]
+    {
+        // elsewhere: the SVG (with the marker) as text, which Paste recognizes
+        let Ok(mut cb) = arboard::Clipboard::new() else { return false };
+        match formats.iter().find(|(f, _)| *f == ClipFormat::Named(OWN_FORMAT)) {
+            Some((_, svg)) => cb.set_text(String::from_utf8_lossy(svg).into_owned()).is_ok(),
+            None => false,
+        }
+    }
+}
+
+/// Bytes of a format registered by name on the system clipboard.
+pub fn system_named(name: &str) -> Option<Vec<u8>> {
+    if !system_enabled() {
+        return None;
+    }
+    #[cfg(windows)]
+    {
+        use clipboard_win::{raw, register_format, Clipboard};
+        let f = register_format(name).filter(|f| raw::is_format_avail(f.get()))?;
+        let _open = Clipboard::new_attempts(10).ok()?;
+        let mut v = vec![];
+        raw::get_vec(f.get(), &mut v).ok()?;
+        (!v.is_empty()).then_some(v)
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = name;
+        None
+    }
+}
+
+/// The SVG of a copy made in AnyVector (with the data-vector-clip marker), if the clipboard
+/// holds one.
+pub fn system_own() -> Option<String> {
+    system_named(OWN_FORMAT).map(|v| String::from_utf8_lossy(&v).trim_end_matches('\0').to_string())
+}
+
+/// An SVG picture another program put on the clipboard ("image/svg+xml").
+pub fn system_svg() -> Option<String> {
+    system_named(SVG_FORMAT).map(|v| String::from_utf8_lossy(&v).trim_end_matches('\0').to_string()).filter(|s| s.contains("<svg"))
+}
+
+/// Whether the clipboard holds an Enhanced Metafile (cheap: no data is read).
+pub fn system_has_emf() -> bool {
+    if !system_enabled() {
+        return false;
+    }
+    #[cfg(windows)]
+    return clipboard_win::is_format_avail(clipboard_win::formats::CF_ENHMETAFILE);
+    #[cfg(not(windows))]
+    false
+}
+
+/// The Enhanced Metafile on the clipboard, as bytes.
+pub fn system_emf() -> Option<Vec<u8>> {
+    if !system_has_emf() {
+        return None;
+    }
+    #[cfg(windows)]
+    {
+        use clipboard_win::{formats as cf, raw, Clipboard};
+        use windows::Win32::Graphics::Gdi::{GetEnhMetaFileBits, HENHMETAFILE};
+        let _open = Clipboard::new_attempts(10).ok()?;
+        let h = HENHMETAFILE(raw::get_clipboard_data(cf::CF_ENHMETAFILE).ok()?.as_ptr());
+        // the handle belongs to the clipboard: read it, never delete it
+        let n = unsafe { GetEnhMetaFileBits(h, None) } as usize;
+        if n == 0 {
+            return None;
+        }
+        let mut v = vec![0u8; n];
+        let got = unsafe { GetEnhMetaFileBits(h, Some(&mut v)) } as usize;
+        v.truncate(got);
+        (got > 0).then_some(v)
+    }
+    #[cfg(not(windows))]
+    None
 }
 
 pub struct PasteSpecialState {
@@ -74,8 +236,8 @@ pub fn system_has_content() -> bool {
     #[cfg(windows)]
     {
         use clipboard_win::{formats, is_format_avail, register_format};
-        let named = ["PNG", "image/png"].iter().any(|n| register_format(n).is_some_and(|f| is_format_avail(f.get())));
-        named || [formats::CF_UNICODETEXT, formats::CF_DIB, formats::CF_DIBV5, formats::CF_BITMAP].iter().any(|f| is_format_avail(*f))
+        let named = ["PNG", "image/png", OWN_FORMAT, SVG_FORMAT].iter().any(|n| register_format(n).is_some_and(|f| is_format_avail(f.get())));
+        named || [formats::CF_UNICODETEXT, formats::CF_DIB, formats::CF_DIBV5, formats::CF_BITMAP, formats::CF_ENHMETAFILE].iter().any(|f| is_format_avail(*f))
     }
     #[cfg(not(windows))]
     {
@@ -211,9 +373,15 @@ pub fn clipboard_kinds(app: &AnyVectorApp) -> (Vec<PasteKind>, String) {
     let mut kinds = vec![];
     let text = system_text();
     let image = system_image().is_some();
-    let ours = text.as_deref().is_some_and(|t| t.contains("data-vector-clip"));
-    if (ours || (text.is_none() && !image)) && !app.clip.objects.is_empty() {
+    let own = system_own().is_some();
+    let ours = own || text.as_deref().is_some_and(|t| t.contains("data-vector-clip"));
+    let svg = own || system_svg().is_some();
+    let emf = !ours && system_has_emf();
+    if (ours || (text.is_none() && !image && !svg && !emf)) && !app.clip.objects.is_empty() {
         kinds.push(PasteKind::Native);
+    }
+    if svg {
+        kinds.push(PasteKind::Svg);
     }
     // a bitmap with only its URL as text: the bitmap comes first
     let link = text.as_deref().is_some_and(text_is_image_link);
@@ -222,12 +390,15 @@ pub fn clipboard_kinds(app: &AnyVectorApp) -> (Vec<PasteKind>, String) {
     }
     if let Some(t) = &text {
         let t = t.trim();
-        if t.starts_with("<svg") || t.starts_with("<?xml") {
+        if (t.starts_with("<svg") || t.starts_with("<?xml")) && !svg {
             kinds.push(PasteKind::Svg);
         }
         if !t.is_empty() && !ours {
             kinds.push(PasteKind::Text);
         }
+    }
+    if emf {
+        kinds.push(PasteKind::Metafile);
     }
     if image && !link {
         kinds.push(PasteKind::Bitmap);
