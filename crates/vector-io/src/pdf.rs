@@ -396,6 +396,19 @@ fn content_string(s: &str) -> String {
     format!("({})", s.replace('\\', "\\\\").replace('(', "\\(").replace(')', "\\)"))
 }
 
+/// A PDF name object: `/` and the name with delimiters, `#` and non-printing bytes escaped.
+fn pdf_name(s: &str) -> String {
+    let mut out = String::from("/");
+    for b in s.bytes() {
+        if (0x21..=0x7e).contains(&b) && !b"#()<>[]{}/%".contains(&b) {
+            out.push(b as char);
+        } else {
+            write!(out, "#{b:02X}").unwrap();
+        }
+    }
+    out
+}
+
 fn cmyk_of(c: Color) -> [f64; 4] {
     let (r, g, b) = (c.r as f64 / 255.0, c.g as f64 / 255.0, c.b as f64 / 255.0);
     let k = 1.0 - r.max(g).max(b);
@@ -524,6 +537,8 @@ struct Res {
     shadings: Vec<(String, usize)>,
     xobjects: Vec<(String, usize)>,
     font: Option<usize>,
+    /// Separation color spaces of spot colors.
+    color_spaces: Vec<(String, usize)>,
 }
 
 struct Ctx<'a> {
@@ -534,6 +549,10 @@ struct Ctx<'a> {
     gs_cache: HashMap<String, usize>,
     counter: usize,
     font: Option<usize>,
+    /// The document's spot colors (CutContour always among them) and the Separation color
+    /// space object written for each, by name.
+    spots: Vec<vector_core::color::NamedColor>,
+    spot_cache: HashMap<String, usize>,
 }
 
 impl<'a> Ctx<'a> {
@@ -599,6 +618,50 @@ impl<'a> Ctx<'a> {
         let n = self.name("GS");
         res.ext_g.push((n.clone(), id));
         n
+    }
+
+    /// The spot color a solid color stands for: one of the document's spot colors with exactly
+    /// this RGB value.
+    fn spot_for(&self, c: Color) -> Option<vector_core::color::NamedColor> {
+        self.spots.iter().find(|s| (s.color.r, s.color.g, s.color.b) == (c.r, c.g, c.b)).cloned()
+    }
+
+    /// The resource name of the Separation color space of a spot color (written once per file).
+    fn spot_space(&mut self, res: &mut Res, spot: &vector_core::color::NamedColor) -> String {
+        let id = match self.spot_cache.get(&spot.name) {
+            Some(id) => *id,
+            None => {
+                let id = self.w.alloc();
+                // the CMYK the spot prints as when it is not separated: 100% magenta for CutContour
+                let cmyk = if spot.name == crate::cutter::CUT_CONTOUR_NAME { [0.0, 1.0, 0.0, 0.0] } else { cmyk_of(spot.color) };
+                let c1: Vec<String> = cmyk.iter().map(|v| f(*v)).collect();
+                self.w.obj(id, &format!("[/Separation {} /DeviceCMYK << /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [{}] /N 1 >>]", pdf_name(&spot.name), c1.join(" ")));
+                self.spot_cache.insert(spot.name.clone(), id);
+                id
+            }
+        };
+        if let Some((n, _)) = res.color_spaces.iter().find(|(_, i)| *i == id) {
+            return n.clone();
+        }
+        let n = self.name("CS");
+        res.color_spaces.push((n.clone(), id));
+        n
+    }
+
+    /// The fill or stroke color operators: a spot color as a 100% tint of its Separation, any
+    /// other color in the output color space.
+    fn paint_op(&mut self, res: &mut Res, c: Color, stroke: bool) -> String {
+        match self.spot_for(c) {
+            Some(spot) => {
+                let n = self.spot_space(res, &spot);
+                if stroke {
+                    format!("/{n} CS 1 SCN")
+                } else {
+                    format!("/{n} cs 1 scn")
+                }
+            }
+            None => color_op(c, self.space(), stroke),
+        }
     }
 
     fn function(&mut self, g: &Gradient) -> usize {
@@ -911,6 +974,13 @@ fn res_dict(res: &Res) -> String {
     if let Some(id) = res.font {
         write!(s, " /Font << /F1 {id} 0 R >>").unwrap();
     }
+    if !res.color_spaces.is_empty() {
+        s.push_str(" /ColorSpace <<");
+        for (n, id) in &res.color_spaces {
+            write!(s, " /{n} {id} 0 R").unwrap();
+        }
+        s.push_str(" >>");
+    }
     if !res.xobjects.is_empty() {
         s.push_str(" /XObject <<");
         for (n, id) in &res.xobjects {
@@ -927,6 +997,18 @@ fn cm(a: Affine) -> String {
     format!("{} {} {} {} {} {} cm\n", f(c[0]), f(c[1]), f(c[2]), f(c[3]), f(c[4]), f(c[5]))
 }
 
+/// The spot colors of a document (its palette and color styles), with CutContour always
+/// among them so print-and-cut lines reach the RIP as a separation.
+fn spot_colors(doc: &Document) -> Vec<vector_core::color::NamedColor> {
+    let mut v = vec![crate::cutter::cut_contour()];
+    for c in doc.palette.iter().chain(doc.color_styles.iter()) {
+        if c.spot && !v.iter().any(|x| x.name == c.name || x.color == c.color) {
+            v.push(c.clone());
+        }
+    }
+    v
+}
+
 pub fn export_bytes(doc: &Document, opts: &PdfOptions) -> Result<Vec<u8>> {
     let seed = opts.id_seed.unwrap_or_else(|| std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos() as u64).unwrap_or(0));
     let id = crate::pdf_crypt::md5(format!("{seed}/{}/{}", opts.file_name, doc.pages.len()).as_bytes());
@@ -940,6 +1022,8 @@ pub fn export_bytes(doc: &Document, opts: &PdfOptions) -> Result<Vec<u8>> {
         gs_cache: HashMap::new(),
         counter: 0,
         font: None,
+        spots: spot_colors(doc),
+        spot_cache: HashMap::new(),
     };
     let mut version = opts.compat.version();
     if security.is_some() && version < "1.4" {
@@ -1003,7 +1087,8 @@ pub fn export_bytes(doc: &Document, opts: &PdfOptions) -> Result<Vec<u8>> {
                                 let gs = ctx.overprint(&mut res);
                                 writeln!(content, "/{gs} gs").unwrap();
                             }
-                            writeln!(content, "{}", color_op(c, space, false)).unwrap();
+                            let op = ctx.paint_op(&mut res, c, false);
+                            writeln!(content, "{op}").unwrap();
                             path_ops(&path, &mut content);
                             content.push_str(if even_odd { "f*\nQ\n" } else { "f\nQ\n" });
                         }
@@ -1037,7 +1122,8 @@ pub fn export_bytes(doc: &Document, opts: &PdfOptions) -> Result<Vec<u8>> {
                         let gs = ctx.overprint(&mut res);
                         writeln!(content, "/{gs} gs").unwrap();
                     }
-                    writeln!(content, "{}", color_op(color, space, true)).unwrap();
+                    let op = ctx.paint_op(&mut res, color, true);
+                    writeln!(content, "{op}").unwrap();
                     stroke_ops(&style, &mut content);
                     path_ops(&path, &mut content);
                     content.push_str("S\nQ\n");
@@ -1358,6 +1444,36 @@ mod tests {
         // ASCII85 wraps every stream
         let a = export_bytes(&doc, &PdfOptions { ascii85: true, ..Default::default() }).unwrap();
         assert!(String::from_utf8_lossy(&a).contains("/Filter [/ASCII85Decode /FlateDecode]"));
+    }
+
+    #[test]
+    fn cut_contour_stays_a_spot_color() {
+        let mut doc = sample();
+        let id = doc.new_id();
+        let mut st = Style::default();
+        st.fill = vector_core::style::Fill::None;
+        st.outline.color = Some(crate::cutter::CUT_CONTOUR);
+        st.outline.width = 0.0;
+        let o = Object::new(id, ObjKind::Rect(RectShape { w: 60.0, h: 50.0, radii: [0.0; 4], corner: CornerType::default() }), Affine::translate((5.0, 5.0)), st);
+        doc.pages[0].layers[0].objects.push(o);
+        // another spot color from the document palette, as a fill
+        let mut gold = vector_core::color::NamedColor::new("Gold Foil 1", Color::rgb(212, 175, 55));
+        gold.spot = true;
+        doc.palette.push(gold);
+        doc.pages[0].layers[0].objects[0].style.fill = vector_core::style::Fill::Solid(Color::rgb(212, 175, 55));
+        for compat in [PdfCompat::Acrobat9, PdfCompat::PdfX1a] {
+            let b = export_bytes(&doc, &PdfOptions { compress: false, color: PdfColor::Cmyk, compat, ..Default::default() }).unwrap();
+            let s = String::from_utf8_lossy(&b);
+            assert!(s.contains("[/Separation /CutContour /DeviceCMYK << /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [0 1 0 0] /N 1 >>]"), "{s}");
+            assert!(s.contains("/Separation /Gold#20Foil#201 /DeviceCMYK"));
+            assert!(s.contains(" CS 1 SCN\n"), "the outline is stroked with the separation");
+            assert!(s.contains(" cs 1 scn\n"), "the fill uses the other separation");
+            assert!(s.contains("/ColorSpace << /CS"));
+        }
+        // a process color that only looks like the spot is not turned into it
+        doc.palette.clear();
+        let b = export_bytes(&doc, &PdfOptions { compress: false, ..Default::default() }).unwrap();
+        assert!(!String::from_utf8_lossy(&b).contains("Gold"));
     }
 
     #[test]

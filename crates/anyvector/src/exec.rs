@@ -1887,6 +1887,7 @@ impl AnyVectorApp {
                 let ids = sel.clone();
                 *sel = ops::outline_to_object(doc, &ids);
             }),
+            Cmd::CreateCutContour => crate::dialogs::cutter::start_contour(self),
             Cmd::JoinCurves => {
                 let tol = self.dockers.ui.join_tolerance.max(0.01);
                 self.modify_sel("Join Curves", |doc, sel| {

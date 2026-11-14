@@ -6,6 +6,7 @@ pub mod forms;
 pub mod layout;
 pub mod linestyle;
 pub mod clipboard;
+pub mod cutter;
 pub mod docprops;
 pub mod export;
 pub mod merge;
@@ -122,6 +123,8 @@ pub struct Dialogs {
     pub change_case: Option<usize>,
     pub encode: Option<text::EncodeState>,
     pub edit_text: Option<text::EditTextState>,
+    /// HPGL Export, DXF Export and Create Cut Contour.
+    pub cutter: cutter::CutterDialogs,
 }
 
 impl Dialogs {
@@ -172,6 +175,7 @@ impl Dialogs {
             || self.encode.is_some()
             || self.edit_text.is_some()
             || self.ws.any_open()
+            || self.cutter.any_open()
     }
 }
 
@@ -219,6 +223,7 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
     if app.dialogs.bitmap.is_some() {
         export::show_bitmap(app, ctx);
     }
+    cutter::show(app, ctx);
     if app.dialogs.paste_special.is_some() {
         clipboard::paste_special(app, ctx);
     }

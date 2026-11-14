@@ -162,6 +162,7 @@ pub static BARS: [Bar; 279] = [
         Item { id: "68000526-6be1-4205-b2e9-6c9dff00f4c5", text: "Con&vert to Curves", tip: "Convert to curves ", kind: Button, keys: &["Ctrl+Q"], sub: N, icon: "to_curves", menu_icon: true, on: 0x3f7b6, face: Default, flags: 0 },
         Item { id: "c44919b9-e389-4c0d-8a54-8e6e3fcfade3", text: "Convert to Bitmap&...", tip: "", kind: Button, keys: &[], sub: N, icon: "to_bitmap", menu_icon: true, on: 0x7f7fe, face: Default, flags: 0 },
         Item { id: "e64806d9-66ea-4c9c-9325-3744a3da5db6", text: "Convert Outline to Obj&ect", tip: "", kind: Button, keys: &["Ctrl+Shift+Q"], sub: N, icon: "outline_to_object", menu_icon: true, on: 0x3911e, face: Default, flags: 0 },
+        Item { id: "c7a1e5d2-3b84-4f6e-9a1d-5e2c8b7f4a90", text: "Create Cut Con&tour...", tip: "Create a CutContour line around the selection for print-and-cut", kind: Button, keys: &[], sub: N, icon: "contour", menu_icon: true, on: 0x37ffe, face: Default, flags: 0 },
         Item { id: "ce73460f-ccd3-75a5-427a-0b5e757a642a", text: "&Join Curves", tip: "", kind: Check, keys: &[], sub: N, icon: "join_curves", menu_icon: false, on: 0x7ffff, face: Default, flags: 0 },
         Item { id: "", text: "", tip: "", kind: Separator, keys: &[], sub: N, icon: "", menu_icon: false, on: 0xffffffff, face: Default, flags: 0 },
         Item { id: "1651a600-66b1-4b83-b8f6-5245a55a15fe", text: "Overprint &Fill", tip: "", kind: Check, keys: &[], sub: N, icon: "overprint_fill", menu_icon: false, on: 0x209be, face: Default, flags: 0 },

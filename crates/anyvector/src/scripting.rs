@@ -5,6 +5,13 @@
 //! `rect(x, y, w, h)`, `ellipse(cx, cy, rx, ry)`, `line(x1, y1, x2, y2)`, `text(x, y, "s")`,
 //! `fill("#ff0000")`, `outline("#000000", width)`, `select_all()`, `move_by(dx, dy)`,
 //! `rotate(deg)`, `scale(sx, sy)`, `message("...")`. Units are points.
+//!
+//! Device output plugins: a script in the `Devices` folder of the Scripts folder can add an
+//! export format with `register_export("Name (*.ext)", "ext", "writer")` and a function
+//! `writer(paths, page)` that receives the page's outlines flattened to polylines (with color,
+//! spot color name, layer and pen) and returns the file's bytes. See [`devices`].
+
+pub mod devices;
 
 use crate::app::AnyVectorApp;
 use crate::commands::Cmd;

@@ -771,6 +771,8 @@ pub struct ExportState {
     pub selected_only: bool,
     pub this_page_only: bool,
     pub no_filter_dialog: bool,
+    /// Formats added by device plugins, listed after the built-in ones.
+    pub devices: Vec<crate::scripting::devices::DeviceFormat>,
 }
 
 impl ExportState {
@@ -786,6 +788,7 @@ impl ExportState {
             selected_only: app.has_selection(),
             this_page_only: true,
             no_filter_dialog: false,
+            devices: crate::scripting::devices::scan(),
         }
     }
 }
@@ -796,6 +799,9 @@ pub fn show_export(app: &mut AnyVectorApp, ctx: &egui::Context) {
         return;
     }
     let types = vector_io::EXPORT_TYPES;
+    // the built-in types, then the device plugins' formats: (name, extensions)
+    let all: Vec<(String, Vec<String>)> = types.iter().map(|t| (t.name.to_string(), t.extensions.iter().map(|e| e.to_string()).collect())).chain(st.devices.iter().map(|d| (d.name.clone(), vec![d.ext.clone()]))).collect();
+    st.format = st.format.min(all.len() - 1);
     let has_sel = app.has_selection();
     let multi = app.doc().map(|d| d.doc.pages.len() > 1).unwrap_or(false);
     let mut go = false;
@@ -805,9 +811,9 @@ pub fn show_export(app: &mut AnyVectorApp, ctx: &egui::Context) {
         row(ui, "File name:", 100.0, |ui| {
             ui.add(egui::TextEdit::singleline(&mut st.path).desired_width(380.0));
             if button(ui, "Browse...", true) {
-                let t = &types[st.format];
+                let (name, exts) = &all[st.format];
                 let p = PathBuf::from(&st.path);
-                let mut fd = rfd::FileDialog::new().set_title("Export").add_filter(t.name, t.extensions);
+                let mut fd = rfd::FileDialog::new().set_title("Export").add_filter(name, exts);
                 if let Some(dir) = p.parent() {
                     fd = fd.set_directory(dir);
                 }
@@ -820,9 +826,9 @@ pub fn show_export(app: &mut AnyVectorApp, ctx: &egui::Context) {
             }
         });
         row(ui, "Save as type:", 100.0, |ui| {
-            let names: Vec<&str> = types.iter().map(|t| t.name).collect();
+            let names: Vec<&str> = all.iter().map(|t| t.0.as_str()).collect();
             if combo(ui, "ex_type", &mut st.format, &names, 380.0) {
-                let ext = types[st.format].extensions[0];
+                let ext = &all[st.format].1[0];
                 st.path = PathBuf::from(&st.path).with_extension(ext).display().to_string();
             }
         });
@@ -845,17 +851,26 @@ pub fn show_export(app: &mut AnyVectorApp, ctx: &egui::Context) {
         });
     });
     if go {
-        let t = &types[st.format];
+        let exts = &all[st.format].1;
         let mut path = PathBuf::from(st.path.trim());
-        if !t.extensions.iter().any(|e| path.extension().map(|x| x.to_string_lossy().eq_ignore_ascii_case(e)).unwrap_or(false)) {
-            path = path.with_extension(t.extensions[0]);
+        if !exts.iter().any(|e| path.extension().map(|x| x.to_string_lossy().eq_ignore_ascii_case(e)).unwrap_or(false)) {
+            path = path.with_extension(&exts[0]);
         }
-        app.settings.export_format = st.format;
+        if st.format < types.len() {
+            app.settings.export_format = st.format;
+        }
         app.settings.last_export_dir = path.parent().map(|p| p.to_path_buf());
         let sel = st.selected_only && has_sel;
         let d = app.doc().unwrap();
         let pages: Vec<usize> = if sel || st.this_page_only || !multi { vec![d.page] } else { (0..d.doc.pages.len()).collect() };
-        match t.extensions[0] {
+        if let Some(dev) = st.format.checked_sub(types.len()).and_then(|i| st.devices.get(i)) {
+            let target = super::cutter::Target::new(app, path, pages, sel);
+            super::cutter::run_device(app, dev, &target);
+            return;
+        }
+        match types[st.format].extensions[0] {
+            "plt" => super::cutter::start_hpgl(app, super::cutter::Target::new(app, path, pages, sel), st.no_filter_dialog),
+            "dxf" => super::cutter::start_dxf(app, super::cutter::Target::new(app, path, pages, sel), st.no_filter_dialog),
             "pdf" => {
                 let mut p = PdfState::new(app, false);
                 p.path = path.display().to_string();
