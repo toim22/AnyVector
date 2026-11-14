@@ -254,10 +254,6 @@ impl AnyVectorApp {
         self.doc().map(|d| d.selection.clone()).unwrap_or_default()
     }
 
-    fn unit_default(&self) -> vector_core::Unit {
-        self.settings.default_unit
-    }
-
     // -------------------------------------------------------------------------------- documents
 
     pub(crate) fn push_doc(&mut self, dv: DocView) {
@@ -333,7 +329,7 @@ impl AnyVectorApp {
 
     pub fn new_default_document(&mut self) {
         self.untitled_counter += 1;
-        let st = NewDocState::new(self.untitled_counter, self.unit_default());
+        let st = NewDocState::from_settings(self.untitled_counter, &self.settings);
         self.create_document(&st);
     }
 
@@ -362,11 +358,15 @@ impl AnyVectorApp {
     fn new_document_cmd(&mut self) {
         if self.settings.show_new_doc_dialog {
             self.untitled_counter += 1;
-            let mut st = NewDocState::new(self.untitled_counter, self.unit_default());
-            if let Some(d) = self.doc() {
-                st.width = d.page_ref().width;
-                st.height = d.page_ref().height;
-                st.unit = d.doc.settings.unit;
+            // the dialog opens on the settings of the last new document (as CorelDRAW does);
+            // before there is one, on the active document's page size
+            let mut st = NewDocState::from_settings(self.untitled_counter, &self.settings);
+            if self.settings.last_new_doc.is_none() {
+                if let Some(d) = self.doc() {
+                    st.width = d.page_ref().width;
+                    st.height = d.page_ref().height;
+                    st.unit = d.doc.settings.unit;
+                }
             }
             self.dialogs.new_doc = Some(st);
         } else {
@@ -1110,7 +1110,7 @@ impl AnyVectorApp {
             Cmd::NewFromTemplate => {
                 // Create a New Document, opened on its Templates tab
                 self.untitled_counter += 1;
-                let mut st = NewDocState::new(self.untitled_counter, self.unit_default());
+                let mut st = NewDocState::from_settings(self.untitled_counter, &self.settings);
                 st.tab = 1;
                 self.dialogs.new_doc = Some(st);
             }
