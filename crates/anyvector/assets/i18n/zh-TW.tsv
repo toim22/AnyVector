@@ -5584,3 +5584,16 @@ GitHub doesn't accept .{} files. Put "{}" in a .zip file.	GitHub 不接受 .{} �
 "{}" is empty.	「{}」是空的。
 "{}" is {}. GitHub accepts at most {} MB for this type.	「{}」大小為 {}。此類型 GitHub 最多接受 {} MB。
 To attach "{}", drag it from the folder that opened into the description box on GitHub.	若要附加「{}」，請將其從開啟的資料夾拖曳到 GitHub 上的描述方塊中。
+EPS - Encapsulated PostScript (*.eps)	EPS - Encapsulated PostScript (*.eps)
+PS - PostScript (*.ps;*.prn)	PS - PostScript (*.ps;*.prn)
+AI - Adobe Illustrator (*.ai)	AI - Adobe Illustrator (*.ai)
+Left out: {} use(s) of PostScript operators AnyVector doesn't run ({})	已省略：{} 處 AnyVector 不執行的 PostScript 運算子 ({})
+Skipped {} PostScript error(s) ({})	已略過 {} 個 PostScript 錯誤 ({})
+Pattern fills are shown as plain colors ({} fill(s))	圖樣填色顯示為純色 ({} 個填色)
+Shadings that aren't linear or radial are shown as plain colors ({})	非線性或非放射狀的漸層顯示為純色 ({})
+Left out: {} image(s) whose data couldn't be read	已省略：{} 個無法讀取資料的影像
+Left out: {} text string(s) in composite (CID) fonts	已省略：{} 段複合 (CID) 字型中的文字
+Left out: {} other file(s) the PostScript asked to read	已省略：PostScript 要求讀取的 {} 個其他檔案
+The PostScript program was stopped before its end; what it drew until then was imported	PostScript 程式在結束前被停止；已匯入它到那時為止繪製的內容
+Only the first of {} pages was imported	只匯入了 {} 頁中的第一頁
+The PostScript couldn't be read, so the file's preview image was imported instead	無法讀取 PostScript，因此改為匯入檔案的預覽影像
