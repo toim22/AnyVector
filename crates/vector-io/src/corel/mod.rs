@@ -9,7 +9,7 @@ mod bitmap;
 mod build;
 pub mod cmx;
 mod cmx3;
-mod color;
+pub(crate) mod color;
 mod palettes;
 mod psfill;
 mod persp;

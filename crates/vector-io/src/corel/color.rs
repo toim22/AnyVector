@@ -94,7 +94,7 @@ fn hls(h: f64, l: f64, s: f64) -> Color {
     Color::rgb(f(r), f(g), f(b))
 }
 
-fn lab(l: f64, a: f64, b: f64) -> Color {
+pub(crate) fn lab(l: f64, a: f64, b: f64) -> Color {
     let fy = (l + 16.0) / 116.0;
     let fx = fy + a / 500.0;
     let fz = fy - b / 200.0;
