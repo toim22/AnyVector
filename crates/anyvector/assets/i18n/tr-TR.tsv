@@ -5584,3 +5584,16 @@ GitHub doesn't accept .{} files. Put "{}" in a .zip file.	GitHub .{} dosyaların
 "{}" is empty.	"{}" boş.
 "{}" is {}. GitHub accepts at most {} MB for this type.	"{}" {} boyutunda. GitHub bu tür için en fazla {} MB kabul ediyor.
 To attach "{}", drag it from the folder that opened into the description box on GitHub.	"{}" dosyasını eklemek için açılan klasörden GitHub'daki açıklama kutusuna sürükleyin.
+EPS - Encapsulated PostScript (*.eps)	EPS - Encapsulated PostScript (*.eps)
+PS - PostScript (*.ps;*.prn)	PS - PostScript (*.ps;*.prn)
+AI - Adobe Illustrator (*.ai)	AI - Adobe Illustrator (*.ai)
+Left out: {} use(s) of PostScript operators AnyVector doesn't run ({})	Atlandı: AnyVector'ün çalıştırmadığı PostScript işleçlerinin {} kullanımı ({})
+Skipped {} PostScript error(s) ({})	{} PostScript hatası atlandı ({})
+Pattern fills are shown as plain colors ({} fill(s))	Desen dolguları düz renk olarak gösteriliyor ({} dolgu)
+Shadings that aren't linear or radial are shown as plain colors ({})	Doğrusal ya da dairesel olmayan gölgelendirmeler düz renk olarak gösteriliyor ({})
+Left out: {} image(s) whose data couldn't be read	Atlandı: verileri okunamayan {} görüntü
+Left out: {} text string(s) in composite (CID) fonts	Atlandı: bileşik (CID) yazı tiplerindeki {} metin
+Left out: {} other file(s) the PostScript asked to read	Atlandı: PostScript'in okumak istediği {} başka dosya
+The PostScript program was stopped before its end; what it drew until then was imported	PostScript programı sonuna gelmeden durduruldu; o ana kadar çizdikleri içe aktarıldı
+Only the first of {} pages was imported	{} sayfadan yalnızca ilki içe aktarıldı
+The PostScript couldn't be read, so the file's preview image was imported instead	PostScript okunamadı, bu yüzden dosyanın önizleme görüntüsü içe aktarıldı

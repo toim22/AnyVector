@@ -5584,3 +5584,16 @@ GitHub doesn't accept .{} files. Put "{}" in a .zip file.	GitHub は .{} ファ�
 "{}" is empty.	"{}" は空です。
 "{}" is {}. GitHub accepts at most {} MB for this type.	"{}" は {} です。この種類で GitHub が受け付けるのは {} MB までです。
 To attach "{}", drag it from the folder that opened into the description box on GitHub.	"{}" を添付するには、開いたフォルダーから GitHub の説明欄にドラッグしてください。
+EPS - Encapsulated PostScript (*.eps)	EPS - Encapsulated PostScript (*.eps)
+PS - PostScript (*.ps;*.prn)	PS - PostScript (*.ps;*.prn)
+AI - Adobe Illustrator (*.ai)	AI - Adobe Illustrator (*.ai)
+Left out: {} use(s) of PostScript operators AnyVector doesn't run ({})	省略: AnyVector が実行しない PostScript 演算子の使用 {} 件 ({})
+Skipped {} PostScript error(s) ({})	PostScript エラー {} 件をスキップしました ({})
+Pattern fills are shown as plain colors ({} fill(s))	パターン塗りつぶしは単色で表示されます ({} 件)
+Shadings that aren't linear or radial are shown as plain colors ({})	線形でも放射状でもないシェーディングは単色で表示されます ({})
+Left out: {} image(s) whose data couldn't be read	省略: データを読み取れなかった画像 {} 件
+Left out: {} text string(s) in composite (CID) fonts	省略: 複合 (CID) フォントのテキスト {} 件
+Left out: {} other file(s) the PostScript asked to read	省略: PostScript が読み込もうとした他のファイル {} 件
+The PostScript program was stopped before its end; what it drew until then was imported	PostScript プログラムは最後まで実行される前に停止しました。それまでに描画された内容を読み込みました
+Only the first of {} pages was imported	{} ページのうち最初のページだけを読み込みました
+The PostScript couldn't be read, so the file's preview image was imported instead	PostScript を読み取れなかったため、代わりにファイルのプレビュー画像を読み込みました

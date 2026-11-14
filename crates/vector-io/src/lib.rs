@@ -13,6 +13,7 @@ pub mod pdf;
 pub mod pdf_import;
 pub mod patterns;
 pub mod pdf_crypt;
+pub mod ps_import;
 pub mod svg_export;
 pub mod svg_import;
 
@@ -68,6 +69,9 @@ pub const OPEN_TYPES: &[FileType] = &[
     FileType { name: "AnyVector Drawing (*.vct)", extensions: &["vct"], vector: true },
     FileType { name: "Scalable Vector Graphics (*.svg)", extensions: &["svg", "svgz"], vector: true },
     FileType { name: "PDF - Adobe Portable Document Format (*.pdf)", extensions: &["pdf"], vector: true },
+    FileType { name: "EPS - Encapsulated PostScript (*.eps)", extensions: &["eps", "epsf"], vector: true },
+    FileType { name: "PS - PostScript (*.ps;*.prn)", extensions: &["ps", "prn"], vector: true },
+    FileType { name: "AI - Adobe Illustrator (*.ai)", extensions: &["ai"], vector: true },
 ];
 
 pub const IMPORT_TYPES: &[FileType] = &[
@@ -77,6 +81,9 @@ pub const IMPORT_TYPES: &[FileType] = &[
     FileType { name: "AnyVector Drawing (*.vct)", extensions: &["vct"], vector: true },
     FileType { name: "SVG - Scalable Vector Graphics (*.svg;*.svgz)", extensions: &["svg", "svgz"], vector: true },
     FileType { name: "PDF - Adobe Portable Document Format (*.pdf)", extensions: &["pdf"], vector: true },
+    FileType { name: "EPS - Encapsulated PostScript (*.eps)", extensions: &["eps", "epsf"], vector: true },
+    FileType { name: "PS - PostScript (*.ps;*.prn)", extensions: &["ps", "prn"], vector: true },
+    FileType { name: "AI - Adobe Illustrator (*.ai)", extensions: &["ai"], vector: true },
     FileType { name: "PNG - Portable Network Graphics (*.png)", extensions: &["png"], vector: false },
     FileType { name: "JPG - JPEG Bitmaps (*.jpg;*.jpeg;*.jfif)", extensions: &["jpg", "jpeg", "jfif"], vector: false },
     FileType { name: "BMP - Windows Bitmap (*.bmp)", extensions: &["bmp"], vector: false },
@@ -106,11 +113,29 @@ pub fn extension(path: &Path) -> String {
     path.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default()
 }
 
+/// The extension a file is read by. Illustrator files saved since CS are PDF files with an
+/// `.ai` name; those go to the PDF importer, older PostScript-based ones to the EPS importer.
+fn dispatch_ext(path: &Path) -> String {
+    let ext = extension(path);
+    if ext == "ai" && is_pdf_file(path) {
+        return "pdf".into();
+    }
+    ext
+}
+
+fn is_pdf_file(path: &Path) -> bool {
+    use std::io::Read;
+    let mut head = [0u8; 1024];
+    let n = std::fs::File::open(path).and_then(|mut f| f.read(&mut head)).unwrap_or(0);
+    head[..n].windows(5).any(|w| w == b"%PDF-")
+}
+
 /// Open a document file (native or SVG).
 pub fn open(path: &Path) -> Result<Document> {
-    match extension(path).as_str() {
+    match dispatch_ext(path).as_str() {
         "cdr" | "cdt" | "cdrt" => cdr::load(path),
         "cmx" => corel::cmx::load_from_bytes(&std::fs::read(path)?),
+        "eps" | "epsf" | "ps" | "prn" | "ai" => ps_import::load_with_notes(&std::fs::read(path)?).map(|(d, _)| d),
         "vct" => native::load(path),
         "pdf" => pdf_import::load_with_notes(&std::fs::read(path)?, &Default::default()).map(|(d, _)| d),
         "svg" | "svgz" => {
@@ -133,10 +158,11 @@ pub fn open(path: &Path) -> Result<Document> {
 /// Open a document file and say what could not be brought in exactly, one line each (see
 /// [`cdr::load_with_notes`]). Formats that never approximate give no lines.
 pub fn open_with_notes(path: &Path) -> Result<(Document, Vec<String>)> {
-    match extension(path).as_str() {
+    match dispatch_ext(path).as_str() {
         "cdr" | "cdt" | "cdrt" => cdr::load_with_notes(&std::fs::read(path)?),
         "cmx" => corel::cmx::load_with_report(&std::fs::read(path)?).map(|(d, r)| (d, r.lines())),
         "pdf" => pdf_import::load_with_notes(&std::fs::read(path)?, &Default::default()),
+        "eps" | "epsf" | "ps" | "prn" | "ai" => ps_import::load_with_notes(&std::fs::read(path)?),
         _ => open(path).map(|d| (d, vec![])),
     }
 }
@@ -144,7 +170,7 @@ pub fn open_with_notes(path: &Path) -> Result<(Document, Vec<String>)> {
 /// Import a file into an existing document, like [`import`], and say what could not be brought
 /// in exactly.
 pub fn import_with_notes(doc: &mut Document, path: &Path) -> Result<(Vec<Object>, Vec<String>)> {
-    match extension(path).as_str() {
+    match dispatch_ext(path).as_str() {
         "cdr" | "cdt" | "cdrt" => {
             let (other, notes) = cdr::load_with_notes(&std::fs::read(path)?)?;
             Ok((merge_document(doc, other), notes))
@@ -158,6 +184,7 @@ pub fn import_with_notes(doc: &mut Document, path: &Path) -> Result<(Vec<Object>
             let (mut pages, notes) = pdf_import::import_pages(doc, &std::fs::read(path)?, &opts)?;
             Ok((pages.pop().map(|p| p.0).unwrap_or_default(), notes))
         }
+        "eps" | "epsf" | "ps" | "prn" | "ai" => ps_import::import(doc, &std::fs::read(path)?),
         _ => import(doc, path).map(|o| (o, vec![])),
     }
 }
@@ -188,7 +215,7 @@ pub fn is_drawing(path: &Path) -> bool {
 
 /// Import a file into an existing document, returning the new top-level objects (not yet placed).
 pub fn import(doc: &mut Document, path: &Path) -> Result<Vec<Object>> {
-    let ext = extension(path);
+    let ext = dispatch_ext(path);
     let bytes = std::fs::read(path)?;
     match ext.as_str() {
         "cdr" | "cdt" | "cdrt" => {
@@ -203,6 +230,7 @@ pub fn import(doc: &mut Document, path: &Path) -> Result<Vec<Object>> {
             let other = native::load(path)?;
             Ok(merge_document(doc, other))
         }
+        "eps" | "epsf" | "ps" | "prn" | "ai" => ps_import::import(doc, &bytes).map(|(o, _)| o),
         "svg" | "svgz" => {
             let other = svg_import::document_from_svg(&bytes)?;
             Ok(merge_document(doc, other))
