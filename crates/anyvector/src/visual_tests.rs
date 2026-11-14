@@ -2394,3 +2394,67 @@ fn break_apart_enabled_for_combined_curves() {
     h.step();
     assert_eq!(h.state().doc().unwrap().selection.len(), 2);
 }
+
+// ---- start-up document view (issue #63) ----
+
+/// The page's screen rect is centred in the canvas and fits it (the 24-point fit margin on
+/// the tighter side).
+fn assert_page_fitted(h: &Harness<'_, AnyVectorApp>) {
+    let d = h.state().doc().unwrap();
+    let c = d.canvas_rect;
+    let p = d.to_screen_rect(d.page_ref().rect());
+    assert!((p.center().x - c.center().x).abs() < 1.0 && (p.center().y - c.center().y).abs() < 1.0, "page {p:?} not centred in canvas {c:?}");
+    assert!(c.contains_rect(p), "page {p:?} does not fit canvas {c:?}");
+    let slack = ((c.width() - p.width()) / 2.0).min((c.height() - p.height()) / 2.0);
+    assert!((slack - 24.0).abs() < 1.0, "page {p:?} not zoomed to fit canvas {c:?}");
+}
+
+/// Start-up with "Create a new blank document": the document is made while the window still
+/// has the splash size and only then grows to its real size (2560 × 1307 px at 125%); the
+/// page must end up fitted and centred, with the paper size used last (A4).
+#[test]
+fn startup_document_fits_and_centres_page() {
+    let a4 = vector_core::units::page_presets().into_iter().find(|p| p.0 == "A4").unwrap();
+    let mut h = Harness::builder().with_size(egui::vec2(620.0, 380.0)).with_pixels_per_point(1.25).build_eframe(|cc| {
+        let mut app = AnyVectorApp::new(cc);
+        app.splash = None;
+        app.pending.clear();
+        app.docs.clear();
+        app.active = None;
+        app.settings.show_new_doc_dialog = false;
+        app.settings.startup = crate::settings::StartupAction::NewDocument;
+        app.settings.last_new_doc = Some(crate::settings::NewDocDefaults { preset: Some("A4".into()), width: a4.1, height: a4.2, unit: vector_core::Unit::Millimeters, ..Default::default() });
+        // what AnyVectorApp::new queues for this start-up action
+        app.pending.push(Cmd::New);
+        app
+    });
+    for _ in 0..3 {
+        h.step();
+    }
+    {
+        let d = h.state().doc().expect("start-up document");
+        assert!((d.page_ref().width - a4.1).abs() < 0.01 && (d.page_ref().height - a4.2).abs() < 0.01, "page is not A4");
+        assert_eq!(d.doc.settings.unit, vector_core::Unit::Millimeters);
+    }
+    // the window becomes the main window: 2560 × 1307 pixels at 125%
+    h.set_size(egui::vec2(2560.0 / 1.25, 1307.0 / 1.25));
+    for _ in 0..3 {
+        h.step();
+    }
+    assert!(h.state().doc().unwrap().canvas_rect.width() > 1500.0);
+    assert_page_fitted(&h);
+
+    // once the user zooms, a resize keeps the view where it is
+    let (zoom, origin) = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let c = d.canvas_rect.center();
+        d.zoom_at(c, 2.0);
+        (d.zoom, d.origin)
+    };
+    h.set_size(egui::vec2(1600.0, 900.0));
+    for _ in 0..3 {
+        h.step();
+    }
+    let d = h.state().doc().unwrap();
+    assert_eq!((d.zoom, d.origin), (zoom, origin));
+}
