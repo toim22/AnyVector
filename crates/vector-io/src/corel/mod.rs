@@ -10,6 +10,7 @@ mod build;
 pub mod cmx;
 mod cmx3;
 mod color;
+mod fonts;
 mod palettes;
 mod psfill;
 mod persp;
@@ -77,6 +78,7 @@ pub fn load_from_bytes(bytes: &[u8]) -> Result<Document> {
         return cmx::load_from_bytes(bytes);
     }
     let root = root(bytes)?;
+    fonts::register(bytes);
     color::with_profile(cmyk_profile(bytes).as_deref(), || build::document(&root))
 }
 
@@ -86,6 +88,8 @@ pub fn load_with_report(bytes: &[u8]) -> Result<(Document, Report)> {
         return cmx::load_with_report(bytes);
     }
     let root = root(bytes)?;
+    // text in a font embedded in the drawing shows in it, so it isn't noted as substituted
+    fonts::register(bytes);
     color::with_profile(cmyk_profile(bytes).as_deref(), || build::document_with_report(&root))
 }
 
@@ -167,6 +171,9 @@ mod tests {
                 }
             }
             println!("{path}: {} page(s), {} arrowheads", doc.pages.len(), doc.arrowheads.len());
+            for (name, data) in super::fonts::embedded(&bytes) {
+                println!(" embedded font {name} ({} bytes)", data.len());
+            }
             for (i, p) in doc.pages.iter().enumerate() {
                 println!(" page {} {:.1}x{:.1} pt", i + 1, p.width, p.height);
                 for l in &p.layers {

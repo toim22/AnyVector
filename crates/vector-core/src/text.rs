@@ -606,6 +606,19 @@ pub struct FontDb {
     legacy: std::cell::OnceCell<Legacy>,
     face_cache: HashMap<fontdb::ID, Arc<FaceData>>,
     glyph_cache: HashMap<(fontdb::ID, u16, u64), Arc<BezPath>>,
+    /// Faces that came embedded in drawings (see `add_embedded`).
+    embedded: HashMap<fontdb::ID, EmbeddedFace>,
+}
+
+/// A face read from a font embedded in a drawing: kept in memory for the session, never
+/// installed on the computer.
+#[derive(Clone, Debug)]
+struct EmbeddedFace {
+    /// The file name to embed it under again.
+    file: String,
+    /// Its license lets it be used for new text (OS/2 fsType installable or editable); fonts
+    /// licensed for preview and print only show the text that already uses them.
+    editable: bool,
 }
 
 /// The names faces answer to besides their family (see `FontDb::legacy`).
@@ -672,8 +685,9 @@ pub fn font_files(faces: &[(String, bool, bool)]) -> Vec<FontFile> {
     for (family, bold, italic) in faces {
         let Some(id) = db.query(family, *bold, *italic) else { continue };
         let Some(face) = db.db.face(id) else { continue };
-        let name = match &face.source {
-            fontdb::Source::File(p) => p.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default(),
+        let name = match (&face.source, db.embedded.get(&id)) {
+            (_, Some(e)) => e.file.clone(),
+            (fontdb::Source::File(p), None) => p.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default(),
             _ => format!("{}.ttf", family),
         };
         if out.iter().any(|f| f.name.eq_ignore_ascii_case(&name)) {
@@ -690,6 +704,15 @@ pub fn font_files(faces: &[(String, bool, bool)]) -> Vec<FontFile> {
     out
 }
 
+/// Use fonts embedded in a drawing that is opening: (file name, font file) each. See
+/// `FontDb::add_embedded`.
+pub fn register_embedded_fonts(files: Vec<(String, Arc<Vec<u8>>)>) -> Vec<String> {
+    if files.is_empty() {
+        return vec![];
+    }
+    fonts().lock().add_embedded(files)
+}
+
 /// Start loading the font database on a background thread.
 pub fn preload_fonts() {
     std::thread::spawn(|| {
@@ -699,20 +722,68 @@ pub fn preload_fonts() {
 
 impl FontDb {
     pub fn new(db: fontdb::Database) -> FontDb {
-        let mut fam: Vec<String> = db.faces().filter_map(|f| f.families.first().map(|(n, _)| n.clone())).collect();
+        let mut fdb = FontDb { db, families: vec![], by_lower: HashMap::new(), resolved: Default::default(), legacy: Default::default(), face_cache: HashMap::new(), glyph_cache: HashMap::new(), embedded: HashMap::new() };
+        fdb.index();
+        fdb
+    }
+
+    /// List the families and the names they answer to. Fonts embedded in a drawing whose
+    /// license is for preview and print only aren't listed, so they aren't offered for other
+    /// text, but are found by name.
+    fn index(&mut self) {
+        let listed = |f: &&fontdb::FaceInfo| self.embedded.get(&f.id).is_none_or(|e| e.editable);
+        let mut fam: Vec<String> = self.db.faces().filter(listed).filter_map(|f| f.families.first().map(|(n, _)| n.clone())).collect();
         fam.sort_by_key(|s| s.to_lowercase());
         fam.dedup();
         let mut by_lower = HashMap::new();
-        for f in db.faces() {
+        for f in self.db.faces() {
             for (n, _) in &f.families {
                 by_lower.entry(n.to_lowercase()).or_insert_with(|| n.clone());
             }
         }
-        FontDb { db, families: fam, by_lower, resolved: Default::default(), legacy: Default::default(), face_cache: HashMap::new(), glyph_cache: HashMap::new() }
+        self.families = fam;
+        self.by_lower = by_lower;
     }
 
     pub fn families(&self) -> &[String] {
         &self.families
+    }
+
+    /// Use the fonts embedded in a drawing ((file name, font file) each) for this session,
+    /// without installing them: text set in them shows in them instead of a substitute, and
+    /// saving with embedded fonts embeds them again. A face that is already there (installed,
+    /// or embedded in a drawing opened before) is kept, and a font whose license doesn't allow
+    /// embedding is still used to show the drawing it came with. The families of the faces
+    /// added.
+    pub fn add_embedded(&mut self, files: Vec<(String, Arc<Vec<u8>>)>) -> Vec<String> {
+        let same = |a: &fontdb::FaceInfo, b: &fontdb::FaceInfo| {
+            a.style == b.style && a.weight == b.weight && a.stretch == b.stretch && a.families.iter().any(|(x, _)| b.families.iter().any(|(y, _)| x.eq_ignore_ascii_case(y)))
+        };
+        let mut added = vec![];
+        for (file, data) in files {
+            let editable = ttf_parser::Face::parse(&data, 0).ok().and_then(|f| f.permissions()).is_none_or(|p| matches!(p, ttf_parser::Permissions::Installable | ttf_parser::Permissions::Editable));
+            let ids = self.db.load_font_source(fontdb::Source::Binary(data));
+            for &id in ids.iter() {
+                let Some(face) = self.db.face(id) else { continue };
+                if self.db.faces().any(|g| !ids.contains(&g.id) && same(g, face)) {
+                    self.db.remove_face(id);
+                    continue;
+                }
+                if let Some((n, _)) = face.families.first() {
+                    added.push(n.clone());
+                }
+                self.embedded.insert(id, EmbeddedFace { file: file.clone(), editable });
+            }
+        }
+        if !added.is_empty() {
+            self.index();
+            self.resolved.borrow_mut().clear();
+            // the other names faces go by are read again when needed
+            self.legacy = Default::default();
+        }
+        added.sort();
+        added.dedup();
+        added
     }
 
     /// The installed family that shows `family`: the family itself (ignoring case), else a

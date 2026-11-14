@@ -13,6 +13,10 @@ serde_json = { workspace = true }
 image = { workspace = true }
 usvg = { workspace = true }
 zip = { workspace = true }
+ttf-parser = { workspace = true }
 flate2 = { workspace = true }
 weezl = "0.1"
 encoding_rs = "0.8"
+
+[dev-dependencies]
+fontdb = { workspace = true }

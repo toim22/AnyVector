@@ -4432,11 +4432,13 @@ version = "0.4.1"
 dependencies = [
  "encoding_rs",
  "flate2",
+ "fontdb",
  "image",
  "kurbo",
  "serde",
  "serde_json",
  "tiny-skia 0.12.0",
+ "ttf-parser",
  "usvg",
  "vector-core",
  "vector-render",

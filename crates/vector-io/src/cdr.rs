@@ -335,6 +335,15 @@ pub fn load_from_bytes(bytes: &[u8]) -> Result<Document> {
             }
         }
     }
+    // fonts embedded when the drawing was saved show its text (and are embedded again on save)
+    let mut fonts = vec![];
+    for name in z.file_names().filter_map(|n| n.ok()).filter(|n| n.starts_with("resources/fonts/")).map(|n| n.to_string()).collect::<Vec<_>>() {
+        let mut b = vec![];
+        if z.by_name(&name).is_ok_and(|mut f| f.read_to_end(&mut b).is_ok()) && !b.is_empty() {
+            fonts.push((name["resources/fonts/".len()..].to_string(), Arc::new(b)));
+        }
+    }
+    vector_core::text::register_embedded_fonts(fonts);
     doc.ensure_next_id();
     // vector patterns saved before pattern tiles existed keep their objects in a tile now
     doc.upgrade_pattern_tiles();
