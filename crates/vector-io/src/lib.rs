@@ -1,5 +1,5 @@
 //! File input/output for AnyVector: `.cdr` drawings (default), legacy `.vct`, SVG, PDF and raster formats,
-//! and import of Corel metafiles (`.cmx`).
+//! and import of Corel metafiles (`.cmx`) and PDF files.
 
 pub mod cdr;
 pub mod corel;
@@ -10,6 +10,7 @@ pub mod hpgl;
 pub mod image_io;
 pub mod native;
 pub mod pdf;
+pub mod pdf_import;
 pub mod patterns;
 pub mod pdf_crypt;
 pub mod svg_export;
@@ -66,6 +67,7 @@ pub const OPEN_TYPES: &[FileType] = &[
     FileType { name: "CMX - Corel Presentation Exchange (*.cmx)", extensions: &["cmx"], vector: true },
     FileType { name: "AnyVector Drawing (*.vct)", extensions: &["vct"], vector: true },
     FileType { name: "Scalable Vector Graphics (*.svg)", extensions: &["svg", "svgz"], vector: true },
+    FileType { name: "PDF - Adobe Portable Document Format (*.pdf)", extensions: &["pdf"], vector: true },
 ];
 
 pub const IMPORT_TYPES: &[FileType] = &[
@@ -74,6 +76,7 @@ pub const IMPORT_TYPES: &[FileType] = &[
     FileType { name: "CMX - Corel Presentation Exchange (*.cmx)", extensions: &["cmx"], vector: true },
     FileType { name: "AnyVector Drawing (*.vct)", extensions: &["vct"], vector: true },
     FileType { name: "SVG - Scalable Vector Graphics (*.svg;*.svgz)", extensions: &["svg", "svgz"], vector: true },
+    FileType { name: "PDF - Adobe Portable Document Format (*.pdf)", extensions: &["pdf"], vector: true },
     FileType { name: "PNG - Portable Network Graphics (*.png)", extensions: &["png"], vector: false },
     FileType { name: "JPG - JPEG Bitmaps (*.jpg;*.jpeg;*.jfif)", extensions: &["jpg", "jpeg", "jfif"], vector: false },
     FileType { name: "BMP - Windows Bitmap (*.bmp)", extensions: &["bmp"], vector: false },
@@ -109,6 +112,7 @@ pub fn open(path: &Path) -> Result<Document> {
         "cdr" | "cdt" | "cdrt" => cdr::load(path),
         "cmx" => corel::cmx::load_from_bytes(&std::fs::read(path)?),
         "vct" => native::load(path),
+        "pdf" => pdf_import::load_with_notes(&std::fs::read(path)?, &Default::default()).map(|(d, _)| d),
         "svg" | "svgz" => {
             let data = std::fs::read(path)?;
             svg_import::document_from_svg(&data)
@@ -132,6 +136,7 @@ pub fn open_with_notes(path: &Path) -> Result<(Document, Vec<String>)> {
     match extension(path).as_str() {
         "cdr" | "cdt" | "cdrt" => cdr::load_with_notes(&std::fs::read(path)?),
         "cmx" => corel::cmx::load_with_report(&std::fs::read(path)?).map(|(d, r)| (d, r.lines())),
+        "pdf" => pdf_import::load_with_notes(&std::fs::read(path)?, &Default::default()),
         _ => open(path).map(|d| (d, vec![])),
     }
 }
@@ -147,6 +152,11 @@ pub fn import_with_notes(doc: &mut Document, path: &Path) -> Result<(Vec<Object>
         "cmx" => {
             let (other, report) = corel::cmx::load_with_report(&std::fs::read(path)?)?;
             Ok((merge_document(doc, other), report.lines()))
+        }
+        "pdf" => {
+            let opts = pdf_import::PdfImportOptions { pages: vec![0], text_as_curves: false };
+            let (mut pages, notes) = pdf_import::import_pages(doc, &std::fs::read(path)?, &opts)?;
+            Ok((pages.pop().map(|p| p.0).unwrap_or_default(), notes))
         }
         _ => import(doc, path).map(|o| (o, vec![])),
     }
@@ -196,6 +206,10 @@ pub fn import(doc: &mut Document, path: &Path) -> Result<Vec<Object>> {
         "svg" | "svgz" => {
             let other = svg_import::document_from_svg(&bytes)?;
             Ok(merge_document(doc, other))
+        }
+        "pdf" => {
+            let opts = pdf_import::PdfImportOptions { pages: vec![0], text_as_curves: false };
+            Ok(pdf_import::import_pages(doc, &bytes, &opts)?.0.pop().map(|p| p.0).unwrap_or_default())
         }
         e if image_io::is_image_ext(e) => {
             let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
