@@ -305,6 +305,10 @@ pub struct Settings {
     pub ai_api_key_env: String,
     /// AI Generate: the Generative AI terms were accepted.
     pub ai_terms_accepted: bool,
+    /// AI Generate: the provider (Anthropic, OpenAI-compatible, Ollama, LM Studio), its model
+    /// and server, and ComfyUI for images. `ai_provider_url` and `ai_api_key_env` stay the
+    /// Anthropic ones. Never holds an API key.
+    pub ai_config: crate::ai_provider::AiConfig,
     /// Links and Rollovers: cross-hatch the Web links' hotspots on the page.
     pub show_hotspots: bool,
     /// Assets docker: the folders of local and network assets, the options, the favorite and
@@ -675,6 +679,7 @@ impl Default for Settings {
             ai_provider_url: String::new(),
             ai_api_key_env: "ANTHROPIC_API_KEY".into(),
             ai_terms_accepted: false,
+            ai_config: Default::default(),
             show_hotspots: true,
             asset_folders: vec![],
             asset_single_folder: true,

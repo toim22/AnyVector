@@ -1,17 +1,22 @@
 //! AI Generate: turns a text prompt into editable vector objects.
 //!
-//! Calls the Claude Messages API (raw HTTP, there is no official Rust SDK) and asks for a
-//! self-contained SVG, which is imported as native AnyVector objects (paths, gradients, groups).
-//! The API key is read from the environment variable named in Settings (default
-//! `ANTHROPIC_API_KEY`); it is never stored in settings or documents. Tools ▸ Options ▸ Global ▸
-//! Privacy can write the key into that variable of the user's Windows account.
+//! Asks the chosen AI provider (Anthropic's Messages API by default; any OpenAI-compatible
+//! endpoint; Ollama or LM Studio on this computer, see `ai_provider.rs`) for a self-contained SVG,
+//! which is imported as native AnyVector objects (paths, gradients, groups). Create image and
+//! Remix image can use ComfyUI instead (`comfyui.rs`), whose image is placed as a bitmap.
+//! API keys are read from the environment variable named in Settings (default
+//! `ANTHROPIC_API_KEY`, or `OPENAI_API_KEY` for OpenAI-compatible endpoints); they are never
+//! stored in settings or documents. Tools ▸ Options ▸ Global ▸ Privacy can write the key into
+//! that variable of the user's Windows account. Local providers need no key.
 
+use crate::ai_provider::{self as prov, ImageProvider, Provider};
 use crate::app::AnyVectorApp;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel, Receiver};
-use std::time::Duration;
+use std::sync::Arc;
 
-pub const MODEL: &str = "claude-opus-5-5";
-pub const DEFAULT_URL: &str = "https://api.anthropic.com/v1/messages";
+/// The default Anthropic model (Options can choose another).
+pub const MODEL: &str = prov::ANTHROPIC_MODEL;
 
 /// What AI Generate makes (Object ▸ AI Generate): an editable vector graphic, an image, or a
 /// remix of a source image. Images and remixes are placed as bitmaps.
@@ -22,13 +27,59 @@ pub const MODES: [&str; 3] = ["Create vector graphic", "Create image", "Remix im
 pub struct Reference {
     /// The selection rendered as PNG.
     pub png: Vec<u8>,
-    /// The selection as SVG (sent with a remix).
+    /// The selection as SVG (sent with a remix, and in place of the image to models that do not
+    /// take images).
     pub svg: String,
     pub bounds: kurbo::Rect,
     pub count: usize,
 }
 
 pub const STYLES: [&str; 8] = ["Flat illustration", "Line art", "Logo / icon", "Isometric", "Geometric pattern", "Cartoon", "Infographic", "Silhouette"];
+
+/// What a request brings back.
+pub enum Output {
+    Svg(String),
+    /// An encoded image (ComfyUI).
+    Bitmap(Vec<u8>),
+}
+
+/// The result and a note for the user (such as the reference going as SVG text).
+type Reply = Result<(Output, Option<String>), String>;
+
+/// A list fetched from a server in the background (models, ComfyUI checkpoints).
+#[derive(Default)]
+pub struct Fetch {
+    pub items: Vec<String>,
+    pub busy: bool,
+    pub msg: Option<String>,
+    rx: Option<Receiver<Result<Vec<String>, String>>>,
+}
+
+impl Fetch {
+    pub fn start(&mut self, f: impl FnOnce() -> Result<Vec<String>, String> + Send + 'static) {
+        let (tx, rx) = channel();
+        self.rx = Some(rx);
+        self.busy = true;
+        self.msg = None;
+        std::thread::spawn(move || {
+            let _ = tx.send(f());
+        });
+    }
+
+    fn poll(&mut self) {
+        let Some(rx) = &self.rx else { return };
+        let Ok(r) = rx.try_recv() else { return };
+        self.rx = None;
+        self.busy = false;
+        match r {
+            Ok(items) => {
+                self.msg = Some(if items.len() == 1 { "1 found.".to_string() } else { format!("{} found.", items.len()) });
+                self.items = items;
+            }
+            Err(e) => self.msg = Some(e),
+        }
+    }
+}
 
 pub struct AiState {
     pub prompt: String,
@@ -37,7 +88,8 @@ pub struct AiState {
     pub busy: bool,
     pub status: String,
     pub error: Option<String>,
-    /// The error is the missing API key: the panel offers to open the AI settings.
+    /// The error is something to set up (an API key, a model): the panel offers to open the AI
+    /// settings.
     pub error_no_key: bool,
     /// Quick AI Generate dialog visible.
     pub quick_open: bool,
@@ -45,7 +97,15 @@ pub struct AiState {
     /// 0 vector graphic, 1 image, 2 remix.
     pub mode: u8,
     pub reference: Option<Reference>,
-    rx: Option<Receiver<Result<String, String>>>,
+    /// Something the user should know about the last result.
+    pub note: Option<String>,
+    /// Options ▸ AI Generate: the provider's models and ComfyUI's checkpoints.
+    pub models: Fetch,
+    pub checkpoints: Fetch,
+    /// Options ▸ AI Generate: the result of loading a ComfyUI workflow (ok, message).
+    pub workflow_msg: Option<(bool, String)>,
+    rx: Option<Receiver<Reply>>,
+    cancel: Arc<AtomicBool>,
     started: f64,
     /// The request's mode and where its reference was.
     pending: (u8, Option<kurbo::Rect>),
@@ -53,7 +113,27 @@ pub struct AiState {
 
 impl Default for AiState {
     fn default() -> Self {
-        AiState { prompt: String::new(), style: 0, colors: 6, busy: false, status: String::new(), error: None, error_no_key: false, quick_open: false, history: vec![], mode: 0, reference: None, rx: None, started: 0.0, pending: (0, None) }
+        AiState {
+            prompt: String::new(),
+            style: 0,
+            colors: 6,
+            busy: false,
+            status: String::new(),
+            error: None,
+            error_no_key: false,
+            quick_open: false,
+            history: vec![],
+            mode: 0,
+            reference: None,
+            note: None,
+            models: Fetch::default(),
+            checkpoints: Fetch::default(),
+            workflow_msg: None,
+            rx: None,
+            cancel: Arc::default(),
+            started: 0.0,
+            pending: (0, None),
+        }
     }
 }
 
@@ -66,20 +146,35 @@ fn system_prompt() -> &'static str {
      Keep it under 400 elements."
 }
 
-/// The environment variable that holds the API key.
-pub fn key_var(app: &AnyVectorApp) -> String {
-    let v = app.settings.ai_api_key_env.trim();
-    if v.is_empty() { "ANTHROPIC_API_KEY".to_string() } else { v.to_string() }
+/// The environment variable that holds the chosen provider's API key (none for the local
+/// providers).
+pub fn key_var(app: &AnyVectorApp) -> Option<String> {
+    let (v, d) = match app.settings.ai_config.provider {
+        Provider::Anthropic => (app.settings.ai_api_key_env.trim(), "ANTHROPIC_API_KEY"),
+        Provider::OpenAi => (app.settings.ai_config.openai_key_env.trim(), prov::OPENAI_KEY_ENV),
+        Provider::Ollama | Provider::LmStudio => return None,
+    };
+    Some(if v.is_empty() { d.to_string() } else { v.to_string() })
 }
 
 /// The API key: the environment of this process, then the variable of the user's Windows account
 /// (so a key saved in Options, or with Windows' Environment Variables, works without a restart).
 pub fn api_key(app: &AnyVectorApp) -> Option<String> {
-    let name = key_var(app);
+    let name = key_var(app)?;
     std::env::var(&name).ok().or_else(|| user_env(&name)).filter(|k| !k.trim().is_empty())
 }
 
-/// Where the API key is set, for messages.
+/// The chosen provider needs an API key: hosted services do, servers on this computer don't.
+pub fn needs_key(app: &AnyVectorApp) -> bool {
+    let c = &app.settings.ai_config;
+    match c.provider {
+        Provider::Anthropic => true,
+        Provider::OpenAi => !prov::is_local_url(&c.url("")),
+        Provider::Ollama | Provider::LmStudio => false,
+    }
+}
+
+/// Where the AI settings are, for messages.
 pub const KEY_PLACE: &str = "Tools ▸ Options ▸ Global ▸ Privacy ▸ AI Generate";
 
 #[cfg(windows)]
@@ -141,43 +236,119 @@ pub fn save_user_key(name: &str, key: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// The request target for the chosen provider, or what to set up first.
+pub fn target(app: &AnyVectorApp, need_model: bool) -> Result<prov::Target, String> {
+    let c = &app.settings.ai_config;
+    let key = api_key(app);
+    if key.is_none() && needs_key(app) {
+        let var = key_var(app).unwrap_or_default();
+        return Err(format!("AI Generate needs an API key. Add your key in {KEY_PLACE}: AnyVector keeps it in the {var} environment variable of your Windows account, never in its own files."));
+    }
+    let model = c.model();
+    if need_model && model.is_empty() {
+        let extra = if c.provider.is_local() { " Refresh models lists the models installed." } else { "" };
+        return Err(format!("Choose the model to use in {KEY_PLACE}.{extra}"));
+    }
+    Ok(prov::Target { provider: c.provider, url: c.url(&app.settings.ai_provider_url), model, key, vision: c.vision(), ollama_native: c.ollama_native, timeout: c.timeout() })
+}
+
+/// Options ▸ AI Generate ▸ Refresh models.
+pub fn refresh_models(app: &mut AnyVectorApp) {
+    match target(app, false) {
+        Ok(t) => app.ai.models.start(move || prov::list_models(&t)),
+        Err(e) => app.ai.models.msg = Some(e),
+    }
+}
+
+/// Options ▸ AI Generate ▸ ComfyUI checkpoint ▸ Refresh.
+pub fn refresh_checkpoints(app: &mut AnyVectorApp) {
+    let url = app.settings.ai_config.comfy_url.clone();
+    app.ai.checkpoints.start(move || crate::comfyui::list_checkpoints(&url));
+}
+
+/// The ComfyUI workflow to run: the user's file, or the built-in text-to-image or (with a source
+/// image) image-to-image one; and a note when the user's workflow cannot use the source.
+fn comfy_workflow(cfg: &prov::AiConfig, has_source: bool) -> Result<(serde_json::Value, Option<String>), String> {
+    let path = cfg.comfy_workflow.trim();
+    if path.is_empty() {
+        let text = if has_source { crate::comfyui::IMAGE_TO_IMAGE } else { crate::comfyui::TEXT_TO_IMAGE };
+        return Ok((crate::comfyui::parse_workflow(text)?, None));
+    }
+    let text = std::fs::read_to_string(path).map_err(|e| format!("Could not read the ComfyUI workflow {path}: {e}"))?;
+    let wf = crate::comfyui::parse_workflow(&text)?;
+    let note = (has_source && !crate::comfyui::wants_image(&wf)).then(|| "The ComfyUI workflow has no %image% placeholder, so the selection was not used.".to_string());
+    Ok((wf, note))
+}
+
+/// The request's text: with the reference as an attached image, and with the reference as SVG
+/// text instead (for models that do not take images).
+pub fn user_texts(mode: u8, prompt: &str, style: &str, colors: usize, svg: Option<&str>) -> (String, String) {
+    let mut user = format!("Create: {}\nStyle: {style}\nUse a palette of about {colors} harmonious colors.", prompt.trim());
+    if mode == 1 {
+        user.push_str("\nThis becomes a bitmap image: make it rich and detailed, with gradients, shading and a full background.");
+    }
+    let Some(svg) = svg else { return (user.clone(), user) };
+    let svg: String = svg.chars().take(60_000).collect();
+    if mode == 2 {
+        (
+            format!("Remix the attached artwork: keep its key elements and composition, and change it as described.\n{user}\nThe artwork's SVG source:\n{svg}"),
+            format!("Remix the artwork whose SVG source is below: keep its key elements and composition, and change it as described.\n{user}\nThe artwork's SVG source:\n{svg}"),
+        )
+    } else {
+        (
+            format!("Use the attached artwork as the reference for the composition, proportions and content.\n{user}"),
+            format!("Use the artwork whose SVG source is below as the reference for the composition, proportions and content.\n{user}\nThe artwork's SVG source:\n{svg}"),
+        )
+    }
+}
+
 /// Start a generation request in the background.
 pub fn start(app: &mut AnyVectorApp) {
     if app.ai.busy || app.ai.prompt.trim().is_empty() {
         return;
     }
-    let Some(key) = api_key(app) else {
-        let var = key_var(app);
-        app.ai.error = Some(format!("AI Generate needs an API key. Add your key in {KEY_PLACE}: AnyVector keeps it in the {var} environment variable of your Windows account, never in its own files."));
-        app.ai.error_no_key = true;
-        return;
-    };
-    let url = if app.settings.ai_provider_url.trim().is_empty() { DEFAULT_URL.to_string() } else { app.settings.ai_provider_url.trim().to_string() };
-    let mut user = format!(
-        "Create: {}\nStyle: {}\nUse a palette of about {} harmonious colors.",
-        app.ai.prompt.trim(),
-        STYLES[app.ai.style.min(STYLES.len() - 1)],
-        app.ai.colors
-    );
-    if app.ai.mode == 1 {
-        user.push_str("\nThis becomes a bitmap image: make it rich and detailed, with gradients, shading and a full background.");
-    }
-    let content = match &app.ai.reference {
-        None => serde_json::json!(user),
-        Some(r) => {
-            let text = if app.ai.mode == 2 {
-                format!(
-                    "Remix the attached artwork: keep its key elements and composition, and change it as described.\n{user}\nThe artwork's SVG source:\n{}",
-                    r.svg.chars().take(60_000).collect::<String>()
-                )
-            } else {
-                format!("Use the attached artwork as the reference for the composition, proportions and content.\n{user}")
-            };
-            serde_json::json!([
-                { "type": "image", "source": { "type": "base64", "media_type": "image/png", "data": base64(&r.png) } },
-                { "type": "text", "text": text },
-            ])
-        }
+    let cfg = app.settings.ai_config.clone();
+    let style = STYLES[app.ai.style.min(STYLES.len() - 1)];
+    let source = app.ai.reference.as_ref().map(|r| r.png.clone());
+    type Job = Box<dyn FnOnce(&AtomicBool) -> Reply + Send>;
+    let job: Job = if app.ai.mode != 0 && cfg.image_provider == ImageProvider::ComfyUi {
+        let (workflow, note) = match comfy_workflow(&cfg, source.is_some()) {
+            Ok(w) => w,
+            Err(e) => {
+                app.ai.error = Some(e);
+                app.ai.error_no_key = true;
+                return;
+            }
+        };
+        let params = crate::comfyui::Params {
+            prompt: format!("{}, {} style", app.ai.prompt.trim(), style.to_lowercase()),
+            negative: cfg.comfy_negative.clone(),
+            seed: crate::comfyui::random_seed(),
+            steps: cfg.comfy_steps.clamp(1, 200),
+            width: cfg.comfy_width.clamp(64, 8192),
+            height: cfg.comfy_height.clamp(64, 8192),
+            checkpoint: cfg.comfy_checkpoint.trim().to_string(),
+            image: None,
+            denoise: if app.ai.mode == 2 { 0.55 } else { 0.75 },
+        };
+        let (url, timeout) = (cfg.comfy_url.clone(), cfg.timeout());
+        Box::new(move |cancel| crate::comfyui::generate(&url, &workflow, params, source.as_deref(), cancel, timeout).map(|b| (Output::Bitmap(b), note)))
+    } else {
+        let t = match target(app, true) {
+            Ok(t) => t,
+            Err(e) => {
+                app.ai.error = Some(e);
+                app.ai.error_no_key = true;
+                return;
+            }
+        };
+        let svg = app.ai.reference.as_ref().map(|r| r.svg.as_str());
+        let (with_image, plain) = user_texts(app.ai.mode, &app.ai.prompt, style, app.ai.colors, svg);
+        Box::new(move |_| {
+            let (text, note) = prov::chat(&t, system_prompt(), &with_image, &plain, source.as_deref())?;
+            let svg = extract_svg(&prov::strip_think(&text)).ok_or("The AI did not return a drawing. Try rephrasing the prompt.")?;
+            Ok((Output::Svg(svg), note))
+        })
     };
     app.ai.pending = (app.ai.mode, app.ai.reference.as_ref().map(|r| r.bounds));
     let (tx, rx) = channel();
@@ -185,51 +356,28 @@ pub fn start(app: &mut AnyVectorApp) {
     app.ai.busy = true;
     app.ai.error = None;
     app.ai.error_no_key = false;
+    app.ai.note = None;
     app.ai.status = "Generating...".into();
     app.ai.started = app.time();
     if !app.ai.history.contains(&app.ai.prompt) {
         app.ai.history.insert(0, app.ai.prompt.clone());
         app.ai.history.truncate(12);
     }
+    let cancel = Arc::new(AtomicBool::new(false));
+    app.ai.cancel = cancel.clone();
     std::thread::spawn(move || {
-        let _ = tx.send(request(&url, &key, content));
+        let _ = tx.send(job(&cancel));
     });
 }
 
-fn request(url: &str, key: &str, user: serde_json::Value) -> Result<String, String> {
-    let body = serde_json::json!({
-        "model": MODEL,
-        "max_tokens": 16000,
-        "output_config": { "effort": "medium" },
-        "fallbacks": "default",
-        "system": system_prompt(),
-        "messages": [{ "role": "user", "content": user }],
-    });
-    let agent: ureq::Agent = ureq::Agent::config_builder().http_status_as_error(false).timeout_global(Some(Duration::from_secs(600))).build().into();
-    let mut resp = agent
-        .post(url)
-        .header("content-type", "application/json")
-        .header("x-api-key", key)
-        .header("anthropic-version", "2026-10-21")
-        .header("anthropic-beta", "server-side-fallback-2026-07-01")
-        .send_json(&body)
-        .map_err(|e| format!("Could not reach the AI service: {e}"))?;
-    let status = resp.status().as_u16();
-    let v: serde_json::Value = resp.body_mut().read_json().map_err(|e| format!("Invalid response from the AI service: {e}"))?;
-    if status >= 400 {
-        let msg = v["error"]["message"].as_str().unwrap_or("unknown error");
-        return Err(format!("AI service error ({status}): {msg}"));
-    }
-    match v["stop_reason"].as_str() {
-        Some("refusal") => {
-            let why = v["stop_details"]["explanation"].as_str().unwrap_or("The request was declined.");
-            return Err(format!("The AI declined this prompt. {why}"));
-        }
-        Some("max_tokens") => return Err("The drawing was too complex and got cut off. Try a simpler prompt.".into()),
-        _ => {}
-    }
-    let text: String = v["content"].as_array().map(|a| a.iter().filter(|b| b["type"] == "text").filter_map(|b| b["text"].as_str()).collect::<Vec<_>>().join("")).unwrap_or_default();
-    extract_svg(&text).ok_or_else(|| "The AI did not return a drawing. Try rephrasing the prompt.".into())
+/// Stop waiting for the request. ComfyUI is told to drop the job; an AI model's late answer is
+/// ignored.
+pub fn cancel(app: &mut AnyVectorApp) {
+    app.ai.cancel.store(true, Ordering::Relaxed);
+    app.ai.rx = None;
+    app.ai.busy = false;
+    app.ai.pending = (0, None);
+    app.ai.status = "Cancelled".into();
 }
 
 /// Standard base64 (for the reference image).
@@ -283,6 +431,8 @@ fn extract_svg(text: &str) -> Option<String> {
 
 /// Poll the background request; on success insert the objects into the active document.
 pub fn poll(app: &mut AnyVectorApp) {
+    app.ai.models.poll();
+    app.ai.checkpoints.poll();
     let Some(rx) = &app.ai.rx else { return };
     let Ok(res) = rx.try_recv() else {
         let secs = (app.time() - app.ai.started) as u64;
@@ -297,56 +447,118 @@ pub fn poll(app: &mut AnyVectorApp) {
             app.ai.status.clear();
             app.ai.error = Some(e);
         }
-        Ok(svg) => {
+        Ok((out, note)) => {
+            app.ai.note = note;
             if !app.has_doc() {
                 app.new_default_document();
             }
             let name = format!("AI: {}", app.ai.prompt.chars().take(40).collect::<String>());
-            let Some(d) = app.doc_mut() else { return };
-            match vector_io::svg_import::objects_from_svg(&mut d.doc, svg.as_bytes()) {
-                Ok(mut objs) if !objs.is_empty() => {
-                    // fit into the page at 80% and centre; a guided result goes beside its
-                    // reference, the same size
+            match out {
+                Output::Svg(svg) => place_svg(app, &svg, mode, target, name),
+                Output::Bitmap(bytes) => {
+                    let Some(d) = app.doc_mut() else { return };
                     let page = d.doc.pages[d.page].rect();
-                    let area = match target {
-                        Some(t) => t + kurbo::Vec2::new(t.width() + 18.0, 0.0),
-                        None => page.scale_from_origin(0.8) + (page.center() - page.scale_from_origin(0.8).center()),
-                    };
-                    let bb = vector_core::object::union_bounds(objs.iter().map(|o| o.bounds()));
-                    if bb.width() > 0.0 && bb.height() > 0.0 {
-                        let s = (area.width() / bb.width()).min(area.height() / bb.height());
-                        let a = kurbo::Affine::translate(area.center().to_vec2()) * kurbo::Affine::scale(s) * kurbo::Affine::translate(-bb.center().to_vec2());
-                        for o in objs.iter_mut() {
-                            o.apply_transform(a);
+                    match bitmap_from_bytes(&mut d.doc, &bytes, page, target, &name) {
+                        Ok(o) => {
+                            d.add_objects("AI Generate", vec![o]);
+                            app.ai.status = "Done".into();
                         }
+                        Err(e) => app.ai.error = Some(e),
                     }
-                    let group = if mode == 0 {
-                        let g = d.doc.new_id();
-                        let mut group = vector_core::Object::new(g, vector_core::ObjKind::Group(objs), kurbo::Affine::IDENTITY, Default::default());
-                        group.name = name;
-                        group
-                    } else {
-                        // images and remixes are bitmaps
-                        let fit = vector_core::object::union_bounds(objs.iter().map(|o| o.bounds()));
-                        match bitmap_of(&mut d.doc, &svg, fit, &name) {
-                            Some(o) => o,
-                            None => {
-                                app.ai.error = Some("Could not render the generated image.".into());
-                                return;
-                            }
-                        }
-                    };
-                    let label = "AI Generate";
-                    if let Some(d) = app.doc_mut() {
-                        d.add_objects(label, vec![group]);
-                    }
-                    app.ai.status = "Done".into();
                 }
-                Ok(_) => app.ai.error = Some("The generated drawing was empty.".into()),
-                Err(e) => app.ai.error = Some(format!("Could not read the generated drawing: {e}")),
             }
         }
     }
+}
+
+/// Import the generated SVG: as a group of vector objects, or (images and remixes) a bitmap.
+fn place_svg(app: &mut AnyVectorApp, svg: &str, mode: u8, target: Option<kurbo::Rect>, name: String) {
+    let Some(d) = app.doc_mut() else { return };
+    match vector_io::svg_import::objects_from_svg(&mut d.doc, svg.as_bytes()) {
+        Ok(mut objs) if !objs.is_empty() => {
+            // fit into the page at 80% and centre; a guided result goes beside its
+            // reference, the same size
+            let page = d.doc.pages[d.page].rect();
+            let area = match target {
+                Some(t) => t + kurbo::Vec2::new(t.width() + 18.0, 0.0),
+                None => page.scale_from_origin(0.8) + (page.center() - page.scale_from_origin(0.8).center()),
+            };
+            let bb = vector_core::object::union_bounds(objs.iter().map(|o| o.bounds()));
+            if bb.width() > 0.0 && bb.height() > 0.0 {
+                let s = (area.width() / bb.width()).min(area.height() / bb.height());
+                let a = kurbo::Affine::translate(area.center().to_vec2()) * kurbo::Affine::scale(s) * kurbo::Affine::translate(-bb.center().to_vec2());
+                for o in objs.iter_mut() {
+                    o.apply_transform(a);
+                }
+            }
+            let group = if mode == 0 {
+                let g = d.doc.new_id();
+                let mut group = vector_core::Object::new(g, vector_core::ObjKind::Group(objs), kurbo::Affine::IDENTITY, Default::default());
+                group.name = name;
+                group
+            } else {
+                // images and remixes are bitmaps
+                let fit = vector_core::object::union_bounds(objs.iter().map(|o| o.bounds()));
+                match bitmap_of(&mut d.doc, svg, fit, &name) {
+                    Some(o) => o,
+                    None => {
+                        app.ai.error = Some("Could not render the generated image.".into());
+                        return;
+                    }
+                }
+            };
+            if let Some(d) = app.doc_mut() {
+                d.add_objects("AI Generate", vec![group]);
+            }
+            app.ai.status = "Done".into();
+        }
+        Ok(_) => app.ai.error = Some("The generated drawing was empty.".into()),
+        Err(e) => app.ai.error = Some(format!("Could not read the generated drawing: {e}")),
+    }
+}
+
+/// Where an image of `w` × `h` pixels goes: beside the reference at its height, or centred in
+/// the page at 80%.
+pub fn bitmap_rect(page: kurbo::Rect, target: Option<kurbo::Rect>, w: u32, h: u32) -> kurbo::Rect {
+    let aspect = w.max(1) as f64 / h.max(1) as f64;
+    match target {
+        Some(t) => {
+            let ht = t.height().max(1.0);
+            kurbo::Rect::from_origin_size((t.x1 + 18.0, t.y0), (ht * aspect, ht))
+        }
+        None => {
+            let (aw, ah) = (page.width() * 0.8, page.height() * 0.8);
+            let (bw, bh) = if aw / ah > aspect { (ah * aspect, ah) } else { (aw, aw / aspect) };
+            kurbo::Rect::from_center_size(page.center(), (bw, bh))
+        }
+    }
+}
+
+/// An encoded image (ComfyUI's output) as a bitmap object.
+fn bitmap_from_bytes(doc: &mut vector_core::Document, bytes: &[u8], page: kurbo::Rect, target: Option<kurbo::Rect>, name: &str) -> Result<vector_core::Object, String> {
+    let fmt = image::guess_format(bytes).ok();
+    let img = image::load_from_memory(bytes).map_err(|e| format!("Could not read the generated image: {e}"))?.to_rgba8();
+    let (w, h) = img.dimensions();
+    let at = bitmap_rect(page, target, w, h);
+    // keep PNG and JPEG files as they came, for lossless saving
+    let (encoded, format) = match fmt {
+        Some(image::ImageFormat::Png) => (bytes.to_vec(), "png"),
+        Some(image::ImageFormat::Jpeg) => (bytes.to_vec(), "jpg"),
+        _ => (vec![], "png"),
+    };
+    let data = vector_core::document::ImageData { width: w, height: h, rgba: Arc::new(img.into_raw()), encoded: Arc::new(encoded), format: format.into(), name: name.to_string() };
+    Ok(image_object(doc, data, at, name))
+}
+
+fn image_object(doc: &mut vector_core::Document, data: vector_core::document::ImageData, at: kurbo::Rect, name: &str) -> vector_core::Object {
+    let iid = doc.add_image(data);
+    let mut st = vector_core::Style::default();
+    st.fill = vector_core::Fill::None;
+    st.outline = vector_core::Outline::none();
+    let io = vector_core::object::ImageObj { image: iid, w: at.width(), h: at.height(), crop: [0.0, 0.0, 1.0, 1.0], adjust: Default::default() };
+    let mut o = vector_core::Object::new(doc.new_id(), vector_core::ObjKind::Image(io), kurbo::Affine::translate(at.origin().to_vec2()), st);
+    o.name = name.to_string();
+    o
 }
 
 /// The generated SVG as a bitmap object filling `at` (300 dpi, at most 2048 pixels).
@@ -355,15 +567,8 @@ fn bitmap_of(doc: &mut vector_core::Document, svg: &str, at: kurbo::Rect, name: 
     let (w, h) = ((at.width() * k).round().max(1.0) as u32, (at.height() * k).round().max(1.0) as u32);
     let img = crate::icons::rasterize_svg(svg, w, h)?;
     let rgba: Vec<u8> = img.pixels.iter().flat_map(|c| c.to_srgba_unmultiplied()).collect();
-    let data = vector_core::document::ImageData { width: w, height: h, rgba: std::sync::Arc::new(rgba), encoded: std::sync::Arc::new(vec![]), format: "png".into(), name: name.to_string() };
-    let iid = doc.add_image(data);
-    let mut st = vector_core::Style::default();
-    st.fill = vector_core::Fill::None;
-    st.outline = vector_core::Outline::none();
-    let io = vector_core::object::ImageObj { image: iid, w: at.width(), h: at.height(), crop: [0.0, 0.0, 1.0, 1.0], adjust: Default::default() };
-    let mut o = vector_core::Object::new(doc.new_id(), vector_core::ObjKind::Image(io), kurbo::Affine::translate(at.origin().to_vec2()), st);
-    o.name = name.to_string();
-    Some(o)
+    let data = vector_core::document::ImageData { width: w, height: h, rgba: Arc::new(rgba), encoded: Arc::new(vec![]), format: "png".into(), name: name.to_string() };
+    Some(image_object(doc, data, at, name))
 }
 
 /// Quick AI Generate dialog (File > Quick AI Generate...).
@@ -380,24 +585,32 @@ pub fn quick_dialog(app: &mut AnyVectorApp, ctx: &egui::Context) {
     }
 }
 
-/// Shared UI used by the AI Generate docker and the quick dialog.
-/// The Generative AI terms, shown until they are accepted: what the AI features need and send,
-/// the policy, and I agree / I do not agree.
+/// The Generative AI terms, shown until they are accepted: what the AI features need and send
+/// (to the chosen provider), the policy, and I agree / I do not agree.
 fn terms(app: &mut AnyVectorApp, ui: &mut egui::Ui) {
+    let policy = prov::policy_url(&app.settings.ai_config, &app.settings.ai_provider_url);
     ui.add_space(10.0);
     ui.label(egui::RichText::new("Generative AI Terms").font(crate::theme::bold(13.0)));
     ui.add_space(10.0);
-    ui.label("To use the AI features of AnyVector, you must be at least 18 years old and accept the Generative AI Policy. If you are under 18 or do not accept it, do not use these features.");
+    if policy.is_some() {
+        ui.label("To use the AI features of AnyVector, you must be at least 18 years old and accept the Generative AI Policy. If you are under 18 or do not accept it, do not use these features.");
+    } else {
+        ui.label("To use the AI features of AnyVector, you must be at least 18 years old. If you are under 18, do not use these features.");
+    }
     ui.add_space(10.0);
-    ui.label("The AI features send your description, and any artwork you choose as a reference, to a third-party AI model (Claude, by Anthropic) to generate the result.");
+    ui.label(prov::disclosure(&app.settings.ai_config, &app.settings.ai_provider_url));
     ui.add_space(14.0);
-    ui.vertical_centered(|ui| {
-        if ui.add(egui::Button::new("Generative AI Policy...").min_size(egui::vec2(150.0, 24.0))).clicked() {
-            crate::bugreport::open_in_browser("https://www.anthropic.com/legal/aup");
-        }
-    });
-    ui.add_space(14.0);
-    ui.label("By clicking 'I agree', you accept the Generative AI Policy and confirm that you are at least 18 years old.");
+    if let Some(url) = policy {
+        ui.vertical_centered(|ui| {
+            if ui.add(egui::Button::new("Generative AI Policy...").min_size(egui::vec2(150.0, 24.0))).clicked() {
+                crate::bugreport::open_in_browser(url);
+            }
+        });
+        ui.add_space(14.0);
+        ui.label("By clicking 'I agree', you accept the Generative AI Policy and confirm that you are at least 18 years old.");
+    } else {
+        ui.label("By clicking 'I agree', you confirm that you are at least 18 years old and that you follow the terms of the AI service or model you use.");
+    }
     ui.add_space(14.0);
     ui.allocate_ui_with_layout(egui::vec2(ui.available_width(), 26.0), egui::Layout::right_to_left(egui::Align::Center), |ui| {
         if ui.add(egui::Button::new("I do not agree").min_size(egui::vec2(90.0, 24.0))).clicked() {
@@ -410,6 +623,7 @@ fn terms(app: &mut AnyVectorApp, ui: &mut egui::Ui) {
     });
 }
 
+/// Shared UI used by the AI Generate docker and the quick dialog.
 pub fn panel(app: &mut AnyVectorApp, ui: &mut egui::Ui) {
     if !app.settings.ai_terms_accepted {
         return terms(app, ui);
@@ -447,6 +661,7 @@ pub fn panel(app: &mut AnyVectorApp, ui: &mut egui::Ui) {
         ui.add(egui::Slider::new(&mut app.ai.colors, 1..=16));
     });
     ui.add_space(6.0);
+    let mut stop = false;
     ui.horizontal(|ui| {
         let can = !app.ai.busy && app.ai.prompt.trim().chars().count() >= 3 && (app.ai.mode != 2 || app.ai.reference.is_some());
         let b = egui::Button::new(egui::RichText::new("✦ Generate").color(egui::Color32::WHITE)).fill(crate::theme::PRIMARY()).min_size(egui::vec2(100.0, 26.0));
@@ -455,9 +670,16 @@ pub fn panel(app: &mut AnyVectorApp, ui: &mut egui::Ui) {
         }
         if app.ai.busy {
             ui.spinner();
+            stop = ui.button("Cancel").clicked();
         }
         ui.label(egui::RichText::new(&app.ai.status).color(crate::theme::TEXT_DIM()));
     });
+    if stop {
+        cancel(app);
+    }
+    if let Some(n) = &app.ai.note {
+        ui.label(egui::RichText::new(n).small().color(crate::theme::TEXT_DIM()));
+    }
     if let Some(e) = &app.ai.error {
         ui.add_space(4.0);
         ui.label(egui::RichText::new(e).color(egui::Color32::from_rgb(0xe8, 0x6a, 0x6a)));
@@ -479,5 +701,44 @@ pub fn panel(app: &mut AnyVectorApp, ui: &mut egui::Ui) {
         }
     }
     ui.add_space(6.0);
-    ui.label(egui::RichText::new(format!("Results are editable vector objects. Powered by Claude ({MODEL}).")).small().color(crate::theme::TEXT_DIM()));
+    let by = prov::powered_by(&app.settings.ai_config, &app.settings.ai_provider_url);
+    ui.label(egui::RichText::new(format!("Results are editable vector objects. {by}")).small().color(crate::theme::TEXT_DIM()));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn texts_with_and_without_image() {
+        let (a, b) = user_texts(0, " a fox ", "Line art", 4, None);
+        assert_eq!(a, b);
+        assert!(a.starts_with("Create: a fox\nStyle: Line art\nUse a palette of about 4"));
+        let (with, plain) = user_texts(1, "a fox", "Cartoon", 6, Some("<svg id='ref'/>"));
+        assert!(with.starts_with("Use the attached artwork"));
+        assert!(!with.contains("<svg"), "the image carries the reference");
+        assert!(with.contains("rich and detailed"));
+        assert!(plain.contains("SVG source is below") && plain.ends_with("<svg id='ref'/>"));
+        let (with, plain) = user_texts(2, "make it blue", "Cartoon", 6, Some("<svg/>"));
+        assert!(with.starts_with("Remix the attached artwork") && with.ends_with("<svg/>"));
+        assert!(plain.starts_with("Remix the artwork whose SVG source is below"));
+    }
+
+    #[test]
+    fn svg_from_reasoning_reply() {
+        let reply = "<think>I could use <svg> with circles</think>Here you go:\n```svg\n<svg viewBox=\"0 0 1 1\"><rect/></svg>\n```";
+        assert_eq!(extract_svg(&prov::strip_think(reply)).unwrap(), "<svg viewBox=\"0 0 1 1\"><rect/></svg>");
+    }
+
+    #[test]
+    fn bitmap_placement() {
+        let page = kurbo::Rect::new(0.0, 0.0, 100.0, 200.0);
+        // a square image in a tall page: as wide as 80% of the page, centred
+        let r = bitmap_rect(page, None, 512, 512);
+        assert!((r.width() - 80.0).abs() < 1e-9 && (r.height() - 80.0).abs() < 1e-9);
+        assert_eq!(r.center(), page.center());
+        // beside the reference, at its height
+        let r = bitmap_rect(page, Some(kurbo::Rect::new(10.0, 10.0, 30.0, 50.0)), 1024, 512);
+        assert_eq!(r, kurbo::Rect::new(48.0, 10.0, 128.0, 50.0));
+    }
 }
