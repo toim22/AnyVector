@@ -203,18 +203,33 @@ pub fn system_lang() -> Lang {
     Lang::EnUs
 }
 
+#[cfg(not(test))]
 static LANG: AtomicU8 = AtomicU8::new(0);
 
+// Tests run side by side in one process, each with its own window (on its own thread); a test
+// that switches the language must not switch the others'.
+#[cfg(test)]
+thread_local! {
+    static LANG: AtomicU8 = const { AtomicU8::new(0) };
+}
+
+fn lang_code() -> u8 {
+    #[cfg(not(test))]
+    return LANG.load(Ordering::Relaxed);
+    #[cfg(test)]
+    return LANG.with(|l| l.load(Ordering::Relaxed));
+}
+
 pub fn lang() -> Lang {
-    let v = LANG.load(Ordering::Relaxed);
+    let v = lang_code();
     Lang::ALL.into_iter().find(|l| *l as u8 == v).unwrap_or(Lang::EnUs)
 }
 
 pub fn set_lang(l: Lang) {
-    if lang() != l {
-        LANG.store(l as u8, Ordering::Relaxed);
-        cache().lock().unwrap_or_else(|e| e.into_inner()).clear();
-    }
+    #[cfg(not(test))]
+    LANG.store(l as u8, Ordering::Relaxed);
+    #[cfg(test)]
+    LANG.with(|v| v.store(l as u8, Ordering::Relaxed));
 }
 
 /// Install the translator in egui and choose the language of the settings.
@@ -229,17 +244,38 @@ pub fn init(setting: &str) {
 pub fn sync(setting: &str) -> bool {
     set_lang(Lang::resolve(setting));
     let font = lang().cjk_font().0;
-    FONT.lock().unwrap_or_else(|e| e.into_inner()).is_some_and(|f| f != font)
+    installed_font().is_some_and(|f| f != font)
 }
 
-/// The Chinese/Japanese font the installed fonts have.
+/// The Chinese/Japanese font the installed fonts have (in a test, those of this test's window).
+#[cfg(not(test))]
 static FONT: Mutex<Option<&'static str>> = Mutex::new(None);
+#[cfg(test)]
+thread_local! {
+    static FONT: std::cell::Cell<Option<&'static str>> = const { std::cell::Cell::new(None) };
+}
+
+fn installed_font() -> Option<&'static str> {
+    #[cfg(not(test))]
+    return *FONT.lock().unwrap_or_else(|e| e.into_inner());
+    #[cfg(test)]
+    return FONT.with(|f| f.get());
+}
+
+fn set_installed_font(name: &'static str) {
+    #[cfg(not(test))]
+    {
+        *FONT.lock().unwrap_or_else(|e| e.into_inner()) = Some(name);
+    }
+    #[cfg(test)]
+    FONT.with(|f| f.set(Some(name)));
+}
 
 /// Adds the Chinese or Japanese font of the user interface language to the end of every font family, so
 /// those characters show (Segoe UI has none). Called by `theme::install_fonts`.
 pub fn add_fonts(defs: &mut egui::FontDefinitions, fonts: &std::path::Path) {
     let (name, file) = lang().cjk_font();
-    *FONT.lock().unwrap_or_else(|e| e.into_inner()) = Some(name);
+    set_installed_font(name);
     let Ok(bytes) = std::fs::read(fonts.join(file)) else { return };
     let mut data = egui::FontData::from_owned(bytes);
     data.index = 1;
@@ -323,9 +359,10 @@ fn dict() -> &'static Dict {
     D[l as usize].get_or_init(|| parse(l.tsv()))
 }
 
-fn cache() -> &'static Mutex<HashMap<String, Option<String>>> {
-    static C: OnceLock<Mutex<HashMap<String, Option<String>>>> = OnceLock::new();
-    C.get_or_init(Default::default)
+/// The translations already looked up, one table per language.
+fn cache() -> &'static Mutex<Vec<HashMap<String, Option<String>>>> {
+    static C: OnceLock<Mutex<Vec<HashMap<String, Option<String>>>>> = OnceLock::new();
+    C.get_or_init(|| Mutex::new((0..Lang::ALL.len()).map(|_| HashMap::new()).collect()))
 }
 
 /// A translation without its access-key marker.
@@ -476,7 +513,9 @@ pub fn translator(text: &str) -> Option<String> {
     if lang() == Lang::EnUs || text.len() < 2 || !text.bytes().any(|b| b.is_ascii_alphabetic()) {
         return None;
     }
-    let mut c = cache().lock().unwrap_or_else(|e| e.into_inner());
+    let l = lang();
+    let mut all = cache().lock().unwrap_or_else(|e| e.into_inner());
+    let c = &mut all[l as usize];
     if let Some(r) = c.get(text) {
         return r.clone();
     }
