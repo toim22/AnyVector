@@ -2753,3 +2753,258 @@ fn ungroup_of_a_large_drawing_stays_responsive() {
     // about 40 ms here; seconds when each selected object was looked up on its own
     assert!(frame < std::time::Duration::from_millis(500), "a frame with {N} selected objects took {frame:?}");
 }
+
+// ---- The dialogs added for the 0.4.x enhancements (PDF import, color management, cutters, AI
+// providers, Options search). These tests run every time (no GPU); `visual_enhancement_dialogs`
+// saves a picture of each with the other visual tests.
+
+fn dialog_harness<'a>() -> Harness<'a, AnyVectorApp> {
+    let mut h = Harness::builder().with_size(egui::vec2(1600.0, 900.0)).build_eframe(|cc| {
+        let mut app = AnyVectorApp::new(cc);
+        app.splash = None;
+        app.pending.clear();
+        app
+    });
+    h.state_mut().new_default_document();
+    h.state_mut().dialogs.new_doc = None;
+    for _ in 0..3 {
+        h.step();
+    }
+    h
+}
+
+/// A blue rectangle on the page, selected.
+fn add_selected_rect(h: &mut Harness<'_, AnyVectorApp>) {
+    let d = h.state_mut().doc_mut().unwrap();
+    let id = d.doc.new_id();
+    let mut st = Style::default();
+    st.fill = Fill::Solid(Color::rgb(0x1e, 0x90, 0xff));
+    let o = Object::new(id, ObjKind::Rect(RectShape { w: 180.0, h: 120.0, radii: [0.0; 4], corner: CornerType::Round }), Affine::translate((72.0, 72.0)), st);
+    d.add_objects("test", vec![o]);
+    d.selection = vec![id];
+}
+
+fn object_count(h: &Harness<'_, AnyVectorApp>) -> usize {
+    h.state().doc().unwrap().page_ref().all_objects().count()
+}
+
+fn click_label(h: &mut Harness<'_, AnyVectorApp>, label: &str) {
+    use egui_kittest::kittest::Queryable;
+    h.get_by_label(label).click_accesskit();
+    for _ in 0..3 {
+        h.step();
+    }
+}
+
+/// Let queued commands run (`AnyVectorApp::run` only queues) and the window appear.
+fn settle(h: &mut Harness<'_, AnyVectorApp>) {
+    for _ in 0..4 {
+        h.step();
+    }
+}
+
+fn has_label(h: &Harness<'_, AnyVectorApp>, label: &str) -> bool {
+    use egui_kittest::kittest::Queryable;
+    h.query_by_label(label).is_some()
+}
+
+/// A file in a temp folder only this test uses.
+fn temp_file(test: &str, name: &str) -> std::path::PathBuf {
+    let d = std::env::temp_dir().join(format!("anyvector-test-{}-{test}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&d);
+    std::fs::create_dir_all(&d).unwrap();
+    d.join(name)
+}
+
+/// A two-page PDF with a rectangle on each page.
+fn two_page_pdf(test: &str) -> std::path::PathBuf {
+    let mut doc = vector_core::Document::default();
+    while doc.pages.len() < 2 {
+        doc.pages.push(doc.pages[0].clone());
+    }
+    for p in 0..2 {
+        let id = doc.new_id();
+        let mut st = Style::default();
+        st.fill = Fill::Solid(Color::rgb(0xd0, 0x20, 0x20));
+        let shape = RectShape { w: 100.0, h: 50.0 + 20.0 * p as f64, radii: [0.0; 4], corner: CornerType::Round };
+        let o = Object::new(id, ObjKind::Rect(shape), Affine::translate((50.0, 50.0)), st);
+        doc.pages[p].layers.last_mut().unwrap().objects.push(o);
+    }
+    let path = temp_file(test, "two-pages.pdf");
+    vector_io::pdf::export(&doc, &path, &vector_io::pdf::PdfOptions::default()).unwrap();
+    path
+}
+
+/// File ▸ Import of a two-page PDF shows Import PDF; OK brings the first page's drawing in.
+#[test]
+fn pdf_import_dialog_imports_the_chosen_page() {
+    let mut h = dialog_harness();
+    let pdf = two_page_pdf("pdf_import");
+    let before = object_count(&h);
+    assert!(crate::dialogs::pdf_import::start(h.state_mut(), &pdf, false, None));
+    settle(&mut h);
+    assert!(h.state().dialogs.pdf_import.is_some() && has_label(&h, "OK"), "the dialog shows");
+    click_label(&mut h, "OK");
+    assert!(h.state().dialogs.pdf_import.is_none(), "OK closes it");
+    assert!(object_count(&h) > before, "the page's drawing came in");
+}
+
+/// File ▸ Open of a PDF opens it as a new drawing with all its pages.
+#[test]
+fn pdf_open_dialog_makes_a_new_drawing() {
+    let mut h = dialog_harness();
+    let pdf = two_page_pdf("pdf_open");
+    let docs = h.state().docs.len();
+    assert!(crate::dialogs::pdf_import::start(h.state_mut(), &pdf, true, None));
+    settle(&mut h);
+    click_label(&mut h, "OK");
+    assert_eq!(h.state().docs.len(), docs + 1, "a new drawing");
+    assert_eq!(h.state().doc().unwrap().doc.pages.len(), 2, "with both pages");
+}
+
+/// A file that only looks like a PDF gives a message, not the dialog.
+#[test]
+fn pdf_import_of_a_broken_file_says_so() {
+    let mut h = dialog_harness();
+    let bad = temp_file("pdf_bad", "broken.pdf");
+    std::fs::write(&bad, b"%PDF-1.4\nnot really a pdf").unwrap();
+    assert!(!crate::dialogs::pdf_import::start(h.state_mut(), &bad, false, None));
+    assert!(h.state().dialogs.pdf_import.is_none());
+    assert!(h.state().dialogs.message_box.is_some(), "the user is told");
+    h.step();
+}
+
+/// Tools ▸ Color Management opens, draws its tabs, and Cancel leaves the settings alone.
+#[test]
+fn color_management_dialog_opens_and_cancels() {
+    let mut h = dialog_harness();
+    let before = h.state().settings.color_management.clone();
+    h.state_mut().run(Cmd::ColorManagement);
+    settle(&mut h);
+    assert!(h.state().dialogs.color_mgmt.is_some() && has_label(&h, "Cancel"));
+    for tab in 0..3 {
+        h.state_mut().dialogs.color_mgmt.as_mut().unwrap().tab = tab;
+        h.step();
+    }
+    click_label(&mut h, "Cancel");
+    assert!(h.state().dialogs.color_mgmt.is_none());
+    assert!(h.state().settings.color_management == before, "Cancel changes nothing");
+}
+
+/// Object ▸ Create Cut Contour: OK adds a CutContour hairline and the CutContour spot color.
+#[test]
+fn cut_contour_dialog_adds_the_contour() {
+    let mut h = dialog_harness();
+    add_selected_rect(&mut h);
+    let before = object_count(&h);
+    h.state_mut().run(Cmd::CreateCutContour);
+    settle(&mut h);
+    assert!(h.state().dialogs.cutter.contour.is_some() && has_label(&h, "OK"));
+    click_label(&mut h, "OK");
+    assert_eq!(object_count(&h), before + 1);
+    let d = h.state().doc().unwrap();
+    assert!(d.page_ref().all_objects().any(|o| o.name == vector_core::color::CUT_CONTOUR_NAME));
+    assert!(d.doc.palette.iter().any(|c| c.name == vector_core::color::CUT_CONTOUR_NAME && c.spot));
+}
+
+/// With nothing selected, Create Cut Contour does nothing.
+#[test]
+fn cut_contour_needs_a_selection() {
+    let mut h = dialog_harness();
+    h.state_mut().run(Cmd::CreateCutContour);
+    settle(&mut h);
+    assert!(h.state().dialogs.cutter.contour.is_none());
+}
+
+/// Export as PLT and as DXF: the export dialog, then OK writes the file.
+#[test]
+fn hpgl_and_dxf_export_dialogs_write_files() {
+    use crate::dialogs::cutter;
+    let mut h = dialog_harness();
+    add_selected_rect(&mut h);
+    let plt = temp_file("cutter_export", "drawing.plt");
+    let target = cutter::Target::new(h.state(), plt.clone(), vec![0], false);
+    cutter::start_hpgl(h.state_mut(), target, false);
+    settle(&mut h);
+    assert!(h.state().dialogs.cutter.hpgl.is_some() && has_label(&h, "OK"));
+    click_label(&mut h, "OK");
+    let hpgl = std::fs::read_to_string(&plt).expect("the PLT file is written");
+    assert!(hpgl.starts_with("IN") && hpgl.contains("PD"), "HPGL with pen-down moves: {hpgl:.80}");
+
+    let dxf = plt.with_extension("dxf");
+    let target = cutter::Target::new(h.state(), dxf.clone(), vec![0], false);
+    cutter::start_dxf(h.state_mut(), target, false);
+    settle(&mut h);
+    assert!(h.state().dialogs.cutter.dxf.is_some() && has_label(&h, "OK"));
+    click_label(&mut h, "OK");
+    let text = std::fs::read_to_string(&dxf).expect("the DXF file is written");
+    assert!(text.contains("SECTION") && text.contains("ENTITIES") && text.trim_end().ends_with("EOF"));
+}
+
+/// Tools ▸ Options ▸ Global ▸ Privacy: each AI provider shows its own settings (the field
+/// captions are painted, so the check is on the checkboxes each one has).
+#[test]
+fn ai_provider_options_follow_the_provider() {
+    use crate::ai_provider::{ImageProvider, Provider};
+    use egui_kittest::kittest::Queryable;
+    let mut h = dialog_harness();
+    h.state_mut().open_options(crate::commands::OptionsPage::Global, Some("Privacy"));
+    // (provider, has "The model accepts images", has "Use Ollama's own API")
+    let cases = [(Provider::Anthropic, false, false), (Provider::OpenAi, true, false), (Provider::Ollama, true, true), (Provider::LmStudio, true, false)];
+    for (p, vision, ollama) in cases {
+        h.state_mut().settings.ai_config.provider = p;
+        settle(&mut h);
+        assert_eq!(h.query_by_label_contains("accepts images").is_some(), vision, "{p:?}: the images checkbox");
+        assert_eq!(h.query_by_label_contains("Ollama's own API").is_some(), ollama, "{p:?}: the Ollama API checkbox");
+    }
+    assert!(has_label(&h, "ComfyUI"), "the image provider choice");
+    h.state_mut().settings.ai_config.image_provider = ImageProvider::ComfyUi;
+    settle(&mut h);
+}
+
+/// The new dialogs, as pictures: Import PDF, Color Management (its three tabs), Create Cut
+/// Contour, HPGL and DXF Export, the AI providers in Options, the Options search and Export
+/// for Office.
+#[test]
+#[ignore]
+fn visual_enhancement_dialogs() {
+    use crate::dialogs::cutter;
+    let mut h = harness();
+    h.state_mut().new_default_document();
+    h.state_mut().dialogs.new_doc = None;
+    add_selected_rect(&mut h);
+    let pdf = two_page_pdf("visual_enhancements");
+    crate::dialogs::pdf_import::start(h.state_mut(), &pdf, false, None);
+    save(&mut h, "95_pdf_import");
+    h.state_mut().dialogs.pdf_import = None;
+    h.state_mut().run(Cmd::ColorManagement);
+    settle(&mut h);
+    for tab in 0..3 {
+        h.state_mut().dialogs.color_mgmt.as_mut().unwrap().tab = tab;
+        save(&mut h, &format!("95_color_management_{tab}"));
+    }
+    h.state_mut().dialogs.color_mgmt = None;
+    h.state_mut().run(Cmd::CreateCutContour);
+    save(&mut h, "95_cut_contour");
+    h.state_mut().dialogs.cutter.contour = None;
+    let plt = temp_file("visual_enhancements_cut", "drawing.plt");
+    let t = cutter::Target::new(h.state(), plt.clone(), vec![0], false);
+    cutter::start_hpgl(h.state_mut(), t, false);
+    save(&mut h, "95_hpgl_export");
+    h.state_mut().dialogs.cutter.hpgl = None;
+    let t = cutter::Target::new(h.state(), plt.with_extension("dxf"), vec![0], false);
+    cutter::start_dxf(h.state_mut(), t, false);
+    save(&mut h, "95_dxf_export");
+    h.state_mut().dialogs.cutter.dxf = None;
+    h.state_mut().open_options(crate::commands::OptionsPage::Global, Some("Privacy"));
+    for p in crate::ai_provider::Provider::ALL {
+        h.state_mut().settings.ai_config.provider = p;
+        save(&mut h, &format!("95_ai_provider_{p:?}").to_lowercase());
+    }
+    h.state_mut().settings.ai_config.provider = crate::ai_provider::Provider::Anthropic;
+    h.state_mut().dialogs.options.search.query = "crosshair".into();
+    save(&mut h, "95_options_search");
+    h.state_mut().dialogs.options = Default::default();
+    h.state_mut().run(Cmd::ExportForOffice);
+    save(&mut h, "95_export_for_office");
+}
