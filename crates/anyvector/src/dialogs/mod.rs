@@ -284,16 +284,28 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
 }
 
 /// A dialog window in the application style: dark frame, title text at the top left and a
-/// close ✕ at the top right, centered over the main window and modal.
+/// close ✕ at the top right, modal. It opens centered over the main window and moves by
+/// dragging its title bar (issue 82); it keeps its place for the rest of the session.
 /// Returns the body's result and whether the dialog was dismissed (✕ or Escape).
 pub fn window<R>(ctx: &egui::Context, id: &str, title: &str, size: Vec2, body: impl FnOnce(&mut Ui) -> R) -> (R, bool) {
     let mut dismissed = false;
-    let resp = egui::Modal::new(Id::unique(("dlg", id)))
+    let modal_id = Id::unique(("dlg", id));
+    let off_id = Id::unique(("dlg_offset", id));
+    let offset = clamp_dialog_offset(ctx.data(|d| d.get_temp::<Vec2>(off_id)).unwrap_or(Vec2::ZERO), size, ctx.content_rect().size());
+    let resp = egui::Modal::new(modal_id)
+        .area(egui::Modal::default_area(modal_id).anchor(egui::Align2::CENTER_CENTER, offset))
         .backdrop_color(Color32::from_black_alpha(70))
         .frame(Frame::new().fill(theme::BG()).stroke(Stroke::new(1.0, theme::gray(0x48))).corner_radius(4.0).inner_margin(0.0))
         .show(ctx, |ui| {
             let (full, _) = ui.allocate_exact_size(size, Sense::hover());
             let title_rect = Rect::from_min_size(full.min, vec2(size.x, 32.0));
+            // the title bar moves the dialog (the ✕ below takes its own clicks)
+            let drag = ui.interact(title_rect, Id::unique(("dlg_title", id)), Sense::drag());
+            if drag.dragged() {
+                let moved = offset + drag.drag_delta();
+                ui.ctx().data_mut(|d| d.insert_temp(off_id, moved));
+                ui.ctx().request_repaint();
+            }
             let p = ui.painter();
             p.text(pos2(title_rect.left() + 11.0, title_rect.center().y), egui::Align2::LEFT_CENTER, title, egui::FontId::proportional(13.0), theme::TEXT());
             let close = Rect::from_center_size(pos2(title_rect.right() - 22.0, title_rect.center().y), vec2(30.0, 26.0));
@@ -320,6 +332,17 @@ pub fn window<R>(ctx: &egui::Context, id: &str, title: &str, size: Vec2, body: i
         dismissed = true;
     }
     (resp.inner, dismissed)
+}
+
+/// Keeps a moved dialog's title bar on the screen: `offset` is from the screen center.
+fn clamp_dialog_offset(offset: Vec2, size: Vec2, screen: Vec2) -> Vec2 {
+    // at least this much of the title bar stays reachable at the left and right
+    let keep = 80.0_f32.min(size.x);
+    let max_x = ((screen.x + size.x) / 2.0 - keep).max(0.0);
+    // the title bar never goes above the top or below the bottom
+    let max_up = ((screen.y - size.y) / 2.0).max(0.0);
+    let max_down = ((screen.y + size.y) / 2.0 - 32.0).max(0.0);
+    vec2(offset.x.clamp(-max_x, max_x), offset.y.clamp(-max_up, max_down))
 }
 
 /// The blue default button (OK) used at the bottom right of dialogs.
@@ -480,5 +503,27 @@ fn ask_language(app: &mut AnyVectorApp, ctx: &egui::Context) {
         app.dialogs.ask_language = false;
         app.settings.ui_language_ask = false;
         app.settings.save();
+    }
+}
+
+#[cfg(test)]
+mod window_tests {
+    use super::*;
+
+    #[test]
+    fn a_moved_dialog_keeps_its_title_bar_on_the_screen() {
+        let size = vec2(400.0, 300.0);
+        let screen = vec2(1600.0, 900.0);
+        // a small move stays as it is
+        assert_eq!(clamp_dialog_offset(vec2(-250.0, 120.0), size, screen), vec2(-250.0, 120.0));
+        // far off to the right: 80 px of the title bar stay on the screen
+        let o = clamp_dialog_offset(vec2(5000.0, 0.0), size, screen);
+        assert_eq!(800.0 + o.x - 200.0, 1600.0 - 80.0);
+        // never above the top
+        let o = clamp_dialog_offset(vec2(0.0, -5000.0), size, screen);
+        assert_eq!(450.0 + o.y - 150.0, 0.0);
+        // and the title bar stays above the bottom
+        let o = clamp_dialog_offset(vec2(0.0, 5000.0), size, screen);
+        assert_eq!(450.0 + o.y - 150.0, 900.0 - 32.0);
     }
 }

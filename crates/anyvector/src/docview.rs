@@ -84,6 +84,9 @@ pub struct DocView {
     pub focus: Vec<ObjId>,
     /// Pick tool shows rotate/skew handles.
     pub rotate_mode: bool,
+    /// The rotation center moved away from the middle of the selection (issue 79): for the
+    /// objects it was moved for, and where it is.
+    pub rot_center: Option<(Vec<ObjId>, Point)>,
     pub canvas_rect: ERect,
     pub show_page_sorter: bool,
     /// Object ▸ Symbol ▸ Edit Master in progress.
@@ -136,6 +139,7 @@ impl DocView {
             text_edit: None,
             focus: vec![],
             rotate_mode: false,
+            rot_center: None,
             canvas_rect: ERect::NOTHING,
             show_page_sorter: false,
             symbol_edit: None,
@@ -328,6 +332,16 @@ impl DocView {
 
     pub fn selection_bounds(&self) -> Option<Rect> {
         self.doc.selection_bounds(&self.selection)
+    }
+
+    /// What the rotate handles turn the selection around: where its rotation center was moved
+    /// to, or the middle of the selection.
+    pub fn rotation_center(&self) -> Option<Point> {
+        let bb = self.selection_bounds()?;
+        Some(match &self.rot_center {
+            Some((ids, p)) if *ids == self.selection => *p,
+            _ => bb.center(),
+        })
     }
 
     pub fn page_ref(&self) -> &vector_core::Page {

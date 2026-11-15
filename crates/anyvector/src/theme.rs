@@ -334,8 +334,16 @@ pub fn body(size: f32) -> FontId {
     FontId::new(size, FontFamily::Proportional)
 }
 
+/// How a document color (a swatch, a color well, a gradient preview) shows on screen, through
+/// the color management in force, as the drawing window shows it: CMYK inks through the CMYK
+/// profile, or by their numbers when color management is off. The RGB a CMYK color carries was
+/// worked out when it was made, possibly under other settings, so it is not used for showing it.
 pub fn to_c32(c: vector_core::Color) -> Color32 {
-    Color32::from_rgba_unmultiplied(c.r, c.g, c.b, c.a)
+    let d = match c.cmyk {
+        Some(k) => vector_core::cms::current().cmyk_to_display(k.map(|v| v as f64)),
+        None => vector_core::cms::display(c),
+    };
+    Color32::from_rgba_unmultiplied(d.r, d.g, d.b, c.a)
 }
 
 pub fn from_c32(c: Color32) -> vector_core::Color {
@@ -346,6 +354,21 @@ pub fn from_c32(c: Color32) -> vector_core::Color {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn swatches_follow_the_color_management_in_force() {
+        use vector_core::cms::{self, CmsOptions, ColorEngine};
+        use vector_core::document::ColorSettings;
+        // a CMYK swatch made under color management keeps the RGB of the CMYK profile
+        let cyan = vector_core::Color::rgb(0, 175, 239).with_cmyk([100.0, 0.0, 0.0, 0.0]);
+        // with color management off (issue 84) it shows by its numbers, not that dull RGB
+        let off = cms::engine_with(&ColorSettings::default(), &CmsOptions { engine: ColorEngine::None, ..CmsOptions::default() });
+        let shown = cms::with_engine(off, || to_c32(cyan));
+        assert_eq!(shown, Color32::from_rgb(0, 255, 255));
+        // and an RGB color shows as it is
+        let red = cms::with_engine(cms::engine(&ColorSettings::default()), || to_c32(vector_core::Color::rgb(200, 10, 20)));
+        assert_eq!(red, Color32::from_rgb(200, 10, 20));
+    }
 
     #[test]
     fn switching_themes_changes_the_palette() {

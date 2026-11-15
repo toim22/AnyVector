@@ -80,7 +80,10 @@ pub enum Drag {
     Nodes { start: Point, orig: Vec<(ObjId, NodePath)>, moved: bool },
     Control { obj: ObjId, si: usize, ni: usize, incoming: bool, orig: NodePath, moved: bool },
     NodeMarquee { start: Point },
-    Corner { obj: ObjId, start: Point, orig: [f64; 4], moved: bool },
+    /// Shape tool: rounding corner `corner` of a rectangle.
+    Corner { obj: ObjId, corner: usize, start: Point, orig: [f64; 4], moved: bool },
+    /// Pick tool in rotate mode: moving the rotation center of the selection.
+    RotCenter,
     Pan { last: egui::Pos2 },
     Guide { index: Option<usize>, vertical: bool },
     Stroke { points: Vec<Point>, times: Vec<f64> },
@@ -988,4 +991,44 @@ pub fn range_of(t: &vector_core::object::TableObj, a: Option<(usize, usize)>, b:
     let a = a.filter(|a| a.0 < t.rows && a.1 < t.cols)?;
     let b = b.filter(|b| b.0 < t.rows && b.1 < t.cols).unwrap_or(a);
     Some(t.range(a, b))
+}
+
+/// The Shape tool nodes of a rectangle, in its own coordinates, with the corner each one
+/// rounds (0 top-left, then clockwise): a square corner shows its node at the corner, a rounded
+/// one shows two where the rounding meets the sides, as in CorelDRAW.
+pub fn rect_corner_nodes(r: &vector_core::object::RectShape) -> Vec<(usize, Point)> {
+    let mut out = vec![];
+    for k in 0..4 {
+        let (c, inx, iny) = rect_corner_dirs(r, k);
+        let rad = r.radii[k];
+        if rad <= 1e-9 {
+            out.push((k, c));
+        } else {
+            out.push((k, c + inx * rad));
+            out.push((k, c + iny * rad));
+        }
+    }
+    out
+}
+
+/// A rectangle corner (in its own coordinates) and the directions along its two sides,
+/// into the rectangle.
+pub fn rect_corner_dirs(r: &vector_core::object::RectShape, k: usize) -> (Point, Vec2, Vec2) {
+    let (w, h) = (r.w, r.h);
+    let c = [Point::new(0.0, 0.0), Point::new(w, 0.0), Point::new(w, h), Point::new(0.0, h)][k % 4];
+    let sx = if c.x == 0.0 { 1.0 } else { -1.0 } * w.signum();
+    let sy = if c.y == 0.0 { 1.0 } else { -1.0 } * h.signum();
+    (c, Vec2::new(sx, 0.0), Vec2::new(0.0, sy))
+}
+
+/// The corner size after dragging a node of corner `k` from `start` to `cur` (rectangle
+/// coordinates): the node slides along the sides, so the size grows by how far the pointer moved
+/// along them into the rectangle, as in CorelDRAW.
+pub fn rect_corner_drag(r: &vector_core::object::RectShape, k: usize, orig: f64, start: Point, cur: Point) -> f64 {
+    let (_, inx, iny) = rect_corner_dirs(r, k);
+    let dv = cur - start;
+    let along = dv.dot(inx).abs().max(dv.dot(iny).abs());
+    let into = if dv.dot(inx) + dv.dot(iny) >= 0.0 { along } else { -along };
+    let maxr = r.w.abs().min(r.h.abs()) / 2.0;
+    (orig + into).clamp(0.0, maxr)
 }

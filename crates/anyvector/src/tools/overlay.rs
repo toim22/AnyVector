@@ -532,8 +532,8 @@ fn draw_selection(painter: &Painter, d: &DocView, rotate: bool) {
                 }
             }
         }
-        // rotation center
-        let c = d.to_screen(bb.center());
+        // rotation center (it can be dragged elsewhere)
+        let c = d.to_screen(d.rotation_center().unwrap_or(bb.center()));
         painter.circle_stroke(c, 4.0, Stroke::new(1.5, Color32::BLACK));
         painter.circle_filled(c, 1.5, Color32::BLACK);
     } else {
@@ -605,7 +605,7 @@ fn draw_nodes(painter: &Painter, d: &DocView, s: &Settings) {
                 }
             }
             ObjKind::Rect(r) => {
-                for c in [Point::new(0.0, 0.0), Point::new(r.w, 0.0), Point::new(r.w, r.h), Point::new(0.0, r.h)] {
+                for (_, c) in rect_corner_nodes(r) {
                     handle(painter, d.to_screen(t * c), ns, false);
                 }
             }

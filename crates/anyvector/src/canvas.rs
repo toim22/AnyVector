@@ -104,8 +104,10 @@ pub fn drawing_window(app: &mut AnyVectorApp, ui: &mut Ui) {
             if scroll != egui::Vec2::ZERO {
                 let zoom_wheel = matches!(app.settings.wheel_action, crate::settings::WheelAction::Zoom) != mods.alt;
                 if zoom_wheel && scroll.x == 0.0 {
-                    let rate = 1.0 + (app.settings.zoom_rate.max(1.0) / 100.0).min(1.0);
-                    d.zoom_at(p, rate.powf(scroll.y as f64 / 120.0));
+                    // one wheel notch is `line_scroll_speed` points (40 on desktop), and each
+                    // notch zooms by the rate set in Options, as in the original
+                    let notch = ctx.options(|o| o.input_options.line_scroll_speed).max(1.0) as f64;
+                    d.zoom_at(p, wheel_zoom_factor(app.settings.zoom_rate, scroll.y as f64 / notch));
                 } else {
                     d.origin += scroll;
                 }
@@ -1119,4 +1121,10 @@ fn passive_window(app: &mut AnyVectorApp, ui: &mut Ui, i: usize, full: Rect) -> 
         p.image(tex.id(), canvas, Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
     }
     ui.interact(full, Id::unique(("doc_win_body", app.docs[i].uid)), Sense::click()).clicked()
+}
+
+/// Zoom factor for `notches` wheel notches at the Options zoom rate (percent per notch).
+pub(crate) fn wheel_zoom_factor(zoom_rate: f64, notches: f64) -> f64 {
+    let rate = 1.0 + (zoom_rate.max(1.0) / 100.0).min(1.0);
+    rate.powf(notches)
 }
