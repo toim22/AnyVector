@@ -6,6 +6,7 @@ Last updated: 2026-11-16.
 
 | Version | Date | What it brings |
 | --- | --- | --- |
+| [0.5.2](RELEASE-NOTES-0.5.2.md) | 2026-11-16 | Opens and imports DXF drawings; SVG export can keep text as text; the angle box, Rotate and the Transform docker turn around a moved rotation center; the default palette is CorelDRAW's CMYK palette, bright with color management off. |
 | [0.5.1](RELEASE-NOTES-0.5.1.md) | 2026-11-16 | Moving the rotation centre, moving dialogs, rounding rectangle corners by dragging their nodes, bright palette swatches with color management off, and a mouse wheel zoom step like CorelDRAW's. |
 | [0.5.0](RELEASE-NOTES-0.5.0.md) | 2026-11-15 | Opens PDF, EPS and PostScript files; ICC color management with exact CMYK and Simulate Color Management Off; HPGL and DXF export and Create Cut Contour; paste into Office as vectors and EMF export; JPEG XL; fonts embedded in CorelDRAW files; OpenAI-compatible, Ollama, LM Studio and ComfyUI for AI Generate; search in Options; fixes for freehand joining, the startup document, fonts shown as squares and CorelDRAW 2022 files. |
 | [0.4.1](RELEASE-NOTES-0.4.1.md) | 2026-11-12 | A file can be attached to Help ▸ Report a Bug and Submit Ideas and Feedback, with the types and sizes GitHub accepts; it goes to the issue. |

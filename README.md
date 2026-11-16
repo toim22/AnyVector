@@ -9,16 +9,16 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/toim22/AnyVector/releases/latest"><img alt="Version 0.5.1" src="https://img.shields.io/badge/version-0.5.1-0a9cff"></a>
+  <a href="https://github.com/toim22/AnyVector/releases/latest"><img alt="Version 0.5.2" src="https://img.shields.io/badge/version-0.5.2-0a9cff"></a>
   <img alt="Windows 10 and 11, 64-bit" src="https://img.shields.io/badge/Windows-10%20%7C%2011%20(x64)-2b3242">
   <img alt="15 languages" src="https://img.shields.io/badge/languages-15-43c35a">
   <img alt="Built with Rust" src="https://img.shields.io/badge/built%20with-Rust-f57c00">
 </p>
 
 <p align="center">
-  <a href="https://github.com/toim22/AnyVector/releases/latest"><strong>Download AnyVector 0.5.1</strong></a>
+  <a href="https://github.com/toim22/AnyVector/releases/latest"><strong>Download AnyVector 0.5.2</strong></a>
   ·
-  <a href="docs/RELEASE-NOTES-0.5.1.md">What's new</a>
+  <a href="docs/RELEASE-NOTES-0.5.2.md">What's new</a>
   ·
   <a href="https://github.com/toim22/AnyVector/issues">Report a bug or share an idea</a>
 </p>
@@ -33,7 +33,7 @@ Your muscle memory works on day one.
 
 - **Familiar from the first click.** All 12 menus, 60 tools with their property bars, the toolbox with 15 flyouts,
   right-click menus and dockers are where you expect them.
-- **Opens your work.** Reads and writes CorelDRAW-compatible `.cdr` files and `.cdrt` templates, plus SVG, PDF and
+- **Opens your work.** Reads and writes CorelDRAW-compatible `.cdr` files and `.cdrt` templates, plus SVG, PDF, DXF and
   the common bitmap formats.
 - **Fast and lightweight.** A single native Windows program written in Rust. No account, no cloud sign-in, no
   subscription screens.
@@ -74,7 +74,7 @@ Your muscle memory works on day one.
 
 ## Install
 
-1. Download `AnyVector-0.5.1-setup.exe` from the [latest release](https://github.com/toim22/AnyVector/releases/latest).
+1. Download `AnyVector-0.5.2-setup.exe` from the [latest release](https://github.com/toim22/AnyVector/releases/latest).
 2. Run it. No administrator rights are needed, because AnyVector installs for your user by default. You can also
    choose to install it for all users.
 3. Choose the language AnyVector should start in. You can change it later in
@@ -104,15 +104,15 @@ Inno Setup (`ISCC.exe installer\AnyVector.iss`), which writes `dist\AnyVector-<v
 | `crates/anyvector` | The Windows program: interface, tools, dialogs and dockers |
 | `crates/vector-core` | Document model, geometry, styles, text layout and undo history |
 | `crates/vector-render` | Rendering and bitmap effects |
-| `crates/vector-io` | File formats: `.cdr`, `.vct`, SVG, PDF and bitmaps |
+| `crates/vector-io` | File formats: `.cdr`, `.vct`, SVG, PDF, DXF and bitmaps |
 | `xtask` | Build helpers for brand assets, interface data and coverage reports |
 | `installer` | The Inno Setup script and wizard images |
 | `docs` | Architecture, status, coverage and release notes |
 
 ## Project status
 
-AnyVector **0.5.1** opens drawings saved by every version of CorelDRAW, from CorelDRAW 1 to 2026, and Corel
-clipart (see [the release notes](docs/RELEASE-NOTES-0.5.1.md)). See [docs/STATUS.md](docs/STATUS.md) for progress and
+AnyVector **0.5.2** opens drawings saved by every version of CorelDRAW, from CorelDRAW 1 to 2026, and Corel
+clipart (see [the release notes](docs/RELEASE-NOTES-0.5.2.md)). See [docs/STATUS.md](docs/STATUS.md) for progress and
 [docs/COVERAGE.md](docs/COVERAGE.md) for the item-by-item list of what is complete. Known limits:
 
 - Licensed palette books (PANTONE, TRUMATCH and others) are not included.
