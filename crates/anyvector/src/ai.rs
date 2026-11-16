@@ -577,7 +577,7 @@ pub fn quick_dialog(app: &mut AnyVectorApp, ctx: &egui::Context) {
         return;
     }
     let mut open = true;
-    egui::Window::new("Quick AI Generate").open(&mut open).collapsible(false).resizable(false).default_width(420.0).anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0)).show(ctx, |ui| {
+    egui::Window::new("Quick AI Generate").open(&mut open).collapsible(false).resizable(false).default_width(420.0).pivot(egui::Align2::CENTER_CENTER).default_pos(ctx.content_rect().center()).show(ctx, |ui| {
         panel(app, ui);
     });
     if !open {

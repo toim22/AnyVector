@@ -1085,6 +1085,14 @@ pub fn with_settings<T>(cs: &ColorSettings, f: impl FnOnce() -> T) -> T {
     out
 }
 
+/// Run `f` with colors shown and converted through the engine `e` on this thread.
+pub fn with_engine<T>(e: Arc<Engine>, f: impl FnOnce() -> T) -> T {
+    let before = OVERRIDE.with(|o| o.replace(Some(e)));
+    let out = f();
+    OVERRIDE.with(|o| *o.borrow_mut() = before);
+    out
+}
+
 /// How a color looks on screen: CMYK inks through the CMYK profile (or by their numbers with
 /// color management off), RGB through the RGB profile. Without an active engine (no document,
 /// tests) colors show as stored.

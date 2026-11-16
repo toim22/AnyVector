@@ -3008,3 +3008,110 @@ fn visual_enhancement_dialogs() {
     h.state_mut().run(Cmd::ExportForOffice);
     save(&mut h, "95_export_for_office");
 }
+
+/// Issues 79, 82, 83 and 85: the rotation center moves, dialogs move by their title bar,
+/// rectangle corners round by dragging their nodes, and one wheel notch zooms by the set rate.
+#[test]
+#[ignore]
+fn visual_issue_fixes_round_rotate_move() {
+    let mut h = harness();
+    h.state_mut().new_default_document();
+    for _ in 0..3 {
+        h.step();
+    }
+    let rect = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let mut st = Style::default();
+        st.fill = Fill::Solid(Color::rgb(0x1e, 0x90, 0xff));
+        let id = d.doc.new_id();
+        d.add_objects("test", vec![Object::new(id, ObjKind::Rect(RectShape { w: 200.0, h: 120.0, radii: [0.0; 4], corner: CornerType::Round }), Affine::translate((100.0, 100.0)), st)]);
+        d.selection = vec![id];
+        id
+    };
+    let to_screen = |h: &Harness<'_, AnyVectorApp>, x: f64, y: f64| {
+        let p = h.state().doc().unwrap().to_screen(Point::new(x, y));
+        egui::pos2(p.x as f32, p.y as f32)
+    };
+    let radii = |h: &Harness<'_, AnyVectorApp>| match &h.state().doc().unwrap().doc.find(rect).unwrap().kind {
+        ObjKind::Rect(r) => r.radii,
+        _ => unreachable!(),
+    };
+
+    // 83: the Shape tool rounds a corner by dragging its node along a side
+    h.state_mut().set_tool(crate::tools::ToolId::Shape);
+    h.step();
+    let (a, b) = (to_screen(&h, 100.0, 100.0), to_screen(&h, 130.0, 100.0));
+    drag(&mut h, a, b);
+    let r = radii(&h);
+    assert!((r[0] - 30.0).abs() < 1.5, "the corner follows the node: {r:?}");
+    assert!(r.iter().all(|x| (x - r[0]).abs() < 1e-9), "corners locked together by default: {r:?}");
+    save(&mut h, "issues_01_rounded_by_dragging");
+    // the node now sits where the rounding meets the side, and drags on from there
+    let (a, b) = (to_screen(&h, 130.0, 100.0), to_screen(&h, 145.0, 100.0));
+    drag(&mut h, a, b);
+    let r = radii(&h);
+    assert!((r[0] - 45.0).abs() < 1.5, "{r:?}");
+    // and back towards the corner squares it again
+    let (a, b) = (to_screen(&h, 145.0, 100.0), to_screen(&h, 80.0, 100.0));
+    drag(&mut h, a, b);
+    assert!(radii(&h)[0].abs() < 1e-9, "{:?}", radii(&h));
+
+    // 79: in rotate mode the rotation center moves on its own; the object stays where it is
+    h.state_mut().set_tool(crate::tools::ToolId::Pick);
+    {
+        let d = h.state_mut().doc_mut().unwrap();
+        d.selection = vec![rect];
+        d.rotate_mode = true;
+    }
+    h.step();
+    let before = h.state().doc().unwrap().doc.find(rect).unwrap().transform;
+    let (a, b) = (to_screen(&h, 200.0, 160.0), to_screen(&h, 300.0, 220.0));
+    drag(&mut h, a, b);
+    let d = h.state().doc().unwrap();
+    assert_eq!(d.doc.find(rect).unwrap().transform, before, "dragging the center does not move the object");
+    let c = d.rotation_center().unwrap();
+    // (it snaps, like objects, so it lands near the pointer)
+    assert!((c - Point::new(300.0, 220.0)).hypot() < 10.0, "{c:?}");
+    assert!(d.rotate_mode);
+    save(&mut h, "issues_02_rotation_center_moved");
+    // the rotate handles now turn the rectangle around the new center
+    let bb = h.state().doc().unwrap().selection_bounds().unwrap();
+    let e = h.state().doc().unwrap().doc_len(6.0);
+    let corner = to_screen(&h, bb.x0 - e, bb.y0 - e);
+    drag(&mut h, corner, corner + egui::vec2(0.0, -80.0));
+    let after = h.state().doc().unwrap().doc.find(rect).unwrap().transform;
+    assert_ne!(after, before, "the rectangle turned");
+    let moved = after * before.inverse();
+    assert!(((moved * c) - c).hypot() < 1e-6, "it turned around the moved center");
+    save(&mut h, "issues_03_rotated_around_moved_center");
+
+    // 85: one wheel notch zooms by the Options zoom rate
+    let z0 = h.state().doc().unwrap().zoom;
+    let mid = to_screen(&h, 200.0, 400.0);
+    move_to(&mut h, mid);
+    h.step();
+    h.input_mut().events.push(egui::Event::MouseWheel { unit: egui::MouseWheelUnit::Line, delta: egui::vec2(0.0, 1.0), modifiers: egui::Modifiers::NONE, phase: egui::TouchPhase::Move, source: egui::MouseWheelSource::Unknown });
+    for _ in 0..40 {
+        h.step();
+    }
+    let z1 = h.state().doc().unwrap().zoom;
+    let want = 1.0 + h.state().settings.zoom_rate / 100.0;
+    assert!((z1 / z0 - want).abs() < 0.01, "one notch zoomed {:.3}x, the rate is {want:.3}x", z1 / z0);
+
+    // 82: a dialog moves by dragging its title bar
+    h.state_mut().open_options(crate::commands::OptionsPage::App, None);
+    for _ in 0..3 {
+        h.step();
+    }
+    let area = egui::Id::unique(("dlg", "options"));
+    let r0 = h.ctx.memory(|m| m.area_rect(area)).expect("the Options dialog is open");
+    let grab = r0.left_top() + egui::vec2(120.0, 16.0);
+    drag(&mut h, grab, grab + egui::vec2(-300.0, 120.0));
+    for _ in 0..2 {
+        h.step();
+    }
+    let r1 = h.ctx.memory(|m| m.area_rect(area)).unwrap();
+    let moved = r1.min - r0.min;
+    assert!((moved - egui::vec2(-300.0, 120.0)).length() < 3.0, "the dialog moved by {moved:?}");
+    save(&mut h, "issues_04_dialog_moved");
+}

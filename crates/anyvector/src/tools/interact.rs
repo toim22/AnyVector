@@ -735,6 +735,16 @@ impl<'a> Cx<'a> {
             }
         }
         self.d.guide_sel = None;
+        // rotate mode: the rotation center marker moves (issue 79)
+        if self.d.rotate_mode && self.tool == ToolId::Pick {
+            if let Some(c) = self.d.rotation_center() {
+                if (self.d.to_screen(c) - pos).length() <= 7.0 {
+                    self.ts.drag = Drag::RotCenter;
+                    self.ts.cur = p;
+                    return;
+                }
+            }
+        }
         if let Some(bb) = self.d.selection_bounds() {
             let e = self.d.doc_len(6.0);
             let eb = bb.inflate(e, e);
@@ -750,7 +760,8 @@ impl<'a> Cx<'a> {
                     } else {
                         Xform::Scale(i)
                     };
-                    self.ts.drag = Drag::Transform { kind, start: p, bb, ids: self.d.selection.clone(), center: bb.center() };
+                    let center = if matches!(kind, Xform::Rotate) { self.d.rotation_center().unwrap_or(bb.center()) } else { bb.center() };
+                    self.ts.drag = Drag::Transform { kind, start: p, bb, ids: self.d.selection.clone(), center };
                     self.ts.cur = p;
                     self.ts.copy_on_drop = false;
                     return;
@@ -857,13 +868,13 @@ impl<'a> Cx<'a> {
                     }
                 }
                 ObjKind::Rect(r) => {
+                    // the nodes where the corners are rounded, or the corners themselves
                     let t = o.transform;
-                    let corners = [Point::new(0.0, 0.0), Point::new(r.w, 0.0), Point::new(r.w, r.h), Point::new(0.0, r.h)];
-                    for c in corners {
-                        if ((t * c) - p).hypot() <= tol {
-                            self.ts.drag = Drag::Corner { obj: id, start: p, orig: r.radii, moved: false };
-                            return;
-                        }
+                    let mut near: Vec<(usize, Point)> = super::rect_corner_nodes(r);
+                    near.extend((0..4).map(|k| (k, super::rect_corner_dirs(r, k).0)));
+                    if let Some((k, _)) = near.into_iter().filter(|(_, c)| ((t * *c) - p).hypot() <= tol).min_by(|a, b| ((t * a.1) - p).hypot().total_cmp(&((t * b.1) - p).hypot())) {
+                        self.ts.drag = Drag::Corner { obj: id, corner: k, start: p, orig: r.radii, moved: false };
+                        return;
                     }
                 }
                 _ => {}
@@ -1516,7 +1527,7 @@ impl<'a> Cx<'a> {
                     self.d.history.touch();
                 }
             }
-            Drag::Corner { obj, start, orig, moved: started } => {
+            Drag::Corner { obj, corner, start, orig, moved: started } => {
                 if !*started && moved {
                     self.d.checkpoint("Round Corners");
                     *started = true;
@@ -1527,13 +1538,8 @@ impl<'a> Cx<'a> {
                         let inv = o.transform.inverse();
                         let (ls, lc) = (inv * *start, inv * p);
                         if let ObjKind::Rect(r) = &mut o.kind {
-                            let corners = [Point::new(0.0, 0.0), Point::new(r.w, 0.0), Point::new(r.w, r.h), Point::new(0.0, r.h)];
-                            let k = (0..4).min_by(|a, b| (corners[*a] - ls).hypot().total_cmp(&(corners[*b] - ls).hypot())).unwrap_or(0);
-                            let center = Point::new(r.w / 2.0, r.h / 2.0);
-                            let diag = (center - corners[k]).normalize();
-                            let delta = (lc - ls).dot(diag) * std::f64::consts::FRAC_1_SQRT_2;
-                            let maxr = r.w.abs().min(r.h.abs()) / 2.0;
-                            let nr = (orig[k] + delta).clamp(0.0, maxr);
+                            let k = *corner;
+                            let nr = super::rect_corner_drag(r, k, orig[k], ls, lc);
                             if lock {
                                 r.radii = [nr; 4];
                             } else {
@@ -1562,6 +1568,12 @@ impl<'a> Cx<'a> {
                 *last = self.inp.pos;
             }
             Drag::Guide { .. } => self.ts.cur = p,
+            Drag::RotCenter => {
+                // the center snaps like objects do (to nodes, the grid, guides)
+                let q = self.snap(p, &self.d.selection.clone());
+                self.ts.cur = q;
+                self.d.rot_center = Some((self.d.selection.clone(), q));
+            }
             Drag::Stroke { points, times } => {
                 let q = if self.tool == ToolId::Freehand || self.tool == ToolId::Polyline { self.snap(p, &[]) } else { p };
                 if points.last().map(|l| self.screen_dist(*l, q) > 1.5).unwrap_or(true) {
@@ -1841,6 +1853,12 @@ impl<'a> Cx<'a> {
                             doc.transform_objects(&targets, a);
                             *sel = targets;
                         });
+                        // a moved rotation center goes along with its objects
+                        if let Some((cids, c)) = self.d.rot_center.take() {
+                            if cids == ids && !copy {
+                                self.d.rot_center = Some((self.d.selection.clone(), a * c));
+                            }
+                        }
                     }
                     self.ts.copy_on_drop = false;
                 } else if self.ts.was_selected && !mods.shift && self.tool == ToolId::Pick {
@@ -1887,6 +1905,7 @@ impl<'a> Cx<'a> {
             }
             Drag::Pan { .. } => {}
             Drag::Guide { index, vertical } => self.release_guide(index, vertical),
+            Drag::RotCenter => {}
             Drag::Stroke { points, times } => self.release_stroke(points, times, moved),
             Drag::Brush { started, .. } => {
                 if started {
