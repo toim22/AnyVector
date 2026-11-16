@@ -3085,6 +3085,21 @@ fn visual_issue_fixes_round_rotate_move() {
     assert!(((moved * c) - c).hypot() < 1e-6, "it turned around the moved center");
     save(&mut h, "issues_03_rotated_around_moved_center");
 
+    // 91: an angle typed on the property bar (or Rotate on the menu) also turns around the moved
+    // center, which stays with the rectangle
+    let c = h.state().doc().unwrap().rotation_center().unwrap();
+    let before = h.state().doc().unwrap().doc.find(rect).unwrap().transform;
+    h.state_mut().run(Cmd::Rotate(30.0));
+    h.step();
+    let d = h.state().doc().unwrap();
+    let after = d.doc.find(rect).unwrap().transform;
+    assert_ne!(after, before, "the rectangle turned");
+    assert!(((after * before.inverse() * c) - c).hypot() < 1e-6, "Rotate turned around the moved center");
+    assert!((d.rotation_center().unwrap() - c).hypot() < 1e-6, "the center stays where it was");
+    h.state_mut().doc_mut().unwrap().transform_selection("Move", kurbo::Affine::translate((15.0, 5.0)));
+    let c2 = h.state().doc().unwrap().rotation_center().unwrap();
+    assert!((c2 - (c + kurbo::Vec2::new(15.0, 5.0))).hypot() < 1e-6, "the center moves with the rectangle");
+
     // 85: one wheel notch zooms by the Options zoom rate
     let z0 = h.state().doc().unwrap().zoom;
     let mid = to_screen(&h, 200.0, 400.0);
