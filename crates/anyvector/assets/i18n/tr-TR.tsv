@@ -5597,3 +5597,8 @@ Left out: {} other file(s) the PostScript asked to read	Atlandı: PostScript'in 
 The PostScript program was stopped before its end; what it drew until then was imported	PostScript programı sonuna gelmeden durduruldu; o ana kadar çizdikleri içe aktarıldı
 Only the first of {} pages was imported	{} sayfadan yalnızca ilki içe aktarıldı
 The PostScript couldn't be read, so the file's preview image was imported instead	PostScript okunamadı, bu yüzden dosyanın önizleme görüntüsü içe aktarıldı
+Export text:	Metni dışa aktar:
+Text on a path, vertical, warped or filled with anything but one color is always exported as curves.	Yol üzerindeki, dikey, bozulmuş ya da tek renk dışında dolgulu metin her zaman eğri olarak dışa aktarılır.
+Left out: {} object(s) in paper space (layouts); the model space was imported	Dışarıda bırakıldı: kağıt alanında (düzenler) {} nesne; model alanı içe aktarıldı
+Left out: {} {} entities	Dışarıda bırakıldı: {} {} varlığı
+The drawing doesn't say its units; it was read in millimeters	Çizim birimlerini belirtmiyor; milimetre olarak okundu

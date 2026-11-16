@@ -5597,3 +5597,8 @@ Left out: {} other file(s) the PostScript asked to read	Пропущено др�
 The PostScript program was stopped before its end; what it drew until then was imported	Программа PostScript была остановлена до конца; импортировано то, что она успела нарисовать
 Only the first of {} pages was imported	Импортирована только первая из {} страниц
 The PostScript couldn't be read, so the file's preview image was imported instead	Не удалось прочитать PostScript, поэтому вместо него импортировано изображение предварительного просмотра
+Export text:	Экспорт текста:
+Text on a path, vertical, warped or filled with anything but one color is always exported as curves.	Текст вдоль пути, вертикальный, деформированный или с заливкой, отличной от однородной, всегда экспортируется в виде кривых.
+Left out: {} object(s) in paper space (layouts); the model space was imported	Пропущено: {} объект(ов) в пространстве листа (листы); импортировано пространство модели
+Left out: {} {} entities	Пропущено: {} объектов {}
+The drawing doesn't say its units; it was read in millimeters	В чертеже не указаны единицы; он прочитан в миллиметрах

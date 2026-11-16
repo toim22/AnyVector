@@ -888,7 +888,7 @@ pub fn show_export(app: &mut AnyVectorApp, ctx: &egui::Context) {
                 }
             }
             "svg" => {
-                let s = SvgState { path, pages, selection: sel, unit: app.settings.svg_unit.min(3), dpi: 300.0 };
+                let s = SvgState { path, pages, selection: sel, unit: app.settings.svg_unit.min(3), dpi: 300.0, text_as_text: app.settings.svg_text_as_text };
                 if st.no_filter_dialog {
                     run_svg(app, &s);
                 } else {
@@ -923,6 +923,8 @@ pub struct SvgState {
     pub selection: bool,
     pub unit: usize,
     pub dpi: f64,
+    /// Export text as text (true) or as curves.
+    pub text_as_text: bool,
 }
 
 const SVG_UNITS: [&str; 4] = ["pt", "in", "mm", "px"];
@@ -938,12 +940,22 @@ pub fn show_svg(app: &mut AnyVectorApp, ctx: &egui::Context) {
         row(ui, "Units:", 120.0, |ui| {
             combo(ui, "svg_unit", &mut st.unit, &["Points", "Inches", "Millimeters", "Pixels"], 140.0);
         });
+        row(ui, "Export text:", 120.0, |ui| {
+            let mut i = if st.text_as_text { 0 } else { 1 };
+            if combo(ui, "svg_text", &mut i, &["Text", "Curves"], 140.0) {
+                st.text_as_text = i == 0;
+            }
+        });
+        if st.text_as_text {
+            note(ui, "Text on a path, vertical, warped or filled with anything but one color is always exported as curves.");
+        }
         row(ui, "Bitmap resolution:", 120.0, |ui| ui.add(egui::DragValue::new(&mut st.dpi).range(36.0..=1200.0).suffix(" dpi")));
         note(ui, "Bitmaps and effects that cannot be described in SVG are embedded as images at this resolution.");
         result = super::ok_cancel_row(ui, "OK", true);
     });
     if result.0 {
         app.settings.svg_unit = st.unit;
+        app.settings.svg_text_as_text = st.text_as_text;
         run_svg(app, &st);
     } else if !(result.1 || dismissed) {
         app.dialogs.svg = Some(st);
@@ -960,7 +972,7 @@ fn run_svg(app: &mut AnyVectorApp, st: &SvgState) {
     } else {
         (d.doc.clone(), st.pages.clone())
     };
-    let opts = vector_io::svg_export::SvgOptions { raster_dpi: st.dpi, unit: SVG_UNITS[st.unit.min(3)], ..Default::default() };
+    let opts = vector_io::svg_export::SvgOptions { raster_dpi: st.dpi, unit: SVG_UNITS[st.unit.min(3)], text_as_text: st.text_as_text, ..Default::default() };
     let res: Result<(), String> = pages.iter().try_for_each(|p| vector_io::svg_export::export(&doc, *p, &numbered(&st.path, *p, pages.len()), &opts).map_err(|e| e.to_string()));
     match res {
         Ok(()) => app.flash(format!("Exported {}", st.path.display())),

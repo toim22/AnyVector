@@ -152,7 +152,7 @@ pub fn export(doc: &Document, page: usize, path: &Path, opts: &EmfOptions) -> Re
 /// One page as EMF bytes.
 pub fn page_to_emf(doc: &Document, page: usize, opts: &EmfOptions) -> Vec<u8> {
     let Some(pg) = doc.pages.get(page) else { return vec![] };
-    let mut f = Flattener::new(doc, FlatOptions { raster_dpi: opts.raster_dpi, conical_gradients: false, repeat_gradients: true, gradient_alpha: true, printing: false });
+    let mut f = Flattener::new(doc, FlatOptions { raster_dpi: opts.raster_dpi, conical_gradients: false, repeat_gradients: true, gradient_alpha: true, printing: false, text_as_text: false });
     f.page(page);
     let prims = std::mem::take(&mut f.out);
     write(doc, &prims, Rect::new(0.0, 0.0, pg.width, pg.height), opts)
@@ -875,7 +875,7 @@ impl Writer {
                     self.end(k);
                 }
             }
-            Prim::Link { .. } => {}
+            Prim::Link { .. } | Prim::Text { .. } => {}
         }
     }
 

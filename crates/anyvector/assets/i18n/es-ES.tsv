@@ -5597,3 +5597,8 @@ Left out: {} other file(s) the PostScript asked to read	Omitido: {} archivo(s) m
 The PostScript program was stopped before its end; what it drew until then was imported	El programa PostScript se detuvo antes de terminar; se importó lo que había dibujado hasta entonces
 Only the first of {} pages was imported	Solo se importó la primera de {} páginas
 The PostScript couldn't be read, so the file's preview image was imported instead	No se pudo leer el PostScript, así que se importó la imagen de vista previa del archivo
+Export text:	Exportar texto:
+Text on a path, vertical, warped or filled with anything but one color is always exported as curves.	El texto en un trayecto, vertical, deformado o con un relleno que no sea de un solo color siempre se exporta como curvas.
+Left out: {} object(s) in paper space (layouts); the model space was imported	Omitido: {} objeto(s) en el espacio papel (presentaciones); se importó el espacio modelo
+Left out: {} {} entities	Omitido: {} entidades {}
+The drawing doesn't say its units; it was read in millimeters	El dibujo no indica sus unidades; se leyó en milímetros
