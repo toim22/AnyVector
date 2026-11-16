@@ -63,6 +63,8 @@ pub fn transform(app: &mut AnyVectorApp, ui: &mut Ui) {
         }
     });
     let bb = app.doc().and_then(|d| d.selection_bounds());
+    // the rotation center, where it was moved to in rotate mode
+    let rot_c = app.doc().and_then(|d| d.rotation_center());
     let has = bb.is_some();
     let origin = app.doc().map(|d| d.doc.settings.ruler_origin).unwrap_or_default();
     // a length measured on the canvas for Size ▸ Scale portion
@@ -223,7 +225,7 @@ pub fn transform(app: &mut AnyVectorApp, ui: &mut Ui) {
             0 if rel => Affine::translate((pos[0], pos[1])),
             0 => Affine::translate((pos[0] + origin.x - a.x, pos[1] + origin.y - a.y)),
             1 => {
-                let c = if rel_center { bb.center() + Vec2::new(center[0], center[1]) } else { Point::new(center[0] + origin.x, center[1] + origin.y) };
+                let c = if rel_center { rot_c.unwrap_or(bb.center()) + Vec2::new(center[0], center[1]) } else { Point::new(center[0] + origin.x, center[1] + origin.y) };
                 around(c, Affine::rotate(-rot.to_radians()))
             }
             2 => {
@@ -239,19 +241,19 @@ pub fn transform(app: &mut AnyVectorApp, ui: &mut Ui) {
             _ => around(if use_anchor { a } else { bb.center() }, Affine::new([1.0, skew[1].to_radians().tan(), skew[0].to_radians().tan(), 1.0, 0.0, 0.0])),
         };
         let Some(d) = app.doc_mut() else { return };
+        if copies == 0 {
+            d.transform_selection("Transform", m);
+            return;
+        }
         let sel = d.selection.clone();
         d.modify("Transform", |doc, selection| {
-            if copies == 0 {
-                doc.transform_objects(&sel, m);
-            } else {
-                let mut cur = sel.clone();
-                for _ in 0..copies {
-                    let dup = ops::duplicate(doc, &cur, Vec2::ZERO);
-                    doc.transform_objects(&dup, m);
-                    cur = dup;
-                }
-                *selection = cur;
+            let mut cur = sel.clone();
+            for _ in 0..copies {
+                let dup = ops::duplicate(doc, &cur, Vec2::ZERO);
+                doc.transform_objects(&dup, m);
+                cur = dup;
             }
+            *selection = cur;
         });
     }
 }

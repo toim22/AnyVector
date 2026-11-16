@@ -344,6 +344,20 @@ impl DocView {
         })
     }
 
+    /// Transform the selection with `m` as one undo step; a moved rotation center goes along.
+    pub fn transform_selection(&mut self, label: &str, m: Affine) {
+        let ids = self.selection.clone();
+        if ids.is_empty() {
+            return;
+        }
+        self.modify(label, |doc, _| doc.transform_objects(&ids, m));
+        if let Some((cids, c)) = &mut self.rot_center {
+            if *cids == ids {
+                *c = m * *c;
+            }
+        }
+    }
+
     pub fn page_ref(&self) -> &vector_core::Page {
         &self.doc.pages[self.page]
     }

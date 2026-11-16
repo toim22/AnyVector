@@ -51,9 +51,9 @@ pub fn edit_sel(app: &mut AnyVectorApp, label: &str, mut f: impl FnMut(&mut Obje
 }
 
 pub fn transform_sel(app: &mut AnyVectorApp, label: &str, m: Affine) {
-    let Some(d) = app.doc_mut() else { return };
-    let sel = d.selection.clone();
-    d.modify(label, |doc, _| doc.transform_objects(&sel, m));
+    if let Some(d) = app.doc_mut() {
+        d.transform_selection(label, m);
+    }
 }
 
 /// The one selected object's kind, mapped by `f`.
@@ -640,10 +640,11 @@ fn scale(app: &mut AnyVectorApp, ui: &mut Ui, it: &Item) {
 }
 
 fn angle(app: &mut AnyVectorApp, ui: &mut Ui, it: &Item) {
-    let bb = app.doc().and_then(|d| d.selection_bounds());
+    // turns around the rotation center, where it was moved to (rotate mode)
+    let center = app.doc().and_then(|d| d.rotation_center());
     let cur = app.doc().filter(|d| d.selection.len() == 1).and_then(|d| d.doc.find(d.selection[0])).map(|o| vector_core::geom::rotation_deg(o.transform)).unwrap_or(0.0);
-    if let Some(a) = fields::spin(app, ui, pid(ui, "angle"), Lead::Icon("rotate"), bb.map(|_| cur), Fmt::Num(1, ""), 52.0, "°", bb.is_some(), &tip(it)) {
-        let c = bb.unwrap().center();
+    if let Some(a) = fields::spin(app, ui, pid(ui, "angle"), Lead::Icon("rotate"), center.map(|_| cur), Fmt::Num(1, ""), 52.0, "°", center.is_some(), &tip(it)) {
+        let c = center.unwrap();
         let m = Affine::translate(c.to_vec2()) * Affine::rotate(-(a - cur).to_radians()) * Affine::translate(-c.to_vec2());
         transform_sel(app, "Rotate", m);
     }

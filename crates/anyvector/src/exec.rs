@@ -980,10 +980,8 @@ impl AnyVectorApp {
 
     fn transform_sel(&mut self, label: &str, f: impl Fn(Rect) -> Affine) {
         if let Some(d) = self.doc_mut() {
-            let ids = d.selection.clone();
             let Some(bb) = d.selection_bounds() else { return };
-            let a = f(bb);
-            d.modify(label, |doc, _| doc.transform_objects(&ids, a));
+            d.transform_selection(label, f(bb));
         }
     }
 
@@ -1977,7 +1975,10 @@ impl AnyVectorApp {
                 }
             }
             Cmd::MirrorH | Cmd::MirrorV => self.modify_sel("Mirror", |doc, sel| ops::mirror(doc, sel, cmd == Cmd::MirrorH)),
-            Cmd::Rotate(deg) => self.transform_sel("Rotate", |bb| rotate_about(bb.center(), deg)),
+            Cmd::Rotate(deg) => {
+                let c = self.doc().and_then(|d| d.rotation_center());
+                self.transform_sel("Rotate", |bb| rotate_about(c.unwrap_or(bb.center()), deg))
+            }
             Cmd::ClearTransformations => self.modify_sel("Clear Transformations", |doc, sel| {
                 for id in sel.iter() {
                     if let Some(o) = doc.find_mut(*id) {
