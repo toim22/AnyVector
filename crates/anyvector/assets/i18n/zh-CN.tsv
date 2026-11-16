@@ -5597,3 +5597,8 @@ Left out: {} other file(s) the PostScript asked to read	已省略：PostScript �
 The PostScript program was stopped before its end; what it drew until then was imported	PostScript 程序在结束前被停止；已导入它到那时为止绘制的内容
 Only the first of {} pages was imported	只导入了 {} 页中的第一页
 The PostScript couldn't be read, so the file's preview image was imported instead	无法读取 PostScript，因此改为导入文件的预览图像
+Export text:	导出文本：
+Text on a path, vertical, warped or filled with anything but one color is always exported as curves.	路径上的文本、竖排文本、变形的文本以及非单色填充的文本始终导出为曲线。
+Left out: {} object(s) in paper space (layouts); the model space was imported	已省略：图纸空间（布局）中的 {} 个对象；已导入模型空间
+Left out: {} {} entities	已省略：{} 个 {} 图元
+The drawing doesn't say its units; it was read in millimeters	图形未注明单位；已按毫米读取

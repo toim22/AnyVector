@@ -5,6 +5,7 @@ pub mod cdr;
 pub mod corel;
 pub mod cutter;
 pub mod dxf;
+pub mod dxf_import;
 pub mod emf;
 pub mod emf_import;
 pub mod flat;
@@ -74,6 +75,7 @@ pub const OPEN_TYPES: &[FileType] = &[
     FileType { name: "EPS - Encapsulated PostScript (*.eps)", extensions: &["eps", "epsf"], vector: true },
     FileType { name: "PS - PostScript (*.ps;*.prn)", extensions: &["ps", "prn"], vector: true },
     FileType { name: "AI - Adobe Illustrator (*.ai)", extensions: &["ai"], vector: true },
+    FileType { name: "DXF - AutoCAD (*.dxf)", extensions: &["dxf"], vector: true },
 ];
 
 pub const IMPORT_TYPES: &[FileType] = &[
@@ -87,6 +89,7 @@ pub const IMPORT_TYPES: &[FileType] = &[
     FileType { name: "PS - PostScript (*.ps;*.prn)", extensions: &["ps", "prn"], vector: true },
     FileType { name: "AI - Adobe Illustrator (*.ai)", extensions: &["ai"], vector: true },
     FileType { name: "EMF - Enhanced Windows Metafile (*.emf)", extensions: &["emf"], vector: true },
+    FileType { name: "DXF - AutoCAD (*.dxf)", extensions: &["dxf"], vector: true },
     FileType { name: "PNG - Portable Network Graphics (*.png)", extensions: &["png"], vector: false },
     FileType { name: "JPG - JPEG Bitmaps (*.jpg;*.jpeg;*.jfif)", extensions: &["jpg", "jpeg", "jfif"], vector: false },
     FileType { name: "BMP - Windows Bitmap (*.bmp)", extensions: &["bmp"], vector: false },
@@ -141,6 +144,7 @@ pub fn open(path: &Path) -> Result<Document> {
         "cmx" => corel::cmx::load_from_bytes(&std::fs::read(path)?),
         "eps" | "epsf" | "ps" | "prn" | "ai" => ps_import::load_with_notes(&std::fs::read(path)?).map(|(d, _)| d),
         "vct" => native::load(path),
+        "dxf" => dxf_import::load_with_notes(&std::fs::read(path)?).map(|(d, _)| d),
         "pdf" => pdf_import::load_with_notes(&std::fs::read(path)?, &Default::default()).map(|(d, _)| d),
         "svg" | "svgz" => {
             let data = std::fs::read(path)?;
@@ -167,6 +171,7 @@ pub fn open_with_notes(path: &Path) -> Result<(Document, Vec<String>)> {
         "cmx" => corel::cmx::load_with_report(&std::fs::read(path)?).map(|(d, r)| (d, r.lines())),
         "pdf" => pdf_import::load_with_notes(&std::fs::read(path)?, &Default::default()),
         "eps" | "epsf" | "ps" | "prn" | "ai" => ps_import::load_with_notes(&std::fs::read(path)?),
+        "dxf" => dxf_import::load_with_notes(&std::fs::read(path)?),
         _ => open(path).map(|d| (d, vec![])),
     }
 }
@@ -189,6 +194,10 @@ pub fn import_with_notes(doc: &mut Document, path: &Path) -> Result<(Vec<Object>
             Ok((pages.pop().map(|p| p.0).unwrap_or_default(), notes))
         }
         "eps" | "epsf" | "ps" | "prn" | "ai" => ps_import::import(doc, &std::fs::read(path)?),
+        "dxf" => {
+            let (other, notes) = dxf_import::load_with_notes(&std::fs::read(path)?)?;
+            Ok((merge_document(doc, other), notes))
+        }
         _ => import(doc, path).map(|o| (o, vec![])),
     }
 }
@@ -244,6 +253,7 @@ pub fn import(doc: &mut Document, path: &Path) -> Result<Vec<Object>> {
             Ok(pdf_import::import_pages(doc, &bytes, &opts)?.0.pop().map(|p| p.0).unwrap_or_default())
         }
         "emf" => emf_import::objects_from_emf(doc, &bytes),
+        "dxf" => Ok(merge_document(doc, dxf_import::load_with_notes(&bytes)?.0)),
         e if image_io::is_image_ext(e) => {
             let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
             let img = image_io::decode(&bytes, &name)?;

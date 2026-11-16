@@ -5597,3 +5597,8 @@ Left out: {} other file(s) the PostScript asked to read	省略: PostScript が�
 The PostScript program was stopped before its end; what it drew until then was imported	PostScript プログラムは最後まで実行される前に停止しました。それまでに描画された内容を読み込みました
 Only the first of {} pages was imported	{} ページのうち最初のページだけを読み込みました
 The PostScript couldn't be read, so the file's preview image was imported instead	PostScript を読み取れなかったため、代わりにファイルのプレビュー画像を読み込みました
+Export text:	テキストのエクスポート:
+Text on a path, vertical, warped or filled with anything but one color is always exported as curves.	パス上のテキスト、縦書き、変形したテキスト、単色以外で塗りつぶされたテキストは常にカーブとしてエクスポートされます。
+Left out: {} object(s) in paper space (layouts); the model space was imported	除外: ペーパー空間 (レイアウト) の {} 個のオブジェクト。モデル空間がインポートされました
+Left out: {} {} entities	除外: {} 個の {} エンティティ
+The drawing doesn't say its units; it was read in millimeters	図面に単位の指定がないため、ミリメートルとして読み込みました

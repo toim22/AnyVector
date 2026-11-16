@@ -16,11 +16,13 @@ pub struct SvgOptions {
     /// Write width/height in this unit suffix ("pt", "in", "mm", "px").
     pub unit: &'static str,
     pub pretty: bool,
+    /// Export text as text (`<text>`) instead of curves, where it can be shown the same way.
+    pub text_as_text: bool,
 }
 
 impl Default for SvgOptions {
     fn default() -> Self {
-        SvgOptions { raster_dpi: 300.0, unit: "pt", pretty: true }
+        SvgOptions { raster_dpi: 300.0, unit: "pt", pretty: true, text_as_text: false }
     }
 }
 
@@ -87,7 +89,7 @@ fn esc(s: &str) -> String {
 /// Export one page to an SVG string.
 pub fn page_to_svg(doc: &Document, page: usize, opts: &SvgOptions) -> String {
     let pg = &doc.pages[page];
-    let mut f = Flattener::new(doc, FlatOptions { raster_dpi: opts.raster_dpi, conical_gradients: false, repeat_gradients: true, gradient_alpha: true, printing: false });
+    let mut f = Flattener::new(doc, FlatOptions { raster_dpi: opts.raster_dpi, conical_gradients: false, repeat_gradients: true, gradient_alpha: true, printing: false, text_as_text: opts.text_as_text });
     f.page(page);
     let prims = std::mem::take(&mut f.out);
     let (w, h) = match opts.unit {
@@ -222,6 +224,65 @@ pub fn page_to_svg(doc: &Document, page: usize, opts: &SvgOptions) -> String {
                     n(rect.height())
                 )
                 .unwrap();
+            }
+            Prim::Text { xf, runs, stroke, stroke_behind } => {
+                if runs.is_empty() {
+                    continue;
+                }
+                write!(body, "{}<text transform=\"{}\" xml:space=\"preserve\"", ind(depth), matrix(xf)).unwrap();
+                if let Some((c, style)) = &stroke {
+                    // the outline is in document units; the text is drawn in its own space
+                    let k = xf.determinant().abs().sqrt().max(1e-9);
+                    let (sc, op) = color_attr(*c);
+                    let width = if style.width <= 0.0 { 0.25 } else { style.width };
+                    write!(body, " stroke=\"{}\" stroke-width=\"{}\"", sc, n(width / k)).unwrap();
+                    if let Some(o) = op {
+                        write!(body, " stroke-opacity=\"{o}\"").unwrap();
+                    }
+                    if style.width <= 0.0 {
+                        body.push_str(" vector-effect=\"non-scaling-stroke\"");
+                    }
+                    body.push_str(match style.join {
+                        LineJoin::Miter => "",
+                        LineJoin::Round => " stroke-linejoin=\"round\"",
+                        LineJoin::Bevel => " stroke-linejoin=\"bevel\"",
+                    });
+                    if !style.dash.is_empty() {
+                        let d: Vec<String> = style.dash.iter().map(|v| n(v / k)).collect();
+                        write!(body, " stroke-dasharray=\"{}\"", d.join(" ")).unwrap();
+                    }
+                    if stroke_behind {
+                        body.push_str(" paint-order=\"stroke\"");
+                    }
+                }
+                write!(body, ">{nl}").unwrap();
+                for r in &runs {
+                    let xs: Vec<String> = r.x.iter().map(|v| n(*v)).collect();
+                    let family = r.font.replace('\'', "");
+                    write!(body, "{}<tspan x=\"{}\" y=\"{}\" font-family=\"'{}'\" font-size=\"{}\"", ind(depth + 1), xs.join(" "), n(r.y), esc(&family), n(r.size)).unwrap();
+                    if r.bold {
+                        body.push_str(" font-weight=\"bold\"");
+                    }
+                    if r.italic {
+                        body.push_str(" font-style=\"italic\"");
+                    }
+                    match r.fill {
+                        Some(c) => {
+                            let (f, op) = color_attr(c);
+                            write!(body, " fill=\"{f}\"").unwrap();
+                            if let Some(o) = op {
+                                write!(body, " fill-opacity=\"{o}\"").unwrap();
+                            }
+                        }
+                        None => body.push_str(" fill=\"none\""),
+                    }
+                    let deco: Vec<&str> = [(r.underline, "underline"), (r.strike, "line-through"), (r.overline, "overline")].iter().filter(|d| d.0).map(|d| d.1).collect();
+                    if !deco.is_empty() {
+                        write!(body, " text-decoration=\"{}\"", deco.join(" ")).unwrap();
+                    }
+                    write!(body, ">{}</tspan>{nl}", esc(&r.text)).unwrap();
+                }
+                write!(body, "{}</text>{nl}", ind(depth)).unwrap();
             }
         }
     }

@@ -3130,3 +3130,101 @@ fn visual_issue_fixes_round_rotate_move() {
     assert!((moved - egui::vec2(-300.0, 120.0)).length() < 3.0, "the dialog moved by {moved:?}");
     save(&mut h, "issues_04_dialog_moved");
 }
+
+/// A small DXF drawing in millimeters: a red rectangle on "Outline", a blue circle and a text
+/// on "Notes", a half-round slot, a block inserted twice.
+fn sample_dxf(test: &str) -> std::path::PathBuf {
+    let p = temp_file(test, "plan.dxf");
+    let pairs: &[(i32, &str)] = &[
+        (0, "SECTION"), (2, "HEADER"), (9, "$INSUNITS"), (70, "4"), (0, "ENDSEC"),
+        (0, "SECTION"), (2, "TABLES"), (0, "TABLE"), (2, "LAYER"),
+        (0, "LAYER"), (2, "Outline"), (70, "0"), (62, "1"), (370, "35"),
+        (0, "LAYER"), (2, "Notes"), (70, "0"), (62, "5"),
+        (0, "ENDTAB"), (0, "ENDSEC"),
+        (0, "SECTION"), (2, "BLOCKS"),
+        (0, "BLOCK"), (2, "Bolt"), (10, "0"), (20, "0"),
+        (0, "CIRCLE"), (8, "0"), (10, "0"), (20, "0"), (40, "4"),
+        (0, "LINE"), (8, "0"), (10, "-6"), (20, "0"), (11, "6"), (21, "0"),
+        (0, "LINE"), (8, "0"), (10, "0"), (20, "-6"), (11, "0"), (21, "6"),
+        (0, "ENDBLK"), (0, "ENDSEC"),
+        (0, "SECTION"), (2, "ENTITIES"),
+        (0, "LWPOLYLINE"), (8, "Outline"), (90, "4"), (70, "1"), (10, "0"), (20, "0"), (10, "160"), (20, "0"), (10, "160"), (20, "100"), (10, "0"), (20, "100"),
+        (0, "LWPOLYLINE"), (8, "Outline"), (90, "4"), (70, "1"), (10, "60"), (20, "40"), (10, "100"), (20, "40"), (42, "1"), (10, "100"), (20, "60"), (10, "60"), (20, "60"), (42, "1"),
+        (0, "CIRCLE"), (8, "Notes"), (10, "130"), (20, "70"), (40, "15"),
+        (0, "INSERT"), (8, "Outline"), (2, "Bolt"), (10, "15"), (20, "15"),
+        (0, "INSERT"), (8, "Outline"), (2, "Bolt"), (10, "145"), (20, "15"), (50, "45"),
+        (0, "TEXT"), (8, "Notes"), (10, "10"), (20, "80"), (40, "8"), (1, "PLATE %%c30"),
+        (0, "ENDSEC"), (0, "EOF"),
+    ];
+    let s: String = pairs.iter().map(|(c, v)| format!("{c}\n{v}\n")).collect();
+    std::fs::write(&p, s).unwrap();
+    p
+}
+
+/// File ▸ Open of a DXF file (issue #89): a new drawing at the drawing's size, with its layers.
+#[test]
+fn dxf_open_makes_a_drawing_with_its_layers() {
+    let mut h = dialog_harness();
+    let docs = h.state().docs.len();
+    let p = sample_dxf("dxf_open");
+    assert!(h.state_mut().open_path(&p));
+    settle(&mut h);
+    assert_eq!(h.state().docs.len(), docs + 1, "a new drawing");
+    let d = &h.state().doc().unwrap().doc;
+    let names: Vec<&str> = d.pages[0].layers.iter().map(|l| l.name.as_str()).collect();
+    assert_eq!(names, ["Outline", "Notes"]);
+    let mm = 72.0 / 25.4;
+    assert!((d.pages[0].width - 160.0 * mm).abs() < 0.01 && (d.pages[0].height - 100.0 * mm).abs() < 0.01, "the page fits the 160 x 100 mm plate");
+    assert_eq!(d.pages[0].layers[0].objects.len(), 2 + 3 * 2, "the plate, the slot and two bolts of three parts");
+}
+
+/// File ▸ Import of a DXF file adds its drawing to the page as one group.
+#[test]
+fn dxf_import_adds_the_drawing() {
+    let mut h = dialog_harness();
+    let before = object_count(&h);
+    let p = sample_dxf("dxf_import");
+    h.state_mut().import_path(&p, None);
+    settle(&mut h);
+    assert!(object_count(&h) > before, "the drawing came in");
+}
+
+/// SVG Export (issue #88): "Export text: Text" writes the text as <text>, and is remembered.
+#[test]
+fn svg_export_dialog_keeps_text_as_text() {
+    use vector_core::text::{CharFormat, TextObj};
+    let mut h = dialog_harness();
+    {
+        let d = h.state_mut().doc_mut().unwrap();
+        let id = d.doc.new_id();
+        let mut st = Style::default();
+        st.fill = Fill::Solid(Color::BLACK);
+        let o = Object::new(id, ObjKind::Text(TextObj::artistic("Live text", CharFormat { size: 36.0, ..CharFormat::default() })), Affine::translate((100.0, 200.0)), st);
+        d.add_objects("test", vec![o]);
+    }
+    let out = temp_file("svg_text", "out.svg");
+    h.state_mut().dialogs.svg = Some(crate::dialogs::export::SvgState { path: out.clone(), pages: vec![0], selection: false, unit: 0, dpi: 300.0, text_as_text: true });
+    settle(&mut h);
+    assert!(has_label(&h, "Export text:"), "the option shows");
+    click_label(&mut h, "OK");
+    let svg = std::fs::read_to_string(&out).unwrap();
+    assert!(svg.contains("<text") && svg.contains(">Live text</tspan>"), "{svg}");
+    assert!(h.state().settings.svg_text_as_text, "the choice is remembered");
+}
+
+/// Renders: a DXF plan opened (issue #89) and the SVG Export dialog with its text option (#88).
+#[test]
+#[ignore]
+fn visual_dxf_open_and_svg_text_option() {
+    let mut h = harness();
+    let p = sample_dxf("visual_dxf");
+    assert!(h.state_mut().open_path(&p));
+    for _ in 0..5 {
+        h.step();
+    }
+    h.state_mut().run(Cmd::ZoomToPage);
+    save(&mut h, "dxf_01_plan_opened");
+    let out = temp_file("visual_svg_text", "out.svg");
+    h.state_mut().dialogs.svg = Some(crate::dialogs::export::SvgState { path: out, pages: vec![0], selection: false, unit: 1, dpi: 300.0, text_as_text: true });
+    save(&mut h, "svg_01_export_text_option");
+}

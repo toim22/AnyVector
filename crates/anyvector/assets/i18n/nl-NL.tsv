@@ -5597,3 +5597,8 @@ Left out: {} other file(s) the PostScript asked to read	Weggelaten: {} ander(e) 
 The PostScript program was stopped before its end; what it drew until then was imported	Het PostScript-programma is gestopt voor het einde; wat het tot dan had getekend, is geïmporteerd
 Only the first of {} pages was imported	Alleen de eerste van {} pagina's is geïmporteerd
 The PostScript couldn't be read, so the file's preview image was imported instead	Het PostScript kon niet worden gelezen, dus is in plaats daarvan de voorbeeldafbeelding van het bestand geïmporteerd
+Export text:	Tekst exporteren:
+Text on a path, vertical, warped or filled with anything but one color is always exported as curves.	Tekst op een pad, verticale, vervormde of niet effen gevulde tekst wordt altijd als krommen geëxporteerd.
+Left out: {} object(s) in paper space (layouts); the model space was imported	Weggelaten: {} object(en) in de papierruimte (lay-outs); de modelruimte is geïmporteerd
+Left out: {} {} entities	Weggelaten: {} {}-entiteiten
+The drawing doesn't say its units; it was read in millimeters	De tekening vermeldt geen eenheden; ze is in millimeters gelezen

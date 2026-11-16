@@ -274,6 +274,8 @@ pub struct Settings {
     pub export_format: usize,
     pub export_dpi: Option<f64>,
     pub svg_unit: usize,
+    /// SVG Export: text as text (instead of curves).
+    pub svg_text_as_text: bool,
     /// HPGL Export, DXF Export and Create Cut Contour: the last settings.
     pub cutter: crate::dialogs::cutter::CutterSettings,
     /// Export For ▸ WordPress: the last site and user name (never the password).
@@ -660,6 +662,7 @@ impl Default for Settings {
             export_format: 2,
             export_dpi: None,
             svg_unit: 0,
+            svg_text_as_text: false,
             cutter: Default::default(),
             wordpress_site: None,
             wordpress_user: None,

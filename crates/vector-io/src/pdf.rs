@@ -1063,7 +1063,7 @@ fn export_with_profiles(doc: &Document, opts: &PdfOptions) -> Result<Vec<u8>> {
         let pg = &doc.pages[pi];
         let mut fl = Flattener::new(
             doc,
-            FlatOptions { raster_dpi: opts.raster_dpi, conical_gradients: false, repeat_gradients: false, gradient_alpha: false, printing: opts.printing },
+            FlatOptions { raster_dpi: opts.raster_dpi, conical_gradients: false, repeat_gradients: false, gradient_alpha: false, printing: opts.printing, text_as_text: false },
         );
         fl.page(pi);
         let prims = std::mem::take(&mut fl.out);
@@ -1205,6 +1205,8 @@ fn export_with_profiles(doc: &Document, opts: &PdfOptions) -> Result<Vec<u8>> {
                         links.push((rect, url));
                     }
                 }
+                // only SVG asks for text runs
+                Prim::Text { .. } => {}
             }
         }
         let _ = flat_groups;

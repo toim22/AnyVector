@@ -39,6 +39,27 @@ pub enum Prim {
     EndClip,
     /// Hyperlink area.
     Link { rect: Rect, url: String },
+    /// Text kept as text (only with [`FlatOptions::text_as_text`]): `xf` maps the runs' local
+    /// coordinates to document space.
+    Text { xf: Affine, runs: Vec<TextRun>, stroke: Option<(Color, StrokeStyle)>, stroke_behind: bool },
+}
+
+/// Characters of one format on one line, each placed at its own x on a shared baseline.
+#[derive(Clone, Debug, PartialEq)]
+pub struct TextRun {
+    pub text: String,
+    /// The pen position of each character (one per `char` of `text`).
+    pub x: Vec<f64>,
+    pub y: f64,
+    pub font: String,
+    pub size: f64,
+    pub bold: bool,
+    pub italic: bool,
+    pub underline: bool,
+    pub strike: bool,
+    pub overline: bool,
+    /// None: not filled.
+    pub fill: Option<Color>,
 }
 
 #[derive(Clone, Debug)]
@@ -51,6 +72,9 @@ pub struct FlatOptions {
     /// Gradient stops with alpha supported natively.
     pub gradient_alpha: bool,
     pub printing: bool,
+    /// Write text as text runs ([`Prim::Text`]) where the target can show it the same way
+    /// (straight, unwarped text with a uniform or no fill); otherwise text becomes curves.
+    pub text_as_text: bool,
 }
 
 pub struct Flattener<'a> {
@@ -238,6 +262,7 @@ impl<'a> Flattener<'a> {
                     self.stroke(o, &clip);
                 }
             }
+            ObjKind::Text(t) if self.opts.text_as_text && self.live_text(o, t) => {}
             ObjKind::Text(t) => {
                 let lay = text::layout(t);
                 let space = vector_render::Renderer::fill_space(o, &BezPath::new());
@@ -321,6 +346,73 @@ impl<'a> Flattener<'a> {
             Fill::Pattern(p) => Some(Paint::Solid(p.fg)),
             Fill::Mesh(m) => m.colors.first().map(|c| Paint::Solid(*c)),
         }
+    }
+
+    /// Text as text runs; false (nothing written) when it can't be shown the same way as text:
+    /// on a path, vertical, warped (envelope, distortion...), rotated characters, or filled with
+    /// anything but a uniform color.
+    fn live_text(&mut self, o: &Object, t: &text::TextObj) -> bool {
+        if t.on_path.is_some() || t.vertical || o.effects.warps_geometry() {
+            return false;
+        }
+        let fill = match &o.style.fill {
+            Fill::None => None,
+            Fill::Solid(c) => Some(*c),
+            _ => return false,
+        };
+        let lay = text::layout(t);
+        // characters turned on their own (character angle) can't be placed as text
+        if lay.glyphs.iter().any(|g| g.transform.as_coeffs()[1].abs() > 1e-9) {
+            return false;
+        }
+        let chars: Vec<char> = t.content.chars().collect();
+        let mut size_of = std::collections::HashMap::new();
+        for g in &lay.glyphs {
+            size_of.entry(g.char_index).or_insert(g.size);
+        }
+        let mut runs: Vec<TextRun> = vec![];
+        for line in lay.lines.iter().filter(|l| !l.hidden) {
+            let mut cur: Option<TextRun> = None;
+            for ci in line.first_char..line.end_char.min(chars.len()) {
+                let ch = chars[ci];
+                if ch == '\n' || ch == '\r' || ci >= lay.carets.len() {
+                    continue;
+                }
+                let f = t.format_at(ci);
+                let ch = if f.caps { ch.to_uppercase().next().unwrap_or(ch) } else { ch };
+                let (x, base, _) = lay.carets[ci];
+                let run = TextRun {
+                    text: String::new(),
+                    x: vec![],
+                    y: base - f.baseline_shift,
+                    font: f.font.clone(),
+                    size: *size_of.get(&ci).unwrap_or(&f.size),
+                    bold: f.bold,
+                    italic: f.italic,
+                    underline: f.underline,
+                    strike: f.strike,
+                    overline: f.overline,
+                    fill: f.color.or(fill),
+                };
+                let same = cur.as_ref().is_some_and(|c| TextRun { text: String::new(), x: vec![], ..c.clone() } == run);
+                if !same {
+                    runs.extend(cur.take());
+                    cur = Some(run);
+                }
+                let c = cur.as_mut().unwrap();
+                c.text.push(ch);
+                c.x.push(x);
+            }
+            runs.extend(cur.take());
+        }
+        runs.retain(|r| !r.text.trim().is_empty());
+        let ol = &o.style.outline;
+        let stroke = ol.color.filter(|_| ol.profile.is_none()).map(|c| {
+            let dash: Vec<f64> = ol.dash.iter().map(|d| d * ol.width.max(0.5)).collect();
+            (c, StrokeStyle { width: ol.width, join: ol.join, cap: ol.cap, dash, miter: ol.miter_limit })
+        });
+        self.out.push(Prim::Text { xf: o.transform, runs, stroke, stroke_behind: ol.behind_fill });
+        true
     }
 
     fn stroke(&mut self, o: &Object, path: &BezPath) {
