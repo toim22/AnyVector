@@ -157,8 +157,9 @@ impl NodePath {
         for el in bp.elements() {
             match *el {
                 PathEl::MoveTo(p) => {
-                    if let Some(sp) = cur.take() {
+                    if let Some(mut sp) = cur.take() {
                         if !sp.nodes.is_empty() {
+                            close_if_ends_meet(&mut sp);
                             out.subpaths.push(sp);
                         }
                     }
@@ -218,8 +219,9 @@ impl NodePath {
                 }
             }
         }
-        if let Some(sp) = cur.take() {
-            if sp.nodes.len() > 0 {
+        if let Some(mut sp) = cur.take() {
+            if !sp.nodes.is_empty() {
+                close_if_ends_meet(&mut sp);
                 out.subpaths.push(sp);
             }
         }
@@ -232,6 +234,16 @@ impl NodePath {
         }
         out.subpaths.retain(|s| !s.nodes.is_empty());
         out
+    }
+
+    /// Marks open subpaths whose last node lands on the first as closed, as `from_bez` does now.
+    /// Drawings saved before 0.5.3 have converted ellipses stored open (#97); loading repairs them.
+    pub fn repair_closure(&mut self) {
+        for sp in self.subpaths.iter_mut() {
+            if !sp.closed {
+                close_if_ends_meet(sp);
+            }
+        }
     }
 
     pub fn transform(&mut self, a: Affine) {
@@ -568,6 +580,24 @@ impl NodePath {
             self.subpaths.splice(si..si + 1, repl);
         }
     }
+}
+
+/// An open subpath of three or more nodes whose last node lands on the first is a closed shape whose
+/// `ClosePath` was left out (kurbo ellipses, some imports): merge the end node into the start node,
+/// keeping its incoming handle, and mark it closed. True when it did.
+fn close_if_ends_meet(sp: &mut SubPath) -> bool {
+    if sp.closed || sp.nodes.len() < 3 {
+        return false;
+    }
+    let first = sp.nodes[0].p;
+    let last = sp.nodes[sp.nodes.len() - 1];
+    if (last.p - first).hypot() > 1e-6 {
+        return false;
+    }
+    sp.nodes.pop();
+    sp.nodes[0].c_in = last.c_in;
+    sp.closed = true;
+    true
 }
 
 fn infer_node_kinds(sp: &mut SubPath) {

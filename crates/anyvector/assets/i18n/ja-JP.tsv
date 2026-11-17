@@ -5381,7 +5381,7 @@ Drag to set the start and end points, then click to set the curvature	ドラッ�
 Sketch strokes; nearby strokes are merged into smooth curves	ストロークをスケッチします。近接するストロークは滑らかなカーブに結合されます
 Draw a shape freehand; it is recognized and converted into a basic shape	フリーハンドでシェイプを描くと、認識されて基本シェイプに変換されます
 Drag to draw a brush, sprayer, calligraphic or pressure stroke	ドラッグしてブラシ、スプレー、カリグラフィ、または筆圧のストロークを描きます
-Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center	ドラッグして矩形を描きます。Ctrl で正方形に制限、Shift で中心から描画します
+Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle the size of the page	ドラッグして矩形を描きます。Ctrl で正方形に制限、Shift で中心から描画します。ツールをダブルクリックすると、ページと同じサイズの矩形を描きます
 Drag to set the baseline, then click to set the height	ドラッグしてベースラインを設定してから、クリックして高さを設定します
 Drag to draw an ellipse; Ctrl constrains to a circle; Shift draws from the center	ドラッグして楕円形を描きます。Ctrl で円に制限、Shift で中心から描画します
 Drag to set the center line, then click to set the height	ドラッグして中心線を設定してから、クリックして高さを設定します
@@ -5602,3 +5602,7 @@ Text on a path, vertical, warped or filled with anything but one color is always
 Left out: {} object(s) in paper space (layouts); the model space was imported	除外: ペーパー空間 (レイアウト) の {} 個のオブジェクト。モデル空間がインポートされました
 Left out: {} {} entities	除外: {} 個の {} エンティティ
 The drawing doesn't say its units; it was read in millimeters	図面に単位の指定がないため、ミリメートルとして読み込みました
+Palettes (*.xml, *.ase, *.gpl)	パレット (*.xml、*.ase、*.gpl)
+PANTONE® color books are licensed and are not included in AnyVector. Click to open a palette you own: a CorelDRAW palette (.xml) or a color book exported from an Adobe program (.ase). Its spot colors keep their names.	PANTONE® カラーブックはライセンス製品のため AnyVector には含まれていません。クリックすると、お持ちのパレットを開けます: CorelDRAW のパレット (.xml)、または Adobe のプログラムから書き出したカラーブック (.ase)。特色は名前を保持します。
+Create Rectangle	矩形の作成
+{} PANTONE® color(s) are shown as grays: the PANTONE color books are licensed and aren't included in AnyVector	{} 個の PANTONE® カラーがグレーで表示されます: PANTONE カラーブックはライセンス製品のため AnyVector には含まれていません

@@ -71,11 +71,21 @@ pub fn apply_color(app: &mut AnyVectorApp, color: Option<Color>, outline: bool) 
         }
     });
     if let Some(c) = color {
-        if app.settings.auto_update_doc_palette {
-            if let Some(d) = app.doc_mut() {
-                if !d.doc.palette.iter().any(|n| n.color == c) {
-                    d.doc.palette.push(vector_core::NamedColor::new(c.to_hex(), c));
+        // a spot color from an open palette (a color book such as PANTONE®) keeps its name and stays
+        // a spot in the document palette, which is what PDF export separates (#95)
+        let spot = app.palettes.palettes.iter().flat_map(|p| p.colors.iter()).find(|n| n.spot && n.color == c).cloned();
+        let auto = app.settings.auto_update_doc_palette;
+        if let Some(d) = app.doc_mut() {
+            match spot {
+                Some(s) => {
+                    if !d.doc.palette.iter().any(|n| n.spot && n.name == s.name) {
+                        // replace the unnamed entry the same color may already have
+                        d.doc.palette.retain(|n| !(n.color == c && !n.spot && n.name == c.to_hex()));
+                        d.doc.palette.push(s);
+                    }
                 }
+                None if auto && !d.doc.palette.iter().any(|n| n.color == c) => d.doc.palette.push(vector_core::NamedColor::new(c.to_hex(), c)),
+                None => {}
             }
         }
     }

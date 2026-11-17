@@ -139,6 +139,13 @@ fn is_pdf_file(path: &Path) -> bool {
 
 /// Open a document file (native or SVG).
 pub fn open(path: &Path) -> Result<Document> {
+    open_raw(path).map(|mut d| {
+        d.repair_closure();
+        d
+    })
+}
+
+fn open_raw(path: &Path) -> Result<Document> {
     match dispatch_ext(path).as_str() {
         "cdr" | "cdt" | "cdrt" => cdr::load(path),
         "cmx" => corel::cmx::load_from_bytes(&std::fs::read(path)?),
@@ -166,6 +173,13 @@ pub fn open(path: &Path) -> Result<Document> {
 /// Open a document file and say what could not be brought in exactly, one line each (see
 /// [`cdr::load_with_notes`]). Formats that never approximate give no lines.
 pub fn open_with_notes(path: &Path) -> Result<(Document, Vec<String>)> {
+    open_with_notes_raw(path).map(|(mut d, n)| {
+        d.repair_closure();
+        (d, n)
+    })
+}
+
+fn open_with_notes_raw(path: &Path) -> Result<(Document, Vec<String>)> {
     match dispatch_ext(path).as_str() {
         "cdr" | "cdt" | "cdrt" => cdr::load_with_notes(&std::fs::read(path)?),
         "cmx" => corel::cmx::load_with_report(&std::fs::read(path)?).map(|(d, r)| (d, r.lines())),
@@ -179,6 +193,24 @@ pub fn open_with_notes(path: &Path) -> Result<(Document, Vec<String>)> {
 /// Import a file into an existing document, like [`import`], and say what could not be brought
 /// in exactly.
 pub fn import_with_notes(doc: &mut Document, path: &Path) -> Result<(Vec<Object>, Vec<String>)> {
+    import_with_notes_raw(doc, path).map(|(mut objs, n)| {
+        repair_objects(&mut objs);
+        (objs, n)
+    })
+}
+
+/// [`NodePath::repair_closure`] on imported objects.
+fn repair_objects(objs: &mut [Object]) {
+    for o in objs {
+        o.walk_mut(&mut |x| {
+            if let vector_core::object::ObjKind::Path(np) = &mut x.kind {
+                np.repair_closure();
+            }
+        });
+    }
+}
+
+fn import_with_notes_raw(doc: &mut Document, path: &Path) -> Result<(Vec<Object>, Vec<String>)> {
     match dispatch_ext(path).as_str() {
         "cdr" | "cdt" | "cdrt" => {
             let (other, notes) = cdr::load_with_notes(&std::fs::read(path)?)?;
@@ -228,6 +260,13 @@ pub fn is_drawing(path: &Path) -> bool {
 
 /// Import a file into an existing document, returning the new top-level objects (not yet placed).
 pub fn import(doc: &mut Document, path: &Path) -> Result<Vec<Object>> {
+    import_raw(doc, path).map(|mut objs| {
+        repair_objects(&mut objs);
+        objs
+    })
+}
+
+fn import_raw(doc: &mut Document, path: &Path) -> Result<Vec<Object>> {
     let ext = dispatch_ext(path);
     let bytes = std::fs::read(path)?;
     match ext.as_str() {

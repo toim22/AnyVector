@@ -5381,7 +5381,7 @@ Drag to set the start and end points, then click to set the curvature	Перет
 Sketch strokes; nearby strokes are merged into smooth curves	Рисуйте штрихи; близкие штрихи объединяются в гладкие кривые
 Draw a shape freehand; it is recognized and converted into a basic shape	Нарисуйте фигуру от руки; она будет распознана и преобразована в основную фигуру
 Drag to draw a brush, sprayer, calligraphic or pressure stroke	Перетащите, чтобы нарисовать мазок кисти, распылителя, каллиграфии или с нажимом
-Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center	Перетащите, чтобы нарисовать прямоугольник; Ctrl — квадрат; Shift — от центра
+Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle the size of the page	Перетащите, чтобы нарисовать прямоугольник; Ctrl — квадрат; Shift — от центра. Дважды щелкните инструмент, чтобы создать прямоугольник размером со страницу
 Drag to set the baseline, then click to set the height	Перетащите, чтобы задать базовую линию, затем щелкните, чтобы задать высоту
 Drag to draw an ellipse; Ctrl constrains to a circle; Shift draws from the center	Перетащите, чтобы нарисовать эллипс; Ctrl — круг; Shift — от центра
 Drag to set the center line, then click to set the height	Перетащите, чтобы задать центральную линию, затем щелкните, чтобы задать высоту
@@ -5602,3 +5602,7 @@ Text on a path, vertical, warped or filled with anything but one color is always
 Left out: {} object(s) in paper space (layouts); the model space was imported	Пропущено: {} объект(ов) в пространстве листа (листы); импортировано пространство модели
 Left out: {} {} entities	Пропущено: {} объектов {}
 The drawing doesn't say its units; it was read in millimeters	В чертеже не указаны единицы; он прочитан в миллиметрах
+Palettes (*.xml, *.ase, *.gpl)	Палитры (*.xml, *.ase, *.gpl)
+PANTONE® color books are licensed and are not included in AnyVector. Click to open a palette you own: a CorelDRAW palette (.xml) or a color book exported from an Adobe program (.ase). Its spot colors keep their names.	Каталоги цветов PANTONE® лицензируются и не входят в AnyVector. Щелкните, чтобы открыть свою палитру: палитру CorelDRAW (.xml) или каталог цветов, экспортированный из программы Adobe (.ase). Его плашечные цвета сохраняют названия.
+Create Rectangle	Создать прямоугольник
+{} PANTONE® color(s) are shown as grays: the PANTONE color books are licensed and aren't included in AnyVector	Цвета PANTONE® ({}) показаны серыми: каталоги цветов PANTONE лицензируются и не входят в AnyVector

@@ -1775,7 +1775,13 @@ pub fn ellipse_path(e: &EllipseShape) -> BezPath {
     let rx = e.w / 2.0;
     let ry = e.h / 2.0;
     match e.kind {
-        EllipseKind::Ellipse => kurbo::Ellipse::new(c, (rx, ry), 0.0).to_path(0.01),
+        EllipseKind::Ellipse => {
+            // kurbo's ellipse ends where it starts but has no ClosePath: without it a converted
+            // ellipse became an open curve that couldn't be picked from inside (#97)
+            let mut bp = kurbo::Ellipse::new(c, (rx, ry), 0.0).to_path(0.01);
+            bp.close_path();
+            bp
+        }
         _ => {
             // angles are counter-clockwise in the y-up convention → negate for y-down
             let mut a0 = -e.start.to_radians();
