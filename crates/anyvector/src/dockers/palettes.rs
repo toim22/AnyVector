@@ -176,9 +176,7 @@ pub fn my_palettes_dir() -> PathBuf {
 }
 
 fn read_palette(p: &Path) -> Option<Palette> {
-    let t = std::fs::read_to_string(p).ok()?;
-    let name = p.file_stem()?.to_string_lossy().to_string();
-    Some(Palette::parse(&name, &t))
+    crate::dialogs::palette::read_file(p)
 }
 
 /// Whether a palette is showing on the right edge (the first one only while the default palette
@@ -216,6 +214,11 @@ fn set_open(app: &mut AnyVectorApp, p: Option<Palette>, name: &str, on: bool, pa
 }
 
 /// What a row of the tree does when its check box or its row is used.
+/// Why the PANTONE® color books are missing, and what to do instead (#95).
+const PANTONE_TIP: &str = "PANTONE® color books are licensed and are not included in AnyVector. Click to open a palette you own: a CorelDRAW palette (.xml) or a color book exported from an Adobe program (.ase). Its spot colors keep their names.";
+/// The Select action of a PANTONE® row: Open Palette.
+const OPEN_OWN: &str = "::open-palette";
+
 enum Act {
     Toggle(bool),
     Select(String),
@@ -263,8 +266,18 @@ fn row(ui: &mut Ui, key: &str, depth: usize, folder: Option<bool>, check: Option
     }
     let tx = if check.is_some() { cb.right() + 6.0 } else { x + 14.0 };
     p.text(pos2(tx, r.center().y), egui::Align2::LEFT_CENTER, label, egui::FontId::proportional(12.5), if enabled { theme::TEXT() } else { theme::DISABLED() });
-    let resp = if enabled { resp } else { resp.on_hover_text("Not included in AnyVector") };
+    let resp = if enabled {
+        resp
+    } else if label.starts_with("PANTONE") {
+        resp.on_hover_text(PANTONE_TIP)
+    } else {
+        resp.on_hover_text("Not included in AnyVector")
+    };
     if !enabled {
+        // the PANTONE® rows open a palette the user owns
+        if label.starts_with("PANTONE") && resp.clicked() {
+            return Some(Act::Select(OPEN_OWN.into()));
+        }
         return None;
     }
     if resp.clicked() {
@@ -316,7 +329,7 @@ fn user_entries(dir: &Path) -> Vec<(PathBuf, bool)> {
                     let p = e.path();
                     let is_dir = p.is_dir();
                     let ext = p.extension().map(|x| x.to_string_lossy().to_lowercase()).unwrap_or_default();
-                    (is_dir || ["xml", "vpal", "gpl", "txt"].contains(&ext.as_str())).then_some((p, is_dir))
+                    (is_dir || ["xml", "vpal", "gpl", "txt", "ase"].contains(&ext.as_str())).then_some((p, is_dir))
                 })
                 .collect()
         })
@@ -402,6 +415,7 @@ pub fn palettes(app: &mut AnyVectorApp, ui: &mut Ui) {
                             app.dockers.ui.pm.open.insert(k);
                         }
                     }
+                    Act::Select(k) if k == OPEN_OWN => crate::dialogs::palette::open_palette(app),
                     Act::Select(k) => app.dockers.ui.pm.sel = Some(k),
                     Act::Toggle(on) => match key.as_str() {
                         "doc" => app.settings.doc_palette_visible = on,
@@ -510,7 +524,9 @@ fn lib_tree(app: &AnyVectorApp, ui: &mut Ui, n: &Node, depth: usize, sel: &Optio
             row(ui, name, depth, None, Some(Some(false)), name, false, false);
         }
         Node::MissingFolder(name) => {
-            row(ui, name, depth, Some(false), Some(Some(false)), name, false, false);
+            if let Some(a) = row(ui, name, depth, Some(false), Some(Some(false)), name, false, false) {
+                acts.push((a, None, String::new(), None));
+            }
         }
         Node::Folder(k, name, kids) => {
             let mut keys = vec![];

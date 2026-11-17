@@ -3228,3 +3228,161 @@ fn visual_dxf_open_and_svg_text_option() {
     h.state_mut().dialogs.svg = Some(crate::dialogs::export::SvgState { path: out, pages: vec![0], selection: false, unit: 1, dpi: 300.0, text_as_text: true });
     save(&mut h, "svg_01_export_text_option");
 }
+
+// ---- bugs #95–#99 (0.5.3) ----
+
+/// An unfilled rectangle on a fresh document, and the screen point at its center.
+fn unfilled_rect(h: &mut Harness<'_, AnyVectorApp>) -> (u64, egui::Pos2) {
+    let d = h.state_mut().doc_mut().unwrap();
+    let id = d.doc.new_id();
+    let r = RectShape { w: 300.0, h: 200.0, radii: [0.0; 4], corner: CornerType::default() };
+    let mut st = Style::default();
+    st.fill = Fill::None;
+    st.outline.color = Some(Color::BLACK);
+    st.outline.width = 1.0;
+    d.add_objects("test", vec![Object::new(id, ObjKind::Rect(r), Affine::translate((100.0, 100.0)), st)]);
+    d.selection.clear();
+    let c = d.doc.find(id).unwrap().bounds().center();
+    (id, d.to_screen(c))
+}
+
+/// #96: Treat All Objects as Filled is off by default, and the property bar button really turns
+/// picking inside unfilled shapes on and off (a second, document copy used to keep it on).
+#[test]
+fn treat_as_filled_button_controls_picking_inside() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    h.state_mut().settings.treat_as_filled = crate::settings::Settings::default().treat_as_filled;
+    assert!(!h.state().settings.treat_as_filled, "CorelDRAW's default is off");
+    let (id, at) = unfilled_rect(&mut h);
+    h.state_mut().set_tool(ToolId::Pick);
+    h.step();
+    assert_eq!(crate::propbar::option_state(h.state(), "b73ed810"), Some((true, false)));
+    click(&mut h, at);
+    assert!(h.state().doc().unwrap().selection.is_empty(), "an unfilled shape was picked from inside");
+    crate::propbar::press(h.state_mut(), "b73ed810");
+    assert_eq!(crate::propbar::option_state(h.state(), "b73ed810"), Some((true, true)));
+    click(&mut h, at + egui::vec2(3.0, 3.0));
+    assert_eq!(h.state().doc().unwrap().selection, vec![id]);
+    crate::propbar::press(h.state_mut(), "b73ed810");
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    click(&mut h, at);
+    assert!(h.state().doc().unwrap().selection.is_empty(), "turning the button off didn't stop picking inside");
+    // the old value, which never worked, isn't read back: the setting has a new name
+    let old: crate::settings::Settings = serde_json::from_str(r#"{"treat_as_filled": true}"#).unwrap();
+    assert!(!old.treat_as_filled);
+    let new: crate::settings::Settings = serde_json::from_str(r#"{"pick_treat_as_filled": true}"#).unwrap();
+    assert!(new.treat_as_filled);
+}
+
+/// #97: an ellipse converted to curves is still a closed shape and is picked from inside when
+/// Treat All Objects as Filled is on.
+#[test]
+fn converted_ellipse_is_picked_inside() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    h.state_mut().settings.treat_as_filled = true;
+    let at = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let id = d.doc.new_id();
+        let e = EllipseShape { w: 300.0, h: 200.0, kind: EllipseKind::Ellipse, start: 0.0, end: 0.0, clockwise: false };
+        d.add_objects("test", vec![Object::new(id, ObjKind::Ellipse(e), Affine::translate((100.0, 100.0)), Style::default())]);
+        let c = d.doc.find(id).unwrap().bounds().center();
+        d.to_screen(c)
+    };
+    h.state_mut().run(Cmd::ConvertToCurves);
+    h.step();
+    let cid = h.state().doc().unwrap().selection[0];
+    let o = h.state().doc().unwrap().doc.find(cid).unwrap().clone();
+    assert!(matches!(o.kind, ObjKind::Path(_)) && o.is_closed_shape(), "the converted ellipse is an open curve");
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    h.state_mut().set_tool(ToolId::Pick);
+    click(&mut h, at);
+    assert_eq!(h.state().doc().unwrap().selection, vec![cid]);
+}
+
+/// #99: double-clicking the Rectangle tool draws a rectangle the size of the page, in one undo step.
+#[test]
+fn double_click_rectangle_tool_makes_a_page_rectangle() {
+    use crate::tools::ToolId;
+    use egui_kittest::kittest::Queryable;
+    let mut h = doc_harness();
+    let page = h.state().doc().unwrap().page_ref().rect();
+    let before = h.state().doc().unwrap().page_ref().all_objects().count();
+    // the toolbox button (left edge), not a property bar or menu item with the same tooltip
+    let at = h.query_all_by_label_contains("Rectangle tool").map(|n| n.rect().center()).min_by(|a, b| a.x.total_cmp(&b.x)).expect("no Rectangle tool button");
+    let at = egui::pos2(at.x - 3.0, at.y - 3.0);
+    move_to(&mut h, at);
+    h.step();
+    // a step is 0.25 s and a double-click must come within 0.3 s: one click per step
+    for _ in 0..2 {
+        press(&mut h, at, true);
+        press(&mut h, at, false);
+        h.step();
+    }
+    h.step();
+    let a = h.state();
+    assert_eq!(a.tool, ToolId::Rectangle);
+    let d = a.doc().unwrap();
+    assert_eq!(d.page_ref().all_objects().count(), before + 1);
+    let o = d.doc.find(d.selection[0]).unwrap();
+    assert!(matches!(o.kind, ObjKind::Rect(_)));
+    let b = kurbo::Shape::bounding_box(&o.world_path());
+    for (x, y) in [(b.x0, page.x0), (b.y0, page.y0), (b.x1, page.x1), (b.y1, page.y1)] {
+        assert!((x - y).abs() < 0.01, "{b:?} is not the page {page:?}");
+    }
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    assert_eq!(h.state().doc().unwrap().page_ref().all_objects().count(), before);
+}
+
+/// #98: Break Apart is on for text with more than one line, word or character, and keeps it text.
+#[test]
+fn break_apart_keeps_text_editable() {
+    use vector_core::text::{CharFormat, TextObj};
+    let mut h = clip_harness();
+    let on = |h: &Harness<'_, AnyVectorApp>| crate::ui::bind::enabled(h.state(), "d5669070-c0f3-4fc0-b524-e33aeea7925f");
+    let d = h.state_mut().doc_mut().unwrap();
+    let id = d.doc.new_id();
+    d.add_objects("test", vec![Object::new(id, ObjKind::Text(TextObj::artistic("Hello World", CharFormat::default())), Affine::translate((50.0, 100.0)), Style::default())]);
+    d.selection = vec![id];
+    assert_eq!(on(&h), Some(true));
+    h.state_mut().run(Cmd::BreakApart);
+    h.step();
+    let d = h.state().doc().unwrap();
+    let words: Vec<String> = d
+        .selection
+        .iter()
+        .map(|i| match &d.doc.find(*i).unwrap().kind {
+            ObjKind::Text(t) => t.content.clone(),
+            k => panic!("became {k:?}"),
+        })
+        .collect();
+    assert_eq!(words, ["Hello", "World"]);
+    let d = h.state_mut().doc_mut().unwrap();
+    let id = d.doc.new_id();
+    d.add_objects("test", vec![Object::new(id, ObjKind::Text(TextObj::artistic("A", CharFormat::default())), Affine::translate((50.0, 200.0)), Style::default())]);
+    d.selection = vec![id];
+    assert_eq!(on(&h), Some(false), "a single character can't be broken apart");
+}
+
+/// #95: a spot color applied from an open palette (an Adobe or CorelDRAW color book) keeps its
+/// name and stays a spot in the document palette, so PDF export separates it.
+#[test]
+fn spot_color_from_a_palette_keeps_its_name() {
+    use vector_core::color::{NamedColor, Palette};
+    let mut h = clip_harness();
+    let ink = Color::from_cmyk(0.0, 95.0, 100.0, 0.0);
+    h.state_mut().palettes.palettes.push(Palette { name: "Book".into(), colors: vec![NamedColor { name: "PANTONE 485 C".into(), color: ink, spot: true }] });
+    let (id, _) = unfilled_rect(&mut h);
+    h.state_mut().doc_mut().unwrap().selection = vec![id];
+    crate::exec::apply_color(h.state_mut(), Some(ink), false);
+    let d = h.state().doc().unwrap();
+    assert_eq!(d.doc.find(id).unwrap().style.fill, Fill::Solid(ink));
+    let named: Vec<_> = d.doc.palette.iter().filter(|n| n.color == ink).collect();
+    assert_eq!(named.len(), 1, "{:?}", d.doc.palette);
+    assert!(named[0].spot && named[0].name == "PANTONE 485 C");
+    // applying it again adds nothing
+    crate::exec::apply_color(h.state_mut(), Some(ink), false);
+    assert_eq!(h.state().doc().unwrap().doc.palette.iter().filter(|n| n.color == ink).count(), 1);
+}

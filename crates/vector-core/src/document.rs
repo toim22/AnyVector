@@ -126,6 +126,8 @@ pub struct DocSettings {
     /// Ruler origin in page coordinates.
     pub ruler_origin: Point,
     pub drawing_scale: f64,
+    /// No longer read: the application setting (Options ▸ Tools ▸ Pick, the property bar) is the only
+    /// one the pick tool uses (#96). Kept so drawings that have it still load.
     pub treat_as_filled: bool,
     pub apply_to_all_pages: bool,
     pub pixel_grid: bool,
@@ -298,7 +300,7 @@ impl Default for DocSettings {
             snap_off: false,
             ruler_origin: Point::ZERO,
             drawing_scale: 1.0,
-            treat_as_filled: true,
+            treat_as_filled: false,
             apply_to_all_pages: true,
             pixel_grid: false,
             facing_pages: false,
@@ -661,6 +663,24 @@ impl Default for Document {
 }
 
 impl Document {
+    /// Marks curves whose ends meet as closed (see [`crate::path::NodePath::repair_closure`]). The
+    /// loaders call it, so drawings saved before 0.5.3 get their converted ellipses back (#97).
+    pub fn repair_closure(&mut self) {
+        let fix = |o: &mut Object| {
+            o.walk_mut(&mut |x| {
+                if let ObjKind::Path(np) = &mut x.kind {
+                    np.repair_closure();
+                }
+            })
+        };
+        for o in self.pages.iter_mut().flat_map(|p| p.layers.iter_mut()).flat_map(|l| l.objects.iter_mut()) {
+            fix(o);
+        }
+        for o in self.symbols.iter_mut().flat_map(|s| s.objects.iter_mut()) {
+            fix(o);
+        }
+    }
+
     pub const FORMAT_VERSION: u32 = 1;
 
     pub fn new(w: f64, h: f64) -> Document {

@@ -5381,7 +5381,7 @@ Drag to set the start and end points, then click to set the curvature	拖动以�
 Sketch strokes; nearby strokes are merged into smooth curves	绘制草图笔触；邻近的笔触会合并为平滑曲线
 Draw a shape freehand; it is recognized and converted into a basic shape	手绘一个形状；它会被识别并转换为基本形状
 Drag to draw a brush, sprayer, calligraphic or pressure stroke	拖动可绘制笔刷、喷涂、书法或压力笔触
-Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center	拖动可绘制矩形；按 Ctrl 可限制为正方形；按 Shift 可从中心绘制
+Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle the size of the page	拖动可绘制矩形；按 Ctrl 可限制为正方形；按 Shift 可从中心绘制。双击该工具可绘制与页面大小相同的矩形
 Drag to set the baseline, then click to set the height	拖动以设置基线，然后单击以设置高度
 Drag to draw an ellipse; Ctrl constrains to a circle; Shift draws from the center	拖动可绘制椭圆形；按 Ctrl 可限制为圆形；按 Shift 可从中心绘制
 Drag to set the center line, then click to set the height	拖动以设置中心线，然后单击以设置高度
@@ -5602,3 +5602,7 @@ Text on a path, vertical, warped or filled with anything but one color is always
 Left out: {} object(s) in paper space (layouts); the model space was imported	已省略：图纸空间（布局）中的 {} 个对象；已导入模型空间
 Left out: {} {} entities	已省略：{} 个 {} 图元
 The drawing doesn't say its units; it was read in millimeters	图形未注明单位；已按毫米读取
+Palettes (*.xml, *.ase, *.gpl)	调色板 (*.xml、*.ase、*.gpl)
+PANTONE® color books are licensed and are not included in AnyVector. Click to open a palette you own: a CorelDRAW palette (.xml) or a color book exported from an Adobe program (.ase). Its spot colors keep their names.	PANTONE® 色库需要许可，AnyVector 中未包含。单击可打开您自己的调色板：CorelDRAW 调色板 (.xml) 或从 Adobe 程序导出的色库 (.ase)。其中的专色保留名称。
+Create Rectangle	创建矩形
+{} PANTONE® color(s) are shown as grays: the PANTONE color books are licensed and aren't included in AnyVector	{} 种 PANTONE® 颜色显示为灰色：PANTONE 色库需要许可，AnyVector 中未包含

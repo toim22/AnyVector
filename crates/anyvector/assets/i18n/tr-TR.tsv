@@ -5381,7 +5381,7 @@ Drag to set the start and end points, then click to set the curvature	Başlangı
 Sketch strokes; nearby strokes are merged into smooth curves	Eskiz çizin; yakındaki fırça darbeleri yumuşak eğrilerde birleştirilir
 Draw a shape freehand; it is recognized and converted into a basic shape	Serbest el bir şekil çizin; şekil tanınır ve temel bir şekle dönüştürülür
 Drag to draw a brush, sprayer, calligraphic or pressure stroke	Fırça, püskürtücü, kaligrafik veya basınçlı darbe çizmek için sürükleyin
-Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center	Dikdörtgen çizmek için sürükleyin; Ctrl kareyle sınırlar; Shift merkezden çizer
+Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle the size of the page	Dikdörtgen çizmek için sürükleyin; Ctrl kareyle sınırlar; Shift merkezden çizer. Sayfa boyutunda bir dikdörtgen için araca çift tıklayın
 Drag to set the baseline, then click to set the height	Taban çizgisini belirlemek için sürükleyin, ardından yüksekliği ayarlamak için tıklayın
 Drag to draw an ellipse; Ctrl constrains to a circle; Shift draws from the center	Elips çizmek için sürükleyin; Ctrl daireyle sınırlar; Shift merkezden çizer
 Drag to set the center line, then click to set the height	Merkez çizgisini belirlemek için sürükleyin, ardından yüksekliği ayarlamak için tıklayın
@@ -5602,3 +5602,7 @@ Text on a path, vertical, warped or filled with anything but one color is always
 Left out: {} object(s) in paper space (layouts); the model space was imported	Dışarıda bırakıldı: kağıt alanında (düzenler) {} nesne; model alanı içe aktarıldı
 Left out: {} {} entities	Dışarıda bırakıldı: {} {} varlığı
 The drawing doesn't say its units; it was read in millimeters	Çizim birimlerini belirtmiyor; milimetre olarak okundu
+Palettes (*.xml, *.ase, *.gpl)	Paletler (*.xml, *.ase, *.gpl)
+PANTONE® color books are licensed and are not included in AnyVector. Click to open a palette you own: a CorelDRAW palette (.xml) or a color book exported from an Adobe program (.ase). Its spot colors keep their names.	PANTONE® renk kitapları lisanslıdır ve AnyVector'a dahil değildir. Sahip olduğunuz bir paleti açmak için tıklayın: bir CorelDRAW paleti (.xml) veya bir Adobe programından dışa aktarılmış bir renk kitabı (.ase). Spot renkleri adlarını korur.
+Create Rectangle	Dikdörtgen Oluştur
+{} PANTONE® color(s) are shown as grays: the PANTONE color books are licensed and aren't included in AnyVector	{} PANTONE® renk gri gösteriliyor: PANTONE renk kitapları lisanslıdır ve AnyVector'a dahil değildir

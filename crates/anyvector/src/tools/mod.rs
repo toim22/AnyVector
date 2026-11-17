@@ -23,6 +23,22 @@ use vector_core::{Color, Fill, ObjId, ObjKind, Object, Outline, Style};
 
 pub use shapes::COMMON_SHAPES;
 
+/// Double-clicking the Rectangle tool in the toolbox, as in CorelDRAW: a rectangle the size of the
+/// current page, with the style and corners a dragged rectangle gets, in one undo step (#99).
+pub fn rectangle_to_page(app: &mut AnyVectorApp) {
+    app.set_tool(ToolId::Rectangle);
+    let Some(page) = app.doc().and_then(|d| d.doc.pages.get(d.page)).map(|p| p.rect()) else { return };
+    if page.width() <= 0.0 || page.height() <= 0.0 {
+        return;
+    }
+    let (ts, s) = (&app.ts, &app.settings);
+    let Some(d) = app.active.and_then(|i| app.docs.get_mut(i)) else { return };
+    let id = d.doc.new_id();
+    if let Some(o) = interact::creation_object(ts, s, ToolId::Rectangle, page.origin(), Point::new(page.x1, page.y1), egui::Modifiers::NONE, id) {
+        d.add_objects("Create Rectangle", vec![o]);
+    }
+}
+
 /// A one-shot "click an object" target set by commands such as PowerClip > Place Inside.
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum PickTarget {

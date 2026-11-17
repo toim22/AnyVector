@@ -685,8 +685,6 @@ fn doc_page(app: &mut AnyVectorApp, ui: &mut Ui, page: &str) {
                 label_w(ui, "Vertical offset:", 130.0);
                 unit_spin(ui, "doc_dupy", &mut e.settings.duplicate_offset.y, u, dpi);
             });
-            separator(ui);
-            ui.checkbox(&mut e.settings.treat_as_filled, "Treat all objects as filled");
         }
         "Background" => {
             let mut solid = e.background.is_some();

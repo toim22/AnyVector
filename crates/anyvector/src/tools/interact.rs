@@ -431,7 +431,8 @@ impl<'a> Cx<'a> {
     }
 
     fn hit(&self, p: Point) -> Option<ObjId> {
-        let filled = self.s.treat_as_filled || self.d.doc.settings.treat_as_filled;
+        // one source of truth: Settings::treat_as_filled (#96)
+        let filled = self.s.treat_as_filled;
         let id = if self.s.edit_across_layers {
             self.d.doc.hit_test(self.d.page, p, self.tol(), filled)?
         } else {

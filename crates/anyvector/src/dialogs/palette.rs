@@ -14,6 +14,10 @@ use crate::theme;
 
 /// The file type of palettes.
 pub const FILTER: &str = "Custom palette (*.xml)";
+/// The palettes Open Palette reads: AnyVector's and CorelDRAW's (*.xml) and Adobe Swatch Exchange
+/// (*.ase), the format color books (PANTONE® among them) are exported in.
+pub const OPEN_FILTER: &str = "Palettes (*.xml, *.ase, *.gpl)";
+pub const OPEN_EXTS: &[&str] = &["xml", "ase", "gpl"];
 
 /// Which palette an edit is for.
 #[derive(Clone, Debug, PartialEq)]
@@ -123,9 +127,14 @@ fn my_palette_files() -> Vec<(PathBuf, u8)> {
     out
 }
 
-fn read_file(p: &Path) -> Option<Palette> {
-    let t = std::fs::read_to_string(p).ok()?;
+/// A palette file: Adobe Swatch Exchange (*.ase) or one of the text formats [`Palette::parse`] reads.
+pub fn read_file(p: &Path) -> Option<Palette> {
+    let bytes = std::fs::read(p).ok()?;
     let stem = p.file_stem()?.to_string_lossy().to_string();
+    if bytes.starts_with(b"ASEF") {
+        return Palette::parse_ase(&stem, &bytes);
+    }
+    let t = String::from_utf8_lossy(&bytes);
     let mut pal = Palette::parse(&stem, &t);
     if pal.name.is_empty() {
         pal.name = stem;
@@ -166,6 +175,8 @@ fn store(app: &mut AnyVectorApp, e: &Edit) {
             }
         }
         Source::File(path) => {
+            // an Adobe palette is kept as it is: the edits go to a custom palette beside it
+            let path = if path.extension().is_some_and(|x| x.eq_ignore_ascii_case("ase")) { path.with_extension("xml") } else { path.clone() };
             let _ = std::fs::write(path, e.palette.to_xml());
             if let Some(open) = app.palettes.palettes.iter_mut().skip(1).find(|x| x.name == e.original.name) {
                 *open = e.palette.clone();
@@ -190,7 +201,7 @@ pub fn open_editor_for(app: &mut AnyVectorApp, s: Source) {
 
 /// Window ▸ Color Palettes ▸ Open Palette.
 pub fn open_palette(app: &mut AnyVectorApp) {
-    let Some(p) = rfd::FileDialog::new().set_title("Open Palette").set_directory(crate::dockers::palettes::my_palettes_dir()).add_filter(FILTER, &["xml"]).pick_file() else { return };
+    let Some(p) = rfd::FileDialog::new().set_title("Open Palette").set_directory(crate::dockers::palettes::my_palettes_dir()).add_filter(OPEN_FILTER, OPEN_EXTS).pick_file() else { return };
     show_palette_file(app, &p);
 }
 
@@ -447,7 +458,7 @@ fn editor_window(app: &mut AnyVectorApp, ctx: &egui::Context, st: &mut EditorSta
             }
         }
         Some("open") => {
-            if let Some(p) = rfd::FileDialog::new().set_title("Open Palette").set_directory(crate::dockers::palettes::my_palettes_dir()).add_filter(FILTER, &["xml"]).pick_file() {
+            if let Some(p) = rfd::FileDialog::new().set_title("Open Palette").set_directory(crate::dockers::palettes::my_palettes_dir()).add_filter(OPEN_FILTER, OPEN_EXTS).pick_file() {
                 if let Some(pal) = read_file(&p) {
                     st.edits.push(Edit { source: Source::File(p), palette: pal.clone(), original: pal });
                     st.cur = st.edits.len() - 1;
@@ -659,7 +670,7 @@ fn select_color(app: &mut AnyVectorApp, ctx: &egui::Context, st: &mut EditorStat
                 sc.row = 0;
             }
             if icon_btn(app, ui, at(240.0, 75.0), "open", "Open Palette", true) {
-                if let Some(p) = rfd::FileDialog::new().set_title("Open Palette").set_directory(crate::dockers::palettes::my_palettes_dir()).add_filter(FILTER, &["xml"]).pick_file() {
+                if let Some(p) = rfd::FileDialog::new().set_title("Open Palette").set_directory(crate::dockers::palettes::my_palettes_dir()).add_filter(OPEN_FILTER, OPEN_EXTS).pick_file() {
                     if let Some(pal) = read_file(&p) {
                         sc.choices.push(Choice { label: pal.name.clone(), indent: 0, palette: Some(pal) });
                         sc.pal = sc.choices.len() - 1;

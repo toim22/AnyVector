@@ -5381,7 +5381,7 @@ Drag to set the start and end points, then click to set the curvature	Arraste pa
 Sketch strokes; nearby strokes are merged into smooth curves	Esboce traços; traços próximos são mesclados em curvas suaves
 Draw a shape freehand; it is recognized and converted into a basic shape	Desenhe uma forma à mão livre; ela é reconhecida e convertida em uma forma básica
 Drag to draw a brush, sprayer, calligraphic or pressure stroke	Arraste para desenhar um traço de pincel, pulverizador, caligráfico ou de pressão
-Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center	Arraste para desenhar um retângulo; Ctrl restringe a um quadrado; Shift desenha a partir do centro
+Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle the size of the page	Arraste para desenhar um retângulo; Ctrl restringe a um quadrado; Shift desenha a partir do centro. Clique duas vezes na ferramenta para um retângulo do tamanho da página
 Drag to set the baseline, then click to set the height	Arraste para definir a linha de base e clique para definir a altura
 Drag to draw an ellipse; Ctrl constrains to a circle; Shift draws from the center	Arraste para desenhar uma elipse; Ctrl restringe a um círculo; Shift desenha a partir do centro
 Drag to set the center line, then click to set the height	Arraste para definir a linha central e clique para definir a altura
@@ -5602,3 +5602,7 @@ Text on a path, vertical, warped or filled with anything but one color is always
 Left out: {} object(s) in paper space (layouts); the model space was imported	Deixado de fora: {} objeto(s) no espaço do papel (layouts); o espaço do modelo foi importado
 Left out: {} {} entities	Deixado de fora: {} entidades {}
 The drawing doesn't say its units; it was read in millimeters	O desenho não informa suas unidades; ele foi lido em milímetros
+Palettes (*.xml, *.ase, *.gpl)	Paletas (*.xml, *.ase, *.gpl)
+PANTONE® color books are licensed and are not included in AnyVector. Click to open a palette you own: a CorelDRAW palette (.xml) or a color book exported from an Adobe program (.ase). Its spot colors keep their names.	As bibliotecas de cores PANTONE® são licenciadas e não estão incluídas no AnyVector. Clique para abrir uma paleta sua: uma paleta do CorelDRAW (.xml) ou uma biblioteca de cores exportada de um programa da Adobe (.ase). As cores especiais dela mantêm os nomes.
+Create Rectangle	Criar retângulo
+{} PANTONE® color(s) are shown as grays: the PANTONE color books are licensed and aren't included in AnyVector	{} cor(es) PANTONE® aparecem como cinzas: as bibliotecas de cores PANTONE são licenciadas e não estão incluídas no AnyVector

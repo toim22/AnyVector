@@ -305,6 +305,8 @@ struct Attrs {
 struct Tally {
     /// Instructions not converted, by number.
     skipped: BTreeMap<u32, usize>,
+    /// PANTONE® colors in the color table, which are shown as grays (the books aren't included).
+    pantone: std::cell::Cell<usize>,
 }
 
 struct Cmx<'a> {
@@ -358,6 +360,10 @@ fn read(bytes: &[u8], doc: &mut Document, report: &mut Report, first_only: bool)
     for (code, n) in &cmx.tally.skipped {
         report.skipped.push((*code, *n));
         report.notes.push((ImportNote::SkippedObjects { kind: *code }, *n));
+    }
+    let pantone = cmx.tally.pantone.get();
+    if pantone > 0 {
+        report.notes.push((ImportNote::PantoneShownGray, pantone));
     }
     Ok(pages)
 }
@@ -634,6 +640,7 @@ impl<'a> Cmx<'a> {
         Some(match model {
             // Pantone: the color's number and its tint; without the tables, a gray of the tint
             1 => {
+                self.tally.pantone.set(self.tally.pantone.get() + 1);
                 let _id = r.u16();
                 let tint = (r.u16() as f64).min(100.0);
                 let g = (255.0 - tint * 1.28).round().clamp(0.0, 255.0) as u8;

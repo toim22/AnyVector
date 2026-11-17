@@ -401,6 +401,64 @@ impl Palette {
         p
     }
 
+    /// An Adobe Swatch Exchange file (*.ase), as Adobe programs export color books and swatches:
+    /// named RGB, CMYK, Lab and gray colors; colors of the spot type stay spot colors (#95).
+    pub fn parse_ase(name: &str, data: &[u8]) -> Option<Palette> {
+        let be16 = |i: usize| data.get(i..i + 2).map(|b| u16::from_be_bytes([b[0], b[1]]));
+        let be32 = |i: usize| data.get(i..i + 4).map(|b| u32::from_be_bytes([b[0], b[1], b[2], b[3]]));
+        let f32at = |i: usize| be32(i).map(|v| f32::from_bits(v) as f64);
+        if data.get(..4)? != b"ASEF" {
+            return None;
+        }
+        let count = be32(8)? as usize;
+        let mut p = Palette { name: name.to_string(), colors: vec![] };
+        let mut at = 12;
+        for _ in 0..count {
+            let kind = be16(at)?;
+            let len = be32(at + 2)? as usize;
+            let body = at + 6;
+            let end = body.checked_add(len)?;
+            if end > data.len() {
+                break;
+            }
+            if kind == 0x0001 {
+                let chars = be16(body)? as usize;
+                let units: Vec<u16> = (0..chars).filter_map(|k| be16(body + 2 + 2 * k)).take_while(|&u| u != 0).collect();
+                let cname = String::from_utf16_lossy(&units);
+                let m = body + 2 + 2 * chars;
+                let model = data.get(m..m + 4)?;
+                let v = m + 4;
+                let (color, n) = match model {
+                    b"RGB " => {
+                        let c = |k: usize| (f32at(v + 4 * k).unwrap_or(0.0).clamp(0.0, 1.0) * 255.0).round() as u8;
+                        (Color::rgb(c(0), c(1), c(2)), 3)
+                    }
+                    b"CMYK" => {
+                        let c = |k: usize| f32at(v + 4 * k).unwrap_or(0.0) * 100.0;
+                        (Color::from_cmyk(c(0), c(1), c(2), c(3)), 4)
+                    }
+                    b"LAB " => {
+                        let c = |k: usize| f32at(v + 4 * k).unwrap_or(0.0);
+                        (lab_to_rgb(c(0) * 100.0, c(1), c(2)), 3)
+                    }
+                    b"Gray" => {
+                        let g = (f32at(v).unwrap_or(0.0).clamp(0.0, 1.0) * 255.0).round() as u8;
+                        (Color::rgb(g, g, g), 1)
+                    }
+                    _ => {
+                        at = end;
+                        continue;
+                    }
+                };
+                let spot = be16(v + 4 * n) == Some(1);
+                let label = if cname.trim().is_empty() { color.to_hex() } else { cname.trim().to_string() };
+                p.colors.push(NamedColor { name: label, color, spot });
+            }
+            at = end;
+        }
+        (!p.colors.is_empty()).then_some(p)
+    }
+
     /// A custom palette (*.xml): `<palette name=..>` with `<colors><page><color cs=.. tints=..
     /// name=../>`; spot colors are named color spaces in `<colorspaces>`.
     pub fn parse_xml(text: &str) -> Option<Palette> {

@@ -170,7 +170,8 @@ pub fn leaves(o: &Object) -> Vec<&Object> {
     }
 }
 
-/// Break a combined curve into one object per subpath.
+/// Break a combined curve into one object per subpath, and artistic text into lines, then words,
+/// then characters, each still text.
 pub fn break_apart(doc: &mut Document, ids: &[ObjId]) -> Vec<ObjId> {
     let mut out = vec![];
     for id in ids {
@@ -178,6 +179,21 @@ pub fn break_apart(doc: &mut Document, ids: &[ObjId]) -> Vec<ObjId> {
         let o = doc.pages[p].layers[l].objects[i].clone();
         let np = match &o.kind {
             ObjKind::Path(np) => np.clone(),
+            // text stays text (#98); only a warped text, whose glyphs aren't where its layout puts
+            // them, still becomes curves
+            ObjKind::Text(t) if !o.effects.warps_geometry() => {
+                match break_text(doc, &o, t) {
+                    Some(parts) => {
+                        doc.pages[p].layers[l].objects.remove(i);
+                        for (k, no) in parts.into_iter().enumerate() {
+                            out.push(no.id);
+                            doc.pages[p].layers[l].objects.insert(i + k, no);
+                        }
+                    }
+                    None => out.push(*id),
+                }
+                continue;
+            }
             ObjKind::Text(_) => match o.to_curve() {
                 Some(c) => c,
                 None => continue,
@@ -198,6 +214,146 @@ pub fn break_apart(doc: &mut Document, ids: &[ObjId]) -> Vec<ObjId> {
         }
     }
     out
+}
+
+/// What the next Break Apart of a text splits it into.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum TextBreak {
+    Lines,
+    Words,
+    Chars,
+}
+
+/// Word separators: space, tab and the wide spaces. No-break spaces and hyphens keep words together.
+fn is_word_separator(c: char) -> bool {
+    matches!(c, ' ' | '\t' | '\u{2002}' | '\u{2003}' | '\u{2004}' | '\u{2005}' | '\u{2006}' | '\u{2009}' | '\u{200A}' | '\u{3000}')
+}
+
+/// Combining marks stay with the character before them.
+fn is_mark(c: char) -> bool {
+    matches!(c as u32, 0x0300..=0x036F | 0x1AB0..=0x1AFF | 0x1DC0..=0x1DFF | 0x20D0..=0x20FF | 0xFE20..=0xFE2F)
+}
+
+/// The words of `chars[a..b]` as char ranges.
+fn word_ranges(chars: &[char], a: usize, b: usize) -> Vec<(usize, usize)> {
+    let sep = |c: char| is_word_separator(c) || crate::text::is_para_end(c);
+    let mut out = vec![];
+    let mut i = a;
+    while i < b {
+        while i < b && sep(chars[i]) {
+            i += 1;
+        }
+        let start = i;
+        while i < b && !sep(chars[i]) {
+            i += 1;
+        }
+        if start < i {
+            out.push((start, i));
+        }
+    }
+    out
+}
+
+/// The lines (split at paragraph ends, not where paragraph text wraps), without the spaces at
+/// their ends; empty lines are left out.
+fn line_ranges(chars: &[char]) -> Vec<(usize, usize)> {
+    let mut out = vec![];
+    let mut start = 0;
+    for i in 0..=chars.len() {
+        if i == chars.len() || crate::text::is_para_end(chars[i]) {
+            let (mut a, mut b) = (start, i);
+            while a < b && is_word_separator(chars[a]) {
+                a += 1;
+            }
+            while b > a && is_word_separator(chars[b - 1]) {
+                b -= 1;
+            }
+            if a < b {
+                out.push((a, b));
+            }
+            start = i + 1;
+        }
+    }
+    out
+}
+
+/// The characters as ranges, spaces left out.
+fn char_ranges(chars: &[char]) -> Vec<(usize, usize)> {
+    let mut out: Vec<(usize, usize)> = vec![];
+    for (i, &c) in chars.iter().enumerate() {
+        if is_mark(c) {
+            if let Some(last) = out.last_mut().filter(|r| r.1 == i) {
+                last.1 = i + 1;
+                continue;
+            }
+        }
+        if !c.is_whitespace() {
+            out.push((i, i + 1));
+        }
+    }
+    out
+}
+
+/// The level the next Break Apart of this text splits at, or `None` when it stays as it is: one
+/// character, or text Break Apart doesn't split (on a path, vertical, paragraph text, lists, drop
+/// caps, page numbers).
+pub fn next_text_break(t: &crate::text::TextObj) -> Option<TextBreak> {
+    use crate::text::TextKind;
+    if t.on_path.is_some() || t.vertical || t.page_number || t.list.is_some() || t.drop_cap.is_some() || !matches!(t.kind, TextKind::Artistic) {
+        return None;
+    }
+    let chars: Vec<char> = t.content.chars().collect();
+    if line_ranges(&chars).len() > 1 {
+        return Some(TextBreak::Lines);
+    }
+    if word_ranges(&chars, 0, chars.len()).len() > 1 {
+        return Some(TextBreak::Words);
+    }
+    (char_ranges(&chars).len() > 1).then_some(TextBreak::Chars)
+}
+
+/// One text object per line, word or character of `t` (the next level, [`next_text_break`]), each
+/// where its characters were and with their formatting. `None` when the text stays as it is.
+pub fn break_text(doc: &mut Document, src: &Object, t: &crate::text::TextObj) -> Option<Vec<Object>> {
+    use crate::text::{Span, TextAlign};
+    let level = next_text_break(t)?;
+    let chars: Vec<char> = t.content.chars().collect();
+    let ranges = match level {
+        TextBreak::Lines => line_ranges(&chars),
+        TextBreak::Words => word_ranges(&chars, 0, chars.len()),
+        TextBreak::Chars => char_ranges(&chars),
+    };
+    let lay = crate::text::layout(t);
+    if lay.carets.len() < chars.len() {
+        return None;
+    }
+    let mut out = vec![];
+    for (a, b) in ranges {
+        let mut nt = t.clone();
+        nt.content = chars[a..b].iter().collect();
+        nt.spans = t
+            .spans
+            .iter()
+            .filter_map(|s| {
+                let (s0, s1) = (s.start.max(a), s.end.min(b));
+                (s0 < s1).then(|| Span { start: s0 - a, end: s1 - a, format: s.format.clone() })
+            })
+            .collect();
+        // the piece's position already has its line's alignment and indents
+        nt.align = TextAlign::Left;
+        nt.first_indent = 0.0;
+        nt.left_indent = 0.0;
+        nt.right_indent = 0.0;
+        nt.link_next = None;
+        nt.link_prev = None;
+        let (x, baseline, _) = lay.carets[a];
+        let mut o = src.clone();
+        o.id = doc.new_id();
+        o.kind = ObjKind::Text(nt);
+        o.transform = src.transform * Affine::translate((x, baseline));
+        out.push(o);
+    }
+    (!out.is_empty()).then_some(out)
 }
 
 pub fn convert_to_curves(doc: &mut Document, ids: &[ObjId]) -> Vec<ObjId> {

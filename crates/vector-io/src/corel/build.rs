@@ -89,6 +89,8 @@ pub enum ImportNote {
     MissingFontId { id: u32 },
     /// A font the drawing uses isn't installed, so its text is shown in another one.
     FontSubstituted { missing: String, used: String },
+    /// PANTONE® colors that can't be looked up without the licensed color books (CMX).
+    PantoneShownGray,
 }
 
 impl ImportNote {
@@ -100,6 +102,7 @@ impl ImportNote {
             ImportNote::UnknownTextureStyle { name } => format!("Texture \"{}\" isn't in CorelDRAW's texture library, so it's shown as a plain texture ({} fill(s))", name, count),
             ImportNote::MissingFontId { id } => format!("Text uses a font the drawing doesn't list (font {}), so it's shown in the default font ({} text(s))", id, count),
             ImportNote::FontSubstituted { missing, used } => format!("The font \"{}\" isn't installed, so its text is shown in \"{}\"", missing, used),
+            ImportNote::PantoneShownGray => format!("{} PANTONE® color(s) are shown as grays: the PANTONE color books are licensed and aren't included in AnyVector", count),
         }
     }
 }

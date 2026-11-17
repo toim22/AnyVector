@@ -214,6 +214,11 @@ pub struct Settings {
     pub shortcuts: Vec<(String, String)>,
     // Tools
     pub crosshair_cursor: bool,
+    /// Treat all objects as filled: a click inside an unfilled closed shape selects it. The only
+    /// setting the pick hit test reads (the property bar button and Options ▸ Tools ▸ Pick edit it).
+    /// Saved under a new name since 0.5.3: the old value always behaved as on (#96), so everyone
+    /// starts from CorelDRAW's default, off.
+    #[serde(rename = "pick_treat_as_filled")]
     pub treat_as_filled: bool,
     pub windows_modifiers: bool,
     pub eraser_thickness: f64,
@@ -608,7 +613,7 @@ impl Default for Settings {
             open_palettes: vec![],
             shortcuts: vec![],
             crosshair_cursor: false,
-            treat_as_filled: true,
+            treat_as_filled: false,
             windows_modifiers: false,
             eraser_thickness: 18.0,
             eraser_reduce_nodes: true,

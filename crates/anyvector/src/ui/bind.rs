@@ -703,7 +703,9 @@ pub fn enabled(app: &AnyVectorApp, id: &str) -> Option<bool> {
         // a curve with several subpaths, or text
         Cmd::BreakApart => d.is_some_and(|d| d.doc.find_all(&d.selection).into_iter().any(|o| match &o.kind {
             ObjKind::Path(p) => p.subpaths.len() > 1,
-            ObjKind::Text(_) => true,
+            // text that has more than one line, word or character to split into (warped text still
+            // breaks into curves)
+            ObjKind::Text(t) => o.effects.warps_geometry() || vector_core::ops::next_text_break(t).is_some(),
             _ => false,
         })),
         Cmd::StartRecording => d.is_some() && !rec,
