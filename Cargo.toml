@@ -8,6 +8,7 @@ members = [
     "xtask",
 ]
 # vendor/egui is egui 0.37.0 with AnyVector's user interface translator (see vendor/egui/README.md)
+# vendor/kurbo is kurbo 0.13.1 with a fix for a curve fitting hang, issue #102 (see vendor/kurbo/README.md)
 exclude = ["vendor"]
 
 [workspace.package]
@@ -62,3 +63,4 @@ strip = true
 
 [patch.crates-io]
 egui = { path = "vendor/egui" }
+kurbo = { path = "vendor/kurbo" }
