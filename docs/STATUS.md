@@ -6,6 +6,7 @@ Last updated: 2026-11-16.
 
 | Version | Date | What it brings |
 | --- | --- | --- |
+| [0.5.4](RELEASE-NOTES-0.5.4.md) | 2026-11-17 | Quick Trace and PowerTRACE no longer freeze on anti-aliased images traced with more than two colors. |
 | [0.5.3](RELEASE-NOTES-0.5.3.md) | 2026-11-17 | Open your own PANTONE palettes, including Adobe .ase color books, with spot color names kept; Treat All Objects as Filled turns off; converted ellipses stay closed; Break Apart keeps text as text; double-click the Rectangle tool for a page-sized rectangle. |
 | [0.5.2](RELEASE-NOTES-0.5.2.md) | 2026-11-16 | Opens and imports DXF drawings; SVG export can keep text as text; the angle box, Rotate and the Transform docker turn around a moved rotation center; the default palette is CorelDRAW's CMYK palette, bright with color management off. |
 | [0.5.1](RELEASE-NOTES-0.5.1.md) | 2026-11-16 | Moving the rotation centre, moving dialogs, rounding rectangle corners by dragging their nodes, bright palette swatches with color management off, and a mouse wheel zoom step like CorelDRAW's. |
