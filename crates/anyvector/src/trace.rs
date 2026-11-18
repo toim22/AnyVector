@@ -795,4 +795,32 @@ mod tests {
         assert!(o.style.outline.width > 3.0 && o.style.outline.width < 9.0, "{}", o.style.outline.width);
         assert!(o.bounds().width() > 30.0, "{:?}", o.bounds());
     }
+
+    /// Issue #102: an anti-aliased logo traced with several colors gives thin gray slivers whose
+    /// curve fit used to loop forever. Every preset must finish.
+    #[test]
+    fn anti_aliased_logo_traces_with_every_preset() {
+        let (w, h) = (240u32, 160u32);
+        let mut rgba = vec![255u8; (w * h * 4) as usize];
+        for y in 0..h {
+            for x in 0..w {
+                // a ring and a diagonal bar with soft, noisy edges
+                let (dx, dy) = (x as f64 - 80.0, y as f64 - 80.0);
+                let ring = ((dx.hypot(dy) - 50.0).abs() - 6.0).max(-1.0);
+                let bar = ((x as f64 - y as f64 - 40.0).abs() / 1.414 - 3.0).max(-1.0);
+                let d = ring.min(bar);
+                let v = (d.clamp(0.0, 1.5) / 1.5 * 255.0) as i32 + ((x * 7 + y * 13) % 9) as i32 - 4;
+                let i = ((y * w + x) * 4) as usize;
+                let c = v.clamp(0, 255) as u8;
+                rgba[i..i + 3].copy_from_slice(&[c, c, c]);
+            }
+        }
+        for name in ["Line Art", "Logo", "Clipart", "Detailed Logo", "High Quality Image", "Technical Illustration"] {
+            for merge in [true, false] {
+                let p = TraceParams { merge_adjacent: merge, ..preset(name) };
+                let r = trace(w, h, &rgba, &p, Affine::IDENTITY, || 0);
+                assert!(!r.objects.is_empty(), "{name} merge={merge}");
+            }
+        }
+    }
 }
