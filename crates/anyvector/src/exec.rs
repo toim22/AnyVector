@@ -1538,7 +1538,7 @@ impl AnyVectorApp {
                             doc.pages[page].guides.remove(i);
                         });
                     }
-                } else if self.tool == ToolId::Shape && self.doc().map(|d| !d.node_sel.is_empty()).unwrap_or(false) {
+                } else if self.tool == ToolId::Shape && self.doc().is_some_and(|d| !d.node_sel.is_empty() || crate::tools::selected_segment(d).is_some()) {
                     crate::tools::node_op(self, crate::tools::NodeOp::Delete);
                 } else {
                     self.modify_sel("Delete", |doc, sel| {
@@ -2525,7 +2525,8 @@ impl AnyVectorApp {
                 use vector_core::path::NodeKind;
                 // the first selected node decides which way the toggle goes
                 let node = self.doc().and_then(|d| {
-                    let (id, si, ni) = *d.node_sel.first()?;
+                    // or the segment clicked: its first node's outgoing segment is that segment
+                    let (id, si, ni) = d.node_sel.first().copied().or_else(|| crate::tools::selected_segment(d))?;
                     match &d.doc.find(id)?.kind {
                         ObjKind::Path(np) => np.subpaths.get(si)?.nodes.get(ni).copied(),
                         _ => None,
@@ -2623,7 +2624,7 @@ impl AnyVectorApp {
                 self.set_tool(t);
             }
             Cmd::Nudge(dx, dy) => {
-                if self.tool == ToolId::Shape && self.doc().map(|d| !d.node_sel.is_empty()).unwrap_or(false) {
+                if self.tool == ToolId::Shape && self.doc().is_some_and(|d| !d.node_sel.is_empty() || crate::tools::selected_segment(d).is_some()) {
                     crate::tools::nudge_nodes(self, Vec2::new(dx, dy));
                 } else {
                     self.transform_sel("Nudge", |_| Affine::translate((dx, dy)));

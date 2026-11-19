@@ -5607,3 +5607,8 @@ PANTONE® color books are licensed and are not included in AnyVector. Click to o
 Create Rectangle	Skapa rektangel
 {} PANTONE® color(s) are shown as grays: the PANTONE color books are licensed and aren't included in AnyVector	{} PANTONE®-färg(er) visas som grått: PANTONE-färgböckerna är licensierade och ingår inte i AnyVector
 The objects don't overlap, so nothing was changed	Objekten överlappar inte, så inget har ändrats
+Edit Polygon	Redigera polygon
+Edit Ellipse	Redigera ellips
+Move Segment	Flytta segment
+Delete Segment	Ta bort segment
+A curve needs at least two nodes	En kurva behöver minst två noder

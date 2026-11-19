@@ -5607,3 +5607,8 @@ PANTONE® color books are licensed and are not included in AnyVector. Click to o
 Create Rectangle	Создать прямоугольник
 {} PANTONE® color(s) are shown as grays: the PANTONE color books are licensed and aren't included in AnyVector	Цвета PANTONE® ({}) показаны серыми: каталоги цветов PANTONE лицензируются и не входят в AnyVector
 The objects don't overlap, so nothing was changed	Объекты не перекрываются, поэтому ничего не изменено
+Edit Polygon	Изменить многоугольник
+Edit Ellipse	Изменить эллипс
+Move Segment	Переместить сегмент
+Delete Segment	Удалить сегмент
+A curve needs at least two nodes	Кривой нужны хотя бы два узла

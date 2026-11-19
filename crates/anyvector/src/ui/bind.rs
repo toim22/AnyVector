@@ -770,11 +770,22 @@ fn node_enabled(app: &AnyVectorApp, op: No) -> bool {
     let (Some(d), Some(path)) = (app.doc(), selected_path(app)) else {
         return op == No::Elastic;
     };
-    let nodes: Vec<(usize, usize)> = d.node_sel.iter().filter(|(id, ..)| d.selection.first() == Some(id)).map(|(_, s, n)| (*s, *n)).collect();
+    let mut nodes: Vec<(usize, usize)> = d.node_sel.iter().filter(|(id, ..)| d.selection.first() == Some(id)).map(|(_, s, n)| (*s, *n)).collect();
     let node = |s: usize, n: usize| path.subpaths.get(s).and_then(|sp| sp.nodes.get(n));
     // the segment leaving a node is a line (None: the last node of an open subpath has none)
     let line_out = |s: usize, n: usize| path.subpaths.get(s).filter(|sp| sp.closed || n + 1 < sp.nodes.len()).and_then(|sp| sp.nodes.get(n)).map(|x| x.line_out);
     let open_end = |s: usize, n: usize| path.subpaths.get(s).is_some_and(|sp| !sp.closed && (n == 0 || n + 1 == sp.nodes.len()));
+    // no node selected: the segment clicked (#122) — Add and Delete act on it, the rest on its nodes
+    if nodes.is_empty() {
+        if let Some((_, si, seg)) = crate::tools::selected_segment(d).filter(|(id, ..)| d.selection.first() == Some(id)) {
+            match op {
+                No::Add | No::Delete => return true,
+                No::ToLine => return line_out(si, seg) == Some(false),
+                No::ToCurve => return line_out(si, seg) == Some(true),
+                _ => nodes = path.segment_nodes(si, seg).map(|(a, b)| vec![a, b]).unwrap_or_default(),
+            }
+        }
+    }
     let kind_is_not = |k: NodeKind| nodes.iter().any(|&(s, n)| node(s, n).is_some_and(|x| x.kind != k));
     match op {
         No::Reverse | No::Close | No::Reduce | No::SelectAll | No::Elastic => true,

@@ -5607,3 +5607,8 @@ PANTONE® color books are licensed and are not included in AnyVector. Click to o
 Create Rectangle	Vytvořit obdélník
 {} PANTONE® color(s) are shown as grays: the PANTONE color books are licensed and aren't included in AnyVector	Barvy PANTONE® ({}) se zobrazují šedě: vzorníky barev PANTONE jsou licencované a nejsou součástí AnyVector
 The objects don't overlap, so nothing was changed	Objekty se nepřekrývají, nic nebylo změněno
+Edit Polygon	Upravit mnohoúhelník
+Edit Ellipse	Upravit elipsu
+Move Segment	Přesunout segment
+Delete Segment	Odstranit segment
+A curve needs at least two nodes	Křivka potřebuje alespoň dva uzly

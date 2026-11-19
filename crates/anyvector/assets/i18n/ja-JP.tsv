@@ -5607,3 +5607,8 @@ PANTONE® color books are licensed and are not included in AnyVector. Click to o
 Create Rectangle	矩形の作成
 {} PANTONE® color(s) are shown as grays: the PANTONE color books are licensed and aren't included in AnyVector	{} 個の PANTONE® カラーがグレーで表示されます: PANTONE カラーブックはライセンス製品のため AnyVector には含まれていません
 The objects don't overlap, so nothing was changed	オブジェクトが重なっていないため、何も変更されませんでした
+Edit Polygon	多角形の編集
+Edit Ellipse	楕円形の編集
+Move Segment	セグメントの移動
+Delete Segment	セグメントの削除
+A curve needs at least two nodes	カーブには 2 つ以上のノードが必要です

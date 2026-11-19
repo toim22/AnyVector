@@ -254,6 +254,7 @@ impl AnyVectorApp {
         if let Some(d) = self.doc_mut() {
             if t != ToolId::Shape {
                 d.node_sel.clear();
+                d.seg_sel = None;
             }
             if t != ToolId::Text {
                 d.text_edit = None;

@@ -5607,3 +5607,8 @@ PANTONE® color books are licensed and are not included in AnyVector. Click to o
 Create Rectangle	Rechthoek maken
 {} PANTONE® color(s) are shown as grays: the PANTONE color books are licensed and aren't included in AnyVector	{} PANTONE®-kleur(en) worden grijs weergegeven: de PANTONE-kleurboeken vallen onder een licentie en zijn niet opgenomen in AnyVector
 The objects don't overlap, so nothing was changed	De objecten overlappen niet, dus er is niets gewijzigd
+Edit Polygon	Veelhoek bewerken
+Edit Ellipse	Ellips bewerken
+Move Segment	Segment verplaatsen
+Delete Segment	Segment verwijderen
+A curve needs at least two nodes	Een kromme heeft minstens twee knooppunten nodig

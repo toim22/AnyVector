@@ -49,7 +49,7 @@ fn key_context(app: &AnyVectorApp) -> Option<KeyContext> {
         Some(KeyContext::Text)
     } else if app.tool == ToolId::Table && app.ts.table_cell.is_some() {
         Some(KeyContext::TableCells)
-    } else if app.tool == ToolId::Shape && !d.node_sel.is_empty() {
+    } else if app.tool == ToolId::Shape && (!d.node_sel.is_empty() || crate::tools::selected_segment(d).is_some()) {
         Some(KeyContext::Nodes)
     } else {
         None
@@ -176,6 +176,7 @@ pub fn handle(app: &mut AnyVectorApp, ctx: &egui::Context) {
             } else if let Some(d) = app.doc_mut() {
                 d.selection.clear();
                 d.node_sel.clear();
+                d.seg_sel = None;
             }
         }
         // Enter finishes multi-click tools (polyline, Bézier)

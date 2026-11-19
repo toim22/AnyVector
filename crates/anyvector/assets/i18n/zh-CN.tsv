@@ -5607,3 +5607,8 @@ PANTONE® color books are licensed and are not included in AnyVector. Click to o
 Create Rectangle	创建矩形
 {} PANTONE® color(s) are shown as grays: the PANTONE color books are licensed and aren't included in AnyVector	{} 种 PANTONE® 颜色显示为灰色：PANTONE 色库需要许可，AnyVector 中未包含
 The objects don't overlap, so nothing was changed	对象未重叠，因此未做任何更改
+Edit Polygon	编辑多边形
+Edit Ellipse	编辑椭圆形
+Move Segment	移动线段
+Delete Segment	删除线段
+A curve needs at least two nodes	曲线至少需要两个节点

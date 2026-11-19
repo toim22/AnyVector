@@ -5607,3 +5607,8 @@ PANTONE® color books are licensed and are not included in AnyVector. Click to o
 Create Rectangle	Créer un rectangle
 {} PANTONE® color(s) are shown as grays: the PANTONE color books are licensed and aren't included in AnyVector	{} couleur(s) PANTONE® s'affichent en gris : les nuanciers PANTONE sont sous licence et ne sont pas inclus dans AnyVector
 The objects don't overlap, so nothing was changed	Les objets ne se chevauchent pas : rien n'a été modifié
+Edit Polygon	Modifier le polygone
+Edit Ellipse	Modifier l'ellipse
+Move Segment	Déplacer le segment
+Delete Segment	Supprimer le segment
+A curve needs at least two nodes	Une courbe doit avoir au moins deux nœuds

@@ -89,7 +89,7 @@ fn virtual_delete_works_on_an_ellipse() {
 #[test]
 fn virtual_delete_works_on_a_polygon_and_a_spiral() {
     let mut doc = Document::new(400.0, 400.0);
-    let p = PolygonShape { w: 100.0, h: 100.0, sides: 5, kind: PolygonKind::Polygon, sharpness: 0.0 };
+    let p = PolygonShape { w: 100.0, h: 100.0, sides: 5, kind: PolygonKind::Polygon, sharpness: 0.0, nodes: Default::default() };
     let pid = push(&mut doc, ObjKind::Polygon(p), (20.0, 20.0));
     let pc = doc.find(pid).unwrap().to_curve().unwrap();
     let (c, _) = pc.subpaths[0].segment(1).unwrap();

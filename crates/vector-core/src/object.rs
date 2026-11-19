@@ -63,6 +63,33 @@ pub struct PolygonShape {
     pub kind: PolygonKind,
     /// Star sharpness 0..100 (%).
     pub sharpness: f64,
+    /// Nodes moved with the Shape tool (#104); the shape stays a polygon.
+    #[serde(default, skip_serializing_if = "PolygonNodes::is_regular")]
+    pub nodes: PolygonNodes,
+}
+
+/// A polygon or star reshaped with the Shape tool, as in CorelDRAW: dragging one node moves all
+/// its matching nodes the same way. The outer nodes (corners, star tips) and the inner nodes (the
+/// middles of the sides, star valleys) each get a radius scale and a turn (degrees, clockwise)
+/// over the regular shape.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PolygonNodes {
+    pub outer_scale: f64,
+    pub outer_turn: f64,
+    pub inner_scale: f64,
+    pub inner_turn: f64,
+}
+
+impl Default for PolygonNodes {
+    fn default() -> Self {
+        PolygonNodes { outer_scale: 1.0, outer_turn: 0.0, inner_scale: 1.0, inner_turn: 0.0 }
+    }
+}
+
+impl PolygonNodes {
+    pub fn is_regular(&self) -> bool {
+        *self == PolygonNodes::default()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -1814,52 +1841,176 @@ pub fn ellipse_path(e: &EllipseShape) -> BezPath {
     }
 }
 
+impl PolygonShape {
+    /// Number of corners (star tips) the path is made of.
+    pub fn corner_count(&self) -> usize {
+        let n = self.sides.max(3) as usize;
+        if self.kind == PolygonKind::ComplexStar {
+            n.max(5)
+        } else {
+            n
+        }
+    }
+
+    /// The regular shape's outer node `i` (a corner) or inner node `i` (the middle of the side
+    /// after corner `i`, or the star valley there): angle (radians, y down, from 3 o'clock) and
+    /// radius (1 = on the bounding ellipse).
+    fn node_base(&self, inner: bool, i: usize) -> (f64, f64) {
+        let n = self.corner_count() as f64;
+        let start = -PI / 2.0;
+        if !inner {
+            return (start + 2.0 * PI * i as f64 / n, 1.0);
+        }
+        // inner radius from sharpness: 0% → the middles of the sides, 100% → very thin
+        let base_inner = (PI / n).cos();
+        let r = match self.kind {
+            PolygonKind::Star => base_inner * (1.0 - (self.sharpness / 100.0).clamp(0.0, 0.99)),
+            _ => base_inner,
+        };
+        (start + PI * (2 * i + 1) as f64 / n, r)
+    }
+
+    /// Local position of outer or inner node `i`, with the Shape tool edits.
+    pub fn node_point(&self, inner: bool, i: usize) -> Point {
+        let (a, r) = self.node_base(inner, i);
+        let (scale, turn) = if inner { (self.nodes.inner_scale, self.nodes.inner_turn) } else { (self.nodes.outer_scale, self.nodes.outer_turn) };
+        let a = a + turn.to_radians();
+        let (rx, ry) = (self.w / 2.0, self.h / 2.0);
+        Point::new(rx + rx * r * scale * a.cos(), ry + ry * r * scale * a.sin())
+    }
+
+    /// The nodes the Shape tool shows: (local point, inner, index). A polygon and a star have an
+    /// outer and an inner node per corner; a complex star only its corners.
+    pub fn node_points(&self) -> Vec<(Point, bool, usize)> {
+        let n = self.corner_count();
+        let mut v = vec![];
+        for i in 0..n {
+            v.push((self.node_point(false, i), false, i));
+            if self.kind != PolygonKind::ComplexStar {
+                v.push((self.node_point(true, i), true, i));
+            }
+        }
+        v
+    }
+
+    /// Shape tool: node `i` (outer or inner) dragged to local point `to`. Every node of the same
+    /// set follows, as in CorelDRAW: they all move away from (or toward) the center by the same
+    /// factor and turn by the same angle. `radial_only` (Ctrl) keeps the turn.
+    pub fn move_node(&mut self, inner: bool, i: usize, to: Point, radial_only: bool) {
+        let (rx, ry) = (self.w / 2.0, self.h / 2.0);
+        if rx < 1e-9 || ry < 1e-9 {
+            return;
+        }
+        let (a0, r0) = self.node_base(inner, i);
+        if r0 < 1e-9 {
+            return;
+        }
+        let u = Vec2::new((to.x - rx) / rx, (to.y - ry) / ry);
+        let scale = u.hypot() / r0;
+        let turn = (u.y.atan2(u.x) - a0).to_degrees();
+        let turn = (turn + 180.0).rem_euclid(360.0) - 180.0;
+        let (s, t) = if inner { (&mut self.nodes.inner_scale, &mut self.nodes.inner_turn) } else { (&mut self.nodes.outer_scale, &mut self.nodes.outer_turn) };
+        *s = scale;
+        if !radial_only {
+            *t = turn;
+        }
+    }
+}
+
+impl EllipseShape {
+    /// Local point of the ellipse at `deg` (counter-clockwise from 3 o'clock, as `start`/`end`).
+    pub fn angle_point(&self, deg: f64) -> Point {
+        let a = -deg.to_radians();
+        let (rx, ry) = (self.w / 2.0, self.h / 2.0);
+        Point::new(rx + rx * a.cos(), ry + ry * a.sin())
+    }
+
+    /// The angle (degrees, 0..360, counter-clockwise from 3 o'clock) of a local point seen from
+    /// the center, measured on the ellipse (as `start`/`end` are).
+    pub fn angle_of(&self, p: Point) -> f64 {
+        let (rx, ry) = ((self.w / 2.0).max(1e-9), (self.h / 2.0).max(1e-9));
+        let (x, y) = ((p.x - rx) / rx, (p.y - ry) / ry);
+        (-y.atan2(x)).to_degrees().rem_euclid(360.0)
+    }
+
+    /// The local point is inside the full ellipse.
+    pub fn contains_local(&self, p: Point) -> bool {
+        let (rx, ry) = ((self.w / 2.0).max(1e-9), (self.h / 2.0).max(1e-9));
+        let (x, y) = ((p.x - rx) / rx, (p.y - ry) / ry);
+        x * x + y * y < 1.0
+    }
+
+    /// The Shape tool's nodes: the start node of a whole ellipse, the start and end nodes of a
+    /// pie or an arc (true = start).
+    pub fn nodes(&self) -> Vec<(Point, bool)> {
+        if self.kind == EllipseKind::Ellipse {
+            vec![(self.angle_point(self.start), true)]
+        } else {
+            vec![(self.angle_point(self.start), true), (self.angle_point(self.end), false)]
+        }
+    }
+
+    /// Shape tool (#108): a node dragged to local point `to`, as in CorelDRAW: inside the ellipse
+    /// it makes a pie, outside an arc. `handle` is the node (true = start); `None` for the one
+    /// node of a whole ellipse, which splits in two: the wedge opens on the side it is dragged to,
+    /// so the node that moves is the one at that edge of the visible part. `step` (Ctrl) keeps
+    /// the angle to multiples of it. Returns the new shape and the node being dragged (still
+    /// `None` while the pointer has not left the node's angle).
+    pub fn drag_node(&self, handle: Option<bool>, to: Point, step: Option<f64>) -> (EllipseShape, Option<bool>) {
+        let mut ang = self.angle_of(to);
+        if let Some(s) = step.filter(|s| *s > 0.0) {
+            ang = ((ang / s).round() * s).rem_euclid(360.0);
+        }
+        let whole = self.kind == EllipseKind::Ellipse;
+        let handle = match handle {
+            Some(h) => h,
+            None => {
+                let d = (ang - self.start + 180.0).rem_euclid(360.0) - 180.0;
+                if d.abs() < 0.5 {
+                    return (self.clone(), None);
+                }
+                // the visible part runs counter-clockwise from `start` (from `end` when clockwise)
+                (d > 0.0) != self.clockwise
+            }
+        };
+        let mut e = self.clone();
+        if whole {
+            e.end = e.start;
+        }
+        if handle {
+            e.start = ang;
+        } else {
+            e.end = ang;
+        }
+        e.kind = if self.contains_local(to) { EllipseKind::Pie } else { EllipseKind::Arc };
+        (e, Some(handle))
+    }
+}
+
 pub fn polygon_path(p: &PolygonShape) -> BezPath {
-    let n = p.sides.max(3) as usize;
-    let c = Point::new(p.w / 2.0, p.h / 2.0);
-    let rx = p.w / 2.0;
-    let ry = p.h / 2.0;
+    let n = p.corner_count();
     let mut bp = BezPath::new();
-    let start = -PI / 2.0;
     match p.kind {
-        PolygonKind::Polygon => {
+        PolygonKind::Polygon | PolygonKind::Star => {
+            // a regular polygon is its corners; a star, or a polygon whose nodes were moved,
+            // alternates corners and inner nodes
+            let inner = p.kind == PolygonKind::Star || !p.nodes.is_regular();
             for i in 0..n {
-                let a = start + 2.0 * PI * i as f64 / n as f64;
-                let q = Point::new(c.x + rx * a.cos(), c.y + ry * a.sin());
+                let q = p.node_point(false, i);
                 if i == 0 {
                     bp.move_to(q)
                 } else {
                     bp.line_to(q)
                 }
-            }
-            bp.close_path();
-        }
-        PolygonKind::Star => {
-            // inner radius from sharpness: 0% → regular polygon midpoints, 100% → very thin
-            let base_inner = (PI / n as f64).cos();
-            let sharp = (p.sharpness / 100.0).clamp(0.0, 0.99);
-            let inner = base_inner * (1.0 - sharp);
-            for i in 0..(2 * n) {
-                let a = start + PI * i as f64 / n as f64;
-                let r = if i % 2 == 0 { 1.0 } else { inner };
-                let q = Point::new(c.x + rx * r * a.cos(), c.y + ry * r * a.sin());
-                if i == 0 {
-                    bp.move_to(q)
-                } else {
-                    bp.line_to(q)
+                if inner {
+                    bp.line_to(p.node_point(true, i));
                 }
             }
             bp.close_path();
         }
         PolygonKind::ComplexStar => {
-            let n = n.max(5);
             let skip = (((p.sharpness / 100.0) * ((n - 1) / 2) as f64).round() as usize).clamp(2, (n - 1) / 2);
-            let pts: Vec<Point> = (0..n)
-                .map(|i| {
-                    let a = start + 2.0 * PI * i as f64 / n as f64;
-                    Point::new(c.x + rx * a.cos(), c.y + ry * a.sin())
-                })
-                .collect();
+            let pts: Vec<Point> = (0..n).map(|i| p.node_point(false, i)).collect();
             let g = gcd(n, skip);
             for s in 0..g {
                 let mut idx = s;

@@ -5607,3 +5607,8 @@ PANTONE® color books are licensed and are not included in AnyVector. Click to o
 Create Rectangle	Utwórz prostokąt
 {} PANTONE® color(s) are shown as grays: the PANTONE color books are licensed and aren't included in AnyVector	Kolory PANTONE® ({}) są wyświetlane jako szare: wzorniki kolorów PANTONE są licencjonowane i nie są dołączone do AnyVector
 The objects don't overlap, so nothing was changed	Obiekty nie nakładają się, więc nic nie zostało zmienione
+Edit Polygon	Edytuj wielokąt
+Edit Ellipse	Edytuj elipsę
+Move Segment	Przenieś segment
+Delete Segment	Usuń segment
+A curve needs at least two nodes	Krzywa musi mieć co najmniej dwa węzły

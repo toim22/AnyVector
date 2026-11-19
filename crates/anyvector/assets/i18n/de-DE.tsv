@@ -5607,3 +5607,8 @@ PANTONE® color books are licensed and are not included in AnyVector. Click to o
 Create Rectangle	Rechteck erstellen
 {} PANTONE® color(s) are shown as grays: the PANTONE color books are licensed and aren't included in AnyVector	{} PANTONE®-Farbe(n) werden grau angezeigt: Die PANTONE-Farbbücher sind lizenzpflichtig und nicht in AnyVector enthalten
 The objects don't overlap, so nothing was changed	Die Objekte überlappen sich nicht, daher wurde nichts geändert
+Edit Polygon	Polygon bearbeiten
+Edit Ellipse	Ellipse bearbeiten
+Move Segment	Segment verschieben
+Delete Segment	Segment löschen
+A curve needs at least two nodes	Eine Kurve braucht mindestens zwei Knoten
