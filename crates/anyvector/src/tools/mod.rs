@@ -5,18 +5,20 @@
 pub mod ids;
 mod interact;
 pub(crate) mod overlay;
+mod shape_edit;
 pub mod shapes;
 
 pub use ids::*;
 pub use interact::{envelope_from_shape, guide_at, handle_input, handle_point, handle_table_keys, handle_text_keys, regen_impacts, table_typing, tick, Input};
 pub use overlay::draw_overlay;
+pub use shape_edit::{selected_segment, shape_hit, visible_controls, ShapeHit};
 
 use crate::app::AnyVectorApp;
 use crate::docview::DocView;
 use crate::settings::Settings;
 use kurbo::{Affine, Point, Rect, Vec2};
 use std::collections::HashMap;
-use vector_core::object::{DistortKind, DropShadow};
+use vector_core::object::{DistortKind, DropShadow, EllipseShape, PolygonShape};
 use vector_core::path::{Node, NodeKind, NodePath, SubPath};
 use vector_core::text::{CharFormat, TextAlign, TextObj};
 use vector_core::{Color, Fill, ObjId, ObjKind, Object, Outline, Style};
@@ -98,6 +100,13 @@ pub enum Drag {
     NodeMarquee { start: Point },
     /// Shape tool: rounding corner `corner` of a rectangle.
     Corner { obj: ObjId, corner: usize, start: Point, orig: [f64; 4], moved: bool },
+    /// Shape tool: a node of a polygon or star; the matching nodes follow (#104).
+    PolygonNode { obj: ObjId, inner: bool, index: usize, orig: PolygonShape, moved: bool },
+    /// Shape tool: the start (`Some(true)`) or end node of an ellipse, pie or arc; `None` for the
+    /// one node of a whole ellipse until the drag shows which way the pie opens (#108).
+    EllipseNode { obj: ObjId, handle: Option<bool>, orig: EllipseShape, moved: bool },
+    /// Shape tool: a segment dragged by its point at `t`: a line moves, a curve bends (#123).
+    Segment { obj: ObjId, si: usize, seg: usize, t: f64, start: Point, orig: NodePath, moved: bool },
     /// Pick tool in rotate mode: moving the rotation center of the selection.
     RotCenter,
     Pan { last: egui::Pos2 },
@@ -130,6 +139,9 @@ impl Drag {
 
 pub struct ToolState {
     pub previous_tool: Option<ToolId>,
+    /// The property-bar slider being dragged this frame (its drag's key): the change it makes
+    /// joins the drag's undo step (issue 107). Taken by `propbar::edit_sel`.
+    pub live_slider: Option<u64>,
     pub parallel_drawing: bool,
     pub parallel_count: u32,
     pub parallel_distance: f64,
@@ -166,6 +178,9 @@ pub struct ToolState {
     pub last_coalesce: f64,
     pub texture_cache: HashMap<String, egui::TextureHandle>,
     pub shaping_op: usize,
+    /// The property bar's shaping toggles (Weld, Trim, Intersect, Front/Back Minus…): keep the
+    /// objects that shape the target, and keep the target's original. The source is kept by
+    /// default, as CorelDRAW's property bar Trim does (#118).
     pub leave_source: bool,
     pub leave_target: bool,
     // ---- interaction state
@@ -249,6 +264,7 @@ impl Default for ToolState {
     fn default() -> Self {
         ToolState {
             previous_tool: None,
+            live_slider: None,
             parallel_drawing: false,
             parallel_count: 1,
             parallel_distance: 7.2,
@@ -278,7 +294,7 @@ impl Default for ToolState {
             last_coalesce: -10.0,
             texture_cache: HashMap::new(),
             shaping_op: 0,
-            leave_source: false,
+            leave_source: true,
             leave_target: false,
             drag: Drag::None,
             cur: Point::ZERO,
@@ -733,6 +749,24 @@ pub fn node_op(app: &mut AnyVectorApp, op: NodeOp) {
             d.node_sel.clear();
         }
         _ => {
+            // no node selected: the segment clicked (#122)
+            let seg = if groups.is_empty() { selected_segment(d) } else { None };
+            if let Some((id, si, sg)) = seg {
+                if matches!(op, NodeOp::Add | NodeOp::Delete | NodeOp::ToLine | NodeOp::ToCurve) {
+                    segment_op(d, op, id, si, sg);
+                    d.cache.key = 0;
+                    return;
+                }
+            }
+            // the other node commands act on the segment's two nodes
+            let seg_nodes = seg.and_then(|(id, si, sg)| match &d.doc.find(id)?.kind {
+                ObjKind::Path(np) => np.segment_nodes(si, sg).map(|(a, b)| (id, vec![a, b])),
+                _ => None,
+            });
+            let groups = match seg_nodes {
+                Some(g) => vec![g],
+                None => groups,
+            };
             if groups.is_empty() {
                 return;
             }
@@ -758,17 +792,10 @@ pub fn node_op(app: &mut AnyVectorApp, op: NodeOp) {
                     let ObjKind::Path(np) = &mut o.kind else { continue };
                     match op {
                         NodeOp::Add => {
-                            // add a node in the middle of each segment that starts at a selected node
-                            let mut rs = refs.clone();
-                            rs.sort();
-                            for (si, ni) in rs.into_iter().rev() {
-                                let segs = np.subpaths.get(si).map(|s| s.segment_count()).unwrap_or(0);
-                                if ni < segs {
-                                    if let Some((a, b)) = np.insert_node(si, ni, 0.5) {
-                                        new_sel.push((*id, a, b));
-                                    }
-                                }
-                            }
+                            // a node in the middle of the segment between two selected nodes, or of
+                            // each segment leaving a selected node (#123); the new nodes stay
+                            // selected so `+` again keeps adding
+                            new_sel.extend(np.add_nodes(refs).into_iter().map(|(a, b)| (*id, a, b)));
                         }
                         NodeOp::Delete => np.delete_nodes(refs),
                         NodeOp::Join => {
@@ -830,15 +857,55 @@ pub fn node_op(app: &mut AnyVectorApp, op: NodeOp) {
                 }
             });
             d.node_sel = new_sel;
+            d.seg_sel = None;
         }
     }
     d.cache.key = 0;
 }
 
+/// Add Node, Delete, To Line and To Curve on the segment clicked with the Shape tool (#122).
+fn segment_op(d: &mut DocView, op: NodeOp, id: ObjId, si: usize, seg: usize) {
+    let label = match op {
+        NodeOp::Add => "Add Node",
+        NodeOp::Delete => "Delete Segment",
+        NodeOp::ToLine => "To Line",
+        _ => "To Curve",
+    };
+    let mut added = None;
+    d.modify(label, |doc, _| {
+        let Some(ObjKind::Path(np)) = doc.find_mut(id).map(|o| &mut o.kind) else { return };
+        match op {
+            NodeOp::Add => added = np.insert_node(si, seg, 0.5),
+            NodeOp::Delete => {
+                np.delete_segment(si, seg);
+                // nothing left of the curve: it goes (as with Virtual Segment Delete)
+                if np.subpaths.iter().all(|s| s.nodes.len() < 2) {
+                    let _ = doc.remove(id);
+                }
+            }
+            _ => np.set_segment_line((si, seg), op == NodeOp::ToLine),
+        }
+    });
+    if matches!(op, NodeOp::Add | NodeOp::Delete) {
+        d.seg_sel = None;
+        d.node_sel = added.map(|(a, b)| vec![(id, a, b)]).unwrap_or_default();
+    }
+}
+
 /// Move the selected nodes by a document-space offset (arrow-key nudge with the Shape tool).
 pub fn nudge_nodes(app: &mut AnyVectorApp, delta: Vec2) {
     let Some(d) = app.doc_mut() else { return };
-    let groups = nodes_by_object(d);
+    let mut groups = nodes_by_object(d);
+    // no node selected: the segment clicked moves, both its nodes (#122)
+    if groups.is_empty() {
+        if let Some((id, si, seg)) = selected_segment(d) {
+            if let Some(ObjKind::Path(np)) = d.doc.find(id).map(|o| &o.kind) {
+                if let Some((a, b)) = np.segment_nodes(si, seg) {
+                    groups.push((id, if a == b { vec![a] } else { vec![a, b] }));
+                }
+            }
+        }
+    }
     d.modify("Move Nodes", |doc, _| {
         for (id, refs) in &groups {
             if let Some(o) = doc.find_mut(*id) {

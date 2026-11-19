@@ -5606,3 +5606,9 @@ Palettes (*.xml, *.ase, *.gpl)	Paletas (*.xml, *.ase, *.gpl)
 PANTONE® color books are licensed and are not included in AnyVector. Click to open a palette you own: a CorelDRAW palette (.xml) or a color book exported from an Adobe program (.ase). Its spot colors keep their names.	Los libros de colores PANTONE® tienen licencia y no se incluyen en AnyVector. Haga clic para abrir una paleta propia: una paleta de CorelDRAW (.xml) o un libro de colores exportado desde un programa de Adobe (.ase). Sus colores planos conservan los nombres.
 Create Rectangle	Crear rectángulo
 {} PANTONE® color(s) are shown as grays: the PANTONE color books are licensed and aren't included in AnyVector	{} color(es) PANTONE® se muestran como grises: los libros de colores PANTONE tienen licencia y no se incluyen en AnyVector
+The objects don't overlap, so nothing was changed	Los objetos no se superponen, así que no se ha cambiado nada
+Edit Polygon	Editar polígono
+Edit Ellipse	Editar elipse
+Move Segment	Mover segmento
+Delete Segment	Eliminar segmento
+A curve needs at least two nodes	Una curva necesita al menos dos nodos

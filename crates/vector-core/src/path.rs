@@ -1,6 +1,6 @@
 //! Editable node-based paths (what the Shape tool manipulates) and conversion to/from kurbo paths.
 
-use kurbo::{Affine, BezPath, CubicBez, Line, ParamCurve, ParamCurveArclen, ParamCurveNearest, PathEl, Point, Rect, Shape};
+use kurbo::{Affine, BezPath, CubicBez, Line, ParamCurve, ParamCurveArclen, ParamCurveNearest, PathEl, Point, Rect, Shape, Vec2};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -537,6 +537,71 @@ impl NodePath {
         for r in refs {
             self.set_node_kind(r, NodeKind::Smooth);
         }
+    }
+
+    /// The nodes at the ends of segment `seg` of subpath `si`.
+    pub fn segment_nodes(&self, si: usize, seg: usize) -> Option<(NodeRef, NodeRef)> {
+        let sp = self.subpaths.get(si)?;
+        (seg < sp.segment_count()).then(|| ((si, seg), (si, (seg + 1) % sp.nodes.len())))
+    }
+
+    /// Shape tool: move a segment, its two nodes and their control points, by `d`.
+    pub fn move_segment(&mut self, si: usize, seg: usize, d: Vec2) {
+        let Some((a, b)) = self.segment_nodes(si, seg) else { return };
+        for r in if a == b { vec![a] } else { vec![a, b] } {
+            if let Some(n) = self.node_mut(r) {
+                n.p += d;
+                n.c_in += d;
+                n.c_out += d;
+            }
+        }
+    }
+
+    /// Shape tool: drag a curved segment by the point at `t`, moving that point by `d` while the
+    /// nodes stay (the control points share the move, the nearer one more), as CorelDRAW and
+    /// Inkscape do.
+    pub fn bend_segment(&mut self, si: usize, seg: usize, t: f64, d: Vec2) {
+        let Some((a, b)) = self.segment_nodes(si, seg) else { return };
+        if self.node(a).is_none_or(|n| n.line_out) {
+            return;
+        }
+        let t = t.clamp(0.01, 0.99);
+        // weight of the second control point: 0 near the start, 1 near the end
+        let w = if t <= 1.0 / 6.0 {
+            0.0
+        } else if t <= 0.5 {
+            ((6.0 * t - 1.0) / 2.0).powi(3) / 2.0
+        } else if t <= 5.0 / 6.0 {
+            (1.0 - ((6.0 * (1.0 - t) - 1.0) / 2.0).powi(3)) / 2.0 + 0.5
+        } else {
+            1.0
+        };
+        let d0 = d * ((1.0 - w) / (3.0 * t * (1.0 - t) * (1.0 - t)));
+        let d1 = d * (w / (3.0 * t * t * (1.0 - t)));
+        if let Some(n) = self.node_mut(a) {
+            n.c_out += d0;
+        }
+        if let Some(n) = self.node_mut(b) {
+            n.c_in += d1;
+        }
+    }
+
+    /// Shape tool ▸ Add Node (`+`) on the selected nodes: a node in the middle of each segment
+    /// between two selected nodes, or when no two selected nodes are neighbours, of each segment
+    /// leaving a selected node. Returns the new nodes.
+    pub fn add_nodes(&mut self, refs: &[NodeRef]) -> Vec<NodeRef> {
+        let leaving = |np: &NodePath, &(si, ni): &NodeRef| np.subpaths.get(si).is_some_and(|sp| ni < sp.segment_count());
+        let mut segs: Vec<NodeRef> = refs.iter().filter(|r| leaving(self, r) && self.segment_nodes(r.0, r.1).is_some_and(|(_, b)| b != **r && refs.contains(&b))).copied().collect();
+        if segs.is_empty() {
+            segs = refs.iter().filter(|r| leaving(self, r)).copied().collect();
+        }
+        segs.sort();
+        segs.dedup();
+        // from the back, so the segments before keep their numbers
+        for &(si, seg) in segs.iter().rev() {
+            self.insert_node(si, seg, 0.5);
+        }
+        segs.iter().map(|&(si, seg)| (si, seg + 1 + segs.iter().filter(|&&(s, g)| s == si && g < seg).count())).collect()
     }
 
     /// Hit-test a line segment of the path (for Virtual Segment Delete etc.).

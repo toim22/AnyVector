@@ -62,6 +62,9 @@ pub enum NodeSize {
     Large,
 }
 
+/// Current revision of the saved settings (see `Settings::migrate`).
+pub const SETTINGS_REVISION: u32 = 1;
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
@@ -216,10 +219,14 @@ pub struct Settings {
     pub crosshair_cursor: bool,
     /// Treat all objects as filled: a click inside an unfilled closed shape selects it. The only
     /// setting the pick hit test reads (the property bar button and Options ▸ Tools ▸ Pick edit it).
-    /// Saved under a new name since 0.5.3: the old value always behaved as on (#96), so everyone
-    /// starts from CorelDRAW's default, off.
+    /// On by default, as up to 0.5.2 (#116). 0.5.3/0.5.4 saved it off for everyone, which
+    /// `migrate` undoes once.
     #[serde(rename = "pick_treat_as_filled")]
     pub treat_as_filled: bool,
+    /// Revision of the saved settings, for one-time migrations (see `migrate`). Files saved
+    /// before it existed read as 0.
+    #[serde(default)]
+    pub settings_revision: u32,
     pub windows_modifiers: bool,
     pub eraser_thickness: f64,
     pub eraser_reduce_nodes: bool,
@@ -613,7 +620,8 @@ impl Default for Settings {
             open_palettes: vec![],
             shortcuts: vec![],
             crosshair_cursor: false,
-            treat_as_filled: false,
+            treat_as_filled: true,
+            settings_revision: SETTINGS_REVISION,
             windows_modifiers: false,
             eraser_thickness: 18.0,
             eraser_reduce_nodes: true,
@@ -819,7 +827,20 @@ impl Settings {
     }
 
     pub fn load() -> Settings {
-        std::fs::read(Self::path()).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default()
+        let mut s: Settings =
+            std::fs::read(Self::path()).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default();
+        s.migrate();
+        s
+    }
+
+    /// One-time fixes for settings saved by older versions; brings `settings_revision` up to date.
+    pub fn migrate(&mut self) {
+        if self.settings_revision < 1 {
+            // #116: 0.5.3/0.5.4 saved Treat All Objects as Filled off for everyone. Restore the
+            // earlier behaviour once; the toggle still turns it off afterwards.
+            self.treat_as_filled = true;
+        }
+        self.settings_revision = self.settings_revision.max(SETTINGS_REVISION);
     }
 
     pub fn save(&self) {

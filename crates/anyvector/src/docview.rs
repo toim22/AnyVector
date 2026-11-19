@@ -79,14 +79,23 @@ pub struct DocView {
     pub cache: RenderCache,
     /// Selected nodes: (object, subpath, node).
     pub node_sel: Vec<(ObjId, usize, usize)>,
+    /// Shape tool: the segment clicked (object, subpath, segment), see `tools::selected_segment`.
+    pub seg_sel: Option<(ObjId, usize, usize)>,
     pub text_edit: Option<TextEdit>,
     /// PowerClip contents editing / focus mode container.
     pub focus: Vec<ObjId>,
     /// Pick tool shows rotate/skew handles.
     pub rotate_mode: bool,
     /// The rotation center moved away from the middle of the selection (issue 79): for the
-    /// objects it was moved for, and where it is.
+    /// objects it was moved for, and where it is. It goes along when a command replaces the
+    /// selection with copies (Duplicate, Step and Repeat, Paste; issue 126) and is kept with each
+    /// undo step; commands that make new objects out of the selection (Group, Combine, ...) leave
+    /// it behind, so those turn around their middle again.
     pub rot_center: Option<(Vec<ObjId>, Point)>,
+    /// The property-bar slider drag the last change belongs to (its key, and the history revision
+    /// right after it): the following frames of the same drag change the document without one
+    /// more undo step each (issue 107).
+    pub live_edit: Option<(u64, u64)>,
     pub canvas_rect: ERect,
     pub show_page_sorter: bool,
     /// Object ▸ Symbol ▸ Edit Master in progress.
@@ -136,10 +145,12 @@ impl DocView {
             simulate_overprint: false,
             cache: RenderCache::default(),
             node_sel: vec![],
+            seg_sel: None,
             text_edit: None,
             focus: vec![],
             rotate_mode: false,
             rot_center: None,
+            live_edit: None,
             canvas_rect: ERect::NOTHING,
             show_page_sorter: false,
             symbol_edit: None,
@@ -172,7 +183,7 @@ impl DocView {
 
     /// Record an undo step before modifying the document.
     pub fn checkpoint(&mut self, label: &str) {
-        self.history.push(label, &self.doc, &self.selection, self.page);
+        self.history.push(label, &self.doc, &self.selection, self.page, &self.rot_center);
     }
 
     /// Run a modification as one undoable step.
@@ -180,6 +191,21 @@ impl DocView {
         self.checkpoint(label);
         let r = f(&mut self.doc, &mut self.selection);
         self.after_change();
+        r
+    }
+
+    /// Run a modification that is part of the drag `key` (a property-bar slider): the first one
+    /// records an undo step, the next ones of the same drag (with nothing else changed in between)
+    /// join it, so one drag is one undo step.
+    pub fn modify_live<R>(&mut self, key: u64, label: &str, f: impl FnOnce(&mut Document, &mut Vec<ObjId>) -> R) -> R {
+        if self.live_edit == Some((key, self.history.revision)) && self.history.can_undo() {
+            self.history.touch();
+        } else {
+            self.checkpoint(label);
+        }
+        let r = f(&mut self.doc, &mut self.selection);
+        self.after_change();
+        self.live_edit = Some((key, self.history.revision));
         r
     }
 
@@ -192,6 +218,7 @@ impl DocView {
         let ids = self.doc.all_ids();
         self.selection.retain(|id| ids.contains(id));
         self.node_sel.retain(|(id, _, _)| ids.contains(id));
+        self.seg_sel = self.seg_sel.filter(|(id, _, _)| ids.contains(id));
         if self.page >= self.doc.pages.len() {
             self.page = self.doc.pages.len().saturating_sub(1);
         }
@@ -215,17 +242,19 @@ impl DocView {
     }
 
     pub fn undo(&mut self) -> Option<String> {
-        let r = self.history.undo(&mut self.doc, &mut self.selection, &mut self.page);
+        let r = self.history.undo(&mut self.doc, &mut self.selection, &mut self.page, &mut self.rot_center);
         self.text_edit = None;
         self.node_sel.clear();
+        self.seg_sel = None;
         self.after_change();
         r
     }
 
     pub fn redo(&mut self) -> Option<String> {
-        let r = self.history.redo(&mut self.doc, &mut self.selection, &mut self.page);
+        let r = self.history.redo(&mut self.doc, &mut self.selection, &mut self.page, &mut self.rot_center);
         self.text_edit = None;
         self.node_sel.clear();
+        self.seg_sel = None;
         self.after_change();
         r
     }
@@ -358,6 +387,79 @@ impl DocView {
         }
     }
 
+    /// A command replaced the selection `old` (with bounds `old_bb`) by new objects, copies of it
+    /// (Duplicate, Step and Repeat): a rotation center moved for `old` goes along to them.
+    pub fn carry_rot_center(&mut self, old: &[ObjId], old_bb: Rect) {
+        match &self.rot_center {
+            Some((ids, c)) if ids.as_slice() == old && self.selection.as_slice() != old => {
+                let c = *c;
+                self.place_rot_center(old_bb, c);
+            }
+            _ => {}
+        }
+    }
+
+    /// Give the selection the rotation center `c` had for objects with bounds `old_bb`: at the
+    /// same place relative to the selection's bounds (moved by the copy's offset).
+    pub fn place_rot_center(&mut self, old_bb: Rect, c: Point) {
+        let Some(nb) = self.selection_bounds() else { return };
+        let map = |c: f64, o0: f64, o1: f64, n0: f64, n1: f64| {
+            if (o1 - o0).abs() > 1e-9 {
+                n0 + (c - o0) / (o1 - o0) * (n1 - n0)
+            } else {
+                c + (n0 + n1) / 2.0 - (o0 + o1) / 2.0
+            }
+        };
+        let p = Point::new(map(c.x, old_bb.x0, old_bb.x1, nb.x0, nb.x1), map(c.y, old_bb.y0, old_bb.y1, nb.y0, nb.y1));
+        self.rot_center = Some((self.selection.clone(), p));
+    }
+
+    /// The nearest point of the selection's own geometry within the snap radius of `p`: the nodes
+    /// of its outlines and the middles of their segments, and the corners, midpoints and center
+    /// of the whole selection (issue 126: where the rotation center snaps besides the usual
+    /// snap points, which leave the selection out).
+    pub fn rot_center_snap(&self, s: &crate::settings::Settings, p: Point) -> Option<(Point, &'static str)> {
+        use kurbo::ParamCurve;
+        let ds = &self.doc.settings;
+        if ds.snap_off || !(ds.snap_to_objects && s.snap_to_objects) {
+            return None;
+        }
+        let r = self.doc_len(s.snap_radius.max(2.0) as f32);
+        let mut best: Option<(f64, Point, &'static str)> = None;
+        let mut consider = |q: Point, label: &'static str| {
+            let dist = (q - p).hypot();
+            if dist <= r && best.is_none_or(|b| dist < b.0) {
+                best = Some((dist, q, label));
+            }
+        };
+        if let Some(b) = self.selection_bounds() {
+            for q in [Point::new(b.x0, b.y0), Point::new(b.x1, b.y0), Point::new(b.x1, b.y1), Point::new(b.x0, b.y1)] {
+                consider(q, "Corner");
+            }
+            consider(b.center(), "Center");
+            for q in [Point::new(b.center().x, b.y0), Point::new(b.x1, b.center().y), Point::new(b.center().x, b.y1), Point::new(b.x0, b.center().y)] {
+                consider(q, "Midpoint");
+            }
+        }
+        let mut budget = 4000usize;
+        for id in &self.selection {
+            let Some(o) = self.doc.find(*id) else { continue };
+            if !self.doc.bounds_of(o).inflate(r, r).contains(p) {
+                continue;
+            }
+            for seg in o.world_path().segments() {
+                if budget == 0 {
+                    break;
+                }
+                budget -= 1;
+                consider(seg.start(), "Node");
+                consider(seg.end(), "Node");
+                consider(seg.eval(0.5), "Midpoint");
+            }
+        }
+        best.map(|(_, q, l)| (q, l))
+    }
+
     pub fn page_ref(&self) -> &vector_core::Page {
         &self.doc.pages[self.page]
     }
@@ -380,5 +482,101 @@ impl DocView {
         self.active_layer_mut().objects.extend(objs);
         self.selection = ids;
         self.after_change();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use vector_core::object::{CornerType, DropShadow, ObjKind, Object, RectShape};
+
+    /// A document with one 200 x 100 rectangle at (100, 100), selected.
+    fn one_rect() -> (DocView, ObjId) {
+        let mut d = DocView::new(Document::new(800.0, 600.0), "t".into(), 50);
+        let id = d.doc.new_id();
+        let r = Object::new(id, ObjKind::Rect(RectShape { w: 200.0, h: 100.0, radii: [0.0; 4], corner: CornerType::Round }), Affine::translate((100.0, 100.0)), Default::default());
+        d.add_objects("add", vec![r]);
+        (d, id)
+    }
+
+    fn opacity(d: &DocView, id: ObjId) -> Option<f64> {
+        d.doc.find(id).unwrap().effects.drop_shadow.as_ref().map(|s| s.opacity)
+    }
+
+    // issue 107: the frames of one slider drag are one undo step; the next drag is another one
+    #[test]
+    fn a_slider_drag_is_one_undo_step() {
+        let (mut d, id) = one_rect();
+        let steps = d.history.undo.len();
+        for v in [10.0, 20.0, 30.0] {
+            d.modify_live(7, "Shadow", |doc, _| doc.find_mut(id).unwrap().effects.drop_shadow = Some(DropShadow { opacity: v, ..Default::default() }));
+        }
+        assert_eq!(d.history.undo.len(), steps + 1, "one step for the whole drag");
+        assert_eq!(opacity(&d, id), Some(30.0));
+        // another drag (a new key) is a step of its own
+        d.modify_live(8, "Shadow", |doc, _| doc.find_mut(id).unwrap().effects.drop_shadow.as_mut().unwrap().opacity = 60.0);
+        assert_eq!(d.history.undo.len(), steps + 2);
+        d.undo();
+        assert_eq!(opacity(&d, id), Some(30.0));
+        d.undo();
+        assert_eq!(opacity(&d, id), None, "undoing the first drag goes back to before it");
+        // a change in between ends a drag, even with the same key
+        d.modify_live(9, "Shadow", |doc, _| doc.find_mut(id).unwrap().effects.drop_shadow = Some(Default::default()));
+        d.modify("Other", |_, _| {});
+        d.modify_live(9, "Shadow", |doc, _| doc.find_mut(id).unwrap().effects.drop_shadow.as_mut().unwrap().opacity = 5.0);
+        assert_eq!(d.history.undo.len(), steps + 3);
+    }
+
+    // issue 126: a moved rotation center goes along to the copies, at the same place
+    #[test]
+    fn the_rotation_center_goes_along_to_copies() {
+        let (mut d, id) = one_rect();
+        let c = Point::new(100.0, 100.0);
+        d.rot_center = Some((vec![id], c));
+        let bb = d.selection_bounds().unwrap();
+        let old = d.selection.clone();
+        d.modify("Duplicate", |doc, sel| *sel = vector_core::ops::duplicate(doc, &old, kurbo::Vec2::new(18.0, 18.0)));
+        d.carry_rot_center(&old, bb);
+        assert_ne!(d.selection, old);
+        assert_eq!(d.rotation_center(), Some(Point::new(118.0, 118.0)));
+        // undo brings back the original with its center, redo the copy with its own
+        d.undo();
+        assert_eq!(d.selection, old);
+        assert_eq!(d.rotation_center(), Some(c));
+        d.redo();
+        assert_eq!(d.rotation_center(), Some(Point::new(118.0, 118.0)));
+        // a selection of several copies: the same place relative to all of them
+        let one = d.selection.clone();
+        let bb = d.selection_bounds().unwrap();
+        d.modify("Step and Repeat", |doc, sel| *sel = vector_core::ops::step_and_repeat(doc, &one, 3, kurbo::Vec2::new(0.0, 200.0)));
+        d.carry_rot_center(&one, bb);
+        let nb = d.selection_bounds().unwrap();
+        assert_eq!(d.rotation_center(), Some(Point::new(nb.x0, nb.y0)));
+        // a center for other objects stays as it is
+        let before = d.rot_center.clone();
+        d.carry_rot_center(&[id], bb);
+        assert_eq!(d.rot_center, before);
+    }
+
+    // issue 126: the center snaps to the selection's own corners, midpoints, nodes and middle
+    #[test]
+    fn the_rotation_center_snaps_to_its_own_object() {
+        let (mut d, _) = one_rect();
+        let s = crate::settings::Settings::default();
+        let snap = |d: &DocView, x: f64, y: f64| d.rot_center_snap(&s, Point::new(x, y));
+        assert_eq!(snap(&d, 103.0, 98.0), Some((Point::new(100.0, 100.0), "Corner")));
+        assert_eq!(snap(&d, 197.0, 103.0), Some((Point::new(200.0, 100.0), "Midpoint")));
+        assert_eq!(snap(&d, 204.0, 146.0), Some((Point::new(200.0, 150.0), "Center")));
+        assert_eq!(snap(&d, 250.0, 130.0), None, "nothing near");
+        // a turned rectangle: its own corners are nodes away from the bounding box
+        let ids = d.selection.clone();
+        let turn = Affine::rotate_about(0.5, Point::new(200.0, 150.0));
+        d.modify("Rotate", |doc, _| doc.transform_objects(&ids, turn));
+        let corner = turn * Point::new(300.0, 200.0);
+        let (q, l) = snap(&d, corner.x + 2.0, corner.y - 2.0).unwrap();
+        assert!((q - corner).hypot() < 1e-6 && l == "Node", "{q:?} {l}");
+        // snapping off: no snap
+        d.doc.settings.snap_off = true;
+        assert_eq!(snap(&d, 103.0, 98.0), None);
     }
 }

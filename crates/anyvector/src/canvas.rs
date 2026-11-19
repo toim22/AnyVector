@@ -541,7 +541,7 @@ fn scrollbars(app: &mut AnyVectorApp, ui: &mut Ui, ai: usize, canvas: Rect, hbar
     p.rect_stroke(vr, 0.0, Stroke::new(1.5, theme::FOCUS()), egui::StrokeKind::Middle);
 }
 
-fn cursor_for(app: &AnyVectorApp, pos: Pos2) -> CursorIcon {
+pub(crate) fn cursor_for(app: &AnyVectorApp, pos: Pos2) -> CursorIcon {
     if matches!(app.ts.drag, Drag::Pan { .. }) {
         return CursorIcon::Grabbing;
     }
@@ -598,7 +598,16 @@ fn cursor_for(app: &AnyVectorApp, pos: Pos2) -> CursorIcon {
             }
         }
         ToolId::Text => CursorIcon::Text,
-        ToolId::Shape => CursorIcon::Default,
+        // the Shape tool is told apart from Pick (#122): a crosshair, a hand over what it can grab
+        ToolId::Shape => {
+            if matches!(app.ts.drag, Drag::Nodes { .. } | Drag::Control { .. } | Drag::Corner { .. } | Drag::PolygonNode { .. } | Drag::EllipseNode { .. } | Drag::Segment { .. }) {
+                CursorIcon::Grabbing
+            } else if tools::shape_hit(d, d.to_doc(pos), d.doc_len(5.0)).is_some() {
+                CursorIcon::PointingHand
+            } else {
+                CursorIcon::Crosshair
+            }
+        }
         ToolId::ColorEyedropper | ToolId::AttributesEyedropper | ToolId::SmartFill | ToolId::MeshFill => CursorIcon::Cell,
         ToolId::Blend | ToolId::Envelope | ToolId::EditAnchor => CursorIcon::PointingHand,
         _ => CursorIcon::Crosshair,

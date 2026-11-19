@@ -56,6 +56,8 @@ pub struct Clip {
     pub objects: Vec<Object>,
     pub images: std::collections::BTreeMap<u64, vector_core::document::ImageData>,
     pub symbols: Vec<vector_core::document::SymbolDef>,
+    /// The rotation center moved for the copied objects: their bounds then, and where it was.
+    pub pivot: Option<(kurbo::Rect, kurbo::Point)>,
 }
 
 pub struct Message {
@@ -252,6 +254,7 @@ impl AnyVectorApp {
         if let Some(d) = self.doc_mut() {
             if t != ToolId::Shape {
                 d.node_sel.clear();
+                d.seg_sel = None;
             }
             if t != ToolId::Text {
                 d.text_edit = None;

@@ -449,16 +449,66 @@ fn world_curve(o: &Object) -> BezPath {
     bp
 }
 
+/// Whether the shapes of two objects share some area.
+fn shapes_overlap(a: &BezPath, b: &BezPath) -> bool {
+    let i = geom::boolean(a, b, BoolOp::Intersect, false);
+    !i.elements().is_empty() && geom::path_area(&i) > 1e-6
+}
+
+/// The object a shaping operation keeps (reshaped) and the ones it takes away from it, for the
+/// operations that cut one shape with the others: Trim and Intersect (the target, last in `ids`),
+/// Front Minus Back (the front one) and Back Minus Front (the back one). `None` for the others.
+fn shaping_roles(doc: &Document, ids: &[ObjId], op: Shaping) -> Option<(ObjId, Vec<ObjId>)> {
+    let ordered: Vec<ObjId> = locs(doc, ids).into_iter().map(|x| x.3).collect();
+    let kept = match op {
+        Shaping::Trim | Shaping::Intersect => *ids.last()?,
+        Shaping::FrontMinusBack => *ordered.last()?,
+        Shaping::BackMinusFront => *ordered.first()?,
+        _ => return None,
+    };
+    Some((kept, ids.iter().copied().filter(|i| *i != kept).collect()))
+}
+
+/// Whether a shaping operation would change anything: false for Trim, Intersect, Front Minus Back
+/// and Back Minus Front when none of the other objects overlaps the one they cut (#118), so the
+/// caller can say so instead of deleting objects for nothing.
+pub fn shaping_has_effect(doc: &Document, ids: &[ObjId], op: Shaping) -> bool {
+    if ids.len() < 2 {
+        return op == Shaping::Boundary && !ids.is_empty();
+    }
+    let Some((kept, others)) = shaping_roles(doc, ids, op) else { return true };
+    let Some(k) = doc.find(kept) else { return false };
+    let kp = world_curve(k);
+    others.iter().filter_map(|o| doc.find(*o)).any(|o| shapes_overlap(&kp, &world_curve(o)))
+}
+
 /// `ids` in selection order: the last one is the "target" for Weld/Trim/Intersect.
+///
+/// `leave_source` keeps the objects that shape the target (Weld, Trim, Intersect) or that are
+/// taken away (the back ones of Front Minus Back, the front ones of Back Minus Front);
+/// `leave_target` keeps the original of the object that is reshaped, next to the result. An object
+/// that doesn't overlap the one being cut takes no part and is never deleted; when none overlaps,
+/// nothing changes (#118).
 pub fn shaping(doc: &mut Document, ids: &[ObjId], op: Shaping, leave_source: bool, leave_target: bool) -> Vec<ObjId> {
     if ids.len() < 2 && op != Shaping::Boundary {
+        return vec![];
+    }
+    if !shaping_has_effect(doc, ids, op) {
         return vec![];
     }
     // stacking order (back to front)
     let ordered: Vec<ObjId> = locs(doc, ids).into_iter().map(|x| x.3).collect();
     let target_id = *ids.last().unwrap();
-    let sources: Vec<ObjId> = ids[..ids.len() - 1].to_vec();
     let get = |doc: &Document, id: ObjId| doc.find(id).map(world_curve).unwrap_or_default();
+    // the objects that cut the kept one: only those overlapping it take part
+    let cutters = |doc: &Document, kept: ObjId, others: &[ObjId]| -> Vec<ObjId> {
+        let kp = get(doc, kept);
+        others.iter().copied().filter(|o| shapes_overlap(&kp, &get(doc, *o))).collect()
+    };
+    let sources: Vec<ObjId> = match op {
+        Shaping::Trim | Shaping::Intersect => cutters(doc, target_id, &ids[..ids.len() - 1]),
+        _ => ids[..ids.len() - 1].to_vec(),
+    };
     let mut created = vec![];
     match op {
         Shaping::Weld | Shaping::Boundary => {
@@ -491,7 +541,14 @@ pub fn shaping(doc: &mut Document, ids: &[ObjId], op: Shaping, leave_source: boo
                 let sp = get(doc, *s);
                 tp = geom::boolean(&tp, &sp, BoolOp::Difference, false);
             }
-            replace_with_curve(doc, target_id, tp, leave_target, &mut created);
+            if tp.elements().is_empty() || geom::path_area(&tp) <= 1e-6 {
+                // the sources cover the whole target: nothing is left of it
+                if !leave_target {
+                    doc.remove(target_id);
+                }
+            } else {
+                replace_with_curve(doc, target_id, tp, leave_target, &mut created);
+            }
             if !leave_source {
                 for s in &sources {
                     doc.remove(*s);
@@ -536,26 +593,28 @@ pub fn shaping(doc: &mut Document, ids: &[ObjId], op: Shaping, leave_source: boo
                 replace_with_curve(doc, *id, p, false, &mut created);
             }
         }
-        Shaping::FrontMinusBack => {
-            let front = *ordered.last().unwrap();
-            let mut p = get(doc, front);
-            for b in &ordered[..ordered.len() - 1] {
-                p = geom::boolean(&p, &get(doc, *b), BoolOp::Difference, false);
+        Shaping::FrontMinusBack | Shaping::BackMinusFront => {
+            let (kept, rest) = if op == Shaping::FrontMinusBack {
+                (*ordered.last().unwrap(), &ordered[..ordered.len() - 1])
+            } else {
+                (ordered[0], &ordered[1..])
+            };
+            let rest = cutters(doc, kept, rest);
+            let mut p = get(doc, kept);
+            for r in &rest {
+                p = geom::boolean(&p, &get(doc, *r), BoolOp::Difference, false);
             }
-            replace_with_curve(doc, front, p, false, &mut created);
-            for b in &ordered[..ordered.len() - 1] {
-                doc.remove(*b);
+            if p.elements().is_empty() || geom::path_area(&p) <= 1e-6 {
+                if !leave_target {
+                    doc.remove(kept);
+                }
+            } else {
+                replace_with_curve(doc, kept, p, leave_target, &mut created);
             }
-        }
-        Shaping::BackMinusFront => {
-            let back = ordered[0];
-            let mut p = get(doc, back);
-            for f in &ordered[1..] {
-                p = geom::boolean(&p, &get(doc, *f), BoolOp::Difference, false);
-            }
-            replace_with_curve(doc, back, p, false, &mut created);
-            for f in &ordered[1..] {
-                doc.remove(*f);
+            if !leave_source {
+                for r in &rest {
+                    doc.remove(*r);
+                }
             }
         }
     }
@@ -1950,4 +2009,123 @@ fn open_along(np: &NodePath, cut: &[Point], tol: f64) -> NodePath {
         }
     }
     out
+}
+
+/// The segment piece the Virtual Segment Delete tool removes: segment `seg` of subpath `si` of
+/// object `id`, between the parameters `t0` and `t1` where other lines cross it (`None` runs to
+/// the segment's node). `convert` when the object is a shape (rectangle, ellipse, polygon,
+/// spiral…) that becomes curves first, as CorelDRAW does (#117).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct VirtualCut {
+    pub id: ObjId,
+    pub convert: bool,
+    pub si: usize,
+    pub seg: usize,
+    pub t0: Option<f64>,
+    pub t1: Option<f64>,
+}
+
+/// An object's curves and the transform that places them, for Virtual Segment Delete: a curve as
+/// it is, a shape as the curves Convert to Curves would make of it (already in page space).
+fn virtual_curve(o: &Object) -> Option<(NodePath, Affine, bool)> {
+    match &o.kind {
+        ObjKind::Path(np) => Some((np.clone(), o.transform, false)),
+        ObjKind::Rect(_) | ObjKind::Ellipse(_) | ObjKind::Polygon(_) | ObjKind::Spiral(_) => o.to_curve().map(|c| (c, Affine::IDENTITY, true)),
+        _ => None,
+    }
+}
+
+/// The segment piece under `p` (page point, within `tol`) on page `page`, or `None` when the
+/// click isn't on a curve or shape outline.
+pub fn virtual_cut_at(doc: &Document, page: usize, p: Point, tol: f64) -> Option<VirtualCut> {
+    use kurbo::{CubicBez, ParamCurve};
+    let pg = doc.pages.get(page)?;
+    // nearest segment under the pointer
+    let mut best: Option<(ObjId, NodePath, Affine, bool, usize, usize, f64, f64)> = None;
+    for o in pg.all_objects() {
+        if !o.visible || o.locked {
+            continue;
+        }
+        let Some((np, tr, convert)) = virtual_curve(o) else { continue };
+        let local = tr.inverse() * p;
+        if let Some((si, seg, t, q, _)) = np.nearest(local) {
+            let dd = ((tr * q) - p).hypot();
+            if dd <= tol && best.as_ref().map_or(true, |b| dd < b.7) {
+                best = Some((o.id, np, tr, convert, si, seg, t, dd));
+            }
+        }
+    }
+    let (id, np, tr, convert, si, seg, t, _) = best?;
+    let (cubic, _) = np.subpaths[si].segment(seg)?;
+    let wc = CubicBez::new(tr * cubic.p0, tr * cubic.p1, tr * cubic.p2, tr * cubic.p3);
+    // the other lines that may cross it: its own other segments and the other objects
+    let mut lines: Vec<Vec<Point>> = vec![];
+    for (osi, sp) in np.subpaths.iter().enumerate() {
+        for k in 0..sp.segment_count() {
+            if osi == si && k == seg {
+                continue;
+            }
+            if let Some((c, _)) = sp.segment(k) {
+                let c = CubicBez::new(tr * c.p0, tr * c.p1, tr * c.p2, tr * c.p3);
+                lines.push((0..=24).map(|i| c.eval(i as f64 / 24.0)).collect());
+            }
+        }
+    }
+    for other in pg.all_objects() {
+        if other.id == id || !other.visible {
+            continue;
+        }
+        for (mut pts, closed) in geom::flatten_polylines(&other.world_path(), 0.1) {
+            if closed && !pts.is_empty() {
+                pts.push(pts[0]);
+            }
+            lines.push(pts);
+        }
+    }
+    let n = 96;
+    let samples: Vec<Point> = (0..=n).map(|i| wc.eval(i as f64 / n as f64)).collect();
+    let mut hits: Vec<f64> = vec![];
+    for i in 0..n {
+        for l in &lines {
+            for w in l.windows(2) {
+                if let Some((ta, _, _)) = geom::seg_intersect(samples[i], samples[i + 1], w[0], w[1]) {
+                    let tt = (i as f64 + ta) / n as f64;
+                    if tt > 0.005 && tt < 0.995 {
+                        hits.push(tt);
+                    }
+                }
+            }
+        }
+    }
+    let t0 = hits.iter().copied().filter(|x| *x < t).reduce(f64::max);
+    let t1 = hits.iter().copied().filter(|x| *x > t).reduce(f64::min);
+    Some(VirtualCut { id, convert, si, seg, t0, t1 })
+}
+
+/// Delete the piece `cut` names (converting a shape to curves first). An object left without a
+/// segment is removed. Returns the object's id when it is still there.
+pub fn apply_virtual_cut(doc: &mut Document, cut: &VirtualCut) -> Option<ObjId> {
+    if cut.convert {
+        convert_to_curves(doc, &[cut.id]);
+    }
+    let o = doc.find_mut(cut.id)?;
+    let ObjKind::Path(np) = &mut o.kind else { return Some(cut.id) };
+    let mut target = cut.seg;
+    if let Some(t1) = cut.t1 {
+        np.insert_node(cut.si, cut.seg, t1);
+    }
+    if let Some(t0) = cut.t0 {
+        let tt = match cut.t1 {
+            Some(t1) => t0 / t1,
+            None => t0,
+        };
+        np.insert_node(cut.si, cut.seg, tt);
+        target = cut.seg + 1;
+    }
+    np.delete_segment(cut.si, target);
+    if np.subpaths.iter().all(|s| s.nodes.len() < 2) {
+        doc.remove(cut.id);
+        return None;
+    }
+    Some(cut.id)
 }

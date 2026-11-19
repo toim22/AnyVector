@@ -92,7 +92,7 @@ fn visual_home_and_document() {
         };
         add(ObjKind::Rect(RectShape { w: 180.0, h: 120.0, radii: [12.0; 4], corner: CornerType::Round }), (72.0, 72.0), Color::rgb(0x1e, 0x90, 0xff));
         add(ObjKind::Ellipse(EllipseShape { w: 160.0, h: 160.0, kind: EllipseKind::Ellipse, start: 90.0, end: 90.0, clockwise: false }), (300.0, 90.0), Color::rgb(0xff, 0x60, 0x40));
-        add(ObjKind::Polygon(PolygonShape { w: 150.0, h: 150.0, sides: 5, kind: PolygonKind::Star, sharpness: 53.0 }), (200.0, 300.0), Color::rgb(0xff, 0xd0, 0x20));
+        add(ObjKind::Polygon(PolygonShape { w: 150.0, h: 150.0, sides: 5, kind: PolygonKind::Star, sharpness: 53.0, nodes: Default::default() }), (200.0, 300.0), Color::rgb(0xff, 0xd0, 0x20));
         d.add_objects("test", objs);
         let first = d.selection[0];
         d.selection = vec![first];
@@ -435,7 +435,7 @@ fn visual_context_menus() {
         };
         let rect = add(d, ObjKind::Rect(RectShape { w: 120.0, h: 80.0, radii: [0.0; 4], corner: CornerType::Round }), 40.0, 40.0);
         let ellipse = add(d, ObjKind::Ellipse(EllipseShape { w: 80.0, h: 80.0, kind: EllipseKind::Ellipse, start: 90.0, end: 90.0, clockwise: false }), 200.0, 40.0);
-        let poly = add(d, ObjKind::Polygon(PolygonShape { w: 80.0, h: 80.0, sides: 5, kind: PolygonKind::Polygon, sharpness: 0.0 }), 330.0, 40.0);
+        let poly = add(d, ObjKind::Polygon(PolygonShape { w: 80.0, h: 80.0, sides: 5, kind: PolygonKind::Polygon, sharpness: 0.0, nodes: Default::default() }), 330.0, 40.0);
         let mut f = CharFormat::default();
         f.size = 48.0;
         add(d, ObjKind::Text(TextObj::artistic("Text", f.clone())), 40.0, 220.0);
@@ -689,7 +689,7 @@ fn visual_property_bars() {
         let rect = |w: f64| ObjKind::Rect(RectShape { w, h: w * 2.0 / 3.0, radii: [0.0; 4], corner: CornerType::Round });
         add(d, "retangulo", rect(216.0), 40.0, 40.0);
         add(d, "elipse", ObjKind::Ellipse(EllipseShape { w: 80.0, h: 80.0, kind: EllipseKind::Ellipse, start: 90.0, end: 90.0, clockwise: false }), 300.0, 40.0);
-        add(d, "curva", ObjKind::Polygon(PolygonShape { w: 80.0, h: 80.0, sides: 5, kind: PolygonKind::Polygon, sharpness: 0.0 }), 420.0, 40.0);
+        add(d, "curva", ObjKind::Polygon(PolygonShape { w: 80.0, h: 80.0, sides: 5, kind: PolygonKind::Polygon, sharpness: 0.0, nodes: Default::default() }), 420.0, 40.0);
         let mut f = CharFormat::default();
         f.size = 24.0;
         add(d, "texto-artistico", ObjKind::Text(TextObj::artistic("Text", f.clone())), 40.0, 220.0);
@@ -3246,33 +3246,159 @@ fn unfilled_rect(h: &mut Harness<'_, AnyVectorApp>) -> (u64, egui::Pos2) {
     (id, d.to_screen(c))
 }
 
-/// #96: Treat All Objects as Filled is off by default, and the property bar button really turns
-/// picking inside unfilled shapes on and off (a second, document copy used to keep it on).
+/// #96/#116: Treat All Objects as Filled is on by default (as up to 0.5.2), so a click inside an
+/// unfilled shape picks it, and the property bar button really turns that off and on again (a
+/// second, document copy used to keep it on).
 #[test]
 fn treat_as_filled_button_controls_picking_inside() {
     use crate::tools::ToolId;
     let mut h = doc_harness();
     h.state_mut().settings.treat_as_filled = crate::settings::Settings::default().treat_as_filled;
-    assert!(!h.state().settings.treat_as_filled, "CorelDRAW's default is off");
+    assert!(h.state().settings.treat_as_filled, "#116: the default is on");
     let (id, at) = unfilled_rect(&mut h);
     h.state_mut().set_tool(ToolId::Pick);
     h.step();
-    assert_eq!(crate::propbar::option_state(h.state(), "b73ed810"), Some((true, false)));
-    click(&mut h, at);
-    assert!(h.state().doc().unwrap().selection.is_empty(), "an unfilled shape was picked from inside");
-    crate::propbar::press(h.state_mut(), "b73ed810");
     assert_eq!(crate::propbar::option_state(h.state(), "b73ed810"), Some((true, true)));
-    click(&mut h, at + egui::vec2(3.0, 3.0));
-    assert_eq!(h.state().doc().unwrap().selection, vec![id]);
-    crate::propbar::press(h.state_mut(), "b73ed810");
-    h.state_mut().doc_mut().unwrap().selection.clear();
     click(&mut h, at);
+    assert_eq!(h.state().doc().unwrap().selection, vec![id], "an unfilled shape wasn't picked from inside");
+    crate::propbar::press(h.state_mut(), "b73ed810");
+    assert_eq!(crate::propbar::option_state(h.state(), "b73ed810"), Some((true, false)));
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    click(&mut h, at + egui::vec2(3.0, 3.0));
     assert!(h.state().doc().unwrap().selection.is_empty(), "turning the button off didn't stop picking inside");
-    // the old value, which never worked, isn't read back: the setting has a new name
-    let old: crate::settings::Settings = serde_json::from_str(r#"{"treat_as_filled": true}"#).unwrap();
-    assert!(!old.treat_as_filled);
-    let new: crate::settings::Settings = serde_json::from_str(r#"{"pick_treat_as_filled": true}"#).unwrap();
-    assert!(new.treat_as_filled);
+    crate::propbar::press(h.state_mut(), "b73ed810");
+    click(&mut h, at);
+    assert_eq!(h.state().doc().unwrap().selection, vec![id], "turning the button on again didn't pick inside");
+    // the pre-0.5.3 name isn't read back; the current name is
+    let old: crate::settings::Settings = serde_json::from_str(r#"{"treat_as_filled": false}"#).unwrap();
+    assert!(old.treat_as_filled);
+    let new: crate::settings::Settings = serde_json::from_str(r#"{"pick_treat_as_filled": false}"#).unwrap();
+    assert!(!new.treat_as_filled);
+}
+
+/// #116: settings saved by 0.5.3/0.5.4 have Treat All Objects as Filled off and no revision; they
+/// are switched back on once, and a choice made after that sticks.
+#[test]
+fn treat_as_filled_off_from_0_5_4_is_migrated_once() {
+    use crate::settings::{Settings, SETTINGS_REVISION};
+    let mut s: Settings = serde_json::from_str(r#"{"pick_treat_as_filled": false}"#).unwrap();
+    assert_eq!(s.settings_revision, 0, "a file without a revision is revision 0");
+    assert!(!s.treat_as_filled);
+    s.migrate();
+    assert!(s.treat_as_filled, "0.5.4's off value wasn't reset");
+    assert_eq!(s.settings_revision, SETTINGS_REVISION);
+    // the user turns it off again; saving and loading keeps it off
+    s.treat_as_filled = false;
+    let mut back: Settings = serde_json::from_str(&serde_json::to_string(&s).unwrap()).unwrap();
+    back.migrate();
+    assert!(!back.treat_as_filled, "the migration ran twice");
+    assert_eq!(back.settings_revision, SETTINGS_REVISION);
+    // fresh settings are current and on
+    let fresh = Settings::default();
+    assert!(fresh.treat_as_filled);
+    assert_eq!(fresh.settings_revision, SETTINGS_REVISION);
+}
+
+/// #117: Virtual Segment Delete works on a rectangle that was never converted to curves: a click
+/// on a side turns it into curves without that side, as one undo step; a click on empty space
+/// changes nothing.
+#[test]
+fn virtual_segment_delete_on_a_rectangle() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    let (id, _) = unfilled_rect(&mut h);
+    let (side, empty) = {
+        let d = h.state().doc().unwrap();
+        let b = kurbo::Shape::bounding_box(&d.doc.find(id).unwrap().world_path());
+        (d.to_screen(Point::new(b.center().x + 30.0, b.y0)), d.to_screen(Point::new(b.x1 + 150.0, b.y1 + 150.0)))
+    };
+    h.state_mut().set_tool(ToolId::VirtualDelete);
+    h.step();
+    click(&mut h, empty);
+    assert!(matches!(h.state().doc().unwrap().doc.find(id).unwrap().kind, ObjKind::Rect(_)), "a click on empty space changed the rectangle");
+    click(&mut h, side);
+    let o = h.state().doc().unwrap().doc.find(id).expect("the rectangle is gone").clone();
+    let ObjKind::Path(np) = &o.kind else { panic!("the rectangle wasn't converted to curves: {:?}", o.kind) };
+    assert!(!np.is_closed(), "the side wasn't deleted");
+    assert_eq!(np.subpaths.iter().map(|s| s.segment_count()).sum::<usize>(), 3);
+    // conversion and deletion are one step
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    assert!(matches!(h.state().doc().unwrap().doc.find(id).unwrap().kind, ObjKind::Rect(_)), "one undo didn't bring the rectangle back");
+}
+
+/// #118: Trim on the property bar keeps the trimming (source) object by default; the property
+/// bar's Leave Original toggles change that, Trim is one undo step, and objects that don't overlap
+/// are never deleted.
+#[test]
+fn trim_keeps_the_source_and_the_bar_toggles_it() {
+    use crate::tools::ToolId;
+    use egui_kittest::kittest::Queryable;
+    use vector_core::ops::Shaping;
+    let mut h = doc_harness();
+    let sq = |d: &mut crate::docview::DocView, at: (f64, f64), w: f64| {
+        let id = d.doc.new_id();
+        let r = RectShape { w, h: w, radii: [0.0; 4], corner: CornerType::default() };
+        let st = Style { fill: Fill::Solid(Color::rgb(200, 40, 40)), ..Style::default() };
+        d.add_objects("test", vec![Object::new(id, ObjKind::Rect(r), Affine::translate(at), st)]);
+        id
+    };
+    let (a, b, far) = {
+        let d = h.state_mut().doc_mut().unwrap();
+        (sq(d, (100.0, 100.0), 200.0), sq(d, (200.0, 200.0), 200.0), sq(d, (600.0, 600.0), 50.0))
+    };
+    let area = |h: &Harness<'_, AnyVectorApp>, id| h.state().doc().unwrap().doc.find(id).map(|o| kurbo::Shape::area(&o.world_path()).abs());
+    let count = |h: &Harness<'_, AnyVectorApp>| h.state().doc().unwrap().page_ref().all_objects().count();
+    let select = |h: &mut Harness<'_, AnyVectorApp>, ids: Vec<u64>| {
+        h.state_mut().doc_mut().unwrap().selection = ids;
+        h.step();
+    };
+    h.state_mut().set_tool(ToolId::Pick);
+    select(&mut h, vec![a, b]);
+    assert!(h.state().ts.leave_source && !h.state().ts.leave_target, "the source isn't kept by default");
+    let toggle = |h: &Harness<'_, AnyVectorApp>, label: &str| h.query_by_label(label).map(|n| n.rect().center()).unwrap_or_else(|| panic!("no '{label}' toggle on the property bar"));
+    toggle(&h, "Leave original target object");
+    // default Trim: the target is cut, the source stays
+    h.state_mut().run(Cmd::Shaping(Shaping::Trim));
+    h.step();
+    assert!(area(&h, a).is_some(), "Trim deleted the source");
+    assert!((area(&h, b).unwrap() - 30000.0).abs() < 1.0, "the target wasn't trimmed");
+    assert!(matches!(h.state().doc().unwrap().doc.find(b).unwrap().kind, ObjKind::Path(_)));
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    assert!(matches!(h.state().doc().unwrap().doc.find(b).unwrap().kind, ObjKind::Rect(_)), "one undo didn't restore the target");
+    assert_eq!(count(&h), 3);
+    // the toggle on the property bar turns keeping the source off
+    let at = toggle(&h, "Leave original source object");
+    click(&mut h, at);
+    assert!(!h.state().ts.leave_source, "the property bar toggle didn't change the option");
+    select(&mut h, vec![a, b]);
+    h.state_mut().run(Cmd::Shaping(Shaping::Trim));
+    h.step();
+    assert!(area(&h, a).is_none(), "with the toggle off the source is used up");
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    assert_eq!(count(&h), 3);
+    // objects that don't overlap: nothing is deleted or changed
+    select(&mut h, vec![far, b]);
+    h.state_mut().run(Cmd::Shaping(Shaping::Trim));
+    h.step();
+    assert_eq!(count(&h), 3, "a Trim that does nothing deleted an object");
+    assert_eq!(h.state().message.as_ref().map(|m| m.text.as_str()), Some(crate::exec::NO_OVERLAP), "no status message");
+    assert!(matches!(h.state().doc().unwrap().doc.find(b).unwrap().kind, ObjKind::Rect(_)));
+    assert!(matches!(h.state().doc().unwrap().doc.find(far).unwrap().kind, ObjKind::Rect(_)));
+    let at = toggle(&h, "Leave original source object");
+    click(&mut h, at);
+    assert!(h.state().ts.leave_source);
+    // Weld from the property bar still consumes its pieces, as in CorelDRAW
+    select(&mut h, vec![a, b]);
+    h.state_mut().run(Cmd::Shaping(Shaping::Weld));
+    h.step();
+    assert_eq!(count(&h), 2, "Weld left its original pieces behind");
+    assert!(area(&h, a).is_none() && area(&h, b).is_none());
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    assert_eq!(count(&h), 3, "one undo didn't bring the welded pieces back");
 }
 
 /// #97: an ellipse converted to curves is still a closed shape and is picked from inside when
@@ -3385,4 +3511,500 @@ fn spot_color_from_a_palette_keeps_its_name() {
     // applying it again adds nothing
     crate::exec::apply_color(h.state_mut(), Some(ink), false);
     assert_eq!(h.state().doc().unwrap().doc.palette.iter().filter(|n| n.color == ink).count(), 1);
+}
+
+/// A selected 200 x 120 blue rectangle at (100, 100) in a new document.
+fn blue_rect(h: &mut Harness<'_, AnyVectorApp>) -> vector_core::ObjId {
+    let d = h.state_mut().doc_mut().unwrap();
+    let mut st = Style::default();
+    st.fill = Fill::Solid(Color::rgb(0x1e, 0x90, 0xff));
+    let id = d.doc.new_id();
+    d.add_objects("test", vec![Object::new(id, ObjKind::Rect(RectShape { w: 200.0, h: 120.0, radii: [0.0; 4], corner: CornerType::Round }), Affine::translate((100.0, 100.0)), st)]);
+    d.selection = vec![id];
+    id
+}
+
+/// Press at `a`, move to `b` in steps (calling `during` after each one), and release.
+fn drag_watching(h: &mut Harness<'_, AnyVectorApp>, a: egui::Pos2, b: egui::Pos2, mut during: impl FnMut(&mut Harness<'_, AnyVectorApp>)) {
+    move_to(h, a);
+    h.step();
+    press(h, a, true);
+    h.step();
+    for k in 1..=6 {
+        move_to(h, a + (b - a) * (k as f32 / 6.0));
+        h.step();
+        during(h);
+    }
+    press(h, b, false);
+    h.step();
+}
+
+/// Issue 107: the Drop Shadow bar's opacity and feathering are sliders that work: dragging the
+/// strip under the value or the slider button beside it changes the shadow while dragging, as one
+/// undo step; typing a value still works; with the Drop Shadow tool they also give a shape
+/// without a shadow the default one.
+#[test]
+#[ignore]
+fn visual_issue_107_shadow_sliders() {
+    let mut h = doc_harness();
+    let rect = blue_rect(&mut h);
+    h.state_mut().set_tool(crate::tools::ToolId::DropShadow);
+    for _ in 0..3 {
+        h.step();
+    }
+    let field = |h: &Harness<'_, AnyVectorApp>, tip: &str| h.ctx.data(|d| d.get_temp::<egui::Rect>(egui::Id::unique(("slider_field", tip.to_string())))).unwrap_or_else(|| panic!("the {tip} slider is on the bar"));
+    let shadow = |h: &Harness<'_, AnyVectorApp>| h.state().doc().unwrap().doc.find(rect).unwrap().effects.drop_shadow.clone();
+    let steps = |h: &Harness<'_, AnyVectorApp>| h.state().doc().unwrap().history.undo.len();
+    assert!(shadow(&h).is_none());
+
+    // the opacity strip: no shadow yet, so the drag starts from the default one (50) and the
+    // shadow follows the pointer while dragging
+    let fr = field(&h, "Shadow opacity");
+    let track = crate::propbar::fields::slider_track(fr);
+    let at = |t: f32| egui::pos2(track.left() + t * track.width(), fr.bottom() - 3.0);
+    let n0 = steps(&h);
+    let mut seen = vec![];
+    drag_watching(&mut h, at(0.5), at(0.8), |h| seen.push(shadow(h).map(|s| s.opacity)));
+    let s = shadow(&h).expect("dragging the slider made the default shadow");
+    assert_eq!(s.opacity, 80.0);
+    assert_eq!(s.feather, crate::tools::default_shadow(false).feather);
+    assert!(seen.iter().flatten().any(|o| *o > 50.0 && *o < 80.0), "the shadow changed while dragging: {seen:?}");
+    assert_eq!(steps(&h), n0 + 1, "one undo step for the drag");
+    save(&mut h, "issue_107_01_opacity_dragged");
+
+    // the feathering button scrubs: SCRUB_PX to the right is the whole range
+    let fr = field(&h, "Shadow feathering");
+    let button = egui::pos2(fr.right() + 9.0, fr.center().y);
+    let f0 = shadow(&h).unwrap().feather;
+    let dx = (crate::propbar::fields::SCRUB_PX * 0.3) as f32;
+    let mut seen = vec![];
+    drag_watching(&mut h, button, button + egui::vec2(dx, 0.0), |h| seen.push(shadow(h).unwrap().feather));
+    assert_eq!(shadow(&h).unwrap().feather, f0 + 30.0);
+    assert!(seen.iter().any(|f| *f > f0 && *f < f0 + 30.0), "it changed while dragging: {seen:?}");
+    assert_eq!(steps(&h), n0 + 2, "one more undo step");
+    save(&mut h, "issue_107_02_feather_scrubbed");
+
+    // a typed value still applies on Enter
+    click(&mut h, egui::pos2(fr.center().x, fr.top() + 8.0));
+    h.input_mut().events.push(egui::Event::Key { key: egui::Key::A, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::COMMAND });
+    h.step();
+    h.input_mut().events.push(egui::Event::Text("12".into()));
+    h.step();
+    key(&mut h, egui::Key::Enter, true);
+    h.step();
+    key(&mut h, egui::Key::Enter, false);
+    for _ in 0..2 {
+        h.step();
+    }
+    assert_eq!(shadow(&h).unwrap().feather, 12.0);
+    assert_eq!(steps(&h), n0 + 3);
+
+    // undo takes back one whole change at a time
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    assert_eq!(shadow(&h).unwrap().feather, f0 + 30.0);
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    assert_eq!(shadow(&h).unwrap().feather, f0);
+    assert_eq!(shadow(&h).unwrap().opacity, 80.0);
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    assert!(shadow(&h).is_none(), "the first drag made the shadow");
+    save(&mut h, "issue_107_03_undone");
+}
+
+/// Issue 126: the rotation center snaps to the selected shape's own corners, and a moved center
+/// goes along to the copies made by Duplicate and Paste (and comes back with Undo); Group makes a
+/// new object, which turns around its middle again.
+#[test]
+#[ignore]
+fn visual_issue_126_rotation_center_kept_and_snapped() {
+    let mut h = doc_harness();
+    let rect = blue_rect(&mut h);
+    let to_screen = |h: &Harness<'_, AnyVectorApp>, x: f64, y: f64| {
+        let p = h.state().doc().unwrap().to_screen(Point::new(x, y));
+        egui::pos2(p.x as f32, p.y as f32)
+    };
+    h.state_mut().set_tool(crate::tools::ToolId::Pick);
+    h.state_mut().doc_mut().unwrap().rotate_mode = true;
+    h.step();
+
+    // dragged near the rectangle's own top left corner, the center snaps onto it (and says so)
+    let corner = Point::new(100.0, 100.0);
+    let (a, b) = (to_screen(&h, 200.0, 160.0), to_screen(&h, 100.0, 100.0) + egui::vec2(5.0, 4.0));
+    let mut mark = None;
+    drag_watching(&mut h, a, b, |h| mark = h.state().ts.snap_mark);
+    let d = h.state().doc().unwrap();
+    assert_eq!(d.rotation_center(), Some(corner), "snapped onto its own corner");
+    assert_eq!(mark, Some((corner, "Corner")), "the snap shows");
+    save(&mut h, "issue_126_01_center_snapped_to_corner");
+    // and its own midpoints too
+    let (a, b) = (to_screen(&h, 100.0, 100.0), to_screen(&h, 300.0, 160.0) + egui::vec2(-4.0, 3.0));
+    drag(&mut h, a, b);
+    assert_eq!(h.state().doc().unwrap().rotation_center(), Some(Point::new(300.0, 160.0)));
+    let (a, b) = (to_screen(&h, 300.0, 160.0), to_screen(&h, 100.0, 100.0) + egui::vec2(3.0, 3.0));
+    drag(&mut h, a, b);
+    assert_eq!(h.state().doc().unwrap().rotation_center(), Some(corner));
+
+    // Duplicate: the copy keeps the center, moved with it
+    let off = h.state().doc().unwrap().doc.settings.duplicate_offset;
+    h.state_mut().run(Cmd::Duplicate);
+    h.step();
+    let d = h.state().doc().unwrap();
+    let copy = d.selection.clone();
+    assert_ne!(copy, vec![rect]);
+    assert_eq!(d.rotation_center(), Some(corner + off));
+    // it turns around there
+    let before = d.doc.find(copy[0]).unwrap().transform;
+    h.state_mut().run(Cmd::Rotate(30.0));
+    h.step();
+    let after = h.state().doc().unwrap().doc.find(copy[0]).unwrap().transform;
+    let c = corner + off;
+    assert!(((after * before.inverse() * c) - c).hypot() < 1e-6, "the copy turned around its moved center");
+    save(&mut h, "issue_126_02_duplicate_turned_around_center");
+
+    // Undo brings back the original and its center
+    h.state_mut().run(Cmd::Undo);
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    let d = h.state().doc().unwrap();
+    assert_eq!(d.selection, vec![rect]);
+    assert_eq!(d.rotation_center(), Some(corner));
+
+    // Copy and Paste: the pasted copy has the center at the same place
+    h.state_mut().run(Cmd::Copy);
+    h.state_mut().run(Cmd::Paste);
+    h.step();
+    let d = h.state().doc().unwrap();
+    assert_ne!(d.selection, vec![rect]);
+    let bb = d.selection_bounds().unwrap();
+    assert!((d.rotation_center().unwrap() - Point::new(bb.x0, bb.y0)).hypot() < 1e-6, "{:?} in {bb:?}", d.rotation_center());
+
+    // Group makes a new object: it turns around its middle
+    h.state_mut().doc_mut().unwrap().selection = vec![rect];
+    h.state_mut().doc_mut().unwrap().rot_center = Some((vec![rect], corner));
+    h.state_mut().run(Cmd::Group);
+    h.step();
+    let d = h.state().doc().unwrap();
+    assert_eq!(d.rotation_center(), Some(d.selection_bounds().unwrap().center()));
+    save(&mut h, "issue_126_03_group_turns_around_middle");
+}
+
+// ---- Shape tool: polygon and ellipse nodes, segments, + and - (#104, #108, #122, #123) ----
+
+/// One frame of pointer input for the Shape tool (with a double-click flag and modifiers).
+fn shape_in(h: &mut Harness<'_, AnyVectorApp>, pos: egui::Pos2, pressed: bool, down: bool, released: bool, double: bool, mods: egui::Modifiers) {
+    let inp = crate::tools::Input { pos, hovered: true, pressed, released, down, double, secondary: false, mods, key_c: false, time: 100.0, dt: 0.016 };
+    crate::tools::handle_input(h.state_mut(), &inp);
+}
+
+/// Drag with the Shape tool between document points.
+fn shape_drag(h: &mut Harness<'_, AnyVectorApp>, a: (f64, f64), b: (f64, f64), mods: egui::Modifiers) {
+    let (sa, sb) = (scr(h, a), scr(h, b));
+    shape_in(h, sa, true, true, false, false, mods);
+    for k in 1..=8 {
+        shape_in(h, sa + (sb - sa) * (k as f32 / 8.0), false, true, false, false, mods);
+    }
+    shape_in(h, sb, false, false, true, false, mods);
+}
+
+/// A selected object on a Shape-tool document (snapping off).
+fn shape_object<'a>(kind: ObjKind, at: (f64, f64)) -> (Harness<'a, AnyVectorApp>, u64) {
+    let mut h = join_harness(crate::tools::ToolId::Shape);
+    let d = h.state_mut().doc_mut().unwrap();
+    let id = d.doc.new_id();
+    let mut st = Style::default();
+    st.outline.color = Some(Color::BLACK);
+    d.add_objects("test", vec![Object::new(id, kind, Affine::translate(at), st)]);
+    d.selection = vec![id];
+    (h, id)
+}
+
+fn kind_of(h: &Harness<'_, AnyVectorApp>, id: u64) -> ObjKind {
+    h.state().doc().unwrap().doc.find(id).unwrap().kind.clone()
+}
+
+fn undo_steps(h: &Harness<'_, AnyVectorApp>) -> usize {
+    h.state().doc().unwrap().history.undo_labels().len()
+}
+
+fn undo(h: &mut Harness<'_, AnyVectorApp>) {
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+}
+
+/// An open straight curve through the points.
+fn line_curve(pts: &[(f64, f64)]) -> ObjKind {
+    ObjKind::Path(vector_core::path::polyline(&pts.iter().map(|p| Point::new(p.0, p.1)).collect::<Vec<_>>(), false))
+}
+
+/// #104: dragging a polygon node with the Shape tool moves all its matching nodes, as in
+/// CorelDRAW; the object stays a polygon; one undo step; a plain click changes nothing.
+#[test]
+fn shape_tool_drags_polygon_nodes_symmetrically() {
+    let pg = PolygonShape { w: 100.0, h: 100.0, sides: 5, kind: PolygonKind::Polygon, sharpness: 0.0, nodes: Default::default() };
+    let (mut h, id) = shape_object(ObjKind::Polygon(pg.clone()), (100.0, 100.0));
+    let steps = undo_steps(&h);
+    // a click on the top corner: nothing changes, no undo step
+    tool_click(&mut h, (150.0, 100.0), egui::Vec2::ZERO);
+    assert_eq!(kind_of(&h, id), ObjKind::Polygon(pg.clone()));
+    assert_eq!(undo_steps(&h), steps);
+    // dragged 20 up: every corner moves out the same way
+    shape_drag(&mut h, (150.0, 100.0), (150.0, 80.0), egui::Modifiers::NONE);
+    let ObjKind::Polygon(p) = kind_of(&h, id) else { panic!("no longer a polygon") };
+    assert_eq!(p.sides, 5);
+    assert!((p.nodes.outer_scale - 1.4).abs() < 0.02 && p.nodes.outer_turn.abs() < 1.0, "{:?}", p.nodes);
+    assert!(p.nodes.inner_scale == 1.0 && p.nodes.inner_turn == 0.0);
+    let c = Point::new(150.0, 150.0);
+    for i in 0..5 {
+        let q = Affine::translate((100.0, 100.0)) * p.node_point(false, i);
+        assert!(((q - c).hypot() - 70.0).abs() < 1.0, "corner {i} at {q:?}");
+    }
+    // the middle of a side: the inner nodes follow it
+    let mid = Affine::translate((100.0, 100.0)) * p.node_point(true, 0);
+    shape_drag(&mut h, (mid.x, mid.y), (150.0 + (mid.x - 150.0) * 0.5, 150.0 + (mid.y - 150.0) * 0.5), egui::Modifiers::NONE);
+    let ObjKind::Polygon(p2) = kind_of(&h, id) else { panic!() };
+    assert!((p2.nodes.inner_scale - 0.5).abs() < 0.02, "{:?}", p2.nodes);
+    assert_eq!(p2.nodes.outer_scale, p.nodes.outer_scale);
+    // one undo step per drag
+    assert_eq!(undo_steps(&h), steps + 2);
+    undo(&mut h);
+    assert_eq!(kind_of(&h, id), ObjKind::Polygon(p));
+    undo(&mut h);
+    assert_eq!(kind_of(&h, id), ObjKind::Polygon(pg));
+}
+
+/// #108: the ellipse node dragged inside makes a pie, outside an arc; it stays an ellipse; a pie
+/// has two nodes; one undo step per drag.
+#[test]
+fn shape_tool_drags_ellipse_node_to_pie_and_arc() {
+    let e = EllipseShape { w: 200.0, h: 100.0, kind: EllipseKind::Ellipse, start: 90.0, end: 90.0, clockwise: false };
+    let (mut h, id) = shape_object(ObjKind::Ellipse(e.clone()), (100.0, 100.0));
+    // the node is at the top; dragged clockwise, inside
+    shape_drag(&mut h, (200.0, 100.0), (250.0, 120.0), egui::Modifiers::NONE);
+    let ObjKind::Ellipse(pie) = kind_of(&h, id) else { panic!("not an ellipse any more") };
+    assert_eq!(pie.kind, EllipseKind::Pie);
+    assert_eq!(pie.start, 90.0);
+    assert!(pie.end > 0.0 && pie.end < 90.0, "{pie:?}");
+    assert_eq!(pie.nodes().len(), 2);
+    // the end node dragged outside: an arc, the start stays
+    let end = Affine::translate((100.0, 100.0)) * pie.angle_point(pie.end);
+    shape_drag(&mut h, (end.x, end.y), (200.0, 230.0), egui::Modifiers::NONE);
+    let ObjKind::Ellipse(arc) = kind_of(&h, id) else { panic!() };
+    assert_eq!(arc.kind, EllipseKind::Arc);
+    assert_eq!(arc.start, 90.0);
+    assert!((arc.end - 270.0).abs() < 0.5, "{arc:?}");
+    undo(&mut h);
+    assert_eq!(kind_of(&h, id), ObjKind::Ellipse(pie));
+    undo(&mut h);
+    assert_eq!(kind_of(&h, id), ObjKind::Ellipse(e));
+}
+
+/// #122, #123: clicking a segment selects it (no node selected); arrows move it; To Curve, `+` and
+/// Delete act on it; dragging a line segment moves it, dragging a curved one bends it.
+#[test]
+fn shape_tool_selects_drags_and_edits_segments() {
+    use crate::tools::NodeOp;
+    let (mut h, id) = shape_object(line_curve(&[(100.0, 100.0), (200.0, 100.0), (300.0, 100.0), (400.0, 100.0)]), (0.0, 0.0));
+    let np = |h: &Harness<'_, AnyVectorApp>| match kind_of(h, id) {
+        ObjKind::Path(np) => np,
+        k => panic!("{k:?}"),
+    };
+    tool_click(&mut h, (150.0, 100.0), egui::Vec2::ZERO);
+    let d = h.state().doc().unwrap();
+    assert_eq!(d.seg_sel, Some((id, 0, 0)));
+    assert!(d.node_sel.is_empty());
+    assert_eq!(crate::tools::selected_segment(d), Some((id, 0, 0)));
+    // arrow nudge moves both its nodes, one undo step
+    h.state_mut().run(Cmd::Nudge(0.0, 10.0));
+    h.step();
+    let n = np(&h);
+    assert!(near(n.subpaths[0].nodes[0].p, (100.0, 110.0)) && near(n.subpaths[0].nodes[1].p, (200.0, 110.0)) && near(n.subpaths[0].nodes[2].p, (300.0, 100.0)), "{:?}", n.subpaths[0].nodes);
+    undo(&mut h);
+    // dragging the line segment moves it
+    tool_click(&mut h, (250.0, 100.0), egui::Vec2::ZERO);
+    assert_eq!(h.state().doc().unwrap().seg_sel, Some((id, 0, 1)));
+    shape_drag(&mut h, (250.0, 100.0), (250.0, 130.0), egui::Modifiers::NONE);
+    let n = np(&h);
+    assert!(near(n.subpaths[0].nodes[1].p, (200.0, 130.0)) && near(n.subpaths[0].nodes[2].p, (300.0, 130.0)), "{:?}", n.subpaths[0].nodes);
+    undo(&mut h);
+    // To Curve on the selected segment, then dragging it bends it: the nodes stay
+    tool_click(&mut h, (250.0, 100.0), egui::Vec2::ZERO);
+    h.state_mut().run(Cmd::Node(NodeOp::ToCurve));
+    h.step();
+    assert!(!np(&h).subpaths[0].nodes[1].line_out, "To Curve did not act on the segment");
+    assert_eq!(h.state().doc().unwrap().seg_sel, Some((id, 0, 1)), "the segment stays selected");
+    shape_drag(&mut h, (250.0, 100.0), (250.0, 140.0), egui::Modifiers::NONE);
+    let n = np(&h);
+    assert!(near(n.subpaths[0].nodes[1].p, (200.0, 100.0)) && near(n.subpaths[0].nodes[2].p, (300.0, 100.0)));
+    let mid = kurbo::ParamCurve::eval(&n.subpaths[0].segment(1).unwrap().0, 0.5);
+    assert!((mid.y - 140.0).abs() < 1.0, "the curve does not follow the pointer: {mid:?}");
+    // with the curved segment selected, both its control points show
+    let c = crate::tools::visible_controls(h.state().doc().unwrap());
+    assert!(c.contains(&(id, 0, 1, false)) && c.contains(&(id, 0, 2, true)), "{c:?}");
+    // + on the segment: one node in its middle, selected
+    h.key_press(egui::Key::Plus);
+    h.step();
+    h.step();
+    assert_eq!(np(&h).node_count(), 5);
+    let d = h.state().doc().unwrap();
+    assert_eq!(d.node_sel, vec![(id, 0, 2)]);
+    assert!(d.seg_sel.is_none());
+    // - deletes the selected node
+    h.key_press(egui::Key::Minus);
+    h.step();
+    h.step();
+    assert_eq!(np(&h).node_count(), 4);
+    // Delete on a segment removes it: the curve splits in two
+    tool_click(&mut h, (150.0, 100.0), egui::Vec2::ZERO);
+    assert_eq!(h.state().doc().unwrap().seg_sel, Some((id, 0, 0)));
+    h.state_mut().run(Cmd::Delete);
+    h.step();
+    let n = np(&h);
+    assert_eq!(n.subpaths.len(), 1, "{n:?}");
+    assert!(near(n.subpaths[0].nodes[0].p, (200.0, 100.0)));
+}
+
+/// #123: `+` (with or without Shift, as on a US keyboard; egui reports the keypad + as the same
+/// key) adds one node between two selected neighbouring nodes, and again after the new node.
+#[test]
+fn plus_adds_a_node_between_two_selected_nodes() {
+    let (mut h, id) = shape_object(line_curve(&[(100.0, 100.0), (200.0, 100.0), (300.0, 100.0), (400.0, 100.0)]), (0.0, 0.0));
+    h.state_mut().doc_mut().unwrap().node_sel = vec![(id, 0, 1), (id, 0, 2)];
+    h.key_press(egui::Key::Plus);
+    h.step();
+    h.step();
+    let nodes = |h: &Harness<'_, AnyVectorApp>| match kind_of(h, id) {
+        ObjKind::Path(np) => np.subpaths[0].nodes.iter().map(|n| n.p).collect::<Vec<_>>(),
+        _ => unreachable!(),
+    };
+    let n = nodes(&h);
+    assert_eq!(n.len(), 5, "{n:?}");
+    assert!(near(n[2], (250.0, 100.0)));
+    assert_eq!(h.state().doc().unwrap().node_sel, vec![(id, 0, 2)]);
+    // Shift held (+ is Shift+= on a US keyboard): adds again, after the new node
+    h.key_press_modifiers(egui::Modifiers::SHIFT, egui::Key::Plus);
+    h.step();
+    h.step();
+    let n = nodes(&h);
+    assert_eq!(n.len(), 6, "{n:?}");
+    assert!(near(n[3], (275.0, 100.0)));
+    // one undo step each
+    undo(&mut h);
+    assert_eq!(nodes(&h).len(), 5);
+}
+
+/// #122: double-clicking a node deletes it (one undo step); a two-node curve keeps its nodes;
+/// double-clicking a segment still adds a node.
+#[test]
+fn double_click_on_a_node_deletes_it() {
+    let count = |h: &Harness<'_, AnyVectorApp>, id: u64| match kind_of(h, id) {
+        ObjKind::Path(np) => np.node_count(),
+        _ => 0,
+    };
+    let dbl = |h: &mut Harness<'_, AnyVectorApp>, p: (f64, f64)| {
+        let s = scr(h, p);
+        tool_click(h, p, egui::Vec2::ZERO);
+        shape_in(h, s, true, true, false, false, egui::Modifiers::NONE);
+        shape_in(h, s, false, false, true, true, egui::Modifiers::NONE);
+    };
+    let (mut h, id) = shape_object(line_curve(&[(100.0, 100.0), (200.0, 100.0), (300.0, 100.0)]), (0.0, 0.0));
+    dbl(&mut h, (200.0, 100.0));
+    assert_eq!(count(&h, id), 2, "the node was not deleted");
+    undo(&mut h);
+    assert_eq!(count(&h, id), 3);
+    // a segment: a node is added there
+    dbl(&mut h, (150.0, 100.0));
+    assert_eq!(count(&h, id), 4);
+    // a curve of two nodes keeps them
+    let (mut h, id) = shape_object(line_curve(&[(100.0, 100.0), (200.0, 100.0)]), (0.0, 0.0));
+    dbl(&mut h, (100.0, 100.0));
+    assert_eq!(count(&h, id), 2);
+}
+
+/// #122: selecting either node of a curved segment shows (and lets you drag) the control points
+/// at both of its ends, as CorelDRAW does.
+#[test]
+fn curved_segment_shows_both_handles_from_either_node() {
+    use crate::tools::NodeOp;
+    let (mut h, id) = shape_object(line_curve(&[(100.0, 100.0), (250.0, 100.0), (400.0, 100.0)]), (0.0, 0.0));
+    h.state_mut().doc_mut().unwrap().node_sel = vec![(id, 0, 0)];
+    h.state_mut().run(Cmd::Node(NodeOp::ToCurve));
+    h.step();
+    for sel in [(id, 0, 0), (id, 0, 1)] {
+        h.state_mut().doc_mut().unwrap().node_sel = vec![sel];
+        let c = crate::tools::visible_controls(h.state().doc().unwrap());
+        assert!(c.contains(&(id, 0, 0, false)) && c.contains(&(id, 0, 1, true)), "node {sel:?}: {c:?}");
+        // the straight segment from node 1 shows none
+        assert!(!c.contains(&(id, 0, 1, false)), "{c:?}");
+    }
+    // with node 0 selected, the far control point (node 1's) can be dragged
+    h.state_mut().doc_mut().unwrap().node_sel = vec![(id, 0, 0)];
+    let far = match kind_of(&h, id) {
+        ObjKind::Path(np) => np.subpaths[0].nodes[1].c_in,
+        _ => unreachable!(),
+    };
+    shape_drag(&mut h, (far.x, far.y), (far.x, far.y + 40.0), egui::Modifiers::NONE);
+    let ObjKind::Path(np) = kind_of(&h, id) else { unreachable!() };
+    assert!((np.subpaths[0].nodes[1].c_in.y - (far.y + 40.0)).abs() < 0.5, "{:?}", np.subpaths[0].nodes[1]);
+    assert!(near(np.subpaths[0].nodes[1].p, (250.0, 100.0)));
+}
+
+/// #122: the Shape tool's cursor is not Pick's: a crosshair, a hand over what it can grab.
+#[test]
+fn shape_tool_cursor_differs_from_pick() {
+    use egui::CursorIcon;
+    let (mut h, _) = shape_object(line_curve(&[(100.0, 100.0), (200.0, 100.0), (300.0, 100.0)]), (0.0, 0.0));
+    h.state_mut().settings.crosshair_cursor = false;
+    let at = |h: &Harness<'_, AnyVectorApp>, p: (f64, f64)| crate::canvas::cursor_for(h.state(), scr(h, p));
+    assert_eq!(at(&h, (150.0, 300.0)), CursorIcon::Crosshair);
+    assert_eq!(at(&h, (200.0, 100.0)), CursorIcon::PointingHand, "over a node");
+    assert_eq!(at(&h, (150.0, 101.0)), CursorIcon::PointingHand, "over a segment");
+    h.state_mut().set_tool(crate::tools::ToolId::Pick);
+    assert_ne!(at(&h, (150.0, 300.0)), CursorIcon::Crosshair);
+}
+
+/// What the Shape tool shows on a polygon, an ellipse turned into a pie, and a curve with a
+/// curved segment selected. Images go to `target/visual/shape_tool_*.png`.
+#[test]
+#[ignore]
+fn visual_shape_tool_nodes() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    h.state_mut().doc_mut().unwrap().doc.settings.snap_off = true;
+    let mut st = Style::default();
+    st.fill = Fill::Solid(Color::rgb(0xff, 0xd0, 0x20));
+    st.outline.color = Some(Color::BLACK);
+    st.outline.width = 1.0;
+    let (pid, eid, cid) = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let ids = (d.doc.new_id(), d.doc.new_id(), d.doc.new_id());
+        let mut np = vector_core::path::polyline(&[Point::new(450.0, 150.0), Point::new(550.0, 100.0), Point::new(650.0, 150.0)], false);
+        np.set_segment_line((0, 0), false);
+        d.add_objects(
+            "test",
+            vec![
+                Object::new(ids.0, ObjKind::Polygon(PolygonShape { w: 150.0, h: 150.0, sides: 6, kind: PolygonKind::Polygon, sharpness: 0.0, nodes: Default::default() }), Affine::translate((60.0, 80.0)), st.clone()),
+                Object::new(ids.1, ObjKind::Ellipse(EllipseShape { w: 160.0, h: 120.0, kind: EllipseKind::Ellipse, start: 90.0, end: 90.0, clockwise: false }), Affine::translate((260.0, 90.0)), st.clone()),
+                Object::new(ids.2, ObjKind::Path(np), Affine::IDENTITY, Style::default()),
+            ],
+        );
+        ids
+    };
+    h.state_mut().set_tool(ToolId::Shape);
+    h.state_mut().doc_mut().unwrap().selection = vec![pid, eid, cid];
+    save(&mut h, "shape_tool_01_nodes");
+    // the polygon's top corner dragged out and turned, the ellipse node dragged into a pie
+    shape_drag(&mut h, (135.0, 80.0), (160.0, 50.0), egui::Modifiers::NONE);
+    shape_drag(&mut h, (340.0, 90.0), (380.0, 130.0), egui::Modifiers::NONE);
+    // the curved segment clicked: it and both its control points show
+    let mid = match kind_of(&h, cid) {
+        ObjKind::Path(np) => kurbo::ParamCurve::eval(&np.subpaths[0].segment(0).unwrap().0, 0.5),
+        _ => unreachable!(),
+    };
+    tool_click(&mut h, (mid.x, mid.y), egui::Vec2::ZERO);
+    save(&mut h, "shape_tool_02_edited");
+    assert!(matches!(kind_of(&h, pid), ObjKind::Polygon(p) if !p.nodes.is_regular()));
+    assert!(matches!(kind_of(&h, eid), ObjKind::Ellipse(e) if e.kind == EllipseKind::Pie));
+    assert_eq!(h.state().doc().unwrap().seg_sel, Some((cid, 0, 0)));
 }

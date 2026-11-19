@@ -14,6 +14,9 @@ use vector_core::ops::{self, AlignTo};
 use vector_core::{Color, Document, Fill, ObjId, Object};
 
 /// Whether the system clipboard holds something pasteable (cached for a second).
+/// Status message of a Trim, Intersect, Front/Back Minus… that would change nothing (#118).
+pub const NO_OVERLAP: &str = "The objects don't overlap, so nothing was changed";
+
 pub fn system_clipboard_has_content() -> bool {
     use std::sync::Mutex;
     static CACHE: Mutex<Option<(std::time::Instant, bool)>> = Mutex::new(None);
@@ -798,7 +801,12 @@ impl AnyVectorApp {
             let bitmap = png.as_ref().zip(rgba.as_deref()).map(|(pm, px)| (pm.width(), pm.height(), px));
             crate::dialogs::clipboard::set_system(&crate::dialogs::clipboard::copy_formats(&svg, emf, bitmap));
         }
-        self.clip = crate::app::Clip { objects: objs, images, symbols };
+        // a moved rotation center comes along when the objects are pasted (issue 126)
+        let pivot = match (&d.rot_center, d.selection_bounds()) {
+            (Some((ids, c)), Some(bb)) if *ids == d.selection => Some((bb, *c)),
+            _ => None,
+        };
+        self.clip = crate::app::Clip { objects: objs, images, symbols, pivot };
         true
     }
 
@@ -839,6 +847,9 @@ impl AnyVectorApp {
                 }
             }
             d.add_objects("Paste", objs);
+            if let Some((bb, c)) = clip.pivot {
+                d.place_rot_center(bb, c);
+            }
             return;
         }
         // an SVG picture: ours (Paste Special, or copied in another AnyVector) or another program's
@@ -978,6 +989,28 @@ impl AnyVectorApp {
     }
 
     // -------------------------------------------------------------------------------- object ops
+
+    /// Weld, Trim, Intersect… on `ids` (selection order, the target last) as one undo step. When
+    /// the objects don't overlap, nothing changes and the status bar says so (#118).
+    pub fn apply_shaping(&mut self, label: &str, ids: Vec<ObjId>, op: ops::Shaping, leave_source: bool, leave_target: bool) {
+        let Some(d) = self.doc() else { return };
+        if ids.is_empty() || (ids.len() < 2 && op != ops::Shaping::Boundary) {
+            return;
+        }
+        if !ops::shaping_has_effect(&d.doc, &ids, op) {
+            self.flash(NO_OVERLAP);
+            return;
+        }
+        let Some(d) = self.doc_mut() else { return };
+        d.modify(label, |doc, sel| {
+            let r = ops::shaping(doc, &ids, op, leave_source, leave_target);
+            if r.is_empty() {
+                sel.retain(|id| doc.find(*id).is_some());
+            } else {
+                *sel = r;
+            }
+        });
+    }
 
     fn modify_sel(&mut self, label: &str, f: impl FnOnce(&mut Document, &mut Vec<ObjId>)) {
         if let Some(d) = self.doc_mut() {
@@ -1505,7 +1538,7 @@ impl AnyVectorApp {
                             doc.pages[page].guides.remove(i);
                         });
                     }
-                } else if self.tool == ToolId::Shape && self.doc().map(|d| !d.node_sel.is_empty()).unwrap_or(false) {
+                } else if self.tool == ToolId::Shape && self.doc().is_some_and(|d| !d.node_sel.is_empty() || crate::tools::selected_segment(d).is_some()) {
                     crate::tools::node_op(self, crate::tools::NodeOp::Delete);
                 } else {
                     self.modify_sel("Delete", |doc, sel| {
@@ -1519,10 +1552,15 @@ impl AnyVectorApp {
             }
             Cmd::Duplicate | Cmd::Clone => {
                 let off = self.doc().map(|d| d.doc.settings.duplicate_offset).unwrap_or(Vec2::new(18.0, 18.0));
+                let before = self.doc().and_then(|d| Some((d.selection.clone(), d.selection_bounds()?)));
                 self.modify_sel("Duplicate", |doc, sel| {
                     let ids = sel.clone();
                     *sel = ops::duplicate(doc, &ids, off);
                 });
+                // a moved rotation center goes along to the copies (issue 126)
+                if let (Some((old, bb)), Some(d)) = (before, self.doc_mut()) {
+                    d.carry_rot_center(&old, bb);
+                }
             }
             Cmd::StepAndRepeat => self.dockers.show(DockerId::StepRepeat),
             Cmd::CopyPropertiesFrom => {
@@ -1920,14 +1958,12 @@ impl AnyVectorApp {
             }
             Cmd::Distribute(how) => self.modify_sel("Distribute", |doc, sel| ops::distribute(doc, sel, how, None)),
             Cmd::Shaping(op) => {
-                let (ls, lt) = (self.ts.leave_source, self.ts.leave_target);
-                self.modify_sel("Shaping", |doc, sel| {
-                    let ids = sel.clone();
-                    let r = ops::shaping(doc, &ids, op, ls, lt);
-                    if !r.is_empty() {
-                        *sel = r;
-                    }
-                });
+                // Weld from the property bar consumes its pieces, as in CorelDRAW; the leave
+                // toggles keep Trim/Intersect/Front-Back Minus sources (#118).
+                let ls = self.ts.leave_source && op != ops::Shaping::Weld;
+                let lt = self.ts.leave_target;
+                let ids = self.doc().map(|d| d.selection.clone()).unwrap_or_default();
+                self.apply_shaping("Shaping", ids, op, ls, lt);
             }
             Cmd::Node(op) => crate::tools::node_op(self, op),
             Cmd::ConvertToCurves => self.modify_sel("Convert to Curves", |doc, sel| {
@@ -2489,7 +2525,8 @@ impl AnyVectorApp {
                 use vector_core::path::NodeKind;
                 // the first selected node decides which way the toggle goes
                 let node = self.doc().and_then(|d| {
-                    let (id, si, ni) = *d.node_sel.first()?;
+                    // or the segment clicked: its first node's outgoing segment is that segment
+                    let (id, si, ni) = d.node_sel.first().copied().or_else(|| crate::tools::selected_segment(d))?;
                     match &d.doc.find(id)?.kind {
                         ObjKind::Path(np) => np.subpaths.get(si)?.nodes.get(ni).copied(),
                         _ => None,
@@ -2587,7 +2624,7 @@ impl AnyVectorApp {
                 self.set_tool(t);
             }
             Cmd::Nudge(dx, dy) => {
-                if self.tool == ToolId::Shape && self.doc().map(|d| !d.node_sel.is_empty()).unwrap_or(false) {
+                if self.tool == ToolId::Shape && self.doc().is_some_and(|d| !d.node_sel.is_empty() || crate::tools::selected_segment(d).is_some()) {
                     crate::tools::nudge_nodes(self, Vec2::new(dx, dy));
                 } else {
                     self.transform_sel("Nudge", |_| Affine::translate((dx, dy)));
