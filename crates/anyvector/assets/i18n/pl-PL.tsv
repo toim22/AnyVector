@@ -5606,3 +5606,8 @@ Palettes (*.xml, *.ase, *.gpl)	Palety (*.xml, *.ase, *.gpl)
 PANTONE® color books are licensed and are not included in AnyVector. Click to open a palette you own: a CorelDRAW palette (.xml) or a color book exported from an Adobe program (.ase). Its spot colors keep their names.	Wzorniki kolorów PANTONE® są licencjonowane i nie są dołączone do AnyVector. Kliknij, aby otworzyć własną paletę: paletę CorelDRAW (.xml) lub wzornik wyeksportowany z programu Adobe (.ase). Jej kolory dodatkowe zachowują nazwy.
 Create Rectangle	Utwórz prostokąt
 {} PANTONE® color(s) are shown as grays: the PANTONE color books are licensed and aren't included in AnyVector	Kolory PANTONE® ({}) są wyświetlane jako szare: wzorniki kolorów PANTONE są licencjonowane i nie są dołączone do AnyVector
+Edit Polygon	Edytuj wielokąt
+Edit Ellipse	Edytuj elipsę
+Move Segment	Przenieś segment
+Delete Segment	Usuń segment
+A curve needs at least two nodes	Krzywa musi mieć co najmniej dwa węzły

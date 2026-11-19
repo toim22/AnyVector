@@ -79,6 +79,8 @@ pub struct DocView {
     pub cache: RenderCache,
     /// Selected nodes: (object, subpath, node).
     pub node_sel: Vec<(ObjId, usize, usize)>,
+    /// Shape tool: the segment clicked (object, subpath, segment), see `tools::selected_segment`.
+    pub seg_sel: Option<(ObjId, usize, usize)>,
     pub text_edit: Option<TextEdit>,
     /// PowerClip contents editing / focus mode container.
     pub focus: Vec<ObjId>,
@@ -136,6 +138,7 @@ impl DocView {
             simulate_overprint: false,
             cache: RenderCache::default(),
             node_sel: vec![],
+            seg_sel: None,
             text_edit: None,
             focus: vec![],
             rotate_mode: false,
@@ -192,6 +195,7 @@ impl DocView {
         let ids = self.doc.all_ids();
         self.selection.retain(|id| ids.contains(id));
         self.node_sel.retain(|(id, _, _)| ids.contains(id));
+        self.seg_sel = self.seg_sel.filter(|(id, _, _)| ids.contains(id));
         if self.page >= self.doc.pages.len() {
             self.page = self.doc.pages.len().saturating_sub(1);
         }
@@ -218,6 +222,7 @@ impl DocView {
         let r = self.history.undo(&mut self.doc, &mut self.selection, &mut self.page);
         self.text_edit = None;
         self.node_sel.clear();
+        self.seg_sel = None;
         self.after_change();
         r
     }
@@ -226,6 +231,7 @@ impl DocView {
         let r = self.history.redo(&mut self.doc, &mut self.selection, &mut self.page);
         self.text_edit = None;
         self.node_sel.clear();
+        self.seg_sel = None;
         self.after_change();
         r
     }

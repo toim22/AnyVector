@@ -552,6 +552,33 @@ fn draw_selection(painter: &Painter, d: &DocView, rotate: bool) {
 fn draw_nodes(painter: &Painter, d: &DocView, s: &Settings) {
     let ns = node_size(s);
     let main = Color32::from_rgb(s.node_main_color[0], s.node_main_color[1], s.node_main_color[2]);
+    // the segment clicked (#122): drawn thicker, under the nodes
+    if let Some((id, si, seg)) = selected_segment(d) {
+        if let Some(o) = d.doc.find(id) {
+            if let ObjKind::Path(np) = &o.kind {
+                if let Some((c, _)) = np.subpaths[si].segment(seg) {
+                    let mut bp = BezPath::new();
+                    bp.move_to(c.p0);
+                    bp.curve_to(c.p1, c.p2, c.p3);
+                    stroke_bez(painter, d, &(o.transform * bp), Stroke::new(3.0, main));
+                }
+            }
+        }
+    }
+    // the control points of the selected nodes' segments, both ends (#122)
+    for (id, si, ni, incoming) in visible_controls(d) {
+        let Some(o) = d.doc.find(id) else { continue };
+        let ObjKind::Path(np) = &o.kind else { continue };
+        let Some(n) = np.node((si, ni)) else { continue };
+        let c = d.to_screen(o.transform * n.p);
+        let cs = d.to_screen(o.transform * if incoming { n.c_in } else { n.c_out });
+        painter.line_segment([c, cs], Stroke::new(1.0, main));
+        painter.add(EShape::convex_polygon(
+            vec![cs + egui::vec2(0.0, -3.5), cs + egui::vec2(3.5, 0.0), cs + egui::vec2(0.0, 3.5), cs + egui::vec2(-3.5, 0.0)],
+            Color32::WHITE,
+            Stroke::new(1.0, main),
+        ));
+    }
     for id in &d.selection {
         let Some(o) = d.doc.find(*id) else { continue };
         let t = o.transform;
@@ -562,19 +589,6 @@ fn draw_nodes(painter: &Painter, d: &DocView, s: &Settings) {
                     for (ni, n) in sp.nodes.iter().enumerate() {
                         let selected = d.node_sel.contains(&(*id, si, ni));
                         let c = d.to_screen(t * n.p);
-                        if selected {
-                            for (cp, show) in [(n.c_in, n.c_in != n.p), (n.c_out, n.c_out != n.p && !n.line_out)] {
-                                if show {
-                                    let cs = d.to_screen(t * cp);
-                                    painter.line_segment([c, cs], Stroke::new(1.0, main));
-                                    painter.add(EShape::convex_polygon(
-                                        vec![cs + egui::vec2(0.0, -3.5), cs + egui::vec2(3.5, 0.0), cs + egui::vec2(0.0, 3.5), cs + egui::vec2(-3.5, 0.0)],
-                                        Color32::WHITE,
-                                        Stroke::new(1.0, main),
-                                    ));
-                                }
-                            }
-                        }
                         let size = if ni == 0 { ns + 2.0 } else { ns };
                         let r = ERect::from_center_size(c, egui::vec2(size, size));
                         let fill = if selected { main } else { Color32::WHITE };
@@ -607,6 +621,24 @@ fn draw_nodes(painter: &Painter, d: &DocView, s: &Settings) {
             ObjKind::Rect(r) => {
                 for (_, c) in rect_corner_nodes(r) {
                     handle(painter, d.to_screen(t * c), ns, false);
+                }
+            }
+            // polygon and ellipse nodes (#104, #108), drawn like curve nodes
+            ObjKind::Polygon(pg) => {
+                stroke_bez(painter, d, &o.world_path(), Stroke::new(1.0, main));
+                for (q, _, _) in pg.node_points() {
+                    let r = ERect::from_center_size(d.to_screen(t * q), egui::vec2(ns, ns));
+                    painter.rect_filled(r, 0.0, Color32::WHITE);
+                    painter.rect_stroke(r, 0.0, Stroke::new(1.0, main), egui::StrokeKind::Middle);
+                }
+            }
+            ObjKind::Ellipse(e) => {
+                stroke_bez(painter, d, &o.world_path(), Stroke::new(1.0, main));
+                for (q, start) in e.nodes() {
+                    let size = if start { ns + 2.0 } else { ns };
+                    let r = ERect::from_center_size(d.to_screen(t * q), egui::vec2(size, size));
+                    painter.rect_filled(r, 0.0, Color32::WHITE);
+                    painter.rect_stroke(r, 0.0, Stroke::new(1.0, main), egui::StrokeKind::Middle);
                 }
             }
             _ => {

@@ -269,8 +269,8 @@ pub fn creation_object(ts: &ToolState, s: &Settings, tool: ToolId, a: Point, b: 
             end: s.ellipse_end,
             clockwise: s.ellipse_clockwise,
         }),
-        ToolId::Polygon => ObjKind::Polygon(PolygonShape { w, h, sides: s.polygon_sides.max(3), kind: PolygonKind::Polygon, sharpness: 0.0 }),
-        ToolId::Star => ObjKind::Polygon(PolygonShape { w, h, sides: s.star_points.max(3), kind: PolygonKind::Star, sharpness: s.star_sharpness }),
+        ToolId::Polygon => ObjKind::Polygon(PolygonShape { w, h, sides: s.polygon_sides.max(3), kind: PolygonKind::Polygon, sharpness: 0.0, nodes: Default::default() }),
+        ToolId::Star => ObjKind::Polygon(PolygonShape { w, h, sides: s.star_points.max(3), kind: PolygonKind::Star, sharpness: s.star_sharpness, nodes: Default::default() }),
         ToolId::Spiral => ObjKind::Spiral(SpiralShape { w, h, revolutions: s.spiral_revs.max(1) as f64, logarithmic: s.spiral_log, expansion: s.spiral_expansion }),
         ToolId::CommonShapes => ObjKind::Path(shapes::common_shape(ts.common_shape, w, h)),
         ToolId::Table => ObjKind::Table(TableObj::new(s.table_rows.max(1) as usize, s.table_cols.max(1) as usize, w, h)),
@@ -816,87 +816,86 @@ impl<'a> Cx<'a> {
         let p = self.raw;
         let tol = self.tol();
         let shift = self.mods().shift;
-        // 1. control handles of the selected nodes
-        for &(id, si, ni) in &self.d.node_sel.clone() {
-            let Some(o) = self.d.doc.find(id) else { continue };
-            let ObjKind::Path(np) = &o.kind else { continue };
-            let Some(n) = np.node((si, ni)) else { continue };
-            for (cp, incoming) in [(n.c_in, true), (n.c_out, false)] {
-                if cp != n.p && ((o.transform * cp) - p).hypot() <= tol {
-                    self.ts.drag = Drag::Control { obj: id, si, ni, incoming, orig: np.clone(), moved: false };
-                    return;
-                }
+        // control points, nodes, then segments of the selected objects (see `shape_hit`)
+        let hit = super::shape_hit(self.d, p, tol);
+        let kind = hit.and_then(|h| {
+            let obj = match h {
+                ShapeHit::Control { obj, .. } | ShapeHit::Node { obj, .. } | ShapeHit::Corner { obj, .. } | ShapeHit::PolygonNode { obj, .. } | ShapeHit::EllipseNode { obj, .. } | ShapeHit::Segment { obj, .. } => obj,
+            };
+            self.d.doc.find(obj).map(|o| o.kind.clone())
+        });
+        match (hit, kind) {
+            (Some(ShapeHit::Control { obj, si, ni, incoming }), Some(ObjKind::Path(np))) => {
+                self.ts.drag = Drag::Control { obj, si, ni, incoming, orig: np, moved: false };
             }
-        }
-        // 2. nodes of selected curves
-        for id in self.d.selection.clone() {
-            let Some(o) = self.d.doc.find(id) else { continue };
-            match &o.kind {
-                ObjKind::Path(np) => {
-                    let t = o.transform;
-                    let mut found = None;
-                    for (si, sp) in np.subpaths.iter().enumerate() {
-                        for (ni, n) in sp.nodes.iter().enumerate() {
-                            if ((t * n.p) - p).hypot() <= tol {
-                                found = Some((si, ni));
-                            }
-                        }
+            (Some(ShapeHit::Node { obj: id, si, ni }), Some(ObjKind::Path(np))) => {
+                let r = (id, si, ni);
+                let selected = self.d.node_sel.contains(&r);
+                if shift {
+                    if selected {
+                        self.d.node_sel.retain(|x| *x != r);
+                    } else {
+                        self.d.node_sel.push(r);
                     }
-                    if let Some((si, ni)) = found {
-                        let r = (id, si, ni);
-                        let selected = self.d.node_sel.contains(&r);
-                        if shift {
-                            if selected {
-                                self.d.node_sel.retain(|x| *x != r);
-                            } else {
-                                self.d.node_sel.push(r);
-                            }
-                        } else if !selected {
-                            self.d.node_sel = vec![r];
-                        }
-                        let mut orig: Vec<(ObjId, NodePath)> = vec![];
-                        for (oid, _, _) in &self.d.node_sel {
-                            if orig.iter().any(|(x, _)| x == oid) {
-                                continue;
-                            }
-                            if let Some(ObjKind::Path(np)) = self.d.doc.find(*oid).map(|o| &o.kind) {
-                                orig.push((*oid, np.clone()));
-                            }
-                        }
-                        let start = t * np.subpaths[si].nodes[ni].p;
-                        self.ts.drag = Drag::Nodes { start, orig, moved: false };
-                        return;
+                } else {
+                    if !selected {
+                        self.d.node_sel = vec![r];
+                    }
+                    self.d.seg_sel = None;
+                }
+                let mut orig: Vec<(ObjId, NodePath)> = vec![];
+                for (oid, _, _) in &self.d.node_sel {
+                    if orig.iter().any(|(x, _)| x == oid) {
+                        continue;
+                    }
+                    if let Some(ObjKind::Path(np)) = self.d.doc.find(*oid).map(|o| &o.kind) {
+                        orig.push((*oid, np.clone()));
                     }
                 }
-                ObjKind::Rect(r) => {
-                    // the nodes where the corners are rounded, or the corners themselves
-                    let t = o.transform;
-                    let mut near: Vec<(usize, Point)> = super::rect_corner_nodes(r);
-                    near.extend((0..4).map(|k| (k, super::rect_corner_dirs(r, k).0)));
-                    if let Some((k, _)) = near.into_iter().filter(|(_, c)| ((t * *c) - p).hypot() <= tol).min_by(|a, b| ((t * a.1) - p).hypot().total_cmp(&((t * b.1) - p).hypot())) {
-                        self.ts.drag = Drag::Corner { obj: id, corner: k, start: p, orig: r.radii, moved: false };
-                        return;
-                    }
-                }
-                _ => {}
+                let t = self.d.doc.find(id).map(|o| o.transform).unwrap_or_default();
+                let start = t * np.subpaths[si].nodes[ni].p;
+                self.ts.drag = Drag::Nodes { start, orig, moved: false };
             }
-        }
-        // 3. objects
-        match self.hit(p) {
-            Some(id) => {
-                if !self.d.selection.contains(&id) {
-                    self.d.selection = vec![id];
-                    self.d.node_sel.clear();
-                } else if !shift {
-                    self.d.node_sel.clear();
-                }
+            (Some(ShapeHit::Corner { obj, corner }), Some(ObjKind::Rect(r))) => {
+                self.ts.drag = Drag::Corner { obj, corner, start: p, orig: r.radii, moved: false };
             }
-            None => {
+            (Some(ShapeHit::PolygonNode { obj, inner, index }), Some(ObjKind::Polygon(pg))) => {
+                self.ts.drag = Drag::PolygonNode { obj, inner, index, orig: pg, moved: false };
+            }
+            (Some(ShapeHit::EllipseNode { obj, start }), Some(ObjKind::Ellipse(e))) => {
+                // a whole ellipse has one node: which end it becomes depends on the drag
+                let handle = (e.kind != EllipseKind::Ellipse).then_some(start);
+                self.ts.drag = Drag::EllipseNode { obj, handle, orig: e, moved: false };
+            }
+            (Some(ShapeHit::Segment { obj, si, seg, t }), Some(ObjKind::Path(np))) => {
+                // the segment is selected (#122) and can be dragged (#123)
                 if !shift {
                     self.d.node_sel.clear();
                 }
-                self.ts.drag = Drag::NodeMarquee { start: p };
-                self.ts.cur = p;
+                self.d.seg_sel = Some((obj, si, seg));
+                self.ts.drag = Drag::Segment { obj, si, seg, t, start: p, orig: np, moved: false };
+            }
+            _ => {
+                if !shift {
+                    self.d.seg_sel = None;
+                }
+                match self.hit(p) {
+                    Some(id) => {
+                        if !self.d.selection.contains(&id) {
+                            self.d.selection = vec![id];
+                            self.d.node_sel.clear();
+                        } else if !shift {
+                            self.d.node_sel.clear();
+                        }
+                    }
+                    None => {
+                        if !shift {
+                            self.d.node_sel.clear();
+                        }
+                        self.ts.drag = Drag::NodeMarquee { start: p };
+                        self.ts.cur = p;
+                    }
+                }
             }
         }
     }
@@ -1552,6 +1551,69 @@ impl<'a> Cx<'a> {
                     self.d.history.touch();
                 }
             }
+            Drag::PolygonNode { obj, inner, index, orig, moved: started } => {
+                if !*started && moved {
+                    self.d.checkpoint("Edit Polygon");
+                    *started = true;
+                }
+                if *started {
+                    // Ctrl: the nodes only move toward or away from the center
+                    let radial = self.mods().ctrl;
+                    if let Some(o) = self.d.doc.find_mut(*obj) {
+                        let mut pg = orig.clone();
+                        pg.move_node(*inner, *index, o.transform.inverse() * p, radial);
+                        o.kind = ObjKind::Polygon(pg);
+                    }
+                    self.d.history.touch();
+                }
+            }
+            Drag::EllipseNode { obj, handle, orig, moved: started } => {
+                if !*started && moved {
+                    self.d.checkpoint("Edit Ellipse");
+                    *started = true;
+                }
+                if *started {
+                    // Ctrl: the angle keeps to the constrain angle
+                    let step = self.mods().ctrl.then_some(self.s.constrain_angle);
+                    if let Some(o) = self.d.doc.find_mut(*obj) {
+                        let (e, h) = orig.drag_node(*handle, o.transform.inverse() * p, step);
+                        *handle = h;
+                        o.kind = ObjKind::Ellipse(e);
+                    }
+                    self.d.history.touch();
+                }
+            }
+            Drag::Segment { obj, si, seg, t, start, orig, moved: started } => {
+                let line = orig.node((*si, *seg)).is_some_and(|n| n.line_out);
+                if !*started && moved {
+                    self.d.checkpoint(if line { "Move Segment" } else { "Edit Curve" });
+                    *started = true;
+                }
+                if *started {
+                    let mut dv = p - *start;
+                    // Ctrl: horizontal or vertical only
+                    if self.mods().ctrl {
+                        if dv.x.abs() > dv.y.abs() {
+                            dv.y = 0.0;
+                        } else {
+                            dv.x = 0.0;
+                        }
+                    }
+                    if let Some(o) = self.d.doc.find_mut(*obj) {
+                        let inv = o.transform.inverse();
+                        let ld = inv * Point::new(dv.x, dv.y) - inv * Point::ZERO;
+                        let mut np = orig.clone();
+                        // a line moves, a curve bends through the point dragged
+                        if line {
+                            np.move_segment(*si, *seg, ld);
+                        } else {
+                            np.bend_segment(*si, *seg, *t, ld);
+                        }
+                        o.kind = ObjKind::Path(np);
+                    }
+                    self.d.history.touch();
+                }
+            }
             Drag::TableCells { obj } => {
                 if let Some(o) = self.d.doc.find(*obj) {
                     if let ObjKind::Table(tb) = &o.kind {
@@ -1868,7 +1930,7 @@ impl<'a> Cx<'a> {
                 self.ts.was_selected = false;
             }
             Drag::Create { start } => self.release_create(start, moved),
-            Drag::Nodes { moved: started, .. } | Drag::Control { moved: started, .. } | Drag::Corner { moved: started, .. } | Drag::Envelope { moved: started, .. } | Drag::VarWidth { moved: started, .. } | Drag::Anchor { moved: started, .. } | Drag::GradientHandle { moved: started, .. } => {
+            Drag::Nodes { moved: started, .. } | Drag::Control { moved: started, .. } | Drag::Corner { moved: started, .. } | Drag::PolygonNode { moved: started, .. } | Drag::EllipseNode { moved: started, .. } | Drag::Segment { moved: started, .. } | Drag::Envelope { moved: started, .. } | Drag::VarWidth { moved: started, .. } | Drag::Anchor { moved: started, .. } | Drag::GradientHandle { moved: started, .. } => {
                 if started {
                     self.d.after_change();
                     self.d.history.touch();
@@ -1879,6 +1941,7 @@ impl<'a> Cx<'a> {
                     let r = Rect::from_points(start, p);
                     if !mods.shift {
                         self.d.node_sel.clear();
+                        self.d.seg_sel = None;
                     }
                     for id in self.d.selection.clone() {
                         if let Some(o) = self.d.doc.find(id) {
@@ -2344,7 +2407,29 @@ impl<'a> Cx<'a> {
                 }
             }
             Shape => {
-                // add a node where a selected curve was double-clicked
+                // a node double-clicked is deleted, as in CorelDRAW (#122); a segment double-clicked
+                // gets a node there
+                let tol = self.tol();
+                let node = self.d.selection.iter().find_map(|&id| {
+                    let o = self.d.doc.find(id)?;
+                    let ObjKind::Path(np) = &o.kind else { return None };
+                    np.all_refs().into_iter().find(|&r| np.node(r).is_some_and(|n| ((o.transform * n.p) - p).hypot() <= tol)).map(|(si, ni)| (id, si, ni))
+                });
+                if let Some((id, si, ni)) = node {
+                    if !matches!(self.d.doc.find(id).map(|o| &o.kind), Some(ObjKind::Path(np)) if np.node_count() > 2) {
+                        self.out.flash = Some("A curve needs at least two nodes".into());
+                        return;
+                    }
+                    self.ts.drag = Drag::None;
+                    self.d.modify("Delete Node", |doc, _| {
+                        if let Some(ObjKind::Path(np)) = doc.find_mut(id).map(|o| &mut o.kind) {
+                            np.delete_nodes(&[(si, ni)]);
+                        }
+                    });
+                    self.d.node_sel.clear();
+                    self.d.seg_sel = None;
+                    return;
+                }
                 for id in self.d.selection.clone() {
                     let Some(o) = self.d.doc.find(id) else { continue };
                     let ObjKind::Path(np) = &o.kind else { continue };
@@ -2361,6 +2446,7 @@ impl<'a> Cx<'a> {
                             });
                             if let Some((a, b)) = added {
                                 self.d.node_sel = vec![(id, a, b)];
+                                self.d.seg_sel = None;
                             }
                             return;
                         }

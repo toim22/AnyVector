@@ -132,7 +132,7 @@ fn build(c: &CoUi, origin: Point) -> Option<(ObjKind, Affine)> {
         1 => (ObjKind::Ellipse(EllipseShape { w, h, kind: EllipseKind::Ellipse, start: 0.0, end: 0.0, clockwise: false }), rot(w, h, tl)),
         2..=4 => {
             let kind = [PolygonKind::Polygon, PolygonKind::Star, PolygonKind::ComplexStar][c.tab - 2];
-            (ObjKind::Polygon(PolygonShape { w, h, sides: c.sides.max(3), kind, sharpness: c.sharp }), rot(w, h, tl))
+            (ObjKind::Polygon(PolygonShape { w, h, sides: c.sides.max(3), kind, sharpness: c.sharp, nodes: Default::default() }), rot(w, h, tl))
         }
         5 => (ObjKind::Path(polyline(&[doc(c.start), doc(c.end)], false)), Affine::IDENTITY),
         _ => {

@@ -5606,3 +5606,8 @@ Palettes (*.xml, *.ase, *.gpl)	調色盤 (*.xml、*.ase、*.gpl)
 PANTONE® color books are licensed and are not included in AnyVector. Click to open a palette you own: a CorelDRAW palette (.xml) or a color book exported from an Adobe program (.ase). Its spot colors keep their names.	PANTONE® 色票需要授權，AnyVector 中未包含。按一下可開啟您自己的調色盤：CorelDRAW 調色盤 (.xml) 或從 Adobe 程式匯出的色票 (.ase)。其中的特別色會保留名稱。
 Create Rectangle	建立矩形
 {} PANTONE® color(s) are shown as grays: the PANTONE color books are licensed and aren't included in AnyVector	{} 種 PANTONE® 色彩顯示為灰色：PANTONE 色票需要授權，AnyVector 中未包含
+Edit Polygon	編輯多邊形
+Edit Ellipse	編輯橢圓形
+Move Segment	移動線段
+Delete Segment	刪除線段
+A curve needs at least two nodes	曲線至少需要兩個節點

@@ -632,7 +632,14 @@ pub fn context_shortcuts(c: KeyContext) -> &'static [(&'static str, Option<Cmd>)
             ("Ctrl+Shift+Home", None),
             ("Ctrl+Shift+End", None),
         ],
-        KeyContext::Nodes => &[("C", Some(NodeToggle(0))), ("S", Some(NodeToggle(1))), ("L", Some(NodeToggle(2)))],
+        // + and - add and delete nodes, from the main keys or the keypad (#123)
+        KeyContext::Nodes => &[
+            ("C", Some(NodeToggle(0))),
+            ("S", Some(NodeToggle(1))),
+            ("L", Some(NodeToggle(2))),
+            ("+", Some(Node(crate::tools::NodeOp::Add))),
+            ("-", Some(Node(crate::tools::NodeOp::Delete))),
+        ],
         KeyContext::TableCells => &[("Ctrl+M", Some(TableMerge)), ("Ctrl+A", None)],
     }
 }
@@ -652,6 +659,7 @@ pub fn parse_shortcut(s: &str) -> Option<Shortcut> {
     let s = s.trim();
     // the key itself may be "+" ("Ctrl++", "Ctrl+Num +")
     let (mods, last) = match s.strip_suffix("++") {
+        _ if s == "+" => ("", "+"),
         Some(m) => (m, "+"),
         None => match s.rfind('+') {
             Some(i) if s.ends_with("Num +") => (s[..i.saturating_sub(4)].trim_end_matches('+'), "+"),
@@ -745,6 +753,9 @@ mod tests {
         assert_eq!(k("Alt+Shift+F12"), Some((false, true, true, Key::F12)));
         assert_eq!(k("Ctrl+Shift+S"), Some((true, true, false, Key::S)));
         assert_eq!(k("Delete"), Some((false, false, false, Key::Delete)));
+        assert_eq!(k("+"), Some((false, false, false, Key::Plus)));
+        assert_eq!(k("Num +"), Some((false, false, false, Key::Plus)));
+        assert_eq!(k("-"), Some((false, false, false, Key::Minus)));
         assert_eq!(k("Ctrl+Foo"), None);
     }
 
