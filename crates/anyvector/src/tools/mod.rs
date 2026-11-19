@@ -130,6 +130,9 @@ impl Drag {
 
 pub struct ToolState {
     pub previous_tool: Option<ToolId>,
+    /// The property-bar slider being dragged this frame (its drag's key): the change it makes
+    /// joins the drag's undo step (issue 107). Taken by `propbar::edit_sel`.
+    pub live_slider: Option<u64>,
     pub parallel_drawing: bool,
     pub parallel_count: u32,
     pub parallel_distance: f64,
@@ -252,6 +255,7 @@ impl Default for ToolState {
     fn default() -> Self {
         ToolState {
             previous_tool: None,
+            live_slider: None,
             parallel_drawing: false,
             parallel_count: 1,
             parallel_distance: 7.2,

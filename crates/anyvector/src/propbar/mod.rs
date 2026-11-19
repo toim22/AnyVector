@@ -6,7 +6,7 @@
 
 mod extra;
 pub(crate) use extra::{choose_brush, paint_apply, BRUSHES};
-mod fields;
+pub(crate) mod fields;
 pub(crate) mod text;
 
 pub use extra::{mesh_palette_color, node_align_dialog, painterly_profile};
@@ -21,7 +21,7 @@ use crate::widgets::icon_button_sized;
 use egui::{Id, Ui};
 use fields::{Fmt, Lead};
 use kurbo::{Affine, Point, Rect, Vec2};
-use vector_core::object::{ContourDir, CornerType, DistortKind, EllipseKind, PolygonKind};
+use vector_core::object::{ContourDir, CornerType, DistortKind, DropShadow, EllipseKind, PolygonKind};
 use vector_core::style::{GradientKind, MergeMode};
 use vector_core::text::TextAlign;
 use vector_core::{Color, Fill, ObjKind, Object, Transparency, Unit};
@@ -34,20 +34,26 @@ pub(crate) fn btn(app: &mut AnyVectorApp, ui: &mut Ui, icon: &str, tip: &str, en
     icon_button_sized(&mut app.icons, ui, icon, tip, enabled, checked, 30.0, 20.0)
 }
 
-/// Modify every selected object as one undo step.
+/// Modify every selected object as one undo step. A change from a slider being dragged joins the
+/// step the drag started (issue 107: one undo step per drag, not one per frame).
 pub fn edit_sel(app: &mut AnyVectorApp, label: &str, mut f: impl FnMut(&mut Object)) {
+    let live = app.ts.live_slider.take();
     let Some(d) = app.doc_mut() else { return };
     if d.selection.is_empty() {
         return;
     }
     let sel = d.selection.clone();
-    d.modify(label, |doc, _| {
+    let edit = |doc: &mut vector_core::Document, _: &mut Vec<vector_core::ObjId>| {
         for id in &sel {
             if let Some(o) = doc.find_mut(*id) {
                 f(o);
             }
         }
-    });
+    };
+    match live {
+        Some(key) => d.modify_live(key, label, edit),
+        None => d.modify(label, edit),
+    }
 }
 
 pub fn transform_sel(app: &mut AnyVectorApp, label: &str, m: Affine) {
@@ -1108,49 +1114,43 @@ fn dimension_text(app: &mut AnyVectorApp, ui: &mut Ui, it: &Item, prefix: bool) 
 fn shadow(app: &mut AnyVectorApp, ui: &mut Ui, it: &Item, k: &str) {
     let inner = app.tool == ToolId::InnerShadow;
     let cur = first(app, |o| if inner { o.effects.inner_shadow.clone() } else { o.effects.drop_shadow.clone() }).flatten();
-    let on = cur.is_some();
-    let mut s = cur.clone().unwrap_or_else(|| crate::tools::default_shadow(inner));
-    let mut ch = false;
+    // with the shadow tool, the fields also give a selected object without a shadow the default
+    // one with the value set (as in CorelDRAW; issue 107)
+    let on = cur.is_some() || (matches!(app.tool, ToolId::DropShadow | ToolId::InnerShadow) && app.has_selection());
+    let s = cur.clone().unwrap_or_else(|| crate::tools::default_shadow(inner));
+    let shown = |v: f64| on.then_some(v);
     let id = pid(ui, k);
+    // the one value that changed, set on the shadow of each selected object
+    let mut set: Option<Box<dyn Fn(&mut DropShadow)>> = None;
     match k {
         "b9180b11" => {
             if let Some(c) = fields::color_combo(ui, id, Some(s.color), 52.0, on, &tip(it)) {
-                s.color = c.unwrap_or(Color::BLACK);
-                ch = true;
+                let c = c.unwrap_or(Color::BLACK);
+                set = Some(Box::new(move |s| s.color = c));
             }
         }
         "50947468" | "c6e4e963" => {
             let opacity = k == "50947468";
             let v = if opacity { s.opacity } else { s.feather };
-            if let Some(v) = fields::slider(app, ui, id, lead(it), cur.as_ref().map(|_| v), 0.0..=100.0, Fmt::Num(0, ""), 36.0, on, &tip(it)) {
-                if opacity {
-                    s.opacity = v.clamp(0.0, 100.0);
-                } else {
-                    s.feather = v.clamp(0.0, 100.0);
-                }
-                ch = true;
+            if let Some(v) = fields::slider(app, ui, id, lead(it), shown(v), 0.0..=100.0, Fmt::Num(0, ""), 36.0, on, &tip(it)) {
+                let v = v.clamp(0.0, 100.0);
+                set = Some(if opacity { Box::new(move |s| s.opacity = v) } else { Box::new(move |s| s.feather = v) });
             }
         }
         _ => {
             let f = len(app);
-            let r = fields::stacked(app, ui, id, [Lead::None, Lead::None], [cur.as_ref().map(|s| s.offset.x), cur.as_ref().map(|s| s.offset.y)], f, 66.0, "", false, true, on, &tip(it));
-            if let Some(x) = r[0] {
-                s.offset.x = x;
-                ch = true;
-            }
-            if let Some(y) = r[1] {
-                s.offset.y = y;
-                ch = true;
+            let r = fields::stacked(app, ui, id, [Lead::None, Lead::None], [shown(s.offset.x), shown(s.offset.y)], f, 66.0, "", false, true, on, &tip(it));
+            match r {
+                [Some(x), _] => set = Some(Box::new(move |s| s.offset.x = x)),
+                [_, Some(y)] => set = Some(Box::new(move |s| s.offset.y = y)),
+                _ => {}
             }
         }
     }
-    if ch && on {
+    if let Some(set) = set.filter(|_| on) {
         edit_sel(app, "Shadow", |o| {
-            if inner {
-                o.effects.inner_shadow = Some(s.clone());
-            } else {
-                o.effects.drop_shadow = Some(s.clone());
-            }
+            let slot = if inner { &mut o.effects.inner_shadow } else { &mut o.effects.drop_shadow };
+            set(slot.get_or_insert_with(|| crate::tools::default_shadow(inner)));
         });
     }
 }

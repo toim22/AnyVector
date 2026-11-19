@@ -801,7 +801,12 @@ impl AnyVectorApp {
             let bitmap = png.as_ref().zip(rgba.as_deref()).map(|(pm, px)| (pm.width(), pm.height(), px));
             crate::dialogs::clipboard::set_system(&crate::dialogs::clipboard::copy_formats(&svg, emf, bitmap));
         }
-        self.clip = crate::app::Clip { objects: objs, images, symbols };
+        // a moved rotation center comes along when the objects are pasted (issue 126)
+        let pivot = match (&d.rot_center, d.selection_bounds()) {
+            (Some((ids, c)), Some(bb)) if *ids == d.selection => Some((bb, *c)),
+            _ => None,
+        };
+        self.clip = crate::app::Clip { objects: objs, images, symbols, pivot };
         true
     }
 
@@ -842,6 +847,9 @@ impl AnyVectorApp {
                 }
             }
             d.add_objects("Paste", objs);
+            if let Some((bb, c)) = clip.pivot {
+                d.place_rot_center(bb, c);
+            }
             return;
         }
         // an SVG picture: ours (Paste Special, or copied in another AnyVector) or another program's
@@ -1544,10 +1552,15 @@ impl AnyVectorApp {
             }
             Cmd::Duplicate | Cmd::Clone => {
                 let off = self.doc().map(|d| d.doc.settings.duplicate_offset).unwrap_or(Vec2::new(18.0, 18.0));
+                let before = self.doc().and_then(|d| Some((d.selection.clone(), d.selection_bounds()?)));
                 self.modify_sel("Duplicate", |doc, sel| {
                     let ids = sel.clone();
                     *sel = ops::duplicate(doc, &ids, off);
                 });
+                // a moved rotation center goes along to the copies (issue 126)
+                if let (Some((old, bb)), Some(d)) = (before, self.doc_mut()) {
+                    d.carry_rot_center(&old, bb);
+                }
             }
             Cmd::StepAndRepeat => self.dockers.show(DockerId::StepRepeat),
             Cmd::CopyPropertiesFrom => {

@@ -594,6 +594,8 @@ pub fn step_repeat(app: &mut AnyVectorApp, ui: &mut Ui) {
                     *selection = new;
                 }
             });
+            // a moved rotation center goes along to the copies (issue 126)
+            d.carry_rot_center(&sel, b);
         }
     }
 }
