@@ -1958,7 +1958,10 @@ impl AnyVectorApp {
             }
             Cmd::Distribute(how) => self.modify_sel("Distribute", |doc, sel| ops::distribute(doc, sel, how, None)),
             Cmd::Shaping(op) => {
-                let (ls, lt) = (self.ts.leave_source, self.ts.leave_target);
+                // Weld from the property bar consumes its pieces, as in CorelDRAW; the leave
+                // toggles keep Trim/Intersect/Front-Back Minus sources (#118).
+                let ls = self.ts.leave_source && op != ops::Shaping::Weld;
+                let lt = self.ts.leave_target;
                 let ids = self.doc().map(|d| d.selection.clone()).unwrap_or_default();
                 self.apply_shaping("Shaping", ids, op, ls, lt);
             }

@@ -3390,6 +3390,15 @@ fn trim_keeps_the_source_and_the_bar_toggles_it() {
     let at = toggle(&h, "Leave original source object");
     click(&mut h, at);
     assert!(h.state().ts.leave_source);
+    // Weld from the property bar still consumes its pieces, as in CorelDRAW
+    select(&mut h, vec![a, b]);
+    h.state_mut().run(Cmd::Shaping(Shaping::Weld));
+    h.step();
+    assert_eq!(count(&h), 2, "Weld left its original pieces behind");
+    assert!(area(&h, a).is_none() && area(&h, b).is_none());
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    assert_eq!(count(&h), 3, "one undo didn't bring the welded pieces back");
 }
 
 /// #97: an ellipse converted to curves is still a closed shape and is picked from inside when
