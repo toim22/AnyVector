@@ -166,6 +166,9 @@ pub struct ToolState {
     pub last_coalesce: f64,
     pub texture_cache: HashMap<String, egui::TextureHandle>,
     pub shaping_op: usize,
+    /// The property bar's shaping toggles (Weld, Trim, Intersect, Front/Back Minus…): keep the
+    /// objects that shape the target, and keep the target's original. The source is kept by
+    /// default, as CorelDRAW's property bar Trim does (#118).
     pub leave_source: bool,
     pub leave_target: bool,
     // ---- interaction state
@@ -278,7 +281,7 @@ impl Default for ToolState {
             last_coalesce: -10.0,
             texture_cache: HashMap::new(),
             shaping_op: 0,
-            leave_source: false,
+            leave_source: true,
             leave_target: false,
             drag: Drag::None,
             cur: Point::ZERO,

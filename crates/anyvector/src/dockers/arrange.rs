@@ -761,26 +761,27 @@ pub fn shaping(app: &mut AnyVectorApp, ui: &mut Ui) {
     if let Some(t) = target {
         app.dockers.ui.pick_slot = 0;
         let [ls, lt] = app.dockers.ui.shape_leave[cur.min(2)];
-        let Some(d) = app.doc_mut() else { return };
+        let Some(d) = app.doc() else { return };
         let mut ids: Vec<_> = d.selection.iter().copied().filter(|i| *i != t).collect();
         if ids.is_empty() {
             return;
         }
         ids.push(t);
-        d.modify(SHAPE_OPS[cur].0, |doc, selection| {
-            let r = ops::shaping(doc, &ids, op, ls, lt);
-            if !r.is_empty() {
-                *selection = r;
-            }
-        });
+        app.apply_shaping(SHAPE_OPS[cur].0, ids, op, ls, lt);
         return;
     }
     if clicked {
         let (behind, leave) = (app.dockers.ui.boundary_behind, app.dockers.ui.boundary_leave);
+        let Some(d) = app.doc() else { return };
+        if !ops::shaping_has_effect(&d.doc, &d.selection, op) {
+            app.flash(crate::exec::NO_OVERLAP);
+            return;
+        }
         let Some(d) = app.doc_mut() else { return };
         let sel = d.selection.clone();
         d.modify(SHAPE_OPS[cur].0, |doc, selection| {
-            let r = ops::shaping(doc, &sel, op, true, true);
+            // Simplify and Boundary delete nothing; Front/Back Minus consume the others
+            let r = ops::shaping(doc, &sel, op, false, false);
             if op == Shaping::Boundary {
                 if let Some(&b) = r.first() {
                     if behind {

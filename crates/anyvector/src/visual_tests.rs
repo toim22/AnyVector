@@ -3246,33 +3246,150 @@ fn unfilled_rect(h: &mut Harness<'_, AnyVectorApp>) -> (u64, egui::Pos2) {
     (id, d.to_screen(c))
 }
 
-/// #96: Treat All Objects as Filled is off by default, and the property bar button really turns
-/// picking inside unfilled shapes on and off (a second, document copy used to keep it on).
+/// #96/#116: Treat All Objects as Filled is on by default (as up to 0.5.2), so a click inside an
+/// unfilled shape picks it, and the property bar button really turns that off and on again (a
+/// second, document copy used to keep it on).
 #[test]
 fn treat_as_filled_button_controls_picking_inside() {
     use crate::tools::ToolId;
     let mut h = doc_harness();
     h.state_mut().settings.treat_as_filled = crate::settings::Settings::default().treat_as_filled;
-    assert!(!h.state().settings.treat_as_filled, "CorelDRAW's default is off");
+    assert!(h.state().settings.treat_as_filled, "#116: the default is on");
     let (id, at) = unfilled_rect(&mut h);
     h.state_mut().set_tool(ToolId::Pick);
     h.step();
-    assert_eq!(crate::propbar::option_state(h.state(), "b73ed810"), Some((true, false)));
-    click(&mut h, at);
-    assert!(h.state().doc().unwrap().selection.is_empty(), "an unfilled shape was picked from inside");
-    crate::propbar::press(h.state_mut(), "b73ed810");
     assert_eq!(crate::propbar::option_state(h.state(), "b73ed810"), Some((true, true)));
-    click(&mut h, at + egui::vec2(3.0, 3.0));
-    assert_eq!(h.state().doc().unwrap().selection, vec![id]);
-    crate::propbar::press(h.state_mut(), "b73ed810");
-    h.state_mut().doc_mut().unwrap().selection.clear();
     click(&mut h, at);
+    assert_eq!(h.state().doc().unwrap().selection, vec![id], "an unfilled shape wasn't picked from inside");
+    crate::propbar::press(h.state_mut(), "b73ed810");
+    assert_eq!(crate::propbar::option_state(h.state(), "b73ed810"), Some((true, false)));
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    click(&mut h, at + egui::vec2(3.0, 3.0));
     assert!(h.state().doc().unwrap().selection.is_empty(), "turning the button off didn't stop picking inside");
-    // the old value, which never worked, isn't read back: the setting has a new name
-    let old: crate::settings::Settings = serde_json::from_str(r#"{"treat_as_filled": true}"#).unwrap();
-    assert!(!old.treat_as_filled);
-    let new: crate::settings::Settings = serde_json::from_str(r#"{"pick_treat_as_filled": true}"#).unwrap();
-    assert!(new.treat_as_filled);
+    crate::propbar::press(h.state_mut(), "b73ed810");
+    click(&mut h, at);
+    assert_eq!(h.state().doc().unwrap().selection, vec![id], "turning the button on again didn't pick inside");
+    // the pre-0.5.3 name isn't read back; the current name is
+    let old: crate::settings::Settings = serde_json::from_str(r#"{"treat_as_filled": false}"#).unwrap();
+    assert!(old.treat_as_filled);
+    let new: crate::settings::Settings = serde_json::from_str(r#"{"pick_treat_as_filled": false}"#).unwrap();
+    assert!(!new.treat_as_filled);
+}
+
+/// #116: settings saved by 0.5.3/0.5.4 have Treat All Objects as Filled off and no revision; they
+/// are switched back on once, and a choice made after that sticks.
+#[test]
+fn treat_as_filled_off_from_0_5_4_is_migrated_once() {
+    use crate::settings::{Settings, SETTINGS_REVISION};
+    let mut s: Settings = serde_json::from_str(r#"{"pick_treat_as_filled": false}"#).unwrap();
+    assert_eq!(s.settings_revision, 0, "a file without a revision is revision 0");
+    assert!(!s.treat_as_filled);
+    s.migrate();
+    assert!(s.treat_as_filled, "0.5.4's off value wasn't reset");
+    assert_eq!(s.settings_revision, SETTINGS_REVISION);
+    // the user turns it off again; saving and loading keeps it off
+    s.treat_as_filled = false;
+    let mut back: Settings = serde_json::from_str(&serde_json::to_string(&s).unwrap()).unwrap();
+    back.migrate();
+    assert!(!back.treat_as_filled, "the migration ran twice");
+    assert_eq!(back.settings_revision, SETTINGS_REVISION);
+    // fresh settings are current and on
+    let fresh = Settings::default();
+    assert!(fresh.treat_as_filled);
+    assert_eq!(fresh.settings_revision, SETTINGS_REVISION);
+}
+
+/// #117: Virtual Segment Delete works on a rectangle that was never converted to curves: a click
+/// on a side turns it into curves without that side, as one undo step; a click on empty space
+/// changes nothing.
+#[test]
+fn virtual_segment_delete_on_a_rectangle() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    let (id, _) = unfilled_rect(&mut h);
+    let (side, empty) = {
+        let d = h.state().doc().unwrap();
+        let b = kurbo::Shape::bounding_box(&d.doc.find(id).unwrap().world_path());
+        (d.to_screen(Point::new(b.center().x + 30.0, b.y0)), d.to_screen(Point::new(b.x1 + 150.0, b.y1 + 150.0)))
+    };
+    h.state_mut().set_tool(ToolId::VirtualDelete);
+    h.step();
+    click(&mut h, empty);
+    assert!(matches!(h.state().doc().unwrap().doc.find(id).unwrap().kind, ObjKind::Rect(_)), "a click on empty space changed the rectangle");
+    click(&mut h, side);
+    let o = h.state().doc().unwrap().doc.find(id).expect("the rectangle is gone").clone();
+    let ObjKind::Path(np) = &o.kind else { panic!("the rectangle wasn't converted to curves: {:?}", o.kind) };
+    assert!(!np.is_closed(), "the side wasn't deleted");
+    assert_eq!(np.subpaths.iter().map(|s| s.segment_count()).sum::<usize>(), 3);
+    // conversion and deletion are one step
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    assert!(matches!(h.state().doc().unwrap().doc.find(id).unwrap().kind, ObjKind::Rect(_)), "one undo didn't bring the rectangle back");
+}
+
+/// #118: Trim on the property bar keeps the trimming (source) object by default; the property
+/// bar's Leave Original toggles change that, Trim is one undo step, and objects that don't overlap
+/// are never deleted.
+#[test]
+fn trim_keeps_the_source_and_the_bar_toggles_it() {
+    use crate::tools::ToolId;
+    use egui_kittest::kittest::Queryable;
+    use vector_core::ops::Shaping;
+    let mut h = doc_harness();
+    let sq = |d: &mut crate::docview::DocView, at: (f64, f64), w: f64| {
+        let id = d.doc.new_id();
+        let r = RectShape { w, h: w, radii: [0.0; 4], corner: CornerType::default() };
+        let st = Style { fill: Fill::Solid(Color::rgb(200, 40, 40)), ..Style::default() };
+        d.add_objects("test", vec![Object::new(id, ObjKind::Rect(r), Affine::translate(at), st)]);
+        id
+    };
+    let (a, b, far) = {
+        let d = h.state_mut().doc_mut().unwrap();
+        (sq(d, (100.0, 100.0), 200.0), sq(d, (200.0, 200.0), 200.0), sq(d, (600.0, 600.0), 50.0))
+    };
+    let area = |h: &Harness<'_, AnyVectorApp>, id| h.state().doc().unwrap().doc.find(id).map(|o| kurbo::Shape::area(&o.world_path()).abs());
+    let count = |h: &Harness<'_, AnyVectorApp>| h.state().doc().unwrap().page_ref().all_objects().count();
+    let select = |h: &mut Harness<'_, AnyVectorApp>, ids: Vec<u64>| {
+        h.state_mut().doc_mut().unwrap().selection = ids;
+        h.step();
+    };
+    h.state_mut().set_tool(ToolId::Pick);
+    select(&mut h, vec![a, b]);
+    assert!(h.state().ts.leave_source && !h.state().ts.leave_target, "the source isn't kept by default");
+    let toggle = |h: &Harness<'_, AnyVectorApp>, label: &str| h.query_by_label(label).map(|n| n.rect().center()).unwrap_or_else(|| panic!("no '{label}' toggle on the property bar"));
+    toggle(&h, "Leave original target object");
+    // default Trim: the target is cut, the source stays
+    h.state_mut().run(Cmd::Shaping(Shaping::Trim));
+    h.step();
+    assert!(area(&h, a).is_some(), "Trim deleted the source");
+    assert!((area(&h, b).unwrap() - 30000.0).abs() < 1.0, "the target wasn't trimmed");
+    assert!(matches!(h.state().doc().unwrap().doc.find(b).unwrap().kind, ObjKind::Path(_)));
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    assert!(matches!(h.state().doc().unwrap().doc.find(b).unwrap().kind, ObjKind::Rect(_)), "one undo didn't restore the target");
+    assert_eq!(count(&h), 3);
+    // the toggle on the property bar turns keeping the source off
+    let at = toggle(&h, "Leave original source object");
+    click(&mut h, at);
+    assert!(!h.state().ts.leave_source, "the property bar toggle didn't change the option");
+    select(&mut h, vec![a, b]);
+    h.state_mut().run(Cmd::Shaping(Shaping::Trim));
+    h.step();
+    assert!(area(&h, a).is_none(), "with the toggle off the source is used up");
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    assert_eq!(count(&h), 3);
+    // objects that don't overlap: nothing is deleted or changed
+    select(&mut h, vec![far, b]);
+    h.state_mut().run(Cmd::Shaping(Shaping::Trim));
+    h.step();
+    assert_eq!(count(&h), 3, "a Trim that does nothing deleted an object");
+    assert_eq!(h.state().message.as_ref().map(|m| m.text.as_str()), Some(crate::exec::NO_OVERLAP), "no status message");
+    assert!(matches!(h.state().doc().unwrap().doc.find(b).unwrap().kind, ObjKind::Rect(_)));
+    assert!(matches!(h.state().doc().unwrap().doc.find(far).unwrap().kind, ObjKind::Rect(_)));
+    let at = toggle(&h, "Leave original source object");
+    click(&mut h, at);
+    assert!(h.state().ts.leave_source);
 }
 
 /// #97: an ellipse converted to curves is still a closed shape and is picked from inside when

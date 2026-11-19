@@ -14,6 +14,9 @@ use vector_core::ops::{self, AlignTo};
 use vector_core::{Color, Document, Fill, ObjId, Object};
 
 /// Whether the system clipboard holds something pasteable (cached for a second).
+/// Status message of a Trim, Intersect, Front/Back Minus… that would change nothing (#118).
+pub const NO_OVERLAP: &str = "The objects don't overlap, so nothing was changed";
+
 pub fn system_clipboard_has_content() -> bool {
     use std::sync::Mutex;
     static CACHE: Mutex<Option<(std::time::Instant, bool)>> = Mutex::new(None);
@@ -979,6 +982,28 @@ impl AnyVectorApp {
 
     // -------------------------------------------------------------------------------- object ops
 
+    /// Weld, Trim, Intersect… on `ids` (selection order, the target last) as one undo step. When
+    /// the objects don't overlap, nothing changes and the status bar says so (#118).
+    pub fn apply_shaping(&mut self, label: &str, ids: Vec<ObjId>, op: ops::Shaping, leave_source: bool, leave_target: bool) {
+        let Some(d) = self.doc() else { return };
+        if ids.is_empty() || (ids.len() < 2 && op != ops::Shaping::Boundary) {
+            return;
+        }
+        if !ops::shaping_has_effect(&d.doc, &ids, op) {
+            self.flash(NO_OVERLAP);
+            return;
+        }
+        let Some(d) = self.doc_mut() else { return };
+        d.modify(label, |doc, sel| {
+            let r = ops::shaping(doc, &ids, op, leave_source, leave_target);
+            if r.is_empty() {
+                sel.retain(|id| doc.find(*id).is_some());
+            } else {
+                *sel = r;
+            }
+        });
+    }
+
     fn modify_sel(&mut self, label: &str, f: impl FnOnce(&mut Document, &mut Vec<ObjId>)) {
         if let Some(d) = self.doc_mut() {
             if d.selection.is_empty() {
@@ -1921,13 +1946,8 @@ impl AnyVectorApp {
             Cmd::Distribute(how) => self.modify_sel("Distribute", |doc, sel| ops::distribute(doc, sel, how, None)),
             Cmd::Shaping(op) => {
                 let (ls, lt) = (self.ts.leave_source, self.ts.leave_target);
-                self.modify_sel("Shaping", |doc, sel| {
-                    let ids = sel.clone();
-                    let r = ops::shaping(doc, &ids, op, ls, lt);
-                    if !r.is_empty() {
-                        *sel = r;
-                    }
-                });
+                let ids = self.doc().map(|d| d.selection.clone()).unwrap_or_default();
+                self.apply_shaping("Shaping", ids, op, ls, lt);
             }
             Cmd::Node(op) => crate::tools::node_op(self, op),
             Cmd::ConvertToCurves => self.modify_sel("Convert to Curves", |doc, sel| {

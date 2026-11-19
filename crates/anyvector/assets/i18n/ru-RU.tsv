@@ -5606,3 +5606,4 @@ Palettes (*.xml, *.ase, *.gpl)	Палитры (*.xml, *.ase, *.gpl)
 PANTONE® color books are licensed and are not included in AnyVector. Click to open a palette you own: a CorelDRAW palette (.xml) or a color book exported from an Adobe program (.ase). Its spot colors keep their names.	Каталоги цветов PANTONE® лицензируются и не входят в AnyVector. Щелкните, чтобы открыть свою палитру: палитру CorelDRAW (.xml) или каталог цветов, экспортированный из программы Adobe (.ase). Его плашечные цвета сохраняют названия.
 Create Rectangle	Создать прямоугольник
 {} PANTONE® color(s) are shown as grays: the PANTONE color books are licensed and aren't included in AnyVector	Цвета PANTONE® ({}) показаны серыми: каталоги цветов PANTONE лицензируются и не входят в AnyVector
+The objects don't overlap, so nothing was changed	Объекты не перекрываются, поэтому ничего не изменено

@@ -238,6 +238,9 @@ pub fn body(name: &str) -> Option<String> {
         "front_minus_back" => r##"<circle cx="9" cy="10" r="6" stroke="#6a6a6a"/><path d="M15 8a6 6 0 1 1-5.6 8.1A6 6 0 0 0 15 8z" fill="#c4c4c4"/>"##,
         "back_minus_front" => r##"<path d="M9 4a6 6 0 0 1 5.6 3.9A6 6 0 0 0 9.4 16 6 6 0 1 1 9 4z" fill="#c4c4c4"/><circle cx="15" cy="14" r="6" stroke="#6a6a6a"/>"##,
         "boundary" => r##"<path d="M3 9a6 6 0 0 1 11.6-2.1A6 6 0 1 1 9.4 17 6 6 0 0 1 3 9z" stroke-dasharray="2 1.5"/>"##,
+        // shaping: keep the original source (left) or target (right) object
+        "leave_source" => r##"<circle cx="15" cy="14" r="6" stroke="#6a6a6a" stroke-dasharray="2 1.5"/><circle cx="9" cy="10" r="6" fill="#c4c4c4"/>"##,
+        "leave_target" => r##"<circle cx="9" cy="10" r="6" stroke="#6a6a6a" stroke-dasharray="2 1.5"/><circle cx="15" cy="14" r="6" fill="#c4c4c4"/>"##,
         "mirror_h" => r##"<path d="M12 3v18" stroke-dasharray="2 1.5"/><path d="M9 6L3 18h6zM15 6l6 12h-6z"/>"##,
         "mirror_v" => r##"<path d="M3 12h18" stroke-dasharray="2 1.5"/><path d="M6 9L18 3v6zM6 15l12 6v-6z"/>"##,
         "rotate" => r##"<path d="M19 12a7 7 0 1 1-2-4.9"/><path d="M17.5 3v4.5H13"/>"##,

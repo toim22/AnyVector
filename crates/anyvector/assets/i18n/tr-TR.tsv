@@ -5606,3 +5606,4 @@ Palettes (*.xml, *.ase, *.gpl)	Paletler (*.xml, *.ase, *.gpl)
 PANTONE® color books are licensed and are not included in AnyVector. Click to open a palette you own: a CorelDRAW palette (.xml) or a color book exported from an Adobe program (.ase). Its spot colors keep their names.	PANTONE® renk kitapları lisanslıdır ve AnyVector'a dahil değildir. Sahip olduğunuz bir paleti açmak için tıklayın: bir CorelDRAW paleti (.xml) veya bir Adobe programından dışa aktarılmış bir renk kitabı (.ase). Spot renkleri adlarını korur.
 Create Rectangle	Dikdörtgen Oluştur
 {} PANTONE® color(s) are shown as grays: the PANTONE color books are licensed and aren't included in AnyVector	{} PANTONE® renk gri gösteriliyor: PANTONE renk kitapları lisanslıdır ve AnyVector'a dahil değildir
+The objects don't overlap, so nothing was changed	Nesneler çakışmıyor, bu nedenle hiçbir şey değiştirilmedi

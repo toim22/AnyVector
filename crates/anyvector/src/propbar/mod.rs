@@ -240,10 +240,35 @@ pub fn property_bar(app: &mut AnyVectorApp, ui: &mut Ui) {
         if let Some(b) = bar_for(app) {
             crate::cmdbar::strip(app, ui, b);
         }
+        if bar_id(app) == SHAPING_BAR {
+            shaping_leave(app, ui);
+        }
         crate::widgets::vsep(ui);
         let r = btn(app, ui, "plus", "Quick Customize", true, false);
         customize_popup(app, &r);
     });
+}
+
+/// The bar with the shaping buttons (Multiple Objects).
+pub const SHAPING_BAR: &str = "4568875c";
+
+/// The shaping toggles next to Weld, Trim, Intersect…: keep the source objects, keep the target's
+/// original (#118). They set `ToolState::leave_source` / `leave_target`, which every shaping
+/// button of the bar uses.
+fn shaping_leave(app: &mut AnyVectorApp, ui: &mut Ui) {
+    crate::widgets::vsep(ui);
+    let (ls, lt) = (app.ts.leave_source, app.ts.leave_target);
+    for (icon, tip, on) in [("leave_source", "Leave original source object", ls), ("leave_target", "Leave original target object", lt)] {
+        let r = btn(app, ui, icon, tip, true, on);
+        r.widget_info(|| egui::WidgetInfo::selected(egui::Role::CheckBox, true, on, tip));
+        if r.clicked() {
+            if icon == "leave_source" {
+                app.ts.leave_source = !on;
+            } else {
+                app.ts.leave_target = !on;
+            }
+        }
+    }
 }
 
 fn customize_popup(app: &mut AnyVectorApp, r: &egui::Response) {

@@ -3027,91 +3027,14 @@ impl<'a> Cx<'a> {
     }
 
     fn virtual_delete(&mut self, p: Point) {
-        let tol = self.tol();
-        // nearest curve segment under the pointer
-        let mut best: Option<(ObjId, usize, usize, f64, f64)> = None;
-        for o in self.d.page_ref().all_objects() {
-            if !o.visible || o.locked {
-                continue;
-            }
-            let ObjKind::Path(np) = &o.kind else { continue };
-            let local = o.transform.inverse() * p;
-            if let Some((si, seg, t, q, _)) = np.nearest(local) {
-                let dd = ((o.transform * q) - p).hypot();
-                if dd <= tol && best.map_or(true, |b| dd < b.4) {
-                    best = Some((o.id, si, seg, t, dd));
-                }
-            }
-        }
-        let Some((id, si, seg, t, _)) = best else {
+        // any curve or shape outline; a shape becomes curves in the same undo step (#117)
+        let Some(cut) = ops::virtual_cut_at(&self.d.doc, self.d.page, p, self.tol()) else {
             self.out.flash = Some("Click a curve segment between intersections".into());
             return;
         };
-        let Some(o) = self.d.doc.find(id) else { return };
-        let ObjKind::Path(np) = &o.kind else { return };
-        let Some((cubic, _)) = np.subpaths[si].segment(seg) else { return };
-        let tr = o.transform;
-        let wc = CubicBez::new(tr * cubic.p0, tr * cubic.p1, tr * cubic.p2, tr * cubic.p3);
-        // other geometry as polylines
-        let mut lines: Vec<Vec<Point>> = vec![];
-        for (osi, sp) in np.subpaths.iter().enumerate() {
-            for k in 0..sp.segment_count() {
-                if osi == si && k == seg {
-                    continue;
-                }
-                if let Some((c, _)) = sp.segment(k) {
-                    let c = CubicBez::new(tr * c.p0, tr * c.p1, tr * c.p2, tr * c.p3);
-                    lines.push((0..=24).map(|i| c.eval(i as f64 / 24.0)).collect());
-                }
-            }
-        }
-        for other in self.d.page_ref().all_objects() {
-            if other.id == id || !other.visible {
-                continue;
-            }
-            for (pts, closed) in geom::flatten_polylines(&other.world_path(), 0.1) {
-                let mut pts = pts;
-                if closed && !pts.is_empty() {
-                    pts.push(pts[0]);
-                }
-                lines.push(pts);
-            }
-        }
-        let n = 96;
-        let samples: Vec<Point> = (0..=n).map(|i| wc.eval(i as f64 / n as f64)).collect();
-        let mut ts_hits: Vec<f64> = vec![];
-        for i in 0..n {
-            for l in &lines {
-                for w in l.windows(2) {
-                    if let Some((ta, _, _)) = geom::seg_intersect(samples[i], samples[i + 1], w[0], w[1]) {
-                        let tt = (i as f64 + ta) / n as f64;
-                        if tt > 0.005 && tt < 0.995 {
-                            ts_hits.push(tt);
-                        }
-                    }
-                }
-            }
-        }
-        let t0 = ts_hits.iter().copied().filter(|x| *x < t).fold(None, |a: Option<f64>, x| Some(a.map_or(x, |a| a.max(x))));
-        let t1 = ts_hits.iter().copied().filter(|x| *x > t).fold(None, |a: Option<f64>, x| Some(a.map_or(x, |a| a.min(x))));
-        self.d.modify("Virtual Segment Delete", |doc, _| {
-            let Some(o) = doc.find_mut(id) else { return };
-            let ObjKind::Path(np) = &mut o.kind else { return };
-            let mut target = seg;
-            if let Some(t1) = t1 {
-                np.insert_node(si, seg, t1);
-            }
-            if let Some(t0) = t0 {
-                let tt = match t1 {
-                    Some(t1) => t0 / t1,
-                    None => t0,
-                };
-                np.insert_node(si, seg, tt);
-                target = seg + 1;
-            }
-            np.delete_segment(si, target);
-            if np.subpaths.iter().all(|s| s.nodes.len() < 2) {
-                let _ = doc.remove(id);
+        self.d.modify("Virtual Segment Delete", |doc, sel| {
+            if ops::apply_virtual_cut(doc, &cut).is_none() {
+                sel.retain(|id| *id != cut.id);
             }
         });
     }
