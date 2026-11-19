@@ -465,6 +465,20 @@ impl<'a> Cx<'a> {
         q
     }
 
+    /// Snap the rotation center being dragged: like any point, but the selection's own geometry
+    /// counts too (its nodes, the corners, midpoints and center of each object and of the
+    /// whole selection), as in CorelDRAW.
+    fn snap_rot_center(&mut self, p: Point) -> Point {
+        let (q, label, lines) = snap_point_ex(self.d, self.s, p, &[]);
+        let (q, label, lines) = match self.d.rot_center_snap(self.s, p) {
+            Some((own, l)) if label.is_none() || (own - p).hypot() < (q - p).hypot() => (own, Some(l), vec![]),
+            _ => (q, label, lines),
+        };
+        self.ts.snap_mark = label.map(|l| (q, l));
+        self.ts.guide_lines = lines;
+        q
+    }
+
     fn mods(&self) -> egui::Modifiers {
         self.inp.mods
     }
@@ -1570,8 +1584,9 @@ impl<'a> Cx<'a> {
             }
             Drag::Guide { .. } => self.ts.cur = p,
             Drag::RotCenter => {
-                // the center snaps like objects do (to nodes, the grid, guides)
-                let q = self.snap(p, &self.d.selection.clone());
+                // the center snaps like objects do (to nodes, the grid, guides), and also to the
+                // selection's own nodes, corners and midpoints (issue 126)
+                let q = self.snap_rot_center(p);
                 self.ts.cur = q;
                 self.d.rot_center = Some((self.d.selection.clone(), q));
             }
@@ -1854,9 +1869,9 @@ impl<'a> Cx<'a> {
                             doc.transform_objects(&targets, a);
                             *sel = targets;
                         });
-                        // a moved rotation center goes along with its objects
+                        // a moved rotation center goes along with its objects (or their copies)
                         if let Some((cids, c)) = self.d.rot_center.take() {
-                            if cids == ids && !copy {
+                            if cids == ids {
                                 self.d.rot_center = Some((self.d.selection.clone(), a * c));
                             }
                         }

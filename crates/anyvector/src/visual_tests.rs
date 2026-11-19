@@ -3386,3 +3386,180 @@ fn spot_color_from_a_palette_keeps_its_name() {
     crate::exec::apply_color(h.state_mut(), Some(ink), false);
     assert_eq!(h.state().doc().unwrap().doc.palette.iter().filter(|n| n.color == ink).count(), 1);
 }
+
+/// A selected 200 x 120 blue rectangle at (100, 100) in a new document.
+fn blue_rect(h: &mut Harness<'_, AnyVectorApp>) -> vector_core::ObjId {
+    let d = h.state_mut().doc_mut().unwrap();
+    let mut st = Style::default();
+    st.fill = Fill::Solid(Color::rgb(0x1e, 0x90, 0xff));
+    let id = d.doc.new_id();
+    d.add_objects("test", vec![Object::new(id, ObjKind::Rect(RectShape { w: 200.0, h: 120.0, radii: [0.0; 4], corner: CornerType::Round }), Affine::translate((100.0, 100.0)), st)]);
+    d.selection = vec![id];
+    id
+}
+
+/// Press at `a`, move to `b` in steps (calling `during` after each one), and release.
+fn drag_watching(h: &mut Harness<'_, AnyVectorApp>, a: egui::Pos2, b: egui::Pos2, mut during: impl FnMut(&mut Harness<'_, AnyVectorApp>)) {
+    move_to(h, a);
+    h.step();
+    press(h, a, true);
+    h.step();
+    for k in 1..=6 {
+        move_to(h, a + (b - a) * (k as f32 / 6.0));
+        h.step();
+        during(h);
+    }
+    press(h, b, false);
+    h.step();
+}
+
+/// Issue 107: the Drop Shadow bar's opacity and feathering are sliders that work: dragging the
+/// strip under the value or the slider button beside it changes the shadow while dragging, as one
+/// undo step; typing a value still works; with the Drop Shadow tool they also give a shape
+/// without a shadow the default one.
+#[test]
+#[ignore]
+fn visual_issue_107_shadow_sliders() {
+    let mut h = doc_harness();
+    let rect = blue_rect(&mut h);
+    h.state_mut().set_tool(crate::tools::ToolId::DropShadow);
+    for _ in 0..3 {
+        h.step();
+    }
+    let field = |h: &Harness<'_, AnyVectorApp>, tip: &str| h.ctx.data(|d| d.get_temp::<egui::Rect>(egui::Id::unique(("slider_field", tip.to_string())))).unwrap_or_else(|| panic!("the {tip} slider is on the bar"));
+    let shadow = |h: &Harness<'_, AnyVectorApp>| h.state().doc().unwrap().doc.find(rect).unwrap().effects.drop_shadow.clone();
+    let steps = |h: &Harness<'_, AnyVectorApp>| h.state().doc().unwrap().history.undo.len();
+    assert!(shadow(&h).is_none());
+
+    // the opacity strip: no shadow yet, so the drag starts from the default one (50) and the
+    // shadow follows the pointer while dragging
+    let fr = field(&h, "Shadow opacity");
+    let track = crate::propbar::fields::slider_track(fr);
+    let at = |t: f32| egui::pos2(track.left() + t * track.width(), fr.bottom() - 3.0);
+    let n0 = steps(&h);
+    let mut seen = vec![];
+    drag_watching(&mut h, at(0.5), at(0.8), |h| seen.push(shadow(h).map(|s| s.opacity)));
+    let s = shadow(&h).expect("dragging the slider made the default shadow");
+    assert_eq!(s.opacity, 80.0);
+    assert_eq!(s.feather, crate::tools::default_shadow(false).feather);
+    assert!(seen.iter().flatten().any(|o| *o > 50.0 && *o < 80.0), "the shadow changed while dragging: {seen:?}");
+    assert_eq!(steps(&h), n0 + 1, "one undo step for the drag");
+    save(&mut h, "issue_107_01_opacity_dragged");
+
+    // the feathering button scrubs: SCRUB_PX to the right is the whole range
+    let fr = field(&h, "Shadow feathering");
+    let button = egui::pos2(fr.right() + 9.0, fr.center().y);
+    let f0 = shadow(&h).unwrap().feather;
+    let dx = (crate::propbar::fields::SCRUB_PX * 0.3) as f32;
+    let mut seen = vec![];
+    drag_watching(&mut h, button, button + egui::vec2(dx, 0.0), |h| seen.push(shadow(h).unwrap().feather));
+    assert_eq!(shadow(&h).unwrap().feather, f0 + 30.0);
+    assert!(seen.iter().any(|f| *f > f0 && *f < f0 + 30.0), "it changed while dragging: {seen:?}");
+    assert_eq!(steps(&h), n0 + 2, "one more undo step");
+    save(&mut h, "issue_107_02_feather_scrubbed");
+
+    // a typed value still applies on Enter
+    click(&mut h, egui::pos2(fr.center().x, fr.top() + 8.0));
+    h.input_mut().events.push(egui::Event::Key { key: egui::Key::A, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::COMMAND });
+    h.step();
+    h.input_mut().events.push(egui::Event::Text("12".into()));
+    h.step();
+    key(&mut h, egui::Key::Enter, true);
+    h.step();
+    key(&mut h, egui::Key::Enter, false);
+    for _ in 0..2 {
+        h.step();
+    }
+    assert_eq!(shadow(&h).unwrap().feather, 12.0);
+    assert_eq!(steps(&h), n0 + 3);
+
+    // undo takes back one whole change at a time
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    assert_eq!(shadow(&h).unwrap().feather, f0 + 30.0);
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    assert_eq!(shadow(&h).unwrap().feather, f0);
+    assert_eq!(shadow(&h).unwrap().opacity, 80.0);
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    assert!(shadow(&h).is_none(), "the first drag made the shadow");
+    save(&mut h, "issue_107_03_undone");
+}
+
+/// Issue 126: the rotation center snaps to the selected shape's own corners, and a moved center
+/// goes along to the copies made by Duplicate and Paste (and comes back with Undo); Group makes a
+/// new object, which turns around its middle again.
+#[test]
+#[ignore]
+fn visual_issue_126_rotation_center_kept_and_snapped() {
+    let mut h = doc_harness();
+    let rect = blue_rect(&mut h);
+    let to_screen = |h: &Harness<'_, AnyVectorApp>, x: f64, y: f64| {
+        let p = h.state().doc().unwrap().to_screen(Point::new(x, y));
+        egui::pos2(p.x as f32, p.y as f32)
+    };
+    h.state_mut().set_tool(crate::tools::ToolId::Pick);
+    h.state_mut().doc_mut().unwrap().rotate_mode = true;
+    h.step();
+
+    // dragged near the rectangle's own top left corner, the center snaps onto it (and says so)
+    let corner = Point::new(100.0, 100.0);
+    let (a, b) = (to_screen(&h, 200.0, 160.0), to_screen(&h, 100.0, 100.0) + egui::vec2(5.0, 4.0));
+    let mut mark = None;
+    drag_watching(&mut h, a, b, |h| mark = h.state().ts.snap_mark);
+    let d = h.state().doc().unwrap();
+    assert_eq!(d.rotation_center(), Some(corner), "snapped onto its own corner");
+    assert_eq!(mark, Some((corner, "Corner")), "the snap shows");
+    save(&mut h, "issue_126_01_center_snapped_to_corner");
+    // and its own midpoints too
+    let (a, b) = (to_screen(&h, 100.0, 100.0), to_screen(&h, 300.0, 160.0) + egui::vec2(-4.0, 3.0));
+    drag(&mut h, a, b);
+    assert_eq!(h.state().doc().unwrap().rotation_center(), Some(Point::new(300.0, 160.0)));
+    let (a, b) = (to_screen(&h, 300.0, 160.0), to_screen(&h, 100.0, 100.0) + egui::vec2(3.0, 3.0));
+    drag(&mut h, a, b);
+    assert_eq!(h.state().doc().unwrap().rotation_center(), Some(corner));
+
+    // Duplicate: the copy keeps the center, moved with it
+    let off = h.state().doc().unwrap().doc.settings.duplicate_offset;
+    h.state_mut().run(Cmd::Duplicate);
+    h.step();
+    let d = h.state().doc().unwrap();
+    let copy = d.selection.clone();
+    assert_ne!(copy, vec![rect]);
+    assert_eq!(d.rotation_center(), Some(corner + off));
+    // it turns around there
+    let before = d.doc.find(copy[0]).unwrap().transform;
+    h.state_mut().run(Cmd::Rotate(30.0));
+    h.step();
+    let after = h.state().doc().unwrap().doc.find(copy[0]).unwrap().transform;
+    let c = corner + off;
+    assert!(((after * before.inverse() * c) - c).hypot() < 1e-6, "the copy turned around its moved center");
+    save(&mut h, "issue_126_02_duplicate_turned_around_center");
+
+    // Undo brings back the original and its center
+    h.state_mut().run(Cmd::Undo);
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    let d = h.state().doc().unwrap();
+    assert_eq!(d.selection, vec![rect]);
+    assert_eq!(d.rotation_center(), Some(corner));
+
+    // Copy and Paste: the pasted copy has the center at the same place
+    h.state_mut().run(Cmd::Copy);
+    h.state_mut().run(Cmd::Paste);
+    h.step();
+    let d = h.state().doc().unwrap();
+    assert_ne!(d.selection, vec![rect]);
+    let bb = d.selection_bounds().unwrap();
+    assert!((d.rotation_center().unwrap() - Point::new(bb.x0, bb.y0)).hypot() < 1e-6, "{:?} in {bb:?}", d.rotation_center());
+
+    // Group makes a new object: it turns around its middle
+    h.state_mut().doc_mut().unwrap().selection = vec![rect];
+    h.state_mut().doc_mut().unwrap().rot_center = Some((vec![rect], corner));
+    h.state_mut().run(Cmd::Group);
+    h.step();
+    let d = h.state().doc().unwrap();
+    assert_eq!(d.rotation_center(), Some(d.selection_bounds().unwrap().center()));
+    save(&mut h, "issue_126_03_group_turns_around_middle");
+}

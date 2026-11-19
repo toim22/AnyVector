@@ -1,6 +1,7 @@
 //! The fields of the property bars, drawn as in the reference: a dark field with the value,
 //! small up/down arrows on spin boxes, a chevron on lists, two rows on the stacked fields (X over
-//! Y, width over height) and a slider button next to the value of slider fields.
+//! Y, width over height) and, on slider fields, a slider strip under the value and a slider
+//! button next to it.
 
 use crate::app::AnyVectorApp;
 use crate::icons::Tone;
@@ -60,6 +61,17 @@ impl Fmt {
         match self {
             Fmt::Len(u, dpi) => Unit::parse_value(s, u, dpi),
             Fmt::Num(_, suffix) | Fmt::Trim(suffix) => s.trim().trim_end_matches(suffix.trim()).trim().trim_end_matches(['°', '%']).trim().parse().ok(),
+        }
+    }
+
+    /// `v` to the precision the field shows (a dragged slider gives whole numbers for `Num(0)`).
+    pub fn round(self, v: f64) -> f64 {
+        match self {
+            Fmt::Num(d, _) => {
+                let k = 10f64.powi(d.min(6) as i32);
+                (v * k).round() / k
+            }
+            Fmt::Len(..) | Fmt::Trim(_) => v,
         }
     }
 
@@ -318,37 +330,132 @@ pub fn color_combo(ui: &mut Ui, id: Id, color: Option<vector_core::Color>, w: f3
     out
 }
 
-/// A value with the slider button next to it; the slider opens below.
+/// A value with a slider (issue 107): the field takes a typed value; the strip along its foot is
+/// a slider (click or drag it); the slider button next to it scrubs the value when dragged
+/// sideways and opens a longer slider when clicked. The new value every frame it changes, so the
+/// caller applies it live; while one of the sliders is dragged, `app.ts.live_slider` holds the
+/// drag's key so `edit_sel` makes the whole drag one undo step.
 #[allow(clippy::too_many_arguments)]
 pub fn slider(app: &mut AnyVectorApp, ui: &mut Ui, id: Id, lead: Lead, v: Option<f64>, range: std::ops::RangeInclusive<f64>, fmt: Fmt, w: f32, enabled: bool, tip: &str) -> Option<f64> {
+    app.ts.live_slider = None;
     let lw = lead.width();
     let (rect, resp) = ui.allocate_exact_size(vec2(lw + w + 18.0, ROW), Sense::hover());
     lead.paint(app, ui, rect.left_center(), enabled);
     let fr = Rect::from_min_size(rect.min + vec2(lw, 0.0), vec2(w, ROW));
     frame(ui, fr, enabled);
+    // where the field is, for the tests to drag it (found by its tip)
+    #[cfg(test)]
+    ui.data_mut(|d| d.insert_temp(Id::unique(("slider_field", tip.to_string())), fr));
+    let on = enabled && v.is_some();
+    let (lo, hi) = (*range.start(), *range.end());
+    // how far along the range the value is: a bar along the foot of the field
+    let track = slider_track(fr);
+    if let Some(x) = v {
+        let t = slider_fraction(x, lo, hi) as f32;
+        ui.painter().rect_filled(track, 0.0, theme::SEP());
+        let fill = Rect::from_min_max(track.min, pos2(track.left() + t * track.width(), track.bottom()));
+        ui.painter().rect_filled(fill, 0.0, if on { theme::ACCENT() } else { theme::DISABLED() });
+    }
     let mut out = value_in(ui, id, fr, v, fmt, enabled, false);
+    let sense = if on { Sense::click_and_drag() } else { Sense::hover() };
+    // Some(this frame starts the drag) while one of the sliders is dragged
+    let mut dragging = None;
+    // the strip: a click or a drag puts the value where the pointer is
+    let sr = ui.interact(slider_strip(fr), id.with("strip"), sense);
+    if on && (sr.hovered() || sr.dragged()) {
+        ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeHorizontal);
+    }
+    if on && (sr.clicked() || sr.dragged()) {
+        if let Some(p) = sr.interact_pointer_pos() {
+            let t = ((p.x - track.left()) / track.width().max(1.0)) as f64;
+            out = Some(lo + t.clamp(0.0, 1.0) * (hi - lo));
+        }
+        if sr.dragged() {
+            dragging = Some(sr.drag_started());
+        }
+    }
     // the slider button: a vertical bar crossed by a short line
     let br = Rect::from_min_max(pos2(fr.right() + 1.0, rect.top()), rect.max);
-    let on = enabled && v.is_some();
-    let b = ui.interact(br, id.with("slider"), if on { Sense::click() } else { Sense::hover() });
-    if on && b.hovered() {
+    let b = ui.interact(br, id.with("slider"), sense);
+    if on && (b.hovered() || b.dragged()) {
         ui.painter().rect_filled(br, 2.0, theme::HOVER());
+        ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeHorizontal);
     }
     let c = br.center();
-    let s = Stroke::new(1.0, ink(on));
-    ui.painter().line_segment([c - vec2(0.0, 6.0), c + vec2(0.0, 6.0)], s);
-    ui.painter().line_segment([c - vec2(3.0, 0.0), c + vec2(3.0, 0.0)], s);
-    let lo = *range.start();
+    let st = Stroke::new(1.0, ink(on));
+    ui.painter().line_segment([c - vec2(0.0, 6.0), c + vec2(0.0, 6.0)], st);
+    ui.painter().line_segment([c - vec2(3.0, 0.0), c + vec2(3.0, 0.0)], st);
+    if on && b.drag_started() {
+        ui.data_mut(|d| d.insert_temp(id.with("scrub_from"), v.unwrap_or(lo)));
+    }
+    if on && b.dragged() {
+        let from = ui.data(|d| d.get_temp::<f64>(id.with("scrub_from"))).unwrap_or(v.unwrap_or(lo));
+        let dx = match (b.interact_pointer_pos(), ui.input(|i| i.pointer.press_origin())) {
+            (Some(p), Some(o)) => p.x - o.x,
+            _ => 0.0,
+        };
+        out = Some(scrub_value(from, dx as f64, lo, hi));
+        dragging = Some(b.drag_started());
+    }
+    // a click on the button: the longer slider below
     Popup::menu(&b).close_behavior(PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
         let mut x = v.unwrap_or(lo);
-        if ui.add(egui::Slider::new(&mut x, range).show_value(false)).changed() {
+        let r = ui.add(egui::Slider::new(&mut x, range).show_value(false));
+        if r.changed() {
             out = Some(x);
         }
+        if r.dragged() {
+            dragging = Some(r.drag_started());
+        }
     });
+    let out = out.map(|x| fmt.round(x.clamp(lo.min(hi), hi.max(lo)))).filter(|x| v.is_none_or(|v| (x - v).abs() > 1e-9));
+    // one key per drag: made when the drag starts, kept while it goes on
+    if let Some(started) = dragging {
+        let kid = id.with("drag_key");
+        let key = match ui.data(|d| d.get_temp::<u64>(kid)) {
+            Some(k) if !started => k,
+            _ => {
+                let k = id.with(ui.input(|i| i.time).to_bits()).value();
+                ui.data_mut(|d| d.insert_temp(kid, k));
+                k
+            }
+        };
+        if out.is_some() {
+            app.ts.live_slider = Some(key);
+        }
+    }
     if !tip.is_empty() {
         resp.on_hover_text(tip);
     }
     out
+}
+
+/// The bar of a slider field `fr` that shows how far along the range its value is.
+pub fn slider_track(fr: Rect) -> Rect {
+    Rect::from_min_max(pos2(fr.left() + 3.0, fr.bottom() - 4.0), pos2(fr.right() - 3.0, fr.bottom() - 2.0))
+}
+
+/// The part of a slider field `fr` that drags like a slider: the strip along its foot.
+pub fn slider_strip(fr: Rect) -> Rect {
+    Rect::from_min_max(pos2(fr.left(), fr.bottom() - 6.0), fr.max)
+}
+
+/// Where `x` is along `lo..=hi`, 0 to 1.
+pub fn slider_fraction(x: f64, lo: f64, hi: f64) -> f64 {
+    if (hi - lo).abs() < 1e-12 {
+        0.0
+    } else {
+        ((x - lo) / (hi - lo)).clamp(0.0, 1.0)
+    }
+}
+
+/// How far the slider button is dragged sideways to scrub through the whole range.
+pub const SCRUB_PX: f64 = 150.0;
+
+/// The value the slider button scrubs to: `from` moved by `dx` screen points (a whole range every
+/// [`SCRUB_PX`]), within `lo..=hi`.
+pub fn scrub_value(from: f64, dx: f64, lo: f64, hi: f64) -> f64 {
+    (from + dx / SCRUB_PX * (hi - lo)).clamp(lo.min(hi), hi.max(lo))
 }
 
 /// A one-line text field ("Prefix:"); the text when committed.
@@ -460,4 +567,27 @@ pub fn panel(app: &mut AnyVectorApp, ui: &mut Ui, lead: Lead, text: &str, w: f32
         body(app, ui);
     });
     r
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // issue 107: the slider strip, the scrubbing button and the rounding of dragged values
+    #[test]
+    fn slider_values() {
+        assert_eq!(slider_fraction(50.0, 0.0, 100.0), 0.5);
+        assert_eq!(slider_fraction(-5.0, 0.0, 100.0), 0.0);
+        assert_eq!(slider_fraction(400.0, -360.0, 360.0), 1.0);
+        assert_eq!(slider_fraction(3.0, 3.0, 3.0), 0.0);
+        // a whole range every SCRUB_PX points, kept within the range
+        assert!((scrub_value(50.0, SCRUB_PX * 0.3, 0.0, 100.0) - 80.0).abs() < 1e-9);
+        assert_eq!(scrub_value(50.0, -SCRUB_PX, 0.0, 100.0), 0.0);
+        assert_eq!(scrub_value(4000.0, SCRUB_PX * 0.1, 0.0, 5000.0), 4500.0);
+        assert_eq!(Fmt::Num(0, "").round(79.6), 80.0);
+        assert_eq!(Fmt::Num(1, "").round(12.34), 12.3);
+        // the strip lies inside the foot of the field, the bar inside the strip
+        let fr = Rect::from_min_size(pos2(10.0, 10.0), vec2(36.0, ROW));
+        assert!(fr.contains_rect(slider_strip(fr)) && slider_strip(fr).contains_rect(slider_track(fr)));
+    }
 }
