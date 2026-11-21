@@ -600,12 +600,18 @@ pub(crate) fn cursor_for(app: &AnyVectorApp, pos: Pos2) -> CursorIcon {
         ToolId::Text => CursorIcon::Text,
         // the Shape tool is told apart from Pick (#122): a crosshair, a hand over what it can grab
         ToolId::Shape => {
-            if matches!(app.ts.drag, Drag::Nodes { .. } | Drag::Control { .. } | Drag::Corner { .. } | Drag::PolygonNode { .. } | Drag::EllipseNode { .. } | Drag::Segment { .. }) {
+            // a text spacing handle: a resize cursor across it (#110)
+            let spacing = |vertical: bool| if vertical { CursorIcon::ResizeVertical } else { CursorIcon::ResizeHorizontal };
+            if let Drag::TextSpacing { kind, .. } = &app.ts.drag {
+                spacing(kind.vertical())
+            } else if matches!(app.ts.drag, Drag::Nodes { .. } | Drag::Control { .. } | Drag::Corner { .. } | Drag::PolygonNode { .. } | Drag::EllipseNode { .. } | Drag::Segment { .. }) {
                 CursorIcon::Grabbing
-            } else if tools::shape_hit(d, d.to_doc(pos), d.doc_len(5.0)).is_some() {
-                CursorIcon::PointingHand
             } else {
-                CursorIcon::Crosshair
+                match tools::shape_hit(d, d.to_doc(pos), d.doc_len(5.0)) {
+                    Some(tools::ShapeHit::TextSpacing { vertical, .. }) => spacing(vertical),
+                    Some(_) => CursorIcon::PointingHand,
+                    None => CursorIcon::Crosshair,
+                }
             }
         }
         ToolId::ColorEyedropper | ToolId::AttributesEyedropper | ToolId::SmartFill | ToolId::MeshFill => CursorIcon::Cell,

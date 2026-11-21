@@ -4008,3 +4008,555 @@ fn visual_shape_tool_nodes() {
     assert!(matches!(kind_of(&h, eid), ObjKind::Ellipse(e) if e.kind == EllipseKind::Pie));
     assert_eq!(h.state().doc().unwrap().seg_sel, Some((cid, 0, 0)));
 }
+
+// ---- 0.6.0: nudging segments (#142), Freehand with Ctrl (#134), Rectangle around the selection
+// (#135), text spacing handles (#110) ----
+
+/// The point at `t` of segment `seg` of the first subpath of curve `id`, in document space.
+fn seg_point(h: &Harness<'_, AnyVectorApp>, id: u64, seg: usize, t: f64) -> Point {
+    let o = h.state().doc().unwrap().doc.find(id).unwrap();
+    let ObjKind::Path(np) = &o.kind else { panic!("{:?}", o.kind) };
+    o.transform * kurbo::ParamCurve::eval(&np.subpaths[0].segment(seg).unwrap().0, t)
+}
+
+fn last_undo(h: &Harness<'_, AnyVectorApp>) -> String {
+    h.state().doc().unwrap().history.undo_labels().first().cloned().unwrap_or_default()
+}
+
+/// Press an arrow key: the nudge shortcut.
+fn arrow(h: &mut Harness<'_, AnyVectorApp>, k: egui::Key) {
+    h.key_press(k);
+    h.step();
+    h.step();
+}
+
+/// #142: the arrow keys on a selected segment, as in CorelDRAW: a curved segment bends, its
+/// middle moving by the nudge while its nodes and the segments beside it stay; a straight one
+/// moves with its nodes; one undo step per press, and the presses add up; selected nodes still
+/// move as before.
+#[test]
+fn nudging_a_curved_segment_bends_it() {
+    use crate::tools::NodeOp;
+    let (mut h, id) = shape_object(line_curve(&[(100.0, 100.0), (200.0, 100.0), (300.0, 100.0), (400.0, 100.0)]), (0.0, 0.0));
+    let np = |h: &Harness<'_, AnyVectorApp>| match kind_of(h, id) {
+        ObjKind::Path(np) => np,
+        k => panic!("{k:?}"),
+    };
+    let nudge = h.state().doc().unwrap().doc.settings.nudge;
+    // the middle segment made a curve; it stays selected
+    tool_click(&mut h, (250.0, 100.0), egui::Vec2::ZERO);
+    h.state_mut().run(Cmd::Node(NodeOp::ToCurve));
+    h.step();
+    assert_eq!(h.state().doc().unwrap().seg_sel, Some((id, 0, 1)));
+    let before = np(&h);
+    let steps = undo_steps(&h);
+    let mid0 = seg_point(&h, id, 1, 0.5);
+    arrow(&mut h, egui::Key::ArrowUp);
+    let n = np(&h);
+    let nodes = &n.subpaths[0].nodes;
+    for (k, p) in [(100.0, 100.0), (200.0, 100.0), (300.0, 100.0), (400.0, 100.0)].into_iter().enumerate() {
+        assert!(near(nodes[k].p, p), "node {k} moved: {nodes:?}");
+    }
+    let mid = seg_point(&h, id, 1, 0.5);
+    assert!((mid - (mid0 + kurbo::Vec2::new(0.0, -nudge))).hypot() < 1e-6, "the middle of the curve did not go up by the nudge: {mid:?}");
+    assert_ne!(nodes[1].c_out, before.subpaths[0].nodes[1].c_out);
+    assert_ne!(nodes[2].c_in, before.subpaths[0].nodes[2].c_in);
+    // the segments beside it keep their nodes and stay straight
+    assert_eq!(nodes[0], before.subpaths[0].nodes[0]);
+    assert_eq!(nodes[3], before.subpaths[0].nodes[3]);
+    assert!(nodes[0].line_out && nodes[2].line_out && !nodes[1].line_out);
+    assert_eq!(undo_steps(&h), steps + 1);
+    assert_eq!(last_undo(&h), "Edit Curve");
+    assert_eq!(h.state().doc().unwrap().seg_sel, Some((id, 0, 1)), "the segment stays selected");
+    // the presses add up, in any direction
+    arrow(&mut h, egui::Key::ArrowUp);
+    arrow(&mut h, egui::Key::ArrowRight);
+    let mid = seg_point(&h, id, 1, 0.5);
+    assert!((mid - (mid0 + kurbo::Vec2::new(nudge, -2.0 * nudge))).hypot() < 1e-6, "{mid:?}");
+    assert_eq!(undo_steps(&h), steps + 3);
+    for _ in 0..3 {
+        undo(&mut h);
+    }
+    assert_eq!(np(&h), before, "undo did not bring back the control points");
+    // a straight segment moves with both its nodes
+    tool_click(&mut h, (150.0, 100.0), egui::Vec2::ZERO);
+    assert_eq!(h.state().doc().unwrap().seg_sel, Some((id, 0, 0)));
+    h.state_mut().run(Cmd::Nudge(0.0, -10.0));
+    h.step();
+    let n = np(&h);
+    assert!(near(n.subpaths[0].nodes[0].p, (100.0, 90.0)) && near(n.subpaths[0].nodes[1].p, (200.0, 90.0)) && near(n.subpaths[0].nodes[2].p, (300.0, 100.0)), "{:?}", n.subpaths[0].nodes);
+    assert_eq!(last_undo(&h), "Move Segment");
+    undo(&mut h);
+    // selected nodes: only they move, even next to the curved segment
+    h.state_mut().doc_mut().unwrap().node_sel = vec![(id, 0, 2)];
+    h.state_mut().run(Cmd::Nudge(10.0, 0.0));
+    h.step();
+    let n = np(&h);
+    assert!(near(n.subpaths[0].nodes[2].p, (310.0, 100.0)) && near(n.subpaths[0].nodes[1].p, (200.0, 100.0)) && near(n.subpaths[0].nodes[3].p, (400.0, 100.0)));
+    assert_eq!(last_undo(&h), "Move Nodes");
+}
+
+/// #142: a curve of one segment bends too, and the nudge goes the way the arrow points on the
+/// page whatever the curve's own rotation.
+#[test]
+fn nudging_a_segment_of_a_rotated_curve() {
+    use crate::tools::NodeOp;
+    let (mut h, id) = shape_object(line_curve(&[(0.0, 0.0), (100.0, 0.0)]), (0.0, 0.0));
+    h.state_mut().doc_mut().unwrap().doc.find_mut(id).unwrap().transform = Affine::translate((200.0, 200.0)) * Affine::rotate(std::f64::consts::FRAC_PI_2);
+    // on the page it runs from (200, 200) down to (200, 300)
+    tool_click(&mut h, (200.0, 250.0), egui::Vec2::ZERO);
+    assert_eq!(h.state().doc().unwrap().seg_sel, Some((id, 0, 0)));
+    h.state_mut().run(Cmd::Node(NodeOp::ToCurve));
+    h.step();
+    let mid0 = seg_point(&h, id, 0, 0.5);
+    h.state_mut().run(Cmd::Nudge(10.0, 0.0));
+    h.step();
+    assert!((seg_point(&h, id, 0, 0.5) - (mid0 + kurbo::Vec2::new(10.0, 0.0))).hypot() < 1e-6, "{:?}", seg_point(&h, id, 0, 0.5));
+    assert!((seg_point(&h, id, 0, 0.0) - Point::new(200.0, 200.0)).hypot() < 1e-6 && (seg_point(&h, id, 0, 1.0) - Point::new(200.0, 300.0)).hypot() < 1e-6, "the nodes moved");
+}
+
+/// #142: what a nudged curve segment looks like. Images go to `target/visual/issue_142_*.png`.
+#[test]
+#[ignore]
+fn visual_issue_142_nudge_bends_a_curve_segment() {
+    use crate::tools::{NodeOp, ToolId};
+    let mut h = doc_harness();
+    h.state_mut().doc_mut().unwrap().doc.settings.snap_off = true;
+    let id = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let id = d.doc.new_id();
+        let mut st = Style::default();
+        st.outline.color = Some(Color::BLACK);
+        st.outline.width = 2.0;
+        let np = vector_core::path::polyline(&[Point::new(150.0, 300.0), Point::new(300.0, 200.0), Point::new(500.0, 200.0), Point::new(650.0, 300.0)], false);
+        d.add_objects("test", vec![Object::new(id, ObjKind::Path(np), Affine::IDENTITY, st)]);
+        d.selection = vec![id];
+        id
+    };
+    h.state_mut().set_tool(ToolId::Shape);
+    tool_click(&mut h, (400.0, 200.0), egui::Vec2::ZERO);
+    h.state_mut().run(Cmd::Node(NodeOp::ToCurve));
+    h.step();
+    save(&mut h, "issue_142_01_curve_segment_selected");
+    for _ in 0..8 {
+        arrow(&mut h, egui::Key::ArrowUp);
+    }
+    save(&mut h, "issue_142_02_nudged_up_8_times");
+    let ObjKind::Path(np) = kind_of(&h, id) else { unreachable!() };
+    assert!(near(np.subpaths[0].nodes[1].p, (300.0, 200.0)) && near(np.subpaths[0].nodes[2].p, (500.0, 200.0)), "the nodes moved");
+    assert!(seg_point(&h, id, 1, 0.5).y < 200.0 - 50.0);
+}
+
+/// A drag through document points with the active tool, `mods` held while dragging and
+/// `release` at the release.
+fn stroke_with(h: &mut Harness<'_, AnyVectorApp>, pts: &[(f64, f64)], mods: egui::Modifiers, release: egui::Modifiers) {
+    let s: Vec<egui::Pos2> = pts.iter().map(|p| scr(h, *p)).collect();
+    shape_in(h, s[0], true, true, false, false, mods);
+    for w in s.windows(2) {
+        for k in 1..=8 {
+            shape_in(h, w[0] + (w[1] - w[0]) * (k as f32 / 8.0), false, true, false, false, mods);
+        }
+    }
+    shape_in(h, *s.last().unwrap(), false, false, true, false, release);
+}
+
+/// A shaky stroke from `o` that ends at `deg` degrees, 100 points away.
+fn shaky(o: (f64, f64), deg: f64) -> Vec<(f64, f64)> {
+    let at = |a: f64, r: f64| (o.0 + r * a.to_radians().cos(), o.1 + r * a.to_radians().sin());
+    vec![o, at(deg + 12.0, 30.0), at(deg - 9.0, 55.0), at(deg + 6.0, 80.0), at(deg, 100.0)]
+}
+
+/// #134: Freehand, dragged with Ctrl held: a straight line at the nearest multiple of the
+/// constrain angle (Options ▸ Freehand/Bézier tool), as the click-click line; one undo step;
+/// without Ctrl at the release, or without Ctrl at all, the stroke stays freehand.
+#[test]
+fn freehand_ctrl_drag_draws_a_constrained_line() {
+    use crate::tools::ToolId;
+    let (ctrl, none) = (egui::Modifiers::CTRL, egui::Modifiers::NONE);
+    let mut h = join_harness(ToolId::Freehand);
+    assert_eq!(h.state().settings.constrain_angle, 15.0);
+    let end = |o: (f64, f64), deg: f64| (o.0 + 100.0 * deg.to_radians().cos(), o.1 + 100.0 * deg.to_radians().sin());
+    let last = |h: &Harness<'_, AnyVectorApp>| curves(h).last().unwrap().subpaths[0].clone();
+    // 40° with 15° steps: 45°
+    let steps = undo_steps(&h);
+    stroke_with(&mut h, &shaky((100.0, 100.0), 40.0), ctrl, ctrl);
+    assert_eq!(curves(&h).len(), 1);
+    let sp = last(&h);
+    assert_eq!(sp.nodes.len(), 2, "not a straight line: {:?}", sp.nodes);
+    assert!(sp.nodes[0].line_out && !sp.closed);
+    assert!(near(sp.nodes[0].p, (100.0, 100.0)) && near(sp.nodes[1].p, end((100.0, 100.0), 45.0)), "{:?}", sp.nodes);
+    assert_eq!(undo_steps(&h), steps + 1);
+    undo(&mut h);
+    assert!(curves(&h).is_empty());
+    // the constrain angle sets the steps: 30° makes it 30°
+    h.state_mut().settings.constrain_angle = 30.0;
+    stroke_with(&mut h, &shaky((100.0, 400.0), 40.0), ctrl, ctrl);
+    let sp = last(&h);
+    assert!(sp.nodes.len() == 2 && near(sp.nodes[1].p, end((100.0, 400.0), 30.0)), "{:?}", sp.nodes);
+    h.state_mut().settings.constrain_angle = 15.0;
+    // Ctrl let go before the release: the stroke as drawn
+    stroke_with(&mut h, &shaky((500.0, 100.0), 40.0), ctrl, none);
+    let sp = last(&h);
+    assert!(near(sp.nodes.last().unwrap().p, end((500.0, 100.0), 40.0)), "{:?}", sp.nodes);
+    // no Ctrl: freehand as before
+    stroke_with(&mut h, &shaky((500.0, 400.0), 40.0), none, none);
+    let sp = last(&h);
+    assert!(near(sp.nodes.last().unwrap().p, end((500.0, 400.0), 40.0)), "{:?}", sp.nodes);
+    assert_eq!(curves(&h).len(), 3);
+    // click-click with Ctrl still keeps to the constrain angle
+    let (a, b) = (scr(&h, (800.0, 100.0)), scr(&h, end((800.0, 100.0), 40.0)));
+    for p in [a, b] {
+        shape_in(&mut h, p, true, true, false, false, ctrl);
+        shape_in(&mut h, p, false, false, true, false, ctrl);
+    }
+    let sp = last(&h);
+    assert!(sp.nodes.len() == 2 && near(sp.nodes[1].p, end((800.0, 100.0), 45.0)), "{:?}", sp.nodes);
+}
+
+/// #134: a Ctrl+drag continuing the selected curve from its end node adds a straight segment to it.
+#[test]
+fn freehand_ctrl_drag_continues_the_curve() {
+    use crate::tools::ToolId;
+    let ctrl = egui::Modifiers::CTRL;
+    let mut h = join_harness(ToolId::Freehand);
+    stroke_with(&mut h, &shaky((100.0, 100.0), 0.0), ctrl, ctrl);
+    assert_eq!(curves(&h).len(), 1);
+    // from 2 pixels off its end: within the Auto-join distance
+    let s = h.state().doc().unwrap().to_doc(scr(&h, (200.0, 100.0)) + egui::vec2(2.0, 1.0));
+    let stroke = shaky((s.x, s.y), 88.0);
+    stroke_with(&mut h, &stroke, ctrl, ctrl);
+    let cs = curves(&h);
+    assert_eq!(cs.len(), 1, "the line became a separate object");
+    let nodes = &cs[0].subpaths[0].nodes;
+    assert_eq!(nodes.len(), 3, "{nodes:?}");
+    // from the end node, straight down (88° rounds to 90°), as long as the drag
+    let e = stroke[stroke.len() - 1];
+    let len = (Point::new(e.0, e.1) - Point::new(200.0, 100.0)).hypot();
+    assert!(near(nodes[1].p, (200.0, 100.0)) && near(nodes[2].p, (200.0, 100.0 + len)), "{nodes:?}");
+}
+
+/// #134: the preview of a Ctrl+drag with Freehand is the straight line it makes, and the line
+/// after one click follows the constrain angle too. Images go to `target/visual/issue_134_*.png`.
+#[test]
+#[ignore]
+fn visual_issue_134_freehand_ctrl_constrains() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    h.state_mut().doc_mut().unwrap().doc.settings.snap_off = true;
+    h.state_mut().set_tool(ToolId::Freehand);
+    h.step();
+    let ctrl = egui::Modifiers::CTRL;
+    let pts: Vec<egui::Pos2> = shaky((150.0, 150.0), 40.0).into_iter().map(|p| scr(&h, (p.0 * 2.0 - 150.0, p.1 * 2.0 - 150.0))).collect();
+    h.input_mut().events.push(egui::Event::ModifiersChanged(ctrl));
+    move_to(&mut h, pts[0]);
+    h.step();
+    h.input_mut().events.push(egui::Event::PointerButton { pos: pts[0], button: egui::PointerButton::Primary, pressed: true, modifiers: ctrl });
+    h.step();
+    for w in pts.windows(2) {
+        for k in 1..=4 {
+            move_to(&mut h, w[0] + (w[1] - w[0]) * (k as f32 / 4.0));
+            h.step();
+        }
+    }
+    assert!(matches!(h.state().ts.drag, crate::tools::Drag::Stroke { .. }), "not drawing");
+    save(&mut h, "issue_134_01_ctrl_drag_preview");
+    h.input_mut().events.push(egui::Event::PointerButton { pos: *pts.last().unwrap(), button: egui::PointerButton::Primary, pressed: false, modifiers: ctrl });
+    h.step();
+    h.input_mut().events.push(egui::Event::ModifiersChanged(egui::Modifiers::NONE));
+    let cs = curves(&h);
+    assert_eq!(cs.len(), 1);
+    assert_eq!(cs[0].subpaths[0].nodes.len(), 2, "{:?}", cs[0].subpaths[0].nodes);
+    let (a, b) = (cs[0].subpaths[0].nodes[0].p, cs[0].subpaths[0].nodes[1].p);
+    assert!(((b.y - a.y).atan2(b.x - a.x).to_degrees() - 45.0).abs() < 1e-6);
+    save(&mut h, "issue_134_02_ctrl_drag_line");
+    // one click, then the pointer away with Ctrl: the line to it keeps to 15° steps
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    let a = scr(&h, (150.0, 600.0));
+    click(&mut h, a);
+    h.input_mut().events.push(egui::Event::ModifiersChanged(ctrl));
+    let b = scr(&h, (400.0, 520.0));
+    move_to(&mut h, b);
+    h.step();
+    assert!(h.state().ts.line_start.is_some());
+    save(&mut h, "issue_134_03_click_line_preview");
+    h.input_mut().events.push(egui::Event::ModifiersChanged(egui::Modifiers::NONE));
+    h.state_mut().ts.cancel();
+}
+
+/// Double-click the Rectangle tool in the toolbox.
+fn double_click_rectangle_tool(h: &mut Harness<'_, AnyVectorApp>) {
+    use egui_kittest::kittest::Queryable;
+    // the toolbox button (left edge), not a property bar or menu item with the same tooltip
+    let at = h.query_all_by_label_contains("Rectangle tool").map(|n| n.rect().center()).min_by(|a, b| a.x.total_cmp(&b.x)).expect("no Rectangle tool button");
+    let at = egui::pos2(at.x - 3.0, at.y - 3.0);
+    move_to(h, at);
+    h.step();
+    // a step is 0.25 s and a double-click must come within 0.3 s: one click per step
+    for _ in 0..2 {
+        press(h, at, true);
+        press(h, at, false);
+        h.step();
+    }
+    h.step();
+}
+
+/// A rectangle and a turned ellipse, selected; returns their ids.
+fn two_shapes(h: &mut Harness<'_, AnyVectorApp>) -> (u64, u64) {
+    let d = h.state_mut().doc_mut().unwrap();
+    let (a, b) = (d.doc.new_id(), d.doc.new_id());
+    let st = Style { fill: Fill::Solid(Color::rgb(0x1e, 0x90, 0xff)), ..Style::default() };
+    let e = EllipseShape { w: 160.0, h: 80.0, kind: EllipseKind::Ellipse, start: 0.0, end: 0.0, clockwise: false };
+    d.add_objects(
+        "test",
+        vec![
+            Object::new(a, ObjKind::Rect(RectShape { w: 200.0, h: 120.0, radii: [0.0; 4], corner: CornerType::Round }), Affine::translate((100.0, 100.0)), st.clone()),
+            Object::new(b, ObjKind::Ellipse(e), Affine::translate((420.0, 260.0)) * Affine::rotate(30f64.to_radians()), st),
+        ],
+    );
+    d.selection = vec![a, b];
+    (a, b)
+}
+
+/// #135: with objects selected, double-clicking the Rectangle tool draws a rectangle around them
+/// (the selection's bounding box, axis-aligned also for a turned object), selected in their
+/// place, in one undo step; the objects stay as they were.
+#[test]
+fn double_click_rectangle_tool_wraps_the_selection() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    let (a, b) = two_shapes(&mut h);
+    h.step();
+    let (bb, before, oa, ob) = {
+        let d = h.state().doc().unwrap();
+        (d.selection_bounds().unwrap(), d.page_ref().all_objects().count(), d.doc.find(a).unwrap().clone(), d.doc.find(b).unwrap().clone())
+    };
+    let steps = undo_steps(&h);
+    double_click_rectangle_tool(&mut h);
+    let s = h.state();
+    assert_eq!(s.tool, ToolId::Rectangle);
+    let d = s.doc().unwrap();
+    assert_eq!(d.page_ref().all_objects().count(), before + 1);
+    assert_eq!(d.selection.len(), 1);
+    assert!(d.selection[0] != a && d.selection[0] != b);
+    let o = d.doc.find(d.selection[0]).unwrap();
+    assert!(matches!(o.kind, ObjKind::Rect(_)));
+    let r = kurbo::Shape::bounding_box(&o.world_path());
+    for (x, y) in [(r.x0, bb.x0), (r.y0, bb.y0), (r.x1, bb.x1), (r.y1, bb.y1)] {
+        assert!((x - y).abs() < 0.01, "{r:?} is not around the selection {bb:?}");
+    }
+    assert_eq!(d.doc.find(a).unwrap(), &oa);
+    assert_eq!(d.doc.find(b).unwrap(), &ob);
+    assert_eq!(undo_steps(&h), steps + 1);
+    undo(&mut h);
+    assert_eq!(h.state().doc().unwrap().page_ref().all_objects().count(), before);
+    // a single object: around it
+    h.state_mut().doc_mut().unwrap().selection = vec![b];
+    crate::tools::rectangle_to_bounds(h.state_mut());
+    let d = h.state().doc().unwrap();
+    let r = kurbo::Shape::bounding_box(&d.doc.find(d.selection[0]).unwrap().world_path());
+    let eb = d.doc.find(b).unwrap().bounds();
+    assert!((r.x0 - eb.x0).abs() < 0.01 && (r.y1 - eb.y1).abs() < 0.01 && (r.width() - eb.width()).abs() < 0.01, "{r:?} vs {eb:?}");
+    // nothing selected: the page, as before (#99)
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    crate::tools::rectangle_to_bounds(h.state_mut());
+    let d = h.state().doc().unwrap();
+    let page = d.page_ref().rect();
+    let r = kurbo::Shape::bounding_box(&d.doc.find(d.selection[0]).unwrap().world_path());
+    assert!((r.x0 - page.x0).abs() < 0.01 && (r.y1 - page.y1).abs() < 0.01 && (r.width() - page.width()).abs() < 0.01, "{r:?} vs the page {page:?}");
+}
+
+/// #135: the rectangle drawn around two selected shapes by double-clicking the Rectangle tool.
+/// Images go to `target/visual/issue_135_*.png`.
+#[test]
+#[ignore]
+fn visual_issue_135_rectangle_around_the_selection() {
+    let mut h = doc_harness();
+    two_shapes(&mut h);
+    h.state_mut().set_tool(crate::tools::ToolId::Pick);
+    save(&mut h, "issue_135_01_selection");
+    double_click_rectangle_tool(&mut h);
+    let d = h.state().doc().unwrap();
+    assert!(matches!(d.doc.find(d.selection[0]).unwrap().kind, ObjKind::Rect(_)));
+    save(&mut h, "issue_135_02_rectangle_around_it");
+}
+
+/// A selected artistic text on a Shape-tool document.
+fn spacing_text<'a>(s: &str, tr: Affine) -> (Harness<'a, AnyVectorApp>, u64) {
+    use vector_core::text::{CharFormat, TextObj};
+    let (mut h, id) = shape_object(ObjKind::Text(TextObj::artistic(s, CharFormat::default())), (0.0, 0.0));
+    h.state_mut().doc_mut().unwrap().doc.find_mut(id).unwrap().transform = tr;
+    h.state_mut().settings.crosshair_cursor = false;
+    (h, id)
+}
+
+fn text_of(h: &Harness<'_, AnyVectorApp>, id: u64) -> vector_core::text::TextObj {
+    match kind_of(h, id) {
+        ObjKind::Text(t) => t,
+        k => panic!("{k:?}"),
+    }
+}
+
+/// The text's spacing handles: (horizontal, vertical), in document points.
+fn spacing_handles(h: &Harness<'_, AnyVectorApp>, id: u64) -> Option<((f64, f64), (f64, f64))> {
+    let d = h.state().doc().unwrap();
+    crate::tools::text_spacing_handles(d, d.doc.find(id).unwrap()).map(|[(a, _), (b, _)]| ((a.x, a.y), (b.x, b.y)))
+}
+
+/// The width of the widest line and the baselines of a text.
+fn text_lines(t: &vector_core::text::TextObj) -> (f64, Vec<f64>) {
+    let l = vector_core::text::layout(t);
+    (l.lines.iter().map(|x| x.x1 - x.x0).fold(0.0, f64::max), l.lines.iter().map(|x| x.baseline).collect())
+}
+
+/// #110: the Shape tool shows CorelDRAW's spacing handles on a selected text: dragging the one
+/// past the lower right corner sets the character spacing (Shift: the word spacing), the widest
+/// line following the pointer; the one below the lower left corner the line spacing (Shift: the
+/// space after paragraphs), the last line following the pointer. One undo step per drag, named as
+/// the Text docker's field; the docker's values are the text's.
+#[test]
+fn shape_tool_text_spacing_handles() {
+    use egui::CursorIcon;
+    let shift = egui::Modifiers::SHIFT;
+    let none = egui::Modifiers::NONE;
+    let (mut h, id) = spacing_text("Spacing handles\nsecond line", Affine::translate((100.0, 200.0)));
+    let t0 = text_of(&h, id);
+    let (w0, b0) = text_lines(&t0);
+    assert_eq!(b0.len(), 2);
+    let (hh, vh) = spacing_handles(&h, id).expect("no spacing handles on the text");
+    let bb = h.state().doc().unwrap().doc.find(id).unwrap().bounds();
+    assert!(hh.0 > bb.x1 && hh.1 > bb.center().y && hh.1 < vh.1, "{hh:?} {vh:?} {bb:?}");
+    assert!(vh.1 > bb.y1 && (vh.0 - bb.x0).abs() < 3.0, "{vh:?} {bb:?}");
+    let cursor = |h: &Harness<'_, AnyVectorApp>, p: (f64, f64)| crate::canvas::cursor_for(h.state(), scr(h, p));
+    assert_eq!(cursor(&h, hh), CursorIcon::ResizeHorizontal);
+    assert_eq!(cursor(&h, vh), CursorIcon::ResizeVertical);
+    let steps = undo_steps(&h);
+    // the horizontal handle 30 to the right: the character spacing grows
+    shape_drag(&mut h, hh, (hh.0 + 30.0, hh.1 + 4.0), none);
+    let t1 = text_of(&h, id);
+    let (w1, _) = text_lines(&t1);
+    assert!(t1.format.tracking > 0.0, "{}", t1.format.tracking);
+    assert!((w1 - w0 - 30.0).abs() < 1.0, "the widest line grew {} for a drag of 30", w1 - w0);
+    assert_eq!((t1.line_spacing, t1.word_spacing, t1.para_spacing), (100.0, 100.0, 0.0));
+    assert_eq!(undo_steps(&h), steps + 1);
+    assert_eq!(last_undo(&h), "Character Spacing");
+    assert_eq!(crate::tools::TextSpacing::Char.value(&t1), t1.format.tracking);
+    // the handle went along with the text
+    let (hh1, vh1) = spacing_handles(&h, id).unwrap();
+    assert!((hh1.0 - hh.0 - 30.0).abs() < 1.0, "{hh1:?}");
+    // the vertical handle 20 down: the line spacing grows, the second line goes 20 down
+    shape_drag(&mut h, vh1, (vh1.0 - 5.0, vh1.1 + 20.0), none);
+    let t2 = text_of(&h, id);
+    let (_, b2) = text_lines(&t2);
+    assert!(t2.line_spacing > 100.0);
+    assert!(((b2[1] - b2[0]) - (b0[1] - b0[0]) - 20.0).abs() < 0.5, "the second line moved {}", (b2[1] - b2[0]) - (b0[1] - b0[0]));
+    assert_eq!(t2.format.tracking, t1.format.tracking);
+    assert_eq!(last_undo(&h), "Line Spacing");
+    // Shift: the word spacing
+    let (hh2, vh2) = spacing_handles(&h, id).unwrap();
+    shape_drag(&mut h, hh2, (hh2.0 + 20.0, hh2.1), shift);
+    let t3 = text_of(&h, id);
+    assert!(t3.word_spacing > 100.0 && t3.format.tracking == t2.format.tracking, "{} {}", t3.word_spacing, t3.format.tracking);
+    assert!((text_lines(&t3).0 - text_lines(&t2).0 - 20.0).abs() < 1.5, "{}", text_lines(&t3).0 - text_lines(&t2).0);
+    assert_eq!(last_undo(&h), "Word Spacing");
+    // Shift: the space after paragraphs
+    shape_drag(&mut h, vh2, (vh2.0, vh2.1 + 10.0), shift);
+    let t4 = text_of(&h, id);
+    let (_, b4) = text_lines(&t4);
+    assert!(t4.para_spacing > 0.0 && t4.line_spacing == t2.line_spacing);
+    assert!(((b4[1] - b4[0]) - (b2[1] - b2[0]) - 10.0).abs() < 0.5, "{}", (b4[1] - b4[0]) - (b2[1] - b2[0]));
+    assert_eq!(last_undo(&h), "After Paragraph Spacing");
+    // far to the left: no less than the Text docker allows
+    let (hh4, _) = spacing_handles(&h, id).unwrap();
+    shape_drag(&mut h, hh4, (hh4.0 - 3000.0, hh4.1), none);
+    assert_eq!(text_of(&h, id).format.tracking, -100.0);
+    // a click on a handle changes nothing
+    let steps5 = undo_steps(&h);
+    let (_, vh5) = spacing_handles(&h, id).unwrap();
+    tool_click(&mut h, vh5, egui::Vec2::ZERO);
+    assert_eq!(undo_steps(&h), steps5);
+    assert_eq!(undo_steps(&h), steps + 5);
+    for _ in 0..5 {
+        undo(&mut h);
+    }
+    assert_eq!(text_of(&h, id), t0, "undo did not bring the spacing back");
+}
+
+/// #110: the spacing handles of a turned text work along its own lines; paragraph text has them
+/// at its frame; the character spacing of every run changes alike; there are none on text being
+/// edited, on a path or vertical.
+#[test]
+fn text_spacing_handles_follow_the_text() {
+    use vector_core::text::{CharFormat, Span, TextKind};
+    // turned a quarter: its lines run down the page
+    let (mut h, id) = spacing_text("Turned", Affine::translate((300.0, 100.0)) * Affine::rotate(std::f64::consts::FRAC_PI_2));
+    let t0 = text_of(&h, id);
+    let (hh, vh) = spacing_handles(&h, id).unwrap();
+    assert!(hh.1 > vh.1 && (hh.0 - 300.0).abs() < (vh.0 - 300.0).abs() + 1.0, "{hh:?} {vh:?}");
+    shape_drag(&mut h, hh, (hh.0, hh.1 + 24.0), egui::Modifiers::NONE);
+    let t1 = text_of(&h, id);
+    assert!((text_lines(&t1).0 - text_lines(&t0).0 - 24.0).abs() < 1.0, "{}", text_lines(&t1).0 - text_lines(&t0).0);
+    // runs of their own sizes and spacing: all change by the same amount
+    let (mut h, id) = spacing_text("Big and small", Affine::translate((100.0, 300.0)));
+    if let ObjKind::Text(t) = &mut h.state_mut().doc_mut().unwrap().doc.find_mut(id).unwrap().kind {
+        t.spans = vec![Span { start: 0, end: 3, format: CharFormat { size: 48.0, tracking: 20.0, ..CharFormat::default() } }];
+    }
+    let t0 = text_of(&h, id);
+    let (hh, _) = spacing_handles(&h, id).unwrap();
+    shape_drag(&mut h, hh, (hh.0 + 40.0, hh.1), egui::Modifiers::NONE);
+    let t1 = text_of(&h, id);
+    let d = t1.format.tracking;
+    assert!(d > 0.0 && (t1.spans[0].format.tracking - 20.0 - d).abs() < 0.11, "{} {}", d, t1.spans[0].format.tracking);
+    assert!((text_lines(&t1).0 - text_lines(&t0).0 - 40.0).abs() < 1.0, "{}", text_lines(&t1).0 - text_lines(&t0).0);
+    // paragraph text: at the lower corners of its frame
+    if let ObjKind::Text(t) = &mut h.state_mut().doc_mut().unwrap().doc.find_mut(id).unwrap().kind {
+        t.kind = TextKind::Paragraph { width: 300.0, height: 200.0 };
+    }
+    let gap = h.state().doc().unwrap().doc_len(12.0);
+    let (hh, vh) = spacing_handles(&h, id).unwrap();
+    assert!(near(Point::new(hh.0, hh.1), (400.0 + gap, 500.0)) && near(Point::new(vh.0, vh.1), (100.0, 500.0 + gap)), "{hh:?} {vh:?}");
+    // none while the text is edited, on a path, or vertical
+    h.state_mut().doc_mut().unwrap().text_edit = Some(crate::docview::TextEdit { obj: id, caret: 0, anchor: 0, blink: 0.0 });
+    assert!(spacing_handles(&h, id).is_none());
+    h.state_mut().doc_mut().unwrap().text_edit = None;
+    if let ObjKind::Text(t) = &mut h.state_mut().doc_mut().unwrap().doc.find_mut(id).unwrap().kind {
+        t.vertical = true;
+    }
+    assert!(spacing_handles(&h, id).is_none());
+    if let ObjKind::Text(t) = &mut h.state_mut().doc_mut().unwrap().doc.find_mut(id).unwrap().kind {
+        t.vertical = false;
+        t.kind = TextKind::Artistic;
+        t.on_path = Some(vector_core::text::TextOnPath { path: vector_core::path::polyline(&[Point::new(0.0, 0.0), Point::new(300.0, 0.0)], false), offset: 0.0, distance: 0.0, flip: false });
+    }
+    assert!(spacing_handles(&h, id).is_none());
+    let p = scr(&h, (100.0, 300.0));
+    assert!(!matches!(crate::tools::shape_hit(h.state().doc().unwrap(), h.state().doc().unwrap().to_doc(p), 5.0), Some(crate::tools::ShapeHit::TextSpacing { .. })));
+}
+
+/// #110: the spacing handles on a text with the Shape tool, and the text after dragging each.
+/// Images go to `target/visual/issue_110_*.png`.
+#[test]
+#[ignore]
+fn visual_issue_110_text_spacing_handles() {
+    use vector_core::text::{CharFormat, TextObj};
+    let mut h = doc_harness();
+    h.state_mut().doc_mut().unwrap().doc.settings.snap_off = true;
+    let id = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let id = d.doc.new_id();
+        let st = Style { fill: Fill::Solid(Color::BLACK), ..Style::default() };
+        let t = TextObj::artistic("Character spacing\nand line spacing", CharFormat { size: 40.0, ..CharFormat::default() });
+        d.add_objects("test", vec![Object::new(id, ObjKind::Text(t), Affine::translate((150.0, 250.0)), st)]);
+        d.selection = vec![id];
+        id
+    };
+    h.state_mut().set_tool(crate::tools::ToolId::Shape);
+    save(&mut h, "issue_110_01_handles");
+    let (hh, _) = spacing_handles(&h, id).unwrap();
+    shape_drag(&mut h, hh, (hh.0 + 80.0, hh.1), egui::Modifiers::NONE);
+    save(&mut h, "issue_110_02_character_spacing");
+    let (_, vh) = spacing_handles(&h, id).unwrap();
+    shape_drag(&mut h, vh, (vh.0, vh.1 + 40.0), egui::Modifiers::NONE);
+    save(&mut h, "issue_110_03_line_spacing");
+    let t = text_of(&h, id);
+    assert!(t.format.tracking > 0.0 && t.line_spacing > 100.0);
+}

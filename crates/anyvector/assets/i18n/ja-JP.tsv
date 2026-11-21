@@ -5381,7 +5381,7 @@ Drag to set the start and end points, then click to set the curvature	ドラッ�
 Sketch strokes; nearby strokes are merged into smooth curves	ストロークをスケッチします。近接するストロークは滑らかなカーブに結合されます
 Draw a shape freehand; it is recognized and converted into a basic shape	フリーハンドでシェイプを描くと、認識されて基本シェイプに変換されます
 Drag to draw a brush, sprayer, calligraphic or pressure stroke	ドラッグしてブラシ、スプレー、カリグラフィ、または筆圧のストロークを描きます
-Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle the size of the page	ドラッグして矩形を描きます。Ctrl で正方形に制限、Shift で中心から描画します。ツールをダブルクリックすると、ページと同じサイズの矩形を描きます
+Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle around the selection, or the size of the page	ドラッグして矩形を描きます。Ctrl で正方形に制限、Shift で中心から描画します。ツールをダブルクリックすると、選択範囲を囲む矩形 (何も選択されていなければページと同じサイズの矩形) を描きます
 Drag to set the baseline, then click to set the height	ドラッグしてベースラインを設定してから、クリックして高さを設定します
 Drag to draw an ellipse; Ctrl constrains to a circle; Shift draws from the center	ドラッグして楕円形を描きます。Ctrl で円に制限、Shift で中心から描画します
 Drag to set the center line, then click to set the height	ドラッグして中心線を設定してから、クリックして高さを設定します

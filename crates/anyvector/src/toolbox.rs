@@ -172,8 +172,9 @@ fn slot_button(app: &mut AnyVectorApp, ui: &mut Ui, slot: &'static Item, cur: &'
     let mut open = false;
     let in_corner = resp.interact_pointer_pos().is_some_and(|p| p.x > rect.right() - 9.0 && p.y > rect.bottom() - 9.0);
     if resp.double_clicked() && !in_corner && crate::tools::item_tools(cur.id).first() == Some(&crate::tools::ToolId::Rectangle) {
-        // double-clicking the Rectangle tool draws a rectangle the size of the page (#99)
-        crate::tools::rectangle_to_page(app);
+        // double-clicking the Rectangle tool draws a rectangle around the selection, or the size
+        // of the page with nothing selected (#99, #135)
+        crate::tools::rectangle_to_bounds(app);
     } else if resp.clicked() {
         if has_flyout && (in_corner || slot.kind == Kind::Flyout) {
             open = true;

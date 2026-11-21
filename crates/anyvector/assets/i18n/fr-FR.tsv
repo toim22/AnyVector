@@ -5381,7 +5381,7 @@ Drag to set the start and end points, then click to set the curvature	Faites gli
 Sketch strokes; nearby strokes are merged into smooth curves	Esquissez des traits ; les traits proches sont fusionnés en courbes lisses
 Draw a shape freehand; it is recognized and converted into a basic shape	Dessinez une forme à main levée ; elle est reconnue et convertie en forme de base
 Drag to draw a brush, sprayer, calligraphic or pressure stroke	Faites glisser pour dessiner un trait de pinceau, de pulvérisateur, calligraphique ou de pression
-Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle the size of the page	Faites glisser pour dessiner un rectangle ; Ctrl contraint à un carré ; Shift dessine à partir du centre. Double-cliquez sur l'outil pour un rectangle de la taille de la page
+Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle around the selection, or the size of the page	Faites glisser pour dessiner un rectangle ; Ctrl contraint à un carré ; Shift dessine à partir du centre. Double-cliquez sur l'outil pour un rectangle autour de la sélection, ou de la taille de la page
 Drag to set the baseline, then click to set the height	Faites glisser pour définir la ligne de base, puis cliquez pour définir la hauteur
 Drag to draw an ellipse; Ctrl constrains to a circle; Shift draws from the center	Faites glisser pour dessiner une ellipse ; Ctrl contraint à un cercle ; Shift dessine à partir du centre
 Drag to set the center line, then click to set the height	Faites glisser pour définir la ligne centrale, puis cliquez pour définir la hauteur

@@ -5381,7 +5381,7 @@ Drag to set the start and end points, then click to set the curvature	Перет
 Sketch strokes; nearby strokes are merged into smooth curves	Рисуйте штрихи; близкие штрихи объединяются в гладкие кривые
 Draw a shape freehand; it is recognized and converted into a basic shape	Нарисуйте фигуру от руки; она будет распознана и преобразована в основную фигуру
 Drag to draw a brush, sprayer, calligraphic or pressure stroke	Перетащите, чтобы нарисовать мазок кисти, распылителя, каллиграфии или с нажимом
-Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle the size of the page	Перетащите, чтобы нарисовать прямоугольник; Ctrl — квадрат; Shift — от центра. Дважды щелкните инструмент, чтобы создать прямоугольник размером со страницу
+Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle around the selection, or the size of the page	Перетащите, чтобы нарисовать прямоугольник; Ctrl — квадрат; Shift — от центра. Дважды щелкните инструмент, чтобы создать прямоугольник вокруг выделения или размером со страницу
 Drag to set the baseline, then click to set the height	Перетащите, чтобы задать базовую линию, затем щелкните, чтобы задать высоту
 Drag to draw an ellipse; Ctrl constrains to a circle; Shift draws from the center	Перетащите, чтобы нарисовать эллипс; Ctrl — круг; Shift — от центра
 Drag to set the center line, then click to set the height	Перетащите, чтобы задать центральную линию, затем щелкните, чтобы задать высоту

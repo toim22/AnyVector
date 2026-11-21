@@ -5381,7 +5381,7 @@ Drag to set the start and end points, then click to set the curvature	拖曳以�
 Sketch strokes; nearby strokes are merged into smooth curves	繪製草圖筆觸；鄰近的筆觸會合併為平滑曲線
 Draw a shape freehand; it is recognized and converted into a basic shape	手繪形狀；系統會辨識並將其轉換為基本形狀
 Drag to draw a brush, sprayer, calligraphic or pressure stroke	拖曳以繪製筆刷、噴灑器、書法或壓力筆觸
-Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle the size of the page	拖曳以繪製矩形；Ctrl 可限制為正方形；Shift 可從中心繪製。按兩下該工具可繪製與頁面大小相同的矩形
+Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle around the selection, or the size of the page	拖曳以繪製矩形；Ctrl 可限制為正方形；Shift 可從中心繪製。按兩下該工具可繪製圍繞所選物件的矩形，未選取物件時繪製與頁面大小相同的矩形
 Drag to set the baseline, then click to set the height	拖曳以設定基線，然後按一下以設定高度
 Drag to draw an ellipse; Ctrl constrains to a circle; Shift draws from the center	拖曳以繪製橢圓形；Ctrl 可限制為圓形；Shift 可從中心繪製
 Drag to set the center line, then click to set the height	拖曳以設定中心線，然後按一下以設定高度

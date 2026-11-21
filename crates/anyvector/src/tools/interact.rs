@@ -834,7 +834,7 @@ impl<'a> Cx<'a> {
         let hit = super::shape_hit(self.d, p, tol);
         let kind = hit.and_then(|h| {
             let obj = match h {
-                ShapeHit::Control { obj, .. } | ShapeHit::Node { obj, .. } | ShapeHit::Corner { obj, .. } | ShapeHit::PolygonNode { obj, .. } | ShapeHit::EllipseNode { obj, .. } | ShapeHit::Segment { obj, .. } => obj,
+                ShapeHit::Control { obj, .. } | ShapeHit::Node { obj, .. } | ShapeHit::Corner { obj, .. } | ShapeHit::PolygonNode { obj, .. } | ShapeHit::EllipseNode { obj, .. } | ShapeHit::Segment { obj, .. } | ShapeHit::TextSpacing { obj, .. } => obj,
             };
             self.d.doc.find(obj).map(|o| o.kind.clone())
         });
@@ -888,6 +888,12 @@ impl<'a> Cx<'a> {
                 }
                 self.d.seg_sel = Some((obj, si, seg));
                 self.ts.drag = Drag::Segment { obj, si, seg, t, start: p, orig: np, moved: false };
+            }
+            (Some(ShapeHit::TextSpacing { obj, vertical }), Some(ObjKind::Text(t))) => {
+                // Shift as the drag starts: word spacing, or the space after paragraphs (#110)
+                let kind = super::TextSpacing::of_handle(vertical, shift);
+                let per = kind.rate(obj, &t);
+                self.ts.drag = Drag::TextSpacing { obj, kind, start: p, orig: t, per, moved: false };
             }
             _ => {
                 if !shift {
@@ -1628,6 +1634,22 @@ impl<'a> Cx<'a> {
                     self.d.history.touch();
                 }
             }
+            Drag::TextSpacing { obj, kind, start, orig, per, moved: started } => {
+                if !*started && moved {
+                    self.d.checkpoint(kind.label());
+                    *started = true;
+                }
+                if *started {
+                    if let Some(o) = self.d.doc.find_mut(*obj) {
+                        // the drag along the text's own x (character, word) or y (line, paragraph)
+                        let inv = o.transform.inverse();
+                        let dv = inv * p - inv * *start;
+                        let along = if kind.vertical() { dv.y } else { dv.x };
+                        o.kind = ObjKind::Text(kind.changed(orig, along / *per));
+                    }
+                    self.d.history.touch();
+                }
+            }
             Drag::TableCells { obj } => {
                 if let Some(o) = self.d.doc.find(*obj) {
                     if let ObjKind::Table(tb) = &o.kind {
@@ -1945,7 +1967,7 @@ impl<'a> Cx<'a> {
                 self.ts.was_selected = false;
             }
             Drag::Create { start } => self.release_create(start, moved),
-            Drag::Nodes { moved: started, .. } | Drag::Control { moved: started, .. } | Drag::Corner { moved: started, .. } | Drag::PolygonNode { moved: started, .. } | Drag::EllipseNode { moved: started, .. } | Drag::Segment { moved: started, .. } | Drag::Envelope { moved: started, .. } | Drag::VarWidth { moved: started, .. } | Drag::Anchor { moved: started, .. } | Drag::GradientHandle { moved: started, .. } => {
+            Drag::Nodes { moved: started, .. } | Drag::Control { moved: started, .. } | Drag::Corner { moved: started, .. } | Drag::PolygonNode { moved: started, .. } | Drag::EllipseNode { moved: started, .. } | Drag::Segment { moved: started, .. } | Drag::TextSpacing { moved: started, .. } | Drag::Envelope { moved: started, .. } | Drag::VarWidth { moved: started, .. } | Drag::Anchor { moved: started, .. } | Drag::GradientHandle { moved: started, .. } => {
                 if started {
                     self.d.after_change();
                     self.d.history.touch();
@@ -2269,6 +2291,20 @@ impl<'a> Cx<'a> {
                     np
                 };
                 match self.tool {
+                    Freehand if self.mods().ctrl => {
+                        // Ctrl: a straight line from where the drag started, at a multiple of the
+                        // constrain angle, as a click-click line is (#134)
+                        let j = if self.ts.line_start.is_none() { self.join_at(points[0]) } else { None };
+                        self.ts.join = j.map(|(id, at_end, _)| (id, at_end));
+                        let a = j.map_or(points[0], |j| j.2);
+                        let (a, mut b) = constrain_line(a, *points.last().unwrap(), self.mods(), self.s.constrain_angle);
+                        if (b - a).hypot() > 1e-6 {
+                            let close = self.joined_close_at(b).map(|f| b = f).is_some();
+                            let nodes = polyline(&[a, b], false).subpaths.remove(0).nodes;
+                            commit_curve(self.ts, self.d, nodes, close, "Create Line");
+                        }
+                        self.ts.join = None;
+                    }
                     Freehand if self.ts.line_start.is_none() && self.join_at(points[0]).is_some() => {
                         // Auto-join: a stroke started on an end of the selected curve continues it;
                         // ending on the curve's other end closes it

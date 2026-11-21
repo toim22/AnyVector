@@ -11,7 +11,7 @@ pub mod shapes;
 pub use ids::*;
 pub use interact::{envelope_from_shape, guide_at, handle_input, handle_point, handle_table_keys, handle_text_keys, regen_impacts, table_typing, tick, Input};
 pub use overlay::draw_overlay;
-pub use shape_edit::{selected_segment, shape_hit, visible_controls, ShapeHit};
+pub use shape_edit::{selected_segment, shape_hit, text_spacing_handles, visible_controls, ShapeHit, TextSpacing};
 
 use crate::app::AnyVectorApp;
 use crate::docview::DocView;
@@ -25,18 +25,20 @@ use vector_core::{Color, Fill, ObjId, ObjKind, Object, Outline, Style};
 
 pub use shapes::COMMON_SHAPES;
 
-/// Double-clicking the Rectangle tool in the toolbox, as in CorelDRAW: a rectangle the size of the
-/// current page, with the style and corners a dragged rectangle gets, in one undo step (#99).
-pub fn rectangle_to_page(app: &mut AnyVectorApp) {
+/// Double-clicking the Rectangle tool in the toolbox, as in CorelDRAW: a rectangle around the
+/// selected objects (their bounding box, #135), or with nothing selected the size of the current
+/// page (#99), with the style and corners a dragged rectangle gets, in one undo step.
+pub fn rectangle_to_bounds(app: &mut AnyVectorApp) {
     app.set_tool(ToolId::Rectangle);
-    let Some(page) = app.doc().and_then(|d| d.doc.pages.get(d.page)).map(|p| p.rect()) else { return };
-    if page.width() <= 0.0 || page.height() <= 0.0 {
+    // taken before the rectangle is added: it becomes the selection
+    let Some(r) = app.doc().and_then(|d| d.selection_bounds().filter(|b| b.width() > 0.0 && b.height() > 0.0).or_else(|| d.doc.pages.get(d.page).map(|p| p.rect()))) else { return };
+    if r.width() <= 0.0 || r.height() <= 0.0 {
         return;
     }
     let (ts, s) = (&app.ts, &app.settings);
     let Some(d) = app.active.and_then(|i| app.docs.get_mut(i)) else { return };
     let id = d.doc.new_id();
-    if let Some(o) = interact::creation_object(ts, s, ToolId::Rectangle, page.origin(), Point::new(page.x1, page.y1), egui::Modifiers::NONE, id) {
+    if let Some(o) = interact::creation_object(ts, s, ToolId::Rectangle, r.origin(), Point::new(r.x1, r.y1), egui::Modifiers::NONE, id) {
         d.add_objects("Create Rectangle", vec![o]);
     }
 }
@@ -107,6 +109,9 @@ pub enum Drag {
     EllipseNode { obj: ObjId, handle: Option<bool>, orig: EllipseShape, moved: bool },
     /// Shape tool: a segment dragged by its point at `t`: a line moves, a curve bends (#123).
     Segment { obj: ObjId, si: usize, seg: usize, t: f64, start: Point, orig: NodePath, moved: bool },
+    /// Shape tool: a spacing handle of a text (#110); `per` is how far the handle goes, along the
+    /// text's own x or y, for 1 % of the spacing.
+    TextSpacing { obj: ObjId, kind: TextSpacing, start: Point, orig: TextObj, per: f64, moved: bool },
     /// Pick tool in rotate mode: moving the rotation center of the selection.
     RotCenter,
     Pan { last: egui::Pos2 },
@@ -895,16 +900,13 @@ fn segment_op(d: &mut DocView, op: NodeOp, id: ObjId, si: usize, seg: usize) {
 /// Move the selected nodes by a document-space offset (arrow-key nudge with the Shape tool).
 pub fn nudge_nodes(app: &mut AnyVectorApp, delta: Vec2) {
     let Some(d) = app.doc_mut() else { return };
-    let mut groups = nodes_by_object(d);
-    // no node selected: the segment clicked moves, both its nodes (#122)
+    let groups = nodes_by_object(d);
+    // no node selected: the segment clicked is nudged as a drag moves it (#122, #142)
     if groups.is_empty() {
         if let Some((id, si, seg)) = selected_segment(d) {
-            if let Some(ObjKind::Path(np)) = d.doc.find(id).map(|o| &o.kind) {
-                if let Some((a, b)) = np.segment_nodes(si, seg) {
-                    groups.push((id, if a == b { vec![a] } else { vec![a, b] }));
-                }
-            }
+            nudge_segment(d, id, si, seg, delta);
         }
+        return;
     }
     d.modify("Move Nodes", |doc, _| {
         for (id, refs) in &groups {
@@ -914,6 +916,26 @@ pub fn nudge_nodes(app: &mut AnyVectorApp, delta: Vec2) {
                 if let ObjKind::Path(np) = &mut o.kind {
                     move_nodes(np, refs, ld);
                 }
+            }
+        }
+    });
+}
+
+/// Arrow-key nudge of the segment clicked with the Shape tool, as in CorelDRAW: a straight
+/// segment moves with both its nodes; a curved one bends, its middle moving by the nudge while
+/// its nodes stay where they are (#142). One undo step per press.
+fn nudge_segment(d: &mut DocView, id: ObjId, si: usize, seg: usize, delta: Vec2) {
+    let Some(ObjKind::Path(np)) = d.doc.find(id).map(|o| &o.kind) else { return };
+    let line = np.node((si, seg)).is_none_or(|n| n.line_out);
+    d.modify(if line { "Move Segment" } else { "Edit Curve" }, |doc, _| {
+        let Some(o) = doc.find_mut(id) else { return };
+        let inv = o.transform.inverse();
+        let ld = inv * Point::new(delta.x, delta.y) - inv * Point::ZERO;
+        if let ObjKind::Path(np) = &mut o.kind {
+            if line {
+                np.move_segment(si, seg, ld);
+            } else {
+                np.bend_segment(si, seg, 0.5, ld);
             }
         }
     });
