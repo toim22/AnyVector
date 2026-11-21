@@ -5612,3 +5612,5 @@ Edit Ellipse	Ellipse bearbeiten
 Move Segment	Segment verschieben
 Delete Segment	Segment löschen
 A curve needs at least two nodes	Eine Kurve braucht mindestens zwei Knoten
+Drop Shadow on {}	Schlagschatten auf {}
+Block Shadow on {}	Blockschatten auf {}

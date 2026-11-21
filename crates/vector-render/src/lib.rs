@@ -1046,20 +1046,7 @@ impl Renderer {
     }
 
     fn render_block_shadow(&mut self, ctx: &Ctx, o: &Object, b: &BlockShadow, target: &mut sk::Pixmap) {
-        let mut path = o.world_path();
-        if b.remove_holes {
-            path = outer_contours(&path);
-        }
-        let mut grow = b.expand;
-        if b.from_outline && o.style.outline.is_visible() {
-            grow += o.style.outline.width / 2.0;
-        }
-        if grow.abs() > 1e-6 {
-            path = geom::offset_path(&path, grow, kurbo::Join::Miter);
-        }
-        if b.simplify {
-            path = geom::simplify_path(&path, 0.5);
-        }
+        let path = b.base_path(o);
         let mut paths = vec![path.clone()];
         // sweep: union of the object translated along the offset, plus side quads
         let len_px = (linear_part(ctx.view) * Point::new(b.offset.x, b.offset.y)).to_vec2().hypot();
@@ -1833,6 +1820,57 @@ pub fn render_objects_image(doc: &Document, objs: &[Object], size: u32, bg: Opti
     Some(pm)
 }
 
+/// The drop shadow (or, with `inner`, the inner shadow) of an object drawn alone, as it is drawn
+/// with the object, at `dpi`: the pixels and the page area they cover, cut down to the pixels
+/// that show. For Break Apart, which makes a bitmap of it (#105). At most 4096 pixels a side.
+pub fn shadow_image(doc: &Document, o: &Object, inner: bool, dpi: f64) -> Option<(sk::Pixmap, Rect)> {
+    let mut s = if inner { o.effects.inner_shadow.clone()? } else { o.effects.drop_shadow.clone()? };
+    // drawn into an empty image; the bitmap object keeps the merge mode
+    s.merge = MergeMode::Normal;
+    let bb = o.bounds();
+    let area = if inner {
+        o.world_path().bounding_box()
+    } else {
+        let line = if o.style.outline.is_visible() { o.style.outline.width } else { 0.0 };
+        let pad = s.feather.max(0.0) * 2.0 + line + 2.0;
+        s.placement(bb).transform_rect_bbox(bb).inflate(pad, pad)
+    };
+    if area.width() < 0.01 || area.height() < 0.01 {
+        return None;
+    }
+    let scale = (dpi.max(1.0) / 72.0).min(4096.0 / area.width().max(area.height()));
+    let w = (area.width() * scale).ceil().max(1.0) as u32;
+    let h = (area.height() * scale).ceil().max(1.0) as u32;
+    let mut pm = sk::Pixmap::new(w, h)?;
+    let view = Affine::scale(scale) * Affine::translate((-area.x0, -area.y0));
+    let opts = RenderOptions { draw_page: false, ..Default::default() };
+    let ctx = Ctx { doc, view, opts: &opts };
+    let mut r = Renderer::new();
+    if inner {
+        r.render_inner_shadow(&ctx, o, &o.world_path(), &s, &mut pm);
+    } else {
+        r.render_drop_shadow(&ctx, o, &s, &mut pm);
+    }
+    // only the pixels that show
+    let (mut x0, mut y0, mut x1, mut y1) = (w, h, 0u32, 0u32);
+    for (k, px) in pm.pixels().iter().enumerate() {
+        if px.alpha() > 0 {
+            let (x, y) = (k as u32 % w, k as u32 / w);
+            x0 = x0.min(x);
+            y0 = y0.min(y);
+            x1 = x1.max(x + 1);
+            y1 = y1.max(y + 1);
+        }
+    }
+    if x1 <= x0 || y1 <= y0 {
+        return None;
+    }
+    let cut = sk::IntRect::from_xywh(x0 as i32, y0 as i32, x1 - x0, y1 - y0)?;
+    let pm = pm.clone_rect(cut)?;
+    let at = Rect::new(area.x0 + x0 as f64 / scale, area.y0 + y0 as f64 / scale, area.x0 + x1 as f64 / scale, area.y0 + y1 as f64 / scale);
+    Some((pm, at))
+}
+
 /// Convert a premultiplied pixmap to straight RGBA bytes.
 pub fn pixmap_to_rgba(pm: &sk::Pixmap) -> Vec<u8> {
     let mut out = Vec::with_capacity(pm.data().len());
@@ -1846,25 +1884,7 @@ pub fn pixmap_to_rgba(pm: &sk::Pixmap) -> Vec<u8> {
 /// The ground transform of a perspective shadow: flattened by the stretch and slanted by the angle,
 /// from the base of the object.
 pub fn perspective_shadow(bb: Rect, s: &DropShadow) -> Affine {
-    let base = Point::new(bb.center().x, bb.y1);
-    let k = (s.stretch / 100.0).clamp(0.0, 2.0);
-    let skew = s.angle.clamp(-89.0, 89.0).to_radians().tan();
-    Affine::translate(base.to_vec2()) * Affine::new([1.0, 0.0, -skew * k, k, 0.0, 0.0]) * Affine::translate(-base.to_vec2())
-}
-
-/// Only the outer contours of a path (Remove Holes).
-fn outer_contours(path: &BezPath) -> BezPath {
-    let subs = geom::subpaths(path);
-    let Some(main_sign) = subs.iter().map(|p| p.area()).max_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap_or(std::cmp::Ordering::Equal)).map(|a| a.signum()) else {
-        return path.clone();
-    };
-    let mut out = BezPath::new();
-    for p in subs {
-        if p.area().signum() == main_sign {
-            out.extend(p.elements().iter().copied());
-        }
-    }
-    out
+    s.ground(bb)
 }
 
 /// Where the back (or front) face of an extrusion goes: along the depth, converging toward the

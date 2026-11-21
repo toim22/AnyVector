@@ -662,6 +662,22 @@ pub fn default_shadow(inner: bool) -> DropShadow {
     DropShadow { offset: Vec2::new(6.0, 6.0), feather: 8.0, color: Color::BLACK, opacity: 50.0, inner, ..Default::default() }
 }
 
+/// What Alt+click selects among the objects at the pointer (`under`, topmost first), as in
+/// CorelDRAW (#139): the object under the lowest selected one, the top one again after the
+/// bottom one; with none of them selected, the one under the top one. With `add` (Shift+Alt) the
+/// next one down that isn't selected yet (`None` when all of them are).
+pub fn alt_pick(under: &[ObjId], selection: &[ObjId], add: bool) -> Option<ObjId> {
+    let n = under.len();
+    if n == 0 {
+        return None;
+    }
+    let next = under.iter().rposition(|id| selection.contains(id)).map_or(1.min(n - 1), |i| i + 1);
+    if !add {
+        return Some(under[next % n]);
+    }
+    (0..n).map(|k| under[(next + k) % n]).find(|id| !selection.contains(id))
+}
+
 // ------------------------------------------------------------------------------------------
 // Node editing (Shape tool)
 // ------------------------------------------------------------------------------------------

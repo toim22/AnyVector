@@ -5612,3 +5612,5 @@ Edit Ellipse	楕円形の編集
 Move Segment	セグメントの移動
 Delete Segment	セグメントの削除
 A curve needs at least two nodes	カーブには 2 つ以上のノードが必要です
+Drop Shadow on {}	{} 上のドロップ シャドウ
+Block Shadow on {}	{} 上のブロック シャドウ

@@ -5612,3 +5612,5 @@ Edit Ellipse	Изменить эллипс
 Move Segment	Переместить сегмент
 Delete Segment	Удалить сегмент
 A curve needs at least two nodes	Кривой нужны хотя бы два узла
+Drop Shadow on {}	Тень на {}
+Block Shadow on {}	Блочная тень на {}

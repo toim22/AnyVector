@@ -246,12 +246,16 @@ impl AnyVectorApp {
     }
 
     pub fn set_tool(&mut self, t: ToolId) {
-        if self.tool != t {
+        let changed = self.tool != t;
+        if changed {
             self.finish_tool();
         }
         self.tool = t;
         self.toolbox.remember(t);
         if let Some(d) = self.doc_mut() {
+            if changed {
+                d.shadow_sel = None;
+            }
             if t != ToolId::Shape {
                 d.node_sel.clear();
                 d.seg_sel = None;
@@ -294,6 +298,10 @@ impl AnyVectorApp {
         self.handle_dropped_files(&ctx);
         crate::shortcuts::handle(self, &ctx);
         self.process_pending(&ctx);
+        // a shadow clicked (#106) stays chosen only while its object is the selection
+        for d in self.docs.iter_mut() {
+            d.prune_shadow_sel();
+        }
         crate::dockers::coled::publish(self, &ctx);
         crate::ai::poll(self);
         self.poll_background(&ctx);

@@ -5612,3 +5612,5 @@ Edit Ellipse	Modifica ellisse
 Move Segment	Sposta segmento
 Delete Segment	Elimina segmento
 A curve needs at least two nodes	Una curva richiede almeno due nodi
+Drop Shadow on {}	Ombra esterna su {}
+Block Shadow on {}	Ombra blocco su {}
