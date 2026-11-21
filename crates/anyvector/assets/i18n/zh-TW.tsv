@@ -5626,3 +5626,28 @@ Stretch:	延展：
 Nib shape:	筆尖形狀：
 Drag commands here	將命令拖曳到此處
 New Toolbar {}	新增工具列 {}
+CMX - CorelDRAW-compatible (*.cmx)	CMX - 與 CorelDRAW 相容 (*.cmx)
+CDR - AnyVector Drawing (*.cdr)	CDR - AnyVector 繪圖 (*.cdr)
+VCT - AnyVector Drawing, legacy (*.vct)	VCT - AnyVector 繪圖，舊格式 (*.vct)
+CMX - CorelDRAW-compatible copy (*.cmx)	CMX - 與 CorelDRAW 相容的複本 (*.cmx)
+PDF - Portable Document Format, copy (*.pdf)	PDF - Portable Document Format，複本 (*.pdf)
+SVG - Scalable Vector Graphics, copy (*.svg)	SVG - Scalable Vector Graphics，複本 (*.svg)
+EMF - Enhanced Windows Metafile, copy (*.emf)	EMF - Enhanced Windows Metafile，複本 (*.emf)
+AnyVector .cdr files open in AnyVector. To open in CorelDRAW, save as CMX, PDF, SVG or EMF.	AnyVector 的 .cdr 檔案會在 AnyVector 中開啟。若要在 CorelDRAW 中開啟，請另存為 CMX、PDF、SVG 或 EMF。
+Saves a copy for other programs. The drawing keeps its own file.	為其他程式儲存一份複本。繪圖仍保留在自己的檔案中。
+Saving a .cdr drawing that CorelDRAW cannot open	儲存 CorelDRAW 無法開啟的 .cdr 繪圖
+Remind me that CorelDRAW cannot open AnyVector .cdr files	提醒我 CorelDRAW 無法開啟 AnyVector 的 .cdr 檔案
+CorelDRAW cannot open this file: AnyVector .cdr files open in AnyVector.	CorelDRAW 無法開啟此檔案：AnyVector 的 .cdr 檔案會在 AnyVector 中開啟。
+To open the drawing in CorelDRAW, use File ▸ Save As and choose CMX (CorelDRAW-compatible), PDF, SVG or EMF.	若要在 CorelDRAW 中開啟此繪圖，請使用 檔案 ▸ 另存新檔，然後選擇 CMX（與 CorelDRAW 相容）、PDF、SVG 或 EMF。
+This note is shown once. Turn it back on in Tools ▸ Options ▸ AnyVector ▸ Save.	此提示只會顯示一次。可在 工具 ▸ 選項 ▸ AnyVector ▸ 儲存 中重新開啟。
+{} was saved with these differences from the drawing:	{} 已儲存，與繪圖有以下差異：
+{} was not written by AnyVector or CorelDRAW, or it is damaged.	{} 不是由 AnyVector 或 CorelDRAW 寫入的，或者已損毀。
+If it came from another program, open a PDF, SVG or EPS copy of it instead.	如果它來自其他程式，請改為開啟它的 PDF、SVG 或 EPS 複本。
+Saved a copy as {}	已將複本另存為 {}
+Text was converted to curves.	文字已轉換為曲線。
+Bitmaps were left out.	未包含點陣圖。
+Drop shadows, lenses and bevels were left out.	未包含陰影、透鏡和斜角。
+Transparency was left out.	未包含透明度。
+Pattern, texture and mesh fills were replaced by their main color.	圖樣、材質和網狀填色已取代為其主要色彩。
+Hidden layers and objects were left out.	未包含隱藏的圖層和物件。
+AnyVector 0.1	AnyVector 0.1

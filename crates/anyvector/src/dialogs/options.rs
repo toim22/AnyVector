@@ -180,6 +180,7 @@ pub fn default_warnings() -> Vec<(String, bool)> {
         "Resampling a bitmap to a higher resolution",
         "Reverting to the last saved version",
         "Running a script from an untrusted location",
+        crate::settings::CDR_NOTICE_WARNING,
         "Saving a document with unsupported features to an older version",
         "Saving a template over an existing template",
         "Saving with font embedding restrictions",
@@ -1145,6 +1146,10 @@ fn save(app: &mut AnyVectorApp, ui: &mut Ui) {
         label_w(ui, "Set default version:", 150.0);
         combo_str(ui, "def_ver", &mut s.default_version, crate::settings::FILE_VERSIONS, 120.0);
     });
+    // the same switch as its entry in Warnings
+    if let Some((_, on)) = s.warnings.iter_mut().find(|(t, _)| t == crate::settings::CDR_NOTICE_WARNING) {
+        ui.checkbox(on, "Remind me that CorelDRAW cannot open AnyVector .cdr files");
+    }
 }
 
 fn text(app: &mut AnyVectorApp, ui: &mut Ui) {

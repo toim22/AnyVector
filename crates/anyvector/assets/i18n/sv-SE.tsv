@@ -5626,3 +5626,28 @@ Stretch:	Sträckning:
 Nib shape:	Spetsform:
 Drag commands here	Dra kommandon hit
 New Toolbar {}	Nytt verktygsfält {}
+CMX - CorelDRAW-compatible (*.cmx)	CMX - Kompatibel med CorelDRAW (*.cmx)
+CDR - AnyVector Drawing (*.cdr)	CDR - AnyVector-teckning (*.cdr)
+VCT - AnyVector Drawing, legacy (*.vct)	VCT - AnyVector-teckning, äldre format (*.vct)
+CMX - CorelDRAW-compatible copy (*.cmx)	CMX - CorelDRAW-kompatibel kopia (*.cmx)
+PDF - Portable Document Format, copy (*.pdf)	PDF - Portable Document Format, kopia (*.pdf)
+SVG - Scalable Vector Graphics, copy (*.svg)	SVG - Scalable Vector Graphics, kopia (*.svg)
+EMF - Enhanced Windows Metafile, copy (*.emf)	EMF - Enhanced Windows Metafile, kopia (*.emf)
+AnyVector .cdr files open in AnyVector. To open in CorelDRAW, save as CMX, PDF, SVG or EMF.	AnyVector-filer i .cdr-format öppnas i AnyVector. Spara som CMX, PDF, SVG eller EMF för att öppna dem i CorelDRAW.
+Saves a copy for other programs. The drawing keeps its own file.	Sparar en kopia för andra program. Teckningen behåller sin egen fil.
+Saving a .cdr drawing that CorelDRAW cannot open	Spara en .cdr-teckning som CorelDRAW inte kan öppna
+Remind me that CorelDRAW cannot open AnyVector .cdr files	Påminn mig om att CorelDRAW inte kan öppna AnyVector-filer i .cdr-format
+CorelDRAW cannot open this file: AnyVector .cdr files open in AnyVector.	CorelDRAW kan inte öppna den här filen: AnyVector-filer i .cdr-format öppnas i AnyVector.
+To open the drawing in CorelDRAW, use File ▸ Save As and choose CMX (CorelDRAW-compatible), PDF, SVG or EMF.	Om du vill öppna teckningen i CorelDRAW väljer du Arkiv ▸ Spara som och sedan CMX (kompatibel med CorelDRAW), PDF, SVG eller EMF.
+This note is shown once. Turn it back on in Tools ▸ Options ▸ AnyVector ▸ Save.	Den här anteckningen visas bara en gång. Slå på den igen under Verktyg ▸ Alternativ ▸ AnyVector ▸ Spara.
+{} was saved with these differences from the drawing:	{} sparades med följande skillnader från teckningen:
+{} was not written by AnyVector or CorelDRAW, or it is damaged.	{} har inte skrivits av AnyVector eller CorelDRAW, eller så är den skadad.
+If it came from another program, open a PDF, SVG or EPS copy of it instead.	Om den kommer från ett annat program öppnar du i stället en PDF-, SVG- eller EPS-kopia av den.
+Saved a copy as {}	En kopia sparades som {}
+Text was converted to curves.	Texten konverterades till kurvor.
+Bitmaps were left out.	Bitmappar utelämnades.
+Drop shadows, lenses and bevels were left out.	Skuggor, linser och fasningar utelämnades.
+Transparency was left out.	Genomskinlighet utelämnades.
+Pattern, texture and mesh fills were replaced by their main color.	Mönster-, struktur- och nätfyllningar ersattes med sin huvudfärg.
+Hidden layers and objects were left out.	Dolda lager och objekt utelämnades.
+AnyVector 0.1	AnyVector 0.1

@@ -5626,3 +5626,28 @@ Stretch:	伸縮:
 Nib shape:	ペン先の形状:
 Drag commands here	ここにコマンドをドラッグ
 New Toolbar {}	新しいツールバー {}
+CMX - CorelDRAW-compatible (*.cmx)	CMX - CorelDRAW 互換 (*.cmx)
+CDR - AnyVector Drawing (*.cdr)	CDR - AnyVector 描画 (*.cdr)
+VCT - AnyVector Drawing, legacy (*.vct)	VCT - AnyVector 描画、旧形式 (*.vct)
+CMX - CorelDRAW-compatible copy (*.cmx)	CMX - CorelDRAW 互換のコピー (*.cmx)
+PDF - Portable Document Format, copy (*.pdf)	PDF - Portable Document Format、コピー (*.pdf)
+SVG - Scalable Vector Graphics, copy (*.svg)	SVG - Scalable Vector Graphics、コピー (*.svg)
+EMF - Enhanced Windows Metafile, copy (*.emf)	EMF - Enhanced Windows Metafile、コピー (*.emf)
+AnyVector .cdr files open in AnyVector. To open in CorelDRAW, save as CMX, PDF, SVG or EMF.	AnyVector の .cdr ファイルは AnyVector で開きます。CorelDRAW で開くには、CMX、PDF、SVG、EMF のいずれかで保存してください。
+Saves a copy for other programs. The drawing keeps its own file.	他のプログラム用にコピーを保存します。描画は元のファイルのままです。
+Saving a .cdr drawing that CorelDRAW cannot open	CorelDRAW で開けない .cdr 描画を保存するとき
+Remind me that CorelDRAW cannot open AnyVector .cdr files	CorelDRAW では AnyVector の .cdr ファイルを開けないことを知らせる
+CorelDRAW cannot open this file: AnyVector .cdr files open in AnyVector.	このファイルは CorelDRAW では開けません。AnyVector の .cdr ファイルは AnyVector で開きます。
+To open the drawing in CorelDRAW, use File ▸ Save As and choose CMX (CorelDRAW-compatible), PDF, SVG or EMF.	CorelDRAW で描画を開くには、ファイル ▸ 名前を付けて保存 で CMX (CorelDRAW 互換)、PDF、SVG、EMF のいずれかを選択してください。
+This note is shown once. Turn it back on in Tools ▸ Options ▸ AnyVector ▸ Save.	このメッセージは一度だけ表示されます。ツール ▸ オプション ▸ AnyVector ▸ 保存 で再びオンにできます。
+{} was saved with these differences from the drawing:	{} は描画と次の点が異なる状態で保存されました:
+{} was not written by AnyVector or CorelDRAW, or it is damaged.	{} は AnyVector でも CorelDRAW でも作成されていないか、破損しています。
+If it came from another program, open a PDF, SVG or EPS copy of it instead.	別のプログラムで作成されたファイルの場合は、代わりに PDF、SVG、EPS のコピーを開いてください。
+Saved a copy as {}	コピーを {} として保存しました
+Text was converted to curves.	テキストはカーブに変換されました。
+Bitmaps were left out.	ビットマップは含まれていません。
+Drop shadows, lenses and bevels were left out.	ドロップ シャドウ、レンズ、ベベルは含まれていません。
+Transparency was left out.	透明は含まれていません。
+Pattern, texture and mesh fills were replaced by their main color.	パターン、テクスチャ、メッシュの塗りつぶしはメイン カラーに置き換えられました。
+Hidden layers and objects were left out.	非表示のレイヤーとオブジェクトは含まれていません。
+AnyVector 0.1	AnyVector 0.1

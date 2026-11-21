@@ -5626,3 +5626,28 @@ Stretch:	Étirement :
 Nib shape:	Forme de plume :
 Drag commands here	Faites glisser des commandes ici
 New Toolbar {}	Nouvelle barre d'outils {}
+CMX - CorelDRAW-compatible (*.cmx)	CMX - Compatible CorelDRAW (*.cmx)
+CDR - AnyVector Drawing (*.cdr)	CDR - Dessin AnyVector (*.cdr)
+VCT - AnyVector Drawing, legacy (*.vct)	VCT - Dessin AnyVector, ancien format (*.vct)
+CMX - CorelDRAW-compatible copy (*.cmx)	CMX - Copie compatible CorelDRAW (*.cmx)
+PDF - Portable Document Format, copy (*.pdf)	PDF - Portable Document Format, copie (*.pdf)
+SVG - Scalable Vector Graphics, copy (*.svg)	SVG - Scalable Vector Graphics, copie (*.svg)
+EMF - Enhanced Windows Metafile, copy (*.emf)	EMF - Enhanced Windows Metafile, copie (*.emf)
+AnyVector .cdr files open in AnyVector. To open in CorelDRAW, save as CMX, PDF, SVG or EMF.	Les fichiers .cdr d'AnyVector s'ouvrent dans AnyVector. Pour les ouvrir dans CorelDRAW, enregistrez-les au format CMX, PDF, SVG ou EMF.
+Saves a copy for other programs. The drawing keeps its own file.	Enregistre une copie pour d'autres programmes. Le dessin conserve son propre fichier.
+Saving a .cdr drawing that CorelDRAW cannot open	Enregistrement d'un dessin .cdr que CorelDRAW ne peut pas ouvrir
+Remind me that CorelDRAW cannot open AnyVector .cdr files	Me rappeler que CorelDRAW ne peut pas ouvrir les fichiers .cdr d'AnyVector
+CorelDRAW cannot open this file: AnyVector .cdr files open in AnyVector.	CorelDRAW ne peut pas ouvrir ce fichier : les fichiers .cdr d'AnyVector s'ouvrent dans AnyVector.
+To open the drawing in CorelDRAW, use File ▸ Save As and choose CMX (CorelDRAW-compatible), PDF, SVG or EMF.	Pour ouvrir le dessin dans CorelDRAW, choisissez Fichier ▸ Enregistrer sous, puis CMX (compatible CorelDRAW), PDF, SVG ou EMF.
+This note is shown once. Turn it back on in Tools ▸ Options ▸ AnyVector ▸ Save.	Ce message ne s'affiche qu'une fois. Réactivez-le dans Outils ▸ Options ▸ AnyVector ▸ Enregistrer.
+{} was saved with these differences from the drawing:	{} a été enregistré avec ces différences par rapport au dessin :
+{} was not written by AnyVector or CorelDRAW, or it is damaged.	{} n'a été écrit ni par AnyVector ni par CorelDRAW, ou il est endommagé.
+If it came from another program, open a PDF, SVG or EPS copy of it instead.	S'il provient d'un autre programme, ouvrez plutôt une copie PDF, SVG ou EPS.
+Saved a copy as {}	Copie enregistrée sous {}
+Text was converted to curves.	Le texte a été converti en courbes.
+Bitmaps were left out.	Les bitmaps ont été omis.
+Drop shadows, lenses and bevels were left out.	Les ombres portées, les lentilles et les biseaux ont été omis.
+Transparency was left out.	La transparence a été omise.
+Pattern, texture and mesh fills were replaced by their main color.	Les remplissages motif, texture et maillage ont été remplacés par leur couleur principale.
+Hidden layers and objects were left out.	Les calques et les objets masqués ont été omis.
+AnyVector 0.1	AnyVector 0.1

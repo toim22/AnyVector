@@ -807,8 +807,16 @@ pub fn format_time(t: std::time::SystemTime) -> String {
     format!("{y:04}-{m:02}-{d:02} {:02}:{:02} UTC", rem / 3600, (rem % 3600) / 60)
 }
 
-/// File-format versions offered in Save Drawing ▸ Version and Options ▸ Save.
-pub const FILE_VERSIONS: &[&str] = &["0.1 (2026.0)"];
+/// File-format versions offered in Save Drawing ▸ Version and Options ▸ Save. These are
+/// versions of AnyVector's own `.cdr` format (written into the file as
+/// `vector_io::cdr::FORMAT_VERSION`), not CorelDRAW versions.
+pub const FILE_VERSIONS: &[&str] = &["AnyVector 0.1"];
+/// What each of [`FILE_VERSIONS`] writes into the file (unchanged since 0.1, so older
+/// AnyVector releases keep opening new files).
+pub const FILE_FORMAT_VERSIONS: &[&str] = &[vector_io::cdr::FORMAT_VERSION];
+
+/// The Warnings entry for the one-time note after saving a `.cdr`: CorelDRAW does not open it.
+pub const CDR_NOTICE_WARNING: &str = "Saving a .cdr drawing that CorelDRAW cannot open";
 
 /// A Color Proofing preset: the environment, its color space, Preserve numbers and the intent.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -897,6 +905,16 @@ impl Settings {
             // #116: 0.5.3/0.5.4 saved Treat All Objects as Filled off for everyone. Restore the
             // earlier behaviour once; the toggle still turns it off afterwards.
             self.treat_as_filled = true;
+        }
+        // warnings added since the settings were saved start on (an acknowledged one stays off)
+        for (name, on) in crate::dialogs::options::default_warnings() {
+            if !self.warnings.iter().any(|(t, _)| *t == name) {
+                self.warnings.push((name, on));
+            }
+        }
+        // 0.6.0 names the `.cdr` format version honestly ("0.1 (2026.0)" read like CorelDRAW's)
+        if !FILE_VERSIONS.contains(&self.default_version.as_str()) {
+            self.default_version = FILE_VERSIONS[0].into();
         }
         self.settings_revision = self.settings_revision.max(SETTINGS_REVISION);
     }

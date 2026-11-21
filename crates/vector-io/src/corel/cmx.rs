@@ -1423,7 +1423,9 @@ impl<'a> Cmx<'a> {
         *self.tally.skipped.entry(code as u32).or_default() += 1;
     }
 
-    /// The page's box (16-bit: page number, flags, box; 32-bit: the same in tag 1).
+    /// The page's box (16-bit: page number, flags, box; 32-bit: the same in tag 1). CorelDRAW
+    /// 2026 puts the box of the drawing in tag 1 and the page's width and height in tag 4: the
+    /// page is then that size around the origin.
     fn begin_page(&self, r: &mut Rd, stop: usize) -> Option<Rect> {
         let spec = |s: &Self, r: &mut Rd| {
             r.skip(2);
@@ -1432,6 +1434,13 @@ impl<'a> Cmx<'a> {
         };
         let page = if self.wide {
             let tags = self.tags(r, stop);
+            if let Some(t) = tags.iter().find(|t| t.0 == 4 && t.2 >= t.1 + 8) {
+                let mut s = self.rd(t.1);
+                let (w, h) = (s.u32() as f64, s.u32() as f64);
+                if w >= 1.0 && h >= 1.0 && w < 1e10 && h < 1e10 {
+                    return Some(Rect::new(-w / 2.0, -h / 2.0, w / 2.0, h / 2.0));
+                }
+            }
             tags.iter().find(|t| t.0 == 1).map(|t| spec(self, &mut self.rd(t.1)))?
         } else {
             spec(self, r)

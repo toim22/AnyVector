@@ -5626,3 +5626,28 @@ Stretch:	Растяжение:
 Nib shape:	Форма пера:
 Drag commands here	Перетащите сюда команды
 New Toolbar {}	Новая панель инструментов {}
+CMX - CorelDRAW-compatible (*.cmx)	CMX - Совместимый с CorelDRAW (*.cmx)
+CDR - AnyVector Drawing (*.cdr)	CDR - Рисунок AnyVector (*.cdr)
+VCT - AnyVector Drawing, legacy (*.vct)	VCT - Рисунок AnyVector, старый формат (*.vct)
+CMX - CorelDRAW-compatible copy (*.cmx)	CMX - Копия, совместимая с CorelDRAW (*.cmx)
+PDF - Portable Document Format, copy (*.pdf)	PDF - Portable Document Format, копия (*.pdf)
+SVG - Scalable Vector Graphics, copy (*.svg)	SVG - Scalable Vector Graphics, копия (*.svg)
+EMF - Enhanced Windows Metafile, copy (*.emf)	EMF - Enhanced Windows Metafile, копия (*.emf)
+AnyVector .cdr files open in AnyVector. To open in CorelDRAW, save as CMX, PDF, SVG or EMF.	Файлы .cdr программы AnyVector открываются в AnyVector. Чтобы открыть их в CorelDRAW, сохраните их как CMX, PDF, SVG или EMF.
+Saves a copy for other programs. The drawing keeps its own file.	Сохраняет копию для других программ. У рисунка остается собственный файл.
+Saving a .cdr drawing that CorelDRAW cannot open	Сохранение рисунка .cdr, который CorelDRAW не может открыть
+Remind me that CorelDRAW cannot open AnyVector .cdr files	Напоминать, что CorelDRAW не открывает файлы .cdr программы AnyVector
+CorelDRAW cannot open this file: AnyVector .cdr files open in AnyVector.	CorelDRAW не может открыть этот файл: файлы .cdr программы AnyVector открываются в AnyVector.
+To open the drawing in CorelDRAW, use File ▸ Save As and choose CMX (CorelDRAW-compatible), PDF, SVG or EMF.	Чтобы открыть рисунок в CorelDRAW, выберите Файл ▸ Сохранить как, а затем CMX (совместимый с CorelDRAW), PDF, SVG или EMF.
+This note is shown once. Turn it back on in Tools ▸ Options ▸ AnyVector ▸ Save.	Это примечание показывается один раз. Снова включить его можно в разделе Инструменты ▸ Параметры ▸ AnyVector ▸ Сохранить.
+{} was saved with these differences from the drawing:	{} сохранен со следующими отличиями от рисунка:
+{} was not written by AnyVector or CorelDRAW, or it is damaged.	Файл {} создан не в AnyVector и не в CorelDRAW или поврежден.
+If it came from another program, open a PDF, SVG or EPS copy of it instead.	Если он получен из другой программы, откройте вместо него его копию в формате PDF, SVG или EPS.
+Saved a copy as {}	Копия сохранена как {}
+Text was converted to curves.	Текст преобразован в кривые.
+Bitmaps were left out.	Растровые изображения не включены.
+Drop shadows, lenses and bevels were left out.	Тени, линзы и фаски не включены.
+Transparency was left out.	Прозрачность не включена.
+Pattern, texture and mesh fills were replaced by their main color.	Заливки узором, текстурой и сеткой заменены их основным цветом.
+Hidden layers and objects were left out.	Скрытые слои и объекты не включены.
+AnyVector 0.1	AnyVector 0.1
