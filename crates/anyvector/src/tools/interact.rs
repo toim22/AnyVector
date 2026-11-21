@@ -1165,7 +1165,7 @@ impl<'a> Cx<'a> {
         let idx = match nodes.iter().position(|w| (w.t - t).abs() * total <= tol) {
             Some(i) => i,
             None => {
-                let w = o.style.outline.width.max(self.ts.default_outline_width).max(0.5) / 2.0;
+                let w = o.style.outline.width.max(self.ts.default_outline.width).max(0.5) / 2.0;
                 if nodes.is_empty() {
                     nodes = vec![VarWidth { t: 0.0, side1: w, side2: w }, VarWidth { t: 1.0, side1: w, side2: w }];
                 }

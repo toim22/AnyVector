@@ -1164,8 +1164,12 @@ fn text(app: &mut AnyVectorApp, ui: &mut Ui) {
             });
             ui.horizontal(|ui| {
                 label_w(ui, "Default text units:", 170.0);
-                let mut i = 0;
-                combo(ui, "text_units", &mut i, &["points"], 120.0);
+                // the unit of font sizes in the property bar, the Text docker and dialogs (#109)
+                let mut i = Unit::ALL.iter().position(|u| *u == s.text_unit).unwrap_or(4);
+                let names: Vec<&str> = Unit::ALL.iter().map(|u| u.name()).collect();
+                if combo(ui, "text_units", &mut i, &names, 120.0) {
+                    s.text_unit = Unit::ALL[i];
+                }
             });
         }
         1 => {

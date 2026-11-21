@@ -35,12 +35,15 @@ pub fn system_clipboard_has_content() -> bool {
 /// nothing is selected.
 pub fn apply_color(app: &mut AnyVectorApp, color: Option<Color>, outline: bool) {
     if !app.has_selection() {
-        if !outline {
-            if let Some(c) = color {
-                app.default_fill = c;
-            }
+        if outline {
+            // the outline color of new objects, as CorelDRAW's document defaults (#103)
+            let mut ol = app.ts.default_outline.clone();
+            ol.color = color;
+            app.set_default_outline(ol);
+        } else if let Some(c) = color {
+            app.default_fill = c;
         }
-        app.flash(if outline { "Select objects to change their outline color." } else { "Default fill set for new objects." });
+        app.flash(if outline { "Default outline set for new objects." } else { "Default fill set for new objects." });
         return;
     }
     if let (false, Some(c)) = (outline, color) {
@@ -48,7 +51,7 @@ pub fn apply_color(app: &mut AnyVectorApp, color: Option<Color>, outline: bool) 
             return;
         }
     }
-    let width = app.ts.default_outline_width;
+    let width = app.ts.default_outline.width;
     let Some(d) = app.doc_mut() else { return };
     let ids = d.selection.clone();
     d.modify(if outline { "Outline Color" } else { "Fill Color" }, |doc, _| {
@@ -59,10 +62,12 @@ pub fn apply_color(app: &mut AnyVectorApp, color: Option<Color>, outline: bool) 
                         return;
                     }
                     if outline {
-                        x.style.outline.color = color;
-                        if color.is_some() && x.style.outline.width <= 0.0 {
-                            x.style.outline.width = width.max(0.1);
+                        // an object without an outline gets the default width; a hairline
+                        // keeps being a hairline (#127)
+                        if color.is_some() && !x.style.outline.is_visible() && x.style.outline.width <= 0.0 {
+                            x.style.outline.width = width;
                         }
+                        x.style.outline.color = color;
                     } else {
                         x.style.fill = match color {
                             Some(c) => Fill::Solid(c),
@@ -2406,6 +2411,12 @@ impl AnyVectorApp {
                 }
             }
             Cmd::CreateArrowhead => self.dialogs.arrowhead = crate::dialogs::object::ArrowheadState::new(self),
+            Cmd::OutlinePen => {
+                if self.has_doc() {
+                    self.dialogs.outline_pen = Some(crate::dialogs::outlinepen::OutlinePenState::new(self));
+                }
+            }
+            Cmd::OutlineWidth(w) => crate::propbar::set_outline_width(self, w),
             Cmd::CreatePattern => self.dialogs.pattern = Some(crate::dialogs::object::PatternState { kind: 1, resolution: 1 }),
             Cmd::InsertQrCode => crate::dialogs::object::insert_qr(self),
             Cmd::InsertBarcode => {

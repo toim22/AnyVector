@@ -634,7 +634,18 @@ fn rulers(app: &mut AnyVectorApp, ui: &mut Ui, ai: usize, area: Rect, canvas: Re
     let dpi = d.doc.settings.dpi;
     let origin = d.doc.settings.ruler_origin;
     let ppu = unit.points_per_unit(dpi);
-    let (step, subdiv) = unit.ruler_step(d.zoom, dpi);
+    // inches are divided in binary fractions (#113), the other units in tenths
+    let rs = unit.ruler(d.zoom, dpi);
+    let (step, subdiv) = (rs.step, rs.subdiv);
+    let tick_len = |k: i64| match (rs.tick_level(k), rs.binary) {
+        (0, _) => RULER - 2.0,
+        (1, true) => 9.0,
+        (2, true) => 7.0,
+        (3, true) => 5.0,
+        (_, true) => 3.5,
+        (1, false) => 7.0,
+        _ => 4.0,
+    };
     let tick = Color32::from_gray(0x8c);
     let label_col = Color32::from_gray(0xb0);
     let font = egui::FontId::proportional(9.0);
@@ -653,11 +664,7 @@ fn rulers(app: &mut AnyVectorApp, ui: &mut Ui, ai: usize, area: Rect, canvas: Re
 
     let step_pt = step * ppu;
     let sub_pt = step_pt / subdiv as f64;
-    let decimals = if step < 1.0 { ((-step.log10()).ceil() as usize).min(3) } else { 0 };
-    let fmt = |v: f64| -> String {
-        let v = if v.abs() < 1e-9 { 0.0 } else { v };
-        format!("{:.*}", decimals, v)
-    };
+    let fmt = |v: f64| -> String { rs.label(v) };
     // horizontal
     {
         let x0 = d.to_doc(pos2(top.min.x, 0.0)).x;
@@ -669,8 +676,7 @@ fn rulers(app: &mut AnyVectorApp, ui: &mut Ui, ai: usize, area: Rect, canvas: Re
                 let x = origin.x + k as f64 * sub_pt;
                 let sx = d.to_screen(Point::new(x, 0.0)).x.round() + 0.5;
                 let major = k.rem_euclid(subdiv as i64) == 0;
-                let half = subdiv % 2 == 0 && k.rem_euclid(subdiv as i64) == subdiv as i64 / 2;
-                let h = if major { RULER - 2.0 } else if half { 7.0 } else { 4.0 };
+                let h = tick_len(k);
                 painter.line_segment([pos2(sx, top.max.y - h), pos2(sx, top.max.y)], Stroke::new(1.0, tick));
                 if major {
                     painter.text(pos2(sx + 2.0, top.min.y + 1.0), egui::Align2::LEFT_TOP, fmt(k as f64 * sub_pt / ppu), font.clone(), label_col);
@@ -689,8 +695,7 @@ fn rulers(app: &mut AnyVectorApp, ui: &mut Ui, ai: usize, area: Rect, canvas: Re
                 let y = origin.y + k as f64 * sub_pt;
                 let sy = d.to_screen(Point::new(0.0, y)).y.round() + 0.5;
                 let major = k.rem_euclid(subdiv as i64) == 0;
-                let half = subdiv % 2 == 0 && k.rem_euclid(subdiv as i64) == subdiv as i64 / 2;
-                let w = if major { RULER - 2.0 } else if half { 7.0 } else { 4.0 };
+                let w = tick_len(k);
                 painter.line_segment([pos2(left.max.x - w, sy), pos2(left.max.x, sy)], Stroke::new(1.0, tick));
                 if major {
                     // y grows downwards in the document; the ruler shows values growing upwards
