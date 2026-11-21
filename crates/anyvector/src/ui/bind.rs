@@ -398,6 +398,10 @@ pub fn cmd(id: &str) -> Option<Cmd> {
         "b60f4415" => TableSplit(true),
         // Object
         "73d5fcfa" => CreateArrowhead,
+        // Outline Pen (F12) and its flyout's No Outline and Hairline Outline
+        "0203e4a7" => OutlinePen,
+        "aa134968" => OutlineWidth(None),
+        "1a7d5259" => OutlineWidth(Some(0.0)),
         "8d3cb8e7" => CreatePattern,
         "8a371e4d" => InsertQrCode,
         "c22f267c" => InsertBarcode,
@@ -660,6 +664,7 @@ pub fn enabled(app: &AnyVectorApp, id: &str) -> Option<bool> {
         // Object
         Cmd::CreateArrowhead => one.is_some_and(|o| o.bounds().width() > 0.0) && !one_is(|k| matches!(k, ObjKind::Image(_) | ObjKind::Table(_))),
         Cmd::CreatePattern | Cmd::InsertQrCode | Cmd::InsertBarcode => d.is_some(),
+        Cmd::OutlinePen | Cmd::OutlineWidth(_) => d.is_some(),
         Cmd::ValidateBarcode => d.is_some_and(|d| d.doc.find_all(&d.selection).into_iter().any(|o| matches!(o.special, Some(vector_core::codes::Special::Barcode { .. })))),
         Cmd::AiGuided(_) => sel > 0,
         // Text

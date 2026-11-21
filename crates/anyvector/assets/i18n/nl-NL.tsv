@@ -5612,3 +5612,11 @@ Edit Ellipse	Ellips bewerken
 Move Segment	Segment verplaatsen
 Delete Segment	Segment verwijderen
 A curve needs at least two nodes	Een kromme heeft minstens twee knooppunten nodig
+Default outline set for new objects.	Standaardomtrek voor nieuwe objecten ingesteld.
+Outline: double-click to edit	Omtrek: dubbelklik om te bewerken
+Start arrowhead	Beginpijlpunt
+End arrowhead	Eindpijlpunt
+Nothing is selected: these settings are the outline of new objects.	Niets geselecteerd: deze instellingen zijn de omtrek van nieuwe objecten.
+Share attributes	Kenmerken delen
+Stretch:	Uitrekken:
+Nib shape:	Penpuntvorm:

@@ -702,23 +702,21 @@ fn crop_marquee(app: &mut AnyVectorApp, ui: &mut Ui, it: &Item, pos: bool) {
 
 // ----------------------------------------------------------------------------- outline
 
-/// The outline width shown: `None` for no outline, 0 for hairline.
-fn outline_now(app: &AnyVectorApp) -> Option<f64> {
+/// The outline shown: the first selected object's, else the outline of new objects.
+fn outline_now(app: &AnyVectorApp) -> vector_core::style::Outline {
     if app.has_selection() {
-        first(app, |o| o.style.outline.color.map(|_| o.style.outline.width)).flatten()
+        first(app, |o| o.style.outline.clone()).unwrap_or_default()
     } else {
-        Some(app.ts.default_outline_width)
+        app.ts.default_outline.clone()
     }
 }
 
 fn outline_width(app: &mut AnyVectorApp, ui: &mut Ui, it: &Item) {
-    let w = outline_now(app);
-    let dpi = unit_dpi(app).1;
-    let text = match w {
-        None => "None".to_string(),
-        Some(w) if w <= 0.0 => "Hairline".to_string(),
-        Some(w) => Unit::Points.format(w, dpi),
-    };
+    let ol = outline_now(app);
+    // `None` for no outline, 0 for hairline
+    let w = ol.is_visible().then_some(ol.width);
+    let (u, dpi) = crate::lengths::outline_unit(app);
+    let text = crate::lengths::outline_text(&ol, u, dpi);
     let doc = app.has_doc();
     let lead = if it.icon.is_empty() { Lead::Icon("outline_icon") } else { lead(it) };
     let mut pick: Option<Option<f64>> = None;
@@ -726,23 +724,44 @@ fn outline_width(app: &mut AnyVectorApp, ui: &mut Ui, it: &Item) {
         if ui.selectable_label(w.is_none(), "None").clicked() {
             pick = Some(None);
         }
-        for (name, pw) in vector_core::style::outline_width_presets() {
-            if ui.selectable_label(w.is_some_and(|w| (w - pw).abs() < 1e-6), name).clicked() {
+        // the widths in the outline unit (#137)
+        for pw in crate::lengths::width_choices(u, dpi) {
+            if ui.selectable_label(w.is_some_and(|w| (w - pw).abs() < 1e-6), crate::lengths::width_text(pw, u, dpi)).clicked() {
                 pick = Some(Some(pw));
             }
         }
     });
-    match pick {
-        Some(None) if app.has_selection() => edit_sel(app, "Outline", |o| o.style.outline.color = None),
-        Some(Some(w)) if app.has_selection() => edit_sel(app, "Outline Width", |o| {
-            o.style.outline.width = w;
-            if o.style.outline.color.is_none() {
-                o.style.outline.color = Some(Color::BLACK);
-            }
-        }),
-        Some(Some(w)) => app.ts.default_outline_width = w,
-        _ => {}
+    if let Some(p) = pick {
+        set_outline_width(app, p);
     }
+}
+
+/// Sets the outline width of the selection, or of new objects when nothing is selected:
+/// `None` removes the outline, 0 makes it a hairline. A width given to an object without an
+/// outline gives it the default outline color.
+pub fn set_outline_width(app: &mut AnyVectorApp, w: Option<f64>) {
+    let color = app.ts.default_outline.color.unwrap_or(Color::BLACK);
+    if app.has_selection() {
+        match w {
+            None => edit_sel(app, "Outline", |o| o.style.outline.color = None),
+            Some(w) => edit_sel(app, "Outline Width", |o| {
+                o.style.outline.width = w;
+                if o.style.outline.color.is_none() {
+                    o.style.outline.color = Some(color);
+                }
+            }),
+        }
+        return;
+    }
+    let mut ol = app.ts.default_outline.clone();
+    match w {
+        None => ol.color = None,
+        Some(w) => {
+            ol.width = w;
+            ol.color.get_or_insert(color);
+        }
+    }
+    app.set_default_outline(ol);
 }
 
 fn outline_style(app: &mut AnyVectorApp, ui: &mut Ui, it: &Item) {

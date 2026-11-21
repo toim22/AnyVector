@@ -5612,3 +5612,11 @@ Edit Ellipse	Upravit elipsu
 Move Segment	Přesunout segment
 Delete Segment	Odstranit segment
 A curve needs at least two nodes	Křivka potřebuje alespoň dva uzly
+Default outline set for new objects.	Výchozí obrys pro nové objekty nastaven.
+Outline: double-click to edit	Obrys: upravte poklepáním
+Start arrowhead	Počáteční šipka
+End arrowhead	Koncová šipka
+Nothing is selected: these settings are the outline of new objects.	Nic není vybráno: tato nastavení jsou obrysem nových objektů.
+Share attributes	Sdílet atributy
+Stretch:	Roztažení:
+Nib shape:	Tvar hrotu:

@@ -56,8 +56,8 @@ pub fn status_bar(app: &mut AnyVectorApp, ui: &mut Ui) {
         app.run(crate::commands::Cmd::ColorManagement);
     }
     p.line_segment([pos2(right - 36.0, full.top() + 6.0), pos2(right - 36.0, full.bottom() - 6.0)], egui::Stroke::new(1.0, theme::SEP()));
-    let ox = right - 238.0;
-    let fx = right - 438.0;
+    let ox = right - 268.0;
+    let fx = right - 468.0;
     // fill
     let fr = Rect::from_min_size(pos2(fx, full.top()), vec2(190.0, full.height()));
     let fresp = ui.interact(fr, ui.scope_id().with("sb_fill"), Sense::click()).on_hover_text("Fill: double-click to edit");
@@ -68,9 +68,16 @@ pub fn status_bar(app: &mut AnyVectorApp, ui: &mut Ui) {
     if fresp.double_clicked() && app.has_doc() {
         app.run(crate::commands::Cmd::Docker(crate::dockers::DockerId::Properties));
     }
-    // outline
-    let orr = Rect::from_min_size(pos2(ox, full.top()), vec2(190.0, full.height()));
-    let oresp = ui.interact(orr, ui.scope_id().with("sb_outline"), Sense::click()).on_hover_text("Outline: double-click to edit");
+    // outline: the color, then the width in the outline unit (#138); a hairline is an outline
+    // with a color (#127)
+    let (u, dpi) = crate::lengths::outline_unit(app);
+    let (ctext, wtext) = outline_texts(outline, u, dpi);
+    let orr = Rect::from_min_size(pos2(ox, full.top()), vec2(220.0, full.height()));
+    let tip = match &ctext {
+        Some(c) => format!("{}\n{c}  {}", crate::i18n::t("Outline: double-click to edit"), crate::i18n::t(&wtext)),
+        None => crate::i18n::t("Outline: double-click to edit"),
+    };
+    let oresp = ui.interact(orr, ui.scope_id().with("sb_outline"), Sense::click()).on_hover_text(tip);
     icon(app, ui, "outline_icon", Rect::from_center_size(pos2(ox + 10.0, cy), vec2(18.0, 18.0)), 16.0);
     let sw = Rect::from_center_size(pos2(ox + 33.0, cy), vec2(19.0, 19.0));
     let ofill = match outline {
@@ -79,15 +86,32 @@ pub fn status_bar(app: &mut AnyVectorApp, ui: &mut Ui) {
         None => None,
     };
     swatch(&p, sw, &ofill);
-    let otext = match outline {
-        None => "Outline Color".to_string(),
-        Some((None, _)) => "None".to_string(),
-        // the outline width in points, as the reference writes it
-        Some((Some(c), w)) => format!("{}  {:.3} pt", color_text(c), w),
-    };
-    p.text(pos2(ox + 50.0, cy), egui::Align2::LEFT_CENTER, fit(&p, &otext, &font, 136.0), font, theme::TEXT());
+    // the width always shows whole; the color gives up its room when the field is narrow
+    let room = 166.0;
+    let wtext = crate::i18n::t(&wtext);
+    let ww = p.layout_no_wrap(wtext.clone(), font.clone(), theme::TEXT()).size().x;
+    let mut x = ox + 50.0;
+    if let Some(c) = &ctext {
+        let shown = fit(&p, c, &font, (room - ww - 10.0).max(0.0));
+        if shown != "..." {
+            p.text(pos2(x, cy), egui::Align2::LEFT_CENTER, &shown, font.clone(), theme::TEXT());
+            x += p.layout_no_wrap(shown, font.clone(), theme::TEXT()).size().x + 10.0;
+        }
+    }
+    p.text(pos2(x, cy), egui::Align2::LEFT_CENTER, wtext, font, theme::TEXT());
+    // double-click: the Outline Pen (the outline of new objects when nothing is selected, #103)
     if oresp.double_clicked() && app.has_doc() {
-        app.run(crate::commands::Cmd::Docker(crate::dockers::DockerId::Properties));
+        app.run(crate::commands::Cmd::OutlinePen);
+    }
+}
+
+/// The outline well's texts: the color (none without one) and the width part, "Outline Color"
+/// with no document, "None" without an outline, "Hairline" or the width in `u`.
+pub fn outline_texts(outline: Option<(Option<vector_core::Color>, f64)>, u: vector_core::Unit, dpi: f64) -> (Option<String>, String) {
+    match outline {
+        None => (None, "Outline Color".to_string()),
+        Some((None, _)) => (None, "None".to_string()),
+        Some((Some(c), w)) => (Some(color_text(c)), crate::lengths::width_text(w, u, dpi)),
     }
 }
 
@@ -142,17 +166,16 @@ fn swatch(p: &egui::Painter, r: Rect, f: &Option<Fill>) {
 }
 
 /// Fill/outline of the selection (or of the defaults when nothing is selected).
-fn current_fill_outline(app: &AnyVectorApp) -> (Option<Fill>, Option<(Option<vector_core::Color>, f64)>) {
+pub fn current_fill_outline(app: &AnyVectorApp) -> (Option<Fill>, Option<(Option<vector_core::Color>, f64)>) {
     let Some(d) = app.doc() else { return (None, None) };
     if let Some(id) = d.selection.first() {
         if let Some(o) = d.doc.find(*id) {
-            if d.selection.len() > 1 {
-                return (Some(o.style.fill.clone()), Some((o.style.outline.color, o.style.outline.width)));
-            }
-            return (Some(o.style.fill.clone()), Some((if o.style.outline.width > 0.0 { o.style.outline.color } else { None }, o.style.outline.width)));
+            // the color says whether there is an outline; a width of 0 is a hairline (#127)
+            return (Some(o.style.fill.clone()), Some((o.style.outline.color, o.style.outline.width)));
         }
     }
-    (Some(Fill::None), Some((Some(vector_core::Color::BLACK), app.ts.default_outline_width)))
+    let ol = &app.ts.default_outline;
+    (Some(Fill::None), Some((ol.color, ol.width)))
 }
 
 fn left_texts(app: &AnyVectorApp, mode: usize) -> (String, String) {

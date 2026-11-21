@@ -5612,3 +5612,11 @@ Edit Ellipse	Redigera ellips
 Move Segment	Flytta segment
 Delete Segment	Ta bort segment
 A curve needs at least two nodes	En kurva behöver minst två noder
+Default outline set for new objects.	Standardkontur för nya objekt har angetts.
+Outline: double-click to edit	Kontur: dubbelklicka för att redigera
+Start arrowhead	Startpilspets
+End arrowhead	Slutpilspets
+Nothing is selected: these settings are the outline of new objects.	Inget är markerat: de här inställningarna blir konturen för nya objekt.
+Share attributes	Dela attribut
+Stretch:	Sträckning:
+Nib shape:	Spetsform:

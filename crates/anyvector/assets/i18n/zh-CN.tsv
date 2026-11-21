@@ -5612,3 +5612,11 @@ Edit Ellipse	编辑椭圆形
 Move Segment	移动线段
 Delete Segment	删除线段
 A curve needs at least two nodes	曲线至少需要两个节点
+Default outline set for new objects.	已为新对象设置默认轮廓。
+Outline: double-click to edit	轮廓：双击编辑
+Start arrowhead	起始箭头
+End arrowhead	终止箭头
+Nothing is selected: these settings are the outline of new objects.	未选择任何对象：这些设置将作为新对象的轮廓。
+Share attributes	共享属性
+Stretch:	拉伸：
+Nib shape:	笔尖形状：

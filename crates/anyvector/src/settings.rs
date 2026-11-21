@@ -315,6 +315,14 @@ pub struct Settings {
     pub custom_strokes: Vec<(String, vector_core::style::WidthProfile)>,
     pub docker_width: f32,
     pub default_unit: Unit,
+    /// The unit outline widths are shown and typed in (the Outline Pen dialog's units, which the
+    /// Properties docker, the property bar and the status bar follow). Widths stay in points.
+    pub outline_unit: Unit,
+    /// Options ▸ Text ▸ Default text units: the unit of font sizes and other text lengths in the
+    /// property bar, the Text docker and the text dialogs. Sizes stay in points.
+    pub text_unit: Unit,
+    /// The outline of new objects, set with Outline Pen (F12) when nothing is selected.
+    pub default_outline: vector_core::style::Outline,
     pub show_tool_hints: u8,
     pub sync_folder: Option<PathBuf>,
     pub ai_provider_url: String,
@@ -695,6 +703,9 @@ impl Default for Settings {
             custom_strokes: vec![],
             docker_width: 280.0,
             default_unit: Unit::Inches,
+            outline_unit: Unit::Points,
+            text_unit: Unit::Points,
+            default_outline: vector_core::style::Outline::default(),
             show_tool_hints: 0,
             sync_folder: None,
             ai_provider_url: String::new(),
@@ -817,6 +828,28 @@ pub fn config_dir() -> PathBuf {
     d
 }
 
+/// The user's Windows regional settings: the measurement system (0 metric, 1 U.S.) and the
+/// paper size (1 Letter, 5 Legal, 8 A3, 9 A4), when Windows gives them.
+pub fn system_region() -> Option<(u32, u32)> {
+    #[cfg(windows)]
+    {
+        use windows::Win32::Globalization::{GetLocaleInfoEx, LOCALE_IMEASURE, LOCALE_IPAPERSIZE};
+        let read = |kind: u32| -> Option<u32> {
+            let mut buf = [0u16; 16];
+            // a null locale name is LOCALE_NAME_USER_DEFAULT
+            let n = unsafe { GetLocaleInfoEx(windows_core::PCWSTR::null(), kind, Some(&mut buf)) };
+            if n <= 0 {
+                return None;
+            }
+            String::from_utf16_lossy(&buf[..(n as usize).min(buf.len())]).trim_end_matches('\0').trim().parse().ok()
+        };
+        let measure = read(LOCALE_IMEASURE)?;
+        return Some((measure, read(LOCALE_IPAPERSIZE).unwrap_or(0)));
+    }
+    #[allow(unreachable_code)]
+    None
+}
+
 pub fn documents_dir() -> PathBuf {
     dirs::document_dir().unwrap_or_else(|| PathBuf::from("."))
 }
@@ -827,10 +860,29 @@ impl Settings {
     }
 
     pub fn load() -> Settings {
-        let mut s: Settings =
-            std::fs::read(Self::path()).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default();
+        let path = Self::path();
+        // a new install (no settings yet) starts in the unit and page size of the Windows
+        // regional settings (#120); an existing settings file is never changed
+        let first_run = !cfg!(test) && !path.exists();
+        let mut s: Settings = std::fs::read(&path).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default();
+        if first_run {
+            if let Some((measure, paper)) = system_region() {
+                s.apply_region(measure, paper);
+            }
+        }
         s.migrate();
         s
+    }
+
+    /// The unit and page size of new documents from a locale's measurement system and paper
+    /// size (see `vector_core::units::regional_defaults`).
+    pub fn apply_region(&mut self, measure: u32, paper: u32) {
+        let (unit, page) = vector_core::units::regional_defaults(measure, paper);
+        self.default_unit = unit;
+        if let Some((name, w, h)) = vector_core::units::page_presets().into_iter().find(|p| p.0 == page) {
+            let color = self.color_management.defaults.clone();
+            self.last_new_doc = Some(NewDocDefaults { preset: Some(name.into()), width: w, height: h, unit, color, ..Default::default() });
+        }
     }
 
     /// One-time fixes for settings saved by older versions; brings `settings_revision` up to date.

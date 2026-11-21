@@ -145,7 +145,9 @@ pub struct ToolState {
     pub parallel_drawing: bool,
     pub parallel_count: u32,
     pub parallel_distance: f64,
-    pub default_outline_width: f64,
+    /// The outline of new objects (Outline Pen with nothing selected, kept in
+    /// `Settings::default_outline`; see `AnyVectorApp::set_default_outline`).
+    pub default_outline: Outline,
     pub lock_ratio: bool,
     pub lock_corners: bool,
     pub crop_rect: Option<Rect>,
@@ -268,7 +270,7 @@ impl Default for ToolState {
             parallel_drawing: false,
             parallel_count: 1,
             parallel_distance: 7.2,
-            default_outline_width: 0.5669,
+            default_outline: Outline::default(),
             lock_ratio: false,
             lock_corners: true,
             crop_rect: None,
@@ -422,7 +424,7 @@ impl ToolState {
     pub fn new_style(&self) -> Style {
         Style {
             fill: self.new_fill.map(Fill::Solid).unwrap_or(Fill::None),
-            outline: Outline { width: self.default_outline_width, color: Some(Color::BLACK), ..Outline::default() },
+            outline: self.default_outline.clone(),
             ..Default::default()
         }
     }

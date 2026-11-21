@@ -4008,3 +4008,225 @@ fn visual_shape_tool_nodes() {
     assert!(matches!(kind_of(&h, eid), ObjKind::Ellipse(e) if e.kind == EllipseKind::Pie));
     assert_eq!(h.state().doc().unwrap().seg_sel, Some((cid, 0, 0)));
 }
+
+// ---- Outlines and units: hairlines, the outline unit, Outline Pen, text units, inch rulers ----
+// (#103, #109, #113, #127, #133, #137, #138)
+
+/// A selected rectangle with this outline.
+fn outlined_rect(h: &mut Harness<'_, AnyVectorApp>, ol: vector_core::style::Outline) -> vector_core::ObjId {
+    let d = h.state_mut().doc_mut().unwrap();
+    let id = d.doc.new_id();
+    let st = Style { fill: Fill::Solid(Color::rgb(250, 220, 120)), outline: ol, ..Style::default() };
+    d.add_objects("test", vec![Object::new(id, ObjKind::Rect(RectShape { w: 216.0, h: 144.0, radii: [0.0; 4], corner: CornerType::default() }), Affine::translate((144.0, 288.0)), st)]);
+    d.selection = vec![id];
+    h.step();
+    id
+}
+
+/// What the status bar's outline field says: the color and the width.
+fn status_outline(h: &Harness<'_, AnyVectorApp>) -> (Option<String>, String) {
+    let (u, dpi) = crate::lengths::outline_unit(h.state());
+    crate::statusbar::outline_texts(crate::statusbar::current_fill_outline(h.state()).1, u, dpi)
+}
+
+fn outline_of(h: &Harness<'_, AnyVectorApp>, id: vector_core::ObjId) -> vector_core::style::Outline {
+    h.state().doc().unwrap().doc.find(id).unwrap().style.outline.clone()
+}
+
+/// #127/#133/#138: a hairline (width 0 with a color) is an outline: the status bar shows its
+/// color and "Hairline", a palette color keeps it a hairline, and only an outline without a
+/// color is "None".
+#[test]
+fn hairline_is_an_outline_everywhere() {
+    use vector_core::style::Outline;
+    let mut h = doc_harness();
+    h.state_mut().settings.outline_unit = vector_core::Unit::Points;
+    let id = outlined_rect(&mut h, Outline { width: 0.0, color: Some(Color::BLACK), ..Outline::default() });
+    assert_eq!(status_outline(&h), (Some("R:0 G:0 B:0 (#000000)".to_string()), "Hairline".to_string()));
+    // a palette color on the outline keeps the hairline
+    crate::exec::apply_color(h.state_mut(), Some(Color::rgb(200, 0, 0)), true);
+    h.step();
+    let ol = outline_of(&h, id);
+    assert_eq!((ol.color, ol.width), (Some(Color::rgb(200, 0, 0)), 0.0), "the hairline got a width");
+    // the Outline Pen flyout: No Outline, then Hairline Outline gives it a color again
+    h.state_mut().run(Cmd::OutlineWidth(None));
+    h.step();
+    assert!(!outline_of(&h, id).is_visible());
+    assert_eq!(status_outline(&h), (None, "None".to_string()));
+    h.state_mut().run(Cmd::OutlineWidth(Some(0.0)));
+    h.step();
+    let ol = outline_of(&h, id);
+    assert!(ol.is_visible() && ol.width == 0.0, "{ol:?}");
+    assert_eq!(status_outline(&h).1, "Hairline");
+    // #138: the width is in the status bar, in the outline unit
+    h.state_mut().run(Cmd::OutlineWidth(Some(2.0)));
+    h.state_mut().settings.outline_unit = vector_core::Unit::Inches;
+    h.step();
+    assert_eq!(status_outline(&h).1, "0.0278 \"");
+    // with nothing selected the status bar shows the outline of new objects
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    h.state_mut().set_default_outline(Outline::default());
+    h.step();
+    assert_eq!(status_outline(&h).0, Some("R:0 G:0 B:0 (#000000)".to_string()));
+}
+
+/// #137: the outline width list follows the outline unit; a width typed with another unit is
+/// converted, "hairline" and "none" are understood.
+#[test]
+fn outline_width_list_and_field_follow_the_outline_unit() {
+    use crate::lengths::{parse_width, width_choices, width_text};
+    use vector_core::Unit;
+    let inch: Vec<String> = width_choices(Unit::Inches, 300.0).iter().map(|w| width_text(*w, Unit::Inches, 300.0)).collect();
+    assert_eq!(inch[0], "Hairline");
+    assert!(inch.iter().skip(1).all(|t| t.ends_with('"')), "{inch:?}");
+    assert!(inch.contains(&"0.01 \"".to_string()) && inch.contains(&"0.5 \"".to_string()), "{inch:?}");
+    let mm: Vec<String> = width_choices(Unit::Millimeters, 300.0).iter().map(|w| width_text(*w, Unit::Millimeters, 300.0)).collect();
+    assert!(mm.iter().skip(1).all(|t| t.ends_with(" mm")), "{mm:?}");
+    assert_eq!(parse_width("2 pt", Unit::Inches, 300.0), Some(Some(2.0)));
+    assert_eq!(parse_width("Hairline", Unit::Inches, 300.0), Some(Some(0.0)));
+    assert_eq!(parse_width("none", Unit::Inches, 300.0), Some(None));
+    // the property bar sets the width of the selection, in points
+    let mut h = doc_harness();
+    let id = outlined_rect(&mut h, vector_core::style::Outline::none());
+    crate::propbar::set_outline_width(h.state_mut(), parse_width("0.01\"", Unit::Points, 300.0).unwrap());
+    h.step();
+    let ol = outline_of(&h, id);
+    assert!(ol.is_visible() && (ol.width - 0.72).abs() < 1e-9, "{ol:?}");
+}
+
+/// #103: F12 with nothing selected opens Outline Pen on the outline of new objects; OK makes
+/// it the default (kept in the settings) and a new rectangle gets it. On a selection, OK changes
+/// only what was changed, in one undo step.
+#[test]
+fn outline_pen_sets_the_default_outline_and_edits_the_selection() {
+    use crate::tools::ToolId;
+    use egui_kittest::kittest::Queryable;
+    use vector_core::style::{LineJoin, Outline};
+    let mut h = doc_harness();
+    h.state_mut().set_default_outline(Outline::default());
+    h.state_mut().settings.outline_unit = vector_core::Unit::Points;
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    h.step();
+    h.key_press(egui::Key::F12);
+    h.step();
+    let st = h.state_mut().dialogs.outline_pen.as_mut().expect("F12 didn't open Outline Pen");
+    assert!(!st.selection);
+    st.ol.width = 4.0;
+    st.ol.color = Some(Color::rgb(0, 120, 0));
+    st.ol.join = LineJoin::Round;
+    h.step();
+    assert!(h.query_by_label("Nothing is selected: these settings are the outline of new objects.").is_some(), "no note that the defaults are edited");
+    save(&mut h, "outline_pen_01_defaults");
+    h.get_by_label("OK").click();
+    h.step();
+    assert!(h.state().dialogs.outline_pen.is_none());
+    for ol in [&h.state().settings.default_outline, &h.state().ts.default_outline] {
+        assert_eq!((ol.width, ol.color, ol.join), (4.0, Some(Color::rgb(0, 120, 0)), LineJoin::Round));
+    }
+    // a new rectangle has it
+    h.state_mut().set_tool(ToolId::Rectangle);
+    h.step();
+    let (a, b) = {
+        let d = h.state().doc().unwrap();
+        (d.to_screen(Point::new(100.0, 100.0)), d.to_screen(Point::new(300.0, 250.0)))
+    };
+    drag(&mut h, a, b);
+    let id = *h.state().doc().unwrap().selection.first().expect("no rectangle drawn");
+    let ol = outline_of(&h, id);
+    assert_eq!((ol.width, ol.color, ol.join), (4.0, Some(Color::rgb(0, 120, 0)), LineJoin::Round));
+    // on the selection: a hairline, only the width changes, as one undo step
+    h.state_mut().set_tool(ToolId::Pick);
+    h.state_mut().run(Cmd::OutlinePen);
+    h.step();
+    let st = h.state_mut().dialogs.outline_pen.as_mut().expect("Outline Pen didn't open");
+    assert!(st.selection);
+    st.ol.width = 0.0;
+    h.step();
+    save(&mut h, "outline_pen_02_selection");
+    h.get_by_label("OK").click();
+    h.step();
+    let ol = outline_of(&h, id);
+    assert_eq!((ol.width, ol.color, ol.join), (0.0, Some(Color::rgb(0, 120, 0)), LineJoin::Round));
+    assert_eq!(status_outline(&h).1, "Hairline");
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    assert_eq!(outline_of(&h, id).width, 4.0, "one undo didn't bring the width back");
+    // the default stays as it was
+    assert_eq!(h.state().ts.default_outline.width, 4.0);
+    // a palette right-click with nothing selected sets the default outline color
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    crate::exec::apply_color(h.state_mut(), Some(Color::rgb(0, 0, 255)), true);
+    assert_eq!(h.state().ts.default_outline.color, Some(Color::rgb(0, 0, 255)));
+    assert_eq!(h.state().ts.default_outline.width, 4.0);
+}
+
+/// #109: font sizes show in the text unit (Options ▸ Text ▸ Default text units); a size typed in
+/// it, or with its own unit, is converted to points.
+#[test]
+fn font_size_uses_the_text_unit() {
+    use crate::tools::ToolId;
+    use egui_kittest::kittest::Queryable;
+    let mut h = doc_harness();
+    h.state_mut().settings.text_unit = vector_core::Unit::Inches;
+    h.state_mut().ts.text_format.size = 12.0;
+    h.state_mut().set_tool(ToolId::Text);
+    h.step();
+    h.step();
+    // the property bar's field (the first one: the Text docker may show the size too)
+    h.get_all_by_value("0.167 \"").next().expect("the font size isn't shown in inches").focus();
+    h.step();
+    h.get_all_by_value("0.167 \"").next().unwrap().set_text_value_accesskit("0.25");
+    h.step();
+    h.key_press(egui::Key::Enter);
+    h.step();
+    assert!((h.state().ts.text_format.size - 18.0).abs() < 1e-9, "{}", h.state().ts.text_format.size);
+    assert!(h.query_all_by_value("0.25 \"").next().is_some());
+    // a size typed with its own unit
+    h.get_all_by_value("0.25 \"").next().unwrap().focus();
+    h.step();
+    h.get_all_by_value("0.25 \"").next().unwrap().set_text_value_accesskit("24 pt");
+    h.step();
+    h.key_press(egui::Key::Enter);
+    h.step();
+    assert!((h.state().ts.text_format.size - 24.0).abs() < 1e-9, "{}", h.state().ts.text_format.size);
+    // and in points
+    h.state_mut().settings.text_unit = vector_core::Unit::Points;
+    h.step();
+    h.step();
+    assert!(h.query_all_by_value("24 pt").next().is_some());
+}
+
+/// #127/#137/#138/#113: the hairline in the status bar and the Properties docker, the outline
+/// width in inches, and inch rulers divided into fractions.
+#[test]
+#[ignore]
+fn visual_outline_units_and_inch_rulers() {
+    use crate::dockers::DockerId;
+    use vector_core::style::Outline;
+    let mut h = doc_harness();
+    h.state_mut().settings.outline_unit = vector_core::Unit::Points;
+    {
+        let app = h.state_mut();
+        app.dockers.open.clear();
+        app.dockers.show(DockerId::Properties);
+        app.dockers.collapsed = false;
+        app.dockers.set_width = Some(320.0);
+        app.dockers.ui.pr.tabbed = true;
+        app.dockers.ui.pr.summary = false;
+        app.dockers.ui.pr.tab = 0;
+    }
+    outlined_rect(&mut h, Outline { width: 0.0, color: Some(Color::BLACK), ..Outline::default() });
+    save(&mut h, "outline_units_01_hairline");
+    h.state_mut().run(Cmd::OutlineWidth(Some(2.0)));
+    h.state_mut().settings.outline_unit = vector_core::Unit::Inches;
+    h.state_mut().doc_mut().unwrap().doc.settings.unit = vector_core::Unit::Inches;
+    save(&mut h, "outline_units_02_inches");
+    // inch rulers, from far to close
+    for (i, pct) in [25.0, 100.0, 400.0, 1600.0].into_iter().enumerate() {
+        h.state_mut().doc_mut().unwrap().set_zoom_percent(pct);
+        save(&mut h, &format!("outline_units_{:02}_inch_ruler_{pct}", i + 3));
+    }
+    h.state_mut().doc_mut().unwrap().doc.settings.unit = vector_core::Unit::Millimeters;
+    h.state_mut().doc_mut().unwrap().set_zoom_percent(100.0);
+    save(&mut h, "outline_units_07_mm_ruler");
+}

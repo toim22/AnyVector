@@ -303,6 +303,12 @@ pub enum Cmd {
     TableSplit(bool),
     // Object
     CreateArrowhead,
+    /// Outline Pen (F12): the outline of the selection, or of new objects when nothing is
+    /// selected.
+    OutlinePen,
+    /// The Outline Pen flyout's No Outline (`None`) and Hairline Outline (`Some(0.0)`): on the
+    /// selection, else on new objects.
+    OutlineWidth(Option<f64>),
     CreatePattern,
     InsertQrCode,
     InsertBarcode,
@@ -508,6 +514,7 @@ pub fn default_shortcut(cmd: Cmd) -> Option<&'static str> {
         TransformTab(2) => "Alt+F9",
         TransformTab(3) => "Alt+F10",
         ObjectProperties => "Alt+Enter",
+        OutlinePen => "F12",
         // Effects and Bitmaps: Adjust ▸ Light, Color Balance, Hue/Saturation/Lightness
         BitmapEffect(i) => match crate::fx::FX.get(i as usize).and_then(|f| f.guid.get(..8)) {
             Some("b6f2f97d") => "Ctrl+B",
@@ -707,6 +714,7 @@ pub fn shortcut_commands() -> Vec<Cmd> {
         Options(OptionsPage::App), ScriptEditor, VsEditor, StopRecording, RecordTemporary, RunTemporary, RefreshWindow, CloseWindow, TogglePickState, NextPage, PrevPage,
         ToggleRulers, SnapOff, SnapToGrid, SnapToObjects, ToggleAlignmentGuides, ToggleDynamicGuides,
     ];
+    v.push(OutlinePen);
     for g in ["b6f2f97d", "2f08faa9", "aee88264"] {
         if let Some((i, _)) = crate::fx::by_guid(g) {
             v.push(BitmapEffect(i as u8));

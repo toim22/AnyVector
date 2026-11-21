@@ -5612,3 +5612,11 @@ Edit Ellipse	Ellipse bearbeiten
 Move Segment	Segment verschieben
 Delete Segment	Segment löschen
 A curve needs at least two nodes	Eine Kurve braucht mindestens zwei Knoten
+Default outline set for new objects.	Standardumriss für neue Objekte festgelegt.
+Outline: double-click to edit	Umriss: zum Bearbeiten doppelklicken
+Start arrowhead	Anfangspfeilspitze
+End arrowhead	Endpfeilspitze
+Nothing is selected: these settings are the outline of new objects.	Nichts ausgewählt: Diese Einstellungen sind der Umriss neuer Objekte.
+Share attributes	Attribute gemeinsam nutzen
+Stretch:	Strecken:
+Nib shape:	Federform:

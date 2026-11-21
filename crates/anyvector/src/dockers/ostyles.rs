@@ -304,7 +304,7 @@ fn body(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut OsUi) {
                 3 => vec![2],
                 _ => vec![0, 1, 2],
             };
-            if editor(ui, st, &mut style, &parts, true) {
+            if editor(ui, st, &mut style, &parts, true, crate::lengths::outline_unit(app)) {
                 if let Some(d) = app.doc_mut() {
                     d.modify("Edit Style", |doc, _| {
                         doc.object_styles[i].style = style;
@@ -328,9 +328,9 @@ fn body(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut OsUi) {
             // graphics take the defaults of new objects; text keeps its own
             let graphic = DEFAULTS[k] == "Graphic" || DEFAULTS[k] == "Artistic Media";
             let mut style = if graphic { app.ts.new_style() } else { Style::text_default() };
-            if editor(ui, st, &mut style, &[0, 1, 2], graphic) && graphic {
+            if editor(ui, st, &mut style, &[0, 1, 2], graphic, crate::lengths::outline_unit(app)) && graphic {
                 app.ts.new_fill = style.fill.main_color();
-                app.ts.default_outline_width = style.outline.width;
+                app.set_default_outline(style.outline.clone());
             }
         }
         _ => {}
@@ -441,7 +441,7 @@ fn row(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut OsUi, sel: OsSel, depth: us
 }
 
 /// The editor of a style: its outline, fill and transparency (`parts` of 0, 1, 2).
-fn editor(ui: &mut Ui, st: &mut OsUi, s: &mut Style, parts: &[usize], enabled: bool) -> bool {
+fn editor(ui: &mut Ui, st: &mut OsUi, s: &mut Style, parts: &[usize], enabled: bool, (unit, dpi): (vector_core::Unit, f64)) -> bool {
     let mut changed = false;
     ui.add_enabled_ui(enabled, |ui| {
         for &k in parts {
@@ -453,7 +453,7 @@ fn editor(ui: &mut Ui, st: &mut OsUi, s: &mut Style, parts: &[usize], enabled: b
                 0 => {
                     ui.horizontal(|ui| {
                         changed |= super::color_pick_w(ui, "os_ol_color", &mut s.outline.color, true, true, 120.0);
-                        changed |= super::spin(ui, &mut s.outline.width, 0.0..=1000.0, 0.1, 3, " pt", 90.0);
+                        changed |= crate::lengths::spin(ui, &mut s.outline.width, unit, dpi, 0.0..=1000.0, crate::lengths::width_step(unit, dpi), crate::lengths::width_decimals(unit), 90.0);
                     });
                 }
                 1 => {
@@ -557,7 +557,7 @@ fn select_using(app: &mut AnyVectorApp, i: usize) {
 /// Revert All to New Document Default: the defaults of new graphics.
 fn revert_defaults(app: &mut AnyVectorApp) {
     app.ts.new_fill = None;
-    app.ts.default_outline_width = crate::tools::ToolState::default().default_outline_width;
+    app.set_default_outline(vector_core::style::Outline::default());
 }
 
 /// The style sheet file: the document's object styles, color styles and color harmonies as JSON

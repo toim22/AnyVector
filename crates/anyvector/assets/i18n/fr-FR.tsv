@@ -5612,3 +5612,11 @@ Edit Ellipse	Modifier l'ellipse
 Move Segment	Déplacer le segment
 Delete Segment	Supprimer le segment
 A curve needs at least two nodes	Une courbe doit avoir au moins deux nœuds
+Default outline set for new objects.	Contour par défaut défini pour les nouveaux objets.
+Outline: double-click to edit	Contour : double-cliquez pour modifier
+Start arrowhead	Pointe de flèche de début
+End arrowhead	Pointe de flèche de fin
+Nothing is selected: these settings are the outline of new objects.	Rien n'est sélectionné : ces paramètres sont le contour des nouveaux objets.
+Share attributes	Partager les attributs
+Stretch:	Étirement :
+Nib shape:	Forme de plume :

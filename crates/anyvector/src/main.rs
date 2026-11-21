@@ -21,6 +21,7 @@ mod fxdata;
 mod help;
 mod i18n;
 mod icons;
+mod lengths;
 mod menus;
 mod palette;
 mod printing;

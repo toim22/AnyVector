@@ -26,8 +26,6 @@ pub struct PropsUi {
     pub fill_ed: ColorEd,
     /// The selected node of the fountain fill and of the fountain transparency.
     pub node: [usize; 2],
-    /// The unit of the outline width.
-    pub width_unit: Unit,
     /// The selected node of the variable outline.
     pub vo_node: Option<usize>,
     /// The selected bitmap effect.
@@ -51,7 +49,6 @@ impl Default for PropsUi {
             open: [true; 3],
             fill_ed: ColorEd { model: 2, ..Default::default() },
             node: [0; 2],
-            width_unit: Unit::Points,
             vo_node: None,
             fx_sel: None,
             fx_search: String::new(),
@@ -570,10 +567,62 @@ pub fn properties(app: &mut AnyVectorApp, ui: &mut Ui) {
 
 // ------------------------------------------------------------------------------ outline
 
-/// The outline widths of the list (points; 0 hairline).
-const WIDTHS: [f64; 14] = [0.0, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0, 8.0, 10.0, 12.0, 16.0, 24.0, 36.0];
 /// The units of the outline width, in the order of their list.
 const WIDTH_UNITS: [Unit; 11] = [Unit::Inches, Unit::Millimeters, Unit::Picas, Unit::Points, Unit::Pixels, Unit::Ciceros, Unit::Didots, Unit::Feet, Unit::Yards, Unit::Centimeters, Unit::Meters];
+
+/// The list of the outline width units; true when `u` changed.
+pub(crate) fn unit_choice(ui: &mut Ui, id: &str, u: &mut Unit, w: f32) -> bool {
+    let mut i = WIDTH_UNITS.iter().position(|x| x == u).unwrap_or(3);
+    let names: Vec<&str> = WIDTH_UNITS.iter().map(|u| u.name()).collect();
+    if super::choice(ui, id, &mut i, &names, w) {
+        *u = WIDTH_UNITS[i];
+        return true;
+    }
+    false
+}
+
+/// An outline width field: the width typed in `u` (or with its own unit, "None" or "Hairline")
+/// and the list of widths in `u`, Hairline first (`w`: `None` for no outline, 0 hairline).
+/// Gives the width chosen: `Some(None)` for no outline.
+pub(crate) fn width_field(ui: &mut Ui, id: &str, w: Option<f64>, u: Unit, dpi: f64, width: f32) -> Option<Option<f64>> {
+    let shown = match w {
+        Some(w) => crate::lengths::width_text(w, u, dpi),
+        None => "None".to_string(),
+    };
+    let id = ui.make_persistent_id(("ol_width_field", id));
+    // the shown text is translated ("Hairline"), as the list is
+    let mut text = ui.data_mut(|m| m.get_temp::<String>(id)).unwrap_or_else(|| crate::i18n::t(&shown));
+    let mut pick: Option<Option<f64>> = None;
+    let r = ui.add_sized(vec2(width, 22.0), egui::TextEdit::singleline(&mut text).id(id.with("edit")));
+    if r.has_focus() {
+        ui.data_mut(|m| m.insert_temp(id, text.clone()));
+    } else {
+        ui.data_mut(|m| m.remove::<String>(id));
+    }
+    if r.lost_focus() {
+        pick = crate::lengths::parse_width(&text, u, dpi);
+    }
+    let (ar, aresp) = ui.allocate_exact_size(vec2(16.0, 22.0), Sense::click());
+    ui.painter().rect_filled(ar, 2.0, theme::BUTTON());
+    crate::widgets::chevron(ui.painter(), ar.center(), 3.0, theme::TEXT());
+    let aresp = aresp.on_hover_text("Outline width");
+    egui::Popup::menu(&aresp).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
+        ui.set_min_width(90.0);
+        egui::ScrollArea::vertical().max_height(320.0).show(ui, |ui| {
+            if ui.selectable_label(w.is_none(), "None").clicked() {
+                pick = Some(None);
+                ui.close();
+            }
+            for c in crate::lengths::width_choices(u, dpi) {
+                if ui.selectable_label(w.is_some_and(|w| (w - c).abs() < 1e-6), crate::lengths::width_text(c, u, dpi)).clicked() {
+                    pick = Some(Some(c));
+                    ui.close();
+                }
+            }
+        });
+    });
+    pick
+}
 
 /// The line styles of the list: the built-in ones, then those made with Edit Line Style.
 pub fn line_styles(app: &AnyVectorApp) -> Vec<Vec<f64>> {
@@ -622,62 +671,19 @@ fn outline(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, st: &mut PropsUi) {
             edit_live(app, "Outline Color", |x| x.style.outline.color = c);
         }
     });
-    // width and its unit
+    // width and its unit (the outline unit, which the property bar, the status bar and the
+    // Outline Pen share, #137)
     row(ui, |ui| {
-        let u = st.width_unit;
-        let shown = if !has { "None".to_string() } else if ol.width <= 0.0 { "Hairline".to_string() } else { format!("{:.*} {}", u.decimals().min(2), u.to_unit(ol.width, dpi), u.suffix()) };
-        let id = egui::Id::unique("pr_ol_width");
-        let mut text = ui.data_mut(|m| m.get_temp::<String>(id)).unwrap_or_else(|| shown.clone());
-        let mut pick: Option<Option<f64>> = None;
+        let mut u = app.settings.outline_unit;
+        let w = has.then_some(ol.width);
         ui.spacing_mut().item_spacing.x = 0.0;
-        let r = ui.add_sized(vec2(70.0, 22.0), egui::TextEdit::singleline(&mut text));
-        if r.has_focus() {
-            ui.data_mut(|m| m.insert_temp(id, text.clone()));
-        } else {
-            ui.data_mut(|m| m.remove::<String>(id));
-        }
-        if r.lost_focus() {
-            let t = text.trim().to_lowercase();
-            if t == "none" {
-                pick = Some(None);
-            } else if t == "hairline" {
-                pick = Some(Some(0.0));
-            } else if let Some(v) = Unit::parse_value(&t, u, dpi) {
-                pick = Some(Some(v.max(0.0)));
-            }
-        }
-        let (ar, aresp) = ui.allocate_exact_size(vec2(16.0, 22.0), Sense::click());
-        ui.painter().rect_filled(ar, 2.0, theme::BUTTON());
-        crate::widgets::chevron(ui.painter(), ar.center(), 3.0, theme::TEXT());
-        egui::Popup::menu(&aresp).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
-            ui.set_min_width(80.0);
-            if ui.selectable_label(!has, "None").clicked() {
-                pick = Some(None);
-                ui.close();
-            }
-            for w in WIDTHS {
-                let name = if w == 0.0 { "Hairline".to_string() } else { format!("{w:.2} pt") };
-                if ui.selectable_label(has && (ol.width - w).abs() < 1e-6, name).clicked() {
-                    pick = Some(Some(w));
-                    ui.close();
-                }
-            }
-        });
+        let pick = width_field(ui, "pr_ol_width", w, u, dpi, 70.0);
         ui.add_space(6.0);
-        let mut ui_i = WIDTH_UNITS.iter().position(|x| *x == u).unwrap_or(3);
-        let names: Vec<&str> = WIDTH_UNITS.iter().map(|u| u.name()).collect();
-        if super::choice(ui, "pr_ol_units", &mut ui_i, &names, 80.0) {
-            st.width_unit = WIDTH_UNITS[ui_i];
+        if unit_choice(ui, "pr_ol_units", &mut u, 80.0) {
+            app.settings.outline_unit = u;
         }
-        match pick {
-            Some(None) => edit_sel(app, "Outline", |x| x.style.outline.color = None),
-            Some(Some(w)) => edit_sel(app, "Outline Width", |x| {
-                x.style.outline.width = w;
-                if x.style.outline.color.is_none() {
-                    x.style.outline.color = Some(Color::BLACK);
-                }
-            }),
-            None => {}
+        if let Some(p) = pick {
+            crate::propbar::set_outline_width(app, p);
         }
     });
     // line style and its editor
@@ -901,12 +907,12 @@ fn outline(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, st: &mut PropsUi) {
 
 /// The miter limit as the angle under which corners are beveled (the reference shows
 /// degrees): limit = 1 / sin(angle / 2).
-fn miter_degrees(limit: f64) -> f64 {
+pub(crate) fn miter_degrees(limit: f64) -> f64 {
     let l = limit.max(1.0);
     ((2.0 * (1.0 / l).asin()).to_degrees() * 10.0).round() / 10.0
 }
 
-fn miter_from_degrees(deg: f64) -> f64 {
+pub(crate) fn miter_from_degrees(deg: f64) -> f64 {
     1.0 / (deg.clamp(1.0, 179.9).to_radians() / 2.0).sin()
 }
 
@@ -956,7 +962,7 @@ fn arrow_combo(app: &mut AnyVectorApp, ui: &mut Ui, cur: Option<ArrowHead>, star
 }
 
 /// A short line with the arrowhead at its end (at its start for the start arrowhead).
-fn paint_arrow(p: &egui::Painter, r: Rect, a: Option<ArrowHead>, start: bool) {
+pub(crate) fn paint_arrow(p: &egui::Painter, r: Rect, a: Option<ArrowHead>, start: bool) {
     let y = r.center().y;
     let c = theme::TEXT();
     let (tip, tail) = if start { (pos2(r.left() + 2.0, y), pos2(r.right() - 2.0, y)) } else { (pos2(r.right() - 2.0, y), pos2(r.left() + 2.0, y)) };
@@ -1003,6 +1009,7 @@ fn variable_outline(app: &mut AnyVectorApp, ui: &mut Ui, ol: &vector_core::style
     let cur = sel.map(|i| nodes[i].clone()).unwrap_or(VarWidth { t: 0.0, side1: 0.0, side2: 0.0 });
     let en = on && sel.is_some();
     let lw = 70.0;
+    let (u, dpi) = crate::lengths::outline_unit(app);
     let set = |app: &mut AnyVectorApp, f: &dyn Fn(&mut VarWidth)| {
         if let Some(i) = sel {
             edit_live(app, "Variable Outline", |x| {
@@ -1027,14 +1034,14 @@ fn variable_outline(app: &mut AnyVectorApp, ui: &mut Ui, ol: &vector_core::style
                 ui.horizontal(|ui| {
                     rlabel(ui, "Side 1:", lw, en);
                     let mut s1 = cur.side1;
-                    if spin(ui, &mut s1, 0.0..=720.0, 0.5, 1, " pt", 80.0) {
+                    if crate::lengths::spin(ui, &mut s1, u, dpi, 0.0..=720.0, crate::lengths::width_step(u, dpi), crate::lengths::width_decimals(u), 80.0) {
                         set(app, &|n| n.side1 = s1);
                     }
                 });
                 ui.horizontal(|ui| {
                     rlabel(ui, "Side 2:", lw, en);
                     let mut s2 = cur.side2;
-                    if spin(ui, &mut s2, 0.0..=720.0, 0.5, 1, " pt", 80.0) {
+                    if crate::lengths::spin(ui, &mut s2, u, dpi, 0.0..=720.0, crate::lengths::width_step(u, dpi), crate::lengths::width_decimals(u), 80.0) {
                         set(app, &|n| n.side2 = s2);
                     }
                 });
@@ -1044,7 +1051,7 @@ fn variable_outline(app: &mut AnyVectorApp, ui: &mut Ui, ol: &vector_core::style
         ui.horizontal(|ui| {
             rlabel(ui, "Total:", lw, en);
             let mut t = cur.side1 + cur.side2;
-            if spin(ui, &mut t, 0.0..=1440.0, 1.0, 1, " pt", 80.0) {
+            if crate::lengths::spin(ui, &mut t, u, dpi, 0.0..=1440.0, 2.0 * crate::lengths::width_step(u, dpi), crate::lengths::width_decimals(u), 80.0) {
                 let k = if cur.side1 + cur.side2 > 0.0 { t / (cur.side1 + cur.side2) } else { 1.0 };
                 set(app, &|n| {
                     n.side1 *= k;
@@ -1067,7 +1074,7 @@ fn variable_outline(app: &mut AnyVectorApp, ui: &mut Ui, ol: &vector_core::style
 }
 
 /// A color list whose popup shows the color editor with its viewer tabs.
-fn color_pick_tabs(ui: &mut Ui, id: &str, c: &mut Option<Color>, w: f32) -> bool {
+pub(crate) fn color_pick_tabs(ui: &mut Ui, id: &str, c: &mut Option<Color>, w: f32) -> bool {
     let (r, resp) = ui.allocate_exact_size(vec2(w, 22.0), Sense::click());
     let p = ui.painter();
     p.rect_filled(r, 2.0, theme::BUTTON());

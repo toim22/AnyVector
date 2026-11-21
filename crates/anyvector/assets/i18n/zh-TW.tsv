@@ -5612,3 +5612,11 @@ Edit Ellipse	編輯橢圓形
 Move Segment	移動線段
 Delete Segment	刪除線段
 A curve needs at least two nodes	曲線至少需要兩個節點
+Default outline set for new objects.	已為新物件設定預設外框。
+Outline: double-click to edit	外框：按兩下以編輯
+Start arrowhead	起始箭頭
+End arrowhead	結束箭頭
+Nothing is selected: these settings are the outline of new objects.	未選取任何物件：這些設定將作為新物件的外框。
+Share attributes	共用屬性
+Stretch:	延展：
+Nib shape:	筆尖形狀：

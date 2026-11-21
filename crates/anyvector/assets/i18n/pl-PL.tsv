@@ -5612,3 +5612,11 @@ Edit Ellipse	Edytuj elipsę
 Move Segment	Przenieś segment
 Delete Segment	Usuń segment
 A curve needs at least two nodes	Krzywa musi mieć co najmniej dwa węzły
+Default outline set for new objects.	Ustawiono domyślny kontur dla nowych obiektów.
+Outline: double-click to edit	Kontur: kliknij dwukrotnie, aby edytować
+Start arrowhead	Grot początkowy
+End arrowhead	Grot końcowy
+Nothing is selected: these settings are the outline of new objects.	Nic nie jest zaznaczone: te ustawienia są konturem nowych obiektów.
+Share attributes	Współdziel atrybuty
+Stretch:	Rozciągnięcie:
+Nib shape:	Kształt stalówki:

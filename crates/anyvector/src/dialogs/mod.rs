@@ -13,6 +13,7 @@ pub mod export;
 pub mod merge;
 pub mod new_doc;
 pub mod objdata;
+pub mod outlinepen;
 pub mod object;
 pub mod palette;
 pub mod options;
@@ -46,6 +47,8 @@ pub struct Dialogs {
     pub confirm_quit: bool,
     /// Properties ▸ Outline ▸ Edit Line Style.
     pub line_style: Option<linestyle::LineStyleState>,
+    /// Outline Pen (F12).
+    pub outline_pen: Option<outlinepen::OutlinePenState>,
     /// Shape tool ▸ Align Nodes: horizontally, vertically, control points.
     pub node_align: Option<[bool; 3]>,
     pub options: OptionsState,
@@ -169,6 +172,7 @@ impl Dialogs {
             || self.table.is_some()
             || self.arrowhead.is_some()
             || self.line_style.is_some()
+            || self.outline_pen.is_some()
             || self.pattern.is_some()
             || self.barcode.is_some()
             || self.tabs.is_some()
@@ -258,6 +262,9 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
     }
     if app.dialogs.line_style.is_some() {
         linestyle::show(app, ctx);
+    }
+    if app.dialogs.outline_pen.is_some() {
+        outlinepen::show(app, ctx);
     }
     if app.dialogs.pattern.is_some() {
         object::pattern(app, ctx);

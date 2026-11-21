@@ -187,6 +187,8 @@ impl AnyVectorApp {
             background: vec![],
             gpu: cc.wgpu_render_state.as_ref().map(|rs| gpu_name(&rs.adapter.get_info())).unwrap_or_default(),
         };
+        // the outline of new objects, as the user left it (Outline Pen with nothing selected)
+        app.ts.default_outline = app.settings.default_outline.clone();
         // command line: open files
         for a in std::env::args().skip(1) {
             let p = std::path::PathBuf::from(&a);
@@ -243,6 +245,12 @@ impl AnyVectorApp {
 
     pub fn run(&mut self, cmd: Cmd) {
         self.pending.push(cmd);
+    }
+
+    /// Sets the outline of new objects (kept between sessions).
+    pub fn set_default_outline(&mut self, ol: vector_core::style::Outline) {
+        self.settings.default_outline = ol.clone();
+        self.ts.default_outline = ol;
     }
 
     pub fn set_tool(&mut self, t: ToolId) {

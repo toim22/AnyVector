@@ -5612,3 +5612,11 @@ Edit Ellipse	楕円形の編集
 Move Segment	セグメントの移動
 Delete Segment	セグメントの削除
 A curve needs at least two nodes	カーブには 2 つ以上のノードが必要です
+Default outline set for new objects.	新規オブジェクトの既定のアウトラインを設定しました。
+Outline: double-click to edit	アウトライン: ダブルクリックで編集
+Start arrowhead	始点の矢印
+End arrowhead	終点の矢印
+Nothing is selected: these settings are the outline of new objects.	何も選択されていません: これらの設定は新規オブジェクトのアウトラインになります。
+Share attributes	属性を共有
+Stretch:	伸縮:
+Nib shape:	ペン先の形状:

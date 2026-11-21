@@ -5612,3 +5612,11 @@ Edit Ellipse	Elipsi Düzenle
 Move Segment	Bölümü Taşı
 Delete Segment	Bölümü Sil
 A curve needs at least two nodes	Bir eğrinin en az iki düğümü olmalıdır
+Default outline set for new objects.	Yeni nesneler için varsayılan anahat ayarlandı.
+Outline: double-click to edit	Anahat: düzenlemek için çift tıklayın
+Start arrowhead	Başlangıç ok ucu
+End arrowhead	Bitiş ok ucu
+Nothing is selected: these settings are the outline of new objects.	Hiçbir şey seçili değil: bu ayarlar yeni nesnelerin anahattı olur.
+Share attributes	Öznitelikleri paylaş
+Stretch:	Uzatma:
+Nib shape:	Uç şekli:

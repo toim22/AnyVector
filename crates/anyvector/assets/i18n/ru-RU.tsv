@@ -5612,3 +5612,11 @@ Edit Ellipse	Изменить эллипс
 Move Segment	Переместить сегмент
 Delete Segment	Удалить сегмент
 A curve needs at least two nodes	Кривой нужны хотя бы два узла
+Default outline set for new objects.	Абрис по умолчанию для новых объектов задан.
+Outline: double-click to edit	Абрис: дважды щелкните для изменения
+Start arrowhead	Начальная стрелка
+End arrowhead	Конечная стрелка
+Nothing is selected: these settings are the outline of new objects.	Ничего не выбрано: эти параметры станут абрисом новых объектов.
+Share attributes	Общие атрибуты
+Stretch:	Растяжение:
+Nib shape:	Форма пера:

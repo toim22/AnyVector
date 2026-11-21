@@ -5612,3 +5612,11 @@ Edit Ellipse	Editar elipse
 Move Segment	Mover segmento
 Delete Segment	Eliminar segmento
 A curve needs at least two nodes	Una curva necesita al menos dos nodos
+Default outline set for new objects.	Contorno predeterminado establecido para objetos nuevos.
+Outline: double-click to edit	Contorno: haga doble clic para editar
+Start arrowhead	Punta de flecha inicial
+End arrowhead	Punta de flecha final
+Nothing is selected: these settings are the outline of new objects.	No hay nada seleccionado: estos ajustes son el contorno de los objetos nuevos.
+Share attributes	Compartir atributos
+Stretch:	Estirar:
+Nib shape:	Forma de plumilla:
