@@ -5651,3 +5651,13 @@ Transparency was left out.	透明は含まれていません。
 Pattern, texture and mesh fills were replaced by their main color.	パターン、テクスチャ、メッシュの塗りつぶしはメイン カラーに置き換えられました。
 Hidden layers and objects were left out.	非表示のレイヤーとオブジェクトは含まれていません。
 AnyVector 0.1	AnyVector 0.1
+Move Here	ここに移動(&M)
+Copy Here	ここにコピー(&C)
+Copy Fill Here	塗りつぶしをここにコピー(&F)
+Copy Outline Here	アウトラインをここにコピー(&O)
+Copy All Properties	すべてのプロパティをコピー(&A)
+Other Commands	その他のコマンド
+Delete conflicts	競合を削除
+Duplicate in Place	その場に複製
+Toggle Pick State	選択状態の切り替え
+(none)	(なし)

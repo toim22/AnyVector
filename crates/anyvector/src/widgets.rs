@@ -5,6 +5,18 @@ use crate::theme;
 use egui::{pos2, vec2, Color32, Rect, Response, Sense, Stroke, Ui};
 use vector_core::Unit;
 
+/// A text field that got the keyboard focus from Tab or Shift+Tab (or a command) gets its whole
+/// text selected, so typing replaces the value, as in CorelDRAW and Windows; a click places the
+/// caret as usual (#121). `r` is the field's response this frame, `text` the text it shows.
+pub fn select_all_on_key_focus(ui: &Ui, r: &Response, text: &str) {
+    if !r.gained_focus() || ui.input(|i| i.pointer.any_pressed() || i.pointer.any_released()) {
+        return;
+    }
+    let mut st = egui::text_edit::TextEditState::load(ui.ctx(), r.id).unwrap_or_default();
+    st.cursor.set_char_range(Some(egui::text::CCursorRange::two(egui::text::CCursor::new(0), egui::text::CCursor::new(text.chars().count()))));
+    st.store(ui.ctx(), r.id);
+}
+
 /// Flat icon button as in the toolbars (hover box, pressed/checked blue).
 pub fn icon_button(icons: &mut Icons, ui: &mut Ui, icon: &str, tip: &str, enabled: bool, checked: bool) -> Response {
     icon_button_sized(icons, ui, icon, tip, enabled, checked, 26.0, 18.0)
@@ -92,6 +104,7 @@ pub fn unit_field(ui: &mut Ui, id: egui::Id, value: &mut f64, unit: Unit, dpi: f
         ui.spacing_mut().item_spacing.x = 0.0;
         let te = egui::TextEdit::singleline(&mut text).id(id).desired_width(width).margin(vec2(4.0, 2.0)).text_color(if enabled { theme::TEXT() } else { theme::DISABLED() });
         let r = ui.add_enabled(enabled, te);
+        select_all_on_key_focus(ui, &r, &text);
         if r.lost_focus() {
             if let Some(v) = Unit::parse_value(&text, unit, dpi) {
                 if (v - *value).abs() > 1e-9 {

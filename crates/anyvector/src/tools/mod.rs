@@ -2,6 +2,7 @@
 //! property bar and dockers trigger (node editing, corner rounding, text insertion).
 //! Pointer interaction lives in `interact`, on-canvas feedback in `overlay`.
 
+pub mod drop;
 pub mod ids;
 mod interact;
 pub(crate) mod overlay;
@@ -41,6 +42,23 @@ pub fn rectangle_to_bounds(app: &mut AnyVectorApp) {
     if let Some(o) = interact::creation_object(ts, s, ToolId::Rectangle, r.origin(), Point::new(r.x1, r.y1), egui::Modifiers::NONE, id) {
         d.add_objects("Create Rectangle", vec![o]);
     }
+}
+
+/// Virtual Segment Delete: find the piece a click at the pointer would delete (kept in
+/// `ts.hover_cut` and looked for again only when the pointer or the document changed). The
+/// overlay shows it and the pointer becomes a hand over it (#119).
+pub fn update_hover_cut(app: &mut AnyVectorApp, hovered: bool) {
+    let at = app.ts.hover_doc.filter(|_| hovered && app.tool == ToolId::VirtualDelete && app.ts.drag.is_none());
+    let (Some(p), Some(d)) = (at, app.doc()) else {
+        app.ts.hover_cut = None;
+        return;
+    };
+    let rev = d.history.revision;
+    if app.ts.hover_cut.is_some_and(|(q, r, _)| q == p && r == rev) {
+        return;
+    }
+    let piece = vector_core::ops::virtual_cut_at(&d.doc, d.page, p, d.doc_len(5.0)).and_then(|cut| vector_core::ops::virtual_cut_piece(&d.doc, &cut));
+    app.ts.hover_cut = Some((p, rev, piece));
 }
 
 /// A one-shot "click an object" target set by commands such as PowerClip > Place Inside.
@@ -236,6 +254,15 @@ pub struct ToolState {
     pub bspline: bool,
     /// Right-click during a Pick drag leaves a copy.
     pub copy_on_drop: bool,
+    /// The copies Space left during the drag in progress (#130); snapping ignores them.
+    pub stamps: Vec<ObjId>,
+    /// A right-button drag of the selection in progress (#140).
+    pub right_drag: Option<drop::RightGrab>,
+    /// A right-button drag that ended: the menu of what to do with it is open (#140).
+    pub right_drop: Option<drop::RightDrop>,
+    /// Virtual Segment Delete: the piece under the pointer that a click deletes, for the pointer
+    /// position and document revision it was found for (#119).
+    pub hover_cut: Option<(Point, u64, Option<kurbo::CubicBez>)>,
     /// A Text tool drag selects characters instead of drawing a frame.
     pub text_drag_select: bool,
     /// Free Transform: the center of rotation set on the property bar (`None` = the center).
@@ -330,6 +357,10 @@ impl Default for ToolState {
             was_selected: false,
             bspline: false,
             copy_on_drop: false,
+            stamps: vec![],
+            right_drag: None,
+            right_drop: None,
+            hover_cut: None,
             text_drag_select: false,
             ft_center: None,
             eye_apply: false,
@@ -422,6 +453,9 @@ impl ToolState {
         self.press = None;
         self.bspline = false;
         self.copy_on_drop = false;
+        self.stamps.clear();
+        self.right_drag = None;
+        self.right_drop = None;
         self.dim_chain = None;
     }
 

@@ -5651,3 +5651,13 @@ Transparency was left out.	Saydamlık dahil edilmedi.
 Pattern, texture and mesh fills were replaced by their main color.	Desen, doku ve ağ dolguları ana renkleriyle değiştirildi.
 Hidden layers and objects were left out.	Gizli katmanlar ve nesneler dahil edilmedi.
 AnyVector 0.1	AnyVector 0.1
+Move Here	&Buraya taşı
+Copy Here	Buraya &kopyala
+Copy Fill Here	&Dolguyu buraya kopyala
+Copy Outline Here	&Anahattı buraya kopyala
+Copy All Properties	&Tüm özellikleri kopyala
+Other Commands	Diğer komutlar
+Delete conflicts	Çakışmaları sil
+Duplicate in Place	Yerinde çoğalt
+Toggle Pick State	Seçim durumunu değiştir
+(none)	(yok)

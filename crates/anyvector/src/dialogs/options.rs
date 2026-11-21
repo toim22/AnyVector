@@ -12,6 +12,7 @@ use egui::{pos2, vec2, Align2, Color32, FontId, Id, Rect, Sense, Stroke, Ui, UiB
 use vector_core::document::{DocInfo, DocSettings, GridKind};
 use vector_core::{Color, Guide, GuideKind, Unit};
 
+pub(crate) mod commands_page;
 pub(crate) mod search;
 
 pub const SIZE: egui::Vec2 = egui::vec2(806.0, 681.0);
@@ -47,7 +48,6 @@ pub struct OptionsState {
     pub commands_sel: Option<Cmd>,
     pub commands_tab: usize,
     pub capture: Option<String>,
-    pub catalog: Vec<(usize, Vec<crate::menus::CatalogEntry>)>,
     pub plugin_sel: Option<usize>,
     pub file_loc_sel: Option<usize>,
     pub workspace_sel: Option<usize>,
@@ -1714,147 +1714,8 @@ fn command_bars(app: &mut AnyVectorApp, ui: &mut Ui) {
     ui.radio_value(&mut s.menu_bar_mode, MenuBarMode::File, "File mode");
 }
 
-fn shortcut_from_input(ctx: &egui::Context) -> Option<String> {
-    ctx.input(|i| {
-        for e in &i.events {
-            if let egui::Event::Key { key, pressed: true, modifiers, .. } = e {
-                if matches!(key, egui::Key::Escape) {
-                    return None;
-                }
-                let mut s = String::new();
-                if modifiers.ctrl || modifiers.command {
-                    s.push_str("Ctrl+");
-                }
-                if modifiers.shift {
-                    s.push_str("Shift+");
-                }
-                if modifiers.alt {
-                    s.push_str("Alt+");
-                }
-                s.push_str(key.name());
-                return Some(s);
-            }
-        }
-        None
-    })
-}
-
 fn commands(app: &mut AnyVectorApp, ui: &mut Ui) {
-    let ctx = ui.ctx().clone();
-    let menus = crate::menus::catalog_menus();
-    let names: Vec<&str> = menus.iter().map(|m| m.0.as_str()).collect();
-    let mut mi = app.dialogs.options.commands_menu.min(names.len() - 1);
-    ui.horizontal(|ui| {
-        if combo(ui, "cmd_menu", &mut mi, &names, 150.0) {
-            app.dialogs.options.commands_sel = None;
-        }
-        ui.add(egui::TextEdit::singleline(&mut app.dialogs.options.commands_search).hint_text("Search").desired_width(180.0));
-    });
-    app.dialogs.options.commands_menu = mi;
-    if !app.dialogs.options.catalog.iter().any(|(k, _)| *k == mi) {
-        let entries = crate::menus::catalog(menus[mi].1);
-        app.dialogs.options.catalog.push((mi, entries));
-    }
-    let entries = app.dialogs.options.catalog.iter().find(|(k, _)| *k == mi).map(|(_, e)| e.clone()).unwrap_or_default();
-    let q = app.dialogs.options.commands_search.to_lowercase();
-    ui.horizontal_top(|ui| {
-        egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP())).inner_margin(4.0).show(ui, |ui| {
-            ui.set_width(250.0);
-            egui::ScrollArea::vertical().id_salt("cmd_list").max_height(470.0).auto_shrink([false, false]).show(ui, |ui| {
-                ui.spacing_mut().item_spacing.y = 1.0;
-                for e in &entries {
-                    let plain = crate::widgets::plain(&e.label);
-                    // by caption or by shortcut key ("ctrl+g")
-                    if !q.is_empty() && !plain.to_lowercase().contains(&q) && !crate::shortcuts::shortcut_text(app, e.cmd).is_some_and(|s| s.to_lowercase().contains(&q)) {
-                        continue;
-                    }
-                    let sel = app.dialogs.options.commands_sel == Some(e.cmd);
-                    let img = e.icon.as_deref().and_then(|i| app.icons.image(&ctx, i, 16.0, true));
-                    let b = match img {
-                        Some(img) => egui::Button::selectable(sel, (img, plain)),
-                        None => egui::Button::selectable(sel, format!("      {plain}")),
-                    };
-                    // dragged onto a toolbar, the command goes there (#124)
-                    if crate::customize::drag_cmd(&ctx, ui.add(b.frame_when_inactive(false).min_size(vec2(236.0, 20.0))), e.cmd).clicked() {
-                        app.dialogs.options.commands_sel = Some(e.cmd);
-                        app.dialogs.options.capture = None;
-                    }
-                }
-            });
-        });
-        ui.vertical(|ui| {
-            let mut tab = app.dialogs.options.commands_tab;
-            tabs(ui, &mut tab, &["General", "Shortcut Keys"]);
-            app.dialogs.options.commands_tab = tab;
-            let Some(cmd) = app.dialogs.options.commands_sel else {
-                note(ui, "Select a command.");
-                return;
-            };
-            let entry = entries.iter().find(|e| e.cmd == cmd).cloned();
-            let label = entry.as_ref().map(|e| e.label.clone()).unwrap_or_default();
-            if tab == 0 {
-                ui.horizontal(|ui| {
-                    label_w(ui, "Caption:", 70.0);
-                    let mut l = label.clone();
-                    ui.add_enabled(false, egui::TextEdit::singleline(&mut l).desired_width(200.0));
-                });
-                ui.horizontal(|ui| {
-                    label_w(ui, "Icon:", 70.0);
-                    if let Some(img) = entry.as_ref().and_then(|e| e.icon.clone()).and_then(|i| app.icons.image(&ctx, &i, 32.0, true)) {
-                        ui.add(img);
-                    }
-                });
-                ui.horizontal(|ui| {
-                    label_w(ui, "Tooltip:", 70.0);
-                    let mut t = crate::widgets::plain(&label).trim_end_matches("...").to_string();
-                    ui.add_enabled(false, egui::TextEdit::singleline(&mut t).desired_width(200.0));
-                });
-                ui.label(format!("Available on: {}", names[mi]));
-            } else {
-                let cur = crate::shortcuts::shortcut_text(app, cmd).unwrap_or_default();
-                ui.horizontal(|ui| {
-                    label_w(ui, "Current shortcut keys:", 150.0);
-                    ui.label(if cur.is_empty() { "(none)".to_string() } else { cur.clone() });
-                });
-                ui.horizontal(|ui| {
-                    label_w(ui, "New shortcut key:", 150.0);
-                    let capturing = app.dialogs.options.capture.is_some();
-                    let text = app.dialogs.options.capture.clone().unwrap_or_default();
-                    let r = ui.add(egui::Button::new(if text.is_empty() { if capturing { "Press keys..." } else { "Click, then press keys" } } else { text.as_str() }).min_size(vec2(160.0, 22.0)).selected(capturing));
-                    if r.clicked() {
-                        app.dialogs.options.capture = Some(String::new());
-                    }
-                    if capturing {
-                        if let Some(sc) = shortcut_from_input(&ctx) {
-                            app.dialogs.options.capture = Some(sc);
-                        }
-                    }
-                });
-                let new = app.dialogs.options.capture.clone().unwrap_or_default();
-                if !new.is_empty() {
-                    let conflict = crate::commands::shortcut_commands().into_iter().find(|c| *c != cmd && crate::shortcuts::shortcut_text(app, *c).as_deref() == Some(new.as_str()));
-                    if let Some(c) = conflict {
-                        note(ui, &format!("Conflicts with: {}", crate::scripting::cmd_to_text(&c)));
-                    }
-                }
-                ui.horizontal(|ui| {
-                    let name = crate::scripting::cmd_to_text(&cmd);
-                    if ui.add_enabled(!new.is_empty(), egui::Button::new("Assign")).clicked() {
-                        app.settings.shortcuts.retain(|(c, _)| *c != name);
-                        app.settings.shortcuts.push((name.clone(), new.clone()));
-                        app.dialogs.options.capture = None;
-                    }
-                    if ui.add_enabled(!cur.is_empty(), egui::Button::new("Delete")).clicked() {
-                        app.settings.shortcuts.retain(|(c, _)| *c != name);
-                        app.settings.shortcuts.push((name.clone(), String::new()));
-                    }
-                    if ui.button("Reset All").clicked() {
-                        app.settings.shortcuts.clear();
-                    }
-                });
-            }
-        });
-    });
+    commands_page::page(app, ui);
 }
 
 fn color_palette(app: &mut AnyVectorApp, ui: &mut Ui) {

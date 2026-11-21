@@ -2278,6 +2278,16 @@ pub fn virtual_cut_at(doc: &Document, page: usize, p: Point, tol: f64) -> Option
     Some(VirtualCut { id, convert, si, seg, t0, t1 })
 }
 
+/// The piece `cut` names, on the page: what Virtual Segment Delete would remove (shown under the
+/// pointer before the click).
+pub fn virtual_cut_piece(doc: &Document, cut: &VirtualCut) -> Option<kurbo::CubicBez> {
+    use kurbo::{CubicBez, ParamCurve};
+    let (np, tr, _) = virtual_curve(doc.find(cut.id)?)?;
+    let (c, _) = np.subpaths.get(cut.si)?.segment(cut.seg)?;
+    let wc = CubicBez::new(tr * c.p0, tr * c.p1, tr * c.p2, tr * c.p3);
+    Some(wc.subsegment(cut.t0.unwrap_or(0.0)..cut.t1.unwrap_or(1.0)))
+}
+
 /// Delete the piece `cut` names (converting a shape to curves first). An object left without a
 /// segment is removed. Returns the object's id when it is still there.
 pub fn apply_virtual_cut(doc: &mut Document, cut: &VirtualCut) -> Option<ObjId> {

@@ -25,6 +25,9 @@ pub struct Input {
     pub down: bool,
     pub double: bool,
     pub secondary: bool,
+    /// The right button is held / was let go this frame (right-button drags, #140).
+    pub secondary_down: bool,
+    pub secondary_released: bool,
     pub mods: egui::Modifiers,
     /// C is held (Bézier / Pen: the node being dragged becomes a cusp).
     pub key_c: bool,
@@ -59,6 +62,7 @@ pub fn handle_input(app: &mut AnyVectorApp, inp: &Input) {
         if inp.pressed {
             ts.press = Some(inp.pos);
             ts.moved = false;
+            ts.stamps.clear();
         }
         if let Some(p0) = ts.press {
             if (inp.pos - p0).length() > 3.0 {
@@ -597,6 +601,10 @@ impl<'a> Cx<'a> {
         }
         if self.inp.secondary {
             self.secondary();
+        }
+        if self.ts.right_drag.is_some() {
+            self.right_drag();
+            return;
         }
         if self.ts.pick_target.is_some() {
             if self.inp.pressed {
@@ -1527,7 +1535,8 @@ impl<'a> Cx<'a> {
                 }
             }
             Drag::Transform { ids, .. } => {
-                let ex = ids.clone();
+                // nor to the copies Space left on the way (#130)
+                let ex: Vec<ObjId> = ids.iter().chain(&self.ts.stamps).copied().collect();
                 self.ts.cur = self.snap(p, &ex);
             }
             Drag::Nodes { start, orig, moved: started } => {
@@ -2667,13 +2676,78 @@ impl<'a> Cx<'a> {
             }
             ColorEyedropper => self.color_eyedropper(true),
             // right-clicking an object selects it before its right-click menu opens
-            Pick | FreehandPick | FreeTransform => match self.hit(self.raw) {
-                Some(t) if !self.d.selection.contains(&t) => self.d.selection = vec![t],
-                Some(_) => {}
-                None => self.d.selection.clear(),
-            },
+            Pick | FreehandPick | FreeTransform => {
+                let hit = self.hit(self.raw);
+                match hit {
+                    Some(t) if !self.d.selection.contains(&t) => self.d.selection = vec![t],
+                    Some(_) => {}
+                    None => self.d.selection.clear(),
+                }
+                // and a drag from it with the right button ends in the drop menu (#140)
+                if let Some(t) = hit {
+                    self.start_right_drag(t);
+                }
+            }
             _ => {}
         }
+    }
+
+    /// A right-button press on object `t` (now selected) with the Pick tool: the start of a
+    /// right-button drag of the selection, as in CorelDRAW (#140).
+    fn start_right_drag(&mut self, t: ObjId) {
+        if !matches!(self.tool, ToolId::Pick | ToolId::FreehandPick) || !self.ts.drag.is_none() || self.ts.pick_target.is_some() || self.d.text_edit.is_some() || self.d.doc.find(t).is_none_or(|o| o.locked) {
+            return;
+        }
+        let Some(bb) = self.d.selection_bounds() else { return };
+        let p = self.raw;
+        self.ts.drag = Drag::Transform { kind: Xform::Move, start: p, bb, ids: self.d.selection.clone(), center: bb.center() };
+        self.ts.cur = p;
+        self.ts.moved = false;
+        self.ts.copy_on_drop = false;
+        self.ts.stamps.clear();
+        self.ts.right_drag = Some(super::drop::RightGrab { obj: t, press: self.inp.pos, far: false });
+    }
+
+    /// A right-button drag: the selection follows the pointer (as an outline, nothing moves yet);
+    /// let go after a real drag, the drop menu opens there. A right-click that did not move
+    /// leaves the right-click menu to the canvas.
+    fn right_drag(&mut self) {
+        let Some(mut grab) = self.ts.right_drag else { return };
+        grab.far |= (self.inp.pos - grab.press).length() > super::drop::RIGHT_DRAG_DIST;
+        self.ts.moved = grab.far;
+        if let Drag::Transform { ids, .. } = &self.ts.drag {
+            let ex: Vec<ObjId> = ids.iter().chain(&self.ts.stamps).copied().collect();
+            self.ts.cur = self.snap(self.raw, &ex);
+        }
+        if self.inp.secondary_down && !self.inp.secondary_released {
+            self.ts.right_drag = Some(grab);
+            return;
+        }
+        self.ts.right_drag = None;
+        self.ts.moved = false;
+        self.ts.snap_mark = None;
+        self.ts.guide_lines.clear();
+        let drag = std::mem::take(&mut self.ts.drag);
+        let Drag::Transform { kind, start, bb, ids, center } = drag else { return };
+        if !grab.far {
+            return;
+        }
+        let affine = xform_affine(kind, start, self.ts.cur, bb, center, self.mods(), self.s.constrain_angle);
+        let target = self.hit_except(self.raw, &ids);
+        self.ts.right_drop = Some(super::drop::RightDrop { ids, source: grab.obj, affine, target, at: self.inp.pos, shown: false });
+    }
+
+    /// The topmost object at `p` other than `skip` (and their parts), as [`Self::hit`] picks.
+    fn hit_except(&self, p: Point, skip: &[ObjId]) -> Option<ObjId> {
+        let filled = self.s.treat_as_filled;
+        let (pi, li) = self.d.active_loc();
+        let layers: Vec<&vector_core::Layer> = if self.s.edit_across_layers {
+            self.d.doc.layers_on_page(self.d.page).into_iter().rev().map(|(_, _, l)| l).collect()
+        } else {
+            self.d.doc.pages.get(pi).and_then(|pg| pg.layers.get(li)).into_iter().collect()
+        };
+        let id = layers.into_iter().filter(|l| l.visible && !l.locked).find_map(|l| l.objects.iter().rev().find(|o| o.visible && !skip.contains(&o.id) && self.d.doc.hit_object(o, p, self.tol(), filled)).map(|o| o.id))?;
+        (self.d.focus.is_empty() || self.d.focus.contains(&id)).then_some(id)
     }
 
     /// A comment of a Comments docker tool; the docker then takes its text.
@@ -2757,32 +2831,9 @@ impl<'a> Cx<'a> {
             PickTarget::CopyProperties { pen, color, fill, text } => {
                 let src = self.d.doc.find(t).cloned();
                 if let Some(src) = src {
-                    self.d.modify("Copy Properties", |doc, _| {
-                        for id in &sel {
-                            if let Some(o) = doc.find_mut(*id) {
-                                if pen {
-                                    let c = o.style.outline.color;
-                                    o.style.outline = src.style.outline.clone();
-                                    o.style.outline.color = c;
-                                }
-                                if color {
-                                    o.style.outline.color = src.style.outline.color;
-                                }
-                                if fill {
-                                    o.style.fill = src.style.fill.clone();
-                                }
-                                if text {
-                                    if let (ObjKind::Text(dst), ObjKind::Text(from)) = (&mut o.kind, &src.kind) {
-                                        dst.format = from.format.clone();
-                                        dst.spans.clear();
-                                        dst.align = from.align.clone();
-                                        dst.paragraphs = from.paragraphs.clone();
-                                        dst.line_spacing = from.line_spacing;
-                                    }
-                                }
-                            }
-                        }
-                    });
+                    // the same as the right-drag menu's Copy Fill / Outline / All Properties Here
+                    let what = super::drop::Props { pen, color, fill, text };
+                    self.d.modify("Copy Properties", |doc, _| super::drop::copy_properties(doc, &src, &sel, what));
                 }
             }
             PickTarget::CopyEffect { kind, clone } => {
@@ -3785,7 +3836,7 @@ pub fn tick(app: &mut AnyVectorApp, ctx: &egui::Context) {
         if app.tool != ToolId::LiveSketch || left <= 0.0 {
             if let Some(ai) = app.active.filter(|a| *a < app.docs.len()) {
                 let mut out = Out::default();
-                let inp = Input { pos: Pos2::ZERO, hovered: false, pressed: false, released: false, down: false, double: false, secondary: false, mods: Default::default(), key_c: false, time: now, dt: 0.0 };
+                let inp = Input { pos: Pos2::ZERO, hovered: false, pressed: false, released: false, down: false, double: false, secondary: false, secondary_down: false, secondary_released: false, mods: Default::default(), key_c: false, time: now, dt: 0.0 };
                 let default_fill = app.default_fill;
                 let tool = app.tool;
                 let mut cx = Cx { ts: &mut app.ts, d: &mut app.docs[ai], s: &app.settings, tool, inp: &inp, out: &mut out, default_fill, raw: Point::ZERO };

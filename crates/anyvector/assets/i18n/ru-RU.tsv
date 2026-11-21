@@ -5651,3 +5651,13 @@ Transparency was left out.	Прозрачность не включена.
 Pattern, texture and mesh fills were replaced by their main color.	Заливки узором, текстурой и сеткой заменены их основным цветом.
 Hidden layers and objects were left out.	Скрытые слои и объекты не включены.
 AnyVector 0.1	AnyVector 0.1
+Move Here	&Переместить сюда
+Copy Here	&Копировать сюда
+Copy Fill Here	Копировать &заливку сюда
+Copy Outline Here	Копировать &абрис сюда
+Copy All Properties	Копировать &все свойства
+Other Commands	Другие команды
+Delete conflicts	Удалить конфликты
+Duplicate in Place	Дублировать на месте
+Toggle Pick State	Переключить состояние выбора
+(none)	(нет)

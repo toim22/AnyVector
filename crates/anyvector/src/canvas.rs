@@ -78,13 +78,14 @@ pub fn drawing_window(app: &mut AnyVectorApp, ui: &mut Ui) {
     });
     let over_finish = finish.is_some_and(|(_, r)| ctx.input(|i| i.pointer.latest_pos()).is_some_and(|p| r.contains(p)));
     let hovered = resp.contains_pointer() && !over_finish;
-    let (pos, pressed, released, down, sec_pressed, mods, scroll, zoom_delta, time, dt) = ctx.input(|i| {
+    let (pos, pressed, released, down, (sec_pressed, sec_down, sec_released), mods, scroll, zoom_delta, time, dt) = ctx.input(|i| {
+        let sec = egui::PointerButton::Secondary;
         (
             i.pointer.latest_pos(),
             i.pointer.primary_pressed(),
             i.pointer.primary_released(),
             i.pointer.primary_down(),
-            i.pointer.button_pressed(egui::PointerButton::Secondary),
+            (i.pointer.button_pressed(sec), i.pointer.button_down(sec), i.pointer.button_released(sec)),
             i.modifiers,
             i.smooth_scroll_delta,
             i.zoom_delta(),
@@ -125,6 +126,8 @@ pub fn drawing_window(app: &mut AnyVectorApp, ui: &mut Ui) {
             down,
             double: resp.double_clicked(),
             secondary: sec_pressed && hovered,
+            secondary_down: sec_down,
+            secondary_released: sec_released,
             mods,
             key_c: ctx.input(|i| i.key_down(egui::Key::C)),
             time,
@@ -148,7 +151,7 @@ pub fn drawing_window(app: &mut AnyVectorApp, ui: &mut Ui) {
                 }
             }
         }
-        if inp.pressed || hovered || app.ts.press.is_some() || inp.secondary {
+        if inp.pressed || hovered || app.ts.press.is_some() || inp.secondary || app.ts.right_drag.is_some() {
             if inp.pressed {
                 // clicking the drawing leaves any text field so tool keys and typing reach the canvas
                 ctx.memory_mut(|m| {
@@ -170,10 +173,12 @@ pub fn drawing_window(app: &mut AnyVectorApp, ui: &mut Ui) {
             crate::dialogs::object::live_preview(app, at, down);
         }
     }
-    // right-click menu for what is under the pointer (the right-click itself selected it)
-    if let Some(name) = crate::menus::canvas_menu(app) {
+    // right-click menu for what is under the pointer (the right-click itself selected it); a
+    // right-button drag ends in its own menu instead (#140)
+    if let Some(name) = crate::menus::canvas_menu(app).filter(|_| app.ts.right_drag.is_none() && app.ts.right_drop.is_none()) {
         resp.context_menu(|ui| crate::menus::context_menu(app, ui, name));
     }
+    tools::drop::drop_menu(app, &ctx);
     if !app.active.map(|a| a < app.docs.len()).unwrap_or(false) {
         return;
     }
@@ -187,6 +192,7 @@ pub fn drawing_window(app: &mut AnyVectorApp, ui: &mut Ui) {
     } else {
         painter.rect_filled(canvas, 0.0, theme::DESKTOP());
     }
+    tools::update_hover_cut(app, hovered && !modal);
     tools::draw_overlay(app, &painter);
     crate::dockers::draw_hotspots(app, &painter, &app.docs[ai]);
     printable_area(app, &painter, ai);
@@ -216,9 +222,25 @@ pub fn drawing_window(app: &mut AnyVectorApp, ui: &mut Ui) {
     // ------------------------------------------------------------------ cursor
     if hovered && !modal {
         ctx.set_cursor_icon(cursor_for(app, pos.unwrap_or_default()));
+        cursor_badge(app, &painter, pos);
     }
     if app.ts.is_busy() || app.docs[ai].text_edit.is_some() {
         ctx.request_repaint_after(std::time::Duration::from_millis(100));
+    }
+}
+
+/// The Virtual Segment Delete pointer carries the tool's icon, as the reference's does its knife
+/// (the system pointers have no such shape), so the tool is told from the other crosshair tools
+/// (#119).
+fn cursor_badge(app: &mut AnyVectorApp, painter: &egui::Painter, pos: Option<Pos2>) {
+    let Some(p) = pos else { return };
+    if app.tool != ToolId::VirtualDelete || !app.ts.drag.is_none() || app.ts.pick_target.is_some() {
+        return;
+    }
+    let r = Rect::from_min_size(p + vec2(10.0, 12.0), vec2(20.0, 20.0));
+    painter.rect(r, 3.0, theme::MENU_BG(), Stroke::new(1.0, theme::SEP()), egui::StrokeKind::Inside);
+    if let Some(t) = app.icons.get(painter.ctx(), ToolId::VirtualDelete.icon(), 16.0, crate::icons::Tone::Normal) {
+        painter.image(t.id, Rect::from_center_size(r.center(), vec2(16.0, 16.0)), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
     }
 }
 
@@ -547,12 +569,20 @@ pub(crate) fn cursor_for(app: &AnyVectorApp, pos: Pos2) -> CursorIcon {
         return CursorIcon::Crosshair;
     }
     let Some(d) = app.doc() else { return CursorIcon::Default };
+    // a right-button drag ends in a menu (#140)
+    if app.ts.right_drag.is_some() {
+        return CursorIcon::ContextMenu;
+    }
     if app.settings.crosshair_cursor && app.tool != ToolId::Pick {
         return CursorIcon::Crosshair;
     }
     match app.tool {
         ToolId::Pick | ToolId::FreeTransform => {
             if let Drag::Transform { kind, .. } = &app.ts.drag {
+                // the drop leaves a copy (right-click or the keypad + during the drag)
+                if app.ts.copy_on_drop {
+                    return CursorIcon::Copy;
+                }
                 return match kind {
                     tools::Xform::Move => CursorIcon::Move,
                     tools::Xform::Rotate => CursorIcon::Alias,
@@ -611,6 +641,8 @@ pub(crate) fn cursor_for(app: &AnyVectorApp, pos: Pos2) -> CursorIcon {
         }
         ToolId::ColorEyedropper | ToolId::AttributesEyedropper | ToolId::SmartFill | ToolId::MeshFill => CursorIcon::Cell,
         ToolId::Blend | ToolId::Envelope | ToolId::EditAnchor => CursorIcon::PointingHand,
+        // Virtual Segment Delete: a hand over a piece it deletes (shown in red, #119)
+        ToolId::VirtualDelete if matches!(app.ts.hover_cut, Some((_, _, Some(_)))) => CursorIcon::PointingHand,
         _ => CursorIcon::Crosshair,
     }
 }

@@ -5651,3 +5651,13 @@ Transparency was left out.	未包含透明度。
 Pattern, texture and mesh fills were replaced by their main color.	圖樣、材質和網狀填色已取代為其主要色彩。
 Hidden layers and objects were left out.	未包含隱藏的圖層和物件。
 AnyVector 0.1	AnyVector 0.1
+Move Here	移動到此處(&M)
+Copy Here	複製到此處(&C)
+Copy Fill Here	複製填色到此處(&F)
+Copy Outline Here	複製外框到此處(&O)
+Copy All Properties	複製所有屬性(&A)
+Other Commands	其他命令
+Delete conflicts	刪除衝突
+Duplicate in Place	原地複製
+Toggle Pick State	切換選取狀態
+(none)	(無)

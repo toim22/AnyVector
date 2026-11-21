@@ -5651,3 +5651,13 @@ Transparency was left out.	La trasparenza è stata esclusa.
 Pattern, texture and mesh fills were replaced by their main color.	I riempimenti a motivo, texture e mesh sono stati sostituiti dal loro colore principale.
 Hidden layers and objects were left out.	I livelli e gli oggetti nascosti sono stati esclusi.
 AnyVector 0.1	AnyVector 0.1
+Move Here	&Sposta qui
+Copy Here	&Copia qui
+Copy Fill Here	Copia &riempimento qui
+Copy Outline Here	Copia c&ontorno qui
+Copy All Properties	Copia &tutte le proprietà
+Other Commands	Altri comandi
+Delete conflicts	Elimina conflitti
+Duplicate in Place	Duplica sul posto
+Toggle Pick State	Attiva/disattiva stato di selezione
+(none)	(nessuno)

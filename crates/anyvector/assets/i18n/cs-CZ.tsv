@@ -5651,3 +5651,13 @@ Transparency was left out.	Průhlednost byla vynechána.
 Pattern, texture and mesh fills were replaced by their main color.	Výplně vzorkem, texturou a sítí byly nahrazeny svou hlavní barvou.
 Hidden layers and objects were left out.	Skryté vrstvy a objekty byly vynechány.
 AnyVector 0.1	AnyVector 0.1
+Move Here	&Přesunout sem
+Copy Here	&Kopírovat sem
+Copy Fill Here	Kopírovat &výplň sem
+Copy Outline Here	Kopírovat &obrys sem
+Copy All Properties	Kopírovat všechny vl&astnosti
+Other Commands	Další příkazy
+Delete conflicts	Odstranit konflikty
+Duplicate in Place	Duplikovat na místě
+Toggle Pick State	Přepnout stav výběru
+(none)	(žádná)

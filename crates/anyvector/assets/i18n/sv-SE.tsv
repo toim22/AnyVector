@@ -5651,3 +5651,13 @@ Transparency was left out.	Genomskinlighet utelämnades.
 Pattern, texture and mesh fills were replaced by their main color.	Mönster-, struktur- och nätfyllningar ersattes med sin huvudfärg.
 Hidden layers and objects were left out.	Dolda lager och objekt utelämnades.
 AnyVector 0.1	AnyVector 0.1
+Move Here	&Flytta hit
+Copy Here	&Kopiera hit
+Copy Fill Here	Kopiera f&yllning hit
+Copy Outline Here	Kopiera k&ontur hit
+Copy All Properties	Kopiera &alla egenskaper
+Other Commands	Övriga kommandon
+Delete conflicts	Ta bort konflikter
+Duplicate in Place	Duplicera på plats
+Toggle Pick State	Växla markeringsläge
+(none)	(ingen)
