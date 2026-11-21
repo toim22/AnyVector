@@ -21,7 +21,7 @@ use crate::widgets::icon_button_sized;
 use egui::{Id, Ui};
 use fields::{Fmt, Lead};
 use kurbo::{Affine, Point, Rect, Vec2};
-use vector_core::object::{ContourDir, CornerType, DistortKind, DropShadow, EllipseKind, PolygonKind};
+use vector_core::object::{ContourDir, CornerType, DistortKind, DropShadow, EllipseKind, PolygonKind, ShadowPart};
 use vector_core::style::{GradientKind, MergeMode};
 use vector_core::text::TextAlign;
 use vector_core::{Color, Fill, ObjKind, Object, Transparency, Unit};
@@ -209,7 +209,25 @@ fn selection_bar(app: &AnyVectorApp) -> &'static str {
         1 => {}
         _ => return "4568875c",
     }
+    // the shadow clicked shows its own bar (#106)
+    if let Some(part) = shadow_clicked(app) {
+        return match part {
+            ShadowPart::Drop => "edcfb996",
+            ShadowPart::Inner => "f9711864",
+            ShadowPart::Block => "aa88b391",
+        };
+    }
     d.doc.find(d.selection[0]).map(|o| object_bar(app, o)).unwrap_or("232a3ed2")
+}
+
+/// The shadow of the selected object clicked with the Pick tool (#106).
+fn shadow_clicked(app: &AnyVectorApp) -> Option<ShadowPart> {
+    app.doc().filter(|_| app.tool == ToolId::Pick)?.shadow_focus()
+}
+
+/// The shadow bar is the Inner Shadow one: the Inner Shadow tool, or an inner shadow clicked.
+fn inner_shadow_bar(app: &AnyVectorApp) -> bool {
+    app.tool == ToolId::InnerShadow || shadow_clicked(app) == Some(ShadowPart::Inner)
 }
 
 fn object_bar(app: &AnyVectorApp, o: &Object) -> &'static str {
@@ -1112,7 +1130,7 @@ fn dimension_text(app: &mut AnyVectorApp, ui: &mut Ui, it: &Item, prefix: bool) 
 // ----------------------------------------------------------------------------- effects
 
 fn shadow(app: &mut AnyVectorApp, ui: &mut Ui, it: &Item, k: &str) {
-    let inner = app.tool == ToolId::InnerShadow;
+    let inner = inner_shadow_bar(app);
     let cur = first(app, |o| if inner { o.effects.inner_shadow.clone() } else { o.effects.drop_shadow.clone() }).flatten();
     // with the shadow tool, the fields also give a selected object without a shadow the default
     // one with the value set (as in CorelDRAW; issue 107)
@@ -1464,10 +1482,10 @@ pub fn option_state(app: &AnyVectorApp, key: &str) -> Option<(bool, bool)> {
             };
             (doc, on)
         }
-        "e8ef757d" => (doc, app.tool == ToolId::DropShadow),
-        "08f5977a" => (doc, app.tool == ToolId::InnerShadow),
+        "e8ef757d" => (doc, app.tool == ToolId::DropShadow || shadow_clicked(app) == Some(ShadowPart::Drop)),
+        "08f5977a" => (doc, inner_shadow_bar(app)),
         "bacce2d7" => {
-            let inner = app.tool == ToolId::InnerShadow;
+            let inner = inner_shadow_bar(app);
             (first(app, |o| if inner { o.effects.inner_shadow.is_some() } else { o.effects.drop_shadow.is_some() }).unwrap_or(false), false)
         }
         "e9c835fd" | "fb15a6d6" | "c746acef" => {
@@ -1674,7 +1692,7 @@ pub fn press(app: &mut AnyVectorApp, key: &str) {
         "e8ef757d" => app.set_tool(ToolId::DropShadow),
         "08f5977a" => app.set_tool(ToolId::InnerShadow),
         "bacce2d7" => {
-            let inner = app.tool == ToolId::InnerShadow;
+            let inner = inner_shadow_bar(app);
             edit_sel(app, "Clear Shadow", |o| {
                 if inner {
                     o.effects.inner_shadow = None;

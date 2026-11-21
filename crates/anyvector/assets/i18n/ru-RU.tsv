@@ -5614,3 +5614,5 @@ Delete Segment	Удалить сегмент
 A curve needs at least two nodes	Кривой нужны хотя бы два узла
 Select Contents	Выделить содержимое
 Adjust contents	Настроить содержимое
+Drop Shadow on {}	Тень на {}
+Block Shadow on {}	Блочная тень на {}

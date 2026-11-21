@@ -189,6 +189,12 @@ pub fn object_info(app: &AnyVectorApp) -> String {
             Some(o) => o,
             None => return String::new(),
         };
+        // the shadow clicked with the Pick tool (#106)
+        match d.shadow_focus().filter(|_| app.tool == crate::tools::ToolId::Pick) {
+            Some(vector_core::object::ShadowPart::Block) => return format!("Block Shadow on {}", layer_name(o.id)),
+            Some(vector_core::object::ShadowPart::Drop) => return format!("Drop Shadow on {}", layer_name(o.id)),
+            _ => {}
+        }
         let extra = match &o.kind {
             ObjKind::Path(p) => format!(" with {} nodes", p.node_count()),
             ObjKind::Group(c) => format!(" of {} objects", c.len()),

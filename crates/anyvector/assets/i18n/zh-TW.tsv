@@ -5614,3 +5614,5 @@ Delete Segment	刪除線段
 A curve needs at least two nodes	曲線至少需要兩個節點
 Select Contents	選取內容
 Adjust contents	調整內容
+Drop Shadow on {}	陰影 位於 {}
+Block Shadow on {}	區塊陰影 位於 {}

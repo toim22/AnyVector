@@ -4643,6 +4643,11 @@ fn powerclip_alt_click_selects_contents_and_ctrl_click_enters() {
     pick_click(&mut h, (190.0, 200.0), ALT);
     assert_eq!(sel(&h), vec![a], "Alt+click didn't select the contents");
     assert_eq!(editing(&h), None, "Alt+click entered the PowerClip");
+    // with that content selected, Alt+click goes on down the stack (#139), and back to it
+    pick_click(&mut h, (190.0, 200.0), ALT);
+    assert_ne!(sel(&h), vec![a], "a second Alt+click stayed on the content");
+    pick_click(&mut h, (190.0, 200.0), ALT);
+    assert_eq!(sel(&h), vec![a], "Alt+click didn't come back to the contents");
     // Shift+Alt adds another content
     pick_click(&mut h, (300.0, 200.0), egui::Modifiers { shift: true, ..ALT });
     assert_eq!(sel(&h), vec![a, b]);
@@ -4896,4 +4901,428 @@ fn visual_issue_111_112_powerclip() {
     press_labeled(&mut h, "Finish Editing PowerClip");
     assert_eq!((editing(&h), sel(&h)), (None, vec![pc]));
     save(&mut h, "issue_111_03_finished");
+}
+
+// ---- 0.6.0: Alt+click through a stack (#139), the shadow clicked (#106), shadows broken off (#105) ----
+
+/// A click with modifiers held (Alt, Shift+Alt...), as the real window sends it.
+fn click_mods(h: &mut Harness<'_, AnyVectorApp>, p: egui::Pos2, mods: egui::Modifiers) {
+    let button = |down| egui::Event::PointerButton { pos: p, button: egui::PointerButton::Primary, pressed: down, modifiers: mods };
+    h.input_mut().events.push(egui::Event::ModifiersChanged(mods));
+    move_to(h, p);
+    h.step();
+    h.input_mut().events.push(button(true));
+    h.step();
+    h.input_mut().events.push(button(false));
+    h.step();
+    h.input_mut().events.push(egui::Event::ModifiersChanged(egui::Modifiers::NONE));
+    h.step();
+}
+
+/// A drag with modifiers held.
+fn drag_mods(h: &mut Harness<'_, AnyVectorApp>, a: egui::Pos2, b: egui::Pos2, mods: egui::Modifiers) {
+    let button = |p, down| egui::Event::PointerButton { pos: p, button: egui::PointerButton::Primary, pressed: down, modifiers: mods };
+    h.input_mut().events.push(egui::Event::ModifiersChanged(mods));
+    move_to(h, a);
+    h.step();
+    h.input_mut().events.push(button(a, true));
+    h.step();
+    for k in 1..=6 {
+        move_to(h, a + (b - a) * (k as f32 / 6.0));
+        h.step();
+    }
+    h.input_mut().events.push(button(b, false));
+    h.step();
+    h.input_mut().events.push(egui::Event::ModifiersChanged(egui::Modifiers::NONE));
+    h.step();
+}
+
+/// A square of side `w` at `at` with a fill, on the active layer (not selected).
+fn square_at(h: &mut Harness<'_, AnyVectorApp>, at: (f64, f64), w: f64, rgb: (u8, u8, u8)) -> vector_core::ObjId {
+    let d = h.state_mut().doc_mut().unwrap();
+    let id = d.doc.new_id();
+    let r = RectShape { w, h: w, radii: [0.0; 4], corner: CornerType::default() };
+    let mut st = Style::default();
+    st.fill = Fill::Solid(Color::rgb(rgb.0, rgb.1, rgb.2));
+    d.add_objects("test", vec![Object::new(id, ObjKind::Rect(r), Affine::translate(at), st)]);
+    d.selection.clear();
+    id
+}
+
+fn selection(h: &Harness<'_, AnyVectorApp>) -> Vec<vector_core::ObjId> {
+    h.state().doc().unwrap().selection.clone()
+}
+
+/// The id prefix of the property bar shown.
+fn bar_shown(h: &Harness<'_, AnyVectorApp>) -> String {
+    crate::propbar::bar_for(h.state()).map(|b| crate::ui::bars()[b as usize].id[..8].to_string()).unwrap_or_default()
+}
+
+/// #139: what Alt+click picks among the objects at the pointer, topmost first.
+#[test]
+fn alt_pick_walks_down_and_round() {
+    use crate::tools::alt_pick;
+    let under = [3, 2, 1];
+    assert_eq!(alt_pick(&under, &[], false), Some(2), "nothing selected: the one under the top one");
+    assert_eq!(alt_pick(&under, &[3], false), Some(2));
+    assert_eq!(alt_pick(&under, &[2], false), Some(1), "one further down at each click");
+    assert_eq!(alt_pick(&under, &[1], false), Some(3), "round to the top after the bottom one");
+    assert_eq!(alt_pick(&under, &[9], false), Some(2), "a selection elsewhere doesn't count");
+    assert_eq!(alt_pick(&[7], &[], false), Some(7), "a single object is picked itself");
+    assert_eq!(alt_pick(&[7], &[7], false), Some(7));
+    assert_eq!(alt_pick(&[], &[], false), None);
+    // Shift+Alt adds the next one down not selected yet
+    assert_eq!(alt_pick(&under, &[3], true), Some(2));
+    assert_eq!(alt_pick(&under, &[3, 2], true), Some(1));
+    assert_eq!(alt_pick(&under, &[1, 2], true), Some(3));
+    assert_eq!(alt_pick(&under, &[1, 2, 3], true), None, "all of them selected");
+}
+
+/// #139: with Treat All Objects as Filled on, Alt+click selects the object behind the top one,
+/// one further down at each click and the top one again after the bottom one; Shift+Alt adds it;
+/// a plain click still picks the top one, and Alt+drag on empty space is still the marquee that
+/// selects what it touches. Alt+click and drag moves the object behind.
+#[test]
+fn alt_click_selects_the_object_behind() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    h.state_mut().settings.treat_as_filled = true;
+    h.state_mut().set_tool(ToolId::Pick);
+    let a = square_at(&mut h, (100.0, 100.0), 200.0, (200, 40, 40));
+    let b = square_at(&mut h, (150.0, 150.0), 200.0, (40, 160, 40));
+    let c = square_at(&mut h, (200.0, 200.0), 200.0, (40, 40, 200));
+    h.step();
+    let p = scr(&h, (260.0, 260.0));
+    click(&mut h, p);
+    assert_eq!(selection(&h), vec![c], "a plain click picks the top one");
+    for want in [b, a, c, b] {
+        click_mods(&mut h, p, egui::Modifiers::ALT);
+        assert_eq!(selection(&h), vec![want]);
+    }
+    assert!(!h.state().doc().unwrap().rotate_mode, "Alt+click on the selection isn't a second click");
+    // Shift+Alt adds the one below
+    click_mods(&mut h, p, egui::Modifiers::ALT | egui::Modifiers::SHIFT);
+    assert_eq!(selection(&h), vec![b, a]);
+    // only the objects under the pointer are walked
+    let q1 = scr(&h, (600.0, 600.0));
+    click(&mut h, q1);
+    let q1 = scr(&h, (120.0, 120.0));
+    click(&mut h, q1);
+    assert_eq!(selection(&h), vec![a]);
+    let q1 = scr(&h, (120.0, 120.0));
+    click_mods(&mut h, q1, egui::Modifiers::ALT);
+    assert_eq!(selection(&h), vec![a], "nothing under it: it stays selected");
+    // Alt+click and drag moves the object behind, not the top one
+    click(&mut h, p);
+    let before = h.state().doc().unwrap().doc.find(b).unwrap().bounds();
+    drag_mods(&mut h, p, p + egui::vec2(40.0, 0.0), egui::Modifiers::ALT);
+    let d = h.state().doc().unwrap();
+    assert_eq!(d.selection, vec![b]);
+    assert!(d.doc.find(b).unwrap().bounds().x0 > before.x0 + 1.0, "the object behind moved");
+    assert_eq!(d.doc.find(c).unwrap().bounds().x0, 200.0, "the top one stayed");
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    // Alt+drag on empty space: the marquee selects what it touches
+    let q1 = scr(&h, (600.0, 600.0));
+    click(&mut h, q1);
+    assert!(selection(&h).is_empty());
+    let q1 = scr(&h, (50.0, 50.0));
+    let q2 = scr(&h, (120.0, 120.0));
+    drag_mods(&mut h, q1, q2, egui::Modifiers::ALT);
+    assert_eq!(selection(&h), vec![a], "Alt+drag still selects the objects the marquee touches");
+}
+
+/// #139: Alt+click also walks unfilled objects with Treat All Objects as Filled off (where their
+/// outlines are), and only the active layer's objects without Edit Across Layers.
+#[test]
+fn alt_click_respects_treat_as_filled_and_layers() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    h.state_mut().settings.treat_as_filled = false;
+    h.state_mut().set_tool(ToolId::Pick);
+    let unfilled = |h: &mut Harness<'_, AnyVectorApp>, w: f64| {
+        let d = h.state_mut().doc_mut().unwrap();
+        let id = d.doc.new_id();
+        let mut st = Style::default();
+        st.fill = Fill::None;
+        st.outline.color = Some(Color::BLACK);
+        let r = RectShape { w, h: w, radii: [0.0; 4], corner: CornerType::default() };
+        d.add_objects("test", vec![Object::new(id, ObjKind::Rect(r), Affine::translate((100.0, 100.0)), st)]);
+        id
+    };
+    let a = unfilled(&mut h, 200.0);
+    let b = unfilled(&mut h, 120.0);
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    h.step();
+    // the left side both have
+    let side = scr(&h, (100.0, 150.0));
+    click(&mut h, side);
+    assert_eq!(selection(&h), vec![b]);
+    click_mods(&mut h, side, egui::Modifiers::ALT);
+    assert_eq!(selection(&h), vec![a]);
+    // inside, off the outlines: nothing to walk, the selection goes as with a plain click
+    let q1 = scr(&h, (150.0, 150.0));
+    click_mods(&mut h, q1, egui::Modifiers::ALT);
+    assert!(selection(&h).is_empty());
+    // a second layer on top, made the active one, with Edit Across Layers off
+    let top = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let lid = d.doc.new_id();
+        d.doc.pages[0].layers.push(vector_core::Layer::new(lid, "Top"));
+        d.layer = d.doc.pages[0].layers.len() - 1;
+        unfilled(&mut h, 160.0)
+    };
+    h.state_mut().settings.edit_across_layers = false;
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    click(&mut h, side);
+    assert_eq!(selection(&h), vec![top]);
+    click_mods(&mut h, side, egui::Modifiers::ALT);
+    assert_eq!(selection(&h), vec![top], "the other layer's objects aren't reached");
+    h.state_mut().settings.edit_across_layers = true;
+    click_mods(&mut h, side, egui::Modifiers::ALT);
+    assert_eq!(selection(&h), vec![b]);
+}
+
+#[test]
+#[ignore]
+fn visual_issue_139_alt_click_selects_behind() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    h.state_mut().settings.treat_as_filled = true;
+    h.state_mut().set_tool(ToolId::Pick);
+    let a = square_at(&mut h, (100.0, 100.0), 200.0, (200, 40, 40));
+    let _b = square_at(&mut h, (180.0, 180.0), 200.0, (40, 40, 200));
+    let p = scr(&h, (240.0, 240.0));
+    click(&mut h, p);
+    save(&mut h, "issue_139_01_click_picks_the_top_one");
+    click_mods(&mut h, p, egui::Modifiers::ALT);
+    assert_eq!(selection(&h), vec![a]);
+    save(&mut h, "issue_139_02_alt_click_picks_the_one_behind");
+}
+
+/// A square at (100, 100) with a block shadow 40 pt to the lower right, and one at (500, 100)
+/// with a drop shadow 30 pt down and to the right; neither selected.
+fn shadowed_squares(h: &mut Harness<'_, AnyVectorApp>) -> (vector_core::ObjId, vector_core::ObjId) {
+    let block = square_at(h, (100.0, 100.0), 150.0, (30, 144, 255));
+    let drop = square_at(h, (500.0, 100.0), 150.0, (255, 160, 30));
+    let d = h.state_mut().doc_mut().unwrap();
+    d.doc.find_mut(block).unwrap().effects.block_shadow = Some(vector_core::object::BlockShadow { offset: kurbo::Vec2::new(40.0, 40.0), color: Color::rgb(60, 60, 60), ..Default::default() });
+    d.doc.find_mut(drop).unwrap().effects.drop_shadow = Some(vector_core::object::DropShadow { offset: kurbo::Vec2::new(30.0, 30.0), feather: 10.0, ..Default::default() });
+    d.selection.clear();
+    (block, drop)
+}
+
+/// #106: clicking an object's shadow with the Pick tool selects the object with the shadow's
+/// bar (block or drop shadow) and its fields on; the status bar says the shadow is selected; a
+/// click on the object itself, Escape or another tool give the object's own bar back; Delete
+/// with the shadow clicked removes only the shadow (one undo step); dragging the shadow moves
+/// the object; an object above wins over a shadow under it.
+#[test]
+fn clicking_a_shadow_selects_it_with_its_bar() {
+    use crate::tools::ToolId;
+    use vector_core::object::ShadowPart;
+    let mut h = doc_harness();
+    h.state_mut().set_tool(ToolId::Pick);
+    let (block, drop) = shadowed_squares(&mut h);
+    h.step();
+    let focus = |h: &Harness<'_, AnyVectorApp>| h.state().doc().unwrap().shadow_focus();
+    // the object itself: its own bar
+    let q1 = scr(&h, (150.0, 150.0));
+    click(&mut h, q1);
+    assert_eq!((selection(&h), focus(&h)), (vec![block], None));
+    assert_eq!(bar_shown(&h), "b5286ff5", "the rectangle bar");
+    // the block shadow
+    let q1 = scr(&h, (280.0, 280.0));
+    click(&mut h, q1);
+    assert_eq!((selection(&h), focus(&h)), (vec![block], Some(ShadowPart::Block)));
+    assert_eq!(bar_shown(&h), "aa88b391", "the Block Shadow bar");
+    assert_eq!(crate::propbar::option_state(h.state(), "53bbc973"), Some((true, false)), "Clear block shadow is on");
+    assert!(crate::statusbar::object_info(h.state()).starts_with("Block Shadow on "), "{}", crate::statusbar::object_info(h.state()));
+    assert!(!h.state().doc().unwrap().rotate_mode, "the shadow clicked isn't a second click on the object");
+    // back on the object
+    let q1 = scr(&h, (150.0, 150.0));
+    click(&mut h, q1);
+    assert_eq!((selection(&h), focus(&h)), (vec![block], None));
+    assert!(!h.state().doc().unwrap().rotate_mode);
+    assert_eq!(bar_shown(&h), "b5286ff5");
+    // the drop shadow, in its feathering past the side of the shifted square
+    let q1 = scr(&h, (683.0, 200.0));
+    click(&mut h, q1);
+    assert_eq!((selection(&h), focus(&h)), (vec![drop], Some(ShadowPart::Drop)));
+    assert_eq!(bar_shown(&h), "edcfb996", "the Drop Shadow bar");
+    assert_eq!(crate::propbar::option_state(h.state(), "bacce2d7"), Some((true, false)), "Clear Shadow is on");
+    assert_eq!(crate::propbar::option_state(h.state(), "e8ef757d"), Some((true, true)));
+    // Escape: nothing selected
+    key(&mut h, egui::Key::Escape, true);
+    h.step();
+    key(&mut h, egui::Key::Escape, false);
+    h.step();
+    assert_eq!((selection(&h), focus(&h)), (vec![], None));
+    assert!(h.state().doc().unwrap().shadow_sel.is_none());
+    // selected some other way, the object is the object
+    h.state_mut().doc_mut().unwrap().selection = vec![drop];
+    h.step();
+    assert_eq!(bar_shown(&h), "b5286ff5");
+    // another tool forgets the shadow
+    let q1 = scr(&h, (683.0, 200.0));
+    click(&mut h, q1);
+    assert_eq!(focus(&h), Some(ShadowPart::Drop));
+    h.state_mut().set_tool(ToolId::Rectangle);
+    h.state_mut().set_tool(ToolId::Pick);
+    h.step();
+    assert_eq!(focus(&h), None);
+    // Delete removes the shadow only, as one undo step
+    let q1 = scr(&h, (683.0, 200.0));
+    click(&mut h, q1);
+    h.state_mut().run(Cmd::Delete);
+    h.step();
+    let d = h.state().doc().unwrap();
+    assert!(d.doc.find(drop).is_some_and(|o| o.effects.drop_shadow.is_none()), "Delete removed the object, or left the shadow");
+    assert_eq!(d.selection, vec![drop]);
+    assert_eq!(bar_shown(&h), "b5286ff5");
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    assert!(h.state().doc().unwrap().doc.find(drop).unwrap().effects.drop_shadow.is_some(), "one undo brings the shadow back");
+    // dragging the shadow moves the object
+    let a = scr(&h, (280.0, 280.0));
+    drag(&mut h, a, a + egui::vec2(30.0, 0.0));
+    let d = h.state().doc().unwrap();
+    assert_eq!(d.selection, vec![block]);
+    assert!(d.doc.find(block).unwrap().bounds().x0 > 101.0, "the object moved with its shadow");
+    assert!(d.doc.find(block).unwrap().effects.block_shadow.is_some());
+    // an object above wins over the shadow under it
+    let over = square_at(&mut h, (650.0, 250.0), 40.0, (0, 0, 0));
+    h.step();
+    let q1 = scr(&h, (670.0, 270.0));
+    click(&mut h, q1);
+    assert_eq!((selection(&h), focus(&h)), (vec![over], None));
+}
+
+#[test]
+#[ignore]
+fn visual_issue_106_shadow_clicked_shows_its_bar() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    h.state_mut().set_tool(ToolId::Pick);
+    let (block, drop) = shadowed_squares(&mut h);
+    let q1 = scr(&h, (280.0, 280.0));
+    click(&mut h, q1);
+    assert_eq!(selection(&h), vec![block]);
+    save(&mut h, "issue_106_01_block_shadow_clicked");
+    let q1 = scr(&h, (683.0, 200.0));
+    click(&mut h, q1);
+    assert_eq!(selection(&h), vec![drop]);
+    save(&mut h, "issue_106_02_drop_shadow_clicked");
+    let q1 = scr(&h, (575.0, 175.0));
+    click(&mut h, q1);
+    save(&mut h, "issue_106_03_object_clicked");
+}
+
+/// #105: Break Apart is on for a shadowed rectangle and separates the shadow into its own object
+/// right behind it (a curve for a block shadow, a bitmap for a drop shadow), both selected, as
+/// one undo step; the object keeps its fill and outline; the shadow moves on its own; text with
+/// a shadow loses the shadow first and splits at the next Break Apart.
+#[test]
+fn break_apart_separates_the_shadow() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    h.state_mut().set_tool(ToolId::Pick);
+    let (block, drop) = shadowed_squares(&mut h);
+    let on = |h: &Harness<'_, AnyVectorApp>| crate::ui::bind::enabled(h.state(), "d5669070-c0f3-4fc0-b524-e33aeea7925f");
+    let count = |h: &Harness<'_, AnyVectorApp>| h.state().doc().unwrap().page_ref().all_objects().count();
+    let index = |h: &Harness<'_, AnyVectorApp>, id| h.state().doc().unwrap().doc.locate(id).unwrap().2;
+    let n0 = count(&h);
+    // block shadow: a curve of the shadow's color
+    h.state_mut().doc_mut().unwrap().selection = vec![block];
+    h.step();
+    assert_eq!(on(&h), Some(true), "Break Apart is on for a shadowed rectangle");
+    let style = h.state().doc().unwrap().doc.find(block).unwrap().style.clone();
+    h.state_mut().run(Cmd::BreakApart);
+    h.step();
+    let d = h.state().doc().unwrap();
+    assert_eq!(count(&h), n0 + 1);
+    assert_eq!(d.selection.len(), 2);
+    assert_eq!(d.selection[1], block);
+    let shadow = d.selection[0];
+    let so = d.doc.find(shadow).unwrap();
+    assert!(matches!(so.kind, ObjKind::Path(_)));
+    assert_eq!(so.style.fill, Fill::Solid(Color::rgb(60, 60, 60)));
+    assert!(!so.style.outline.is_visible());
+    let sb = kurbo::Shape::bounding_box(&so.world_path());
+    assert!((sb.x0 - 100.0).abs() < 0.5 && (sb.x1 - 290.0).abs() < 0.5 && (sb.y1 - 290.0).abs() < 0.5, "{sb:?}");
+    assert_eq!(index(&h, shadow) + 1, index(&h, block), "right behind the object");
+    let src = d.doc.find(block).unwrap();
+    assert!(src.effects.block_shadow.is_none());
+    assert_eq!(src.style, style, "the object keeps its fill and outline");
+    // the shadow moves on its own
+    h.state_mut().doc_mut().unwrap().selection = vec![shadow];
+    h.state_mut().run(Cmd::Nudge(50.0, 0.0));
+    h.step();
+    assert_eq!(h.state().doc().unwrap().doc.find(block).unwrap().bounds().x0, 100.0);
+    h.state_mut().run(Cmd::Undo);
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    assert_eq!(count(&h), n0, "one undo step");
+    assert!(h.state().doc().unwrap().doc.find(block).unwrap().effects.block_shadow.is_some());
+
+    // drop shadow: a bitmap with the shadow's pixels where the shadow was drawn
+    h.state_mut().doc_mut().unwrap().selection = vec![drop];
+    h.step();
+    assert_eq!(on(&h), Some(true));
+    h.state_mut().run(Cmd::BreakApart);
+    h.step();
+    let d = h.state().doc().unwrap();
+    assert_eq!(count(&h), n0 + 1);
+    assert_eq!(d.selection.len(), 2);
+    let img = d.doc.find(d.selection[0]).unwrap();
+    let ObjKind::Image(io) = &img.kind else { panic!("the drop shadow isn't a bitmap: {:?}", img.kind) };
+    let data = &d.doc.images[&io.image];
+    assert!(data.rgba.chunks(4).any(|px| px[3] > 100), "the bitmap has the shadow in it");
+    assert_eq!(img.style.merge, vector_core::style::MergeMode::Multiply);
+    // the shadow square (530..680) and about its feathering around it
+    let b = img.bounds();
+    assert!(b.x0 > 500.0 && b.x0 < 530.0 && b.x1 > 680.0 && b.x1 < 710.0 && b.y1 > 280.0 && b.y1 < 310.0, "{b:?}");
+    assert!(d.doc.find(drop).unwrap().effects.drop_shadow.is_none());
+    h.state_mut().doc_mut().unwrap().selection = vec![drop];
+    assert_eq!(on(&h), Some(false), "nothing more to break apart");
+
+    // text with a shadow: the shadow first, the words next
+    let t = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let id = d.doc.new_id();
+        let mut o = Object::new(id, ObjKind::Text(vector_core::text::TextObj::artistic("AB CD", vector_core::text::CharFormat::default())), Affine::translate((100.0, 500.0)), Style::default());
+        o.effects.drop_shadow = Some(crate::tools::default_shadow(false));
+        d.add_objects("test", vec![o]);
+        id
+    };
+    h.state_mut().run(Cmd::BreakApart);
+    h.step();
+    let d = h.state().doc().unwrap();
+    assert_eq!(d.selection.len(), 2);
+    assert!(matches!(d.doc.find(t).unwrap().kind, ObjKind::Text(_)) && d.doc.find(t).unwrap().effects.drop_shadow.is_none());
+    h.state_mut().doc_mut().unwrap().selection = vec![t];
+    h.state_mut().run(Cmd::BreakApart);
+    h.step();
+    assert_eq!(selection(&h).len(), 2, "the next Break Apart splits the words");
+}
+
+#[test]
+#[ignore]
+fn visual_issue_105_shadow_broken_apart() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    h.state_mut().set_tool(ToolId::Pick);
+    let (block, drop) = shadowed_squares(&mut h);
+    save(&mut h, "issue_105_01_shadowed");
+    for id in [block, drop] {
+        h.state_mut().doc_mut().unwrap().selection = vec![id];
+        h.state_mut().run(Cmd::BreakApart);
+        h.step();
+        // the shadow pulled down, away from its object
+        let shadow = selection(&h)[0];
+        h.state_mut().doc_mut().unwrap().selection = vec![shadow];
+        h.state_mut().run(Cmd::Nudge(0.0, 220.0));
+        h.step();
+    }
+    save(&mut h, "issue_105_02_shadows_broken_off_and_moved");
 }

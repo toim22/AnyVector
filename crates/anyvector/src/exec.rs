@@ -1584,6 +1584,19 @@ impl AnyVectorApp {
                     }
                 } else if self.tool == ToolId::Shape && self.doc().is_some_and(|d| !d.node_sel.is_empty() || crate::tools::selected_segment(d).is_some()) {
                     crate::tools::node_op(self, crate::tools::NodeOp::Delete);
+                } else if let Some(part) = self.doc().filter(|_| self.tool == ToolId::Pick).and_then(|d| d.shadow_focus()) {
+                    // a shadow clicked with the Pick tool: Delete removes the shadow (#106)
+                    use vector_core::object::ShadowPart;
+                    let label = if part == ShadowPart::Block { "Clear Block Shadow" } else { "Clear Shadow" };
+                    self.modify_sel(label, |doc, sel| {
+                        if let Some(o) = sel.first().and_then(|id| doc.find_mut(*id)).filter(|o| !o.locked) {
+                            match part {
+                                ShadowPart::Drop => o.effects.drop_shadow = None,
+                                ShadowPart::Inner => o.effects.inner_shadow = None,
+                                ShadowPart::Block => o.effects.block_shadow = None,
+                            }
+                        }
+                    });
                 } else {
                     self.modify_sel("Delete", |doc, sel| {
                         for id in sel.drain(..) {
@@ -1889,8 +1902,11 @@ impl AnyVectorApp {
                 }
             }),
             Cmd::BreakApart => self.modify_sel("Break Apart", |doc, sel| {
-                let ids = sel.clone();
-                *sel = ops::break_apart(doc, &ids);
+                // a shadowed object loses its shadows first (#105); the next Break Apart splits it
+                let (shadowed, plain): (Vec<_>, Vec<_>) = sel.iter().copied().partition(|id| doc.find(*id).is_some_and(|o| !ops::drawn_shadows(o).is_empty()));
+                let mut out = ops::break_shadows(doc, &shadowed, &mut |doc, o, part| shadow_raster(doc, o, part));
+                out.extend(ops::break_apart(doc, &plain));
+                *sel = out;
             }),
             Cmd::Lock | Cmd::Unlock => {
                 let lock = cmd == Cmd::Lock;
@@ -2695,6 +2711,15 @@ impl AnyVectorApp {
         o.category = Some(cat);
         o.page = page.map(|s| s.to_string());
     }
+}
+
+/// A drop or inner shadow drawn alone for Break Apart (#105), at the document's rendering
+/// resolution, as CorelDRAW makes its bitmap.
+fn shadow_raster(doc: &Document, o: &Object, part: vector_core::object::ShadowPart) -> Option<ops::ShadowRaster> {
+    let inner = part == vector_core::object::ShadowPart::Inner;
+    let dpi = doc.settings.dpi.clamp(72.0, 600.0);
+    let (pm, at) = vector_render::shadow_image(doc, o, inner, dpi)?;
+    Some(ops::ShadowRaster { width: pm.width(), height: pm.height(), rgba: vector_render::pixmap_to_rgba(&pm), at })
 }
 
 fn title_case(s: &str) -> String {

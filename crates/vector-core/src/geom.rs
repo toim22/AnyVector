@@ -286,6 +286,31 @@ pub fn subpaths(path: &BezPath) -> Vec<BezPath> {
     out
 }
 
+/// Only the outer contours of a path: the subpaths turning the same way as the biggest one
+/// (Remove Holes).
+pub fn outer_contours(path: &BezPath) -> BezPath {
+    let subs = subpaths(path);
+    let Some(main_sign) = subs.iter().map(|p| p.area()).max_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap_or(std::cmp::Ordering::Equal)).map(|a| a.signum()) else {
+        return path.clone();
+    };
+    let mut out = BezPath::new();
+    for p in subs {
+        if p.area().signum() == main_sign {
+            out.extend(p.elements().iter().copied());
+        }
+    }
+    out
+}
+
+/// Does the segment from `a` to `b` touch the filled (non-zero) area of `path`?
+pub fn segment_touches_fill(path: &BezPath, a: Point, b: Point) -> bool {
+    if contains(path, a, false) || contains(path, b, false) {
+        return true;
+    }
+    let line = kurbo::Line::new(a, b);
+    path.segments().any(|s| !s.intersect_line(line).is_empty())
+}
+
 /// Fewer nodes: each subpath flattened and refitted with smooth curves within `tol`.
 pub fn simplify_path(path: &BezPath, tol: f64) -> BezPath {
     let mut out = BezPath::new();

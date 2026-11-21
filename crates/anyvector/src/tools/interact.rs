@@ -452,6 +452,34 @@ impl<'a> Cx<'a> {
         (self.d.focus.is_empty() || self.d.focus.contains(&id)).then_some(id)
     }
 
+    /// Every object [`Cx::hit`] could pick at `p`, topmost first (Alt+click walks them, #139).
+    fn hit_all(&self, p: Point) -> Vec<ObjId> {
+        let filled = self.s.treat_as_filled;
+        let mut ids = if self.s.edit_across_layers {
+            self.d.doc.hit_list(self.d.page, p, self.tol(), filled)
+        } else {
+            let (pi, li) = self.d.active_loc();
+            match self.d.doc.pages.get(pi).and_then(|pg| pg.layers.get(li)) {
+                Some(l) if l.visible && !l.locked => l.objects.iter().rev().filter(|o| o.visible && self.d.doc.hit_object(o, p, self.tol(), filled)).map(|o| o.id).collect(),
+                _ => vec![],
+            }
+        };
+        if !self.d.focus.is_empty() {
+            ids.retain(|id| self.d.focus.contains(id));
+        }
+        ids
+    }
+
+    /// The shadow of `id` that `p` is on, when `p` isn't on the object itself (#106).
+    fn shadow_part(&self, id: ObjId, p: Point) -> Option<ShadowPart> {
+        let o = self.d.doc.find(id)?;
+        let filled = self.s.treat_as_filled;
+        if self.d.doc.hit_body(o, p, self.tol(), filled) {
+            return None;
+        }
+        self.d.doc.shadow_at(o, p, self.tol(), filled)
+    }
+
     /// The objects a marquee selects (only the active layer's without Edit Across Layers).
     fn in_rect(&self, r: Rect, touching: bool) -> Vec<ObjId> {
         // editing a PowerClip: the marquee selects among its contents (#111)
@@ -761,7 +789,8 @@ impl<'a> Cx<'a> {
                 }
             }
             DropShadow | InnerShadow | BlockShadow | Contour | Distort | Extrude | Transparency | InteractiveFill => {
-                let target = self.hit(p).or_else(|| self.d.selection.first().copied().filter(|id| self.d.doc.find(*id).map(|o| o.bounds().inflate(self.tol(), self.tol()).contains(p)).unwrap_or(false)));
+                // dragging from an object makes its effect anew: not from its shadow (#106)
+                let target = self.hit(p).filter(|id| self.shadow_part(*id, p).is_none()).or_else(|| self.d.selection.first().copied().filter(|id| self.d.doc.find(*id).map(|o| o.bounds().inflate(self.tol(), self.tol()).contains(p)).unwrap_or(false)));
                 match target {
                     Some(id) => {
                         self.d.selection = vec![id];
@@ -833,7 +862,8 @@ impl<'a> Cx<'a> {
                 }
             }
         }
-        let hit = self.powerclip_pick(p).or_else(|| self.hit(p));
+        let clip_pick = self.powerclip_pick(p);
+        let hit = clip_pick.or_else(|| self.hit(p));
         // Free Transform: the selection turns around the point clicked
         if self.tool == ToolId::FreeTransform && !self.d.selection.is_empty() && hit.map_or(true, |id| self.d.selection.contains(&id)) {
             if let Some(bb) = self.d.selection_bounds() {
@@ -846,11 +876,44 @@ impl<'a> Cx<'a> {
             }
         }
         let shift = self.mods().shift;
+        // Alt+click selects the object behind (Shift+Alt adds it), as in CorelDRAW (#139)
+        // ...except on a PowerClip, where Alt+click selects the contents under the pointer
+        // (#111); once those are selected, Alt+click goes on down the stack
+        let clip_content = clip_pick.is_some_and(|c| self.d.selection != [c]);
+        if self.mods().alt && self.tool == ToolId::Pick && !clip_content {
+            let list = self.hit_all(p);
+            if !list.is_empty() {
+                if let Some(id) = super::alt_pick(&list, &self.d.selection, shift) {
+                    if shift {
+                        self.d.selection.push(id);
+                    } else {
+                        self.d.selection = vec![id];
+                    }
+                    self.d.rotate_mode = false;
+                }
+                self.d.node_sel.clear();
+                self.d.shadow_sel = None;
+                self.ts.was_selected = false;
+                // a drag goes on to move it
+                if let Some(bb) = self.d.selection_bounds() {
+                    self.ts.drag = Drag::Transform { kind: Xform::Move, start: p, bb, ids: self.d.selection.clone(), center: bb.center() };
+                    self.ts.cur = p;
+                    self.ts.copy_on_drop = false;
+                }
+                return;
+            }
+        }
         match hit {
             Some(id) => {
-                self.ts.was_selected = self.d.selection.contains(&id);
+                // a click on the object's shadow selects the shadow (#106); going from the object
+                // to its shadow or back isn't a second click on the object (which turns on the
+                // rotate handles)
+                let before = self.d.shadow_focus();
+                let part = if shift { None } else { self.shadow_part(id, p) };
+                let contains = self.d.selection.contains(&id);
+                self.ts.was_selected = contains && (shift || (part.is_none() && before.is_none()));
                 if shift {
-                    if self.ts.was_selected {
+                    if contains {
                         self.d.selection.retain(|x| *x != id);
                     } else {
                         self.d.selection.push(id);
@@ -859,6 +922,7 @@ impl<'a> Cx<'a> {
                     self.d.selection = vec![id];
                     self.d.rotate_mode = false;
                 }
+                self.d.shadow_sel = part.map(|k| (id, k));
                 self.d.node_sel.clear();
                 if self.d.selection.contains(&id) {
                     if let Some(bb) = self.d.selection_bounds() {
@@ -870,6 +934,7 @@ impl<'a> Cx<'a> {
                 }
             }
             None => {
+                self.d.shadow_sel = None;
                 self.ts.drag = Drag::Marquee { start: p };
                 self.ts.cur = p;
             }

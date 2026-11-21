@@ -2,7 +2,7 @@
 
 use crate::document::Document;
 use crate::geom::{self, BoolOp};
-use crate::object::{BlendObj, ObjId, ObjKind, Object};
+use crate::object::{BlendObj, ObjId, ObjKind, Object, ShadowPart};
 use crate::path::NodePath;
 use kurbo::{Affine, BezPath, Point, Rect, Shape, Vec2};
 
@@ -214,6 +214,153 @@ pub fn break_apart(doc: &mut Document, ids: &[ObjId]) -> Vec<ObjId> {
         }
     }
     out
+}
+
+/// The shadows of `o` that are drawn, so that Break Apart can separate them (#105): none on a
+/// lens; an inner shadow only on shapes and curves whose outline is in front of the fill.
+pub fn drawn_shadows(o: &Object) -> Vec<ShadowPart> {
+    let mut v = vec![];
+    if o.effects.lens.is_some() {
+        return v;
+    }
+    if o.effects.drop_shadow.is_some() {
+        v.push(ShadowPart::Drop);
+    }
+    if o.effects.block_shadow.is_some() {
+        v.push(ShadowPart::Block);
+    }
+    let shape = !matches!(o.kind, ObjKind::Group(_) | ObjKind::PowerClip { .. } | ObjKind::Blend(_) | ObjKind::Symbol(_) | ObjKind::Image(_) | ObjKind::Text(_) | ObjKind::Table(_) | ObjKind::Dimension(_));
+    if o.effects.inner_shadow.is_some() && shape && !o.style.outline.behind_fill {
+        v.push(ShadowPart::Inner);
+    }
+    v
+}
+
+/// A drop or inner shadow drawn alone: straight RGBA pixels and the page area they cover.
+pub struct ShadowRaster {
+    pub width: u32,
+    pub height: u32,
+    pub rgba: Vec<u8>,
+    pub at: Rect,
+}
+
+/// Break the shadows off objects, as CorelDRAW's Break Apart does with a shadowed object (#105):
+/// a block shadow becomes a curve filled with its color, a drop or inner shadow a bitmap, which
+/// `raster` draws (vector-core has no renderer). Drop and block shadows go right behind their
+/// object, an inner shadow right in front of it; the object keeps everything but the shadows.
+/// Returns the new objects and the objects, in stacking order; an object without a shadow is
+/// returned as it is.
+pub fn break_shadows(doc: &mut Document, ids: &[ObjId], raster: &mut dyn FnMut(&Document, &Object, ShadowPart) -> Option<ShadowRaster>) -> Vec<ObjId> {
+    let mut out = vec![];
+    for id in ids {
+        let Some(o) = doc.find(*id).cloned() else { continue };
+        let parts = drawn_shadows(&o);
+        let (mut behind, mut front) = (vec![], vec![]);
+        for part in &parts {
+            let made = match part {
+                ShadowPart::Block => o.effects.block_shadow.as_ref().and_then(|b| block_shadow_object(doc, &o, b)),
+                _ => raster(doc, &o, *part).and_then(|r| shadow_bitmap_object(doc, &o, *part, r)),
+            };
+            if let Some(no) = made {
+                if *part == ShadowPart::Inner {
+                    front.push(no);
+                } else {
+                    behind.push(no);
+                }
+            }
+        }
+        let Some((objects, i)) = siblings_mut(doc, *id) else { continue };
+        let src = &mut objects[i];
+        for part in &parts {
+            match part {
+                ShadowPart::Drop => src.effects.drop_shadow = None,
+                ShadowPart::Block => src.effects.block_shadow = None,
+                ShadowPart::Inner => src.effects.inner_shadow = None,
+            }
+        }
+        let n = behind.len();
+        out.extend(behind.iter().map(|o| o.id));
+        out.push(*id);
+        out.extend(front.iter().map(|o| o.id));
+        for (k, no) in behind.into_iter().enumerate() {
+            objects.insert(i + k, no);
+        }
+        for (k, no) in front.into_iter().enumerate() {
+            objects.insert(i + n + 1 + k, no);
+        }
+    }
+    out
+}
+
+/// The list an object is in (a layer's objects, or a group's or PowerClip's contents) and its
+/// place in it.
+fn siblings_mut(doc: &mut Document, id: ObjId) -> Option<(&mut Vec<Object>, usize)> {
+    fn rec(list: &mut Vec<Object>, id: ObjId) -> Option<(&mut Vec<Object>, usize)> {
+        if let Some(i) = list.iter().position(|o| o.id == id) {
+            return Some((list, i));
+        }
+        for o in list.iter_mut() {
+            let found = match &mut o.kind {
+                ObjKind::Group(c) => rec(c, id),
+                ObjKind::PowerClip { contents, .. } => rec(contents, id),
+                _ => None,
+            };
+            if found.is_some() {
+                return found;
+            }
+        }
+        None
+    }
+    for p in doc.pages.iter_mut() {
+        for l in p.layers.iter_mut() {
+            if let Some(found) = rec(&mut l.objects, id) {
+                return Some(found);
+            }
+        }
+    }
+    None
+}
+
+/// The style of a shadow broken off `o`: no outline, and `o`'s uniform transparency (it was
+/// drawn with it).
+fn shadow_style(o: &Object, fill: crate::style::Fill) -> crate::style::Style {
+    let mut st = crate::style::Style { fill, outline: crate::style::Outline::none(), ..Default::default() };
+    if let crate::style::Transparency::Uniform(_) = o.style.transparency {
+        st.transparency = o.style.transparency.clone();
+    }
+    st
+}
+
+/// The block shadow of `o` as a curve.
+fn block_shadow_object(doc: &mut Document, o: &Object, b: &crate::object::BlockShadow) -> Option<Object> {
+    let path = b.swept_path(o);
+    if path.elements().is_empty() {
+        return None;
+    }
+    let mut st = shadow_style(o, crate::style::Fill::Solid(b.color));
+    st.overprint_fill = b.overprint;
+    let mut no = Object::new(doc.new_id(), ObjKind::Path(NodePath::from_bez(&path)), Affine::IDENTITY, st);
+    no.printable = o.printable;
+    Some(no)
+}
+
+/// A drop or inner shadow drawn by [`break_shadows`]' `raster`, as a bitmap.
+fn shadow_bitmap_object(doc: &mut Document, o: &Object, part: ShadowPart, r: ShadowRaster) -> Option<Object> {
+    if r.width == 0 || r.height == 0 || r.rgba.len() != (r.width * r.height * 4) as usize || r.at.width() <= 0.0 || r.at.height() <= 0.0 {
+        return None;
+    }
+    let name = if part == ShadowPart::Inner { "Inner Shadow" } else { "Drop Shadow" };
+    let data = crate::document::ImageData { width: r.width, height: r.height, rgba: std::sync::Arc::new(r.rgba), encoded: std::sync::Arc::new(vec![]), format: "png".into(), name: name.into() };
+    let image = doc.add_image(data);
+    let mut st = shadow_style(o, crate::style::Fill::None);
+    // a drop shadow keeps its merge mode (Multiply by default)
+    if part == ShadowPart::Drop {
+        st.merge = o.effects.drop_shadow.as_ref().map(|s| s.merge).unwrap_or_default();
+    }
+    let img = crate::object::ImageObj { image, w: r.at.width(), h: r.at.height(), crop: [0.0, 0.0, 1.0, 1.0], adjust: Default::default() };
+    let mut no = Object::new(doc.new_id(), ObjKind::Image(img), Affine::translate(r.at.origin().to_vec2()), st);
+    no.printable = o.printable;
+    Some(no)
 }
 
 /// What the next Break Apart of a text splits it into.

@@ -5614,3 +5614,5 @@ Delete Segment	セグメントの削除
 A curve needs at least two nodes	カーブには 2 つ以上のノードが必要です
 Select Contents	内容を選択
 Adjust contents	内容を調整
+Drop Shadow on {}	{} 上のドロップ シャドウ
+Block Shadow on {}	{} 上のブロック シャドウ

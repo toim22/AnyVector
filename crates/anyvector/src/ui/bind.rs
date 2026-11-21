@@ -700,8 +700,8 @@ pub fn enabled(app: &AnyVectorApp, id: &str) -> Option<bool> {
         Cmd::RolloverDeleteState => crate::dialogs::object::active_state(app).is_some(),
         Cmd::InsertPageNumber(3) => pages > 1,
         Cmd::Group | Cmd::Combine => sel > 1,
-        // a curve with several subpaths, or text
-        Cmd::BreakApart => d.is_some_and(|d| d.doc.find_all(&d.selection).into_iter().any(|o| match &o.kind {
+        // a shadowed object (its shadows break off, #105), a curve with several subpaths, or text
+        Cmd::BreakApart => d.is_some_and(|d| d.doc.find_all(&d.selection).into_iter().any(|o| !vector_core::ops::drawn_shadows(o).is_empty() || match &o.kind {
             ObjKind::Path(p) => p.subpaths.len() > 1,
             // text that has more than one line, word or character to split into (warped text still
             // breaks into curves)
