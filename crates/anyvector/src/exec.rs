@@ -239,6 +239,45 @@ fn paste_placed(d: &mut crate::docview::DocView, mut objs: Vec<Object>, at: Opti
     d.add_objects("Paste", objs);
 }
 
+/// Finish editing the PowerClip `pc` (#111): the PowerClip is selected again. One inside the
+/// contents of another PowerClip goes back to editing that one, as each Ctrl+click enters one
+/// level.
+pub fn finish_powerclip(d: &mut crate::docview::DocView, pc: ObjId) {
+    // the content of the PowerClip around `pc` that holds it (`pc` itself, or a group it is in)
+    let (mut item, mut outer) = (pc, d.doc.parent_of(pc));
+    while let Some(o) = outer.filter(|o| !d.doc.find(*o).is_some_and(|x| matches!(x.kind, ObjKind::PowerClip { .. }))) {
+        item = o;
+        outer = d.doc.parent_of(o);
+    }
+    match outer {
+        Some(o) => {
+            d.focus = vec![o];
+            d.selection = vec![item];
+        }
+        None => {
+            d.focus.clear();
+            d.selection = vec![pc];
+        }
+    }
+    d.node_sel.clear();
+    d.rotate_mode = false;
+    d.cache.key = 0;
+}
+
+/// PowerClip ▸ Select Contents: the contents of the PowerClip being edited, else of the one
+/// selected PowerClip (the PowerClip stays closed; the contents are moved, sized and styled in
+/// place).
+pub fn powerclip_contents(d: &crate::docview::DocView) -> Vec<ObjId> {
+    let pc = d.editing_powerclip().or(match d.selection.as_slice() {
+        [id] => Some(*id),
+        _ => None,
+    });
+    match pc.and_then(|id| d.doc.find(id)).map(|o| &o.kind) {
+        Some(ObjKind::PowerClip { contents, .. }) => contents.iter().filter(|c| c.visible).map(|c| c.id).collect(),
+        _ => vec![],
+    }
+}
+
 fn rotate_about(c: Point, deg: f64) -> Affine {
     Affine::translate(c.to_vec2()) * Affine::rotate(-deg.to_radians()) * Affine::translate(-c.to_vec2())
 }
@@ -1055,6 +1094,11 @@ impl AnyVectorApp {
 
     fn select_all(&mut self, filter: impl Fn(&Object) -> bool) {
         if let Some(d) = self.doc_mut() {
+            // editing a PowerClip: all of its contents (#111)
+            if let Some(ObjKind::PowerClip { contents, .. }) = d.editing_powerclip().and_then(|id| d.doc.find(id)).map(|o| &o.kind) {
+                d.selection = contents.iter().filter(|o| o.visible && filter(o)).map(|o| o.id).collect();
+                return;
+            }
             let page = d.page;
             let ids: Vec<ObjId> = d.doc.pages[page].layers.iter().filter(|l| l.visible && !l.locked).flat_map(|l| l.objects.iter()).filter(|o| o.visible && filter(o)).map(|o| o.id).collect();
             d.selection = ids;
@@ -2014,9 +2058,21 @@ impl AnyVectorApp {
             Cmd::PowerClipFinish if self.doc().is_some_and(|d| d.rollover_edit.is_some()) => crate::dialogs::object::finish_rollover(self),
             Cmd::PowerClipFinish => {
                 if let Some(d) = self.doc_mut() {
-                    if !d.focus.is_empty() {
+                    if let Some(pc) = d.editing_powerclip() {
+                        finish_powerclip(d, pc);
+                    } else if !d.focus.is_empty() {
                         d.selection = std::mem::take(&mut d.focus);
                         d.cache.key = 0;
+                    }
+                }
+            }
+            Cmd::PowerClipSelectContents => {
+                if let Some(d) = self.doc_mut() {
+                    let ids = powerclip_contents(d);
+                    if !ids.is_empty() {
+                        d.selection = ids;
+                        d.node_sel.clear();
+                        d.rotate_mode = false;
                     }
                 }
             }

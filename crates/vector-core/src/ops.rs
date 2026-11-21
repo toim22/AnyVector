@@ -1137,15 +1137,44 @@ pub fn powerclip(doc: &mut Document, contents: &[ObjId], frame: ObjId) -> Option
     Some(nid)
 }
 
+/// PowerClip ▸ Extract Contents: the frame becomes an ordinary object again and the contents go
+/// in front of it, in the same list (the layer, or the group or PowerClip the PowerClip is in).
+/// Gives the ids of the contents (CorelDRAW selects them).
 pub fn extract_powerclip(doc: &mut Document, id: ObjId) -> Vec<ObjId> {
-    let Some((p, l, i)) = doc.locate(id) else { return vec![] };
-    let o = doc.pages[p].layers[l].objects[i].clone();
-    let ObjKind::PowerClip { frame, contents } = o.kind else { return vec![] };
-    let mut out = vec![frame.id];
-    doc.pages[p].layers[l].objects[i] = *frame;
+    /// The list holding the object `id`, and its index there.
+    fn holder(list: &mut Vec<Object>, id: ObjId) -> Option<(&mut Vec<Object>, usize)> {
+        if let Some(i) = list.iter().position(|o| o.id == id) {
+            return Some((list, i));
+        }
+        for o in list.iter_mut() {
+            let found = match &mut o.kind {
+                ObjKind::Group(c) => holder(c, id),
+                ObjKind::PowerClip { contents, .. } => holder(contents, id),
+                _ => None,
+            };
+            if found.is_some() {
+                return found;
+            }
+        }
+        None
+    }
+    let mut at = None;
+    for p in doc.pages.iter_mut() {
+        for l in p.layers.iter_mut() {
+            if at.is_none() {
+                at = holder(&mut l.objects, id);
+            }
+        }
+    }
+    let Some((list, i)) = at else { return vec![] };
+    if !matches!(list[i].kind, ObjKind::PowerClip { .. }) {
+        return vec![];
+    }
+    let ObjKind::PowerClip { frame, contents } = std::mem::replace(&mut list[i].kind, ObjKind::Group(vec![])) else { return vec![] };
+    list[i] = *frame;
+    let out: Vec<ObjId> = contents.iter().map(|c| c.id).collect();
     for (k, c) in contents.into_iter().enumerate() {
-        out.push(c.id);
-        doc.pages[p].layers[l].objects.insert(i + 1 + k, c);
+        list.insert(i + 1 + k, c);
     }
     out
 }

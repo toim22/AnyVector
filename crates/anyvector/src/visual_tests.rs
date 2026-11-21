@@ -4008,3 +4008,340 @@ fn visual_shape_tool_nodes() {
     assert!(matches!(kind_of(&h, eid), ObjKind::Ellipse(e) if e.kind == EllipseKind::Pie));
     assert_eq!(h.state().doc().unwrap().seg_sel, Some((cid, 0, 0)));
 }
+
+// ---- PowerClip: Alt+click selects the contents, Ctrl+click enters, the floating PowerClip toolbar (#111, #112) ----
+
+/// A PowerClip on a Pick-tool document: an ellipse frame (100,100)–(400,300) holding a red
+/// rectangle (150,150)–(230,250) and a blue one (260,170)–(560,230) that runs past the frame.
+/// Gives (PowerClip, red, blue, frame).
+fn powerclip_doc<'a>() -> (Harness<'a, AnyVectorApp>, [u64; 4]) {
+    let mut h = join_harness(crate::tools::ToolId::Pick);
+    let ids = add_powerclip(&mut h);
+    (h, ids)
+}
+
+fn add_powerclip(h: &mut Harness<'_, AnyVectorApp>) -> [u64; 4] {
+    let d = h.state_mut().doc_mut().unwrap();
+    let solid = |c: Color| Style { fill: Fill::Solid(c), ..Style::default() };
+    let r = |w: f64, h: f64| ObjKind::Rect(RectShape { w, h, radii: [0.0; 4], corner: CornerType::default() });
+    let (fid, aid, bid, pid) = (d.doc.new_id(), d.doc.new_id(), d.doc.new_id(), d.doc.new_id());
+    let mut frame_style = Style::default();
+    frame_style.outline.color = Some(Color::BLACK);
+    let frame = Object::new(fid, ObjKind::Ellipse(EllipseShape { w: 300.0, h: 200.0, kind: EllipseKind::Ellipse, start: 0.0, end: 0.0, clockwise: false }), Affine::translate((100.0, 100.0)), frame_style);
+    let a = Object::new(aid, r(80.0, 100.0), Affine::translate((150.0, 150.0)), solid(Color::rgb(220, 40, 40)));
+    let b = Object::new(bid, r(300.0, 60.0), Affine::translate((260.0, 170.0)), solid(Color::rgb(40, 90, 220)));
+    let mut pc = Object::new(pid, ObjKind::PowerClip { frame: Box::new(frame), contents: vec![a, b] }, Affine::IDENTITY, Style::default());
+    pc.name = "PowerClip".into();
+    d.add_objects("test", vec![pc]);
+    d.selection.clear();
+    [pid, aid, bid, fid]
+}
+
+/// A Pick tool click at a document point, with modifiers, fed straight to the tool.
+fn pick_click(h: &mut Harness<'_, AnyVectorApp>, at: (f64, f64), mods: egui::Modifiers) {
+    let s = scr(h, at);
+    shape_in(h, s, true, true, false, false, mods);
+    shape_in(h, s, false, false, true, false, mods);
+    // the commands the click queued (Finish) run on the next frame
+    h.step();
+}
+
+/// Run a command (commands run on the next frame).
+fn run_cmd(h: &mut Harness<'_, AnyVectorApp>, c: Cmd) {
+    h.state_mut().run(c);
+    h.step();
+}
+
+/// A Pick tool double-click at a document point.
+fn pick_double(h: &mut Harness<'_, AnyVectorApp>, at: (f64, f64)) {
+    pick_click(h, at, egui::Modifiers::NONE);
+    let s = scr(h, at);
+    shape_in(h, s, true, true, false, false, egui::Modifiers::NONE);
+    shape_in(h, s, false, false, true, true, egui::Modifiers::NONE);
+    h.step();
+}
+
+fn sel(h: &Harness<'_, AnyVectorApp>) -> Vec<u64> {
+    h.state().doc().unwrap().selection.clone()
+}
+
+fn editing(h: &Harness<'_, AnyVectorApp>) -> Option<u64> {
+    h.state().doc().unwrap().editing_powerclip()
+}
+
+fn x0(h: &Harness<'_, AnyVectorApp>, id: u64) -> f64 {
+    h.state().doc().unwrap().doc.find(id).unwrap().bounds().x0
+}
+
+const ALT: egui::Modifiers = egui::Modifiers { alt: true, ctrl: false, shift: false, mac_cmd: false, command: false };
+const CTRL: egui::Modifiers = egui::Modifiers { alt: false, ctrl: true, shift: false, mac_cmd: false, command: true };
+
+/// #111: a click selects the PowerClip; Alt+click selects the contents under the pointer without
+/// entering the PowerClip, and they then drag on their own; Ctrl+click (and a double-click)
+/// enters the PowerClip, where clicks and the marquee pick the contents, shown in full; Ctrl+click
+/// off the contents, a double-click off them or Esc finishes and selects the PowerClip again.
+#[test]
+fn powerclip_alt_click_selects_contents_and_ctrl_click_enters() {
+    let (mut h, [pc, a, b, frame]) = powerclip_doc();
+    let none = egui::Modifiers::NONE;
+    // a plain click picks the PowerClip
+    pick_click(&mut h, (190.0, 200.0), none);
+    assert_eq!(sel(&h), vec![pc]);
+    // Alt+click: the content under the pointer, the PowerClip stays closed
+    pick_click(&mut h, (190.0, 200.0), ALT);
+    assert_eq!(sel(&h), vec![a], "Alt+click didn't select the contents");
+    assert_eq!(editing(&h), None, "Alt+click entered the PowerClip");
+    // Shift+Alt adds another content
+    pick_click(&mut h, (300.0, 200.0), egui::Modifiers { shift: true, ..ALT });
+    assert_eq!(sel(&h), vec![a, b]);
+    pick_click(&mut h, (700.0, 500.0), none);
+    pick_click(&mut h, (190.0, 200.0), ALT);
+    // a content selected that way drags on its own (no Alt needed), as one undo step
+    let (fx, bx) = (x0(&h, frame), x0(&h, b));
+    let ax = x0(&h, a);
+    shape_drag(&mut h, (190.0, 200.0), (210.0, 220.0), none);
+    assert_eq!(sel(&h), vec![a]);
+    assert!((x0(&h, a) - ax - 20.0).abs() < 0.01, "the content didn't move");
+    assert_eq!((x0(&h, frame), x0(&h, b)), (fx, bx), "the frame or the other content moved");
+    assert_eq!(h.state().doc().unwrap().doc.parent_of(a), Some(pc), "the content left the PowerClip");
+    run_cmd(&mut h, Cmd::Undo);
+    assert!((x0(&h, a) - ax).abs() < 0.01);
+    // a click on the selected content keeps it (a second click is for rotating, as anywhere);
+    // a click on the PowerClip off that content picks the PowerClip again
+    pick_click(&mut h, (190.0, 200.0), none);
+    assert_eq!(sel(&h), vec![a]);
+    pick_click(&mut h, (250.0, 120.0), none);
+    assert_eq!(sel(&h), vec![pc]);
+
+    // Ctrl+click enters the PowerClip, the content clicked selected
+    pick_click(&mut h, (300.0, 200.0), CTRL);
+    assert_eq!(editing(&h), Some(pc), "Ctrl+click didn't enter the PowerClip");
+    assert_eq!(sel(&h), vec![b]);
+    // inside, a click picks a content and a drag moves only it
+    pick_click(&mut h, (190.0, 200.0), none);
+    assert_eq!(sel(&h), vec![a]);
+    shape_drag(&mut h, (190.0, 200.0), (200.0, 200.0), none);
+    assert!((x0(&h, a) - ax - 10.0).abs() < 0.01);
+    assert_eq!(x0(&h, frame), fx);
+    run_cmd(&mut h, Cmd::Undo);
+    // the contents show in full: the part past the frame picks too
+    pick_click(&mut h, (500.0, 200.0), none);
+    assert_eq!(sel(&h), vec![b], "the contents past the frame can't be picked while editing");
+    // empty space inside the frame: nothing selected, still editing
+    pick_click(&mut h, (250.0, 120.0), none);
+    assert!(sel(&h).is_empty());
+    assert_eq!(editing(&h), Some(pc), "a click off the contents left the PowerClip");
+    // the marquee selects among the contents
+    shape_drag(&mut h, (140.0, 140.0), (240.0, 260.0), none);
+    assert_eq!(sel(&h), vec![a]);
+    // Select All: all the contents
+    run_cmd(&mut h, Cmd::SelectAll);
+    assert_eq!(sel(&h), vec![a, b]);
+    // Ctrl+click off the contents finishes: the PowerClip is selected again
+    pick_click(&mut h, (700.0, 500.0), CTRL);
+    assert_eq!(editing(&h), None, "Ctrl+click outside didn't finish");
+    assert_eq!(sel(&h), vec![pc]);
+
+    // a double-click enters too
+    pick_double(&mut h, (190.0, 200.0));
+    assert_eq!(editing(&h), Some(pc), "a double-click didn't enter the PowerClip");
+    assert_eq!(sel(&h), vec![a]);
+    // and a double-click off the contents finishes
+    pick_double(&mut h, (700.0, 500.0));
+    assert_eq!(editing(&h), None);
+    assert_eq!(sel(&h), vec![pc]);
+
+    // Edit PowerClip, then Esc: the first deselects, the second finishes
+    run_cmd(&mut h, Cmd::PowerClipEdit);
+    assert_eq!(editing(&h), Some(pc));
+    assert!(sel(&h).is_empty());
+    pick_click(&mut h, (190.0, 200.0), none);
+    assert_eq!(sel(&h), vec![a]);
+    h.key_press(egui::Key::Escape);
+    h.step();
+    assert!(sel(&h).is_empty());
+    assert_eq!(editing(&h), Some(pc), "Esc with a content selected left the PowerClip");
+    h.key_press(egui::Key::Escape);
+    h.step();
+    assert_eq!(editing(&h), None, "Esc didn't finish editing");
+    assert_eq!(sel(&h), vec![pc]);
+
+    // with the Windows modifier keys Ctrl is Duplicate: a Ctrl+click doesn't enter
+    h.state_mut().settings.windows_modifiers = true;
+    pick_click(&mut h, (190.0, 200.0), CTRL);
+    assert_eq!(editing(&h), None);
+    assert_eq!(sel(&h), vec![pc]);
+    h.state_mut().settings.windows_modifiers = false;
+    // Alt+click off any PowerClip keeps its own meaning (nothing PowerClip-specific happens)
+    pick_click(&mut h, (700.0, 500.0), ALT);
+    assert!(sel(&h).is_empty());
+}
+
+/// #111 with a PowerClip inside the contents of another: Alt+click reaches the deepest content;
+/// each Ctrl+click enters one level and each Finish goes back out one level.
+#[test]
+fn powerclip_nested_levels() {
+    let mut h = join_harness(crate::tools::ToolId::Pick);
+    let [outer, inner, deep] = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let r = |id: u64, at: (f64, f64), w: f64, hh: f64, c: Color| {
+            Object::new(id, ObjKind::Rect(RectShape { w, h: hh, radii: [0.0; 4], corner: CornerType::default() }), Affine::translate(at), Style { fill: Fill::Solid(c), ..Style::default() })
+        };
+        let ids: Vec<u64> = (0..5).map(|_| d.doc.new_id()).collect();
+        let deep = r(ids[0], (160.0, 160.0), 60.0, 60.0, Color::rgb(220, 40, 40));
+        let inner_frame = r(ids[1], (150.0, 150.0), 200.0, 100.0, Color::rgb(240, 240, 160));
+        let inner = Object::new(ids[2], ObjKind::PowerClip { frame: Box::new(inner_frame), contents: vec![deep] }, Affine::IDENTITY, Style::default());
+        let outer_frame = r(ids[3], (100.0, 100.0), 400.0, 300.0, Color::rgb(200, 220, 240));
+        let outer = Object::new(ids[4], ObjKind::PowerClip { frame: Box::new(outer_frame), contents: vec![inner] }, Affine::IDENTITY, Style::default());
+        d.add_objects("test", vec![outer]);
+        [ids[4], ids[2], ids[0]]
+    };
+    pick_click(&mut h, (180.0, 180.0), ALT);
+    assert_eq!(sel(&h), vec![deep], "Alt+click didn't dig to the deepest content");
+    pick_click(&mut h, (300.0, 200.0), egui::Modifiers::NONE);
+    assert_eq!(sel(&h), vec![outer]);
+    pick_click(&mut h, (300.0, 200.0), CTRL);
+    assert_eq!((editing(&h), sel(&h)), (Some(outer), vec![inner]), "Ctrl+click enters one level");
+    pick_click(&mut h, (180.0, 180.0), CTRL);
+    assert_eq!((editing(&h), sel(&h)), (Some(inner), vec![deep]), "Ctrl+click on a nested PowerClip enters it");
+    run_cmd(&mut h, Cmd::PowerClipFinish);
+    assert_eq!((editing(&h), sel(&h)), (Some(outer), vec![inner]), "Finish goes back to the PowerClip around");
+    run_cmd(&mut h, Cmd::PowerClipFinish);
+    assert_eq!((editing(&h), sel(&h)), (None, vec![outer]));
+    // Extract of the nested PowerClip while editing the outer one keeps its contents inside
+    run_cmd(&mut h, Cmd::PowerClipEdit);
+    h.state_mut().doc_mut().unwrap().selection = vec![inner];
+    run_cmd(&mut h, Cmd::PowerClipExtract);
+    assert_eq!(sel(&h), vec![deep]);
+    assert_eq!(h.state().doc().unwrap().doc.parent_of(deep), Some(outer));
+}
+
+/// The center of the widget with this accessible label.
+fn labeled(h: &Harness<'_, AnyVectorApp>, label: &str) -> Option<egui::Pos2> {
+    use egui_kittest::kittest::Queryable;
+    h.query_by_label(label).map(|n| n.rect().center())
+}
+
+fn press_labeled(h: &mut Harness<'_, AnyVectorApp>, label: &str) {
+    let at = labeled(h, label).unwrap_or_else(|| panic!("no '{label}' on screen"));
+    click(h, at);
+    h.step();
+}
+
+/// #112: a selected PowerClip shows the floating PowerClip toolbar under it (the property bar
+/// stays the frame's, as in CorelDRAW); its Edit, Select Contents, Extract, Lock and placement
+/// buttons work, and while editing it offers Finish (as does the Finish button of the drawing).
+#[test]
+fn powerclip_toolbar_shows_and_its_buttons_work() {
+    let (mut h, [pc, a, b, frame]) = powerclip_doc();
+    for _ in 0..2 {
+        h.step();
+    }
+    assert!(labeled(&h, "Select Contents").is_none(), "the toolbar shows with nothing selected");
+    h.state_mut().doc_mut().unwrap().selection = vec![pc];
+    h.step();
+    h.step();
+    // under the PowerClip
+    let target = crate::powerclip::target_rect(h.state().doc().unwrap()).unwrap();
+    let at = labeled(&h, "Select Contents").expect("no floating PowerClip toolbar");
+    assert!(at.y > target.bottom() && (at.x - target.center().x).abs() < 120.0, "the toolbar isn't under the PowerClip: {at:?} {target:?}");
+    for l in ["Edit PowerClip...", "Extract Contents", "Lock Contents to PowerClip", crate::powerclip::ADJUST_CONTENTS] {
+        assert!(labeled(&h, l).is_some(), "no '{l}' on the toolbar");
+    }
+    // the property bar is still the frame's (the ellipse bar), as in CorelDRAW
+    let bar = crate::propbar::bar_for(h.state()).and_then(crate::ui::bar).unwrap();
+    assert!(bar.id.starts_with("1fa965b7"), "the property bar of a PowerClip isn't its frame's: {}", bar.name);
+
+    // Lock Contents to PowerClip toggles
+    assert!(!h.state().doc().unwrap().doc.find(pc).unwrap().powerclip_unlocked);
+    press_labeled(&mut h, "Lock Contents to PowerClip");
+    assert!(h.state().doc().unwrap().doc.find(pc).unwrap().powerclip_unlocked, "Lock didn't toggle");
+    press_labeled(&mut h, "Lock Contents to PowerClip");
+    assert!(!h.state().doc().unwrap().doc.find(pc).unwrap().powerclip_unlocked);
+
+    // the arrow: Fit Proportionally puts the contents in the middle of the frame, touching it
+    press_labeled(&mut h, crate::powerclip::ADJUST_CONTENTS);
+    press_labeled(&mut h, "Fit Proportionally");
+    {
+        let d = h.state().doc().unwrap();
+        let fb = d.doc.find(frame).unwrap().bounds();
+        let cb = d.doc.find(a).unwrap().bounds().union(d.doc.find(b).unwrap().bounds());
+        assert!((cb.center() - fb.center()).hypot() < 0.5, "not centred: {cb:?} in {fb:?}");
+        assert!((cb.width() - fb.width()).abs() < 0.5 || (cb.height() - fb.height()).abs() < 0.5, "doesn't fit: {cb:?} in {fb:?}");
+        assert!(cb.width() <= fb.width() + 0.5 && cb.height() <= fb.height() + 0.5);
+    }
+    run_cmd(&mut h, Cmd::Undo);
+
+    // Select Contents: the contents, the PowerClip stays closed; the toolbar goes away
+    press_labeled(&mut h, "Select Contents");
+    assert_eq!(sel(&h), vec![a, b]);
+    assert_eq!(editing(&h), None);
+    h.step();
+    assert!(labeled(&h, "Select Contents").is_none());
+
+    // Edit PowerClip: the toolbar offers Finish instead
+    h.state_mut().doc_mut().unwrap().selection = vec![pc];
+    h.step();
+    h.step();
+    press_labeled(&mut h, "Edit PowerClip...");
+    assert_eq!(editing(&h), Some(pc), "Edit didn't enter the PowerClip");
+    h.step();
+    assert!(labeled(&h, "Edit PowerClip...").is_none());
+    press_labeled(&mut h, "Finish Editing PowerClip");
+    assert_eq!((editing(&h), sel(&h)), (None, vec![pc]), "Finish didn't leave the PowerClip");
+
+    // Extract Contents: the frame stays, the contents are selected, one undo step
+    h.step();
+    press_labeled(&mut h, "Extract Contents");
+    {
+        let d = h.state().doc().unwrap();
+        assert_eq!(d.selection, vec![a, b]);
+        assert!(d.doc.find(pc).is_none());
+        assert_eq!(d.doc.parent_of(a), None);
+        assert!(matches!(d.doc.find(frame).unwrap().kind, ObjKind::Ellipse(_)));
+    }
+    run_cmd(&mut h, Cmd::Undo);
+    assert!(h.state().doc().unwrap().doc.find(pc).is_some(), "one undo didn't put the contents back");
+
+    // not with another tool, nor for a plain object
+    h.state_mut().doc_mut().unwrap().selection = vec![pc];
+    h.state_mut().set_tool(crate::tools::ToolId::Rectangle);
+    h.step();
+    h.step();
+    assert!(labeled(&h, "Select Contents").is_none(), "the toolbar shows with the Rectangle tool");
+    h.state_mut().set_tool(crate::tools::ToolId::Pick);
+    h.state_mut().doc_mut().unwrap().selection = vec![frame];
+    h.step();
+    h.step();
+    assert!(labeled(&h, "Select Contents").is_none());
+}
+
+/// #111/#112 on screen: the floating PowerClip toolbar under a selected PowerClip and its
+/// placement menu; a content selected with Alt+click; editing, with the frame as a blue outline,
+/// the contents shown in full and the drawing's Finish button.
+#[test]
+#[ignore]
+fn visual_issue_111_112_powerclip() {
+    let mut h = doc_harness();
+    h.state_mut().doc_mut().unwrap().doc.settings.snap_off = true;
+    h.state_mut().set_tool(crate::tools::ToolId::Pick);
+    let [pc, a, b, _] = add_powerclip(&mut h);
+    h.state_mut().doc_mut().unwrap().selection = vec![pc];
+    save(&mut h, "issue_112_01_powerclip_toolbar");
+    assert!(labeled(&h, "Select Contents").is_some());
+    press_labeled(&mut h, crate::powerclip::ADJUST_CONTENTS);
+    save(&mut h, "issue_112_02_adjust_contents_menu");
+    h.key_press(egui::Key::Escape);
+    h.step();
+    h.state_mut().doc_mut().unwrap().selection = vec![pc];
+    pick_click(&mut h, (190.0, 200.0), ALT);
+    assert_eq!(sel(&h), vec![a]);
+    save(&mut h, "issue_111_01_alt_click_content");
+    pick_click(&mut h, (300.0, 200.0), CTRL);
+    assert_eq!((editing(&h), sel(&h)), (Some(pc), vec![b]));
+    save(&mut h, "issue_111_02_editing_powerclip");
+    assert!(labeled(&h, "Finish Editing PowerClip").is_some());
+    press_labeled(&mut h, "Finish Editing PowerClip");
+    assert_eq!((editing(&h), sel(&h)), (None, vec![pc]));
+    save(&mut h, "issue_111_03_finished");
+}

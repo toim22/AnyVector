@@ -1372,6 +1372,47 @@ impl Document {
         }
     }
 
+    /// Alt+click on a PowerClip, as in CorelDRAW: the contents under a point inside the frame of
+    /// the PowerClip `o` (the topmost content object there), digging into PowerClips nested in
+    /// the contents. None when `o` is not a PowerClip, the point is outside its frame (the
+    /// contents are clipped there) or no content is under it.
+    pub fn powerclip_content_at(&self, o: &Object, p: Point, tol: f64, treat_as_filled: bool) -> Option<ObjId> {
+        let ObjKind::PowerClip { frame, .. } = &o.kind else { return None };
+        if !crate::geom::contains(&frame.world_path(), p, false) {
+            return None;
+        }
+        let c = self.powerclip_child_at(o, p, tol, treat_as_filled)?;
+        let inner = o.find(c).and_then(|x| self.powerclip_content_at(x, p, tol, treat_as_filled));
+        Some(inner.unwrap_or(c))
+    }
+
+    /// The topmost content object of the PowerClip `o` under a point, inside the frame or not
+    /// (contents being edited show and pick in full). Nested PowerClips and groups count as one
+    /// object, as on the page.
+    pub fn powerclip_child_at(&self, o: &Object, p: Point, tol: f64, treat_as_filled: bool) -> Option<ObjId> {
+        let ObjKind::PowerClip { contents, .. } = &o.kind else { return None };
+        contents.iter().rev().find(|c| c.visible && self.hit_object(c, p, tol, treat_as_filled)).map(|c| c.id)
+    }
+
+    /// The content objects of the PowerClip `o` a marquee selects (as [`Self::objects_in_rect`]
+    /// does on the page).
+    pub fn powerclip_contents_in_rect(&self, o: &Object, r: Rect, touching: bool) -> Vec<ObjId> {
+        let ObjKind::PowerClip { contents, .. } = &o.kind else { return vec![] };
+        contents
+            .iter()
+            .filter(|c| c.visible && !c.locked)
+            .filter(|c| {
+                let b = self.bounds_of(c);
+                if touching {
+                    b.intersect(r).area() > 0.0 || r.contains(b.center())
+                } else {
+                    r.contains(Point::new(b.x0, b.y0)) && r.contains(Point::new(b.x1, b.y1))
+                }
+            })
+            .map(|c| c.id)
+            .collect()
+    }
+
     /// All top-level object ids on a page (visible, unlocked layers) whose bounds fall inside `r`.
     pub fn objects_in_rect(&self, page: usize, r: Rect, touching: bool) -> Vec<ObjId> {
         let mut v = vec![];
