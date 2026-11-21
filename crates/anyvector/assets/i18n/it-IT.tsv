@@ -5381,7 +5381,7 @@ Drag to set the start and end points, then click to set the curvature	Trascinare
 Sketch strokes; nearby strokes are merged into smooth curves	Tracciare schizzi; i tratti vicini vengono uniti in curve morbide
 Draw a shape freehand; it is recognized and converted into a basic shape	Disegnare una forma a mano libera; viene riconosciuta e convertita in una forma di base
 Drag to draw a brush, sprayer, calligraphic or pressure stroke	Trascinare per disegnare un tratto pennello, spruzzatore, calligrafico o a pressione
-Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle the size of the page	Trascinare per disegnare un rettangolo; Ctrl vincola a un quadrato; Shift disegna dal centro. Fare doppio clic sullo strumento per un rettangolo delle dimensioni della pagina
+Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle around the selection, or the size of the page	Trascinare per disegnare un rettangolo; Ctrl vincola a un quadrato; Shift disegna dal centro. Fare doppio clic sullo strumento per un rettangolo attorno alla selezione, o delle dimensioni della pagina
 Drag to set the baseline, then click to set the height	Trascinare per impostare la linea di base, quindi fare clic per impostare l'altezza
 Drag to draw an ellipse; Ctrl constrains to a circle; Shift draws from the center	Trascinare per disegnare un'ellisse; Ctrl vincola a un cerchio; Shift disegna dal centro
 Drag to set the center line, then click to set the height	Trascinare per impostare la linea centrale, quindi fare clic per impostare l'altezza
@@ -5612,3 +5612,52 @@ Edit Ellipse	Modifica ellisse
 Move Segment	Sposta segmento
 Delete Segment	Elimina segmento
 A curve needs at least two nodes	Una curva richiede almeno due nodi
+Select Contents	Seleziona contenuto
+Adjust contents	Regola contenuto
+Drop Shadow on {}	Ombra esterna su {}
+Block Shadow on {}	Ombra blocco su {}
+Default outline set for new objects.	Contorno predefinito impostato per i nuovi oggetti.
+Outline: double-click to edit	Contorno: fare doppio clic per modificare
+Start arrowhead	Punta di freccia iniziale
+End arrowhead	Punta di freccia finale
+Nothing is selected: these settings are the outline of new objects.	Nessuna selezione: queste impostazioni sono il contorno dei nuovi oggetti.
+Share attributes	Condividi attributi
+Stretch:	Allungamento:
+Nib shape:	Forma pennino:
+Drag commands here	Trascina qui i comandi
+New Toolbar {}	Nuova barra degli strumenti {}
+CMX - CorelDRAW-compatible (*.cmx)	CMX - Compatibile con CorelDRAW (*.cmx)
+CDR - AnyVector Drawing (*.cdr)	CDR - Disegno AnyVector (*.cdr)
+VCT - AnyVector Drawing, legacy (*.vct)	VCT - Disegno AnyVector, formato precedente (*.vct)
+CMX - CorelDRAW-compatible copy (*.cmx)	CMX - Copia compatibile con CorelDRAW (*.cmx)
+PDF - Portable Document Format, copy (*.pdf)	PDF - Portable Document Format, copia (*.pdf)
+SVG - Scalable Vector Graphics, copy (*.svg)	SVG - Scalable Vector Graphics, copia (*.svg)
+EMF - Enhanced Windows Metafile, copy (*.emf)	EMF - Enhanced Windows Metafile, copia (*.emf)
+AnyVector .cdr files open in AnyVector. To open in CorelDRAW, save as CMX, PDF, SVG or EMF.	I file .cdr di AnyVector si aprono in AnyVector. Per aprirli in CorelDRAW, salvare come CMX, PDF, SVG o EMF.
+Saves a copy for other programs. The drawing keeps its own file.	Salva una copia per altri programmi. Il disegno mantiene il proprio file.
+Saving a .cdr drawing that CorelDRAW cannot open	Salvataggio di un disegno .cdr che CorelDRAW non può aprire
+Remind me that CorelDRAW cannot open AnyVector .cdr files	Ricorda che CorelDRAW non può aprire i file .cdr di AnyVector
+CorelDRAW cannot open this file: AnyVector .cdr files open in AnyVector.	CorelDRAW non può aprire questo file: i file .cdr di AnyVector si aprono in AnyVector.
+To open the drawing in CorelDRAW, use File ▸ Save As and choose CMX (CorelDRAW-compatible), PDF, SVG or EMF.	Per aprire il disegno in CorelDRAW, usare File ▸ Salva con nome e scegliere CMX (compatibile con CorelDRAW), PDF, SVG o EMF.
+This note is shown once. Turn it back on in Tools ▸ Options ▸ AnyVector ▸ Save.	Questo avviso viene mostrato una sola volta. Per riattivarlo: Strumenti ▸ Opzioni ▸ AnyVector ▸ Salva.
+{} was saved with these differences from the drawing:	{} è stato salvato con queste differenze rispetto al disegno:
+{} was not written by AnyVector or CorelDRAW, or it is damaged.	{} non è stato scritto da AnyVector né da CorelDRAW, oppure è danneggiato.
+If it came from another program, open a PDF, SVG or EPS copy of it instead.	Se proviene da un altro programma, aprirne invece una copia PDF, SVG o EPS.
+Saved a copy as {}	Copia salvata come {}
+Text was converted to curves.	Il testo è stato convertito in curve.
+Bitmaps were left out.	Le bitmap sono state escluse.
+Drop shadows, lenses and bevels were left out.	Ombre, lenti e smussature sono state escluse.
+Transparency was left out.	La trasparenza è stata esclusa.
+Pattern, texture and mesh fills were replaced by their main color.	I riempimenti a motivo, texture e mesh sono stati sostituiti dal loro colore principale.
+Hidden layers and objects were left out.	I livelli e gli oggetti nascosti sono stati esclusi.
+AnyVector 0.1	AnyVector 0.1
+Move Here	&Sposta qui
+Copy Here	&Copia qui
+Copy Fill Here	Copia &riempimento qui
+Copy Outline Here	Copia c&ontorno qui
+Copy All Properties	Copia &tutte le proprietà
+Other Commands	Altri comandi
+Delete conflicts	Elimina conflitti
+Duplicate in Place	Duplica sul posto
+Toggle Pick State	Attiva/disattiva stato di selezione
+(none)	(nessuno)

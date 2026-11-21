@@ -263,6 +263,15 @@ pub enum CdrKind {
     Unknown,
 }
 
+/// Why a `.cdr` that is neither AnyVector's nor CorelDRAW's does not open.
+pub const NOT_A_DRAWING: &str = "not a .cdr drawing";
+
+/// Whether `e` says the file was not a drawing AnyVector or CorelDRAW wrote (or is damaged
+/// past recognition), rather than a drawing that failed part way.
+pub fn is_unrecognised(e: &IoError) -> bool {
+    matches!(e, IoError::Format(why) if why == NOT_A_DRAWING)
+}
+
 pub fn detect(bytes: &[u8]) -> CdrKind {
     // CorelDRAW drawings ("CDR") and templates ("CDT"); versions 1 and 2 start with "WL"
     if bytes.len() >= 12 && &bytes[0..4] == b"RIFF" && (&bytes[8..11] == b"CDR" || &bytes[8..11] == b"CDT" || &bytes[8..11] == b"cdr") {
@@ -307,7 +316,7 @@ pub fn load_from_bytes(bytes: &[u8]) -> Result<Document> {
         CdrKind::AnyVector => {}
         CdrKind::LegacyVector => return crate::native::load_from_bytes(bytes),
         CdrKind::CorelDraw => return crate::corel::load_from_bytes(bytes),
-        CdrKind::Unknown => return Err(IoError::Format("not a .cdr drawing".into())),
+        CdrKind::Unknown => return Err(IoError::Format(NOT_A_DRAWING.into())),
     }
     let mut z = zip::ZipArchive::new(std::io::Cursor::new(bytes)).map_err(zerr)?;
     let mut json = vec![];
@@ -419,5 +428,28 @@ mod tests {
                 other => panic!("{:?}", other.map(|_| ())),
             }
         }
+    }
+
+    #[test]
+    fn a_cdr_from_another_program_is_told_apart_from_a_damaged_drawing() {
+        // random bytes, a text file, an empty file: not a drawing anyone recognises
+        for bytes in [&b"\x89PNG\r\n\x1a\n not a drawing"[..], b"hello", b""] {
+            assert_eq!(detect(bytes), CdrKind::Unknown);
+            let e = load_from_bytes(bytes).unwrap_err();
+            assert!(is_unrecognised(&e), "{e}");
+        }
+        // a ZIP that is not a drawing is not one either
+        let mut zip = zip::ZipWriter::new(std::io::Cursor::new(vec![]));
+        zip.start_file("readme.txt", zip::write::SimpleFileOptions::default()).unwrap();
+        zip.write_all(b"hi").unwrap();
+        let bytes = zip.finish().unwrap().into_inner();
+        assert!(is_unrecognised(&load_from_bytes(&bytes).unwrap_err()));
+        // a CorelDRAW file that is cut off is damaged, not unrecognised
+        assert!(!is_unrecognised(&load_from_bytes(b"WL some old drawing").unwrap_err()));
+        // AnyVector's own drawings and the CMX copies it writes are still told apart
+        let d = Document::new(100.0, 100.0);
+        assert_eq!(detect(&save_to_bytes(&d, &SaveOptions::default()).unwrap()), CdrKind::AnyVector);
+        let (cmx, _) = crate::cmx_export::to_bytes(&d, &Default::default()).unwrap();
+        assert_eq!(detect(&cmx), CdrKind::CorelDraw);
     }
 }

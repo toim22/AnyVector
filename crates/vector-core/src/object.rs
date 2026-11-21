@@ -729,6 +729,121 @@ impl Default for BlockShadow {
     }
 }
 
+/// One of the shadows of an object: the one clicked with the Pick tool (#106), or one Break Apart
+/// separates (#105).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ShadowPart {
+    Drop,
+    Inner,
+    Block,
+}
+
+impl DropShadow {
+    /// The ground a perspective shadow lies on, for an object with bounds `bb`: flattened by the
+    /// stretch and slanted by the angle, from the base of the object.
+    pub fn ground(&self, bb: Rect) -> Affine {
+        let base = Point::new(bb.center().x, bb.y1);
+        let k = (self.stretch / 100.0).clamp(0.0, 2.0);
+        let skew = self.angle.clamp(-89.0, 89.0).to_radians().tan();
+        Affine::translate(base.to_vec2()) * Affine::new([1.0, 0.0, -skew * k, k, 0.0, 0.0]) * Affine::translate(-base.to_vec2())
+    }
+
+    /// Where the shadow of an object with bounds `bb` lies, from where the object is: laid on
+    /// the ground (a perspective shadow), then moved by the offset.
+    pub fn placement(&self, bb: Rect) -> Affine {
+        let t = Affine::translate(self.offset);
+        if self.perspective {
+            t * self.ground(bb)
+        } else {
+            t
+        }
+    }
+}
+
+impl BlockShadow {
+    /// The outline the block shadow is cast from, in document space: the object's geometry,
+    /// without its holes (Remove Holes), grown by Expand and by half the outline (Generate from
+    /// Object Outline), and simplified (Simplify).
+    pub fn base_path(&self, o: &Object) -> BezPath {
+        let mut path = o.world_path();
+        if path.elements().is_empty() {
+            return path;
+        }
+        if self.remove_holes {
+            path = geom::outer_contours(&path);
+        }
+        let mut grow = self.expand;
+        if self.from_outline && o.style.outline.is_visible() {
+            grow += o.style.outline.width / 2.0;
+        }
+        if grow.abs() > 1e-6 {
+            path = geom::offset_path(&path, grow, kurbo::Join::Miter);
+        }
+        if self.simplify {
+            path = geom::simplify_path(&path, 0.5);
+        }
+        path
+    }
+
+    /// Is `p` on the block shadow of `o` (or within `tol` of its ends)? The shadow is the base
+    /// swept along the offset, so `p` is on it when the segment from `p - offset` to `p` touches
+    /// the base.
+    pub fn hit(&self, o: &Object, p: Point, tol: f64) -> bool {
+        let base = self.base_path(o);
+        if base.elements().is_empty() {
+            return false;
+        }
+        if geom::segment_touches_fill(&base, p - self.offset, p) {
+            return true;
+        }
+        tol > 0.0 && (geom::distance_to_outline(&base, p) <= tol || geom::distance_to_outline(&base, p - self.offset) <= tol)
+    }
+
+    /// The block shadow of `o` as one path, as it is drawn: the base, the base moved by the
+    /// offset, and the band each of its edges sweeps between them, welded.
+    pub fn swept_path(&self, o: &Object) -> BezPath {
+        let base = self.base_path(o);
+        if base.elements().is_empty() {
+            return base;
+        }
+        // drawn with the non-zero rule, whatever the object's own fill rule
+        let region = geom::simplify_self(&base);
+        let off = self.offset;
+        if off.hypot() < 1e-9 {
+            return region;
+        }
+        let mut sides = BezPath::new();
+        for (pts, _) in geom::flatten_polylines(&base, 0.1) {
+            let n = pts.len();
+            if n < 2 {
+                continue;
+            }
+            for k in 0..n {
+                let (a, b) = (pts[k], pts[(k + 1) % n]);
+                let mut q = [a, b, b + off, a + off];
+                let area: f64 = (0..4).map(|i| q[i].x * q[(i + 1) % 4].y - q[(i + 1) % 4].x * q[i].y).sum();
+                if area.abs() < 1e-9 {
+                    continue;
+                }
+                // all turning the same way, so the non-zero rule welds them
+                if area < 0.0 {
+                    q.reverse();
+                }
+                sides.move_to(q[0]);
+                for v in &q[1..] {
+                    sides.line_to(*v);
+                }
+                sides.close_path();
+            }
+        }
+        let ends = geom::boolean(&region, &(Affine::translate(off) * region.clone()), geom::BoolOp::Union, false);
+        if sides.elements().is_empty() {
+            return ends;
+        }
+        geom::boolean(&ends, &geom::simplify_self(&sides), geom::BoolOp::Union, false)
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ContourDir {
     Inside,

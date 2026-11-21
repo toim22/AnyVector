@@ -23,12 +23,17 @@ pub struct RenderOptions {
     pub printing: bool,
     /// Draw desktop + page + page shadow.
     pub draw_page: bool,
+    /// With `draw_page`: the page border and its shadow (View ▸ Page ▸ Page Border).
+    pub page_border: bool,
     pub desktop: Color,
     /// Objects not to draw (e.g. those being dragged).
     pub hidden: Vec<ObjId>,
     /// Objects drawn at reduced opacity (inactive objects during focus mode), 0..1.
     pub dim_others: Option<(Vec<ObjId>, f32)>,
     pub show_powerclip_frames: bool,
+    /// The PowerClip whose contents are being edited: its contents are drawn in full, not
+    /// clipped by the frame, and the frame itself is left to the editing overlay.
+    pub editing_powerclip: Option<ObjId>,
     pub antialias: bool,
     /// Simulate overprints: objects set to overprint multiply with what is below them.
     pub overprint: bool,
@@ -41,10 +46,12 @@ impl Default for RenderOptions {
             draft: false,
             printing: false,
             draw_page: true,
+            page_border: true,
             desktop: Color::rgb(0x26, 0x26, 0x26),
             hidden: vec![],
             dim_others: None,
             show_powerclip_frames: true,
+            editing_powerclip: None,
             antialias: true,
             overprint: false,
         }
@@ -96,9 +103,61 @@ fn paint_solid(c: Color, aa: bool) -> sk::Paint<'static> {
     p
 }
 
+/// The page border's color: dark around a light page and light around a dark one, stronger when
+/// the desktop is nearly the page's color too (a white page on a white desktop, #141).
+pub fn page_border_color(page: Color, desktop: Color) -> Color {
+    let lum = |c: Color| 0.2126 * c.r as f64 + 0.7152 * c.g as f64 + 0.0722 * c.b as f64;
+    let (p, d) = (lum(page), lum(desktop));
+    let close = (p - d).abs() < 60.0;
+    if p > 128.0 {
+        Color::rgba(0, 0, 0, if close { 170 } else { 110 })
+    } else {
+        Color::rgba(255, 255, 255, if close { 140 } else { 90 })
+    }
+}
+
+/// A page on the desktop: its shadow and border (with `opts.page_border`) and its background.
+/// The border is one device pixel wide, on whole pixels, and is drawn under the objects.
+pub fn page_backdrop(pg: &vector_core::document::Page, view: Affine, target: &mut sk::Pixmap, opts: &RenderOptions) {
+    let pr = pg.rect();
+    let dev = view.transform_rect_bbox(pr);
+    let bg = pg.background.unwrap_or(Color::WHITE);
+    if opts.page_border {
+        let shadow = dev + Vec2::new(3.0, 3.0);
+        if let Some(r) = sk::Rect::from_ltrb(shadow.x0 as f32, shadow.y0 as f32, shadow.x1 as f32, shadow.y1 as f32) {
+            target.fill_rect(r, &paint_solid(Color::rgba(0, 0, 0, 110), true), sk::Transform::identity(), None);
+        }
+    }
+    if let Some(path) = to_sk_path(&pr.to_path(0.1)) {
+        target.fill_path(&path, &paint_solid(bg, true), sk::FillRule::Winding, to_sk(view), None);
+    }
+    if opts.page_border {
+        let (x0, y0) = (dev.x0.round() - 0.5, dev.y0.round() - 0.5);
+        let (x1, y1) = (dev.x1.round() + 0.5, dev.y1.round() + 0.5);
+        if let Some(r) = sk::Rect::from_ltrb(x0 as f32, y0 as f32, x1 as f32, y1 as f32) {
+            let st = sk::Stroke { width: 1.0, ..Default::default() };
+            target.stroke_path(&sk::PathBuilder::from_rect(r), &paint_solid(page_border_color(bg, opts.desktop), true), &st, sk::Transform::identity(), None);
+        }
+    }
+}
+
+/// How dark the Wireframe view's ghost of a bitmap is: 0 is white, 1 the bitmap's own grays.
+pub const GHOST_DEPTH: f32 = 0.35;
+
+/// The mapping from an image's pixels (`iw` × `ih`) to the object's local box, through its crop:
+/// local = (px / iw - c0) / cw * w.
+fn image_to_local(img: &ImageObj, iw: f64, ih: f64) -> Affine {
+    let c = img.crop;
+    let cw = (c[2] - c[0]).max(1e-6);
+    let ch = (c[3] - c[1]).max(1e-6);
+    Affine::scale_non_uniform(img.w / (cw * iw), img.h / (ch * ih)) * Affine::translate((-c[0] * iw, -c[1] * ih))
+}
+
 /// Rendering context for one pass.
 pub struct Renderer {
     images: HashMap<(u64, usize, u64), Arc<sk::Pixmap>>,
+    /// The light gray copies of the images that Wireframe view shows (same keys as `images`).
+    ghosts: HashMap<(u64, usize, u64), Arc<sk::Pixmap>>,
     geo_cache: HashMap<ObjId, (u64, Arc<Vec<(BezPath, Fill, Option<Color>)>>)>,
     pattern_cache: HashMap<String, Arc<sk::Pixmap>>,
 }
@@ -117,11 +176,12 @@ struct Ctx<'a> {
 
 impl Renderer {
     pub fn new() -> Renderer {
-        Renderer { images: HashMap::new(), geo_cache: HashMap::new(), pattern_cache: HashMap::new() }
+        Renderer { images: HashMap::new(), ghosts: HashMap::new(), geo_cache: HashMap::new(), pattern_cache: HashMap::new() }
     }
 
     pub fn clear_caches(&mut self) {
         self.images.clear();
+        self.ghosts.clear();
         self.geo_cache.clear();
         self.pattern_cache.clear();
     }
@@ -131,16 +191,7 @@ impl Renderer {
         let Some(pg) = doc.pages.get(page) else { return };
         if opts.draw_page {
             target.fill(sk_color(opts.desktop));
-            let pr = pg.rect();
-            // page shadow
-            let shadow = view.transform_rect_bbox(pr) + Vec2::new(3.0, 3.0);
-            if let Some(r) = sk::Rect::from_ltrb(shadow.x0 as f32, shadow.y0 as f32, shadow.x1 as f32, shadow.y1 as f32) {
-                target.fill_rect(r, &paint_solid(Color::rgba(0, 0, 0, 110), true), sk::Transform::identity(), None);
-            }
-            let bg = pg.background.unwrap_or(Color::WHITE);
-            if let Some(path) = to_sk_path(&pr.to_path(0.1)) {
-                target.fill_path(&path, &paint_solid(bg, true), sk::FillRule::Winding, to_sk(view), None);
-            }
+            page_backdrop(pg, view, target, opts);
         } else if let Some(bg) = pg.background {
             let pr = pg.rect();
             if let Some(path) = to_sk_path(&pr.to_path(0.1)) {
@@ -171,13 +222,41 @@ impl Renderer {
         }
     }
 
-    fn image_pixmap(&mut self, doc: &Document, id: u64, adjust: &ImageAdjust) -> Option<Arc<sk::Pixmap>> {
+    fn image_key(doc: &Document, id: u64, adjust: &ImageAdjust) -> Option<(u64, usize, u64)> {
         let data: &ImageData = doc.images.get(&id)?;
-        let key_adj = {
-            let s = format!("{:?}", adjust);
-            hash_str(&s)
-        };
-        let key = (id, Arc::as_ptr(&data.rgba) as usize, key_adj);
+        Some((id, Arc::as_ptr(&data.rgba) as usize, hash_str(&format!("{:?}", adjust))))
+    }
+
+    /// How Wireframe view shows a bitmap (#129): a light gray ghost of it, so the artwork stays
+    /// in sight while the vectors are edited. Made once per image and adjustment.
+    fn ghost_pixmap(&mut self, doc: &Document, id: u64, adjust: &ImageAdjust) -> Option<Arc<sk::Pixmap>> {
+        let key = Self::image_key(doc, id, adjust)?;
+        if let Some(p) = self.ghosts.get(&key) {
+            return Some(p.clone());
+        }
+        let src = self.image_pixmap(doc, id, adjust)?;
+        let mut pm = (*src).clone();
+        for px in pm.data_mut().chunks_exact_mut(4) {
+            let a = px[3] as f32;
+            if a == 0.0 {
+                continue;
+            }
+            // the gray of the unpremultiplied color, lifted toward white
+            let luma = (0.299 * px[0] as f32 + 0.587 * px[1] as f32 + 0.114 * px[2] as f32) * 255.0 / a;
+            let g = 255.0 - (255.0 - luma.min(255.0)) * GHOST_DEPTH;
+            let v = (g * a / 255.0).round().clamp(0.0, 255.0) as u8;
+            px[0] = v;
+            px[1] = v;
+            px[2] = v;
+        }
+        let arc = Arc::new(pm);
+        self.ghosts.insert(key, arc.clone());
+        Some(arc)
+    }
+
+    fn image_pixmap(&mut self, doc: &Document, id: u64, adjust: &ImageAdjust) -> Option<Arc<sk::Pixmap>> {
+        let key = Self::image_key(doc, id, adjust)?;
+        let data: &ImageData = doc.images.get(&id)?;
         if let Some(p) = self.images.get(&key) {
             return Some(p.clone());
         }
@@ -387,6 +466,11 @@ impl Renderer {
                     self.render_object(ctx, c, target);
                 }
             }
+            ObjKind::PowerClip { contents, .. } if ctx.opts.editing_powerclip == Some(o.id) => {
+                for c in contents {
+                    self.render_object(ctx, c, target);
+                }
+            }
             ObjKind::PowerClip { frame, contents } => {
                 // frame fill
                 let mut f2 = (**frame).clone();
@@ -509,8 +593,23 @@ impl Renderer {
                 self.render_wire(ctx, &b.start, target);
                 self.render_wire(ctx, &b.end, target);
             }
+            ObjKind::Image(img) => {
+                if let Some(pm) = self.ghost_pixmap(ctx.doc, img.image, &img.adjust) {
+                    let map = image_to_local(img, pm.width() as f64, pm.height() as f64);
+                    let mut paint = sk::Paint::default();
+                    paint.shader = sk::Pattern::new(pm.as_ref().as_ref(), sk::SpreadMode::Pad, sk::FilterQuality::Bilinear, 1.0, to_sk(o.transform * map));
+                    paint.anti_alias = ctx.opts.antialias;
+                    if let Some(sp) = to_sk_path(&(o.transform * Rect::new(0.0, 0.0, img.w, img.h).to_path(0.1))) {
+                        target.fill_path(&sp, &paint, sk::FillRule::Winding, to_sk(ctx.view), None);
+                    }
+                }
+                // the frame stays, so the bounds show however light the bitmap is
+                if let Some(sp) = to_sk_path(&(o.transform * o.local_path())) {
+                    target.stroke_path(&sp, &paint, &st, to_sk(ctx.view), None);
+                }
+            }
             _ => {
-                let p = if matches!(o.kind, ObjKind::Image(_) | ObjKind::Table(_)) {
+                let p = if matches!(o.kind, ObjKind::Table(_)) {
                     o.transform * o.local_path()
                 } else {
                     o.world_path()
@@ -870,12 +969,7 @@ impl Renderer {
             }
             return;
         };
-        let (iw, ih) = (pm.width() as f64, pm.height() as f64);
-        let c = img.crop;
-        let cw = (c[2] - c[0]).max(1e-6);
-        let ch = (c[3] - c[1]).max(1e-6);
-        // map image pixels to local: local = (px/iw - c0)/cw * w
-        let img_to_local = Affine::scale_non_uniform(img.w / (cw * iw), img.h / (ch * ih)) * Affine::translate((-c[0] * iw, -c[1] * ih));
+        let img_to_local = image_to_local(img, pm.width() as f64, pm.height() as f64);
         let full = ctx.view * o.transform * img_to_local;
         let quality = if ctx.opts.draft { sk::FilterQuality::Nearest } else if view_scale(full) > 1.5 { sk::FilterQuality::Bicubic } else { sk::FilterQuality::Bilinear };
         let mut paint = sk::Paint::default();
@@ -1046,20 +1140,7 @@ impl Renderer {
     }
 
     fn render_block_shadow(&mut self, ctx: &Ctx, o: &Object, b: &BlockShadow, target: &mut sk::Pixmap) {
-        let mut path = o.world_path();
-        if b.remove_holes {
-            path = outer_contours(&path);
-        }
-        let mut grow = b.expand;
-        if b.from_outline && o.style.outline.is_visible() {
-            grow += o.style.outline.width / 2.0;
-        }
-        if grow.abs() > 1e-6 {
-            path = geom::offset_path(&path, grow, kurbo::Join::Miter);
-        }
-        if b.simplify {
-            path = geom::simplify_path(&path, 0.5);
-        }
+        let path = b.base_path(o);
         let mut paths = vec![path.clone()];
         // sweep: union of the object translated along the offset, plus side quads
         let len_px = (linear_part(ctx.view) * Point::new(b.offset.x, b.offset.y)).to_vec2().hypot();
@@ -1833,6 +1914,57 @@ pub fn render_objects_image(doc: &Document, objs: &[Object], size: u32, bg: Opti
     Some(pm)
 }
 
+/// The drop shadow (or, with `inner`, the inner shadow) of an object drawn alone, as it is drawn
+/// with the object, at `dpi`: the pixels and the page area they cover, cut down to the pixels
+/// that show. For Break Apart, which makes a bitmap of it (#105). At most 4096 pixels a side.
+pub fn shadow_image(doc: &Document, o: &Object, inner: bool, dpi: f64) -> Option<(sk::Pixmap, Rect)> {
+    let mut s = if inner { o.effects.inner_shadow.clone()? } else { o.effects.drop_shadow.clone()? };
+    // drawn into an empty image; the bitmap object keeps the merge mode
+    s.merge = MergeMode::Normal;
+    let bb = o.bounds();
+    let area = if inner {
+        o.world_path().bounding_box()
+    } else {
+        let line = if o.style.outline.is_visible() { o.style.outline.width } else { 0.0 };
+        let pad = s.feather.max(0.0) * 2.0 + line + 2.0;
+        s.placement(bb).transform_rect_bbox(bb).inflate(pad, pad)
+    };
+    if area.width() < 0.01 || area.height() < 0.01 {
+        return None;
+    }
+    let scale = (dpi.max(1.0) / 72.0).min(4096.0 / area.width().max(area.height()));
+    let w = (area.width() * scale).ceil().max(1.0) as u32;
+    let h = (area.height() * scale).ceil().max(1.0) as u32;
+    let mut pm = sk::Pixmap::new(w, h)?;
+    let view = Affine::scale(scale) * Affine::translate((-area.x0, -area.y0));
+    let opts = RenderOptions { draw_page: false, ..Default::default() };
+    let ctx = Ctx { doc, view, opts: &opts };
+    let mut r = Renderer::new();
+    if inner {
+        r.render_inner_shadow(&ctx, o, &o.world_path(), &s, &mut pm);
+    } else {
+        r.render_drop_shadow(&ctx, o, &s, &mut pm);
+    }
+    // only the pixels that show
+    let (mut x0, mut y0, mut x1, mut y1) = (w, h, 0u32, 0u32);
+    for (k, px) in pm.pixels().iter().enumerate() {
+        if px.alpha() > 0 {
+            let (x, y) = (k as u32 % w, k as u32 / w);
+            x0 = x0.min(x);
+            y0 = y0.min(y);
+            x1 = x1.max(x + 1);
+            y1 = y1.max(y + 1);
+        }
+    }
+    if x1 <= x0 || y1 <= y0 {
+        return None;
+    }
+    let cut = sk::IntRect::from_xywh(x0 as i32, y0 as i32, x1 - x0, y1 - y0)?;
+    let pm = pm.clone_rect(cut)?;
+    let at = Rect::new(area.x0 + x0 as f64 / scale, area.y0 + y0 as f64 / scale, area.x0 + x1 as f64 / scale, area.y0 + y1 as f64 / scale);
+    Some((pm, at))
+}
+
 /// Convert a premultiplied pixmap to straight RGBA bytes.
 pub fn pixmap_to_rgba(pm: &sk::Pixmap) -> Vec<u8> {
     let mut out = Vec::with_capacity(pm.data().len());
@@ -1846,25 +1978,7 @@ pub fn pixmap_to_rgba(pm: &sk::Pixmap) -> Vec<u8> {
 /// The ground transform of a perspective shadow: flattened by the stretch and slanted by the angle,
 /// from the base of the object.
 pub fn perspective_shadow(bb: Rect, s: &DropShadow) -> Affine {
-    let base = Point::new(bb.center().x, bb.y1);
-    let k = (s.stretch / 100.0).clamp(0.0, 2.0);
-    let skew = s.angle.clamp(-89.0, 89.0).to_radians().tan();
-    Affine::translate(base.to_vec2()) * Affine::new([1.0, 0.0, -skew * k, k, 0.0, 0.0]) * Affine::translate(-base.to_vec2())
-}
-
-/// Only the outer contours of a path (Remove Holes).
-fn outer_contours(path: &BezPath) -> BezPath {
-    let subs = geom::subpaths(path);
-    let Some(main_sign) = subs.iter().map(|p| p.area()).max_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap_or(std::cmp::Ordering::Equal)).map(|a| a.signum()) else {
-        return path.clone();
-    };
-    let mut out = BezPath::new();
-    for p in subs {
-        if p.area().signum() == main_sign {
-            out.extend(p.elements().iter().copied());
-        }
-    }
-    out
+    s.ground(bb)
 }
 
 /// Where the back (or front) face of an extrusion goes: along the depth, converging toward the

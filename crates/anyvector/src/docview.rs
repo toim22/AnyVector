@@ -58,6 +58,9 @@ pub struct DocView {
     pub selection: Vec<ObjId>,
     /// The guideline clicked with the Pick tool (page, index into its `guides`): Delete removes it.
     pub guide_sel: Option<(usize, usize)>,
+    /// The shadow of the selected object clicked with the Pick tool (#106): the property bar
+    /// shows that shadow's bar and Delete removes the shadow. See [`DocView::shadow_focus`].
+    pub shadow_sel: Option<(ObjId, vector_core::object::ShadowPart)>,
     pub page: usize,
     pub layer: usize,
     /// The active layer is a master layer (stored with the first page; `layer` indexes the
@@ -134,6 +137,7 @@ impl DocView {
             title,
             selection: vec![],
             guide_sel: None,
+            shadow_sel: None,
             page: 0,
             layer: 0,
             on_master: false,
@@ -158,6 +162,31 @@ impl DocView {
             symmetry_edit: None,
             persp_edit: None,
             last_saved_backup: 0.0,
+        }
+    }
+
+    /// The shadow clicked with the Pick tool (#106), while its object is still the only one
+    /// selected and still has that shadow.
+    pub fn shadow_focus(&self) -> Option<vector_core::object::ShadowPart> {
+        use vector_core::object::ShadowPart;
+        let (id, part) = self.shadow_sel?;
+        if self.selection != [id] {
+            return None;
+        }
+        let fx = &self.doc.find(id)?.effects;
+        let has = match part {
+            ShadowPart::Drop => fx.drop_shadow.is_some(),
+            ShadowPart::Inner => fx.inner_shadow.is_some(),
+            ShadowPart::Block => fx.block_shadow.is_some(),
+        };
+        has.then_some(part)
+    }
+
+    /// Forget the shadow clicked once it is no longer the selection, so that selecting the object
+    /// again some other way selects the object.
+    pub fn prune_shadow_sel(&mut self) {
+        if self.shadow_sel.is_some() && self.shadow_focus().is_none() {
+            self.shadow_sel = None;
         }
     }
 
@@ -243,6 +272,8 @@ impl DocView {
 
     pub fn undo(&mut self) -> Option<String> {
         let r = self.history.undo(&mut self.doc, &mut self.selection, &mut self.page, &mut self.rot_center);
+        // a PowerClip being edited that the step took away is no longer edited
+        self.focus.retain(|id| self.doc.find(*id).is_some());
         self.text_edit = None;
         self.node_sel.clear();
         self.seg_sel = None;
@@ -252,6 +283,8 @@ impl DocView {
 
     pub fn redo(&mut self) -> Option<String> {
         let r = self.history.redo(&mut self.doc, &mut self.selection, &mut self.page, &mut self.rot_center);
+        // a PowerClip being edited that the step took away is no longer edited
+        self.focus.retain(|id| self.doc.find(*id).is_some());
         self.text_edit = None;
         self.node_sel.clear();
         self.seg_sel = None;
@@ -361,6 +394,18 @@ impl DocView {
 
     pub fn selection_bounds(&self) -> Option<Rect> {
         self.doc.selection_bounds(&self.selection)
+    }
+
+    /// The PowerClip whose contents are being edited (Edit PowerClip, Ctrl+click or a
+    /// double-click on it): the one object in focus when it is a PowerClip, outside Edit Master
+    /// and rollover editing (which use the focus for their own objects).
+    pub fn editing_powerclip(&self) -> Option<ObjId> {
+        match self.focus.as_slice() {
+            [id] if self.symbol_edit.is_none() && self.rollover_edit.is_none() => {
+                self.doc.find(*id).is_some_and(|o| matches!(o.kind, vector_core::ObjKind::PowerClip { .. })).then_some(*id)
+            }
+            _ => None,
+        }
     }
 
     /// What the rotate handles turn the selection around: where its rotation center was moved

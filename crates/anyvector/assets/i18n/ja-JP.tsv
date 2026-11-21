@@ -5381,7 +5381,7 @@ Drag to set the start and end points, then click to set the curvature	ドラッ�
 Sketch strokes; nearby strokes are merged into smooth curves	ストロークをスケッチします。近接するストロークは滑らかなカーブに結合されます
 Draw a shape freehand; it is recognized and converted into a basic shape	フリーハンドでシェイプを描くと、認識されて基本シェイプに変換されます
 Drag to draw a brush, sprayer, calligraphic or pressure stroke	ドラッグしてブラシ、スプレー、カリグラフィ、または筆圧のストロークを描きます
-Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle the size of the page	ドラッグして矩形を描きます。Ctrl で正方形に制限、Shift で中心から描画します。ツールをダブルクリックすると、ページと同じサイズの矩形を描きます
+Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle around the selection, or the size of the page	ドラッグして矩形を描きます。Ctrl で正方形に制限、Shift で中心から描画します。ツールをダブルクリックすると、選択範囲を囲む矩形 (何も選択されていなければページと同じサイズの矩形) を描きます
 Drag to set the baseline, then click to set the height	ドラッグしてベースラインを設定してから、クリックして高さを設定します
 Drag to draw an ellipse; Ctrl constrains to a circle; Shift draws from the center	ドラッグして楕円形を描きます。Ctrl で円に制限、Shift で中心から描画します
 Drag to set the center line, then click to set the height	ドラッグして中心線を設定してから、クリックして高さを設定します
@@ -5612,3 +5612,52 @@ Edit Ellipse	楕円形の編集
 Move Segment	セグメントの移動
 Delete Segment	セグメントの削除
 A curve needs at least two nodes	カーブには 2 つ以上のノードが必要です
+Select Contents	内容を選択
+Adjust contents	内容を調整
+Drop Shadow on {}	{} 上のドロップ シャドウ
+Block Shadow on {}	{} 上のブロック シャドウ
+Default outline set for new objects.	新規オブジェクトの既定のアウトラインを設定しました。
+Outline: double-click to edit	アウトライン: ダブルクリックで編集
+Start arrowhead	始点の矢印
+End arrowhead	終点の矢印
+Nothing is selected: these settings are the outline of new objects.	何も選択されていません: これらの設定は新規オブジェクトのアウトラインになります。
+Share attributes	属性を共有
+Stretch:	伸縮:
+Nib shape:	ペン先の形状:
+Drag commands here	ここにコマンドをドラッグ
+New Toolbar {}	新しいツールバー {}
+CMX - CorelDRAW-compatible (*.cmx)	CMX - CorelDRAW 互換 (*.cmx)
+CDR - AnyVector Drawing (*.cdr)	CDR - AnyVector 描画 (*.cdr)
+VCT - AnyVector Drawing, legacy (*.vct)	VCT - AnyVector 描画、旧形式 (*.vct)
+CMX - CorelDRAW-compatible copy (*.cmx)	CMX - CorelDRAW 互換のコピー (*.cmx)
+PDF - Portable Document Format, copy (*.pdf)	PDF - Portable Document Format、コピー (*.pdf)
+SVG - Scalable Vector Graphics, copy (*.svg)	SVG - Scalable Vector Graphics、コピー (*.svg)
+EMF - Enhanced Windows Metafile, copy (*.emf)	EMF - Enhanced Windows Metafile、コピー (*.emf)
+AnyVector .cdr files open in AnyVector. To open in CorelDRAW, save as CMX, PDF, SVG or EMF.	AnyVector の .cdr ファイルは AnyVector で開きます。CorelDRAW で開くには、CMX、PDF、SVG、EMF のいずれかで保存してください。
+Saves a copy for other programs. The drawing keeps its own file.	他のプログラム用にコピーを保存します。描画は元のファイルのままです。
+Saving a .cdr drawing that CorelDRAW cannot open	CorelDRAW で開けない .cdr 描画を保存するとき
+Remind me that CorelDRAW cannot open AnyVector .cdr files	CorelDRAW では AnyVector の .cdr ファイルを開けないことを知らせる
+CorelDRAW cannot open this file: AnyVector .cdr files open in AnyVector.	このファイルは CorelDRAW では開けません。AnyVector の .cdr ファイルは AnyVector で開きます。
+To open the drawing in CorelDRAW, use File ▸ Save As and choose CMX (CorelDRAW-compatible), PDF, SVG or EMF.	CorelDRAW で描画を開くには、ファイル ▸ 名前を付けて保存 で CMX (CorelDRAW 互換)、PDF、SVG、EMF のいずれかを選択してください。
+This note is shown once. Turn it back on in Tools ▸ Options ▸ AnyVector ▸ Save.	このメッセージは一度だけ表示されます。ツール ▸ オプション ▸ AnyVector ▸ 保存 で再びオンにできます。
+{} was saved with these differences from the drawing:	{} は描画と次の点が異なる状態で保存されました:
+{} was not written by AnyVector or CorelDRAW, or it is damaged.	{} は AnyVector でも CorelDRAW でも作成されていないか、破損しています。
+If it came from another program, open a PDF, SVG or EPS copy of it instead.	別のプログラムで作成されたファイルの場合は、代わりに PDF、SVG、EPS のコピーを開いてください。
+Saved a copy as {}	コピーを {} として保存しました
+Text was converted to curves.	テキストはカーブに変換されました。
+Bitmaps were left out.	ビットマップは含まれていません。
+Drop shadows, lenses and bevels were left out.	ドロップ シャドウ、レンズ、ベベルは含まれていません。
+Transparency was left out.	透明は含まれていません。
+Pattern, texture and mesh fills were replaced by their main color.	パターン、テクスチャ、メッシュの塗りつぶしはメイン カラーに置き換えられました。
+Hidden layers and objects were left out.	非表示のレイヤーとオブジェクトは含まれていません。
+AnyVector 0.1	AnyVector 0.1
+Move Here	ここに移動(&M)
+Copy Here	ここにコピー(&C)
+Copy Fill Here	塗りつぶしをここにコピー(&F)
+Copy Outline Here	アウトラインをここにコピー(&O)
+Copy All Properties	すべてのプロパティをコピー(&A)
+Other Commands	その他のコマンド
+Delete conflicts	競合を削除
+Duplicate in Place	その場に複製
+Toggle Pick State	選択状態の切り替え
+(none)	(なし)

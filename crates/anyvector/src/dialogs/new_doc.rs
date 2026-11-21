@@ -1112,6 +1112,31 @@ mod tests {
         assert_eq!(next.name, "Untitled-2");
     }
 
+    /// #120: a first run takes the unit and page of the Windows regional settings.
+    #[test]
+    fn first_documents_follow_the_regional_settings() {
+        // metric, A4 (Germany, Brazil, the UK)
+        let mut s = crate::settings::Settings::default();
+        s.apply_region(0, 9);
+        assert_eq!(s.default_unit, Unit::Millimeters);
+        let st = NewDocState::from_settings(1, &s);
+        assert_eq!((st.selected.as_deref(), st.unit), (Some("A4"), Unit::Millimeters));
+        assert!((st.width - a4().width).abs() < 1e-6 && (st.height - a4().height).abs() < 1e-6);
+        assert_eq!(st.color, s.color_management.defaults);
+        assert_eq!(st.dpi, 300.0);
+        // U.S.: Letter in inches
+        let mut s = crate::settings::Settings::default();
+        s.apply_region(1, 1);
+        let st = NewDocState::from_settings(1, &s);
+        assert_eq!((st.selected.as_deref(), st.unit, st.width, st.height), (Some("Letter"), Unit::Inches, 612.0, 792.0));
+        // U.S. measurements with Legal paper, and metric with an unlisted paper size
+        let mut s = crate::settings::Settings::default();
+        s.apply_region(1, 5);
+        assert_eq!(NewDocState::from_settings(1, &s).selected.as_deref(), Some("Legal"));
+        s.apply_region(0, 0);
+        assert_eq!(NewDocState::from_settings(1, &s).selected.as_deref(), Some("A4"));
+    }
+
     #[test]
     fn property_bar_page_size_is_remembered() {
         let mut s = crate::settings::Settings::default();

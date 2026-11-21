@@ -4,11 +4,24 @@
 //! - Title / Subject / Rating (shell property fields, stored in the drawing's metadata)
 //! - "Embed color profiles (size)" check box and the "Color profiles:" summary
 //! - "Embed fonts (size)" check box
-//! - "Version:" combo box
+//! - "Version:" combo box, with a note that AnyVector `.cdr` files do not open in CorelDRAW
 //! - "Advanced..." button (optimize for speed/size, compression, thumbnail, presentation
 //!   attributes)
+//!
+//! The drawing options apply to AnyVector's own formats only: when "Save as type" is a copy for
+//! other programs (CMX, PDF, SVG, EMF) they are hidden and a note says a copy is written.
 
 use std::path::PathBuf;
+
+/// Under "Version:": what the version is, and how to get a file CorelDRAW opens.
+pub const CDR_NOTE: &str = "AnyVector .cdr files open in AnyVector. To open in CorelDRAW, save as CMX, PDF, SVG or EMF.";
+/// Shown instead of the drawing options when the type saves a copy.
+pub const COPY_NOTE: &str = "Saves a copy for other programs. The drawing keeps its own file.";
+
+/// Whether the drawing options (color profiles, fonts, version, Advanced) apply to `ext`.
+pub fn has_drawing_options(ext: &str) -> bool {
+    !vector_io::saves_a_copy(ext)
+}
 
 /// The options behind the "Advanced..." button (also on Options ▸ Document ▸ Save).
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -114,7 +127,7 @@ mod win {
     use windows::Win32::UI::Shell::Common::COMDLG_FILTERSPEC;
     use windows::Win32::UI::Shell::PropertiesSystem::{IPropertyDescriptionList, IPropertyStore, PSCreateMemoryPropertyStore, PSGetPropertyDescriptionListFromString};
     use windows::Win32::UI::Shell::{
-        FileSaveDialog, IFileDialog, IFileDialogControlEvents, IFileDialogControlEvents_Impl, IFileDialogCustomize, IFileDialogEvents, IFileDialogEvents_Impl, IFileSaveDialog, IShellItem, SHCreateItemFromParsingName, FDE_OVERWRITE_RESPONSE,
+        FileSaveDialog, IFileDialog, CDCS_ENABLEDVISIBLE, CDCS_INACTIVE, IFileDialogControlEvents, IFileDialogControlEvents_Impl, IFileDialogCustomize, IFileDialogEvents, IFileDialogEvents_Impl, IFileSaveDialog, IShellItem, SHCreateItemFromParsingName, FDE_OVERWRITE_RESPONSE,
         FDE_SHAREVIOLATION_RESPONSE, FOS_OVERWRITEPROMPT, FOS_STRICTFILETYPES, SIGDN_FILESYSPATH,
     };
     use windows::Win32::Foundation::RECT;
@@ -129,10 +142,24 @@ mod win {
     const ID_VERSION_GROUP: u32 = 104;
     const ID_VERSION: u32 = 105;
     const ID_ADVANCED: u32 = 106;
+    const ID_VERSION_NOTE: u32 = 107;
+    const ID_COPY_NOTE: u32 = 108;
 
     #[implement(IFileDialogEvents, IFileDialogControlEvents)]
     struct Events {
         advanced: Cell<Advanced>,
+        /// The extension of each "Save as type" entry.
+        exts: Vec<String>,
+    }
+
+    /// Show the drawing options for AnyVector's formats, the copy note for the others.
+    unsafe fn show_type_controls(c: &IFileDialogCustomize, ext: &str) {
+        let native = has_drawing_options(ext);
+        let state = |on: bool| if on { CDCS_ENABLEDVISIBLE } else { CDCS_INACTIVE };
+        for id in [ID_EMBED_PROFILES, ID_PROFILES_GROUP, ID_PROFILES_TEXT, ID_EMBED_FONTS, ID_VERSION_GROUP, ID_VERSION, ID_VERSION_NOTE, ID_ADVANCED] {
+            let _ = c.SetControlState(id, state(native));
+        }
+        let _ = c.SetControlState(ID_COPY_NOTE, state(!native));
     }
 
     impl IFileDialogEvents_Impl for Events_Impl {
@@ -151,7 +178,18 @@ mod win {
         fn OnShareViolation(&self, _: Ref<IFileDialog>, _: Ref<IShellItem>) -> windows::core::Result<FDE_SHAREVIOLATION_RESPONSE> {
             Err(E_NOTIMPL.into())
         }
-        fn OnTypeChange(&self, _: Ref<IFileDialog>) -> windows::core::Result<()> {
+        fn OnTypeChange(&self, pfd: Ref<IFileDialog>) -> windows::core::Result<()> {
+            if let Ok(d) = pfd.ok() {
+                let i = unsafe { d.GetFileTypeIndex() }.unwrap_or(1).saturating_sub(1) as usize;
+                if let Some(e) = self.exts.get(i) {
+                    unsafe {
+                        let _ = d.SetDefaultExtension(&HSTRING::from(e.as_str()));
+                        if let Ok(c) = d.cast::<IFileDialogCustomize>() {
+                            show_type_controls(&c, e);
+                        }
+                    }
+                }
+            }
             Ok(())
         }
         fn OnOverwrite(&self, _: Ref<IFileDialog>, _: Ref<IShellItem>) -> windows::core::Result<FDE_OVERWRITE_RESPONSE> {
@@ -192,7 +230,7 @@ mod win {
         let dlg: IFileSaveDialog = CoCreateInstance(&FileSaveDialog, None, CLSCTX_INPROC_SERVER)?;
         dlg.SetTitle(w!("Save Drawing"))?;
         // file types
-        let names: Vec<HSTRING> = req.types.iter().map(|(n, _)| HSTRING::from(n.as_str())).collect();
+        let names: Vec<HSTRING> = req.types.iter().map(|(n, _)| HSTRING::from(crate::i18n::t(n))).collect();
         let specs_s: Vec<HSTRING> = req.types.iter().map(|(_, e)| HSTRING::from(format!("*.{e}"))).collect();
         let specs: Vec<COMDLG_FILTERSPEC> = names.iter().zip(specs_s.iter()).map(|(n, s)| COMDLG_FILTERSPEC { pszName: PCWSTR(n.as_ptr()), pszSpec: PCWSTR(s.as_ptr()) }).collect();
         dlg.SetFileTypes(&specs)?;
@@ -245,12 +283,18 @@ mod win {
             c.AddControlItem(ID_VERSION, i as u32, &HSTRING::from(v.as_str()))?;
         }
         c.SetSelectedControlItem(ID_VERSION, req.version.min(req.versions.len().saturating_sub(1)) as u32)?;
+        c.AddText(ID_VERSION_NOTE, &HSTRING::from(crate::i18n::t(CDR_NOTE)))?;
         c.EndVisualGroup()?;
+        c.AddText(ID_COPY_NOTE, &HSTRING::from(crate::i18n::t(COPY_NOTE)))?;
         c.AddPushButton(ID_ADVANCED, w!("&Advanced..."))?;
         // next to the Save button, as in the reference dialog
         let _ = c.MakeProminent(ID_ADVANCED);
+        if let Some((_, e)) = req.types.get(req.type_index) {
+            show_type_controls(&c, e);
+        }
 
-        let events: IFileDialogEvents = Events { advanced: Cell::new(req.advanced) }.into();
+        let exts = req.types.iter().map(|(_, e)| e.clone()).collect();
+        let events: IFileDialogEvents = Events { advanced: Cell::new(req.advanced), exts }.into();
         let cookie = dlg.Advise(&events)?;
         let owner = GetActiveWindow();
         let shown = dlg.Show(if owner.is_invalid() { None } else { Some(owner) });
@@ -464,6 +508,18 @@ mod tests {
             assert_eq!(rating_to_stars(stars_to_rating(s)), s);
         }
     }
+
+    #[test]
+    fn the_drawing_options_belong_to_anyvectors_own_formats() {
+        let exts: Vec<&str> = vector_io::SAVE_TYPES.iter().map(|t| t.extensions[0]).collect();
+        assert_eq!(exts, ["cdr", "vct", "cmx", "pdf", "svg", "emf"]);
+        let with: Vec<&str> = exts.iter().copied().filter(|e| has_drawing_options(e)).collect();
+        assert_eq!(with, ["cdr", "vct"]);
+        // the types say what they are: AnyVector's own, or a copy CorelDRAW opens
+        assert!(vector_io::SAVE_TYPES[0].name.contains("AnyVector") && !vector_io::SAVE_TYPES[0].name.contains("CorelDRAW"));
+        assert!(vector_io::SAVE_TYPES[2].name.contains("CorelDRAW-compatible"));
+        assert!(!crate::settings::FILE_VERSIONS.iter().any(|v| v.contains("2026")), "the version is AnyVector's, not CorelDRAW's");
+    }
 }
 
 /// Opens the Advanced Save Options dialog alone (manual check).
@@ -484,7 +540,7 @@ fn save_dialog_manual() {
     let r = show(SaveRequest {
         dir: dirs::document_dir(),
         file_name: "Untitled-1.cdr".into(),
-        types: vec![("CDR - CorelDRAW (*.cdr)".into(), "cdr".into()), ("VCT - AnyVector Drawing (*.vct)".into(), "vct".into())],
+        types: vector_io::SAVE_TYPES.iter().map(|t| (t.name.to_string(), t.extensions[0].to_string())).collect(),
         type_index: 0,
         title: String::new(),
         subject: String::new(),
@@ -494,7 +550,7 @@ fn save_dialog_manual() {
         profiles_summary: "sRGB IEC61966-2.1; U.S. Web Coated (SWOP) v2; Dot Gain 20%".into(),
         embed_fonts: true,
         fonts_size: 0,
-        versions: vec!["0.1 (2026.0)".into()],
+        versions: crate::settings::FILE_VERSIONS.iter().map(|v| v.to_string()).collect(),
         version: 0,
         advanced: Advanced { optimize_for_size: false, presentation_attributes: true, bitmap_compression: true, object_compression: true, thumbnail: true },
     });

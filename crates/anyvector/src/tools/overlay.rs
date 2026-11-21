@@ -1,7 +1,7 @@
 //! On-canvas feedback drawn over the rendered page: grid, guides, selection handles, nodes,
 //! previews of drags in progress, text caret and snap marks.
 
-use super::interact::{creation_object, envelope_handle, handle_point, three_point_object, warp_bbox, xform_affine};
+use super::interact::{constrain_line, creation_object, envelope_handle, handle_point, three_point_object, warp_bbox, xform_affine};
 use super::*;
 use crate::theme;
 use egui::{pos2, Color32, Painter, Pos2, Rect as ERect, Shape as EShape, Stroke};
@@ -84,6 +84,7 @@ pub fn draw_overlay(app: &mut AnyVectorApp, painter: &Painter) {
         draw_comments(painter, d, app.dockers.ui.comment_resolved, app.dockers.ui.comment_sel);
     }
     crate::dialogs::symmetry::draw_overlay(painter, d);
+    crate::powerclip::draw_overlay(painter, d);
 
     let dragging_xform = matches!(ts.drag, Drag::Transform { .. });
     match tool {
@@ -104,6 +105,13 @@ pub fn draw_overlay(app: &mut AnyVectorApp, painter: &Painter) {
     }
     if tool == ToolId::VariableOutline {
         draw_var_outline(painter, d, ts);
+    }
+    // Virtual Segment Delete: the piece a click deletes, in red (#119)
+    if let (ToolId::VirtualDelete, Some((_, _, Some(c)))) = (tool, &ts.hover_cut) {
+        let mut bp = BezPath::new();
+        bp.move_to(c.p0);
+        bp.curve_to(c.p1, c.p2, c.p3);
+        stroke_bez(painter, d, &bp, Stroke::new(3.0, Color32::from_rgb(0xe8, 0x30, 0x30)));
     }
     // LiveSketch strokes waiting for the timer
     if s.topts.ls_preview {
@@ -309,7 +317,7 @@ thread_local! {
     static SPELL_ERRORS: std::cell::RefCell<std::collections::HashMap<(String, String), Vec<crate::spell::SpellError>>> = Default::default();
 }
 
-fn cached_layout(id: vector_core::ObjId, t: &vector_core::text::TextObj) -> std::rc::Rc<vector_core::text::TextLayout> {
+pub(super) fn cached_layout(id: vector_core::ObjId, t: &vector_core::text::TextObj) -> std::rc::Rc<vector_core::text::TextLayout> {
     TEXT_LAYOUTS.with(|c| {
         let mut c = c.borrow_mut();
         if let Some((k, l)) = c.get(&id) {
@@ -641,11 +649,31 @@ fn draw_nodes(painter: &Painter, d: &DocView, s: &Settings) {
                     painter.rect_stroke(r, 0.0, Stroke::new(1.0, main), egui::StrokeKind::Middle);
                 }
             }
+            ObjKind::Text(_) => {
+                stroke_bez(painter, d, &o.world_path(), Stroke::new(1.0, main));
+                // the character and line spacing handles (#110)
+                for (h, from) in text_spacing_handles(d, o).into_iter().flatten() {
+                    spacing_arrow(painter, d.to_screen(h), (d.to_screen(h) - d.to_screen(from)).normalized(), main);
+                }
+            }
             _ => {
                 stroke_bez(painter, d, &o.world_path(), Stroke::new(1.0, main));
             }
         }
     }
+}
+
+/// A text spacing handle of the Shape tool: an arrow pointing away from the text, `dir` being
+/// the way it points on screen.
+fn spacing_arrow(painter: &Painter, c: Pos2, dir: egui::Vec2, color: Color32) {
+    let n = egui::vec2(-dir.y, dir.x);
+    let (tail, neck, tip) = (c - dir * 8.0, c + dir * 1.0, c + dir * 8.0);
+    let head = vec![tip, neck + n * 6.0, neck - n * 6.0];
+    // a light edge keeps it visible on any color
+    painter.line_segment([tail, neck], Stroke::new(6.0, Color32::WHITE));
+    painter.add(EShape::convex_polygon(head.clone(), Color32::WHITE, Stroke::new(3.0, Color32::WHITE)));
+    painter.line_segment([tail, neck], Stroke::new(3.0, color));
+    painter.add(EShape::convex_polygon(head, color, Stroke::NONE));
 }
 
 fn draw_envelope(painter: &Painter, d: &DocView) {
@@ -971,6 +999,11 @@ fn draw_drag_preview(painter: &Painter, d: &DocView, ts: &ToolState, s: &Setting
                 } else if matches!(tool, ToolId::ArtisticMedia | ToolId::PainterlyBrush) {
                     let w = ((ts.media_width * d.zoom) as f32).max(1.0);
                     painter.add(EShape::line(pts, Stroke::new(w, Color32::from_rgba_unmultiplied(0x1e, 0x90, 0xff, 120))));
+                } else if tool == ToolId::Freehand && ts.mods.ctrl {
+                    // Ctrl: the straight line the stroke becomes (#134), the stroke itself faint
+                    painter.add(EShape::line(pts, Stroke::new(1.0, PREVIEW.gamma_multiply(0.3))));
+                    let (a, b) = constrain_line(points[0], points[points.len() - 1], ts.mods, s.constrain_angle);
+                    painter.line_segment([d.to_screen(a), d.to_screen(b)], Stroke::new(1.0, PREVIEW));
                 } else if tool != ToolId::Polyline {
                     painter.add(EShape::line(pts, Stroke::new(1.0, PREVIEW)));
                 }
@@ -1059,7 +1092,9 @@ fn draw_in_progress(painter: &Painter, d: &DocView, ts: &ToolState, s: &Settings
         }
     }
     if let Some(a) = ts.line_start {
-        painter.line_segment([d.to_screen(a), d.to_screen(cur)], Stroke::new(1.0, PREVIEW));
+        // the line to the pointer keeps to the constrain angle with Ctrl, as the second click does
+        let (_, b) = constrain_line(a, cur, ts.mods, s.constrain_angle);
+        painter.line_segment([d.to_screen(a), d.to_screen(b)], Stroke::new(1.0, PREVIEW));
         handle(painter, d.to_screen(a), 5.0, true);
     }
     if !ts.stage.is_empty() && ts.drag.is_none() {

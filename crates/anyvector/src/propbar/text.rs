@@ -96,20 +96,18 @@ pub fn font_list(app: &mut AnyVectorApp, ui: &mut Ui, lead: fields::Lead, w: f32
     }
 }
 
-/// The font size: a value the user can type, and the list of common sizes.
+/// The font size: a value the user can type, and the list of common sizes, both in the text
+/// unit (Options ▸ Text ▸ Default text units, #109); a size typed with its own unit ("12 pt",
+/// `0.25"`) is converted. Sizes are kept in points.
 pub fn font_size(app: &mut AnyVectorApp, ui: &mut Ui, lead: fields::Lead, tip: &str) {
     let size = format(app).size;
+    let (u, dpi) = crate::lengths::text_unit(app);
     let id = ui.make_persistent_id("font_size");
-    let list: Vec<(String, f64)> = [6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 14.0, 16.0, 18.0, 24.0, 36.0, 48.0, 72.0, 100.0, 150.0, 200.0].iter().map(|s| (format!("{} pt", trim_num(*s)), *s)).collect();
-    let typed = fields::edit_list(app, ui, id, lead, Some(size), fields::Fmt::Trim(" pt"), 84.0, true, tip, &list);
+    let list: Vec<(String, f64)> = crate::lengths::FONT_SIZES.iter().map(|s| (crate::lengths::size_text(*s, u, dpi), *s)).collect();
+    let typed = fields::edit_list(app, ui, id, lead, Some(size), fields::Fmt::Size(u, dpi), 84.0, true, tip, &list);
     if let Some(s) = typed.map(|v| v.clamp(0.5, 3000.0)).filter(|s| (s - size).abs() > 1e-9) {
         apply(app, "Font Size", &move |c: &mut CharFormat| c.size = s);
     }
-}
-
-fn trim_num(v: f64) -> String {
-    let s = format!("{v:.1}");
-    s.trim_end_matches('0').trim_end_matches('.').to_string()
 }
 
 /// Variable Fonts: a slider for each design axis of the font (off for fonts without axes).

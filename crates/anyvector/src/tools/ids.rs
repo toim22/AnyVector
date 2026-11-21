@@ -108,7 +108,7 @@ pub const TOOLS: &[ToolInfo] = &[
     t!(LiveSketch, "LiveSketch", "livesketch", "S", "Sketch strokes; nearby strokes are merged into smooth curves"),
     t!(SmartDrawing, "Smart Drawing", "smart_drawing", "Shift+S", "Draw a shape freehand; it is recognized and converted into a basic shape"),
     t!(ArtisticMedia, "Artistic Media", "artistic_media", "I", "Drag to draw a brush, sprayer, calligraphic or pressure stroke"),
-    t!(Rectangle, "Rectangle", "rectangle", "F6", "Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle the size of the page"),
+    t!(Rectangle, "Rectangle", "rectangle", "F6", "Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle around the selection, or the size of the page"),
     t!(Rect3, "3-Point Rectangle", "rect3", "", "Drag to set the baseline, then click to set the height"),
     t!(Ellipse, "Ellipse", "ellipse", "F7", "Drag to draw an ellipse; Ctrl constrains to a circle; Shift draws from the center"),
     t!(Ellipse3, "3-Point Ellipse", "ellipse3", "", "Drag to set the center line, then click to set the height"),

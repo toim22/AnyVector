@@ -35,12 +35,15 @@ pub fn system_clipboard_has_content() -> bool {
 /// nothing is selected.
 pub fn apply_color(app: &mut AnyVectorApp, color: Option<Color>, outline: bool) {
     if !app.has_selection() {
-        if !outline {
-            if let Some(c) = color {
-                app.default_fill = c;
-            }
+        if outline {
+            // the outline color of new objects, as CorelDRAW's document defaults (#103)
+            let mut ol = app.ts.default_outline.clone();
+            ol.color = color;
+            app.set_default_outline(ol);
+        } else if let Some(c) = color {
+            app.default_fill = c;
         }
-        app.flash(if outline { "Select objects to change their outline color." } else { "Default fill set for new objects." });
+        app.flash(if outline { "Default outline set for new objects." } else { "Default fill set for new objects." });
         return;
     }
     if let (false, Some(c)) = (outline, color) {
@@ -48,7 +51,7 @@ pub fn apply_color(app: &mut AnyVectorApp, color: Option<Color>, outline: bool) 
             return;
         }
     }
-    let width = app.ts.default_outline_width;
+    let width = app.ts.default_outline.width;
     let Some(d) = app.doc_mut() else { return };
     let ids = d.selection.clone();
     d.modify(if outline { "Outline Color" } else { "Fill Color" }, |doc, _| {
@@ -59,10 +62,12 @@ pub fn apply_color(app: &mut AnyVectorApp, color: Option<Color>, outline: bool) 
                         return;
                     }
                     if outline {
-                        x.style.outline.color = color;
-                        if color.is_some() && x.style.outline.width <= 0.0 {
-                            x.style.outline.width = width.max(0.1);
+                        // an object without an outline gets the default width; a hairline
+                        // keeps being a hairline (#127)
+                        if color.is_some() && !x.style.outline.is_visible() && x.style.outline.width <= 0.0 {
+                            x.style.outline.width = width;
                         }
+                        x.style.outline.color = color;
                     } else {
                         x.style.fill = match color {
                             Some(c) => Fill::Solid(c),
@@ -237,6 +242,45 @@ fn paste_placed(d: &mut crate::docview::DocView, mut objs: Vec<Object>, at: Opti
         o.apply_transform(Affine::translate(c - bb.center()));
     }
     d.add_objects("Paste", objs);
+}
+
+/// Finish editing the PowerClip `pc` (#111): the PowerClip is selected again. One inside the
+/// contents of another PowerClip goes back to editing that one, as each Ctrl+click enters one
+/// level.
+pub fn finish_powerclip(d: &mut crate::docview::DocView, pc: ObjId) {
+    // the content of the PowerClip around `pc` that holds it (`pc` itself, or a group it is in)
+    let (mut item, mut outer) = (pc, d.doc.parent_of(pc));
+    while let Some(o) = outer.filter(|o| !d.doc.find(*o).is_some_and(|x| matches!(x.kind, ObjKind::PowerClip { .. }))) {
+        item = o;
+        outer = d.doc.parent_of(o);
+    }
+    match outer {
+        Some(o) => {
+            d.focus = vec![o];
+            d.selection = vec![item];
+        }
+        None => {
+            d.focus.clear();
+            d.selection = vec![pc];
+        }
+    }
+    d.node_sel.clear();
+    d.rotate_mode = false;
+    d.cache.key = 0;
+}
+
+/// PowerClip ▸ Select Contents: the contents of the PowerClip being edited, else of the one
+/// selected PowerClip (the PowerClip stays closed; the contents are moved, sized and styled in
+/// place).
+pub fn powerclip_contents(d: &crate::docview::DocView) -> Vec<ObjId> {
+    let pc = d.editing_powerclip().or(match d.selection.as_slice() {
+        [id] => Some(*id),
+        _ => None,
+    });
+    match pc.and_then(|id| d.doc.find(id)).map(|o| &o.kind) {
+        Some(ObjKind::PowerClip { contents, .. }) => contents.iter().filter(|c| c.visible).map(|c| c.id).collect(),
+        _ => vec![],
+    }
 }
 
 fn rotate_about(c: Point, deg: f64) -> Affine {
@@ -459,7 +503,7 @@ impl AnyVectorApp {
                 true
             }
             Err(e) => {
-                self.dialogs.message_box = Some(("Open".into(), format!("Could not open {}:\n{e}", p.display())));
+                self.dialogs.message_box = Some(("Open".into(), crate::file_copy::open_error_text(p, &e)));
                 false
             }
         }
@@ -548,7 +592,7 @@ impl AnyVectorApp {
             vec![]
         };
         vector_io::cdr::SaveOptions {
-            version: crate::settings::FILE_VERSIONS.get(version).unwrap_or(&crate::settings::FILE_VERSIONS[0]).to_string(),
+            version: crate::settings::FILE_FORMAT_VERSIONS.get(version).unwrap_or(&crate::settings::FILE_FORMAT_VERSIONS[0]).to_string(),
             fonts,
             color_profiles: if embed_profiles { crate::color_profiles::profile_files(&doc.settings.color) } else { vec![] },
             object_compression: s.object_compression,
@@ -587,9 +631,9 @@ impl AnyVectorApp {
                 let stem = self.docs[i].stem();
                 let dir = self.docs[i].path.as_ref().and_then(|p| p.parent()).map(|p| p.to_path_buf()).or_else(|| self.settings.last_dir.clone()).or_else(|| Some(crate::settings::documents_dir()));
                 let types: Vec<(String, String)> = vector_io::SAVE_TYPES.iter().map(|t| (t.name.to_string(), t.extensions[0].to_string())).collect();
-                // a .vct document stays .vct unless the user picks CDR
+                // a .vct document stays .vct unless the user picks CDR; anything else starts as CDR
                 let type_index = match self.docs[i].path.as_ref().map(|p| vector_io::extension(p)) {
-                    Some(e) if e == "vct" => 1,
+                    Some(e) if e == "vct" => types.iter().position(|t| t.1 == "vct").unwrap_or(0),
                     _ => 0,
                 };
                 let advanced = self.advanced_from_settings();
@@ -616,9 +660,10 @@ impl AnyVectorApp {
                 let res = if cfg!(windows) {
                     crate::save_dialog::show(req)
                 } else {
-                    rfd::FileDialog::new().set_title("Save Drawing").add_filter(types[0].0.as_str(), &["cdr"]).set_file_name(format!("{stem}.cdr")).save_file().map(|p| crate::save_dialog::SaveResult {
+                    let fd = types.iter().fold(rfd::FileDialog::new().set_title("Save Drawing"), |fd, t| fd.add_filter(t.0.as_str(), &[t.1.as_str()]));
+                    fd.set_file_name(format!("{stem}.cdr")).save_file().map(|p| crate::save_dialog::SaveResult {
+                        type_index: types.iter().position(|t| t.1 == vector_io::extension(&p)).unwrap_or(0),
                         path: p,
-                        type_index: 0,
                         title: d.info.title.clone(),
                         subject: d.info.subject.clone(),
                         rating: d.info.rating,
@@ -654,6 +699,10 @@ impl AnyVectorApp {
                 }
             }
         };
+        // CMX, PDF, SVG, EMF: a copy for other programs (the drawing stays as it is)
+        if vector_io::saves_a_copy(&vector_io::extension(&path)) {
+            return self.save_copy(i, &path);
+        }
         if self.settings.backup_on_save && path.exists() {
             let dir = self.settings.backup_dir.clone().unwrap_or_else(|| path.parent().map(|p| p.to_path_buf()).unwrap_or_default());
             let name = format!("Backup_of_{}", path.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default());
@@ -674,6 +723,9 @@ impl AnyVectorApp {
                 self.settings.add_recent(&path);
                 self.settings.last_dir = path.parent().map(|x| x.to_path_buf());
                 self.flash(format!("Saved {}", path.display()));
+                if vector_io::extension(&path) == "cdr" {
+                    self.cdr_saved_notice();
+                }
                 true
             }
             Err(e) => {
@@ -1055,6 +1107,11 @@ impl AnyVectorApp {
 
     fn select_all(&mut self, filter: impl Fn(&Object) -> bool) {
         if let Some(d) = self.doc_mut() {
+            // editing a PowerClip: all of its contents (#111)
+            if let Some(ObjKind::PowerClip { contents, .. }) = d.editing_powerclip().and_then(|id| d.doc.find(id)).map(|o| &o.kind) {
+                d.selection = contents.iter().filter(|o| o.visible && filter(o)).map(|o| o.id).collect();
+                return;
+            }
             let page = d.page;
             let ids: Vec<ObjId> = d.doc.pages[page].layers.iter().filter(|l| l.visible && !l.locked).flat_map(|l| l.objects.iter()).filter(|o| o.visible && filter(o)).map(|o| o.id).collect();
             d.selection = ids;
@@ -1182,7 +1239,7 @@ impl AnyVectorApp {
         }
         let repeatable = matches!(
             cmd,
-            Cmd::Duplicate | Cmd::Delete | Cmd::Group | Cmd::Combine | Cmd::ConvertToCurves | Cmd::Order(_) | Cmd::Align(_) | Cmd::Distribute(_) | Cmd::Shaping(_) | Cmd::MirrorH | Cmd::MirrorV | Cmd::Rotate(_) | Cmd::Nudge(..) | Cmd::BitmapEffect(_) | Cmd::ChangeCase(_) | Cmd::Lock | Cmd::Unlock
+            Cmd::Duplicate | Cmd::DuplicateInPlace | Cmd::Delete | Cmd::Group | Cmd::Combine | Cmd::ConvertToCurves | Cmd::Order(_) | Cmd::Align(_) | Cmd::Distribute(_) | Cmd::Shaping(_) | Cmd::MirrorH | Cmd::MirrorV | Cmd::Rotate(_) | Cmd::Nudge(..) | Cmd::BitmapEffect(_) | Cmd::ChangeCase(_) | Cmd::Lock | Cmd::Unlock
         );
         if repeatable {
             self.last_cmd = Some(cmd);
@@ -1540,6 +1597,19 @@ impl AnyVectorApp {
                     }
                 } else if self.tool == ToolId::Shape && self.doc().is_some_and(|d| !d.node_sel.is_empty() || crate::tools::selected_segment(d).is_some()) {
                     crate::tools::node_op(self, crate::tools::NodeOp::Delete);
+                } else if let Some(part) = self.doc().filter(|_| self.tool == ToolId::Pick).and_then(|d| d.shadow_focus()) {
+                    // a shadow clicked with the Pick tool: Delete removes the shadow (#106)
+                    use vector_core::object::ShadowPart;
+                    let label = if part == ShadowPart::Block { "Clear Block Shadow" } else { "Clear Shadow" };
+                    self.modify_sel(label, |doc, sel| {
+                        if let Some(o) = sel.first().and_then(|id| doc.find_mut(*id)).filter(|o| !o.locked) {
+                            match part {
+                                ShadowPart::Drop => o.effects.drop_shadow = None,
+                                ShadowPart::Inner => o.effects.inner_shadow = None,
+                                ShadowPart::Block => o.effects.block_shadow = None,
+                            }
+                        }
+                    });
                 } else {
                     self.modify_sel("Delete", |doc, sel| {
                         for id in sel.drain(..) {
@@ -1560,6 +1630,23 @@ impl AnyVectorApp {
                 // a moved rotation center goes along to the copies (issue 126)
                 if let (Some((old, bb)), Some(d)) = (before, self.doc_mut()) {
                     d.carry_rot_center(&old, bb);
+                }
+            }
+            Cmd::DuplicateInPlace => {
+                // during a drag the keypad + leaves the original where it was, as in CorelDRAW
+                if matches!(self.ts.drag, crate::tools::Drag::Transform { .. }) {
+                    self.ts.copy_on_drop = true;
+                    self.flash("A copy will be left at the original position");
+                } else {
+                    let before = self.doc().and_then(|d| Some((d.selection.clone(), d.selection_bounds()?)));
+                    self.modify_sel("Duplicate", |doc, sel| {
+                        let ids = sel.clone();
+                        *sel = ops::duplicate(doc, &ids, Vec2::ZERO);
+                    });
+                    // a moved rotation center goes along to the copies (issue 126)
+                    if let (Some((old, bb)), Some(d)) = (before, self.doc_mut()) {
+                        d.carry_rot_center(&old, bb);
+                    }
                 }
             }
             Cmd::StepAndRepeat => self.dockers.show(DockerId::StepRepeat),
@@ -1845,8 +1932,11 @@ impl AnyVectorApp {
                 }
             }),
             Cmd::BreakApart => self.modify_sel("Break Apart", |doc, sel| {
-                let ids = sel.clone();
-                *sel = ops::break_apart(doc, &ids);
+                // a shadowed object loses its shadows first (#105); the next Break Apart splits it
+                let (shadowed, plain): (Vec<_>, Vec<_>) = sel.iter().copied().partition(|id| doc.find(*id).is_some_and(|o| !ops::drawn_shadows(o).is_empty()));
+                let mut out = ops::break_shadows(doc, &shadowed, &mut |doc, o, part| shadow_raster(doc, o, part));
+                out.extend(ops::break_apart(doc, &plain));
+                *sel = out;
             }),
             Cmd::Lock | Cmd::Unlock => {
                 let lock = cmd == Cmd::Lock;
@@ -2014,9 +2104,21 @@ impl AnyVectorApp {
             Cmd::PowerClipFinish if self.doc().is_some_and(|d| d.rollover_edit.is_some()) => crate::dialogs::object::finish_rollover(self),
             Cmd::PowerClipFinish => {
                 if let Some(d) = self.doc_mut() {
-                    if !d.focus.is_empty() {
+                    if let Some(pc) = d.editing_powerclip() {
+                        finish_powerclip(d, pc);
+                    } else if !d.focus.is_empty() {
                         d.selection = std::mem::take(&mut d.focus);
                         d.cache.key = 0;
+                    }
+                }
+            }
+            Cmd::PowerClipSelectContents => {
+                if let Some(d) = self.doc_mut() {
+                    let ids = powerclip_contents(d);
+                    if !ids.is_empty() {
+                        d.selection = ids;
+                        d.node_sel.clear();
+                        d.rotate_mode = false;
                     }
                 }
             }
@@ -2334,6 +2436,12 @@ impl AnyVectorApp {
                 }
             }
             Cmd::CreateArrowhead => self.dialogs.arrowhead = crate::dialogs::object::ArrowheadState::new(self),
+            Cmd::OutlinePen => {
+                if self.has_doc() {
+                    self.dialogs.outline_pen = Some(crate::dialogs::outlinepen::OutlinePenState::new(self));
+                }
+            }
+            Cmd::OutlineWidth(w) => crate::propbar::set_outline_width(self, w),
             Cmd::CreatePattern => self.dialogs.pattern = Some(crate::dialogs::object::PatternState { kind: 1, resolution: 1 }),
             Cmd::InsertQrCode => crate::dialogs::object::insert_qr(self),
             Cmd::InsertBarcode => {
@@ -2552,6 +2660,7 @@ impl AnyVectorApp {
             Cmd::ToggleToolbar(t) => self.toggle_toolbar(t),
             Cmd::ButtonSize(s) => self.settings.button_size = s,
             Cmd::LockToolbars => self.settings.lock_toolbars = !self.settings.lock_toolbars,
+            Cmd::CustomizeBar(op) => crate::customize::apply_op(self, op),
             Cmd::AddColorsFromSelection => self.palette_from(true, true),
             Cmd::AddColorsFromDocument => self.palette_from(false, true),
             Cmd::CreatePaletteFromSelection => self.palette_from(true, false),
@@ -2639,6 +2748,15 @@ impl AnyVectorApp {
         o.category = Some(cat);
         o.page = page.map(|s| s.to_string());
     }
+}
+
+/// A drop or inner shadow drawn alone for Break Apart (#105), at the document's rendering
+/// resolution, as CorelDRAW makes its bitmap.
+fn shadow_raster(doc: &Document, o: &Object, part: vector_core::object::ShadowPart) -> Option<ops::ShadowRaster> {
+    let inner = part == vector_core::object::ShadowPart::Inner;
+    let dpi = doc.settings.dpi.clamp(72.0, 600.0);
+    let (pm, at) = vector_render::shadow_image(doc, o, inner, dpi)?;
+    Some(ops::ShadowRaster { width: pm.width(), height: pm.height(), rgba: vector_render::pixmap_to_rgba(&pm), at })
 }
 
 fn title_case(s: &str) -> String {

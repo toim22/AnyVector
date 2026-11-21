@@ -2547,7 +2547,7 @@ fn join_harness<'a>(tool: crate::tools::ToolId) -> Harness<'a, AnyVectorApp> {
 
 /// Feed one frame of pointer input straight to the active tool (no egui frame in between).
 fn tool_input(h: &mut Harness<'_, AnyVectorApp>, pos: egui::Pos2, pressed: bool, down: bool, released: bool) {
-    let inp = crate::tools::Input { pos, hovered: true, pressed, released, down, double: false, secondary: false, mods: egui::Modifiers::NONE, key_c: false, time: 100.0, dt: 0.016 };
+    let inp = crate::tools::Input { pos, hovered: true, pressed, released, down, double: false, secondary: false, secondary_down: false, secondary_released: false, mods: egui::Modifiers::NONE, key_c: false, time: 100.0, dt: 0.016 };
     crate::tools::handle_input(h.state_mut(), &inp);
 }
 
@@ -3694,7 +3694,7 @@ fn visual_issue_126_rotation_center_kept_and_snapped() {
 
 /// One frame of pointer input for the Shape tool (with a double-click flag and modifiers).
 fn shape_in(h: &mut Harness<'_, AnyVectorApp>, pos: egui::Pos2, pressed: bool, down: bool, released: bool, double: bool, mods: egui::Modifiers) {
-    let inp = crate::tools::Input { pos, hovered: true, pressed, released, down, double, secondary: false, mods, key_c: false, time: 100.0, dt: 0.016 };
+    let inp = crate::tools::Input { pos, hovered: true, pressed, released, down, double, secondary: false, secondary_down: false, secondary_released: false, mods, key_c: false, time: 100.0, dt: 0.016 };
     crate::tools::handle_input(h.state_mut(), &inp);
 }
 
@@ -4007,4 +4007,2813 @@ fn visual_shape_tool_nodes() {
     assert!(matches!(kind_of(&h, pid), ObjKind::Polygon(p) if !p.nodes.is_regular()));
     assert!(matches!(kind_of(&h, eid), ObjKind::Ellipse(e) if e.kind == EllipseKind::Pie));
     assert_eq!(h.state().doc().unwrap().seg_sel, Some((cid, 0, 0)));
+}
+
+// ---- 0.6.0: nudging segments (#142), Freehand with Ctrl (#134), Rectangle around the selection
+// (#135), text spacing handles (#110) ----
+
+/// The point at `t` of segment `seg` of the first subpath of curve `id`, in document space.
+fn seg_point(h: &Harness<'_, AnyVectorApp>, id: u64, seg: usize, t: f64) -> Point {
+    let o = h.state().doc().unwrap().doc.find(id).unwrap();
+    let ObjKind::Path(np) = &o.kind else { panic!("{:?}", o.kind) };
+    o.transform * kurbo::ParamCurve::eval(&np.subpaths[0].segment(seg).unwrap().0, t)
+}
+
+fn last_undo(h: &Harness<'_, AnyVectorApp>) -> String {
+    h.state().doc().unwrap().history.undo_labels().first().cloned().unwrap_or_default()
+}
+
+/// Press an arrow key: the nudge shortcut.
+fn arrow(h: &mut Harness<'_, AnyVectorApp>, k: egui::Key) {
+    h.key_press(k);
+    h.step();
+    h.step();
+}
+
+/// #142: the arrow keys on a selected segment, as in CorelDRAW: a curved segment bends, its
+/// middle moving by the nudge while its nodes and the segments beside it stay; a straight one
+/// moves with its nodes; one undo step per press, and the presses add up; selected nodes still
+/// move as before.
+#[test]
+fn nudging_a_curved_segment_bends_it() {
+    use crate::tools::NodeOp;
+    let (mut h, id) = shape_object(line_curve(&[(100.0, 100.0), (200.0, 100.0), (300.0, 100.0), (400.0, 100.0)]), (0.0, 0.0));
+    let np = |h: &Harness<'_, AnyVectorApp>| match kind_of(h, id) {
+        ObjKind::Path(np) => np,
+        k => panic!("{k:?}"),
+    };
+    let nudge = h.state().doc().unwrap().doc.settings.nudge;
+    // the middle segment made a curve; it stays selected
+    tool_click(&mut h, (250.0, 100.0), egui::Vec2::ZERO);
+    h.state_mut().run(Cmd::Node(NodeOp::ToCurve));
+    h.step();
+    assert_eq!(h.state().doc().unwrap().seg_sel, Some((id, 0, 1)));
+    let before = np(&h);
+    let steps = undo_steps(&h);
+    let mid0 = seg_point(&h, id, 1, 0.5);
+    arrow(&mut h, egui::Key::ArrowUp);
+    let n = np(&h);
+    let nodes = &n.subpaths[0].nodes;
+    for (k, p) in [(100.0, 100.0), (200.0, 100.0), (300.0, 100.0), (400.0, 100.0)].into_iter().enumerate() {
+        assert!(near(nodes[k].p, p), "node {k} moved: {nodes:?}");
+    }
+    let mid = seg_point(&h, id, 1, 0.5);
+    assert!((mid - (mid0 + kurbo::Vec2::new(0.0, -nudge))).hypot() < 1e-6, "the middle of the curve did not go up by the nudge: {mid:?}");
+    assert_ne!(nodes[1].c_out, before.subpaths[0].nodes[1].c_out);
+    assert_ne!(nodes[2].c_in, before.subpaths[0].nodes[2].c_in);
+    // the segments beside it keep their nodes and stay straight
+    assert_eq!(nodes[0], before.subpaths[0].nodes[0]);
+    assert_eq!(nodes[3], before.subpaths[0].nodes[3]);
+    assert!(nodes[0].line_out && nodes[2].line_out && !nodes[1].line_out);
+    assert_eq!(undo_steps(&h), steps + 1);
+    assert_eq!(last_undo(&h), "Edit Curve");
+    assert_eq!(h.state().doc().unwrap().seg_sel, Some((id, 0, 1)), "the segment stays selected");
+    // the presses add up, in any direction
+    arrow(&mut h, egui::Key::ArrowUp);
+    arrow(&mut h, egui::Key::ArrowRight);
+    let mid = seg_point(&h, id, 1, 0.5);
+    assert!((mid - (mid0 + kurbo::Vec2::new(nudge, -2.0 * nudge))).hypot() < 1e-6, "{mid:?}");
+    assert_eq!(undo_steps(&h), steps + 3);
+    for _ in 0..3 {
+        undo(&mut h);
+    }
+    assert_eq!(np(&h), before, "undo did not bring back the control points");
+    // a straight segment moves with both its nodes
+    tool_click(&mut h, (150.0, 100.0), egui::Vec2::ZERO);
+    assert_eq!(h.state().doc().unwrap().seg_sel, Some((id, 0, 0)));
+    h.state_mut().run(Cmd::Nudge(0.0, -10.0));
+    h.step();
+    let n = np(&h);
+    assert!(near(n.subpaths[0].nodes[0].p, (100.0, 90.0)) && near(n.subpaths[0].nodes[1].p, (200.0, 90.0)) && near(n.subpaths[0].nodes[2].p, (300.0, 100.0)), "{:?}", n.subpaths[0].nodes);
+    assert_eq!(last_undo(&h), "Move Segment");
+    undo(&mut h);
+    // selected nodes: only they move, even next to the curved segment
+    h.state_mut().doc_mut().unwrap().node_sel = vec![(id, 0, 2)];
+    h.state_mut().run(Cmd::Nudge(10.0, 0.0));
+    h.step();
+    let n = np(&h);
+    assert!(near(n.subpaths[0].nodes[2].p, (310.0, 100.0)) && near(n.subpaths[0].nodes[1].p, (200.0, 100.0)) && near(n.subpaths[0].nodes[3].p, (400.0, 100.0)));
+    assert_eq!(last_undo(&h), "Move Nodes");
+}
+
+/// #142: a curve of one segment bends too, and the nudge goes the way the arrow points on the
+/// page whatever the curve's own rotation.
+#[test]
+fn nudging_a_segment_of_a_rotated_curve() {
+    use crate::tools::NodeOp;
+    let (mut h, id) = shape_object(line_curve(&[(0.0, 0.0), (100.0, 0.0)]), (0.0, 0.0));
+    h.state_mut().doc_mut().unwrap().doc.find_mut(id).unwrap().transform = Affine::translate((200.0, 200.0)) * Affine::rotate(std::f64::consts::FRAC_PI_2);
+    // on the page it runs from (200, 200) down to (200, 300)
+    tool_click(&mut h, (200.0, 250.0), egui::Vec2::ZERO);
+    assert_eq!(h.state().doc().unwrap().seg_sel, Some((id, 0, 0)));
+    h.state_mut().run(Cmd::Node(NodeOp::ToCurve));
+    h.step();
+    let mid0 = seg_point(&h, id, 0, 0.5);
+    h.state_mut().run(Cmd::Nudge(10.0, 0.0));
+    h.step();
+    assert!((seg_point(&h, id, 0, 0.5) - (mid0 + kurbo::Vec2::new(10.0, 0.0))).hypot() < 1e-6, "{:?}", seg_point(&h, id, 0, 0.5));
+    assert!((seg_point(&h, id, 0, 0.0) - Point::new(200.0, 200.0)).hypot() < 1e-6 && (seg_point(&h, id, 0, 1.0) - Point::new(200.0, 300.0)).hypot() < 1e-6, "the nodes moved");
+}
+
+/// #142: what a nudged curve segment looks like. Images go to `target/visual/issue_142_*.png`.
+#[test]
+#[ignore]
+fn visual_issue_142_nudge_bends_a_curve_segment() {
+    use crate::tools::{NodeOp, ToolId};
+    let mut h = doc_harness();
+    h.state_mut().doc_mut().unwrap().doc.settings.snap_off = true;
+    let id = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let id = d.doc.new_id();
+        let mut st = Style::default();
+        st.outline.color = Some(Color::BLACK);
+        st.outline.width = 2.0;
+        let np = vector_core::path::polyline(&[Point::new(150.0, 300.0), Point::new(300.0, 200.0), Point::new(500.0, 200.0), Point::new(650.0, 300.0)], false);
+        d.add_objects("test", vec![Object::new(id, ObjKind::Path(np), Affine::IDENTITY, st)]);
+        d.selection = vec![id];
+        id
+    };
+    h.state_mut().set_tool(ToolId::Shape);
+    tool_click(&mut h, (400.0, 200.0), egui::Vec2::ZERO);
+    h.state_mut().run(Cmd::Node(NodeOp::ToCurve));
+    h.step();
+    save(&mut h, "issue_142_01_curve_segment_selected");
+    for _ in 0..8 {
+        arrow(&mut h, egui::Key::ArrowUp);
+    }
+    save(&mut h, "issue_142_02_nudged_up_8_times");
+    let ObjKind::Path(np) = kind_of(&h, id) else { unreachable!() };
+    assert!(near(np.subpaths[0].nodes[1].p, (300.0, 200.0)) && near(np.subpaths[0].nodes[2].p, (500.0, 200.0)), "the nodes moved");
+    assert!(seg_point(&h, id, 1, 0.5).y < 200.0 - 50.0);
+}
+
+/// A drag through document points with the active tool, `mods` held while dragging and
+/// `release` at the release.
+fn stroke_with(h: &mut Harness<'_, AnyVectorApp>, pts: &[(f64, f64)], mods: egui::Modifiers, release: egui::Modifiers) {
+    let s: Vec<egui::Pos2> = pts.iter().map(|p| scr(h, *p)).collect();
+    shape_in(h, s[0], true, true, false, false, mods);
+    for w in s.windows(2) {
+        for k in 1..=8 {
+            shape_in(h, w[0] + (w[1] - w[0]) * (k as f32 / 8.0), false, true, false, false, mods);
+        }
+    }
+    shape_in(h, *s.last().unwrap(), false, false, true, false, release);
+}
+
+/// A shaky stroke from `o` that ends at `deg` degrees, 100 points away.
+fn shaky(o: (f64, f64), deg: f64) -> Vec<(f64, f64)> {
+    let at = |a: f64, r: f64| (o.0 + r * a.to_radians().cos(), o.1 + r * a.to_radians().sin());
+    vec![o, at(deg + 12.0, 30.0), at(deg - 9.0, 55.0), at(deg + 6.0, 80.0), at(deg, 100.0)]
+}
+
+/// #134: Freehand, dragged with Ctrl held: a straight line at the nearest multiple of the
+/// constrain angle (Options ▸ Freehand/Bézier tool), as the click-click line; one undo step;
+/// without Ctrl at the release, or without Ctrl at all, the stroke stays freehand.
+#[test]
+fn freehand_ctrl_drag_draws_a_constrained_line() {
+    use crate::tools::ToolId;
+    let (ctrl, none) = (egui::Modifiers::CTRL, egui::Modifiers::NONE);
+    let mut h = join_harness(ToolId::Freehand);
+    assert_eq!(h.state().settings.constrain_angle, 15.0);
+    let end = |o: (f64, f64), deg: f64| (o.0 + 100.0 * deg.to_radians().cos(), o.1 + 100.0 * deg.to_radians().sin());
+    let last = |h: &Harness<'_, AnyVectorApp>| curves(h).last().unwrap().subpaths[0].clone();
+    // 40° with 15° steps: 45°
+    let steps = undo_steps(&h);
+    stroke_with(&mut h, &shaky((100.0, 100.0), 40.0), ctrl, ctrl);
+    assert_eq!(curves(&h).len(), 1);
+    let sp = last(&h);
+    assert_eq!(sp.nodes.len(), 2, "not a straight line: {:?}", sp.nodes);
+    assert!(sp.nodes[0].line_out && !sp.closed);
+    assert!(near(sp.nodes[0].p, (100.0, 100.0)) && near(sp.nodes[1].p, end((100.0, 100.0), 45.0)), "{:?}", sp.nodes);
+    assert_eq!(undo_steps(&h), steps + 1);
+    undo(&mut h);
+    assert!(curves(&h).is_empty());
+    // the constrain angle sets the steps: 30° makes it 30°
+    h.state_mut().settings.constrain_angle = 30.0;
+    stroke_with(&mut h, &shaky((100.0, 400.0), 40.0), ctrl, ctrl);
+    let sp = last(&h);
+    assert!(sp.nodes.len() == 2 && near(sp.nodes[1].p, end((100.0, 400.0), 30.0)), "{:?}", sp.nodes);
+    h.state_mut().settings.constrain_angle = 15.0;
+    // Ctrl let go before the release: the stroke as drawn
+    stroke_with(&mut h, &shaky((500.0, 100.0), 40.0), ctrl, none);
+    let sp = last(&h);
+    assert!(near(sp.nodes.last().unwrap().p, end((500.0, 100.0), 40.0)), "{:?}", sp.nodes);
+    // no Ctrl: freehand as before
+    stroke_with(&mut h, &shaky((500.0, 400.0), 40.0), none, none);
+    let sp = last(&h);
+    assert!(near(sp.nodes.last().unwrap().p, end((500.0, 400.0), 40.0)), "{:?}", sp.nodes);
+    assert_eq!(curves(&h).len(), 3);
+    // click-click with Ctrl still keeps to the constrain angle
+    let (a, b) = (scr(&h, (800.0, 100.0)), scr(&h, end((800.0, 100.0), 40.0)));
+    for p in [a, b] {
+        shape_in(&mut h, p, true, true, false, false, ctrl);
+        shape_in(&mut h, p, false, false, true, false, ctrl);
+    }
+    let sp = last(&h);
+    assert!(sp.nodes.len() == 2 && near(sp.nodes[1].p, end((800.0, 100.0), 45.0)), "{:?}", sp.nodes);
+}
+
+/// #134: a Ctrl+drag continuing the selected curve from its end node adds a straight segment to it.
+#[test]
+fn freehand_ctrl_drag_continues_the_curve() {
+    use crate::tools::ToolId;
+    let ctrl = egui::Modifiers::CTRL;
+    let mut h = join_harness(ToolId::Freehand);
+    stroke_with(&mut h, &shaky((100.0, 100.0), 0.0), ctrl, ctrl);
+    assert_eq!(curves(&h).len(), 1);
+    // from 2 pixels off its end: within the Auto-join distance
+    let s = h.state().doc().unwrap().to_doc(scr(&h, (200.0, 100.0)) + egui::vec2(2.0, 1.0));
+    let stroke = shaky((s.x, s.y), 88.0);
+    stroke_with(&mut h, &stroke, ctrl, ctrl);
+    let cs = curves(&h);
+    assert_eq!(cs.len(), 1, "the line became a separate object");
+    let nodes = &cs[0].subpaths[0].nodes;
+    assert_eq!(nodes.len(), 3, "{nodes:?}");
+    // from the end node, straight down (88° rounds to 90°), as long as the drag
+    let e = stroke[stroke.len() - 1];
+    let len = (Point::new(e.0, e.1) - Point::new(200.0, 100.0)).hypot();
+    assert!(near(nodes[1].p, (200.0, 100.0)) && near(nodes[2].p, (200.0, 100.0 + len)), "{nodes:?}");
+}
+
+/// #134: the preview of a Ctrl+drag with Freehand is the straight line it makes, and the line
+/// after one click follows the constrain angle too. Images go to `target/visual/issue_134_*.png`.
+#[test]
+#[ignore]
+fn visual_issue_134_freehand_ctrl_constrains() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    h.state_mut().doc_mut().unwrap().doc.settings.snap_off = true;
+    h.state_mut().set_tool(ToolId::Freehand);
+    h.step();
+    let ctrl = egui::Modifiers::CTRL;
+    let pts: Vec<egui::Pos2> = shaky((150.0, 150.0), 40.0).into_iter().map(|p| scr(&h, (p.0 * 2.0 - 150.0, p.1 * 2.0 - 150.0))).collect();
+    h.input_mut().events.push(egui::Event::ModifiersChanged(ctrl));
+    move_to(&mut h, pts[0]);
+    h.step();
+    h.input_mut().events.push(egui::Event::PointerButton { pos: pts[0], button: egui::PointerButton::Primary, pressed: true, modifiers: ctrl });
+    h.step();
+    for w in pts.windows(2) {
+        for k in 1..=4 {
+            move_to(&mut h, w[0] + (w[1] - w[0]) * (k as f32 / 4.0));
+            h.step();
+        }
+    }
+    assert!(matches!(h.state().ts.drag, crate::tools::Drag::Stroke { .. }), "not drawing");
+    save(&mut h, "issue_134_01_ctrl_drag_preview");
+    h.input_mut().events.push(egui::Event::PointerButton { pos: *pts.last().unwrap(), button: egui::PointerButton::Primary, pressed: false, modifiers: ctrl });
+    h.step();
+    h.input_mut().events.push(egui::Event::ModifiersChanged(egui::Modifiers::NONE));
+    let cs = curves(&h);
+    assert_eq!(cs.len(), 1);
+    assert_eq!(cs[0].subpaths[0].nodes.len(), 2, "{:?}", cs[0].subpaths[0].nodes);
+    let (a, b) = (cs[0].subpaths[0].nodes[0].p, cs[0].subpaths[0].nodes[1].p);
+    assert!(((b.y - a.y).atan2(b.x - a.x).to_degrees() - 45.0).abs() < 1e-6);
+    save(&mut h, "issue_134_02_ctrl_drag_line");
+    // one click, then the pointer away with Ctrl: the line to it keeps to 15° steps
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    let a = scr(&h, (150.0, 600.0));
+    click(&mut h, a);
+    h.input_mut().events.push(egui::Event::ModifiersChanged(ctrl));
+    let b = scr(&h, (400.0, 520.0));
+    move_to(&mut h, b);
+    h.step();
+    assert!(h.state().ts.line_start.is_some());
+    save(&mut h, "issue_134_03_click_line_preview");
+    h.input_mut().events.push(egui::Event::ModifiersChanged(egui::Modifiers::NONE));
+    h.state_mut().ts.cancel();
+}
+
+/// Double-click the Rectangle tool in the toolbox.
+fn double_click_rectangle_tool(h: &mut Harness<'_, AnyVectorApp>) {
+    use egui_kittest::kittest::Queryable;
+    // the toolbox button (left edge), not a property bar or menu item with the same tooltip
+    let at = h.query_all_by_label_contains("Rectangle tool").map(|n| n.rect().center()).min_by(|a, b| a.x.total_cmp(&b.x)).expect("no Rectangle tool button");
+    let at = egui::pos2(at.x - 3.0, at.y - 3.0);
+    move_to(h, at);
+    h.step();
+    // a step is 0.25 s and a double-click must come within 0.3 s: one click per step
+    for _ in 0..2 {
+        press(h, at, true);
+        press(h, at, false);
+        h.step();
+    }
+    h.step();
+}
+
+/// A rectangle and a turned ellipse, selected; returns their ids.
+fn two_shapes(h: &mut Harness<'_, AnyVectorApp>) -> (u64, u64) {
+    let d = h.state_mut().doc_mut().unwrap();
+    let (a, b) = (d.doc.new_id(), d.doc.new_id());
+    let st = Style { fill: Fill::Solid(Color::rgb(0x1e, 0x90, 0xff)), ..Style::default() };
+    let e = EllipseShape { w: 160.0, h: 80.0, kind: EllipseKind::Ellipse, start: 0.0, end: 0.0, clockwise: false };
+    d.add_objects(
+        "test",
+        vec![
+            Object::new(a, ObjKind::Rect(RectShape { w: 200.0, h: 120.0, radii: [0.0; 4], corner: CornerType::Round }), Affine::translate((100.0, 100.0)), st.clone()),
+            Object::new(b, ObjKind::Ellipse(e), Affine::translate((420.0, 260.0)) * Affine::rotate(30f64.to_radians()), st),
+        ],
+    );
+    d.selection = vec![a, b];
+    (a, b)
+}
+
+/// #135: with objects selected, double-clicking the Rectangle tool draws a rectangle around them
+/// (the selection's bounding box, axis-aligned also for a turned object), selected in their
+/// place, in one undo step; the objects stay as they were.
+#[test]
+fn double_click_rectangle_tool_wraps_the_selection() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    let (a, b) = two_shapes(&mut h);
+    h.step();
+    let (bb, before, oa, ob) = {
+        let d = h.state().doc().unwrap();
+        (d.selection_bounds().unwrap(), d.page_ref().all_objects().count(), d.doc.find(a).unwrap().clone(), d.doc.find(b).unwrap().clone())
+    };
+    let steps = undo_steps(&h);
+    double_click_rectangle_tool(&mut h);
+    let s = h.state();
+    assert_eq!(s.tool, ToolId::Rectangle);
+    let d = s.doc().unwrap();
+    assert_eq!(d.page_ref().all_objects().count(), before + 1);
+    assert_eq!(d.selection.len(), 1);
+    assert!(d.selection[0] != a && d.selection[0] != b);
+    let o = d.doc.find(d.selection[0]).unwrap();
+    assert!(matches!(o.kind, ObjKind::Rect(_)));
+    let r = kurbo::Shape::bounding_box(&o.world_path());
+    for (x, y) in [(r.x0, bb.x0), (r.y0, bb.y0), (r.x1, bb.x1), (r.y1, bb.y1)] {
+        assert!((x - y).abs() < 0.01, "{r:?} is not around the selection {bb:?}");
+    }
+    assert_eq!(d.doc.find(a).unwrap(), &oa);
+    assert_eq!(d.doc.find(b).unwrap(), &ob);
+    assert_eq!(undo_steps(&h), steps + 1);
+    undo(&mut h);
+    assert_eq!(h.state().doc().unwrap().page_ref().all_objects().count(), before);
+    // a single object: around it
+    h.state_mut().doc_mut().unwrap().selection = vec![b];
+    crate::tools::rectangle_to_bounds(h.state_mut());
+    let d = h.state().doc().unwrap();
+    let r = kurbo::Shape::bounding_box(&d.doc.find(d.selection[0]).unwrap().world_path());
+    let eb = d.doc.find(b).unwrap().bounds();
+    assert!((r.x0 - eb.x0).abs() < 0.01 && (r.y1 - eb.y1).abs() < 0.01 && (r.width() - eb.width()).abs() < 0.01, "{r:?} vs {eb:?}");
+    // nothing selected: the page, as before (#99)
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    crate::tools::rectangle_to_bounds(h.state_mut());
+    let d = h.state().doc().unwrap();
+    let page = d.page_ref().rect();
+    let r = kurbo::Shape::bounding_box(&d.doc.find(d.selection[0]).unwrap().world_path());
+    assert!((r.x0 - page.x0).abs() < 0.01 && (r.y1 - page.y1).abs() < 0.01 && (r.width() - page.width()).abs() < 0.01, "{r:?} vs the page {page:?}");
+}
+
+/// #135: the rectangle drawn around two selected shapes by double-clicking the Rectangle tool.
+/// Images go to `target/visual/issue_135_*.png`.
+#[test]
+#[ignore]
+fn visual_issue_135_rectangle_around_the_selection() {
+    let mut h = doc_harness();
+    two_shapes(&mut h);
+    h.state_mut().set_tool(crate::tools::ToolId::Pick);
+    save(&mut h, "issue_135_01_selection");
+    double_click_rectangle_tool(&mut h);
+    let d = h.state().doc().unwrap();
+    assert!(matches!(d.doc.find(d.selection[0]).unwrap().kind, ObjKind::Rect(_)));
+    save(&mut h, "issue_135_02_rectangle_around_it");
+}
+
+/// A selected artistic text on a Shape-tool document.
+fn spacing_text<'a>(s: &str, tr: Affine) -> (Harness<'a, AnyVectorApp>, u64) {
+    use vector_core::text::{CharFormat, TextObj};
+    let (mut h, id) = shape_object(ObjKind::Text(TextObj::artistic(s, CharFormat::default())), (0.0, 0.0));
+    h.state_mut().doc_mut().unwrap().doc.find_mut(id).unwrap().transform = tr;
+    h.state_mut().settings.crosshair_cursor = false;
+    (h, id)
+}
+
+fn text_of(h: &Harness<'_, AnyVectorApp>, id: u64) -> vector_core::text::TextObj {
+    match kind_of(h, id) {
+        ObjKind::Text(t) => t,
+        k => panic!("{k:?}"),
+    }
+}
+
+/// The text's spacing handles: (horizontal, vertical), in document points.
+fn spacing_handles(h: &Harness<'_, AnyVectorApp>, id: u64) -> Option<((f64, f64), (f64, f64))> {
+    let d = h.state().doc().unwrap();
+    crate::tools::text_spacing_handles(d, d.doc.find(id).unwrap()).map(|[(a, _), (b, _)]| ((a.x, a.y), (b.x, b.y)))
+}
+
+/// The width of the widest line and the baselines of a text.
+fn text_lines(t: &vector_core::text::TextObj) -> (f64, Vec<f64>) {
+    let l = vector_core::text::layout(t);
+    (l.lines.iter().map(|x| x.x1 - x.x0).fold(0.0, f64::max), l.lines.iter().map(|x| x.baseline).collect())
+}
+
+/// #110: the Shape tool shows CorelDRAW's spacing handles on a selected text: dragging the one
+/// past the lower right corner sets the character spacing (Shift: the word spacing), the widest
+/// line following the pointer; the one below the lower left corner the line spacing (Shift: the
+/// space after paragraphs), the last line following the pointer. One undo step per drag, named as
+/// the Text docker's field; the docker's values are the text's.
+#[test]
+fn shape_tool_text_spacing_handles() {
+    use egui::CursorIcon;
+    let shift = egui::Modifiers::SHIFT;
+    let none = egui::Modifiers::NONE;
+    let (mut h, id) = spacing_text("Spacing handles\nsecond line", Affine::translate((100.0, 200.0)));
+    let t0 = text_of(&h, id);
+    let (w0, b0) = text_lines(&t0);
+    assert_eq!(b0.len(), 2);
+    let (hh, vh) = spacing_handles(&h, id).expect("no spacing handles on the text");
+    let bb = h.state().doc().unwrap().doc.find(id).unwrap().bounds();
+    assert!(hh.0 > bb.x1 && hh.1 > bb.center().y && hh.1 < vh.1, "{hh:?} {vh:?} {bb:?}");
+    assert!(vh.1 > bb.y1 && (vh.0 - bb.x0).abs() < 3.0, "{vh:?} {bb:?}");
+    let cursor = |h: &Harness<'_, AnyVectorApp>, p: (f64, f64)| crate::canvas::cursor_for(h.state(), scr(h, p));
+    assert_eq!(cursor(&h, hh), CursorIcon::ResizeHorizontal);
+    assert_eq!(cursor(&h, vh), CursorIcon::ResizeVertical);
+    let steps = undo_steps(&h);
+    // the horizontal handle 30 to the right: the character spacing grows
+    shape_drag(&mut h, hh, (hh.0 + 30.0, hh.1 + 4.0), none);
+    let t1 = text_of(&h, id);
+    let (w1, _) = text_lines(&t1);
+    assert!(t1.format.tracking > 0.0, "{}", t1.format.tracking);
+    assert!((w1 - w0 - 30.0).abs() < 1.0, "the widest line grew {} for a drag of 30", w1 - w0);
+    assert_eq!((t1.line_spacing, t1.word_spacing, t1.para_spacing), (100.0, 100.0, 0.0));
+    assert_eq!(undo_steps(&h), steps + 1);
+    assert_eq!(last_undo(&h), "Character Spacing");
+    assert_eq!(crate::tools::TextSpacing::Char.value(&t1), t1.format.tracking);
+    // the handle went along with the text
+    let (hh1, vh1) = spacing_handles(&h, id).unwrap();
+    assert!((hh1.0 - hh.0 - 30.0).abs() < 1.0, "{hh1:?}");
+    // the vertical handle 20 down: the line spacing grows, the second line goes 20 down
+    shape_drag(&mut h, vh1, (vh1.0 - 5.0, vh1.1 + 20.0), none);
+    let t2 = text_of(&h, id);
+    let (_, b2) = text_lines(&t2);
+    assert!(t2.line_spacing > 100.0);
+    assert!(((b2[1] - b2[0]) - (b0[1] - b0[0]) - 20.0).abs() < 0.5, "the second line moved {}", (b2[1] - b2[0]) - (b0[1] - b0[0]));
+    assert_eq!(t2.format.tracking, t1.format.tracking);
+    assert_eq!(last_undo(&h), "Line Spacing");
+    // Shift: the word spacing
+    let (hh2, vh2) = spacing_handles(&h, id).unwrap();
+    shape_drag(&mut h, hh2, (hh2.0 + 20.0, hh2.1), shift);
+    let t3 = text_of(&h, id);
+    assert!(t3.word_spacing > 100.0 && t3.format.tracking == t2.format.tracking, "{} {}", t3.word_spacing, t3.format.tracking);
+    assert!((text_lines(&t3).0 - text_lines(&t2).0 - 20.0).abs() < 1.5, "{}", text_lines(&t3).0 - text_lines(&t2).0);
+    assert_eq!(last_undo(&h), "Word Spacing");
+    // Shift: the space after paragraphs
+    shape_drag(&mut h, vh2, (vh2.0, vh2.1 + 10.0), shift);
+    let t4 = text_of(&h, id);
+    let (_, b4) = text_lines(&t4);
+    assert!(t4.para_spacing > 0.0 && t4.line_spacing == t2.line_spacing);
+    assert!(((b4[1] - b4[0]) - (b2[1] - b2[0]) - 10.0).abs() < 0.5, "{}", (b4[1] - b4[0]) - (b2[1] - b2[0]));
+    assert_eq!(last_undo(&h), "After Paragraph Spacing");
+    // far to the left: no less than the Text docker allows
+    let (hh4, _) = spacing_handles(&h, id).unwrap();
+    shape_drag(&mut h, hh4, (hh4.0 - 3000.0, hh4.1), none);
+    assert_eq!(text_of(&h, id).format.tracking, -100.0);
+    // a click on a handle changes nothing
+    let steps5 = undo_steps(&h);
+    let (_, vh5) = spacing_handles(&h, id).unwrap();
+    tool_click(&mut h, vh5, egui::Vec2::ZERO);
+    assert_eq!(undo_steps(&h), steps5);
+    assert_eq!(undo_steps(&h), steps + 5);
+    for _ in 0..5 {
+        undo(&mut h);
+    }
+    assert_eq!(text_of(&h, id), t0, "undo did not bring the spacing back");
+}
+
+/// #110: the spacing handles of a turned text work along its own lines; paragraph text has them
+/// at its frame; the character spacing of every run changes alike; there are none on text being
+/// edited, on a path or vertical.
+#[test]
+fn text_spacing_handles_follow_the_text() {
+    use vector_core::text::{CharFormat, Span, TextKind};
+    // turned a quarter: its lines run down the page
+    let (mut h, id) = spacing_text("Turned", Affine::translate((300.0, 100.0)) * Affine::rotate(std::f64::consts::FRAC_PI_2));
+    let t0 = text_of(&h, id);
+    let (hh, vh) = spacing_handles(&h, id).unwrap();
+    assert!(hh.1 > vh.1 && (hh.0 - 300.0).abs() < (vh.0 - 300.0).abs() + 1.0, "{hh:?} {vh:?}");
+    shape_drag(&mut h, hh, (hh.0, hh.1 + 24.0), egui::Modifiers::NONE);
+    let t1 = text_of(&h, id);
+    assert!((text_lines(&t1).0 - text_lines(&t0).0 - 24.0).abs() < 1.0, "{}", text_lines(&t1).0 - text_lines(&t0).0);
+    // runs of their own sizes and spacing: all change by the same amount
+    let (mut h, id) = spacing_text("Big and small", Affine::translate((100.0, 300.0)));
+    if let ObjKind::Text(t) = &mut h.state_mut().doc_mut().unwrap().doc.find_mut(id).unwrap().kind {
+        t.spans = vec![Span { start: 0, end: 3, format: CharFormat { size: 48.0, tracking: 20.0, ..CharFormat::default() } }];
+    }
+    let t0 = text_of(&h, id);
+    let (hh, _) = spacing_handles(&h, id).unwrap();
+    shape_drag(&mut h, hh, (hh.0 + 40.0, hh.1), egui::Modifiers::NONE);
+    let t1 = text_of(&h, id);
+    let d = t1.format.tracking;
+    assert!(d > 0.0 && (t1.spans[0].format.tracking - 20.0 - d).abs() < 0.11, "{} {}", d, t1.spans[0].format.tracking);
+    assert!((text_lines(&t1).0 - text_lines(&t0).0 - 40.0).abs() < 1.0, "{}", text_lines(&t1).0 - text_lines(&t0).0);
+    // paragraph text: at the lower corners of its frame
+    if let ObjKind::Text(t) = &mut h.state_mut().doc_mut().unwrap().doc.find_mut(id).unwrap().kind {
+        t.kind = TextKind::Paragraph { width: 300.0, height: 200.0 };
+    }
+    let gap = h.state().doc().unwrap().doc_len(12.0);
+    let (hh, vh) = spacing_handles(&h, id).unwrap();
+    assert!(near(Point::new(hh.0, hh.1), (400.0 + gap, 500.0)) && near(Point::new(vh.0, vh.1), (100.0, 500.0 + gap)), "{hh:?} {vh:?}");
+    // none while the text is edited, on a path, or vertical
+    h.state_mut().doc_mut().unwrap().text_edit = Some(crate::docview::TextEdit { obj: id, caret: 0, anchor: 0, blink: 0.0 });
+    assert!(spacing_handles(&h, id).is_none());
+    h.state_mut().doc_mut().unwrap().text_edit = None;
+    if let ObjKind::Text(t) = &mut h.state_mut().doc_mut().unwrap().doc.find_mut(id).unwrap().kind {
+        t.vertical = true;
+    }
+    assert!(spacing_handles(&h, id).is_none());
+    if let ObjKind::Text(t) = &mut h.state_mut().doc_mut().unwrap().doc.find_mut(id).unwrap().kind {
+        t.vertical = false;
+        t.kind = TextKind::Artistic;
+        t.on_path = Some(vector_core::text::TextOnPath { path: vector_core::path::polyline(&[Point::new(0.0, 0.0), Point::new(300.0, 0.0)], false), offset: 0.0, distance: 0.0, flip: false });
+    }
+    assert!(spacing_handles(&h, id).is_none());
+    let p = scr(&h, (100.0, 300.0));
+    assert!(!matches!(crate::tools::shape_hit(h.state().doc().unwrap(), h.state().doc().unwrap().to_doc(p), 5.0), Some(crate::tools::ShapeHit::TextSpacing { .. })));
+}
+
+/// #110: the spacing handles on a text with the Shape tool, and the text after dragging each.
+/// Images go to `target/visual/issue_110_*.png`.
+#[test]
+#[ignore]
+fn visual_issue_110_text_spacing_handles() {
+    use vector_core::text::{CharFormat, TextObj};
+    let mut h = doc_harness();
+    h.state_mut().doc_mut().unwrap().doc.settings.snap_off = true;
+    let id = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let id = d.doc.new_id();
+        let st = Style { fill: Fill::Solid(Color::BLACK), ..Style::default() };
+        let t = TextObj::artistic("Character spacing\nand line spacing", CharFormat { size: 40.0, ..CharFormat::default() });
+        d.add_objects("test", vec![Object::new(id, ObjKind::Text(t), Affine::translate((150.0, 250.0)), st)]);
+        d.selection = vec![id];
+        id
+    };
+    h.state_mut().set_tool(crate::tools::ToolId::Shape);
+    save(&mut h, "issue_110_01_handles");
+    let (hh, _) = spacing_handles(&h, id).unwrap();
+    shape_drag(&mut h, hh, (hh.0 + 80.0, hh.1), egui::Modifiers::NONE);
+    save(&mut h, "issue_110_02_character_spacing");
+    let (_, vh) = spacing_handles(&h, id).unwrap();
+    shape_drag(&mut h, vh, (vh.0, vh.1 + 40.0), egui::Modifiers::NONE);
+    save(&mut h, "issue_110_03_line_spacing");
+    let t = text_of(&h, id);
+    assert!(t.format.tracking > 0.0 && t.line_spacing > 100.0);
+}
+
+// ---- PowerClip: Alt+click selects the contents, Ctrl+click enters, the floating PowerClip toolbar (#111, #112) ----
+
+/// A PowerClip on a Pick-tool document: an ellipse frame (100,100)–(400,300) holding a red
+/// rectangle (150,150)–(230,250) and a blue one (260,170)–(560,230) that runs past the frame.
+/// Gives (PowerClip, red, blue, frame).
+fn powerclip_doc<'a>() -> (Harness<'a, AnyVectorApp>, [u64; 4]) {
+    let mut h = join_harness(crate::tools::ToolId::Pick);
+    let ids = add_powerclip(&mut h);
+    (h, ids)
+}
+
+fn add_powerclip(h: &mut Harness<'_, AnyVectorApp>) -> [u64; 4] {
+    let d = h.state_mut().doc_mut().unwrap();
+    let solid = |c: Color| Style { fill: Fill::Solid(c), ..Style::default() };
+    let r = |w: f64, h: f64| ObjKind::Rect(RectShape { w, h, radii: [0.0; 4], corner: CornerType::default() });
+    let (fid, aid, bid, pid) = (d.doc.new_id(), d.doc.new_id(), d.doc.new_id(), d.doc.new_id());
+    let mut frame_style = Style::default();
+    frame_style.outline.color = Some(Color::BLACK);
+    let frame = Object::new(fid, ObjKind::Ellipse(EllipseShape { w: 300.0, h: 200.0, kind: EllipseKind::Ellipse, start: 0.0, end: 0.0, clockwise: false }), Affine::translate((100.0, 100.0)), frame_style);
+    let a = Object::new(aid, r(80.0, 100.0), Affine::translate((150.0, 150.0)), solid(Color::rgb(220, 40, 40)));
+    let b = Object::new(bid, r(300.0, 60.0), Affine::translate((260.0, 170.0)), solid(Color::rgb(40, 90, 220)));
+    let mut pc = Object::new(pid, ObjKind::PowerClip { frame: Box::new(frame), contents: vec![a, b] }, Affine::IDENTITY, Style::default());
+    pc.name = "PowerClip".into();
+    d.add_objects("test", vec![pc]);
+    d.selection.clear();
+    [pid, aid, bid, fid]
+}
+
+/// A Pick tool click at a document point, with modifiers, fed straight to the tool.
+fn pick_click(h: &mut Harness<'_, AnyVectorApp>, at: (f64, f64), mods: egui::Modifiers) {
+    let s = scr(h, at);
+    shape_in(h, s, true, true, false, false, mods);
+    shape_in(h, s, false, false, true, false, mods);
+    // the commands the click queued (Finish) run on the next frame
+    h.step();
+}
+
+/// Run a command (commands run on the next frame).
+fn run_cmd(h: &mut Harness<'_, AnyVectorApp>, c: Cmd) {
+    h.state_mut().run(c);
+    h.step();
+}
+
+/// A Pick tool double-click at a document point.
+fn pick_double(h: &mut Harness<'_, AnyVectorApp>, at: (f64, f64)) {
+    pick_click(h, at, egui::Modifiers::NONE);
+    let s = scr(h, at);
+    shape_in(h, s, true, true, false, false, egui::Modifiers::NONE);
+    shape_in(h, s, false, false, true, true, egui::Modifiers::NONE);
+    h.step();
+}
+
+fn sel(h: &Harness<'_, AnyVectorApp>) -> Vec<u64> {
+    h.state().doc().unwrap().selection.clone()
+}
+
+fn editing(h: &Harness<'_, AnyVectorApp>) -> Option<u64> {
+    h.state().doc().unwrap().editing_powerclip()
+}
+
+fn x0(h: &Harness<'_, AnyVectorApp>, id: u64) -> f64 {
+    h.state().doc().unwrap().doc.find(id).unwrap().bounds().x0
+}
+
+const ALT: egui::Modifiers = egui::Modifiers { alt: true, ctrl: false, shift: false, mac_cmd: false, command: false };
+const CTRL: egui::Modifiers = egui::Modifiers { alt: false, ctrl: true, shift: false, mac_cmd: false, command: true };
+
+/// #111: a click selects the PowerClip; Alt+click selects the contents under the pointer without
+/// entering the PowerClip, and they then drag on their own; Ctrl+click (and a double-click)
+/// enters the PowerClip, where clicks and the marquee pick the contents, shown in full; Ctrl+click
+/// off the contents, a double-click off them or Esc finishes and selects the PowerClip again.
+#[test]
+fn powerclip_alt_click_selects_contents_and_ctrl_click_enters() {
+    let (mut h, [pc, a, b, frame]) = powerclip_doc();
+    let none = egui::Modifiers::NONE;
+    // a plain click picks the PowerClip
+    pick_click(&mut h, (190.0, 200.0), none);
+    assert_eq!(sel(&h), vec![pc]);
+    // Alt+click: the content under the pointer, the PowerClip stays closed
+    pick_click(&mut h, (190.0, 200.0), ALT);
+    assert_eq!(sel(&h), vec![a], "Alt+click didn't select the contents");
+    assert_eq!(editing(&h), None, "Alt+click entered the PowerClip");
+    // with that content selected, Alt+click goes on down the stack (#139), and back to it
+    pick_click(&mut h, (190.0, 200.0), ALT);
+    assert_ne!(sel(&h), vec![a], "a second Alt+click stayed on the content");
+    pick_click(&mut h, (190.0, 200.0), ALT);
+    assert_eq!(sel(&h), vec![a], "Alt+click didn't come back to the contents");
+    // Shift+Alt adds another content
+    pick_click(&mut h, (300.0, 200.0), egui::Modifiers { shift: true, ..ALT });
+    assert_eq!(sel(&h), vec![a, b]);
+    pick_click(&mut h, (700.0, 500.0), none);
+    pick_click(&mut h, (190.0, 200.0), ALT);
+    // a content selected that way drags on its own (no Alt needed), as one undo step
+    let (fx, bx) = (x0(&h, frame), x0(&h, b));
+    let ax = x0(&h, a);
+    shape_drag(&mut h, (190.0, 200.0), (210.0, 220.0), none);
+    assert_eq!(sel(&h), vec![a]);
+    assert!((x0(&h, a) - ax - 20.0).abs() < 0.01, "the content didn't move");
+    assert_eq!((x0(&h, frame), x0(&h, b)), (fx, bx), "the frame or the other content moved");
+    assert_eq!(h.state().doc().unwrap().doc.parent_of(a), Some(pc), "the content left the PowerClip");
+    run_cmd(&mut h, Cmd::Undo);
+    assert!((x0(&h, a) - ax).abs() < 0.01);
+    // a click on the selected content keeps it (a second click is for rotating, as anywhere);
+    // a click on the PowerClip off that content picks the PowerClip again
+    pick_click(&mut h, (190.0, 200.0), none);
+    assert_eq!(sel(&h), vec![a]);
+    pick_click(&mut h, (250.0, 120.0), none);
+    assert_eq!(sel(&h), vec![pc]);
+
+    // Ctrl+click enters the PowerClip, the content clicked selected
+    pick_click(&mut h, (300.0, 200.0), CTRL);
+    assert_eq!(editing(&h), Some(pc), "Ctrl+click didn't enter the PowerClip");
+    assert_eq!(sel(&h), vec![b]);
+    // inside, a click picks a content and a drag moves only it
+    pick_click(&mut h, (190.0, 200.0), none);
+    assert_eq!(sel(&h), vec![a]);
+    shape_drag(&mut h, (190.0, 200.0), (200.0, 200.0), none);
+    assert!((x0(&h, a) - ax - 10.0).abs() < 0.01);
+    assert_eq!(x0(&h, frame), fx);
+    run_cmd(&mut h, Cmd::Undo);
+    // the contents show in full: the part past the frame picks too
+    pick_click(&mut h, (500.0, 200.0), none);
+    assert_eq!(sel(&h), vec![b], "the contents past the frame can't be picked while editing");
+    // empty space inside the frame: nothing selected, still editing
+    pick_click(&mut h, (250.0, 120.0), none);
+    assert!(sel(&h).is_empty());
+    assert_eq!(editing(&h), Some(pc), "a click off the contents left the PowerClip");
+    // the marquee selects among the contents
+    shape_drag(&mut h, (140.0, 140.0), (240.0, 260.0), none);
+    assert_eq!(sel(&h), vec![a]);
+    // Select All: all the contents
+    run_cmd(&mut h, Cmd::SelectAll);
+    assert_eq!(sel(&h), vec![a, b]);
+    // Ctrl+click off the contents finishes: the PowerClip is selected again
+    pick_click(&mut h, (700.0, 500.0), CTRL);
+    assert_eq!(editing(&h), None, "Ctrl+click outside didn't finish");
+    assert_eq!(sel(&h), vec![pc]);
+
+    // a double-click enters too
+    pick_double(&mut h, (190.0, 200.0));
+    assert_eq!(editing(&h), Some(pc), "a double-click didn't enter the PowerClip");
+    assert_eq!(sel(&h), vec![a]);
+    // and a double-click off the contents finishes
+    pick_double(&mut h, (700.0, 500.0));
+    assert_eq!(editing(&h), None);
+    assert_eq!(sel(&h), vec![pc]);
+
+    // Edit PowerClip, then Esc: the first deselects, the second finishes
+    run_cmd(&mut h, Cmd::PowerClipEdit);
+    assert_eq!(editing(&h), Some(pc));
+    assert!(sel(&h).is_empty());
+    pick_click(&mut h, (190.0, 200.0), none);
+    assert_eq!(sel(&h), vec![a]);
+    h.key_press(egui::Key::Escape);
+    h.step();
+    assert!(sel(&h).is_empty());
+    assert_eq!(editing(&h), Some(pc), "Esc with a content selected left the PowerClip");
+    h.key_press(egui::Key::Escape);
+    h.step();
+    assert_eq!(editing(&h), None, "Esc didn't finish editing");
+    assert_eq!(sel(&h), vec![pc]);
+
+    // with the Windows modifier keys Ctrl is Duplicate: a Ctrl+click doesn't enter
+    h.state_mut().settings.windows_modifiers = true;
+    pick_click(&mut h, (190.0, 200.0), CTRL);
+    assert_eq!(editing(&h), None);
+    assert_eq!(sel(&h), vec![pc]);
+    h.state_mut().settings.windows_modifiers = false;
+    // Alt+click off any PowerClip keeps its own meaning (nothing PowerClip-specific happens)
+    pick_click(&mut h, (700.0, 500.0), ALT);
+    assert!(sel(&h).is_empty());
+}
+
+/// #111 with a PowerClip inside the contents of another: Alt+click reaches the deepest content;
+/// each Ctrl+click enters one level and each Finish goes back out one level.
+#[test]
+fn powerclip_nested_levels() {
+    let mut h = join_harness(crate::tools::ToolId::Pick);
+    let [outer, inner, deep] = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let r = |id: u64, at: (f64, f64), w: f64, hh: f64, c: Color| {
+            Object::new(id, ObjKind::Rect(RectShape { w, h: hh, radii: [0.0; 4], corner: CornerType::default() }), Affine::translate(at), Style { fill: Fill::Solid(c), ..Style::default() })
+        };
+        let ids: Vec<u64> = (0..5).map(|_| d.doc.new_id()).collect();
+        let deep = r(ids[0], (160.0, 160.0), 60.0, 60.0, Color::rgb(220, 40, 40));
+        let inner_frame = r(ids[1], (150.0, 150.0), 200.0, 100.0, Color::rgb(240, 240, 160));
+        let inner = Object::new(ids[2], ObjKind::PowerClip { frame: Box::new(inner_frame), contents: vec![deep] }, Affine::IDENTITY, Style::default());
+        let outer_frame = r(ids[3], (100.0, 100.0), 400.0, 300.0, Color::rgb(200, 220, 240));
+        let outer = Object::new(ids[4], ObjKind::PowerClip { frame: Box::new(outer_frame), contents: vec![inner] }, Affine::IDENTITY, Style::default());
+        d.add_objects("test", vec![outer]);
+        [ids[4], ids[2], ids[0]]
+    };
+    pick_click(&mut h, (180.0, 180.0), ALT);
+    assert_eq!(sel(&h), vec![deep], "Alt+click didn't dig to the deepest content");
+    pick_click(&mut h, (300.0, 200.0), egui::Modifiers::NONE);
+    assert_eq!(sel(&h), vec![outer]);
+    pick_click(&mut h, (300.0, 200.0), CTRL);
+    assert_eq!((editing(&h), sel(&h)), (Some(outer), vec![inner]), "Ctrl+click enters one level");
+    pick_click(&mut h, (180.0, 180.0), CTRL);
+    assert_eq!((editing(&h), sel(&h)), (Some(inner), vec![deep]), "Ctrl+click on a nested PowerClip enters it");
+    run_cmd(&mut h, Cmd::PowerClipFinish);
+    assert_eq!((editing(&h), sel(&h)), (Some(outer), vec![inner]), "Finish goes back to the PowerClip around");
+    run_cmd(&mut h, Cmd::PowerClipFinish);
+    assert_eq!((editing(&h), sel(&h)), (None, vec![outer]));
+    // Extract of the nested PowerClip while editing the outer one keeps its contents inside
+    run_cmd(&mut h, Cmd::PowerClipEdit);
+    h.state_mut().doc_mut().unwrap().selection = vec![inner];
+    run_cmd(&mut h, Cmd::PowerClipExtract);
+    assert_eq!(sel(&h), vec![deep]);
+    assert_eq!(h.state().doc().unwrap().doc.parent_of(deep), Some(outer));
+}
+
+/// The center of the widget with this accessible label.
+fn labeled(h: &Harness<'_, AnyVectorApp>, label: &str) -> Option<egui::Pos2> {
+    use egui_kittest::kittest::Queryable;
+    h.query_by_label(label).map(|n| n.rect().center())
+}
+
+fn press_labeled(h: &mut Harness<'_, AnyVectorApp>, label: &str) {
+    let at = labeled(h, label).unwrap_or_else(|| panic!("no '{label}' on screen"));
+    click(h, at);
+    h.step();
+}
+
+/// #112: a selected PowerClip shows the floating PowerClip toolbar under it (the property bar
+/// stays the frame's, as in CorelDRAW); its Edit, Select Contents, Extract, Lock and placement
+/// buttons work, and while editing it offers Finish (as does the Finish button of the drawing).
+#[test]
+fn powerclip_toolbar_shows_and_its_buttons_work() {
+    let (mut h, [pc, a, b, frame]) = powerclip_doc();
+    for _ in 0..2 {
+        h.step();
+    }
+    assert!(labeled(&h, "Select Contents").is_none(), "the toolbar shows with nothing selected");
+    h.state_mut().doc_mut().unwrap().selection = vec![pc];
+    h.step();
+    h.step();
+    // under the PowerClip
+    let target = crate::powerclip::target_rect(h.state().doc().unwrap()).unwrap();
+    let at = labeled(&h, "Select Contents").expect("no floating PowerClip toolbar");
+    assert!(at.y > target.bottom() && (at.x - target.center().x).abs() < 120.0, "the toolbar isn't under the PowerClip: {at:?} {target:?}");
+    for l in ["Edit PowerClip...", "Extract Contents", "Lock Contents to PowerClip", crate::powerclip::ADJUST_CONTENTS] {
+        assert!(labeled(&h, l).is_some(), "no '{l}' on the toolbar");
+    }
+    // the property bar is still the frame's (the ellipse bar), as in CorelDRAW
+    let bar = crate::propbar::bar_for(h.state()).and_then(crate::ui::bar).unwrap();
+    assert!(bar.id.starts_with("1fa965b7"), "the property bar of a PowerClip isn't its frame's: {}", bar.name);
+
+    // Lock Contents to PowerClip toggles
+    assert!(!h.state().doc().unwrap().doc.find(pc).unwrap().powerclip_unlocked);
+    press_labeled(&mut h, "Lock Contents to PowerClip");
+    assert!(h.state().doc().unwrap().doc.find(pc).unwrap().powerclip_unlocked, "Lock didn't toggle");
+    press_labeled(&mut h, "Lock Contents to PowerClip");
+    assert!(!h.state().doc().unwrap().doc.find(pc).unwrap().powerclip_unlocked);
+
+    // the arrow: Fit Proportionally puts the contents in the middle of the frame, touching it
+    press_labeled(&mut h, crate::powerclip::ADJUST_CONTENTS);
+    press_labeled(&mut h, "Fit Proportionally");
+    {
+        let d = h.state().doc().unwrap();
+        let fb = d.doc.find(frame).unwrap().bounds();
+        let cb = d.doc.find(a).unwrap().bounds().union(d.doc.find(b).unwrap().bounds());
+        assert!((cb.center() - fb.center()).hypot() < 0.5, "not centred: {cb:?} in {fb:?}");
+        assert!((cb.width() - fb.width()).abs() < 0.5 || (cb.height() - fb.height()).abs() < 0.5, "doesn't fit: {cb:?} in {fb:?}");
+        assert!(cb.width() <= fb.width() + 0.5 && cb.height() <= fb.height() + 0.5);
+    }
+    run_cmd(&mut h, Cmd::Undo);
+
+    // Select Contents: the contents, the PowerClip stays closed; the toolbar goes away
+    press_labeled(&mut h, "Select Contents");
+    assert_eq!(sel(&h), vec![a, b]);
+    assert_eq!(editing(&h), None);
+    h.step();
+    assert!(labeled(&h, "Select Contents").is_none());
+
+    // Edit PowerClip: the toolbar offers Finish instead
+    h.state_mut().doc_mut().unwrap().selection = vec![pc];
+    h.step();
+    h.step();
+    press_labeled(&mut h, "Edit PowerClip...");
+    assert_eq!(editing(&h), Some(pc), "Edit didn't enter the PowerClip");
+    h.step();
+    assert!(labeled(&h, "Edit PowerClip...").is_none());
+    press_labeled(&mut h, "Finish Editing PowerClip");
+    assert_eq!((editing(&h), sel(&h)), (None, vec![pc]), "Finish didn't leave the PowerClip");
+
+    // Extract Contents: the frame stays, the contents are selected, one undo step
+    h.step();
+    press_labeled(&mut h, "Extract Contents");
+    {
+        let d = h.state().doc().unwrap();
+        assert_eq!(d.selection, vec![a, b]);
+        assert!(d.doc.find(pc).is_none());
+        assert_eq!(d.doc.parent_of(a), None);
+        assert!(matches!(d.doc.find(frame).unwrap().kind, ObjKind::Ellipse(_)));
+    }
+    run_cmd(&mut h, Cmd::Undo);
+    assert!(h.state().doc().unwrap().doc.find(pc).is_some(), "one undo didn't put the contents back");
+
+    // not with another tool, nor for a plain object
+    h.state_mut().doc_mut().unwrap().selection = vec![pc];
+    h.state_mut().set_tool(crate::tools::ToolId::Rectangle);
+    h.step();
+    h.step();
+    assert!(labeled(&h, "Select Contents").is_none(), "the toolbar shows with the Rectangle tool");
+    h.state_mut().set_tool(crate::tools::ToolId::Pick);
+    h.state_mut().doc_mut().unwrap().selection = vec![frame];
+    h.step();
+    h.step();
+    assert!(labeled(&h, "Select Contents").is_none());
+}
+
+/// #111/#112 on screen: the floating PowerClip toolbar under a selected PowerClip and its
+/// placement menu; a content selected with Alt+click; editing, with the frame as a blue outline,
+/// the contents shown in full and the drawing's Finish button.
+#[test]
+#[ignore]
+fn visual_issue_111_112_powerclip() {
+    let mut h = doc_harness();
+    h.state_mut().doc_mut().unwrap().doc.settings.snap_off = true;
+    h.state_mut().set_tool(crate::tools::ToolId::Pick);
+    let [pc, a, b, _] = add_powerclip(&mut h);
+    h.state_mut().doc_mut().unwrap().selection = vec![pc];
+    save(&mut h, "issue_112_01_powerclip_toolbar");
+    assert!(labeled(&h, "Select Contents").is_some());
+    press_labeled(&mut h, crate::powerclip::ADJUST_CONTENTS);
+    save(&mut h, "issue_112_02_adjust_contents_menu");
+    h.key_press(egui::Key::Escape);
+    h.step();
+    h.state_mut().doc_mut().unwrap().selection = vec![pc];
+    pick_click(&mut h, (190.0, 200.0), ALT);
+    assert_eq!(sel(&h), vec![a]);
+    save(&mut h, "issue_111_01_alt_click_content");
+    pick_click(&mut h, (300.0, 200.0), CTRL);
+    assert_eq!((editing(&h), sel(&h)), (Some(pc), vec![b]));
+    save(&mut h, "issue_111_02_editing_powerclip");
+    assert!(labeled(&h, "Finish Editing PowerClip").is_some());
+    press_labeled(&mut h, "Finish Editing PowerClip");
+    assert_eq!((editing(&h), sel(&h)), (None, vec![pc]));
+    save(&mut h, "issue_111_03_finished");
+}
+
+// ---- 0.6.0: Alt+click through a stack (#139), the shadow clicked (#106), shadows broken off (#105) ----
+
+/// A click with modifiers held (Alt, Shift+Alt...), as the real window sends it.
+fn click_mods(h: &mut Harness<'_, AnyVectorApp>, p: egui::Pos2, mods: egui::Modifiers) {
+    let button = |down| egui::Event::PointerButton { pos: p, button: egui::PointerButton::Primary, pressed: down, modifiers: mods };
+    h.input_mut().events.push(egui::Event::ModifiersChanged(mods));
+    move_to(h, p);
+    h.step();
+    h.input_mut().events.push(button(true));
+    h.step();
+    h.input_mut().events.push(button(false));
+    h.step();
+    h.input_mut().events.push(egui::Event::ModifiersChanged(egui::Modifiers::NONE));
+    h.step();
+}
+
+/// A drag with modifiers held.
+fn drag_mods(h: &mut Harness<'_, AnyVectorApp>, a: egui::Pos2, b: egui::Pos2, mods: egui::Modifiers) {
+    let button = |p, down| egui::Event::PointerButton { pos: p, button: egui::PointerButton::Primary, pressed: down, modifiers: mods };
+    h.input_mut().events.push(egui::Event::ModifiersChanged(mods));
+    move_to(h, a);
+    h.step();
+    h.input_mut().events.push(button(a, true));
+    h.step();
+    for k in 1..=6 {
+        move_to(h, a + (b - a) * (k as f32 / 6.0));
+        h.step();
+    }
+    h.input_mut().events.push(button(b, false));
+    h.step();
+    h.input_mut().events.push(egui::Event::ModifiersChanged(egui::Modifiers::NONE));
+    h.step();
+}
+
+/// A square of side `w` at `at` with a fill, on the active layer (not selected).
+fn square_at(h: &mut Harness<'_, AnyVectorApp>, at: (f64, f64), w: f64, rgb: (u8, u8, u8)) -> vector_core::ObjId {
+    let d = h.state_mut().doc_mut().unwrap();
+    let id = d.doc.new_id();
+    let r = RectShape { w, h: w, radii: [0.0; 4], corner: CornerType::default() };
+    let mut st = Style::default();
+    st.fill = Fill::Solid(Color::rgb(rgb.0, rgb.1, rgb.2));
+    d.add_objects("test", vec![Object::new(id, ObjKind::Rect(r), Affine::translate(at), st)]);
+    d.selection.clear();
+    id
+}
+
+fn selection(h: &Harness<'_, AnyVectorApp>) -> Vec<vector_core::ObjId> {
+    h.state().doc().unwrap().selection.clone()
+}
+
+/// The id prefix of the property bar shown.
+fn bar_shown(h: &Harness<'_, AnyVectorApp>) -> String {
+    crate::propbar::bar_for(h.state()).map(|b| crate::ui::bars()[b as usize].id[..8].to_string()).unwrap_or_default()
+}
+
+/// #139: what Alt+click picks among the objects at the pointer, topmost first.
+#[test]
+fn alt_pick_walks_down_and_round() {
+    use crate::tools::alt_pick;
+    let under = [3, 2, 1];
+    assert_eq!(alt_pick(&under, &[], false), Some(2), "nothing selected: the one under the top one");
+    assert_eq!(alt_pick(&under, &[3], false), Some(2));
+    assert_eq!(alt_pick(&under, &[2], false), Some(1), "one further down at each click");
+    assert_eq!(alt_pick(&under, &[1], false), Some(3), "round to the top after the bottom one");
+    assert_eq!(alt_pick(&under, &[9], false), Some(2), "a selection elsewhere doesn't count");
+    assert_eq!(alt_pick(&[7], &[], false), Some(7), "a single object is picked itself");
+    assert_eq!(alt_pick(&[7], &[7], false), Some(7));
+    assert_eq!(alt_pick(&[], &[], false), None);
+    // Shift+Alt adds the next one down not selected yet
+    assert_eq!(alt_pick(&under, &[3], true), Some(2));
+    assert_eq!(alt_pick(&under, &[3, 2], true), Some(1));
+    assert_eq!(alt_pick(&under, &[1, 2], true), Some(3));
+    assert_eq!(alt_pick(&under, &[1, 2, 3], true), None, "all of them selected");
+}
+
+/// #139: with Treat All Objects as Filled on, Alt+click selects the object behind the top one,
+/// one further down at each click and the top one again after the bottom one; Shift+Alt adds it;
+/// a plain click still picks the top one, and Alt+drag on empty space is still the marquee that
+/// selects what it touches. Alt+click and drag moves the object behind.
+#[test]
+fn alt_click_selects_the_object_behind() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    h.state_mut().settings.treat_as_filled = true;
+    h.state_mut().set_tool(ToolId::Pick);
+    let a = square_at(&mut h, (100.0, 100.0), 200.0, (200, 40, 40));
+    let b = square_at(&mut h, (150.0, 150.0), 200.0, (40, 160, 40));
+    let c = square_at(&mut h, (200.0, 200.0), 200.0, (40, 40, 200));
+    h.step();
+    let p = scr(&h, (260.0, 260.0));
+    click(&mut h, p);
+    assert_eq!(selection(&h), vec![c], "a plain click picks the top one");
+    for want in [b, a, c, b] {
+        click_mods(&mut h, p, egui::Modifiers::ALT);
+        assert_eq!(selection(&h), vec![want]);
+    }
+    assert!(!h.state().doc().unwrap().rotate_mode, "Alt+click on the selection isn't a second click");
+    // Shift+Alt adds the one below
+    click_mods(&mut h, p, egui::Modifiers::ALT | egui::Modifiers::SHIFT);
+    assert_eq!(selection(&h), vec![b, a]);
+    // only the objects under the pointer are walked
+    let q1 = scr(&h, (600.0, 600.0));
+    click(&mut h, q1);
+    let q1 = scr(&h, (120.0, 120.0));
+    click(&mut h, q1);
+    assert_eq!(selection(&h), vec![a]);
+    let q1 = scr(&h, (120.0, 120.0));
+    click_mods(&mut h, q1, egui::Modifiers::ALT);
+    assert_eq!(selection(&h), vec![a], "nothing under it: it stays selected");
+    // Alt+click and drag moves the object behind, not the top one
+    click(&mut h, p);
+    let before = h.state().doc().unwrap().doc.find(b).unwrap().bounds();
+    drag_mods(&mut h, p, p + egui::vec2(40.0, 0.0), egui::Modifiers::ALT);
+    let d = h.state().doc().unwrap();
+    assert_eq!(d.selection, vec![b]);
+    assert!(d.doc.find(b).unwrap().bounds().x0 > before.x0 + 1.0, "the object behind moved");
+    assert_eq!(d.doc.find(c).unwrap().bounds().x0, 200.0, "the top one stayed");
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    // Alt+drag on empty space: the marquee selects what it touches
+    let q1 = scr(&h, (600.0, 600.0));
+    click(&mut h, q1);
+    assert!(selection(&h).is_empty());
+    let q1 = scr(&h, (50.0, 50.0));
+    let q2 = scr(&h, (120.0, 120.0));
+    drag_mods(&mut h, q1, q2, egui::Modifiers::ALT);
+    assert_eq!(selection(&h), vec![a], "Alt+drag still selects the objects the marquee touches");
+}
+
+/// #139: Alt+click also walks unfilled objects with Treat All Objects as Filled off (where their
+/// outlines are), and only the active layer's objects without Edit Across Layers.
+#[test]
+fn alt_click_respects_treat_as_filled_and_layers() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    h.state_mut().settings.treat_as_filled = false;
+    h.state_mut().set_tool(ToolId::Pick);
+    let unfilled = |h: &mut Harness<'_, AnyVectorApp>, w: f64| {
+        let d = h.state_mut().doc_mut().unwrap();
+        let id = d.doc.new_id();
+        let mut st = Style::default();
+        st.fill = Fill::None;
+        st.outline.color = Some(Color::BLACK);
+        let r = RectShape { w, h: w, radii: [0.0; 4], corner: CornerType::default() };
+        d.add_objects("test", vec![Object::new(id, ObjKind::Rect(r), Affine::translate((100.0, 100.0)), st)]);
+        id
+    };
+    let a = unfilled(&mut h, 200.0);
+    let b = unfilled(&mut h, 120.0);
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    h.step();
+    // the left side both have
+    let side = scr(&h, (100.0, 150.0));
+    click(&mut h, side);
+    assert_eq!(selection(&h), vec![b]);
+    click_mods(&mut h, side, egui::Modifiers::ALT);
+    assert_eq!(selection(&h), vec![a]);
+    // inside, off the outlines: nothing to walk, the selection goes as with a plain click
+    let q1 = scr(&h, (150.0, 150.0));
+    click_mods(&mut h, q1, egui::Modifiers::ALT);
+    assert!(selection(&h).is_empty());
+    // a second layer on top, made the active one, with Edit Across Layers off
+    let top = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let lid = d.doc.new_id();
+        d.doc.pages[0].layers.push(vector_core::Layer::new(lid, "Top"));
+        d.layer = d.doc.pages[0].layers.len() - 1;
+        unfilled(&mut h, 160.0)
+    };
+    h.state_mut().settings.edit_across_layers = false;
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    click(&mut h, side);
+    assert_eq!(selection(&h), vec![top]);
+    click_mods(&mut h, side, egui::Modifiers::ALT);
+    assert_eq!(selection(&h), vec![top], "the other layer's objects aren't reached");
+    h.state_mut().settings.edit_across_layers = true;
+    click_mods(&mut h, side, egui::Modifiers::ALT);
+    assert_eq!(selection(&h), vec![b]);
+}
+
+#[test]
+#[ignore]
+fn visual_issue_139_alt_click_selects_behind() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    h.state_mut().settings.treat_as_filled = true;
+    h.state_mut().set_tool(ToolId::Pick);
+    let a = square_at(&mut h, (100.0, 100.0), 200.0, (200, 40, 40));
+    let _b = square_at(&mut h, (180.0, 180.0), 200.0, (40, 40, 200));
+    let p = scr(&h, (240.0, 240.0));
+    click(&mut h, p);
+    save(&mut h, "issue_139_01_click_picks_the_top_one");
+    click_mods(&mut h, p, egui::Modifiers::ALT);
+    assert_eq!(selection(&h), vec![a]);
+    save(&mut h, "issue_139_02_alt_click_picks_the_one_behind");
+}
+
+/// A square at (100, 100) with a block shadow 40 pt to the lower right, and one at (500, 100)
+/// with a drop shadow 30 pt down and to the right; neither selected.
+fn shadowed_squares(h: &mut Harness<'_, AnyVectorApp>) -> (vector_core::ObjId, vector_core::ObjId) {
+    let block = square_at(h, (100.0, 100.0), 150.0, (30, 144, 255));
+    let drop = square_at(h, (500.0, 100.0), 150.0, (255, 160, 30));
+    let d = h.state_mut().doc_mut().unwrap();
+    d.doc.find_mut(block).unwrap().effects.block_shadow = Some(vector_core::object::BlockShadow { offset: kurbo::Vec2::new(40.0, 40.0), color: Color::rgb(60, 60, 60), ..Default::default() });
+    d.doc.find_mut(drop).unwrap().effects.drop_shadow = Some(vector_core::object::DropShadow { offset: kurbo::Vec2::new(30.0, 30.0), feather: 10.0, ..Default::default() });
+    d.selection.clear();
+    (block, drop)
+}
+
+/// #106: clicking an object's shadow with the Pick tool selects the object with the shadow's
+/// bar (block or drop shadow) and its fields on; the status bar says the shadow is selected; a
+/// click on the object itself, Escape or another tool give the object's own bar back; Delete
+/// with the shadow clicked removes only the shadow (one undo step); dragging the shadow moves
+/// the object; an object above wins over a shadow under it.
+#[test]
+fn clicking_a_shadow_selects_it_with_its_bar() {
+    use crate::tools::ToolId;
+    use vector_core::object::ShadowPart;
+    let mut h = doc_harness();
+    h.state_mut().set_tool(ToolId::Pick);
+    let (block, drop) = shadowed_squares(&mut h);
+    h.step();
+    let focus = |h: &Harness<'_, AnyVectorApp>| h.state().doc().unwrap().shadow_focus();
+    // the object itself: its own bar
+    let q1 = scr(&h, (150.0, 150.0));
+    click(&mut h, q1);
+    assert_eq!((selection(&h), focus(&h)), (vec![block], None));
+    assert_eq!(bar_shown(&h), "b5286ff5", "the rectangle bar");
+    // the block shadow
+    let q1 = scr(&h, (280.0, 280.0));
+    click(&mut h, q1);
+    assert_eq!((selection(&h), focus(&h)), (vec![block], Some(ShadowPart::Block)));
+    assert_eq!(bar_shown(&h), "aa88b391", "the Block Shadow bar");
+    assert_eq!(crate::propbar::option_state(h.state(), "53bbc973"), Some((true, false)), "Clear block shadow is on");
+    assert!(crate::statusbar::object_info(h.state()).starts_with("Block Shadow on "), "{}", crate::statusbar::object_info(h.state()));
+    assert!(!h.state().doc().unwrap().rotate_mode, "the shadow clicked isn't a second click on the object");
+    // back on the object
+    let q1 = scr(&h, (150.0, 150.0));
+    click(&mut h, q1);
+    assert_eq!((selection(&h), focus(&h)), (vec![block], None));
+    assert!(!h.state().doc().unwrap().rotate_mode);
+    assert_eq!(bar_shown(&h), "b5286ff5");
+    // the drop shadow, in its feathering past the side of the shifted square
+    let q1 = scr(&h, (683.0, 200.0));
+    click(&mut h, q1);
+    assert_eq!((selection(&h), focus(&h)), (vec![drop], Some(ShadowPart::Drop)));
+    assert_eq!(bar_shown(&h), "edcfb996", "the Drop Shadow bar");
+    assert_eq!(crate::propbar::option_state(h.state(), "bacce2d7"), Some((true, false)), "Clear Shadow is on");
+    assert_eq!(crate::propbar::option_state(h.state(), "e8ef757d"), Some((true, true)));
+    // Escape: nothing selected
+    key(&mut h, egui::Key::Escape, true);
+    h.step();
+    key(&mut h, egui::Key::Escape, false);
+    h.step();
+    assert_eq!((selection(&h), focus(&h)), (vec![], None));
+    assert!(h.state().doc().unwrap().shadow_sel.is_none());
+    // selected some other way, the object is the object
+    h.state_mut().doc_mut().unwrap().selection = vec![drop];
+    h.step();
+    assert_eq!(bar_shown(&h), "b5286ff5");
+    // another tool forgets the shadow
+    let q1 = scr(&h, (683.0, 200.0));
+    click(&mut h, q1);
+    assert_eq!(focus(&h), Some(ShadowPart::Drop));
+    h.state_mut().set_tool(ToolId::Rectangle);
+    h.state_mut().set_tool(ToolId::Pick);
+    h.step();
+    assert_eq!(focus(&h), None);
+    // Delete removes the shadow only, as one undo step
+    let q1 = scr(&h, (683.0, 200.0));
+    click(&mut h, q1);
+    h.state_mut().run(Cmd::Delete);
+    h.step();
+    let d = h.state().doc().unwrap();
+    assert!(d.doc.find(drop).is_some_and(|o| o.effects.drop_shadow.is_none()), "Delete removed the object, or left the shadow");
+    assert_eq!(d.selection, vec![drop]);
+    assert_eq!(bar_shown(&h), "b5286ff5");
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    assert!(h.state().doc().unwrap().doc.find(drop).unwrap().effects.drop_shadow.is_some(), "one undo brings the shadow back");
+    // dragging the shadow moves the object
+    let a = scr(&h, (280.0, 280.0));
+    drag(&mut h, a, a + egui::vec2(30.0, 0.0));
+    let d = h.state().doc().unwrap();
+    assert_eq!(d.selection, vec![block]);
+    assert!(d.doc.find(block).unwrap().bounds().x0 > 101.0, "the object moved with its shadow");
+    assert!(d.doc.find(block).unwrap().effects.block_shadow.is_some());
+    // an object above wins over the shadow under it
+    let over = square_at(&mut h, (650.0, 250.0), 40.0, (0, 0, 0));
+    h.step();
+    let q1 = scr(&h, (670.0, 270.0));
+    click(&mut h, q1);
+    assert_eq!((selection(&h), focus(&h)), (vec![over], None));
+}
+
+#[test]
+#[ignore]
+fn visual_issue_106_shadow_clicked_shows_its_bar() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    h.state_mut().set_tool(ToolId::Pick);
+    let (block, drop) = shadowed_squares(&mut h);
+    let q1 = scr(&h, (280.0, 280.0));
+    click(&mut h, q1);
+    assert_eq!(selection(&h), vec![block]);
+    save(&mut h, "issue_106_01_block_shadow_clicked");
+    let q1 = scr(&h, (683.0, 200.0));
+    click(&mut h, q1);
+    assert_eq!(selection(&h), vec![drop]);
+    save(&mut h, "issue_106_02_drop_shadow_clicked");
+    let q1 = scr(&h, (575.0, 175.0));
+    click(&mut h, q1);
+    save(&mut h, "issue_106_03_object_clicked");
+}
+
+/// #105: Break Apart is on for a shadowed rectangle and separates the shadow into its own object
+/// right behind it (a curve for a block shadow, a bitmap for a drop shadow), both selected, as
+/// one undo step; the object keeps its fill and outline; the shadow moves on its own; text with
+/// a shadow loses the shadow first and splits at the next Break Apart.
+#[test]
+fn break_apart_separates_the_shadow() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    h.state_mut().set_tool(ToolId::Pick);
+    let (block, drop) = shadowed_squares(&mut h);
+    let on = |h: &Harness<'_, AnyVectorApp>| crate::ui::bind::enabled(h.state(), "d5669070-c0f3-4fc0-b524-e33aeea7925f");
+    let count = |h: &Harness<'_, AnyVectorApp>| h.state().doc().unwrap().page_ref().all_objects().count();
+    let index = |h: &Harness<'_, AnyVectorApp>, id| h.state().doc().unwrap().doc.locate(id).unwrap().2;
+    let n0 = count(&h);
+    // block shadow: a curve of the shadow's color
+    h.state_mut().doc_mut().unwrap().selection = vec![block];
+    h.step();
+    assert_eq!(on(&h), Some(true), "Break Apart is on for a shadowed rectangle");
+    let style = h.state().doc().unwrap().doc.find(block).unwrap().style.clone();
+    h.state_mut().run(Cmd::BreakApart);
+    h.step();
+    let d = h.state().doc().unwrap();
+    assert_eq!(count(&h), n0 + 1);
+    assert_eq!(d.selection.len(), 2);
+    assert_eq!(d.selection[1], block);
+    let shadow = d.selection[0];
+    let so = d.doc.find(shadow).unwrap();
+    assert!(matches!(so.kind, ObjKind::Path(_)));
+    assert_eq!(so.style.fill, Fill::Solid(Color::rgb(60, 60, 60)));
+    assert!(!so.style.outline.is_visible());
+    let sb = kurbo::Shape::bounding_box(&so.world_path());
+    assert!((sb.x0 - 100.0).abs() < 0.5 && (sb.x1 - 290.0).abs() < 0.5 && (sb.y1 - 290.0).abs() < 0.5, "{sb:?}");
+    assert_eq!(index(&h, shadow) + 1, index(&h, block), "right behind the object");
+    let src = d.doc.find(block).unwrap();
+    assert!(src.effects.block_shadow.is_none());
+    assert_eq!(src.style, style, "the object keeps its fill and outline");
+    // the shadow moves on its own
+    h.state_mut().doc_mut().unwrap().selection = vec![shadow];
+    h.state_mut().run(Cmd::Nudge(50.0, 0.0));
+    h.step();
+    assert_eq!(h.state().doc().unwrap().doc.find(block).unwrap().bounds().x0, 100.0);
+    h.state_mut().run(Cmd::Undo);
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    assert_eq!(count(&h), n0, "one undo step");
+    assert!(h.state().doc().unwrap().doc.find(block).unwrap().effects.block_shadow.is_some());
+
+    // drop shadow: a bitmap with the shadow's pixels where the shadow was drawn
+    h.state_mut().doc_mut().unwrap().selection = vec![drop];
+    h.step();
+    assert_eq!(on(&h), Some(true));
+    h.state_mut().run(Cmd::BreakApart);
+    h.step();
+    let d = h.state().doc().unwrap();
+    assert_eq!(count(&h), n0 + 1);
+    assert_eq!(d.selection.len(), 2);
+    let img = d.doc.find(d.selection[0]).unwrap();
+    let ObjKind::Image(io) = &img.kind else { panic!("the drop shadow isn't a bitmap: {:?}", img.kind) };
+    let data = &d.doc.images[&io.image];
+    assert!(data.rgba.chunks(4).any(|px| px[3] > 100), "the bitmap has the shadow in it");
+    assert_eq!(img.style.merge, vector_core::style::MergeMode::Multiply);
+    // the shadow square (530..680) and about its feathering around it
+    let b = img.bounds();
+    assert!(b.x0 > 500.0 && b.x0 < 530.0 && b.x1 > 680.0 && b.x1 < 710.0 && b.y1 > 280.0 && b.y1 < 310.0, "{b:?}");
+    assert!(d.doc.find(drop).unwrap().effects.drop_shadow.is_none());
+    h.state_mut().doc_mut().unwrap().selection = vec![drop];
+    assert_eq!(on(&h), Some(false), "nothing more to break apart");
+
+    // text with a shadow: the shadow first, the words next
+    let t = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let id = d.doc.new_id();
+        let mut o = Object::new(id, ObjKind::Text(vector_core::text::TextObj::artistic("AB CD", vector_core::text::CharFormat::default())), Affine::translate((100.0, 500.0)), Style::default());
+        o.effects.drop_shadow = Some(crate::tools::default_shadow(false));
+        d.add_objects("test", vec![o]);
+        id
+    };
+    h.state_mut().run(Cmd::BreakApart);
+    h.step();
+    let d = h.state().doc().unwrap();
+    assert_eq!(d.selection.len(), 2);
+    assert!(matches!(d.doc.find(t).unwrap().kind, ObjKind::Text(_)) && d.doc.find(t).unwrap().effects.drop_shadow.is_none());
+    h.state_mut().doc_mut().unwrap().selection = vec![t];
+    h.state_mut().run(Cmd::BreakApart);
+    h.step();
+    assert_eq!(selection(&h).len(), 2, "the next Break Apart splits the words");
+}
+
+#[test]
+#[ignore]
+fn visual_issue_105_shadow_broken_apart() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    h.state_mut().set_tool(ToolId::Pick);
+    let (block, drop) = shadowed_squares(&mut h);
+    save(&mut h, "issue_105_01_shadowed");
+    for id in [block, drop] {
+        h.state_mut().doc_mut().unwrap().selection = vec![id];
+        h.state_mut().run(Cmd::BreakApart);
+        h.step();
+        // the shadow pulled down, away from its object
+        let shadow = selection(&h)[0];
+        h.state_mut().doc_mut().unwrap().selection = vec![shadow];
+        h.state_mut().run(Cmd::Nudge(0.0, 220.0));
+        h.step();
+    }
+    save(&mut h, "issue_105_02_shadows_broken_off_and_moved");
+}
+
+// ---- Outlines and units: hairlines, the outline unit, Outline Pen, text units, inch rulers ----
+// (#103, #109, #113, #127, #133, #137, #138)
+
+/// A selected rectangle with this outline.
+fn outlined_rect(h: &mut Harness<'_, AnyVectorApp>, ol: vector_core::style::Outline) -> vector_core::ObjId {
+    let d = h.state_mut().doc_mut().unwrap();
+    let id = d.doc.new_id();
+    let st = Style { fill: Fill::Solid(Color::rgb(250, 220, 120)), outline: ol, ..Style::default() };
+    d.add_objects("test", vec![Object::new(id, ObjKind::Rect(RectShape { w: 216.0, h: 144.0, radii: [0.0; 4], corner: CornerType::default() }), Affine::translate((144.0, 288.0)), st)]);
+    d.selection = vec![id];
+    h.step();
+    id
+}
+
+/// What the status bar's outline field says: the color and the width.
+fn status_outline(h: &Harness<'_, AnyVectorApp>) -> (Option<String>, String) {
+    let (u, dpi) = crate::lengths::outline_unit(h.state());
+    crate::statusbar::outline_texts(crate::statusbar::current_fill_outline(h.state()).1, u, dpi)
+}
+
+fn outline_of(h: &Harness<'_, AnyVectorApp>, id: vector_core::ObjId) -> vector_core::style::Outline {
+    h.state().doc().unwrap().doc.find(id).unwrap().style.outline.clone()
+}
+
+/// #127/#133/#138: a hairline (width 0 with a color) is an outline: the status bar shows its
+/// color and "Hairline", a palette color keeps it a hairline, and only an outline without a
+/// color is "None".
+#[test]
+fn hairline_is_an_outline_everywhere() {
+    use vector_core::style::Outline;
+    let mut h = doc_harness();
+    h.state_mut().settings.outline_unit = vector_core::Unit::Points;
+    let id = outlined_rect(&mut h, Outline { width: 0.0, color: Some(Color::BLACK), ..Outline::default() });
+    assert_eq!(status_outline(&h), (Some("R:0 G:0 B:0 (#000000)".to_string()), "Hairline".to_string()));
+    // a palette color on the outline keeps the hairline
+    crate::exec::apply_color(h.state_mut(), Some(Color::rgb(200, 0, 0)), true);
+    h.step();
+    let ol = outline_of(&h, id);
+    assert_eq!((ol.color, ol.width), (Some(Color::rgb(200, 0, 0)), 0.0), "the hairline got a width");
+    // the Outline Pen flyout: No Outline, then Hairline Outline gives it a color again
+    h.state_mut().run(Cmd::OutlineWidth(None));
+    h.step();
+    assert!(!outline_of(&h, id).is_visible());
+    assert_eq!(status_outline(&h), (None, "None".to_string()));
+    h.state_mut().run(Cmd::OutlineWidth(Some(0.0)));
+    h.step();
+    let ol = outline_of(&h, id);
+    assert!(ol.is_visible() && ol.width == 0.0, "{ol:?}");
+    assert_eq!(status_outline(&h).1, "Hairline");
+    // #138: the width is in the status bar, in the outline unit
+    h.state_mut().run(Cmd::OutlineWidth(Some(2.0)));
+    h.state_mut().settings.outline_unit = vector_core::Unit::Inches;
+    h.step();
+    assert_eq!(status_outline(&h).1, "0.0278 \"");
+    // with nothing selected the status bar shows the outline of new objects
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    h.state_mut().set_default_outline(Outline::default());
+    h.step();
+    assert_eq!(status_outline(&h).0, Some("R:0 G:0 B:0 (#000000)".to_string()));
+}
+
+/// #137: the outline width list follows the outline unit; a width typed with another unit is
+/// converted, "hairline" and "none" are understood.
+#[test]
+fn outline_width_list_and_field_follow_the_outline_unit() {
+    use crate::lengths::{parse_width, width_choices, width_text};
+    use vector_core::Unit;
+    let inch: Vec<String> = width_choices(Unit::Inches, 300.0).iter().map(|w| width_text(*w, Unit::Inches, 300.0)).collect();
+    assert_eq!(inch[0], "Hairline");
+    assert!(inch.iter().skip(1).all(|t| t.ends_with('"')), "{inch:?}");
+    assert!(inch.contains(&"0.01 \"".to_string()) && inch.contains(&"0.5 \"".to_string()), "{inch:?}");
+    let mm: Vec<String> = width_choices(Unit::Millimeters, 300.0).iter().map(|w| width_text(*w, Unit::Millimeters, 300.0)).collect();
+    assert!(mm.iter().skip(1).all(|t| t.ends_with(" mm")), "{mm:?}");
+    assert_eq!(parse_width("2 pt", Unit::Inches, 300.0), Some(Some(2.0)));
+    assert_eq!(parse_width("Hairline", Unit::Inches, 300.0), Some(Some(0.0)));
+    assert_eq!(parse_width("none", Unit::Inches, 300.0), Some(None));
+    // the property bar sets the width of the selection, in points
+    let mut h = doc_harness();
+    let id = outlined_rect(&mut h, vector_core::style::Outline::none());
+    crate::propbar::set_outline_width(h.state_mut(), parse_width("0.01\"", Unit::Points, 300.0).unwrap());
+    h.step();
+    let ol = outline_of(&h, id);
+    assert!(ol.is_visible() && (ol.width - 0.72).abs() < 1e-9, "{ol:?}");
+}
+
+/// #103: F12 with nothing selected opens Outline Pen on the outline of new objects; OK makes
+/// it the default (kept in the settings) and a new rectangle gets it. On a selection, OK changes
+/// only what was changed, in one undo step.
+#[test]
+fn outline_pen_sets_the_default_outline_and_edits_the_selection() {
+    use crate::tools::ToolId;
+    use egui_kittest::kittest::Queryable;
+    use vector_core::style::{LineJoin, Outline};
+    let mut h = doc_harness();
+    h.state_mut().set_default_outline(Outline::default());
+    h.state_mut().settings.outline_unit = vector_core::Unit::Points;
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    h.step();
+    h.key_press(egui::Key::F12);
+    h.step();
+    let st = h.state_mut().dialogs.outline_pen.as_mut().expect("F12 didn't open Outline Pen");
+    assert!(!st.selection);
+    st.ol.width = 4.0;
+    st.ol.color = Some(Color::rgb(0, 120, 0));
+    st.ol.join = LineJoin::Round;
+    h.step();
+    assert!(h.query_by_label("Nothing is selected: these settings are the outline of new objects.").is_some(), "no note that the defaults are edited");
+    save(&mut h, "outline_pen_01_defaults");
+    h.get_by_label("OK").click();
+    h.step();
+    assert!(h.state().dialogs.outline_pen.is_none());
+    for ol in [&h.state().settings.default_outline, &h.state().ts.default_outline] {
+        assert_eq!((ol.width, ol.color, ol.join), (4.0, Some(Color::rgb(0, 120, 0)), LineJoin::Round));
+    }
+    // a new rectangle has it
+    h.state_mut().set_tool(ToolId::Rectangle);
+    h.step();
+    let (a, b) = {
+        let d = h.state().doc().unwrap();
+        (d.to_screen(Point::new(100.0, 100.0)), d.to_screen(Point::new(300.0, 250.0)))
+    };
+    drag(&mut h, a, b);
+    let id = *h.state().doc().unwrap().selection.first().expect("no rectangle drawn");
+    let ol = outline_of(&h, id);
+    assert_eq!((ol.width, ol.color, ol.join), (4.0, Some(Color::rgb(0, 120, 0)), LineJoin::Round));
+    // on the selection: a hairline, only the width changes, as one undo step
+    h.state_mut().set_tool(ToolId::Pick);
+    h.state_mut().run(Cmd::OutlinePen);
+    h.step();
+    let st = h.state_mut().dialogs.outline_pen.as_mut().expect("Outline Pen didn't open");
+    assert!(st.selection);
+    st.ol.width = 0.0;
+    h.step();
+    save(&mut h, "outline_pen_02_selection");
+    h.get_by_label("OK").click();
+    h.step();
+    let ol = outline_of(&h, id);
+    assert_eq!((ol.width, ol.color, ol.join), (0.0, Some(Color::rgb(0, 120, 0)), LineJoin::Round));
+    assert_eq!(status_outline(&h).1, "Hairline");
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    assert_eq!(outline_of(&h, id).width, 4.0, "one undo didn't bring the width back");
+    // the default stays as it was
+    assert_eq!(h.state().ts.default_outline.width, 4.0);
+    // a palette right-click with nothing selected sets the default outline color
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    crate::exec::apply_color(h.state_mut(), Some(Color::rgb(0, 0, 255)), true);
+    assert_eq!(h.state().ts.default_outline.color, Some(Color::rgb(0, 0, 255)));
+    assert_eq!(h.state().ts.default_outline.width, 4.0);
+}
+
+/// #109: font sizes show in the text unit (Options ▸ Text ▸ Default text units); a size typed in
+/// it, or with its own unit, is converted to points.
+#[test]
+fn font_size_uses_the_text_unit() {
+    use crate::tools::ToolId;
+    use egui_kittest::kittest::Queryable;
+    let mut h = doc_harness();
+    h.state_mut().settings.text_unit = vector_core::Unit::Inches;
+    h.state_mut().ts.text_format.size = 12.0;
+    h.state_mut().set_tool(ToolId::Text);
+    h.step();
+    h.step();
+    // the property bar's field (the first one: the Text docker may show the size too)
+    h.get_all_by_value("0.167 \"").next().expect("the font size isn't shown in inches").focus();
+    h.step();
+    h.get_all_by_value("0.167 \"").next().unwrap().set_text_value_accesskit("0.25");
+    h.step();
+    h.key_press(egui::Key::Enter);
+    h.step();
+    assert!((h.state().ts.text_format.size - 18.0).abs() < 1e-9, "{}", h.state().ts.text_format.size);
+    assert!(h.query_all_by_value("0.25 \"").next().is_some());
+    // a size typed with its own unit
+    h.get_all_by_value("0.25 \"").next().unwrap().focus();
+    h.step();
+    h.get_all_by_value("0.25 \"").next().unwrap().set_text_value_accesskit("24 pt");
+    h.step();
+    h.key_press(egui::Key::Enter);
+    h.step();
+    assert!((h.state().ts.text_format.size - 24.0).abs() < 1e-9, "{}", h.state().ts.text_format.size);
+    // and in points
+    h.state_mut().settings.text_unit = vector_core::Unit::Points;
+    h.step();
+    h.step();
+    assert!(h.query_all_by_value("24 pt").next().is_some());
+}
+
+/// #127/#137/#138/#113: the hairline in the status bar and the Properties docker, the outline
+/// width in inches, and inch rulers divided into fractions.
+#[test]
+#[ignore]
+fn visual_outline_units_and_inch_rulers() {
+    use crate::dockers::DockerId;
+    use vector_core::style::Outline;
+    let mut h = doc_harness();
+    h.state_mut().settings.outline_unit = vector_core::Unit::Points;
+    {
+        let app = h.state_mut();
+        app.dockers.open.clear();
+        app.dockers.show(DockerId::Properties);
+        app.dockers.collapsed = false;
+        app.dockers.set_width = Some(320.0);
+        app.dockers.ui.pr.tabbed = true;
+        app.dockers.ui.pr.summary = false;
+        app.dockers.ui.pr.tab = 0;
+    }
+    outlined_rect(&mut h, Outline { width: 0.0, color: Some(Color::BLACK), ..Outline::default() });
+    save(&mut h, "outline_units_01_hairline");
+    h.state_mut().run(Cmd::OutlineWidth(Some(2.0)));
+    h.state_mut().settings.outline_unit = vector_core::Unit::Inches;
+    h.state_mut().doc_mut().unwrap().doc.settings.unit = vector_core::Unit::Inches;
+    save(&mut h, "outline_units_02_inches");
+    // inch rulers, from far to close
+    for (i, pct) in [25.0, 100.0, 400.0, 1600.0].into_iter().enumerate() {
+        h.state_mut().doc_mut().unwrap().set_zoom_percent(pct);
+        save(&mut h, &format!("outline_units_{:02}_inch_ruler_{pct}", i + 3));
+    }
+    h.state_mut().doc_mut().unwrap().doc.settings.unit = vector_core::Unit::Millimeters;
+    h.state_mut().doc_mut().unwrap().set_zoom_percent(100.0);
+    save(&mut h, "outline_units_07_mm_ruler");
+}
+
+// ---- Desktop, page border and window colours (#141), bitmaps in Wireframe (#129), Command Bars
+// ---- (#136) and command bar customization (#124) ----
+
+/// The darkest pixel (by luma) in the `rad` pixels around `p` along `dir`.
+fn darkest(img: &image::RgbaImage, p: egui::Pos2, dir: egui::Vec2, rad: i32) -> f32 {
+    (-rad..=rad)
+        .filter_map(|k| {
+            let q = p + dir * k as f32;
+            let px = img.get_pixel_checked(q.x.round() as u32, q.y.round() as u32)?;
+            Some(0.2126 * px[0] as f32 + 0.7152 * px[1] as f32 + 0.0722 * px[2] as f32)
+        })
+        .fold(f32::MAX, f32::min)
+}
+
+fn render(h: &mut Harness<'_, AnyVectorApp>) -> image::RgbaImage {
+    for _ in 0..3 {
+        h.step();
+    }
+    h.render().expect("render")
+}
+
+/// #141: a white page on a white desktop shows its border on all four sides (not just a shadow
+/// at the right and bottom), View ▸ Page Border turns it off, and Options ▸ Appearance sets the
+/// window border and the desktop colours with a Reset each.
+#[test]
+#[ignore]
+fn visual_issue_141_page_border_and_window_colors() {
+    use egui_kittest::kittest::Queryable;
+    let mut h = doc_harness();
+    h.state_mut().settings.desktop_color = [255, 255, 255];
+    let img = render(&mut h);
+    let d = h.state().doc().unwrap();
+    let p = d.to_screen_rect(d.page_ref().rect());
+    let edges = [(p.left_center(), egui::Vec2::X), (p.center_top(), egui::Vec2::Y), (p.right_center(), egui::Vec2::X), (p.center_bottom(), egui::Vec2::Y)];
+    for (at, dir) in edges {
+        assert!(darkest(&img, at, dir, 2) < 200.0, "no page border at {at:?} of {p:?}");
+    }
+    // the page and the desktop around it stay white
+    assert!(darkest(&img, p.center(), egui::Vec2::X, 3) > 250.0);
+    assert!(darkest(&img, p.left_center() - egui::vec2(12.0, 0.0), egui::Vec2::X, 2) > 250.0, "the border is wider than a line");
+    save(&mut h, "issue_141_01_white_page_on_white_desktop");
+
+    h.state_mut().run(Cmd::TogglePageBorder);
+    let img = render(&mut h);
+    assert!(!h.state().doc().unwrap().doc.settings.show_page_border);
+    assert!(darkest(&img, p.left_center(), egui::Vec2::X, 2) > 250.0, "View ▸ Page Border off still shows the border");
+    assert!(darkest(&img, p.center_top(), egui::Vec2::Y, 2) > 250.0);
+    save(&mut h, "issue_141_02_page_border_off");
+    h.state_mut().run(Cmd::TogglePageBorder);
+
+    // Options ▸ Customization ▸ Appearance: the window border colour, kept, and its Reset
+    h.state_mut().settings.window_border = Some([0x20, 0x60, 0xb0]);
+    h.state_mut().open_options(crate::commands::OptionsPage::Customization, Some("Appearance"));
+    for _ in 0..3 {
+        h.step();
+    }
+    assert_eq!(h.state().settings.window_border, Some([0x20, 0x60, 0xb0]), "the window border colour was thrown away");
+    save(&mut h, "issue_141_03_appearance");
+    // the Reset buttons of the Window border and the Desktop rows, in that order
+    let resets = |h: &Harness<'_, AnyVectorApp>| {
+        let mut v: Vec<egui::Rect> = h.query_all_by_label("Reset").map(|n| n.rect()).collect();
+        v.sort_by(|a, b| a.top().total_cmp(&b.top()));
+        assert_eq!(v.len(), 2, "a Reset for the window border and one for the desktop");
+        v
+    };
+    let reset = resets(&h)[0];
+    click(&mut h, reset.center());
+    assert_eq!(h.state().settings.window_border, None, "Reset didn't give the window border back to the theme");
+    assert_eq!(crate::theme::window_border(None), crate::theme::pal().bar_dark);
+    // the desktop's Reset gives it the theme's desktop colour
+    let reset = resets(&h)[1];
+    click(&mut h, reset.center());
+    assert_ne!(h.state().settings.desktop_color, [255, 255, 255], "Reset left the desktop white");
+    save(&mut h, "issue_141_04_appearance_reset");
+}
+
+/// #129: in Wireframe view a bitmap shows as a light gray ghost of itself inside its frame,
+/// not as an empty box.
+#[test]
+#[ignore]
+fn visual_issue_129_wireframe_bitmap_ghost() {
+    let mut h = harness();
+    sample_bitmap(&mut h);
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    h.state_mut().doc_mut().unwrap().view_mode = crate::docview::ViewMode::Wireframe;
+    let img = render(&mut h);
+    let d = h.state().doc().unwrap();
+    let id = d.page_ref().all_objects().find(|o| matches!(o.kind, ObjKind::Image(_))).unwrap().id;
+    let b = d.to_screen_rect(d.doc.find(id).unwrap().bounds());
+    // a sample row across the picture: shades of gray, not all white, and no colour
+    let (mut lo, mut hi) = (255u8, 0u8);
+    for k in 1..20 {
+        let x = b.left() + b.width() * k as f32 / 20.0;
+        let px = img.get_pixel(x as u32, (b.top() + b.height() * 0.8) as u32);
+        assert!(px[0].abs_diff(px[1]) < 6 && px[1].abs_diff(px[2]) < 6, "a coloured pixel {px:?} in Wireframe");
+        lo = lo.min(px[0]);
+        hi = hi.max(px[0]);
+    }
+    assert!(lo < 245, "the bitmap is an empty box in Wireframe ({lo}..{hi})");
+    assert!(lo > 120, "the ghost is not light ({lo})");
+    // the sun stands out from the sky
+    let sun = img.get_pixel((b.left() + b.width() * 0.72) as u32, (b.top() + b.height() * 0.28) as u32)[0];
+    let sky = img.get_pixel((b.left() + b.width() * 0.2) as u32, (b.top() + b.height() * 0.2) as u32)[0];
+    assert!(sun.abs_diff(sky) > 6, "the picture can't be made out: sun {sun}, sky {sky}");
+    save(&mut h, "issue_129_01_wireframe_bitmap_ghost");
+    h.state_mut().doc_mut().unwrap().view_mode = crate::docview::ViewMode::Enhanced;
+    save(&mut h, "issue_129_02_enhanced_bitmap");
+}
+
+/// #136: Options ▸ Customization ▸ Command Bars lists every bar on a line of its own, whole and
+/// readable; New makes a bar that floats; Style is kept for the bar; Reset puts the bar back.
+#[test]
+#[ignore]
+fn visual_issue_136_command_bars_page() {
+    use crate::customize as cz;
+    use egui_kittest::kittest::Queryable;
+    let mut h = doc_harness();
+    h.state_mut().run(Cmd::CommandBarsSetup);
+    for _ in 0..4 {
+        h.step();
+    }
+    save(&mut h, "issue_136_01_command_bars");
+    let dlg = h.ctx.memory(|m| m.area_rect(egui::Id::unique(("dlg", "options")))).expect("the Options dialog is open");
+    // the one widget labelled `label` on the dialog
+    let on_dlg = |h: &Harness<'_, AnyVectorApp>, label: &str| h.query_all_by_label(label).map(|n| n.rect()).find(|r| dlg.intersects(*r)).unwrap_or_else(|| panic!("no {label:?} on the dialog"));
+    let rows: Vec<egui::Rect> = ["Standard", "Toolbox", "Zoom", "Transform"].iter().map(|n| on_dlg(&h, n)).collect();
+    let mut sorted = rows.clone();
+    sorted.sort_by(|a, b| a.top().total_cmp(&b.top()));
+    for w in sorted.windows(2) {
+        assert!(w[1].top() >= w[0].bottom() - 0.5, "rows overlap: {w:?}");
+        assert!((w[1].left() - w[0].left()).abs() < 1.0, "rows not one under the other: {w:?}");
+    }
+    for r in &rows {
+        assert!(dlg.contains_rect(*r), "a row runs out of the dialog: {r:?}");
+        assert!(r.width() > 300.0, "a row is cut short: {r:?}");
+    }
+
+    // New: "New Toolbar 1", open and floating, selected with its name editable
+    let new = on_dlg(&h, "New");
+    click(&mut h, new.center());
+    for _ in 0..3 {
+        h.step();
+    }
+    let s = &h.state().settings;
+    let made: Vec<_> = cz::custom_bars(s).collect();
+    assert_eq!(made.len(), 1);
+    assert_eq!(made[0].name, "New Toolbar 1");
+    assert!(made[0].shown);
+    let key = made[0].bar.clone();
+    assert_eq!(h.state().dialogs.options.cmd_bar_sel, key);
+    assert!(cz::drawn_area(&h.ctx, &key).is_some(), "the new bar doesn't float");
+    save(&mut h, "issue_136_02_new_toolbar");
+    // Delete takes it away
+    let del = on_dlg(&h, "Delete");
+    click(&mut h, del.center());
+    assert_eq!(cz::custom_bars(&h.state().settings).count(), 0);
+
+    // the Standard bar: its Style kept, and Reset
+    let std_key = crate::ui::bar_named("Standard").unwrap().1.id;
+    click(&mut h, rows[0].center());
+    assert_eq!(h.state().dialogs.options.cmd_bar_sel, std_key);
+    // the boxes: Global button size, then Size and Style side by side
+    let combo = h.query_all_by_role(egui::accesskit::Role::ComboBox).map(|n| n.rect()).filter(|r| dlg.contains_rect(*r)).max_by(|a, b| (a.top() + a.left() / 10_000.0).total_cmp(&(b.top() + b.left() / 10_000.0))).expect("the Style box");
+    click(&mut h, combo.center());
+    for _ in 0..2 {
+        h.step();
+    }
+    let opt = h.query_all_by_label("Text only").map(|n| n.rect()).last().expect("Text only in the Style list");
+    click(&mut h, opt.center());
+    for _ in 0..3 {
+        h.step();
+    }
+    assert_eq!(cz::look(&h.state().settings, std_key).0, 2, "the Style wasn't kept");
+    save(&mut h, "issue_136_03_standard_text_only");
+    let reset = on_dlg(&h, "Reset");
+    click(&mut h, reset.center());
+    assert_eq!(cz::look(&h.state().settings, std_key).0, 0, "Reset left the style");
+    assert!(cz::layout(&h.state().settings, std_key).is_none());
+}
+
+/// Press at `a` with `mods`, move to `b` in steps and let go there.
+fn drag_with(h: &mut Harness<'_, AnyVectorApp>, a: egui::Pos2, b: egui::Pos2, mods: egui::Modifiers) {
+    h.input_mut().events.push(egui::Event::ModifiersChanged(mods));
+    move_to(h, a);
+    h.step();
+    h.input_mut().events.push(egui::Event::PointerButton { pos: a, button: egui::PointerButton::Primary, pressed: true, modifiers: mods });
+    h.step();
+    for k in 1..=8 {
+        move_to(h, a + (b - a) * (k as f32 / 8.0));
+        h.step();
+    }
+    h.input_mut().events.push(egui::Event::PointerButton { pos: b, button: egui::PointerButton::Primary, pressed: false, modifiers: mods });
+    h.step();
+    h.input_mut().events.push(egui::Event::ModifiersChanged(egui::Modifiers::NONE));
+    h.step();
+}
+
+fn bar_ids(h: &Harness<'_, AnyVectorApp>, key: &str) -> Vec<&'static str> {
+    crate::customize::items_of(&h.state().settings, key).iter().map(|i| i.id).collect()
+}
+
+/// Where the item at `index` of the bar `key` was drawn.
+fn item_rect(h: &Harness<'_, AnyVectorApp>, key: &str, index: usize) -> egui::Rect {
+    crate::customize::drawn_items(&h.ctx, key).into_iter().find(|(i, _)| *i == index).unwrap_or_else(|| panic!("item {index} of {key} isn't drawn")).1
+}
+
+/// #124: Alt+drag moves a button along the Standard toolbar and off it (without running it),
+/// Ctrl+Alt copies it to another bar, and right-click ▸ Customize ▸ Reset puts the bar back.
+#[test]
+fn issue_124_alt_drag_moves_copies_and_removes_buttons() {
+    use crate::customize as cz;
+    let mut h = doc_harness();
+    let key = crate::ui::bar_named("Standard").unwrap().1.id;
+    let before = bar_ids(&h, key);
+    let docs = h.state().docs.len();
+    // New (the first button) dragged to after Save (the third)
+    let (new, save_) = (item_rect(&h, key, 0), item_rect(&h, key, 2));
+    drag_with(&mut h, new.center(), save_.right_center() - egui::vec2(2.0, 0.0), egui::Modifiers::ALT);
+    let after = bar_ids(&h, key);
+    assert_eq!(&after[..3], &[before[1], before[2], before[0]], "New didn't move after Save");
+    assert_eq!(after.len(), before.len());
+    assert_eq!(h.state().docs.len(), docs, "the New button ran while being dragged");
+    assert!(h.state().dialogs.new_doc.is_none(), "the New button ran while being dragged");
+    // an Alt+click without moving does nothing
+    let r = item_rect(&h, key, 0);
+    drag_with(&mut h, r.center(), r.center(), egui::Modifiers::ALT);
+    assert_eq!(bar_ids(&h, key), after);
+    // dragged off every bar (onto the page): gone
+    let canvas = h.state().doc().unwrap().canvas_rect.center();
+    let r = item_rect(&h, key, 2);
+    drag_with(&mut h, r.center(), canvas, egui::Modifiers::ALT);
+    assert!(!bar_ids(&h, key).contains(&before[0]), "New wasn't taken off the bar");
+    assert_eq!(bar_ids(&h, key).len(), before.len() - 1);
+    // Ctrl+Alt copies Open onto the property bar; the Standard bar keeps it
+    let pb = crate::propbar::bar_for(h.state()).and_then(crate::ui::bar).expect("a property bar").id;
+    let pb_before = bar_ids(&h, pb);
+    let open = item_rect(&h, key, 0);
+    let target = item_rect(&h, pb, 0);
+    drag_with(&mut h, open.center(), target.left_center() + egui::vec2(2.0, 0.0), egui::Modifiers::ALT | egui::Modifiers::CTRL);
+    assert_eq!(bar_ids(&h, pb).len(), pb_before.len() + 1, "Ctrl+Alt didn't copy onto the property bar");
+    assert_eq!(bar_ids(&h, pb)[0], before[1]);
+    assert_eq!(bar_ids(&h, key)[0], before[1], "the copy took Open off the Standard bar");
+    // kept with the settings, as part of the workspace
+    assert!(crate::workspaces::Layout::of(&h.state().settings).bar_layouts.iter().any(|l| l.bar == key));
+
+    // right-click ▸ Customize: Add Separator after the item clicked, Delete it, then Reset
+    let r = item_rect(&h, key, 0);
+    right_click(&mut h, r.center());
+    assert_eq!(cz::context_target(), Some((key.to_string(), Some(0))), "the right-click didn't find the bar and its item");
+    h.input_mut().events.push(egui::Event::Key { key: egui::Key::Escape, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::NONE });
+    h.step();
+    h.state_mut().run(Cmd::CustomizeBar(cz::BarOp::AddSeparator));
+    h.step();
+    assert_eq!(cz::items_of(&h.state().settings, key)[1].kind, crate::ui::Kind::Separator);
+    h.state_mut().run(Cmd::CustomizeBar(cz::BarOp::DeleteItem));
+    h.step();
+    // Open (the item clicked) gone, the separator after it now first
+    assert_eq!(&bar_ids(&h, key)[..2], &["", before[2]], "Delete didn't take the item clicked off");
+    h.state_mut().run(Cmd::CustomizeBar(cz::BarOp::Reset));
+    h.step();
+    assert_eq!(bar_ids(&h, key), before, "Reset didn't put the Standard bar back");
+    assert!(cz::layout(&h.state().settings, key).is_none());
+}
+
+/// #124: with Options ▸ Customization open, a command dragged from the Commands list lands on
+/// the Standard toolbar where it is dropped, and the buttons on the bars drag without Alt.
+#[test]
+fn issue_124_commands_drag_onto_a_bar_while_customizing() {
+    use egui_kittest::kittest::Queryable;
+    let mut h = doc_harness();
+    let key = crate::ui::bar_named("Standard").unwrap().1.id;
+    let before = bar_ids(&h, key);
+    h.state_mut().open_options(crate::commands::OptionsPage::Customization, Some("Commands"));
+    for _ in 0..4 {
+        h.step();
+    }
+    // a command of the first menu with a button of its own somewhere
+    let entries = crate::menus::catalog(crate::menus::catalog_menus()[0].1);
+    let e = entries
+        .iter()
+        .find(|e| crate::customize::item_for_cmd(e.cmd).is_some_and(|it| !before.contains(&it.id)) && h.query_all_by_label_contains(crate::widgets::plain(&e.label).trim()).count() == 1)
+        .expect("a command to drag");
+    let id = crate::customize::item_for_cmd(e.cmd).unwrap().id;
+    let row = h.query_by_label_contains(crate::widgets::plain(&e.label).trim()).unwrap().rect();
+    let at = item_rect(&h, key, 1);
+    drag_with(&mut h, row.center(), at.left_center() + egui::vec2(2.0, 0.0), egui::Modifiers::NONE);
+    let after = bar_ids(&h, key);
+    assert_eq!(after.len(), before.len() + 1, "the command didn't land on the bar");
+    assert_eq!(after[1], id, "the command landed at {:?}", after.iter().position(|i| *i == id));
+    assert!(h.state().dialogs.options.open, "the drop closed Options");
+    // the buttons drag without Alt now: the new one taken back off
+    let r = item_rect(&h, key, 1);
+    let canvas = h.state().doc().unwrap().canvas_rect;
+    drag_with(&mut h, r.center(), egui::pos2(canvas.left() + 20.0, canvas.bottom() - 20.0), egui::Modifiers::NONE);
+    assert_eq!(bar_ids(&h, key), before);
+    // Cancel keeps what was done on the bars
+    let mut moved = bar_ids(&h, key);
+    moved.swap(0, 1);
+    let r0 = item_rect(&h, key, 0);
+    let r1 = item_rect(&h, key, 1);
+    drag_with(&mut h, r0.center(), r1.right_center() - egui::vec2(2.0, 0.0), egui::Modifiers::NONE);
+    assert_eq!(bar_ids(&h, key), moved);
+    let cancel = h.query_all_by_label("Cancel").last().expect("a Cancel button").rect();
+    click(&mut h, cancel.center());
+    assert!(!h.state().dialogs.options.open);
+    assert_eq!(bar_ids(&h, key), moved, "Cancel threw away the toolbar change");
+}
+
+/// #124: the toolbox's buttons Alt+drag into a new order, and the property bar's Quick
+/// Customize hides and shows its items.
+#[test]
+#[ignore]
+fn visual_issue_124_toolbox_and_property_bar_customized() {
+    use crate::customize as cz;
+    use egui_kittest::kittest::Queryable;
+    let mut h = doc_harness();
+    let tb = crate::ui::bar_named("Toolbox").unwrap().1.id;
+    let before = bar_ids(&h, tb);
+    let (first, third) = (item_rect(&h, tb, 0), item_rect(&h, tb, 2));
+    // the Pick tool's slot under the third slot
+    drag_with(&mut h, first.center(), third.center_bottom() - egui::vec2(0.0, 2.0), egui::Modifiers::ALT);
+    let after = bar_ids(&h, tb);
+    assert_eq!(&after[..3], &[before[1], before[2], before[0]], "the toolbox didn't take the new order");
+    assert_eq!(h.state().tool, crate::tools::ToolId::Pick);
+    save(&mut h, "issue_124_01_toolbox_reordered");
+    // right-click ▸ Customize ▸ Reset
+    let r = item_rect(&h, tb, 0);
+    right_click(&mut h, r.center());
+    h.input_mut().events.push(egui::Event::Key { key: egui::Key::Escape, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::NONE });
+    h.step();
+    h.state_mut().run(Cmd::CustomizeBar(cz::BarOp::Reset));
+    h.step();
+    assert_eq!(bar_ids(&h, tb), before);
+
+    // the property bar's Quick Customize: an item unchecked goes, checked again comes back
+    blue_rect(&mut h);
+    for _ in 0..3 {
+        h.step();
+    }
+    let pb = crate::propbar::bar_for(h.state()).and_then(crate::ui::bar).expect("a property bar").id;
+    let pb_before = bar_ids(&h, pb);
+    let qc = h.query_all_by_label("Quick Customize").map(|n| n.rect()).max_by(|a, b| a.left().total_cmp(&b.left())).expect("the property bar's Quick Customize");
+    click(&mut h, qc.center());
+    for _ in 0..2 {
+        h.step();
+    }
+    save(&mut h, "issue_124_02_property_bar_quick_customize");
+    // the boxes of the list (the first is "Property bar"); the menu follows the button, which
+    // moves as the bar gets shorter
+    let boxes = |h: &Harness<'_, AnyVectorApp>| -> Vec<egui::Rect> { h.query_all_by_role(egui::accesskit::Role::CheckBox).map(|n| n.rect()).filter(|r| r.top() > 60.0).collect() };
+    assert!(boxes(&h).len() > 3, "Quick Customize lists the bar's items ({})", boxes(&h).len());
+    let first = boxes(&h)[1];
+    click(&mut h, first.center());
+    let fewer = bar_ids(&h, pb);
+    assert_eq!(fewer.len(), pb_before.len() - 1, "unchecking didn't hide an item");
+    save(&mut h, "issue_124_02b_property_bar_item_hidden");
+    let first = boxes(&h)[1];
+    click(&mut h, first.center());
+    assert_eq!(bar_ids(&h, pb), pb_before, "checking again didn't put it back in place");
+    assert!(cz::layout(&h.state().settings, pb).is_none(), "the bar is back as it was, without a layout");
+}
+
+/// #124: a bar the user made (Command Bars ▸ New) takes commands and Alt+dragged buttons.
+#[test]
+#[ignore]
+fn visual_issue_124_custom_bar_takes_buttons() {
+    use crate::customize as cz;
+    let mut h = doc_harness();
+    let key = cz::new_bar(&mut h.state_mut().settings, "My Bar");
+    for _ in 0..4 {
+        h.step();
+    }
+    save(&mut h, "issue_124_03_custom_bar_empty");
+    let std_key = crate::ui::bar_named("Standard").unwrap().1.id;
+    let area = crate::customize::drawn_area(&h.ctx, &key).expect("the new bar is drawn");
+    let open = item_rect(&h, std_key, 1);
+    drag_with(&mut h, open.center(), area.center(), egui::Modifiers::ALT | egui::Modifiers::CTRL);
+    assert_eq!(bar_ids(&h, &key).len(), 1, "the empty bar didn't take the button");
+    let save_ = item_rect(&h, std_key, 2);
+    let first = item_rect(&h, &key, 0);
+    drag_with(&mut h, save_.center(), first.right_center() + egui::vec2(-2.0, 0.0), egui::Modifiers::ALT | egui::Modifiers::CTRL);
+    assert_eq!(bar_ids(&h, &key), vec![bar_ids(&h, std_key)[1], bar_ids(&h, std_key)[2]]);
+    save(&mut h, "issue_124_04_custom_bar_with_buttons");
+    assert!(cz::custom_bars(&h.state().settings).any(|l| l.name == "My Bar" && l.shown));
+}
+
+// ---- File compatibility: Save As copies, the .cdr note, opening an unknown .cdr (#132) ----
+
+/// The drawing of the #132 tests, on two pages: a red rectangle, a blue ellipse and a line of
+/// text on the first, a green square on the second. Returns the document's index.
+fn compat_drawing(h: &mut Harness<'_, AnyVectorApp>) -> usize {
+    let d = h.state_mut().doc_mut().unwrap();
+    let style = |fill: Color, outline: bool| {
+        let mut st = Style::default();
+        st.fill = Fill::Solid(fill);
+        if outline {
+            st.outline.color = Some(Color::BLACK);
+            st.outline.width = 1.0;
+        }
+        st
+    };
+    let (w, ht) = (d.doc.pages[0].width, d.doc.pages[0].height);
+    let ids = (d.doc.new_id(), d.doc.new_id(), d.doc.new_id(), d.doc.new_id());
+    let text = vector_core::text::TextObj::artistic("Hello CorelDRAW", vector_core::text::CharFormat { size: 36.0, ..Default::default() });
+    d.add_objects(
+        "test",
+        vec![
+            Object::new(ids.0, ObjKind::Rect(RectShape { w: 200.0, h: 140.0, radii: [0.0; 4], corner: CornerType::Round }), Affine::translate((90.0, 90.0)), style(Color::rgb(220, 30, 30), true)),
+            Object::new(ids.1, ObjKind::Ellipse(EllipseShape { w: 180.0, h: 120.0, kind: EllipseKind::Ellipse, start: 0.0, end: 0.0, clockwise: false }), Affine::translate((340.0, 100.0)), style(Color::rgb(30, 90, 220), false)),
+            Object::new(ids.2, ObjKind::Text(text), Affine::translate((90.0, 330.0)), style(Color::BLACK, false)),
+        ],
+    );
+    let p = d.doc.add_page(1, w, ht);
+    d.doc.pages[p].layers[0].objects.push(Object::new(ids.3, ObjKind::Rect(RectShape { w: 150.0, h: 150.0, radii: [0.0; 4], corner: CornerType::Round }), Affine::translate((100.0, 100.0)), style(Color::rgb(0, 160, 60), true)));
+    let i = h.state().active.unwrap();
+    // the one-time note starts on, whatever the settings of this computer say
+    set_cdr_notice(h, true);
+    i
+}
+
+fn cdr_notice_on(h: &Harness<'_, AnyVectorApp>) -> Option<bool> {
+    h.state().settings.warnings.iter().find(|(t, _)| t == crate::settings::CDR_NOTICE_WARNING).map(|w| w.1)
+}
+
+fn set_cdr_notice(h: &mut Harness<'_, AnyVectorApp>, on: bool) {
+    let w = &mut h.state_mut().settings.warnings;
+    match w.iter_mut().find(|(t, _)| t == crate::settings::CDR_NOTICE_WARNING) {
+        Some(e) => e.1 = on,
+        None => w.push((crate::settings::CDR_NOTICE_WARNING.to_string(), on)),
+    }
+}
+
+/// #132: Save As CMX, PDF, SVG or EMF writes a copy other programs (CorelDRAW among them) open,
+/// with every page; the drawing keeps its own .cdr, stays modified, and the copies do not go into
+/// the recent files. What a CMX copy cannot hold is said.
+#[test]
+fn save_as_other_formats_writes_copies_and_keeps_the_drawing() {
+    let mut h = dialog_harness();
+    let i = compat_drawing(&mut h);
+    let cdr = temp_file("compat_copies", "drawing.cdr");
+    let dir = cdr.parent().unwrap().to_path_buf();
+    h.state_mut().docs[i].path = Some(cdr.clone());
+    assert!(h.state_mut().save_doc(i, false), "the drawing saves");
+    assert_eq!(vector_io::cdr::detect(&std::fs::read(&cdr).unwrap()), vector_io::cdr::CdrKind::AnyVector, "as AnyVector's own .cdr");
+    h.state_mut().dialogs.message_box = None;
+    // an edit, so the drawing is modified while the copies are written
+    h.state_mut().run(Cmd::SelectAll);
+    h.state_mut().run(Cmd::Duplicate);
+    settle(&mut h);
+    assert!(h.state().docs[i].history.is_modified());
+
+    for ext in ["cmx", "pdf", "svg", "emf"] {
+        let p = dir.join(format!("copy.{ext}"));
+        h.state_mut().dialogs.message_box = None;
+        assert!(!h.state_mut().save_copy(i, &p), "a copy is not the drawing saved");
+        let files: Vec<std::path::PathBuf> = if matches!(ext, "svg" | "emf") { vec![dir.join(format!("copy-1.{ext}")), dir.join(format!("copy-2.{ext}"))] } else { vec![p.clone()] };
+        for f in &files {
+            let b = std::fs::read(f).unwrap_or_else(|e| panic!("{}: {e}", f.display()));
+            match ext {
+                "cmx" => assert!(&b[0..4] == b"RIFF" && &b[8..12] == b"CMX1", "a Corel metafile"),
+                "pdf" => assert!(b.starts_with(b"%PDF-")),
+                "svg" => assert!(String::from_utf8_lossy(&b).contains("<svg")),
+                _ => assert_eq!(&b[40..44], b" EMF", "an enhanced metafile"),
+            }
+        }
+        let d = &h.state().docs[i];
+        assert_eq!(d.path.as_deref(), Some(cdr.as_path()), "the drawing keeps its file");
+        assert!(d.history.is_modified(), "and is still modified");
+        assert!(!h.state().settings.recent_files.iter().any(|r| r.extension().is_some_and(|e| e == ext)), "copies are not recent drawings");
+        if ext == "cmx" {
+            let (_, text) = h.state().dialogs.message_box.clone().expect("the differences are said");
+            assert!(text.contains("copy.cmx was saved with these differences") && text.contains("Text was converted to curves."), "{text}");
+        } else {
+            assert!(h.state().dialogs.message_box.is_none(), "{ext}: nothing to say");
+        }
+    }
+    // the CMX copy reads back with both pages and the shapes where they were
+    let back = vector_io::open(&dir.join("copy.cmx")).unwrap();
+    assert_eq!(back.pages.len(), 2);
+    let shapes: Vec<_> = back.pages[0].all_objects().filter(|o| !matches!(o.kind, ObjKind::Group(_))).collect();
+    assert!(shapes.iter().any(|o| o.style.fill == Fill::Solid(Color::rgb(220, 30, 30))), "the red rectangle");
+    // Save with the path of a copy type also writes a copy (what Save As does after the dialog)
+    h.state_mut().docs[i].path = Some(dir.join("via_save.pdf"));
+    assert!(!h.state_mut().save_doc(i, false));
+    assert!(dir.join("via_save.pdf").exists());
+    assert!(h.state().docs[i].history.is_modified());
+    h.state_mut().docs[i].path = Some(cdr);
+    h.step();
+}
+
+/// #132: the first .cdr save says, once, that CorelDRAW does not open AnyVector's .cdr and how to
+/// get a file it opens; Options ▸ AnyVector ▸ Save turns the note back on.
+#[test]
+fn the_first_cdr_save_says_once_that_coreldraw_cannot_open_it() {
+    let mut h = dialog_harness();
+    let i = compat_drawing(&mut h);
+    let cdr = temp_file("compat_notice", "first.cdr");
+    h.state_mut().docs[i].path = Some(cdr.clone());
+    assert_eq!(cdr_notice_on(&h), Some(true));
+    assert!(h.state_mut().save_doc(i, false));
+    let (title, text) = h.state().dialogs.message_box.clone().expect("the note shows");
+    assert_eq!(title, "Save");
+    assert!(text.contains("CorelDRAW cannot open this file") && text.contains("CMX (CorelDRAW-compatible), PDF, SVG or EMF"), "{text}");
+    settle(&mut h);
+    click_label(&mut h, "OK");
+    assert!(h.state().dialogs.message_box.is_none());
+    assert_eq!(cdr_notice_on(&h), Some(false), "acknowledged");
+    // the next save is quiet
+    assert!(h.state_mut().save_doc(i, false));
+    assert!(h.state().dialogs.message_box.is_none(), "shown once");
+    // a .vct save never shows it
+    let vct = cdr.with_extension("vct");
+    set_cdr_notice(&mut h, true);
+    h.state_mut().docs[i].path = Some(vct);
+    assert!(h.state_mut().save_doc(i, false));
+    assert!(h.state().dialogs.message_box.is_none());
+    set_cdr_notice(&mut h, false);
+    h.state_mut().docs[i].path = Some(cdr);
+
+    // Options ▸ AnyVector ▸ Save has the switch, the same as its Warnings entry
+    h.state_mut().open_options(crate::commands::OptionsPage::App, Some("Save"));
+    settle(&mut h);
+    let label = "Remind me that CorelDRAW cannot open AnyVector .cdr files";
+    assert!(has_label(&h, label), "the Save page shows the switch");
+    click_label(&mut h, label);
+    assert_eq!(cdr_notice_on(&h), Some(true));
+    h.state_mut().dialogs.options.open = false;
+    settle(&mut h);
+    assert!(h.state_mut().save_doc(i, false));
+    assert!(h.state().dialogs.message_box.is_some(), "on again, it shows again");
+    h.state_mut().dialogs.message_box = None;
+
+    // settings from an older version get the note (on) and the honest version name
+    let mut s = crate::settings::Settings::default();
+    s.warnings.retain(|(t, _)| t != crate::settings::CDR_NOTICE_WARNING);
+    s.default_version = "0.1 (2026.0)".into();
+    s.migrate();
+    assert!(s.warnings.iter().any(|(t, on)| t == crate::settings::CDR_NOTICE_WARNING && *on));
+    assert_eq!(s.default_version, crate::settings::FILE_VERSIONS[0]);
+    // an acknowledged note stays off
+    let n = s.warnings.len();
+    s.warnings.iter_mut().for_each(|w| w.1 = false);
+    s.migrate();
+    assert_eq!(s.warnings.len(), n);
+    assert!(s.warnings.iter().all(|w| !w.1));
+}
+
+/// #132: a .cdr that neither AnyVector nor CorelDRAW wrote is explained, not "Invalid file"; a
+/// damaged CorelDRAW file still says why; AnyVector's CMX copy opens again.
+#[test]
+fn opening_a_cdr_no_one_recognises_explains_what_it_is() {
+    let mut h = dialog_harness();
+    let i = compat_drawing(&mut h);
+    let other = temp_file("compat_open", "other.cdr");
+    let dir = other.parent().unwrap().to_path_buf();
+    std::fs::write(&other, b"made by some other program").unwrap();
+    let docs = h.state().docs.len();
+    assert!(!h.state_mut().open_path(&other));
+    let (title, text) = h.state().dialogs.message_box.clone().expect("the user is told");
+    assert_eq!(title, "Open");
+    assert!(text.starts_with("other.cdr was not written by AnyVector or CorelDRAW, or it is damaged."), "{text}");
+    assert!(text.contains("open a PDF, SVG or EPS copy") && !text.contains("Invalid file"), "{text}");
+    settle(&mut h);
+    click_label(&mut h, "OK");
+    // a cut-off CorelDRAW file is damaged: it says so the usual way
+    let damaged = dir.join("damaged.cdr");
+    std::fs::write(&damaged, b"WL cut off").unwrap();
+    assert!(!h.state_mut().open_path(&damaged));
+    let (_, text) = h.state().dialogs.message_box.clone().unwrap();
+    assert!(text.starts_with("Could not open"), "{text}");
+    h.state_mut().dialogs.message_box = None;
+    assert_eq!(h.state().docs.len(), docs);
+    // the CMX copy opens as a new drawing with both pages
+    let cmx = dir.join("copy.cmx");
+    h.state_mut().save_copy(i, &cmx);
+    h.state_mut().dialogs.message_box = None;
+    assert!(h.state_mut().open_path(&cmx));
+    assert_eq!(h.state().docs.len(), docs + 1);
+    assert_eq!(h.state().doc().unwrap().doc.pages.len(), 2);
+    h.step();
+}
+
+/// #132 in pictures: the note after the first .cdr save, the message for an unknown .cdr, the
+/// switch on Options ▸ AnyVector ▸ Save, CMX in Export, and the CMX copy opened again.
+#[test]
+#[ignore]
+fn visual_issue_132_file_compatibility() {
+    let mut h = doc_harness();
+    let i = compat_drawing(&mut h);
+    let cdr = temp_file("visual_132", "Drawing.cdr");
+    let dir = cdr.parent().unwrap().to_path_buf();
+    h.state_mut().docs[i].path = Some(cdr);
+    assert!(h.state_mut().save_doc(i, false));
+    assert!(h.state().dialogs.message_box.is_some());
+    save(&mut h, "issue_132_01_first_cdr_save_note");
+    h.state_mut().dialogs.message_box = None;
+
+    let other = dir.join("from another program.cdr");
+    std::fs::write(&other, b"not a drawing").unwrap();
+    h.state_mut().open_path(&other);
+    save(&mut h, "issue_132_02_unknown_cdr");
+    h.state_mut().dialogs.message_box = None;
+
+    h.state_mut().open_options(crate::commands::OptionsPage::App, Some("Save"));
+    save(&mut h, "issue_132_03_options_save_reminder");
+    click_label(&mut h, "OK");
+    assert!(!h.state().dialogs.options.open);
+
+    h.state_mut().run(Cmd::Export);
+    settle(&mut h);
+    let cmx_type = vector_io::EXPORT_TYPES.iter().position(|t| t.extensions[0] == "cmx").unwrap();
+    if let Some(st) = h.state_mut().dialogs.export.as_mut() {
+        st.format = cmx_type;
+        st.path = dir.join("Drawing.cmx").display().to_string();
+    }
+    save(&mut h, "issue_132_04_export_cmx");
+    h.state_mut().dialogs.export = None;
+    h.step();
+
+    let cmx = dir.join("Drawing copy.cmx");
+    h.state_mut().save_copy(i, &cmx);
+    save(&mut h, "issue_132_05_cmx_copy_differences");
+    h.state_mut().dialogs.message_box = None;
+    assert!(h.state_mut().open_path(&cmx));
+    save(&mut h, "issue_132_06_cmx_copy_reopened");
+}
+
+// ---- input and keyboard (#119, #130, #140, #121, #125) ----
+
+/// A key press and release of `key` in one frame, with its physical key and modifiers.
+fn key_tap(h: &mut Harness<'_, AnyVectorApp>, key: egui::Key, physical: Option<egui::Key>, mods: egui::Modifiers) {
+    for pressed in [true, false] {
+        h.input_mut().events.push(egui::Event::Key { key, physical_key: physical, pressed, repeat: false, modifiers: mods });
+    }
+}
+
+/// The numeric keypad's +: egui-winit reports it as Plus on the physical Plus key.
+fn keypad_plus(h: &mut Harness<'_, AnyVectorApp>) {
+    key_tap(h, egui::Key::Plus, Some(egui::Key::Plus), egui::Modifiers::NONE);
+}
+
+fn bounds_of(h: &Harness<'_, AnyVectorApp>, id: u64) -> kurbo::Rect {
+    h.state().doc().unwrap().doc.find(id).unwrap().bounds()
+}
+
+fn same_rect(a: kurbo::Rect, b: kurbo::Rect) -> bool {
+    (a.x0 - b.x0).abs() < 1e-3 && (a.y0 - b.y0).abs() < 1e-3 && (a.x1 - b.x1).abs() < 1e-3 && (a.y1 - b.y1).abs() < 1e-3
+}
+
+/// The ids of the objects on the page, in stacking order.
+fn page_ids(h: &Harness<'_, AnyVectorApp>) -> Vec<u64> {
+    h.state().doc().unwrap().page_ref().all_objects().map(|o| o.id).collect()
+}
+
+/// #119: the numeric keypad's + duplicates the selection in place (no offset), selects the copy
+/// and is one undo step, as in CorelDRAW; the + of the main keys (Shift+= on a US keyboard) does
+/// not; with the Shape tool and nodes selected + still adds a node.
+#[test]
+fn keypad_plus_duplicates_in_place() {
+    use crate::tools::ToolId;
+    let mut h = join_harness(ToolId::Pick);
+    let id = blue_rect(&mut h);
+    h.step();
+    let n0 = undo_steps(&h);
+    let b0 = bounds_of(&h, id);
+    keypad_plus(&mut h);
+    for _ in 0..3 {
+        h.step();
+    }
+    let ids = page_ids(&h);
+    assert_eq!(ids.len(), 2, "the keypad + made no copy: {ids:?}");
+    let sel = h.state().doc().unwrap().selection.clone();
+    assert_eq!(sel.len(), 1);
+    assert_ne!(sel[0], id, "the copy is selected");
+    assert!(same_rect(bounds_of(&h, sel[0]), b0), "the copy is not exactly on top of the original");
+    assert_eq!(*ids.last().unwrap(), sel[0], "the copy is in front");
+    assert_eq!(undo_steps(&h), n0 + 1, "one undo step");
+    undo(&mut h);
+    assert_eq!(page_ids(&h).len(), 1);
+    // the main keys' + (Shift+= on a US keyboard, its physical key is =): nothing
+    h.state_mut().doc_mut().unwrap().selection = vec![id];
+    key_tap(&mut h, egui::Key::Plus, Some(egui::Key::Equals), egui::Modifiers::SHIFT);
+    for _ in 0..3 {
+        h.step();
+    }
+    assert_eq!(page_ids(&h).len(), 1, "the main keys' + duplicated");
+    // the Shape tool with two nodes selected: the keypad + adds a node there, no copy
+    let (mut h, cid) = shape_object(line_curve(&[(100.0, 100.0), (200.0, 100.0), (300.0, 100.0)]), (0.0, 0.0));
+    h.state_mut().doc_mut().unwrap().node_sel = vec![(cid, 0, 0), (cid, 0, 1)];
+    let count = page_ids(&h).len();
+    keypad_plus(&mut h);
+    for _ in 0..3 {
+        h.step();
+    }
+    assert_eq!(page_ids(&h).len(), count, "the Shape tool's + duplicated");
+    assert!(matches!(kind_of(&h, cid), ObjKind::Path(np) if np.node_count() == 4), "no node was added");
+}
+
+/// #119: the keypad + while dragging an object leaves the original where it was (the drop is a
+/// copy), and the pointer says so.
+#[test]
+fn keypad_plus_while_dragging_leaves_the_original() {
+    use crate::tools::ToolId;
+    let mut h = join_harness(ToolId::Pick);
+    let id = blue_rect(&mut h);
+    h.step();
+    let b0 = bounds_of(&h, id);
+    let (a, b) = (scr(&h, (200.0, 160.0)), scr(&h, (500.0, 160.0)));
+    let mut k = 0;
+    let mut cursor = None;
+    drag_watching(&mut h, a, b, |h| {
+        k += 1;
+        if k == 2 {
+            keypad_plus(h);
+        }
+        if k == 5 {
+            cursor = Some(crate::canvas::cursor_for(h.state(), b));
+        }
+    });
+    h.step();
+    assert_eq!(cursor, Some(egui::CursorIcon::Copy), "the pointer doesn't show a copy");
+    let ids = page_ids(&h);
+    assert_eq!(ids.len(), 2, "{ids:?}");
+    assert!(same_rect(bounds_of(&h, id), b0), "the original moved");
+    let copy = h.state().doc().unwrap().selection[0];
+    assert_ne!(copy, id);
+    assert!(same_rect(bounds_of(&h, copy), b0 + kurbo::Vec2::new(300.0, 0.0)), "the copy isn't where it was dropped: {:?}", bounds_of(&h, copy));
+}
+
+/// #119: Virtual Segment Delete shows the piece a click deletes in red and a hand over it; away
+/// from any shape there is nothing to show and the pointer is the crosshair.
+#[test]
+fn virtual_delete_shows_the_piece_under_the_pointer() {
+    use crate::tools::ToolId;
+    use egui::CursorIcon;
+    let mut h = join_harness(ToolId::VirtualDelete);
+    h.state_mut().settings.crosshair_cursor = false;
+    let (id, _) = unfilled_rect(&mut h);
+    let side = scr(&h, (280.0, 100.0));
+    move_to(&mut h, side);
+    h.step();
+    h.step();
+    let piece = h.state().ts.hover_cut.and_then(|(_, _, c)| c).expect("no piece under the pointer");
+    // the top side of the rectangle, from corner to corner
+    let (p0, p3) = (piece.p0, piece.p3);
+    assert!((p0.y - 100.0).abs() < 1e-6 && (p3.y - 100.0).abs() < 1e-6, "{piece:?}");
+    assert!((p0.x.min(p3.x) - 100.0).abs() < 1e-6 && (p0.x.max(p3.x) - 400.0).abs() < 1e-6, "{piece:?}");
+    assert_eq!(crate::canvas::cursor_for(h.state(), side), CursorIcon::PointingHand);
+    // the document changed: looked for again (the side is gone, nothing more to delete there)
+    click(&mut h, side);
+    h.step();
+    let ObjKind::Path(np) = &h.state().doc().unwrap().doc.find(id).unwrap().kind else { panic!("not deleted") };
+    assert_eq!(np.subpaths.iter().map(|s| s.segment_count()).sum::<usize>(), 3);
+    assert!(h.state().ts.hover_cut.is_some_and(|(_, _, c)| c.is_none()), "the deleted side still shows");
+    assert_ne!(crate::canvas::cursor_for(h.state(), side), CursorIcon::PointingHand);
+    let empty = scr(&h, (700.0, 600.0));
+    move_to(&mut h, empty);
+    h.step();
+    h.step();
+    assert!(h.state().ts.hover_cut.is_some_and(|(_, _, c)| c.is_none()));
+    assert_eq!(crate::canvas::cursor_for(h.state(), empty), CursorIcon::Crosshair);
+}
+
+/// Space pressed (a fresh press, or a key repeat of a held one).
+fn space(h: &mut Harness<'_, AnyVectorApp>, repeat: bool) {
+    h.input_mut().events.push(egui::Event::Key { key: egui::Key::Space, physical_key: Some(egui::Key::Space), pressed: true, repeat, modifiers: egui::Modifiers::NONE });
+}
+
+fn space_up(h: &mut Harness<'_, AnyVectorApp>) {
+    h.input_mut().events.push(egui::Event::Key { key: egui::Key::Space, physical_key: Some(egui::Key::Space), pressed: false, repeat: false, modifiers: egui::Modifiers::NONE });
+}
+
+/// #130: Space while dragging with the Pick tool leaves a copy where the objects are at that
+/// moment and the drag goes on, as in CorelDRAW; each copy is one undo step and a held Space
+/// (key repeats) leaves no more. Space with nothing dragged still switches tools.
+#[test]
+fn space_while_dragging_leaves_copies() {
+    use crate::tools::ToolId;
+    let mut h = join_harness(ToolId::Pick);
+    let id = blue_rect(&mut h);
+    h.step();
+    let n0 = undo_steps(&h);
+    let b0 = bounds_of(&h, id);
+    let (a, b) = (scr(&h, (200.0, 160.0)), scr(&h, (500.0, 160.0)));
+    let mut k = 0;
+    let mut tools = vec![];
+    drag_watching(&mut h, a, b, |h| {
+        k += 1;
+        match k {
+            2 | 4 => space(h, false),
+            3 => {
+                space(h, true);
+                space(h, true);
+                space_up(h);
+            }
+            _ => space_up(h),
+        }
+        tools.push(h.state().tool);
+    });
+    h.step();
+    assert!(tools.iter().all(|t| *t == ToolId::Pick), "Space switched tools during the drag: {tools:?}");
+    let ids = page_ids(&h);
+    assert_eq!(ids.len(), 3, "two copies (the key repeats made none): {ids:?}");
+    // the original was dragged all the way; the copies stayed on the way, in order
+    assert!(same_rect(bounds_of(&h, id), b0 + kurbo::Vec2::new(300.0, 0.0)), "{:?}", bounds_of(&h, id));
+    let stamps: Vec<kurbo::Rect> = ids.iter().filter(|i| **i != id && bounds_of(&h, **i).width() > 150.0).map(|i| bounds_of(&h, *i)).collect();
+    assert_eq!(stamps.len(), 2);
+    for s in &stamps {
+        assert!(s.x0 > b0.x0 + 1.0 && s.x0 < b0.x0 + 299.0, "a copy is not on the way: {s:?}");
+        assert!((s.y0 - b0.y0).abs() < 1e-6 && (s.width() - b0.width()).abs() < 1e-6);
+    }
+    assert!(stamps[0].x0 < stamps[1].x0 - 1.0, "the second copy is farther: {stamps:?}");
+    assert_eq!(h.state().doc().unwrap().selection, vec![id], "the dragged object stays selected");
+    assert_eq!(undo_steps(&h), n0 + 3, "a step per copy and one for the move");
+    undo(&mut h);
+    assert!(same_rect(bounds_of(&h, id), b0));
+    assert_eq!(page_ids(&h).len(), 3, "undoing the move keeps the copies");
+    undo(&mut h);
+    assert_eq!(page_ids(&h).len(), 2);
+    // no drag: Space switches to the Pick tool and back
+    h.state_mut().set_tool(ToolId::Rectangle);
+    for _ in 0..2 {
+        space(&mut h, false);
+        h.step();
+        space_up(&mut h);
+        h.step();
+    }
+    assert_eq!(h.state().tool, ToolId::Rectangle, "Space and Space again is back to the Rectangle tool");
+    space(&mut h, false);
+    h.step();
+    assert_eq!(h.state().tool, ToolId::Pick);
+}
+
+/// #130: Escape ends the drag with the original back where it was; the copies Space left stay.
+/// A rotation leaves rotated copies.
+#[test]
+fn space_copies_kept_after_escape_and_rotated() {
+    use crate::tools::{Drag, ToolId, Xform};
+    let mut h = join_harness(ToolId::Pick);
+    let id = blue_rect(&mut h);
+    h.step();
+    let b0 = bounds_of(&h, id);
+    let (a, b) = (scr(&h, (200.0, 160.0)), scr(&h, (200.0, 400.0)));
+    move_to(&mut h, a);
+    h.step();
+    press(&mut h, a, true);
+    h.step();
+    for k in 1..=4 {
+        move_to(&mut h, a + (b - a) * (k as f32 / 4.0));
+        h.step();
+    }
+    space(&mut h, false);
+    h.step();
+    space_up(&mut h);
+    key(&mut h, egui::Key::Escape, true);
+    h.step();
+    key(&mut h, egui::Key::Escape, false);
+    press(&mut h, b, false);
+    h.step();
+    assert!(same_rect(bounds_of(&h, id), b0), "Escape didn't put the original back");
+    let ids = page_ids(&h);
+    assert_eq!(ids.len(), 2, "the copy was lost: {ids:?}");
+    let copy = *ids.iter().find(|i| **i != id && bounds_of(&h, **i).width() > 150.0).unwrap();
+    assert!(same_rect(bounds_of(&h, copy), b0 + kurbo::Vec2::new(0.0, 240.0)), "{:?}", bounds_of(&h, copy));
+    // a rotation by 90 degrees around the middle: the copy stands upright
+    let bb = h.state().doc().unwrap().selection_bounds().unwrap();
+    h.state_mut().ts.drag = Drag::Transform { kind: Xform::Rotate, start: Point::new(300.0, 160.0), bb, ids: vec![id], center: bb.center() };
+    h.state_mut().ts.cur = Point::new(200.0, 260.0);
+    assert!(crate::tools::drop::stamp_copy(h.state_mut()));
+    let r = bounds_of(&h, *h.state().ts.stamps.last().unwrap());
+    assert!((r.width() - b0.height()).abs() < 1e-6 && (r.height() - b0.width()).abs() < 1e-6, "{r:?}");
+    assert!((r.center() - b0.center()).hypot() < 1e-6);
+    h.state_mut().ts.cancel();
+}
+
+/// A right-button press, a drag in steps, and the release.
+fn right_drag_to(h: &mut Harness<'_, AnyVectorApp>, a: egui::Pos2, b: egui::Pos2, mut during: impl FnMut(&mut Harness<'_, AnyVectorApp>)) {
+    for _ in 0..30 {
+        h.step();
+    }
+    move_to(h, a);
+    h.step();
+    h.input_mut().events.push(egui::Event::PointerButton { pos: a, button: egui::PointerButton::Secondary, pressed: true, modifiers: egui::Modifiers::NONE });
+    h.step();
+    for k in 1..=6 {
+        move_to(h, a + (b - a) * (k as f32 / 6.0));
+        h.step();
+        during(h);
+    }
+    h.input_mut().events.push(egui::Event::PointerButton { pos: b, button: egui::PointerButton::Secondary, pressed: false, modifiers: egui::Modifiers::NONE });
+    h.step();
+    h.step();
+}
+
+/// A blue rectangle (selected) and a red, outlined one to its right, not selected.
+fn two_rects(h: &mut Harness<'_, AnyVectorApp>) -> (u64, u64) {
+    let blue = blue_rect(h);
+    let d = h.state_mut().doc_mut().unwrap();
+    let id = d.doc.new_id();
+    let mut st = Style::default();
+    st.fill = Fill::Solid(Color::rgb(0xe0, 0x30, 0x30));
+    st.outline.color = Some(Color::rgb(0, 0x80, 0));
+    st.outline.width = 6.0;
+    d.add_objects("test", vec![Object::new(id, ObjKind::Rect(RectShape { w: 160.0, h: 160.0, radii: [0.0; 4], corner: CornerType::Round }), Affine::translate((500.0, 100.0)), st)]);
+    d.selection = vec![blue];
+    (blue, id)
+}
+
+fn fill_of(h: &Harness<'_, AnyVectorApp>, id: u64) -> Fill {
+    h.state().doc().unwrap().doc.find(id).unwrap().style.fill.clone()
+}
+
+/// #140: dragging the selection with the right button ends in a menu, as in CorelDRAW: over
+/// another object Move Here, Copy Here, Copy Fill / Outline / All Properties and PowerClip
+/// Inside; over empty space Move Here and Copy Here. Nothing changes until a row is chosen; each
+/// choice is one undo step.
+#[test]
+fn right_drag_ends_in_the_drop_menu() {
+    use crate::tools::ToolId;
+    let mut h = join_harness(ToolId::Pick);
+    let (blue, red) = two_rects(&mut h);
+    h.step();
+    let b0 = bounds_of(&h, blue);
+    let blue_fill = fill_of(&h, blue);
+    let red_style = h.state().doc().unwrap().doc.find(red).unwrap().style.clone();
+    let n0 = undo_steps(&h);
+    let (a, over_red, empty) = (scr(&h, (200.0, 160.0)), scr(&h, (580.0, 180.0)), scr(&h, (400.0, 500.0)));
+    let mut cursor = None;
+    right_drag_to(&mut h, a, over_red, |h| cursor = Some(crate::canvas::cursor_for(h.state(), over_red)));
+    assert_eq!(cursor, Some(egui::CursorIcon::ContextMenu));
+    let drop = h.state().ts.right_drop.clone().expect("no drop menu");
+    assert_eq!(drop.target, Some(red));
+    for l in ["Move Here", "Copy Here", "Copy Fill Here", "Copy Outline Here", "Copy All Properties", "PowerClip Inside", "Cancel"] {
+        assert!(has_label(&h, l), "the menu has no {l}");
+    }
+    assert!(same_rect(bounds_of(&h, blue), b0), "the drag moved the object before a choice");
+    assert_eq!(undo_steps(&h), n0);
+    // Copy Fill Here: the red one gets the blue fill and keeps its outline; the blue one stays
+    click_label(&mut h, "Copy Fill Here");
+    assert!(h.state().ts.right_drop.is_none(), "the menu stayed open");
+    assert_eq!(fill_of(&h, red), blue_fill);
+    assert_eq!(h.state().doc().unwrap().doc.find(red).unwrap().style.outline, red_style.outline);
+    assert!(same_rect(bounds_of(&h, blue), b0));
+    assert_eq!(h.state().doc().unwrap().selection, vec![blue]);
+    assert_eq!(undo_steps(&h), n0 + 1);
+    undo(&mut h);
+    assert_eq!(fill_of(&h, red), red_style.fill);
+    // Copy Outline Here
+    let blue_outline = h.state().doc().unwrap().doc.find(blue).unwrap().style.outline.clone();
+    right_drag_to(&mut h, a, over_red, |_| {});
+    click_label(&mut h, "Copy Outline Here");
+    let st = h.state().doc().unwrap().doc.find(red).unwrap().style.clone();
+    assert_eq!(st.outline, blue_outline);
+    assert_eq!(st.fill, red_style.fill, "Copy Outline changed the fill");
+    undo(&mut h);
+    // Copy Here over empty space: a copy there, the original stays; the menu has only Move and Copy
+    right_drag_to(&mut h, a, empty, |_| {});
+    let drop = h.state().ts.right_drop.clone().expect("no drop menu over empty space");
+    assert_eq!(drop.target, None);
+    assert!(has_label(&h, "Move Here") && has_label(&h, "Copy Here") && !has_label(&h, "Copy Fill Here") && !has_label(&h, "PowerClip Inside"));
+    let delta = kurbo::Vec2::new(200.0, 340.0);
+    click_label(&mut h, "Copy Here");
+    assert_eq!(page_ids(&h).len(), 3);
+    assert!(same_rect(bounds_of(&h, blue), b0));
+    let copy = h.state().doc().unwrap().selection[0];
+    assert_ne!(copy, blue);
+    assert!(same_rect(bounds_of(&h, copy), b0 + delta), "{:?}", bounds_of(&h, copy));
+    undo(&mut h);
+    assert_eq!(page_ids(&h).len(), 2);
+    // Move Here
+    h.state_mut().doc_mut().unwrap().selection = vec![blue];
+    right_drag_to(&mut h, a, empty, |_| {});
+    click_label(&mut h, "Move Here");
+    assert!(same_rect(bounds_of(&h, blue), b0 + delta));
+    assert_eq!(undo_steps(&h), n0 + 1);
+    undo(&mut h);
+    assert!(same_rect(bounds_of(&h, blue), b0));
+    // PowerClip Inside: the blue one goes into the red one where it was dropped
+    h.state_mut().doc_mut().unwrap().selection = vec![blue];
+    right_drag_to(&mut h, a, over_red, |_| {});
+    click_label(&mut h, "PowerClip Inside");
+    let d = h.state().doc().unwrap();
+    assert!(d.doc.find(blue).is_some(), "the contents are gone");
+    let clip = d.selection[0];
+    assert!(matches!(&d.doc.find(clip).unwrap().kind, ObjKind::PowerClip { .. }), "no PowerClip");
+    assert_eq!(page_ids(&h).len(), 1, "{:?}", page_ids(&h));
+    undo(&mut h);
+    assert_eq!(page_ids(&h).len(), 2);
+    assert!(same_rect(bounds_of(&h, blue), b0));
+    // Escape closes the menu and nothing changes
+    h.state_mut().doc_mut().unwrap().selection = vec![blue];
+    right_drag_to(&mut h, a, over_red, |_| {});
+    assert!(h.state().ts.right_drop.is_some());
+    let n = undo_steps(&h);
+    key(&mut h, egui::Key::Escape, true);
+    h.step();
+    key(&mut h, egui::Key::Escape, false);
+    h.step();
+    h.step();
+    assert!(h.state().ts.right_drop.is_none(), "Escape didn't close the menu");
+    assert!(!has_label(&h, "Copy Fill Here"));
+    assert_eq!(undo_steps(&h), n);
+    assert!(same_rect(bounds_of(&h, blue), b0));
+}
+
+/// #140: a right-click that does not move still opens the right-click menu (no drop menu), and
+/// Copy All Properties gives a group's objects the properties.
+#[test]
+fn right_click_still_opens_the_context_menu() {
+    use crate::tools::ToolId;
+    let mut h = join_harness(ToolId::Pick);
+    let (blue, red) = two_rects(&mut h);
+    h.step();
+    let at = scr(&h, (200.0, 160.0));
+    right_click(&mut h, at);
+    h.step();
+    assert!(h.state().ts.right_drop.is_none() && h.state().ts.right_drag.is_none());
+    assert!(!has_label(&h, "Move Here"), "a right-click opened the drop menu");
+    assert!(egui::Popup::is_any_open(&h.ctx), "no right-click menu");
+    key(&mut h, egui::Key::Escape, true);
+    h.step();
+    key(&mut h, egui::Key::Escape, false);
+    h.step();
+    // Copy All Properties onto a group: every object of it gets them; a locked one is left alone
+    let src = h.state().doc().unwrap().doc.find(blue).unwrap().clone();
+    let d = h.state_mut().doc_mut().unwrap();
+    let o = d.doc.find(red).unwrap().clone();
+    let mut kid = o.clone();
+    kid.id = d.doc.new_id();
+    let mut g = Object::new(d.doc.new_id(), ObjKind::Group(vec![o.clone(), kid]), Affine::IDENTITY, Style::default());
+    g.id = red;
+    let mut doc = d.doc.clone();
+    *doc.find_mut(red).unwrap() = g;
+    crate::tools::drop::copy_properties(&mut doc, &src, &[red], crate::tools::drop::Props::ALL);
+    let ObjKind::Group(kids) = &doc.find(red).unwrap().kind else { unreachable!() };
+    assert!(kids.iter().all(|k| k.style.fill == src.style.fill && k.style.outline == src.style.outline));
+    doc.find_mut(red).unwrap().locked = true;
+    crate::tools::drop::copy_properties(&mut doc, &o, &[red], crate::tools::drop::Props::FILL);
+    let ObjKind::Group(kids) = &doc.find(red).unwrap().kind else { unreachable!() };
+    assert!(kids.iter().all(|k| k.style.fill == src.style.fill), "a locked object was changed");
+}
+
+/// #121: Tab from one property bar field to the next selects the whole value, so typing replaces
+/// it, as in CorelDRAW and Windows; a click in a field places the caret instead.
+#[test]
+fn tab_into_a_property_bar_field_selects_its_value() {
+    use crate::tools::ToolId;
+    use egui::text_edit::TextEditState;
+    use egui_kittest::kittest::Queryable;
+    let mut h = join_harness(ToolId::Pick);
+    blue_rect(&mut h);
+    for _ in 0..3 {
+        h.step();
+    }
+    // the X field of the property bar: the top left text field
+    let fields: Vec<egui::Rect> = h.query_all_by_role(egui::accesskit::Role::TextInput).map(|n| n.rect()).filter(|r| r.top() < 120.0).collect();
+    let x = fields.iter().copied().min_by(|a, b| (a.top() + a.left()).total_cmp(&(b.top() + b.left()))).expect("no property bar fields");
+    click(&mut h, x.center());
+    h.step();
+    let range = |h: &Harness<'_, AnyVectorApp>| {
+        let id = h.ctx.memory(|m| m.focused()).expect("no field has the focus");
+        let st = TextEditState::load(&h.ctx, id).unwrap_or_default();
+        let r = st.cursor.char_range().expect("no cursor");
+        (id, r.primary.index.0.min(r.secondary.index.0), r.primary.index.0.max(r.secondary.index.0))
+    };
+    let (clicked, s, e) = range(&h);
+    assert_eq!(s, e, "a click selected the value instead of placing the caret");
+    key_tap(&mut h, egui::Key::Tab, Some(egui::Key::Tab), egui::Modifiers::NONE);
+    h.step();
+    h.step();
+    let (next, s, e) = range(&h);
+    assert_ne!(next, clicked, "Tab didn't move to the next field");
+    let text = h.query_all_by_role(egui::accesskit::Role::TextInput).find(|n| n.is_focused()).and_then(|n| n.value()).unwrap_or_default();
+    assert!(!text.is_empty());
+    assert_eq!((s, e), (0, text.chars().count()), "Tab didn't select all of {text:?}");
+    // typing replaces it
+    h.input_mut().events.push(egui::Event::Text("7".into()));
+    h.step();
+    h.step();
+    let now = h.query_all_by_role(egui::accesskit::Role::TextInput).find(|n| n.is_focused()).and_then(|n| n.value()).unwrap_or_default();
+    assert_eq!(now, "7", "typing didn't replace the value");
+    // Shift+Tab back: selected too
+    key_tap(&mut h, egui::Key::Tab, Some(egui::Key::Tab), egui::Modifiers::SHIFT);
+    h.step();
+    h.step();
+    let (back, s, e) = range(&h);
+    assert_ne!(back, next);
+    assert!(e > 0 && s == 0, "Shift+Tab didn't select the value");
+}
+
+/// #125: Options ▸ Customization ▸ Commands lists the menus, the toolbox and the commands only a
+/// key runs; a command gets the chord pressed in the Shortcut Keys tab, the conflict shows, and
+/// Assign takes the chord from the command that had it.
+#[test]
+fn commands_page_assigns_a_pressed_chord() {
+    use crate::commands::{parse_shortcut, OptionsPage};
+    use crate::tools::ToolId;
+    use vector_core::ops::Align;
+    let mut h = join_harness(ToolId::Pick);
+    let top = Cmd::Align(Align::Top);
+    // two rectangles, the second lower: Align Top lines them up
+    let a = blue_rect(&mut h);
+    let b = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let id = d.doc.new_id();
+        d.add_objects("test", vec![Object::new(id, ObjKind::Rect(RectShape { w: 50.0, h: 50.0, radii: [0.0; 4], corner: CornerType::Round }), Affine::translate((400.0, 300.0)), Style::default())]);
+        d.selection = vec![a, id];
+        id
+    };
+    h.state_mut().open_options(OptionsPage::Customization, Some("Commands"));
+    settle(&mut h);
+    assert!(has_label(&h, "Shortcut Keys"));
+    // the search looks through every category, Align Top among them
+    h.state_mut().dialogs.options.commands_search = "align top".into();
+    settle(&mut h);
+    {
+        use egui_kittest::kittest::Queryable;
+        let at = h.query_all_by_label_contains("Align Top").next().map(|n| n.rect().center()).expect("search didn't find Align Top");
+        click(&mut h, at);
+    }
+    assert_eq!(h.state().dialogs.options.commands_sel, Some(top));
+    click_label(&mut h, "Shortcut Keys");
+    assert!(has_label(&h, "T"), "the current chord T isn't shown");
+    // press keys: Tab and Escape are not chords; Ctrl+G is taken by Group
+    click_label(&mut h, "Click, then press keys");
+    assert_eq!(h.state().dialogs.options.capture.as_deref(), Some(""));
+    key_tap(&mut h, egui::Key::Tab, Some(egui::Key::Tab), egui::Modifiers::NONE);
+    settle(&mut h);
+    assert_eq!(h.state().dialogs.options.capture.as_deref(), Some(""), "Tab was taken as the chord");
+    key_tap(&mut h, egui::Key::Escape, Some(egui::Key::Escape), egui::Modifiers::NONE);
+    settle(&mut h);
+    assert!(h.state().dialogs.options.open, "Escape closed the dialog instead of the capture");
+    assert_eq!(h.state().dialogs.options.capture, None, "Escape didn't end the capture");
+    click_label(&mut h, "Click, then press keys");
+    key_tap(&mut h, egui::Key::G, Some(egui::Key::G), egui::Modifiers::CTRL | egui::Modifiers::COMMAND);
+    settle(&mut h);
+    assert_eq!(h.state().dialogs.options.capture.as_deref(), Some("Ctrl+G"));
+    assert!(has_label(&h, "Conflicts with: Group"), "the conflict isn't shown");
+    click_label(&mut h, "Assign");
+    let ctrl_g = parse_shortcut("Ctrl+G").unwrap();
+    assert!(crate::shortcuts::chords(h.state(), top).contains(&"Ctrl+G".to_string()));
+    assert!(!crate::shortcuts::chords(h.state(), Cmd::Group).contains(&"Ctrl+G".to_string()), "Group kept the chord");
+    assert_eq!(crate::shortcuts::chord_owners(h.state(), &ctrl_g, Cmd::Group), vec![top]);
+    // and the menus show it
+    assert_eq!(crate::shortcuts::shortcut_text(h.state(), top).as_deref(), Some("Ctrl+G"));
+    click_label(&mut h, "OK");
+    assert!(!h.state().dialogs.options.open);
+    // the chord runs Align Top now, and not Group
+    key_tap(&mut h, egui::Key::G, Some(egui::Key::G), egui::Modifiers::CTRL | egui::Modifiers::COMMAND);
+    settle(&mut h);
+    let d = h.state().doc().unwrap();
+    assert!(d.doc.find(a).is_some() && d.doc.find(b).is_some(), "Ctrl+G still grouped");
+    assert!((bounds_of(&h, a).y0 - bounds_of(&h, b).y0).abs() < 1e-6, "Ctrl+G didn't align the tops");
+}
+
+/// #125: assigning without Delete conflicts leaves both commands on the chord; Delete and the
+/// keypad + survive the settings text; every command with a shortcut is on the Commands page.
+#[test]
+fn commands_page_assign_and_categories() {
+    use crate::commands::parse_shortcut;
+    use crate::dialogs::options::commands_page::{assign, categories};
+    use crate::tools::ToolId;
+    let mut h = join_harness(ToolId::Pick);
+    let app = h.state_mut();
+    let f9 = parse_shortcut("Ctrl+Alt+F9").unwrap();
+    assign(app, Cmd::Group, &f9, true);
+    assign(app, Cmd::Ungroup, &f9, false);
+    assert_eq!(crate::shortcuts::chord_owners(app, &f9, Cmd::Combine), vec![Cmd::Group, Cmd::Ungroup]);
+    assert!(crate::shortcuts::chords(app, Cmd::Ungroup).contains(&"Ctrl+Alt+F9".to_string()));
+    // with Delete conflicts both lose it; the one that had other chords keeps them
+    assign(app, Cmd::Combine, &f9, true);
+    assert_eq!(crate::shortcuts::chord_owners(app, &f9, Cmd::Combine), vec![]);
+    // keypad +: Duplicate in Place's own chord
+    assert_eq!(crate::shortcuts::chords(app, Cmd::DuplicateInPlace), vec!["Num +".to_string()]);
+    let listed: Vec<Cmd> = categories().iter().flat_map(|(_, es)| es.iter().map(|e| e.cmd)).collect();
+    for c in crate::commands::shortcut_commands() {
+        assert!(listed.contains(&c), "{c:?} is not on the Commands page");
+    }
+    let other = &categories().iter().find(|(n, _)| n == "Other Commands").unwrap().1;
+    assert!(other.iter().any(|e| e.cmd == Cmd::DuplicateInPlace && e.label == "Duplicate in Place"));
+    // a caption, not the command's script name
+    let bad: Vec<String> = other.iter().filter(|e| e.label.is_empty() || e.label == crate::scripting::cmd_to_text(&e.cmd) || e.label.contains('{') || e.label.contains('"')).map(|e| format!("{:?}", e.cmd)).collect();
+    assert!(bad.is_empty(), "commands without a caption: {}", bad.join(", "));
+}
+
+/// Pictures for #119, #130, #140, #121 and #125: the piece Virtual Segment Delete would delete,
+/// the copies Space leaves during a drag, the right-drag drop menu and the Commands page.
+#[test]
+#[ignore]
+fn visual_issue_060_input_and_keyboard() {
+    use crate::commands::OptionsPage;
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    h.state_mut().doc_mut().unwrap().doc.settings.snap_off = true;
+    // #119: Virtual Segment Delete over a side of an unfilled rectangle
+    let (rid, _) = unfilled_rect(&mut h);
+    h.state_mut().set_tool(ToolId::VirtualDelete);
+    let side = scr(&h, (280.0, 100.0));
+    move_to(&mut h, side);
+    save(&mut h, "issue_119_virtual_delete_piece");
+    h.state_mut().set_tool(ToolId::Pick);
+    h.state_mut().doc_mut().unwrap().selection = vec![rid];
+    h.state_mut().run(Cmd::Delete);
+    h.step();
+    // #130: two copies left on the way, the drag still going
+    let id = blue_rect(&mut h);
+    h.state_mut().set_tool(ToolId::Pick);
+    h.step();
+    let (a, b) = (scr(&h, (200.0, 160.0)), scr(&h, (560.0, 260.0)));
+    move_to(&mut h, a);
+    h.step();
+    press(&mut h, a, true);
+    h.step();
+    for k in 1..=6 {
+        move_to(&mut h, a + (b - a) * (k as f32 / 6.0));
+        h.step();
+        if k == 2 || k == 4 {
+            space(&mut h, false);
+            h.step();
+            space_up(&mut h);
+        }
+    }
+    save(&mut h, "issue_130_01_space_copies_while_dragging");
+    press(&mut h, b, false);
+    h.step();
+    save(&mut h, "issue_130_02_dropped");
+    for _ in 0..3 {
+        undo(&mut h);
+    }
+    // #140: the drop menu over another object, and its Copy Fill Here
+    let d = h.state_mut().doc_mut().unwrap();
+    let red = d.doc.new_id();
+    let mut st = Style::default();
+    st.fill = Fill::Solid(Color::rgb(0xe0, 0x30, 0x30));
+    d.add_objects("test", vec![Object::new(red, ObjKind::Ellipse(EllipseShape { w: 160.0, h: 160.0, kind: EllipseKind::Ellipse, start: 0.0, end: 0.0, clockwise: false }), Affine::translate((500.0, 100.0)), st)]);
+    d.selection = vec![id];
+    let (a, b) = (scr(&h, (200.0, 160.0)), scr(&h, (580.0, 180.0)));
+    right_drag_to(&mut h, a, b, |_| {});
+    save(&mut h, "issue_140_01_drop_menu");
+    click_label(&mut h, "Copy Fill Here");
+    save(&mut h, "issue_140_02_fill_copied");
+    // #121: Tab into the property bar's Y field selects its value
+    {
+        use egui_kittest::kittest::Queryable;
+        let x = h.query_all_by_role(egui::accesskit::Role::TextInput).map(|n| n.rect()).filter(|r| r.top() < 120.0).min_by(|a, b| (a.top() + a.left()).total_cmp(&(b.top() + b.left())));
+        if let Some(x) = x {
+            click(&mut h, x.center());
+            key_tap(&mut h, egui::Key::Tab, Some(egui::Key::Tab), egui::Modifiers::NONE);
+            h.step();
+        }
+    }
+    save(&mut h, "issue_121_tab_selects_field");
+    // #125: the Commands page, Align Top's Shortcut Keys with a conflicting chord pressed
+    h.state_mut().open_options(OptionsPage::Customization, Some("Commands"));
+    settle(&mut h);
+    h.state_mut().dialogs.options.commands_menu = categories_len_minus_one();
+    save(&mut h, "issue_125_01_other_commands");
+    h.state_mut().dialogs.options.commands_menu = 0;
+    h.state_mut().dialogs.options.commands_search = "align".into();
+    h.state_mut().dialogs.options.commands_sel = Some(Cmd::Align(vector_core::ops::Align::Top));
+    h.state_mut().dialogs.options.commands_tab = 1;
+    h.state_mut().dialogs.options.capture = Some("Ctrl+G".into());
+    save(&mut h, "issue_125_02_shortcut_keys_conflict");
+}
+
+fn categories_len_minus_one() -> usize {
+    crate::dialogs::options::commands_page::categories().len() - 1
 }

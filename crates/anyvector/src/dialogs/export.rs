@@ -896,6 +896,7 @@ pub fn show_export(app: &mut AnyVectorApp, ctx: &egui::Context) {
                 }
             }
             "emf" => run_emf(app, &path, &pages, sel),
+            "cmx" => crate::file_copy::export_cmx(app, &path, &pages, sel),
             ext => {
                 let b = BitmapState::new(app, BitmapMode::Export, Some(path), ext, pages, sel);
                 if st.no_filter_dialog {
@@ -999,7 +1000,7 @@ fn run_emf(app: &mut AnyVectorApp, path: &Path, pages: &[usize], selection: bool
     }
 }
 
-fn numbered(path: &Path, page: usize, count: usize) -> PathBuf {
+pub(crate) fn numbered(path: &Path, page: usize, count: usize) -> PathBuf {
     if count <= 1 {
         return path.to_path_buf();
     }

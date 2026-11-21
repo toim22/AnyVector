@@ -2,6 +2,7 @@
 //! property bar and dockers trigger (node editing, corner rounding, text insertion).
 //! Pointer interaction lives in `interact`, on-canvas feedback in `overlay`.
 
+pub mod drop;
 pub mod ids;
 mod interact;
 pub(crate) mod overlay;
@@ -11,7 +12,7 @@ pub mod shapes;
 pub use ids::*;
 pub use interact::{envelope_from_shape, guide_at, handle_input, handle_point, handle_table_keys, handle_text_keys, regen_impacts, table_typing, tick, Input};
 pub use overlay::draw_overlay;
-pub use shape_edit::{selected_segment, shape_hit, visible_controls, ShapeHit};
+pub use shape_edit::{selected_segment, shape_hit, text_spacing_handles, visible_controls, ShapeHit, TextSpacing};
 
 use crate::app::AnyVectorApp;
 use crate::docview::DocView;
@@ -25,20 +26,39 @@ use vector_core::{Color, Fill, ObjId, ObjKind, Object, Outline, Style};
 
 pub use shapes::COMMON_SHAPES;
 
-/// Double-clicking the Rectangle tool in the toolbox, as in CorelDRAW: a rectangle the size of the
-/// current page, with the style and corners a dragged rectangle gets, in one undo step (#99).
-pub fn rectangle_to_page(app: &mut AnyVectorApp) {
+/// Double-clicking the Rectangle tool in the toolbox, as in CorelDRAW: a rectangle around the
+/// selected objects (their bounding box, #135), or with nothing selected the size of the current
+/// page (#99), with the style and corners a dragged rectangle gets, in one undo step.
+pub fn rectangle_to_bounds(app: &mut AnyVectorApp) {
     app.set_tool(ToolId::Rectangle);
-    let Some(page) = app.doc().and_then(|d| d.doc.pages.get(d.page)).map(|p| p.rect()) else { return };
-    if page.width() <= 0.0 || page.height() <= 0.0 {
+    // taken before the rectangle is added: it becomes the selection
+    let Some(r) = app.doc().and_then(|d| d.selection_bounds().filter(|b| b.width() > 0.0 && b.height() > 0.0).or_else(|| d.doc.pages.get(d.page).map(|p| p.rect()))) else { return };
+    if r.width() <= 0.0 || r.height() <= 0.0 {
         return;
     }
     let (ts, s) = (&app.ts, &app.settings);
     let Some(d) = app.active.and_then(|i| app.docs.get_mut(i)) else { return };
     let id = d.doc.new_id();
-    if let Some(o) = interact::creation_object(ts, s, ToolId::Rectangle, page.origin(), Point::new(page.x1, page.y1), egui::Modifiers::NONE, id) {
+    if let Some(o) = interact::creation_object(ts, s, ToolId::Rectangle, r.origin(), Point::new(r.x1, r.y1), egui::Modifiers::NONE, id) {
         d.add_objects("Create Rectangle", vec![o]);
     }
+}
+
+/// Virtual Segment Delete: find the piece a click at the pointer would delete (kept in
+/// `ts.hover_cut` and looked for again only when the pointer or the document changed). The
+/// overlay shows it and the pointer becomes a hand over it (#119).
+pub fn update_hover_cut(app: &mut AnyVectorApp, hovered: bool) {
+    let at = app.ts.hover_doc.filter(|_| hovered && app.tool == ToolId::VirtualDelete && app.ts.drag.is_none());
+    let (Some(p), Some(d)) = (at, app.doc()) else {
+        app.ts.hover_cut = None;
+        return;
+    };
+    let rev = d.history.revision;
+    if app.ts.hover_cut.is_some_and(|(q, r, _)| q == p && r == rev) {
+        return;
+    }
+    let piece = vector_core::ops::virtual_cut_at(&d.doc, d.page, p, d.doc_len(5.0)).and_then(|cut| vector_core::ops::virtual_cut_piece(&d.doc, &cut));
+    app.ts.hover_cut = Some((p, rev, piece));
 }
 
 /// A one-shot "click an object" target set by commands such as PowerClip > Place Inside.
@@ -107,6 +127,9 @@ pub enum Drag {
     EllipseNode { obj: ObjId, handle: Option<bool>, orig: EllipseShape, moved: bool },
     /// Shape tool: a segment dragged by its point at `t`: a line moves, a curve bends (#123).
     Segment { obj: ObjId, si: usize, seg: usize, t: f64, start: Point, orig: NodePath, moved: bool },
+    /// Shape tool: a spacing handle of a text (#110); `per` is how far the handle goes, along the
+    /// text's own x or y, for 1 % of the spacing.
+    TextSpacing { obj: ObjId, kind: TextSpacing, start: Point, orig: TextObj, per: f64, moved: bool },
     /// Pick tool in rotate mode: moving the rotation center of the selection.
     RotCenter,
     Pan { last: egui::Pos2 },
@@ -145,7 +168,9 @@ pub struct ToolState {
     pub parallel_drawing: bool,
     pub parallel_count: u32,
     pub parallel_distance: f64,
-    pub default_outline_width: f64,
+    /// The outline of new objects (Outline Pen with nothing selected, kept in
+    /// `Settings::default_outline`; see `AnyVectorApp::set_default_outline`).
+    pub default_outline: Outline,
     pub lock_ratio: bool,
     pub lock_corners: bool,
     pub crop_rect: Option<Rect>,
@@ -229,6 +254,15 @@ pub struct ToolState {
     pub bspline: bool,
     /// Right-click during a Pick drag leaves a copy.
     pub copy_on_drop: bool,
+    /// The copies Space left during the drag in progress (#130); snapping ignores them.
+    pub stamps: Vec<ObjId>,
+    /// A right-button drag of the selection in progress (#140).
+    pub right_drag: Option<drop::RightGrab>,
+    /// A right-button drag that ended: the menu of what to do with it is open (#140).
+    pub right_drop: Option<drop::RightDrop>,
+    /// Virtual Segment Delete: the piece under the pointer that a click deletes, for the pointer
+    /// position and document revision it was found for (#119).
+    pub hover_cut: Option<(Point, u64, Option<kurbo::CubicBez>)>,
     /// A Text tool drag selects characters instead of drawing a frame.
     pub text_drag_select: bool,
     /// Free Transform: the center of rotation set on the property bar (`None` = the center).
@@ -268,7 +302,7 @@ impl Default for ToolState {
             parallel_drawing: false,
             parallel_count: 1,
             parallel_distance: 7.2,
-            default_outline_width: 0.5669,
+            default_outline: Outline::default(),
             lock_ratio: false,
             lock_corners: true,
             crop_rect: None,
@@ -323,6 +357,10 @@ impl Default for ToolState {
             was_selected: false,
             bspline: false,
             copy_on_drop: false,
+            stamps: vec![],
+            right_drag: None,
+            right_drop: None,
+            hover_cut: None,
             text_drag_select: false,
             ft_center: None,
             eye_apply: false,
@@ -415,6 +453,9 @@ impl ToolState {
         self.press = None;
         self.bspline = false;
         self.copy_on_drop = false;
+        self.stamps.clear();
+        self.right_drag = None;
+        self.right_drop = None;
         self.dim_chain = None;
     }
 
@@ -422,7 +463,7 @@ impl ToolState {
     pub fn new_style(&self) -> Style {
         Style {
             fill: self.new_fill.map(Fill::Solid).unwrap_or(Fill::None),
-            outline: Outline { width: self.default_outline_width, color: Some(Color::BLACK), ..Outline::default() },
+            outline: self.default_outline.clone(),
             ..Default::default()
         }
     }
@@ -662,6 +703,22 @@ pub fn default_shadow(inner: bool) -> DropShadow {
     DropShadow { offset: Vec2::new(6.0, 6.0), feather: 8.0, color: Color::BLACK, opacity: 50.0, inner, ..Default::default() }
 }
 
+/// What Alt+click selects among the objects at the pointer (`under`, topmost first), as in
+/// CorelDRAW (#139): the object under the lowest selected one, the top one again after the
+/// bottom one; with none of them selected, the one under the top one. With `add` (Shift+Alt) the
+/// next one down that isn't selected yet (`None` when all of them are).
+pub fn alt_pick(under: &[ObjId], selection: &[ObjId], add: bool) -> Option<ObjId> {
+    let n = under.len();
+    if n == 0 {
+        return None;
+    }
+    let next = under.iter().rposition(|id| selection.contains(id)).map_or(1.min(n - 1), |i| i + 1);
+    if !add {
+        return Some(under[next % n]);
+    }
+    (0..n).map(|k| under[(next + k) % n]).find(|id| !selection.contains(id))
+}
+
 // ------------------------------------------------------------------------------------------
 // Node editing (Shape tool)
 // ------------------------------------------------------------------------------------------
@@ -895,16 +952,13 @@ fn segment_op(d: &mut DocView, op: NodeOp, id: ObjId, si: usize, seg: usize) {
 /// Move the selected nodes by a document-space offset (arrow-key nudge with the Shape tool).
 pub fn nudge_nodes(app: &mut AnyVectorApp, delta: Vec2) {
     let Some(d) = app.doc_mut() else { return };
-    let mut groups = nodes_by_object(d);
-    // no node selected: the segment clicked moves, both its nodes (#122)
+    let groups = nodes_by_object(d);
+    // no node selected: the segment clicked is nudged as a drag moves it (#122, #142)
     if groups.is_empty() {
         if let Some((id, si, seg)) = selected_segment(d) {
-            if let Some(ObjKind::Path(np)) = d.doc.find(id).map(|o| &o.kind) {
-                if let Some((a, b)) = np.segment_nodes(si, seg) {
-                    groups.push((id, if a == b { vec![a] } else { vec![a, b] }));
-                }
-            }
+            nudge_segment(d, id, si, seg, delta);
         }
+        return;
     }
     d.modify("Move Nodes", |doc, _| {
         for (id, refs) in &groups {
@@ -914,6 +968,26 @@ pub fn nudge_nodes(app: &mut AnyVectorApp, delta: Vec2) {
                 if let ObjKind::Path(np) = &mut o.kind {
                     move_nodes(np, refs, ld);
                 }
+            }
+        }
+    });
+}
+
+/// Arrow-key nudge of the segment clicked with the Shape tool, as in CorelDRAW: a straight
+/// segment moves with both its nodes; a curved one bends, its middle moving by the nudge while
+/// its nodes stay where they are (#142). One undo step per press.
+fn nudge_segment(d: &mut DocView, id: ObjId, si: usize, seg: usize, delta: Vec2) {
+    let Some(ObjKind::Path(np)) = d.doc.find(id).map(|o| &o.kind) else { return };
+    let line = np.node((si, seg)).is_none_or(|n| n.line_out);
+    d.modify(if line { "Move Segment" } else { "Edit Curve" }, |doc, _| {
+        let Some(o) = doc.find_mut(id) else { return };
+        let inv = o.transform.inverse();
+        let ld = inv * Point::new(delta.x, delta.y) - inv * Point::ZERO;
+        if let ObjKind::Path(np) = &mut o.kind {
+            if line {
+                np.move_segment(si, seg, ld);
+            } else {
+                np.bend_segment(si, seg, 0.5, ld);
             }
         }
     });

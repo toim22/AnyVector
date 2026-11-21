@@ -37,8 +37,9 @@ pub enum Fmt {
     Len(Unit, f64),
     /// A plain number with these decimals and this suffix (`90.0 °`).
     Num(usize, &'static str),
-    /// A number without trailing zeros and with this suffix (`24 pt`).
-    Trim(&'static str),
+    /// A text size in points, shown in the text unit without trailing zeros (`12 pt`,
+    /// `0.167 "`); a size typed with another unit is converted (see `crate::lengths`).
+    Size(Unit, f64),
 }
 
 impl Fmt {
@@ -50,17 +51,15 @@ impl Fmt {
                 let s = if s == "-0" || s.starts_with("-0.") && s.trim_start_matches("-0.").chars().all(|c| c == '0') { s.trim_start_matches('-').to_string() } else { s };
                 format!("{s}{suffix}")
             }
-            Fmt::Trim(suffix) => {
-                let s = format!("{v:.2}");
-                format!("{}{suffix}", s.trim_end_matches('0').trim_end_matches('.'))
-            }
+            Fmt::Size(u, dpi) => crate::lengths::size_text(v, u, dpi),
         }
     }
 
     fn parse(self, s: &str) -> Option<f64> {
         match self {
             Fmt::Len(u, dpi) => Unit::parse_value(s, u, dpi),
-            Fmt::Num(_, suffix) | Fmt::Trim(suffix) => s.trim().trim_end_matches(suffix.trim()).trim().trim_end_matches(['°', '%']).trim().parse().ok(),
+            Fmt::Size(u, dpi) => crate::lengths::parse_size(s, u, dpi),
+            Fmt::Num(_, suffix) => s.trim().trim_end_matches(suffix.trim()).trim().trim_end_matches(['°', '%']).trim().parse().ok(),
         }
     }
 
@@ -71,14 +70,14 @@ impl Fmt {
                 let k = 10f64.powi(d.min(6) as i32);
                 (v * k).round() / k
             }
-            Fmt::Len(..) | Fmt::Trim(_) => v,
+            Fmt::Len(..) | Fmt::Size(..) => v,
         }
     }
 
     fn step(self) -> f64 {
         match self {
             Fmt::Len(u, dpi) => u.points_per_unit(dpi) * if u == Unit::Inches { 0.1 } else { 1.0 },
-            Fmt::Num(..) | Fmt::Trim(_) => 1.0,
+            Fmt::Num(..) | Fmt::Size(..) => 1.0,
         }
     }
 }
@@ -128,6 +127,8 @@ fn text_in(ui: &mut Ui, id: Id, rect: Rect, shown: &str, enabled: bool) -> Optio
     let focused = ui.memory(|m| m.has_focus(id));
     let mut text = if focused { ui.data_mut(|d| d.get_temp::<String>(id)).unwrap_or_else(|| shown.to_string()) } else { shown.to_string() };
     let r = ui.place(rect, egui::TextEdit::singleline(&mut text).id(id).frame(egui::Frame::NONE).font(font()).text_color(ink(enabled)).interactive(enabled).margin(vec2(0.0, 0.0)));
+    // Tab into the field selects the value (#121)
+    crate::widgets::select_all_on_key_focus(ui, &r, &text);
     if r.has_focus() {
         ui.data_mut(|d| d.insert_temp(id, text.clone()));
         None
@@ -162,7 +163,9 @@ fn value_in(ui: &mut Ui, id: Id, rect: Rect, v: Option<f64>, fmt: Fmt, enabled: 
     let tr = Rect::from_min_max(rect.min + vec2(4.0, 0.0), pos2(rect.max.x - aw - 1.0, rect.max.y));
     let shown = v.map(|v| fmt.show(v)).unwrap_or_default();
     let mut out = None;
-    if let Some(t) = text_in(ui, id, tr, &shown, enabled && v.is_some()) {
+    // a field left with the text it showed keeps its value (the text is rounded: 24 pt shows
+    // as 0.333" and would come back as 23.976 pt)
+    if let Some(t) = text_in(ui, id, tr, &shown, enabled && v.is_some()).filter(|t| t.trim() != shown.trim()) {
         if let (Some(n), Some(v)) = (fmt.parse(&t), v) {
             if (n - v).abs() > 1e-9 {
                 out = Some(n);

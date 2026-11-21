@@ -5381,7 +5381,7 @@ Drag to set the start and end points, then click to set the curvature	Sleep om h
 Sketch strokes; nearby strokes are merged into smooth curves	Schets streken; nabijgelegen streken worden samengevoegd tot vloeiende krommen
 Draw a shape freehand; it is recognized and converted into a basic shape	Teken een vorm uit de vrije hand; deze wordt herkend en omgezet in een basisvorm
 Drag to draw a brush, sprayer, calligraphic or pressure stroke	Sleep om een penseel-, spuitbus-, kalligrafische of drukstreek te tekenen
-Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle the size of the page	Sleep om een rechthoek te tekenen; Ctrl beperkt tot een vierkant; Shift tekent vanuit het midden. Dubbelklik op het gereedschap voor een rechthoek ter grootte van de pagina
+Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle around the selection, or the size of the page	Sleep om een rechthoek te tekenen; Ctrl beperkt tot een vierkant; Shift tekent vanuit het midden. Dubbelklik op het gereedschap voor een rechthoek rond de selectie, of ter grootte van de pagina
 Drag to set the baseline, then click to set the height	Sleep om de basislijn in te stellen en klik om de hoogte in te stellen
 Drag to draw an ellipse; Ctrl constrains to a circle; Shift draws from the center	Sleep om een ellips te tekenen; Ctrl beperkt tot een cirkel; Shift tekent vanuit het midden
 Drag to set the center line, then click to set the height	Sleep om de middellijn in te stellen en klik om de hoogte in te stellen
@@ -5612,3 +5612,52 @@ Edit Ellipse	Ellips bewerken
 Move Segment	Segment verplaatsen
 Delete Segment	Segment verwijderen
 A curve needs at least two nodes	Een kromme heeft minstens twee knooppunten nodig
+Select Contents	Inhoud selecteren
+Adjust contents	Inhoud aanpassen
+Drop Shadow on {}	Slagschaduw op {}
+Block Shadow on {}	Blokschaduw op {}
+Default outline set for new objects.	Standaardomtrek voor nieuwe objecten ingesteld.
+Outline: double-click to edit	Omtrek: dubbelklik om te bewerken
+Start arrowhead	Beginpijlpunt
+End arrowhead	Eindpijlpunt
+Nothing is selected: these settings are the outline of new objects.	Niets geselecteerd: deze instellingen zijn de omtrek van nieuwe objecten.
+Share attributes	Kenmerken delen
+Stretch:	Uitrekken:
+Nib shape:	Penpuntvorm:
+Drag commands here	Sleep opdrachten hierheen
+New Toolbar {}	Nieuwe werkbalk {}
+CMX - CorelDRAW-compatible (*.cmx)	CMX - Compatibel met CorelDRAW (*.cmx)
+CDR - AnyVector Drawing (*.cdr)	CDR - AnyVector-tekening (*.cdr)
+VCT - AnyVector Drawing, legacy (*.vct)	VCT - AnyVector-tekening, oud formaat (*.vct)
+CMX - CorelDRAW-compatible copy (*.cmx)	CMX - Met CorelDRAW compatibele kopie (*.cmx)
+PDF - Portable Document Format, copy (*.pdf)	PDF - Portable Document Format, kopie (*.pdf)
+SVG - Scalable Vector Graphics, copy (*.svg)	SVG - Scalable Vector Graphics, kopie (*.svg)
+EMF - Enhanced Windows Metafile, copy (*.emf)	EMF - Enhanced Windows Metafile, kopie (*.emf)
+AnyVector .cdr files open in AnyVector. To open in CorelDRAW, save as CMX, PDF, SVG or EMF.	AnyVector-.cdr-bestanden worden geopend in AnyVector. Sla op als CMX, PDF, SVG of EMF om ze in CorelDRAW te openen.
+Saves a copy for other programs. The drawing keeps its own file.	Slaat een kopie op voor andere programma's. De tekening houdt haar eigen bestand.
+Saving a .cdr drawing that CorelDRAW cannot open	Een .cdr-tekening opslaan die CorelDRAW niet kan openen
+Remind me that CorelDRAW cannot open AnyVector .cdr files	Mij eraan herinneren dat CorelDRAW AnyVector-.cdr-bestanden niet kan openen
+CorelDRAW cannot open this file: AnyVector .cdr files open in AnyVector.	CorelDRAW kan dit bestand niet openen: AnyVector-.cdr-bestanden worden geopend in AnyVector.
+To open the drawing in CorelDRAW, use File ▸ Save As and choose CMX (CorelDRAW-compatible), PDF, SVG or EMF.	Als u de tekening in CorelDRAW wilt openen, kiest u Bestand ▸ Opslaan als en dan CMX (compatibel met CorelDRAW), PDF, SVG of EMF.
+This note is shown once. Turn it back on in Tools ▸ Options ▸ AnyVector ▸ Save.	Deze melding verschijnt maar één keer. Zet haar weer aan via Extra ▸ Opties ▸ AnyVector ▸ Opslaan.
+{} was saved with these differences from the drawing:	{} is opgeslagen met deze verschillen ten opzichte van de tekening:
+{} was not written by AnyVector or CorelDRAW, or it is damaged.	{} is niet door AnyVector of CorelDRAW geschreven, of is beschadigd.
+If it came from another program, open a PDF, SVG or EPS copy of it instead.	Komt het uit een ander programma, open dan in plaats daarvan een PDF-, SVG- of EPS-kopie ervan.
+Saved a copy as {}	Kopie opgeslagen als {}
+Text was converted to curves.	Tekst is omgezet in krommen.
+Bitmaps were left out.	Bitmaps zijn weggelaten.
+Drop shadows, lenses and bevels were left out.	Slagschaduwen, lenzen en afschuiningen zijn weggelaten.
+Transparency was left out.	Transparantie is weggelaten.
+Pattern, texture and mesh fills were replaced by their main color.	Patroon-, textuur- en gaasvullingen zijn vervangen door hun hoofdkleur.
+Hidden layers and objects were left out.	Verborgen lagen en objecten zijn weggelaten.
+AnyVector 0.1	AnyVector 0.1
+Move Here	Hierheen &verplaatsen
+Copy Here	Hierheen &kopiëren
+Copy Fill Here	&Opvulling hierheen kopiëren
+Copy Outline Here	Om&trek hierheen kopiëren
+Copy All Properties	&Alle eigenschappen kopiëren
+Other Commands	Overige opdrachten
+Delete conflicts	Conflicten verwijderen
+Duplicate in Place	Op zijn plaats dupliceren
+Toggle Pick State	Selectiestatus wisselen
+(none)	(geen)

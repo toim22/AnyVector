@@ -149,6 +149,78 @@ pub fn follow_desktop(color: &mut [u8; 3], from: &Palette) {
     }
 }
 
+/// The color of the window border and title bar (Options ▸ Customization ▸ Appearance ▸ Window
+/// border): the user's, or the active theme's menu bar color when left at the default (`None`).
+pub fn window_border(custom: Option<[u8; 3]>) -> Color32 {
+    match custom {
+        Some([r, g, b]) => Color32::from_rgb(r, g, b),
+        None => pal().bar_dark,
+    }
+}
+
+/// Black or white, whichever reads better on `bg` (the title text on the window border).
+pub fn text_on(bg: Color32) -> Color32 {
+    let lum = 0.2126 * bg.r() as f32 + 0.7152 * bg.g() as f32 + 0.0722 * bg.b() as f32;
+    if lum > 140.0 {
+        Color32::BLACK
+    } else {
+        Color32::WHITE
+    }
+}
+
+/// The main window (its handle), for coloring its border; 0 until the app has started.
+static MAIN_WINDOW: std::sync::atomic::AtomicIsize = std::sync::atomic::AtomicIsize::new(0);
+
+/// Remembers the main window, so the window border color can be applied to it.
+pub fn remember_window(cc: &eframe::CreationContext<'_>) {
+    #[cfg(windows)]
+    {
+        use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+        if let Ok(h) = cc.window_handle() {
+            if let RawWindowHandle::Win32(w) = h.as_raw() {
+                MAIN_WINDOW.store(w.hwnd.get(), std::sync::atomic::Ordering::Relaxed);
+            }
+        }
+    }
+    #[cfg(not(windows))]
+    let _ = cc;
+}
+
+thread_local! {
+    /// The border color last given to the window, and how many more frames to give it again
+    /// (the splash window turns into the decorated main window a few frames in).
+    static APPLIED: Cell<(Option<Color32>, u8)> = const { Cell::new((None, 0)) };
+}
+
+/// Colors the main window's border and title bar (Windows 11 and later; elsewhere nothing
+/// changes). Called every frame; the window is only told when the color changes.
+pub fn sync_window_border(custom: Option<[u8; 3]>) {
+    let c = window_border(custom);
+    let (last, again) = APPLIED.with(Cell::get);
+    if last == Some(c) && again == 0 {
+        return;
+    }
+    let again = if last == Some(c) { again - 1 } else { 3 };
+    APPLIED.with(|a| a.set((Some(c), again)));
+    let handle = MAIN_WINDOW.load(std::sync::atomic::Ordering::Relaxed);
+    if handle == 0 {
+        return;
+    }
+    #[cfg(windows)]
+    {
+        use windows::Win32::Foundation::HWND;
+        use windows::Win32::Graphics::Dwm::{DwmSetWindowAttribute, DWMWA_BORDER_COLOR, DWMWA_CAPTION_COLOR, DWMWA_TEXT_COLOR};
+        let colorref = |c: Color32| c.r() as u32 | (c.g() as u32) << 8 | (c.b() as u32) << 16;
+        let h = HWND(handle as *mut core::ffi::c_void);
+        for (attr, v) in [(DWMWA_BORDER_COLOR, colorref(c)), (DWMWA_CAPTION_COLOR, colorref(c)), (DWMWA_TEXT_COLOR, colorref(text_on(c)))] {
+            // SAFETY: `h` is the app's own top-level window and `v` lives through the call.
+            unsafe {
+                let _ = DwmSetWindowAttribute(h, attr, &v as *const u32 as *const core::ffi::c_void, 4);
+            }
+        }
+    }
+}
+
 macro_rules! colors {
     ($($name:ident => $field:ident),* $(,)?) => {
         $(
@@ -395,6 +467,22 @@ mod tests {
         let mut custom = [0x40, 0x10, 0x10];
         follow_desktop(&mut custom, &DARK);
         assert_eq!(custom, [0x40, 0x10, 0x10]);
+        select(&ctx, "Dark");
+    }
+
+    #[test]
+    fn window_border_follows_the_theme_until_chosen() {
+        let ctx = egui::Context::default();
+        select(&ctx, "Light");
+        assert_eq!(window_border(None), LIGHT.bar_dark);
+        assert_eq!(text_on(window_border(None)), Color32::BLACK);
+        select(&ctx, "Dark");
+        assert_eq!(window_border(None), DARK.bar_dark);
+        assert_eq!(text_on(window_border(None)), Color32::WHITE);
+        // a chosen color stays in every theme
+        assert_eq!(window_border(Some([0x10, 0x40, 0x90])), Color32::from_rgb(0x10, 0x40, 0x90));
+        select(&ctx, "Light");
+        assert_eq!(window_border(Some([0x10, 0x40, 0x90])), Color32::from_rgb(0x10, 0x40, 0x90));
         select(&ctx, "Dark");
     }
 

@@ -398,6 +398,10 @@ pub fn cmd(id: &str) -> Option<Cmd> {
         "b60f4415" => TableSplit(true),
         // Object
         "73d5fcfa" => CreateArrowhead,
+        // Outline Pen (F12) and its flyout's No Outline and Hairline Outline
+        "0203e4a7" => OutlinePen,
+        "aa134968" => OutlineWidth(None),
+        "1a7d5259" => OutlineWidth(Some(0.0)),
         "8d3cb8e7" => CreatePattern,
         "8a371e4d" => InsertQrCode,
         "c22f267c" => InsertBarcode,
@@ -476,6 +480,14 @@ pub fn cmd(id: &str) -> Option<Cmd> {
         "d2fdc0d9" => ToggleToolbar(Toolbar::Toolbox),
         "24c9cf0c" => ToggleToolbar(Toolbar::PropertyBar),
         "7b90fb1f" => LockToolbars,
+        // right-click on a toolbar ▸ Customize ▸ <bar> Toolbar / Toolbar Item (#124)
+        "6e40f0a4" => CustomizeBar(crate::customize::BarOp::Reset),
+        "5157359e" => CustomizeBar(crate::customize::BarOp::AddSeparator),
+        "dd014902" => CustomizeBar(crate::customize::BarOp::DeleteItem),
+        "8ba33eda" => CustomizeBar(crate::customize::BarOp::Style(1)),
+        "56b47cbb" => CustomizeBar(crate::customize::BarOp::Style(2)),
+        "192b2542" => CustomizeBar(crate::customize::BarOp::Style(3)),
+        "a4ff25fe" => CommandsSetup,
         "3f8a6b23" => AddColorsFromSelection,
         "fbc9febd" => AddColorsFromDocument,
         "3fb0838f" => CreatePaletteFromSelection,
@@ -526,9 +538,14 @@ pub fn checked(app: &AnyVectorApp, id: &str) -> Option<bool> {
         return Some(c);
     }
     match key(id).as_str() {
-        // Customize ▸ … ▸ Default / Image Only: how AnyVector shows toolbar buttons and items
-        "ed8ad191" | "b412a0c2" | "8ba33eda" | "8f5a59d4" => return Some(true),
-        "56b47cbb" | "192b2542" | "b5671d24" | "af261898" => return Some(false),
+        // Customize ▸ <bar> Toolbar ▸ Image Only / Caption Only / Caption to Right of Image: the
+        // style of the bar right-clicked
+        "8ba33eda" => return Some(crate::customize::context_style_is(app, 1)),
+        "56b47cbb" => return Some(crate::customize::context_style_is(app, 2)),
+        "192b2542" => return Some(crate::customize::context_style_is(app, 3)),
+        // Customize ▸ … ▸ Default / Image Only: how AnyVector shows the menu bar and the items
+        "ed8ad191" | "b412a0c2" | "8f5a59d4" => return Some(true),
+        "b5671d24" | "af261898" => return Some(false),
         _ => {}
     }
     // Lock Contents to PowerClip: AnyVector's PowerClip contents always move with the frame
@@ -660,6 +677,7 @@ pub fn enabled(app: &AnyVectorApp, id: &str) -> Option<bool> {
         // Object
         Cmd::CreateArrowhead => one.is_some_and(|o| o.bounds().width() > 0.0) && !one_is(|k| matches!(k, ObjKind::Image(_) | ObjKind::Table(_))),
         Cmd::CreatePattern | Cmd::InsertQrCode | Cmd::InsertBarcode => d.is_some(),
+        Cmd::OutlinePen | Cmd::OutlineWidth(_) => d.is_some(),
         Cmd::ValidateBarcode => d.is_some_and(|d| d.doc.find_all(&d.selection).into_iter().any(|o| matches!(o.special, Some(vector_core::codes::Special::Barcode { .. })))),
         Cmd::AiGuided(_) => sel > 0,
         // Text
@@ -700,8 +718,8 @@ pub fn enabled(app: &AnyVectorApp, id: &str) -> Option<bool> {
         Cmd::RolloverDeleteState => crate::dialogs::object::active_state(app).is_some(),
         Cmd::InsertPageNumber(3) => pages > 1,
         Cmd::Group | Cmd::Combine => sel > 1,
-        // a curve with several subpaths, or text
-        Cmd::BreakApart => d.is_some_and(|d| d.doc.find_all(&d.selection).into_iter().any(|o| match &o.kind {
+        // a shadowed object (its shadows break off, #105), a curve with several subpaths, or text
+        Cmd::BreakApart => d.is_some_and(|d| d.doc.find_all(&d.selection).into_iter().any(|o| !vector_core::ops::drawn_shadows(o).is_empty() || match &o.kind {
             ObjKind::Path(p) => p.subpaths.len() > 1,
             // text that has more than one line, word or character to split into (warped text still
             // breaks into curves)

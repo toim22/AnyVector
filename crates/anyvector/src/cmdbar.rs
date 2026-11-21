@@ -54,15 +54,21 @@ pub fn run(app: &mut AnyVectorApp, it: &Item) {
     }
 }
 
-fn icon_size(app: &AnyVectorApp) -> f32 {
-    app.settings.button_size.icon()
+fn icon_size(_app: &AnyVectorApp) -> f32 {
+    CURRENT_LOOK.with(|c| c.get()).1.icon()
+}
+
+/// How the bar being drawn shows an item: its style (Options ▸ Command Bars ▸ Style).
+fn face_of(it: &Item) -> Face {
+    crate::customize::face(CURRENT_LOOK.with(|c| c.get()).0, it)
 }
 
 /// A plain or checked toolbar button: the icon, or the caption when the item has no icon.
 fn button(app: &mut AnyVectorApp, ui: &mut Ui, it: &'static Item, on: bool, checked: bool) -> egui::Response {
     let s = icon_size(app);
     let tip = tooltip(app, it);
-    let text_face = it.face != Face::Default || it.icon.is_empty();
+    let face = face_of(it);
+    let text_face = face != Face::Default || it.icon.is_empty();
     if !text_face {
         // a lock toggle shows the closed padlock while it is on, the open one while it is off
         let icon = match it.icon {
@@ -75,7 +81,7 @@ fn button(app: &mut AnyVectorApp, ui: &mut Ui, it: &'static Item, on: bool, chec
     let text = ui::plain(ui::label(it));
     let font = egui::FontId::proportional(12.5);
     let tw = ui.painter().layout_no_wrap(text.clone(), font.clone(), theme::TEXT()).size().x;
-    let with_icon = it.face == Face::TextRight && !it.icon.is_empty();
+    let with_icon = face == Face::TextRight && !it.icon.is_empty();
     let w = tw + 16.0 + if with_icon { s + 6.0 } else { 0.0 };
     let (rect, r) = ui.allocate_exact_size(vec2(w, s + 8.0), if on { Sense::click() } else { Sense::hover() });
     let p = ui.painter();
@@ -101,8 +107,9 @@ fn flyout(app: &mut AnyVectorApp, ui: &mut Ui, it: &'static Item, on: bool) -> e
     let s = icon_size(app);
     let text = ui::plain(ui::label(it));
     let font = egui::FontId::proportional(12.5);
-    let show_text = it.face != Face::Default || it.icon.is_empty();
-    let show_icon = !it.icon.is_empty() && it.face != Face::TextOnly;
+    let face = face_of(it);
+    let show_text = face != Face::Default || it.icon.is_empty();
+    let show_icon = !it.icon.is_empty() && face != Face::TextOnly;
     if !show_text {
         // an icon with a small triangle in its corner
         let tip = tooltip(app, it);
@@ -169,6 +176,8 @@ fn arrow_enabled(app: &AnyVectorApp, it: &Item, on: bool) -> bool {
 pub static MISSING: std::sync::Mutex<Option<std::collections::BTreeSet<(String, String, String)>>> = std::sync::Mutex::new(None);
 thread_local! {
     static CURRENT_BAR: std::cell::Cell<&'static str> = const { std::cell::Cell::new("") };
+    /// The style and the button size of the bar being drawn.
+    static CURRENT_LOOK: std::cell::Cell<(u8, crate::settings::ButtonSize)> = const { std::cell::Cell::new((0, crate::settings::ButtonSize::Small)) };
 }
 
 pub fn note_missing(it: &Item, what: &str) {
@@ -179,14 +188,39 @@ pub fn note_missing(it: &Item, what: &str) {
     }
 }
 
-/// Draw the items of a bar side by side.
+/// Draw the items of a bar side by side, in the user's order (`crate::customize`).
 pub fn strip(app: &mut AnyVectorApp, ui: &mut Ui, bar: u16) {
     let Some(b) = ui::bar(bar) else { return };
-    let ctx = ui::context_bit(app);
-    CURRENT_BAR.with(|c| c.set(b.name));
-    for it in b.items {
-        item(app, ui, it, ctx);
+    let items = crate::customize::items_of(&app.settings, b.id);
+    let look = crate::customize::look(&app.settings, crate::customize::look_key(b));
+    strip_items(app, ui, b.id, b.name, look, &items);
+}
+
+/// A command bar the user made (Options ▸ Customization ▸ Command Bars ▸ New). An empty one
+/// says where its commands come from.
+pub fn custom_strip(app: &mut AnyVectorApp, ui: &mut Ui, key: &str) {
+    let items = crate::customize::items_of(&app.settings, key);
+    let look = crate::customize::look(&app.settings, key);
+    if items.is_empty() {
+        let (r, _) = ui.allocate_exact_size(vec2(150.0, look.1.icon() + 8.0), Sense::hover());
+        ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, "Drag commands here", egui::FontId::proportional(11.5), theme::TEXT_DIM());
+        crate::customize::Recorder::new(app, ui, key, 0, r, false, false).finish(ui.ctx());
+        return;
     }
+    strip_items(app, ui, key, "", look, &items);
+}
+
+fn strip_items(app: &mut AnyVectorApp, ui: &mut Ui, key: &str, name: &'static str, look: (u8, crate::settings::ButtonSize), items: &[&'static Item]) {
+    let ctx = ui::context_bit(app);
+    CURRENT_BAR.with(|c| c.set(name));
+    CURRENT_LOOK.with(|c| c.set(look));
+    let area = ui.max_rect().intersect(ui.clip_rect());
+    let mut rec = crate::customize::Recorder::new(app, ui, key, items.len(), area, false, false);
+    for (i, it) in items.iter().enumerate() {
+        let r = ui.scope(|ui| item(app, ui, it, ctx)).response.rect;
+        rec.item(ui.ctx(), i, r, it.id);
+    }
+    rec.finish(ui.ctx());
 }
 
 fn item(app: &mut AnyVectorApp, ui: &mut Ui, it: &'static Item, ctx: u32) {
@@ -199,14 +233,14 @@ fn item(app: &mut AnyVectorApp, ui: &mut Ui, it: &'static Item, ctx: u32) {
             }
             let on = enabled(app, it, ctx);
             let checked = it.kind != Kind::Button && bind::checked(app, it.id).unwrap_or(false);
-            if button(app, ui, it, on, checked).clicked() {
+            if button(app, ui, it, on, checked).clicked() && !crate::customize::dragging(ui.ctx()) {
                 run(app, it);
             }
         }
         Kind::ButtonFlyout => {
             let on = enabled(app, it, ctx);
             let checked = bind::checked(app, it.id).unwrap_or(false);
-            if button(app, ui, it, on, checked).clicked() {
+            if button(app, ui, it, on, checked).clicked() && !crate::customize::dragging(ui.ctx()) {
                 run(app, it);
             }
             let r = arrow_button(ui, arrow_enabled(app, it, on), "");

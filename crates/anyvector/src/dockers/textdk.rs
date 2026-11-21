@@ -259,7 +259,6 @@ fn gear(app: &mut AnyVectorApp, ui: &mut Ui, para: bool) {
 const STYLES: [&str; 4] = ["Normal", "Normal-Italic", "Bold", "Bold-Italic"];
 const FILL_TYPES: [&str; 8] = ["No Fill", "Uniform Fill", "Fountain Fill", "2 Color Pattern", "Vector Pattern", "Bitmap Pattern", "Texture Fill", "PostScript Fill"];
 const LINE_TYPES: [&str; 7] = ["(none)", "Single Thin", "Single Thin Word", "Single Thick", "Single Thick Word", "Double Thin", "Double Thin Word"];
-const WIDTHS: [f64; 9] = [0.0, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0, 8.0];
 
 fn character(app: &mut AnyVectorApp, ui: &mut Ui, o: &Option<Object>, st: &mut TextUi) {
     let f: CharFormat = pt::format(app);
@@ -272,8 +271,10 @@ fn character(app: &mut AnyVectorApp, ui: &mut Ui, o: &Option<Object>, st: &mut T
     ui.horizontal(|ui| {
         font_combo(app, ui, &f.font, wide);
         ind(app, ui, i);
+        // in the text unit (#109)
+        let (tu, dpi) = crate::lengths::text_unit(app);
         let mut size = f.size;
-        if spin(ui, &mut size, 0.5..=3000.0, 1.0, 1, " pt", 64.0) {
+        if crate::lengths::spin(ui, &mut size, tu, dpi, 0.5..=3000.0, 1.0, crate::lengths::size_decimals(tu), 64.0) {
             pt::apply(app, "Font Size", &move |c| c.size = size);
         }
         end_ind(app, ui, i);
@@ -363,28 +364,22 @@ fn character(app: &mut AnyVectorApp, ui: &mut Ui, o: &Option<Object>, st: &mut T
     let ol = o.as_ref().map(|o| o.style.outline.clone());
     ui.horizontal(|ui| {
         lead(app, ui, "tx_outline", "Outline Width", has);
-        let wnow = ol.as_ref().filter(|x| x.color.is_some()).map(|x| x.width);
-        let names: Vec<String> = std::iter::once("None".to_string()).chain(WIDTHS.iter().skip(1).map(|w| format!("{} pt", trim(*w)))).collect();
-        let cur = wnow.and_then(|w| WIDTHS.iter().position(|x| (x - w).abs() < 1e-6)).unwrap_or(0);
-        let label = match wnow {
-            Some(w) if cur == 0 => format!("{} pt", trim(w)),
-            _ => names[cur].clone(),
-        };
+        // None, Hairline and the widths in the outline unit (#127, #137)
+        let wnow = ol.as_ref().filter(|x| x.is_visible()).map(|x| x.width);
+        let (ou, odpi) = crate::lengths::outline_unit(app);
+        let label = ol.as_ref().map(|x| crate::lengths::outline_text(x, ou, odpi)).unwrap_or_else(|| "None".to_string());
+        let choices: Vec<Option<f64>> = std::iter::once(None).chain(crate::lengths::width_choices(ou, odpi).into_iter().map(Some)).collect();
         ui.add_enabled_ui(has, |ui| {
             egui::ComboBox::from_id_salt("tx_ol_w").width(wide - 30.0).selected_text(label).show_ui(ui, |ui| {
-                for (k, n) in names.iter().enumerate() {
-                    if ui.selectable_label(k == cur && wnow.is_some() || k == 0 && wnow.is_none(), n).clicked() {
-                        let w = WIDTHS[k];
-                        edit_sel(app, "Outline Width", |o| {
-                            if w == 0.0 {
-                                o.style.outline.color = None;
-                            } else {
-                                o.style.outline.width = w;
-                                if o.style.outline.color.is_none() {
-                                    o.style.outline.color = Some(Color::BLACK);
-                                }
-                            }
-                        });
+                for w in &choices {
+                    let name = w.map(|w| crate::lengths::width_text(w, ou, odpi)).unwrap_or_else(|| "None".to_string());
+                    let on = match (w, wnow) {
+                        (Some(a), Some(b)) => (a - b).abs() < 1e-6,
+                        (None, None) => true,
+                        _ => false,
+                    };
+                    if ui.selectable_label(on, name).clicked() {
+                        crate::propbar::set_outline_width(app, *w);
                     }
                 }
             })
@@ -447,7 +442,8 @@ fn character(app: &mut AnyVectorApp, ui: &mut Ui, o: &Option<Object>, st: &mut T
     ui.horizontal(|ui| {
         lead(app, ui, "tx_voff", "Vertical Character Offset", true);
         let mut v = f.baseline_shift;
-        if spin(ui, &mut v, -1000.0..=1000.0, 1.0, 1, " pt", 90.0) {
+        let (tu, dpi) = crate::lengths::text_unit(app);
+        if crate::lengths::spin(ui, &mut v, tu, dpi, -1000.0..=1000.0, 1.0, crate::lengths::size_decimals(tu), 90.0) {
             pt::apply(app, "Vertical Character Offset", &move |c| c.baseline_shift = v);
         }
         ind(app, ui, i);
@@ -559,11 +555,6 @@ fn variable_axes(app: &mut AnyVectorApp, ui: &mut Ui, f: &CharFormat) {
     if ch {
         pt::apply(app, "Variable Fonts", &move |c| c.variations = vals.clone());
     }
-}
-
-fn trim(v: f64) -> String {
-    let s = format!("{v:.2}");
-    s.trim_end_matches('0').trim_end_matches('.').to_string()
 }
 
 /// The "..." of Fill and Outline: the Properties docker at that section.

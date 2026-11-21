@@ -1,6 +1,7 @@
 //! Toolbox (left column): the reference Toolbox bar, one button per item in its order. A tool
 //! flyout shows the tool last used from it and opens from its corner triangle or on
-//! press-and-hold; Quick Customize (+) shows and hides items.
+//! press-and-hold; Quick Customize (+) shows and hides items, and Alt+drag moves them
+//! (`crate::customize`).
 
 use crate::app::AnyVectorApp;
 use crate::icons::Tone;
@@ -108,22 +109,27 @@ pub fn toolbox(app: &mut AnyVectorApp, ui: &mut Ui) {
     ui.spacing_mut().item_spacing.y = 1.0;
     let w = 30.0;
     let Some(bar) = toolbox_bar() else { return };
+    // the user's order (Alt+drag), or the reference one
+    let items = crate::customize::items_of(&app.settings, bar.id);
+    let mut rec = crate::customize::Recorder::new(app, ui, bar.id, items.len(), ui.max_rect().intersect(ui.clip_rect()), true, true);
     // a separator shows only between visible buttons
-    let (mut any, mut sep) = (false, false);
-    for slot in bar.items {
+    let (mut any, mut sep) = (false, None);
+    for (i, slot) in items.iter().copied().enumerate() {
         if slot.kind == Kind::Separator {
-            sep = any;
+            sep = any.then_some(i);
             continue;
         }
         let Some(cur) = current(app, slot) else { continue };
-        if sep {
+        if let Some(si) = sep.take() {
             let (r, _) = ui.allocate_exact_size(vec2(w, 9.0), Sense::hover());
             ui.painter().line_segment([pos2(r.left() + 4.0, r.center().y), pos2(r.right() - 4.0, r.center().y)], Stroke::new(1.0, theme::SEP()));
-            sep = false;
+            rec.item(ui.ctx(), si, r, "");
         }
         any = true;
-        slot_button(app, ui, slot, cur, doc, w);
+        let r = slot_button(app, ui, slot, cur, doc, w);
+        rec.item(ui.ctx(), i, r, slot.id);
     }
+    rec.finish(ui.ctx());
     ui.add_space(4.0);
     // Quick Customize
     let (rect, resp) = ui.allocate_exact_size(vec2(w, 26.0), Sense::click());
@@ -139,7 +145,7 @@ pub fn toolbox(app: &mut AnyVectorApp, ui: &mut Ui) {
     });
 }
 
-fn slot_button(app: &mut AnyVectorApp, ui: &mut Ui, slot: &'static Item, cur: &'static Item, doc: bool, w: f32) {
+fn slot_button(app: &mut AnyVectorApp, ui: &mut Ui, slot: &'static Item, cur: &'static Item, doc: bool, w: f32) -> Rect {
     let active = doc && crate::tools::item_tools(cur.id).contains(&app.tool);
     let (rect, resp) = ui.allocate_exact_size(vec2(w, 30.0), if doc { Sense::click_and_drag() } else { Sense::hover() });
     let p = ui.painter();
@@ -170,10 +176,15 @@ fn slot_button(app: &mut AnyVectorApp, ui: &mut Ui, slot: &'static Item, cur: &'
     // the flyout opens from the corner triangle, on press-and-hold or on a drag; a flyout of
     // commands (Outline Pen) opens on any click
     let mut open = false;
+    // an Alt+drag moves the button instead (`crate::customize`)
+    let busy = crate::customize::dragging(ui.ctx());
     let in_corner = resp.interact_pointer_pos().is_some_and(|p| p.x > rect.right() - 9.0 && p.y > rect.bottom() - 9.0);
-    if resp.double_clicked() && !in_corner && crate::tools::item_tools(cur.id).first() == Some(&crate::tools::ToolId::Rectangle) {
-        // double-clicking the Rectangle tool draws a rectangle the size of the page (#99)
-        crate::tools::rectangle_to_page(app);
+    if busy {
+        // nothing: the button is being moved
+    } else if resp.double_clicked() && !in_corner && crate::tools::item_tools(cur.id).first() == Some(&crate::tools::ToolId::Rectangle) {
+        // double-clicking the Rectangle tool draws a rectangle around the selection, or the size
+        // of the page with nothing selected (#99, #135)
+        crate::tools::rectangle_to_bounds(app);
     } else if resp.clicked() {
         if has_flyout && (in_corner || slot.kind == Kind::Flyout) {
             open = true;
@@ -181,7 +192,7 @@ fn slot_button(app: &mut AnyVectorApp, ui: &mut Ui, slot: &'static Item, cur: &'
             crate::cmdbar::run(app, cur);
         }
     }
-    if has_flyout && (resp.drag_started() || (resp.is_pointer_button_down_on() && ui.input(|i| i.pointer.press_start_time().is_some_and(|t| i.time - t > 0.45)))) {
+    if has_flyout && !busy && (resp.drag_started() || (resp.is_pointer_button_down_on() && ui.input(|i| i.pointer.press_start_time().is_some_and(|t| i.time - t > 0.45)))) {
         open = true;
     }
     let hidden: Vec<String> = ui::bar(slot.sub).map(|b| b.items.iter().filter(|i| !shown(app, i)).map(|i| key8(i.id)).collect()).unwrap_or_default();
@@ -194,6 +205,7 @@ fn slot_button(app: &mut AnyVectorApp, ui: &mut Ui, slot: &'static Item, cur: &'
         .open_memory(open.then_some(egui::SetOpenCommand::Bool(true)))
         .close_behavior(PopupCloseBehavior::CloseOnClick)
         .show(|ui| crate::menus::show_flyout(app, ui, slot.sub, |it| it.kind == Kind::Radio && hidden.contains(&key8(it.id))));
+    rect
 }
 
 /// The name Quick Customize gives a slot: its flyout's name, or its own caption.
@@ -208,7 +220,9 @@ fn quick_customize(app: &mut AnyVectorApp, ui: &mut Ui) {
     ui.set_min_width(240.0);
     egui::ScrollArea::vertical().max_height(ui.ctx().content_rect().height() - 120.0).show(ui, |ui| {
         ui.spacing_mut().item_spacing.y = 1.0;
+        let bar_key = toolbox_bar().map(|b| b.id).unwrap_or_default();
         for (si, slot) in slots().enumerate() {
+            let on_bar = crate::customize::shown(&app.settings, bar_key, slot.id);
             if si > 0 {
                 let r = ui.available_rect_before_wrap();
                 ui.painter().line_segment([pos2(r.left(), r.top() + 2.0), pos2(r.right(), r.top() + 2.0)], Stroke::new(1.0, Color32::from_rgb(0x2a, 0x6a, 0xc8)));
@@ -216,11 +230,14 @@ fn quick_customize(app: &mut AnyVectorApp, ui: &mut Ui) {
             }
             ui.label(egui::RichText::new(slot_title(slot)).color(theme::TEXT_DIM()));
             for it in slot_tools(slot) {
-                let mut on = shown(app, it);
+                let mut on = on_bar && shown(app, it);
                 let key = crate::ui::bind::cmd(it.id).and_then(|c| crate::shortcuts::shortcut_text(app, c)).or_else(|| it.keys.first().map(|k| k.to_string()));
                 ui.horizontal(|ui| {
                     if ui.checkbox(&mut on, "").changed() {
                         set_shown(app, it, on);
+                        if on && !on_bar {
+                            crate::customize::set_shown(&mut app.settings, bar_key, slot.id, true);
+                        }
                     }
                     if let Some(img) = app.icons.image(ui.ctx(), icon_of(it), 16.0, true) {
                         ui.add(img);
@@ -239,6 +256,9 @@ fn quick_customize(app: &mut AnyVectorApp, ui: &mut Ui) {
     ui.horizontal(|ui| {
         if ui.button("Reset toolbar").clicked() {
             app.settings.toolbox_items.clear();
+            if let Some(b) = toolbox_bar() {
+                crate::customize::reset(&mut app.settings, b.id);
+            }
         }
         if ui.button("Customize...").clicked() {
             app.run(crate::commands::Cmd::Options(crate::commands::OptionsPage::Customization));

@@ -928,11 +928,23 @@ pub(crate) fn apply_bar(ui: &mut Ui, text: &str, enabled: bool) -> bool {
 
 /// A number field with up/down arrows that change it by `step`, `w` points wide.
 pub(crate) fn spin<N: egui::emath::Numeric>(ui: &mut Ui, v: &mut N, range: std::ops::RangeInclusive<N>, step: f64, decimals: usize, suffix: &str, w: f32) -> bool {
+    spin_parsed(ui, v, range, step, decimals, suffix, w, None)
+}
+
+/// [`spin`] that reads typed text with `parse` (lengths with their unit, see `crate::lengths`);
+/// with a parser the value shows no trailing zeros.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn spin_parsed<N: egui::emath::Numeric>(ui: &mut Ui, v: &mut N, range: std::ops::RangeInclusive<N>, step: f64, decimals: usize, suffix: &str, w: f32, parse: Option<&dyn Fn(&str) -> Option<f64>>) -> bool {
     let enabled = ui.is_enabled();
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 0.0;
         let (lo, hi) = (range.start().to_f64(), range.end().to_f64());
-        let mut changed = ui.add_sized(vec2(w - 14.0, 22.0), egui::DragValue::new(v).range(range).speed(step * 0.5).max_decimals(decimals).min_decimals(decimals).suffix(suffix)).changed();
+        let dv = egui::DragValue::new(v).range(range).speed(step * 0.5).max_decimals(decimals).suffix(suffix);
+        let dv = match parse {
+            Some(p) => dv.custom_parser(p),
+            None => dv.min_decimals(decimals),
+        };
+        let mut changed = ui.add_sized(vec2(w - 14.0, 22.0), dv).changed();
         let (rect, _) = ui.allocate_exact_size(vec2(14.0, 20.0), Sense::hover());
         let up = Rect::from_min_max(rect.min, pos2(rect.max.x, rect.center().y));
         let down = Rect::from_min_max(pos2(rect.min.x, rect.center().y), rect.max);

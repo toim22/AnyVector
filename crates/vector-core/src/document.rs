@@ -1323,7 +1323,58 @@ impl Document {
         None
     }
 
+    /// Every object at a point on a page, topmost first: the order Alt+click walks down (#139).
+    /// Top-level object ids; [`Document::hit_test`] gives the first of them.
+    pub fn hit_list(&self, page: usize, p: Point, tolerance: f64, treat_as_filled: bool) -> Vec<ObjId> {
+        let mut out = vec![];
+        for (_, _, l) in self.layers_on_page(page).into_iter().rev() {
+            if !l.visible || l.locked {
+                continue;
+            }
+            for o in l.objects.iter().rev() {
+                if o.visible && self.hit_object(o, p, tolerance, treat_as_filled) {
+                    out.push(o.id);
+                }
+            }
+        }
+        out
+    }
+
+    /// Is `p` on the object: on the object itself or on one of its shadows (#106)?
     pub fn hit_object(&self, o: &Object, p: Point, tol: f64, treat_as_filled: bool) -> bool {
+        self.hit_body(o, p, tol, treat_as_filled) || self.shadow_at(o, p, tol, treat_as_filled).is_some()
+    }
+
+    /// The shadow of `o` itself (not one of its parts') that `p` is on, the topmost first: a
+    /// block shadow is drawn over a drop shadow. An inner shadow lies on the object, so a click
+    /// there is on the object.
+    pub fn shadow_at(&self, o: &Object, p: Point, tol: f64, treat_as_filled: bool) -> Option<crate::object::ShadowPart> {
+        use crate::object::ShadowPart;
+        if (o.effects.drop_shadow.is_none() && o.effects.block_shadow.is_none()) || o.effects.lens.is_some() {
+            return None;
+        }
+        let bb = self.bounds_of(o);
+        let line = if o.style.outline.is_visible() { o.style.outline.width } else { 0.0 };
+        if let Some(b) = &o.effects.block_shadow {
+            let reach = tol + line + b.expand.max(0.0);
+            if bb.union(bb + b.offset).inflate(reach, reach).contains(p) && b.hit(o, p, tol) {
+                return Some(ShadowPart::Block);
+            }
+        }
+        if let Some(s) = &o.effects.drop_shadow {
+            // the blurred edge shows about half the feathering past the silhouette
+            let reach = tol + s.feather.max(0.0) * 0.5;
+            let m = s.placement(bb);
+            let near = m.transform_rect_bbox(bb).inflate(reach + line, reach + line).contains(p);
+            if s.opacity > 0.0 && m.determinant().abs() > 1e-9 && near && self.hit_body(o, m.inverse() * p, reach, treat_as_filled) {
+                return Some(ShadowPart::Drop);
+            }
+        }
+        None
+    }
+
+    /// Is `p` on the object itself (its fill, outline or box), its shadows left out?
+    pub fn hit_body(&self, o: &Object, p: Point, tol: f64, treat_as_filled: bool) -> bool {
         match &o.kind {
             ObjKind::Group(c) => c.iter().any(|x| self.hit_object(x, p, tol, treat_as_filled)),
             ObjKind::PowerClip { frame, contents } => {
@@ -1370,6 +1421,47 @@ impl Document {
                 crate::geom::distance_to_outline(&path, p) <= tol + w
             }
         }
+    }
+
+    /// Alt+click on a PowerClip, as in CorelDRAW: the contents under a point inside the frame of
+    /// the PowerClip `o` (the topmost content object there), digging into PowerClips nested in
+    /// the contents. None when `o` is not a PowerClip, the point is outside its frame (the
+    /// contents are clipped there) or no content is under it.
+    pub fn powerclip_content_at(&self, o: &Object, p: Point, tol: f64, treat_as_filled: bool) -> Option<ObjId> {
+        let ObjKind::PowerClip { frame, .. } = &o.kind else { return None };
+        if !crate::geom::contains(&frame.world_path(), p, false) {
+            return None;
+        }
+        let c = self.powerclip_child_at(o, p, tol, treat_as_filled)?;
+        let inner = o.find(c).and_then(|x| self.powerclip_content_at(x, p, tol, treat_as_filled));
+        Some(inner.unwrap_or(c))
+    }
+
+    /// The topmost content object of the PowerClip `o` under a point, inside the frame or not
+    /// (contents being edited show and pick in full). Nested PowerClips and groups count as one
+    /// object, as on the page.
+    pub fn powerclip_child_at(&self, o: &Object, p: Point, tol: f64, treat_as_filled: bool) -> Option<ObjId> {
+        let ObjKind::PowerClip { contents, .. } = &o.kind else { return None };
+        contents.iter().rev().find(|c| c.visible && self.hit_object(c, p, tol, treat_as_filled)).map(|c| c.id)
+    }
+
+    /// The content objects of the PowerClip `o` a marquee selects (as [`Self::objects_in_rect`]
+    /// does on the page).
+    pub fn powerclip_contents_in_rect(&self, o: &Object, r: Rect, touching: bool) -> Vec<ObjId> {
+        let ObjKind::PowerClip { contents, .. } = &o.kind else { return vec![] };
+        contents
+            .iter()
+            .filter(|c| c.visible && !c.locked)
+            .filter(|c| {
+                let b = self.bounds_of(c);
+                if touching {
+                    b.intersect(r).area() > 0.0 || r.contains(b.center())
+                } else {
+                    r.contains(Point::new(b.x0, b.y0)) && r.contains(Point::new(b.x1, b.y1))
+                }
+            })
+            .map(|c| c.id)
+            .collect()
     }
 
     /// All top-level object ids on a page (visible, unlocked layers) whose bounds fall inside `r`.

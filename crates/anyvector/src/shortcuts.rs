@@ -14,6 +14,23 @@ pub fn shortcut_text(app: &AnyVectorApp, cmd: Cmd) -> Option<String> {
     default_shortcut(cmd).map(|s| s.to_string())
 }
 
+/// Every chord that runs `cmd` now (the user's, or the defaults and the reference's other chords),
+/// as text.
+pub fn chords(app: &AnyVectorApp, cmd: Cmd) -> Vec<String> {
+    bindings(app).into_iter().filter(|(_, c)| *c == cmd).map(|(s, _)| crate::commands::format_shortcut(&s)).collect()
+}
+
+/// The commands other than `cmd` that `chord` runs now (a conflict when assigning it to `cmd`).
+pub fn chord_owners(app: &AnyVectorApp, chord: &Shortcut, cmd: Cmd) -> Vec<Cmd> {
+    let mut v: Vec<Cmd> = vec![];
+    for (s, c) in bindings(app) {
+        if c != cmd && s == *chord && !v.contains(&c) {
+            v.push(c);
+        }
+    }
+    v
+}
+
 fn bindings(app: &AnyVectorApp) -> Vec<(Shortcut, Cmd)> {
     let mut v = vec![];
     for c in shortcut_commands() {
@@ -56,8 +73,31 @@ fn key_context(app: &AnyVectorApp) -> Option<KeyContext> {
     }
 }
 
-fn mods(s: &Shortcut) -> Modifiers {
-    Modifiers { alt: s.alt, ctrl: s.ctrl, shift: s.shift, mac_cmd: false, command: s.ctrl }
+/// Take the key press of chord `s` out of this frame's events (see [`Shortcut::matches`]).
+fn consume(i: &mut egui::InputState, s: &Shortcut) -> bool {
+    let mut hit = false;
+    i.events.retain(|e| match e {
+        egui::Event::Key { key, physical_key, pressed: true, modifiers, .. } if s.matches(*key, *physical_key, *modifiers) => {
+            hit = true;
+            false
+        }
+        _ => true,
+    });
+    hit
+}
+
+/// Take this frame's presses of `key` with no Ctrl: whether there was one that is not a key
+/// repeat.
+fn take_fresh_press(i: &mut egui::InputState, key: Key) -> Option<bool> {
+    let mut found = None;
+    i.events.retain(|e| match e {
+        egui::Event::Key { key: k, pressed: true, repeat, modifiers, .. } if *k == key && modifiers.matches_logically(Modifiers::NONE) => {
+            found = Some(found.unwrap_or(false) || !*repeat);
+            false
+        }
+        _ => true,
+    });
+    found
 }
 
 pub fn handle(app: &mut AnyVectorApp, ctx: &egui::Context) {
@@ -80,7 +120,7 @@ pub fn handle(app: &mut AnyVectorApp, ctx: &egui::Context) {
         if !typing && !handle_drag {
             for (s, c) in &context {
                 let Some(c) = c else { continue };
-                if i.consume_shortcut(&egui::KeyboardShortcut::new(mods(s), s.key)) {
+                if consume(i, s) {
                     fired.push(*c);
                 }
             }
@@ -103,8 +143,7 @@ pub fn handle(app: &mut AnyVectorApp, ctx: &egui::Context) {
             if text_editing && matches!(c, Cmd::Cut | Cmd::Copy | Cmd::Paste | Cmd::SelectAll | Cmd::Delete) {
                 continue;
             }
-            let ks = egui::KeyboardShortcut::new(mods(s), s.key);
-            if i.consume_shortcut(&ks) {
+            if consume(i, s) {
                 fired.push(*c);
             }
         }
@@ -159,9 +198,13 @@ pub fn handle(app: &mut AnyVectorApp, ctx: &egui::Context) {
                 }
             }
         });
-        // Space toggles between the Pick tool and the previous tool
-        if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Space)) {
-            if app.tool == ToolId::Pick {
+        // Space toggles between the Pick tool and the previous tool; while an object is dragged,
+        // moved or transformed it leaves a copy where it is now, as in CorelDRAW (#130)
+        // (a held Space repeats nothing)
+        if ctx.input_mut(|i| take_fresh_press(i, Key::Space)) == Some(true) {
+            if matches!(app.ts.drag, crate::tools::Drag::Transform { .. }) {
+                crate::tools::drop::stamp_copy(app);
+            } else if app.tool == ToolId::Pick {
                 if let Some(prev) = app.ts.previous_tool {
                     app.set_tool(prev);
                 }
@@ -173,6 +216,9 @@ pub fn handle(app: &mut AnyVectorApp, ctx: &egui::Context) {
         if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             if app.ts.is_busy() {
                 app.ts.cancel();
+            } else if app.doc().is_some_and(|d| d.selection.is_empty() && d.editing_powerclip().is_some()) {
+                // Esc with nothing selected finishes editing the PowerClip (#111)
+                fired.push(Cmd::PowerClipFinish);
             } else if let Some(d) = app.doc_mut() {
                 d.selection.clear();
                 d.node_sel.clear();

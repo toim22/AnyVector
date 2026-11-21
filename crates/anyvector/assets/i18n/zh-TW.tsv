@@ -5381,7 +5381,7 @@ Drag to set the start and end points, then click to set the curvature	拖曳以�
 Sketch strokes; nearby strokes are merged into smooth curves	繪製草圖筆觸；鄰近的筆觸會合併為平滑曲線
 Draw a shape freehand; it is recognized and converted into a basic shape	手繪形狀；系統會辨識並將其轉換為基本形狀
 Drag to draw a brush, sprayer, calligraphic or pressure stroke	拖曳以繪製筆刷、噴灑器、書法或壓力筆觸
-Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle the size of the page	拖曳以繪製矩形；Ctrl 可限制為正方形；Shift 可從中心繪製。按兩下該工具可繪製與頁面大小相同的矩形
+Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle around the selection, or the size of the page	拖曳以繪製矩形；Ctrl 可限制為正方形；Shift 可從中心繪製。按兩下該工具可繪製圍繞所選物件的矩形，未選取物件時繪製與頁面大小相同的矩形
 Drag to set the baseline, then click to set the height	拖曳以設定基線，然後按一下以設定高度
 Drag to draw an ellipse; Ctrl constrains to a circle; Shift draws from the center	拖曳以繪製橢圓形；Ctrl 可限制為圓形；Shift 可從中心繪製
 Drag to set the center line, then click to set the height	拖曳以設定中心線，然後按一下以設定高度
@@ -5612,3 +5612,52 @@ Edit Ellipse	編輯橢圓形
 Move Segment	移動線段
 Delete Segment	刪除線段
 A curve needs at least two nodes	曲線至少需要兩個節點
+Select Contents	選取內容
+Adjust contents	調整內容
+Drop Shadow on {}	陰影 位於 {}
+Block Shadow on {}	區塊陰影 位於 {}
+Default outline set for new objects.	已為新物件設定預設外框。
+Outline: double-click to edit	外框：按兩下以編輯
+Start arrowhead	起始箭頭
+End arrowhead	結束箭頭
+Nothing is selected: these settings are the outline of new objects.	未選取任何物件：這些設定將作為新物件的外框。
+Share attributes	共用屬性
+Stretch:	延展：
+Nib shape:	筆尖形狀：
+Drag commands here	將命令拖曳到此處
+New Toolbar {}	新增工具列 {}
+CMX - CorelDRAW-compatible (*.cmx)	CMX - 與 CorelDRAW 相容 (*.cmx)
+CDR - AnyVector Drawing (*.cdr)	CDR - AnyVector 繪圖 (*.cdr)
+VCT - AnyVector Drawing, legacy (*.vct)	VCT - AnyVector 繪圖，舊格式 (*.vct)
+CMX - CorelDRAW-compatible copy (*.cmx)	CMX - 與 CorelDRAW 相容的複本 (*.cmx)
+PDF - Portable Document Format, copy (*.pdf)	PDF - Portable Document Format，複本 (*.pdf)
+SVG - Scalable Vector Graphics, copy (*.svg)	SVG - Scalable Vector Graphics，複本 (*.svg)
+EMF - Enhanced Windows Metafile, copy (*.emf)	EMF - Enhanced Windows Metafile，複本 (*.emf)
+AnyVector .cdr files open in AnyVector. To open in CorelDRAW, save as CMX, PDF, SVG or EMF.	AnyVector 的 .cdr 檔案會在 AnyVector 中開啟。若要在 CorelDRAW 中開啟，請另存為 CMX、PDF、SVG 或 EMF。
+Saves a copy for other programs. The drawing keeps its own file.	為其他程式儲存一份複本。繪圖仍保留在自己的檔案中。
+Saving a .cdr drawing that CorelDRAW cannot open	儲存 CorelDRAW 無法開啟的 .cdr 繪圖
+Remind me that CorelDRAW cannot open AnyVector .cdr files	提醒我 CorelDRAW 無法開啟 AnyVector 的 .cdr 檔案
+CorelDRAW cannot open this file: AnyVector .cdr files open in AnyVector.	CorelDRAW 無法開啟此檔案：AnyVector 的 .cdr 檔案會在 AnyVector 中開啟。
+To open the drawing in CorelDRAW, use File ▸ Save As and choose CMX (CorelDRAW-compatible), PDF, SVG or EMF.	若要在 CorelDRAW 中開啟此繪圖，請使用 檔案 ▸ 另存新檔，然後選擇 CMX（與 CorelDRAW 相容）、PDF、SVG 或 EMF。
+This note is shown once. Turn it back on in Tools ▸ Options ▸ AnyVector ▸ Save.	此提示只會顯示一次。可在 工具 ▸ 選項 ▸ AnyVector ▸ 儲存 中重新開啟。
+{} was saved with these differences from the drawing:	{} 已儲存，與繪圖有以下差異：
+{} was not written by AnyVector or CorelDRAW, or it is damaged.	{} 不是由 AnyVector 或 CorelDRAW 寫入的，或者已損毀。
+If it came from another program, open a PDF, SVG or EPS copy of it instead.	如果它來自其他程式，請改為開啟它的 PDF、SVG 或 EPS 複本。
+Saved a copy as {}	已將複本另存為 {}
+Text was converted to curves.	文字已轉換為曲線。
+Bitmaps were left out.	未包含點陣圖。
+Drop shadows, lenses and bevels were left out.	未包含陰影、透鏡和斜角。
+Transparency was left out.	未包含透明度。
+Pattern, texture and mesh fills were replaced by their main color.	圖樣、材質和網狀填色已取代為其主要色彩。
+Hidden layers and objects were left out.	未包含隱藏的圖層和物件。
+AnyVector 0.1	AnyVector 0.1
+Move Here	移動到此處(&M)
+Copy Here	複製到此處(&C)
+Copy Fill Here	複製填色到此處(&F)
+Copy Outline Here	複製外框到此處(&O)
+Copy All Properties	複製所有屬性(&A)
+Other Commands	其他命令
+Delete conflicts	刪除衝突
+Duplicate in Place	原地複製
+Toggle Pick State	切換選取狀態
+(none)	(無)

@@ -71,20 +71,21 @@ pub fn drawing_window(app: &mut AnyVectorApp, ui: &mut Ui) {
     // ------------------------------------------------------------------ input
     let ctx = ui.ctx().clone();
     let resp = ui.interact(canvas, Id::unique(("canvas", app.docs[ai].uid)), Sense::click_and_drag());
-    // Edit Master shows a Finish button at the top left of the drawing
+    // Edit Master and Edit PowerClip show a Finish button at the top left of the drawing
     let finish = finish_label(&app.docs[ai]).map(|t| {
         let w = 18.0 + ctx.fonts_mut(|f| f.layout_no_wrap(crate::i18n::t(t), egui::FontId::proportional(12.0), Color32::WHITE).size().x);
         (t, Rect::from_min_size(canvas.min + vec2(8.0, 8.0), vec2(w, 24.0)))
     });
     let over_finish = finish.is_some_and(|(_, r)| ctx.input(|i| i.pointer.latest_pos()).is_some_and(|p| r.contains(p)));
     let hovered = resp.contains_pointer() && !over_finish;
-    let (pos, pressed, released, down, sec_pressed, mods, scroll, zoom_delta, time, dt) = ctx.input(|i| {
+    let (pos, pressed, released, down, (sec_pressed, sec_down, sec_released), mods, scroll, zoom_delta, time, dt) = ctx.input(|i| {
+        let sec = egui::PointerButton::Secondary;
         (
             i.pointer.latest_pos(),
             i.pointer.primary_pressed(),
             i.pointer.primary_released(),
             i.pointer.primary_down(),
-            i.pointer.button_pressed(egui::PointerButton::Secondary),
+            (i.pointer.button_pressed(sec), i.pointer.button_down(sec), i.pointer.button_released(sec)),
             i.modifiers,
             i.smooth_scroll_delta,
             i.zoom_delta(),
@@ -125,6 +126,8 @@ pub fn drawing_window(app: &mut AnyVectorApp, ui: &mut Ui) {
             down,
             double: resp.double_clicked(),
             secondary: sec_pressed && hovered,
+            secondary_down: sec_down,
+            secondary_released: sec_released,
             mods,
             key_c: ctx.input(|i| i.key_down(egui::Key::C)),
             time,
@@ -148,7 +151,7 @@ pub fn drawing_window(app: &mut AnyVectorApp, ui: &mut Ui) {
                 }
             }
         }
-        if inp.pressed || hovered || app.ts.press.is_some() || inp.secondary {
+        if inp.pressed || hovered || app.ts.press.is_some() || inp.secondary || app.ts.right_drag.is_some() {
             if inp.pressed {
                 // clicking the drawing leaves any text field so tool keys and typing reach the canvas
                 ctx.memory_mut(|m| {
@@ -170,10 +173,12 @@ pub fn drawing_window(app: &mut AnyVectorApp, ui: &mut Ui) {
             crate::dialogs::object::live_preview(app, at, down);
         }
     }
-    // right-click menu for what is under the pointer (the right-click itself selected it)
-    if let Some(name) = crate::menus::canvas_menu(app) {
+    // right-click menu for what is under the pointer (the right-click itself selected it); a
+    // right-button drag ends in its own menu instead (#140)
+    if let Some(name) = crate::menus::canvas_menu(app).filter(|_| app.ts.right_drag.is_none() && app.ts.right_drop.is_none()) {
         resp.context_menu(|ui| crate::menus::context_menu(app, ui, name));
     }
+    tools::drop::drop_menu(app, &ctx);
     if !app.active.map(|a| a < app.docs.len()).unwrap_or(false) {
         return;
     }
@@ -187,6 +192,7 @@ pub fn drawing_window(app: &mut AnyVectorApp, ui: &mut Ui) {
     } else {
         painter.rect_filled(canvas, 0.0, theme::DESKTOP());
     }
+    tools::update_hover_cut(app, hovered && !modal);
     tools::draw_overlay(app, &painter);
     crate::dockers::draw_hotspots(app, &painter, &app.docs[ai]);
     printable_area(app, &painter, ai);
@@ -216,15 +222,32 @@ pub fn drawing_window(app: &mut AnyVectorApp, ui: &mut Ui) {
     // ------------------------------------------------------------------ cursor
     if hovered && !modal {
         ctx.set_cursor_icon(cursor_for(app, pos.unwrap_or_default()));
+        cursor_badge(app, &painter, pos);
     }
     if app.ts.is_busy() || app.docs[ai].text_edit.is_some() {
         ctx.request_repaint_after(std::time::Duration::from_millis(100));
     }
 }
 
-/// The canvas button that ends Edit Master (Edit Rollover ends from the Internet toolbar).
+/// The Virtual Segment Delete pointer carries the tool's icon, as the reference's does its knife
+/// (the system pointers have no such shape), so the tool is told from the other crosshair tools
+/// (#119).
+fn cursor_badge(app: &mut AnyVectorApp, painter: &egui::Painter, pos: Option<Pos2>) {
+    let Some(p) = pos else { return };
+    if app.tool != ToolId::VirtualDelete || !app.ts.drag.is_none() || app.ts.pick_target.is_some() {
+        return;
+    }
+    let r = Rect::from_min_size(p + vec2(10.0, 12.0), vec2(20.0, 20.0));
+    painter.rect(r, 3.0, theme::MENU_BG(), Stroke::new(1.0, theme::SEP()), egui::StrokeKind::Inside);
+    if let Some(t) = app.icons.get(painter.ctx(), ToolId::VirtualDelete.icon(), 16.0, crate::icons::Tone::Normal) {
+        painter.image(t.id, Rect::from_center_size(r.center(), vec2(16.0, 16.0)), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
+    }
+}
+
+/// The canvas button that ends Edit Master and Edit PowerClip (Edit Rollover ends from the
+/// Internet toolbar).
 fn finish_label(d: &crate::docview::DocView) -> Option<&'static str> {
-    d.symbol_edit.is_some().then_some("✓  Finish")
+    (d.symbol_edit.is_some() || d.editing_powerclip().is_some()).then_some("✓  Finish")
 }
 
 /// Re-render the page into the cached texture when anything that affects it changed.
@@ -265,7 +288,8 @@ fn render_cache(app: &mut AnyVectorApp, ctx: &egui::Context, ai: usize, canvas: 
         wireframe: d.view_mode == ViewMode::Wireframe,
         draft: false,
         printing: false,
-        draw_page: d.doc.settings.show_page_border || true,
+        draw_page: true,
+        page_border: d.doc.settings.show_page_border,
         desktop: Color::rgb(dc[0], dc[1], dc[2]),
         hidden: vec![],
         dim_others: (!d.focus.is_empty()).then(|| {
@@ -279,6 +303,7 @@ fn render_cache(app: &mut AnyVectorApp, ctx: &egui::Context, ai: usize, canvas: 
             (keep, (settings.inactive_visibility / 100.0).clamp(0.0, 1.0) as f32)
         }),
         show_powerclip_frames: settings.powerclip_empty_lines,
+        editing_powerclip: d.editing_powerclip(),
         antialias: d.view_mode != ViewMode::Pixels,
         overprint: d.simulate_overprint,
     };
@@ -344,15 +369,7 @@ fn render_cache(app: &mut AnyVectorApp, ctx: &egui::Context, ai: usize, canvas: 
             if pr.x1 < 0.0 || pr.x0 > pw as f64 || pr.y1 < 0.0 || pr.y0 > ph as f64 {
                 continue;
             }
-            let fill = |pm: &mut tiny_skia::Pixmap, r: kurbo::Rect, c: tiny_skia::Color| {
-                if let Some(r) = tiny_skia::Rect::from_ltrb(r.x0 as f32, r.y0 as f32, r.x1 as f32, r.y1 as f32) {
-                    let mut paint = tiny_skia::Paint::default();
-                    paint.set_color(c);
-                    pm.fill_rect(r, &paint, tiny_skia::Transform::identity(), None);
-                }
-            };
-            fill(&mut pm, pr + kurbo::Vec2::new(3.0, 3.0), tiny_skia::Color::from_rgba8(0, 0, 0, 110));
-            fill(&mut pm, pr, tiny_skia::Color::WHITE);
+            vector_render::page_backdrop(&d.doc.pages[i], v, &mut pm, &opts);
             ts.renderer.render_page(&d.doc, i, v, &mut pm, &others);
         }
     }
@@ -552,12 +569,20 @@ pub(crate) fn cursor_for(app: &AnyVectorApp, pos: Pos2) -> CursorIcon {
         return CursorIcon::Crosshair;
     }
     let Some(d) = app.doc() else { return CursorIcon::Default };
+    // a right-button drag ends in a menu (#140)
+    if app.ts.right_drag.is_some() {
+        return CursorIcon::ContextMenu;
+    }
     if app.settings.crosshair_cursor && app.tool != ToolId::Pick {
         return CursorIcon::Crosshair;
     }
     match app.tool {
         ToolId::Pick | ToolId::FreeTransform => {
             if let Drag::Transform { kind, .. } = &app.ts.drag {
+                // the drop leaves a copy (right-click or the keypad + during the drag)
+                if app.ts.copy_on_drop {
+                    return CursorIcon::Copy;
+                }
                 return match kind {
                     tools::Xform::Move => CursorIcon::Move,
                     tools::Xform::Rotate => CursorIcon::Alias,
@@ -600,16 +625,24 @@ pub(crate) fn cursor_for(app: &AnyVectorApp, pos: Pos2) -> CursorIcon {
         ToolId::Text => CursorIcon::Text,
         // the Shape tool is told apart from Pick (#122): a crosshair, a hand over what it can grab
         ToolId::Shape => {
-            if matches!(app.ts.drag, Drag::Nodes { .. } | Drag::Control { .. } | Drag::Corner { .. } | Drag::PolygonNode { .. } | Drag::EllipseNode { .. } | Drag::Segment { .. }) {
+            // a text spacing handle: a resize cursor across it (#110)
+            let spacing = |vertical: bool| if vertical { CursorIcon::ResizeVertical } else { CursorIcon::ResizeHorizontal };
+            if let Drag::TextSpacing { kind, .. } = &app.ts.drag {
+                spacing(kind.vertical())
+            } else if matches!(app.ts.drag, Drag::Nodes { .. } | Drag::Control { .. } | Drag::Corner { .. } | Drag::PolygonNode { .. } | Drag::EllipseNode { .. } | Drag::Segment { .. }) {
                 CursorIcon::Grabbing
-            } else if tools::shape_hit(d, d.to_doc(pos), d.doc_len(5.0)).is_some() {
-                CursorIcon::PointingHand
             } else {
-                CursorIcon::Crosshair
+                match tools::shape_hit(d, d.to_doc(pos), d.doc_len(5.0)) {
+                    Some(tools::ShapeHit::TextSpacing { vertical, .. }) => spacing(vertical),
+                    Some(_) => CursorIcon::PointingHand,
+                    None => CursorIcon::Crosshair,
+                }
             }
         }
         ToolId::ColorEyedropper | ToolId::AttributesEyedropper | ToolId::SmartFill | ToolId::MeshFill => CursorIcon::Cell,
         ToolId::Blend | ToolId::Envelope | ToolId::EditAnchor => CursorIcon::PointingHand,
+        // Virtual Segment Delete: a hand over a piece it deletes (shown in red, #119)
+        ToolId::VirtualDelete if matches!(app.ts.hover_cut, Some((_, _, Some(_)))) => CursorIcon::PointingHand,
         _ => CursorIcon::Crosshair,
     }
 }
@@ -626,7 +659,18 @@ fn rulers(app: &mut AnyVectorApp, ui: &mut Ui, ai: usize, area: Rect, canvas: Re
     let dpi = d.doc.settings.dpi;
     let origin = d.doc.settings.ruler_origin;
     let ppu = unit.points_per_unit(dpi);
-    let (step, subdiv) = unit.ruler_step(d.zoom, dpi);
+    // inches are divided in binary fractions (#113), the other units in tenths
+    let rs = unit.ruler(d.zoom, dpi);
+    let (step, subdiv) = (rs.step, rs.subdiv);
+    let tick_len = |k: i64| match (rs.tick_level(k), rs.binary) {
+        (0, _) => RULER - 2.0,
+        (1, true) => 9.0,
+        (2, true) => 7.0,
+        (3, true) => 5.0,
+        (_, true) => 3.5,
+        (1, false) => 7.0,
+        _ => 4.0,
+    };
     let tick = Color32::from_gray(0x8c);
     let label_col = Color32::from_gray(0xb0);
     let font = egui::FontId::proportional(9.0);
@@ -645,11 +689,7 @@ fn rulers(app: &mut AnyVectorApp, ui: &mut Ui, ai: usize, area: Rect, canvas: Re
 
     let step_pt = step * ppu;
     let sub_pt = step_pt / subdiv as f64;
-    let decimals = if step < 1.0 { ((-step.log10()).ceil() as usize).min(3) } else { 0 };
-    let fmt = |v: f64| -> String {
-        let v = if v.abs() < 1e-9 { 0.0 } else { v };
-        format!("{:.*}", decimals, v)
-    };
+    let fmt = |v: f64| -> String { rs.label(v) };
     // horizontal
     {
         let x0 = d.to_doc(pos2(top.min.x, 0.0)).x;
@@ -661,8 +701,7 @@ fn rulers(app: &mut AnyVectorApp, ui: &mut Ui, ai: usize, area: Rect, canvas: Re
                 let x = origin.x + k as f64 * sub_pt;
                 let sx = d.to_screen(Point::new(x, 0.0)).x.round() + 0.5;
                 let major = k.rem_euclid(subdiv as i64) == 0;
-                let half = subdiv % 2 == 0 && k.rem_euclid(subdiv as i64) == subdiv as i64 / 2;
-                let h = if major { RULER - 2.0 } else if half { 7.0 } else { 4.0 };
+                let h = tick_len(k);
                 painter.line_segment([pos2(sx, top.max.y - h), pos2(sx, top.max.y)], Stroke::new(1.0, tick));
                 if major {
                     painter.text(pos2(sx + 2.0, top.min.y + 1.0), egui::Align2::LEFT_TOP, fmt(k as f64 * sub_pt / ppu), font.clone(), label_col);
@@ -681,8 +720,7 @@ fn rulers(app: &mut AnyVectorApp, ui: &mut Ui, ai: usize, area: Rect, canvas: Re
                 let y = origin.y + k as f64 * sub_pt;
                 let sy = d.to_screen(Point::new(0.0, y)).y.round() + 0.5;
                 let major = k.rem_euclid(subdiv as i64) == 0;
-                let half = subdiv % 2 == 0 && k.rem_euclid(subdiv as i64) == subdiv as i64 / 2;
-                let w = if major { RULER - 2.0 } else if half { 7.0 } else { 4.0 };
+                let w = tick_len(k);
                 painter.line_segment([pos2(left.max.x - w, sy), pos2(left.max.x, sy)], Stroke::new(1.0, tick));
                 if major {
                     // y grows downwards in the document; the ruler shows values growing upwards

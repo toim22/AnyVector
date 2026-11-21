@@ -21,7 +21,7 @@ use crate::widgets::icon_button_sized;
 use egui::{Id, Ui};
 use fields::{Fmt, Lead};
 use kurbo::{Affine, Point, Rect, Vec2};
-use vector_core::object::{ContourDir, CornerType, DistortKind, DropShadow, EllipseKind, PolygonKind};
+use vector_core::object::{ContourDir, CornerType, DistortKind, DropShadow, EllipseKind, PolygonKind, ShadowPart};
 use vector_core::style::{GradientKind, MergeMode};
 use vector_core::text::TextAlign;
 use vector_core::{Color, Fill, ObjKind, Object, Transparency, Unit};
@@ -209,7 +209,25 @@ fn selection_bar(app: &AnyVectorApp) -> &'static str {
         1 => {}
         _ => return "4568875c",
     }
+    // the shadow clicked shows its own bar (#106)
+    if let Some(part) = shadow_clicked(app) {
+        return match part {
+            ShadowPart::Drop => "edcfb996",
+            ShadowPart::Inner => "f9711864",
+            ShadowPart::Block => "aa88b391",
+        };
+    }
     d.doc.find(d.selection[0]).map(|o| object_bar(app, o)).unwrap_or("232a3ed2")
+}
+
+/// The shadow of the selected object clicked with the Pick tool (#106).
+fn shadow_clicked(app: &AnyVectorApp) -> Option<ShadowPart> {
+    app.doc().filter(|_| app.tool == ToolId::Pick)?.shadow_focus()
+}
+
+/// The shadow bar is the Inner Shadow one: the Inner Shadow tool, or an inner shadow clicked.
+fn inner_shadow_bar(app: &AnyVectorApp) -> bool {
+    app.tool == ToolId::InnerShadow || shadow_clicked(app) == Some(ShadowPart::Inner)
 }
 
 fn object_bar(app: &AnyVectorApp, o: &Object) -> &'static str {
@@ -277,12 +295,45 @@ fn shaping_leave(app: &mut AnyVectorApp, ui: &mut Ui) {
     }
 }
 
+/// Quick Customize: the property bar shown now, item by item, to show or hide (#124).
 fn customize_popup(app: &mut AnyVectorApp, r: &egui::Response) {
-    egui::Popup::menu(r).show(|ui| {
+    // its own id: the button moves (and its id changes) as items are hidden, and the menu stays
+    egui::Popup::menu(r).id(egui::Id::unique("propbar_quick_customize")).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
         ui.set_min_width(220.0);
         let mut on = app.settings.show_property_bar;
         if ui.checkbox(&mut on, "Property bar").changed() {
             app.settings.show_property_bar = on;
+        }
+        if let Some(bar) = bar_for(app).and_then(crate::ui::bar) {
+            ui.separator();
+            egui::ScrollArea::vertical().max_height(ui.ctx().content_rect().height() - 160.0).show(ui, |ui| {
+                ui.spacing_mut().item_spacing.y = 1.0;
+                let mut seen = vec![];
+                for it in bar.items {
+                    let name = crate::ui::plain(crate::ui::label(it));
+                    let listed = !matches!(it.kind, ui::Kind::Separator | ui::Kind::GroupBegin | ui::Kind::GroupEnd | ui::Kind::Spacer | ui::Kind::Placeholder);
+                    if !listed || name.trim().is_empty() || seen.contains(&it.id) {
+                        continue;
+                    }
+                    seen.push(it.id);
+                    let mut on = crate::customize::shown(&app.settings, bar.id, it.id);
+                    ui.horizontal(|ui| {
+                        if ui.checkbox(&mut on, "").changed() {
+                            crate::customize::set_shown(&mut app.settings, bar.id, it.id, on);
+                        }
+                        if !it.icon.is_empty() && it.icon != "new" {
+                            if let Some(img) = app.icons.image(ui.ctx(), it.icon, 16.0, true) {
+                                ui.add(img);
+                            }
+                        }
+                        ui.label(name.trim_end_matches("..."));
+                    });
+                }
+            });
+            ui.separator();
+            if ui.button("Reset toolbar").clicked() {
+                crate::customize::reset(&mut app.settings, bar.id);
+            }
         }
         if ui.button("Customize...").clicked() {
             app.run(Cmd::Options(crate::commands::OptionsPage::Customization));
@@ -702,23 +753,21 @@ fn crop_marquee(app: &mut AnyVectorApp, ui: &mut Ui, it: &Item, pos: bool) {
 
 // ----------------------------------------------------------------------------- outline
 
-/// The outline width shown: `None` for no outline, 0 for hairline.
-fn outline_now(app: &AnyVectorApp) -> Option<f64> {
+/// The outline shown: the first selected object's, else the outline of new objects.
+fn outline_now(app: &AnyVectorApp) -> vector_core::style::Outline {
     if app.has_selection() {
-        first(app, |o| o.style.outline.color.map(|_| o.style.outline.width)).flatten()
+        first(app, |o| o.style.outline.clone()).unwrap_or_default()
     } else {
-        Some(app.ts.default_outline_width)
+        app.ts.default_outline.clone()
     }
 }
 
 fn outline_width(app: &mut AnyVectorApp, ui: &mut Ui, it: &Item) {
-    let w = outline_now(app);
-    let dpi = unit_dpi(app).1;
-    let text = match w {
-        None => "None".to_string(),
-        Some(w) if w <= 0.0 => "Hairline".to_string(),
-        Some(w) => Unit::Points.format(w, dpi),
-    };
+    let ol = outline_now(app);
+    // `None` for no outline, 0 for hairline
+    let w = ol.is_visible().then_some(ol.width);
+    let (u, dpi) = crate::lengths::outline_unit(app);
+    let text = crate::lengths::outline_text(&ol, u, dpi);
     let doc = app.has_doc();
     let lead = if it.icon.is_empty() { Lead::Icon("outline_icon") } else { lead(it) };
     let mut pick: Option<Option<f64>> = None;
@@ -726,23 +775,44 @@ fn outline_width(app: &mut AnyVectorApp, ui: &mut Ui, it: &Item) {
         if ui.selectable_label(w.is_none(), "None").clicked() {
             pick = Some(None);
         }
-        for (name, pw) in vector_core::style::outline_width_presets() {
-            if ui.selectable_label(w.is_some_and(|w| (w - pw).abs() < 1e-6), name).clicked() {
+        // the widths in the outline unit (#137)
+        for pw in crate::lengths::width_choices(u, dpi) {
+            if ui.selectable_label(w.is_some_and(|w| (w - pw).abs() < 1e-6), crate::lengths::width_text(pw, u, dpi)).clicked() {
                 pick = Some(Some(pw));
             }
         }
     });
-    match pick {
-        Some(None) if app.has_selection() => edit_sel(app, "Outline", |o| o.style.outline.color = None),
-        Some(Some(w)) if app.has_selection() => edit_sel(app, "Outline Width", |o| {
-            o.style.outline.width = w;
-            if o.style.outline.color.is_none() {
-                o.style.outline.color = Some(Color::BLACK);
-            }
-        }),
-        Some(Some(w)) => app.ts.default_outline_width = w,
-        _ => {}
+    if let Some(p) = pick {
+        set_outline_width(app, p);
     }
+}
+
+/// Sets the outline width of the selection, or of new objects when nothing is selected:
+/// `None` removes the outline, 0 makes it a hairline. A width given to an object without an
+/// outline gives it the default outline color.
+pub fn set_outline_width(app: &mut AnyVectorApp, w: Option<f64>) {
+    let color = app.ts.default_outline.color.unwrap_or(Color::BLACK);
+    if app.has_selection() {
+        match w {
+            None => edit_sel(app, "Outline", |o| o.style.outline.color = None),
+            Some(w) => edit_sel(app, "Outline Width", |o| {
+                o.style.outline.width = w;
+                if o.style.outline.color.is_none() {
+                    o.style.outline.color = Some(color);
+                }
+            }),
+        }
+        return;
+    }
+    let mut ol = app.ts.default_outline.clone();
+    match w {
+        None => ol.color = None,
+        Some(w) => {
+            ol.width = w;
+            ol.color.get_or_insert(color);
+        }
+    }
+    app.set_default_outline(ol);
 }
 
 fn outline_style(app: &mut AnyVectorApp, ui: &mut Ui, it: &Item) {
@@ -1112,7 +1182,7 @@ fn dimension_text(app: &mut AnyVectorApp, ui: &mut Ui, it: &Item, prefix: bool) 
 // ----------------------------------------------------------------------------- effects
 
 fn shadow(app: &mut AnyVectorApp, ui: &mut Ui, it: &Item, k: &str) {
-    let inner = app.tool == ToolId::InnerShadow;
+    let inner = inner_shadow_bar(app);
     let cur = first(app, |o| if inner { o.effects.inner_shadow.clone() } else { o.effects.drop_shadow.clone() }).flatten();
     // with the shadow tool, the fields also give a selected object without a shadow the default
     // one with the value set (as in CorelDRAW; issue 107)
@@ -1464,10 +1534,10 @@ pub fn option_state(app: &AnyVectorApp, key: &str) -> Option<(bool, bool)> {
             };
             (doc, on)
         }
-        "e8ef757d" => (doc, app.tool == ToolId::DropShadow),
-        "08f5977a" => (doc, app.tool == ToolId::InnerShadow),
+        "e8ef757d" => (doc, app.tool == ToolId::DropShadow || shadow_clicked(app) == Some(ShadowPart::Drop)),
+        "08f5977a" => (doc, inner_shadow_bar(app)),
         "bacce2d7" => {
-            let inner = app.tool == ToolId::InnerShadow;
+            let inner = inner_shadow_bar(app);
             (first(app, |o| if inner { o.effects.inner_shadow.is_some() } else { o.effects.drop_shadow.is_some() }).unwrap_or(false), false)
         }
         "e9c835fd" | "fb15a6d6" | "c746acef" => {
@@ -1674,7 +1744,7 @@ pub fn press(app: &mut AnyVectorApp, key: &str) {
         "e8ef757d" => app.set_tool(ToolId::DropShadow),
         "08f5977a" => app.set_tool(ToolId::InnerShadow),
         "bacce2d7" => {
-            let inner = app.tool == ToolId::InnerShadow;
+            let inner = inner_shadow_bar(app);
             edit_sel(app, "Clear Shadow", |o| {
                 if inner {
                     o.effects.inner_shadow = None;

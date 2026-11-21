@@ -146,6 +146,7 @@ impl AnyVectorApp {
         cc.egui_ctx.set_zoom_factor((settings.ui_scale / 100.0) as f32);
         theme::select(&cc.egui_ctx, &settings.theme_name);
         theme::follow_desktop(&mut settings.desktop_color, &theme::DARK);
+        theme::remember_window(cc);
         // warm the font database in the background (first text layout is otherwise slow)
         std::thread::spawn(vector_core::text::preload_fonts);
         let mut app = AnyVectorApp {
@@ -187,6 +188,8 @@ impl AnyVectorApp {
             background: vec![],
             gpu: cc.wgpu_render_state.as_ref().map(|rs| gpu_name(&rs.adapter.get_info())).unwrap_or_default(),
         };
+        // the outline of new objects, as the user left it (Outline Pen with nothing selected)
+        app.ts.default_outline = app.settings.default_outline.clone();
         // command line: open files
         for a in std::env::args().skip(1) {
             let p = std::path::PathBuf::from(&a);
@@ -245,13 +248,23 @@ impl AnyVectorApp {
         self.pending.push(cmd);
     }
 
+    /// Sets the outline of new objects (kept between sessions).
+    pub fn set_default_outline(&mut self, ol: vector_core::style::Outline) {
+        self.settings.default_outline = ol.clone();
+        self.ts.default_outline = ol;
+    }
+
     pub fn set_tool(&mut self, t: ToolId) {
-        if self.tool != t {
+        let changed = self.tool != t;
+        if changed {
             self.finish_tool();
         }
         self.tool = t;
         self.toolbox.remember(t);
         if let Some(d) = self.doc_mut() {
+            if changed {
+                d.shadow_sel = None;
+            }
             if t != ToolId::Shape {
                 d.node_sel.clear();
                 d.seg_sel = None;
@@ -286,6 +299,9 @@ impl AnyVectorApp {
                 d.cache.key = 0;
             }
         }
+        if self.splash.is_none() {
+            theme::sync_window_border(self.settings.window_border);
+        }
         if self.splash.is_some() {
             if crate::splash::show(self, ui) {
                 return;
@@ -294,6 +310,10 @@ impl AnyVectorApp {
         self.handle_dropped_files(&ctx);
         crate::shortcuts::handle(self, &ctx);
         self.process_pending(&ctx);
+        // a shadow clicked (#106) stays chosen only while its object is the selection
+        for d in self.docs.iter_mut() {
+            d.prune_shadow_sel();
+        }
         crate::dockers::coled::publish(self, &ctx);
         crate::ai::poll(self);
         self.poll_background(&ctx);
@@ -388,6 +408,8 @@ impl AnyVectorApp {
             }
         });
         crate::dialogs::show(self, &ctx);
+        // an item dragged onto, along or off a command bar
+        crate::customize::end_frame(self, &ctx);
         self.show_message(&ctx);
         self.process_pending(&ctx);
         self.sync_windows();
@@ -535,17 +557,23 @@ impl eframe::App for AnyVectorApp {
 
 /// Whether a docker id is currently open.
 impl AnyVectorApp {
-    /// The optional toolbars that float (Window ▸ Toolbars): a small window each, with its name
-    /// and a close button. Toolbars opened together start stacked one under the other.
+    /// The optional toolbars that float (Window ▸ Toolbars) and the command bars the user made
+    /// (Options ▸ Customization ▸ Command Bars ▸ New): a small window each, with its name and a
+    /// close button (unless Show title when toolbar is floating is off). Toolbars opened together
+    /// start stacked one under the other.
     fn floating_toolbars(&mut self, ctx: &egui::Context) {
         let mut next = egui::pos2(300.0, 170.0);
-        for tb in Toolbar::EXTRA.into_iter().filter(|t| *t != Toolbar::ProjectTimer) {
-            if !self.settings.extra_toolbars.iter().any(|s| s == tb.name()) {
-                continue;
-            }
+        let mut bars: Vec<(String, String, Option<Toolbar>)> = Toolbar::EXTRA
+            .into_iter()
+            .filter(|t| *t != Toolbar::ProjectTimer && self.settings.extra_toolbars.iter().any(|s| s == t.name()))
+            .map(|t| (t.name().to_string(), t.name().to_string(), Some(t)))
+            .collect();
+        bars.extend(crate::customize::custom_bars(&self.settings).filter(|l| l.shown).map(|l| (l.bar.clone(), l.name.clone(), None)));
+        let title_row = self.settings.show_floating_title;
+        for (key, name, tb) in bars {
             let mut open = true;
-            let r = egui::Window::new(tb.name())
-                .id(egui::Id::unique(("floating_toolbar", tb.name())))
+            let r = egui::Window::new(name.as_str())
+                .id(egui::Id::unique(("floating_toolbar", key.as_str())))
                 .title_bar(false)
                 .resizable(false)
                 .default_pos(next)
@@ -553,10 +581,19 @@ impl AnyVectorApp {
                 .show(ctx, |ui| {
                     ui.set_max_width(860.0);
                     // a small title row: the name, and × at the right end once the width is known
-                    let (title, _) = ui.allocate_exact_size(egui::vec2(60.0, 18.0), egui::Sense::hover());
-                    crate::toolbar::extra(self, ui, tb);
+                    let title = title_row.then(|| ui.allocate_exact_size(egui::vec2(60.0, 18.0), egui::Sense::hover()).0);
+                    match tb {
+                        Some(tb) => crate::toolbar::extra(self, ui, tb),
+                        None => {
+                            ui.horizontal_wrapped(|ui| {
+                                ui.spacing_mut().item_spacing = egui::vec2(1.0, 2.0);
+                                crate::cmdbar::custom_strip(self, ui, &key);
+                            });
+                        }
+                    }
+                    let Some(title) = title else { return };
                     let right = ui.min_rect().right();
-                    ui.painter().text(title.left_center(), egui::Align2::LEFT_CENTER, tb.name(), egui::FontId::proportional(12.0), theme::TEXT());
+                    ui.painter().text(title.left_center(), egui::Align2::LEFT_CENTER, name.as_str(), egui::FontId::proportional(12.0), theme::TEXT());
                     let x = egui::Rect::from_center_size(egui::pos2(right - 7.0, title.center().y), egui::vec2(16.0, 16.0));
                     let xr = ui.interact(x, ui.scope_id().with("close"), egui::Sense::click());
                     if xr.hovered() {
@@ -572,10 +609,17 @@ impl AnyVectorApp {
                 });
             if let Some(r) = r {
                 next = egui::pos2(next.x, r.response.rect.bottom() + 6.0);
-                crate::menus::command_bar_context(self, &r.response, BarSpot::Toolbar(tb.name()));
+                crate::menus::command_bar_context(self, &r.response, BarSpot::Toolbar(crate::customize::intern(&name)));
             }
             if !open {
-                self.run(Cmd::ToggleToolbar(tb));
+                match tb {
+                    Some(tb) => self.run(Cmd::ToggleToolbar(tb)),
+                    None => {
+                        if let Some(l) = self.settings.bar_layouts.iter_mut().find(|l| l.bar == key) {
+                            l.shown = false;
+                        }
+                    }
+                }
             }
         }
     }

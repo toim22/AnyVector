@@ -25,6 +25,9 @@ pub struct Input {
     pub down: bool,
     pub double: bool,
     pub secondary: bool,
+    /// The right button is held / was let go this frame (right-button drags, #140).
+    pub secondary_down: bool,
+    pub secondary_released: bool,
     pub mods: egui::Modifiers,
     /// C is held (Bézier / Pen: the node being dragged becomes a cusp).
     pub key_c: bool,
@@ -59,6 +62,7 @@ pub fn handle_input(app: &mut AnyVectorApp, inp: &Input) {
         if inp.pressed {
             ts.press = Some(inp.pos);
             ts.moved = false;
+            ts.stamps.clear();
         }
         if let Some(p0) = ts.press {
             if (inp.pos - p0).length() > 3.0 {
@@ -433,6 +437,10 @@ impl<'a> Cx<'a> {
     fn hit(&self, p: Point) -> Option<ObjId> {
         // one source of truth: Settings::treat_as_filled (#96)
         let filled = self.s.treat_as_filled;
+        // editing a PowerClip: its contents are what a click picks (#111)
+        if let Some(pc) = self.d.editing_powerclip().and_then(|id| self.d.doc.find(id)) {
+            return self.d.doc.powerclip_child_at(pc, p, self.tol(), filled);
+        }
         let id = if self.s.edit_across_layers {
             self.d.doc.hit_test(self.d.page, p, self.tol(), filled)?
         } else {
@@ -448,14 +456,88 @@ impl<'a> Cx<'a> {
         (self.d.focus.is_empty() || self.d.focus.contains(&id)).then_some(id)
     }
 
+    /// Every object [`Cx::hit`] could pick at `p`, topmost first (Alt+click walks them, #139).
+    fn hit_all(&self, p: Point) -> Vec<ObjId> {
+        let filled = self.s.treat_as_filled;
+        let mut ids = if self.s.edit_across_layers {
+            self.d.doc.hit_list(self.d.page, p, self.tol(), filled)
+        } else {
+            let (pi, li) = self.d.active_loc();
+            match self.d.doc.pages.get(pi).and_then(|pg| pg.layers.get(li)) {
+                Some(l) if l.visible && !l.locked => l.objects.iter().rev().filter(|o| o.visible && self.d.doc.hit_object(o, p, self.tol(), filled)).map(|o| o.id).collect(),
+                _ => vec![],
+            }
+        };
+        if !self.d.focus.is_empty() {
+            ids.retain(|id| self.d.focus.contains(id));
+        }
+        ids
+    }
+
+    /// The shadow of `id` that `p` is on, when `p` isn't on the object itself (#106).
+    fn shadow_part(&self, id: ObjId, p: Point) -> Option<ShadowPart> {
+        let o = self.d.doc.find(id)?;
+        let filled = self.s.treat_as_filled;
+        if self.d.doc.hit_body(o, p, self.tol(), filled) {
+            return None;
+        }
+        self.d.doc.shadow_at(o, p, self.tol(), filled)
+    }
+
     /// The objects a marquee selects (only the active layer's without Edit Across Layers).
     fn in_rect(&self, r: Rect, touching: bool) -> Vec<ObjId> {
+        // editing a PowerClip: the marquee selects among its contents (#111)
+        if let Some(pc) = self.d.editing_powerclip().and_then(|id| self.d.doc.find(id)) {
+            return self.d.doc.powerclip_contents_in_rect(pc, r, touching);
+        }
         let mut ids = self.d.doc.objects_in_rect(self.d.page, r, touching);
         if !self.s.edit_across_layers {
             let (pi, li) = self.d.active_loc();
             ids.retain(|id| self.d.doc.locate(*id).is_some_and(|(p, l, _)| (p, l) == (pi, li)));
         }
         ids
+    }
+
+    /// PowerClip contents a Pick tool press picks instead of the PowerClip under the pointer
+    /// (#111): with Alt, the contents under the pointer (CorelDRAW selects them without entering
+    /// the PowerClip); without Alt, contents already selected that way, so that a press on them
+    /// drags them. None off a PowerClip, where Alt+click keeps its own meaning.
+    fn powerclip_pick(&self, p: Point) -> Option<ObjId> {
+        let top = self.hit(p)?;
+        let o = self.d.doc.find(top)?;
+        if o.locked || !matches!(o.kind, ObjKind::PowerClip { .. }) {
+            return None;
+        }
+        let (tol, filled) = (self.tol(), self.s.treat_as_filled);
+        if self.mods().alt {
+            return self.d.doc.powerclip_content_at(o, p, tol, filled);
+        }
+        self.d.selection.iter().copied().find(|id| *id != top && o.find(*id).is_some_and(|c| self.d.doc.hit_object(c, p, tol, filled)))
+    }
+
+    /// The PowerClip a Ctrl+click at `p` enters for editing (#111): the PowerClip under the
+    /// pointer, for a plain Ctrl+click of the Pick tool. With the Windows modifier keys Ctrl is
+    /// Duplicate, and a Ctrl+click enters nothing.
+    fn ctrl_click_powerclip(&self, p: Point, mods: egui::Modifiers) -> Option<ObjId> {
+        if self.tool != ToolId::Pick || !mods.ctrl || mods.shift || mods.alt || self.s.windows_modifiers {
+            return None;
+        }
+        let id = self.hit(p)?;
+        let o = self.d.doc.find(id)?;
+        (!o.locked && matches!(o.kind, ObjKind::PowerClip { .. })).then_some(id)
+    }
+
+    /// Enter the PowerClip `id` to edit its contents; the content object clicked (under `at`) is
+    /// selected.
+    fn enter_powerclip(&mut self, id: ObjId, at: Point) {
+        self.d.focus = vec![id];
+        self.d.selection.clear();
+        self.d.node_sel.clear();
+        self.d.rotate_mode = false;
+        self.d.cache.key = 0;
+        if let Some(c) = self.hit(at) {
+            self.d.selection = vec![c];
+        }
     }
 
     fn snap(&mut self, p: Point, exclude: &[ObjId]) -> Point {
@@ -519,6 +601,10 @@ impl<'a> Cx<'a> {
         }
         if self.inp.secondary {
             self.secondary();
+        }
+        if self.ts.right_drag.is_some() {
+            self.right_drag();
+            return;
         }
         if self.ts.pick_target.is_some() {
             if self.inp.pressed {
@@ -711,7 +797,8 @@ impl<'a> Cx<'a> {
                 }
             }
             DropShadow | InnerShadow | BlockShadow | Contour | Distort | Extrude | Transparency | InteractiveFill => {
-                let target = self.hit(p).or_else(|| self.d.selection.first().copied().filter(|id| self.d.doc.find(*id).map(|o| o.bounds().inflate(self.tol(), self.tol()).contains(p)).unwrap_or(false)));
+                // dragging from an object makes its effect anew: not from its shadow (#106)
+                let target = self.hit(p).filter(|id| self.shadow_part(*id, p).is_none()).or_else(|| self.d.selection.first().copied().filter(|id| self.d.doc.find(*id).map(|o| o.bounds().inflate(self.tol(), self.tol()).contains(p)).unwrap_or(false)));
                 match target {
                     Some(id) => {
                         self.d.selection = vec![id];
@@ -783,7 +870,8 @@ impl<'a> Cx<'a> {
                 }
             }
         }
-        let hit = self.hit(p);
+        let clip_pick = self.powerclip_pick(p);
+        let hit = clip_pick.or_else(|| self.hit(p));
         // Free Transform: the selection turns around the point clicked
         if self.tool == ToolId::FreeTransform && !self.d.selection.is_empty() && hit.map_or(true, |id| self.d.selection.contains(&id)) {
             if let Some(bb) = self.d.selection_bounds() {
@@ -796,11 +884,44 @@ impl<'a> Cx<'a> {
             }
         }
         let shift = self.mods().shift;
+        // Alt+click selects the object behind (Shift+Alt adds it), as in CorelDRAW (#139)
+        // ...except on a PowerClip, where Alt+click selects the contents under the pointer
+        // (#111); once those are selected, Alt+click goes on down the stack
+        let clip_content = clip_pick.is_some_and(|c| self.d.selection != [c]);
+        if self.mods().alt && self.tool == ToolId::Pick && !clip_content {
+            let list = self.hit_all(p);
+            if !list.is_empty() {
+                if let Some(id) = super::alt_pick(&list, &self.d.selection, shift) {
+                    if shift {
+                        self.d.selection.push(id);
+                    } else {
+                        self.d.selection = vec![id];
+                    }
+                    self.d.rotate_mode = false;
+                }
+                self.d.node_sel.clear();
+                self.d.shadow_sel = None;
+                self.ts.was_selected = false;
+                // a drag goes on to move it
+                if let Some(bb) = self.d.selection_bounds() {
+                    self.ts.drag = Drag::Transform { kind: Xform::Move, start: p, bb, ids: self.d.selection.clone(), center: bb.center() };
+                    self.ts.cur = p;
+                    self.ts.copy_on_drop = false;
+                }
+                return;
+            }
+        }
         match hit {
             Some(id) => {
-                self.ts.was_selected = self.d.selection.contains(&id);
+                // a click on the object's shadow selects the shadow (#106); going from the object
+                // to its shadow or back isn't a second click on the object (which turns on the
+                // rotate handles)
+                let before = self.d.shadow_focus();
+                let part = if shift { None } else { self.shadow_part(id, p) };
+                let contains = self.d.selection.contains(&id);
+                self.ts.was_selected = contains && (shift || (part.is_none() && before.is_none()));
                 if shift {
-                    if self.ts.was_selected {
+                    if contains {
                         self.d.selection.retain(|x| *x != id);
                     } else {
                         self.d.selection.push(id);
@@ -809,6 +930,7 @@ impl<'a> Cx<'a> {
                     self.d.selection = vec![id];
                     self.d.rotate_mode = false;
                 }
+                self.d.shadow_sel = part.map(|k| (id, k));
                 self.d.node_sel.clear();
                 if self.d.selection.contains(&id) {
                     if let Some(bb) = self.d.selection_bounds() {
@@ -820,6 +942,7 @@ impl<'a> Cx<'a> {
                 }
             }
             None => {
+                self.d.shadow_sel = None;
                 self.ts.drag = Drag::Marquee { start: p };
                 self.ts.cur = p;
             }
@@ -834,7 +957,7 @@ impl<'a> Cx<'a> {
         let hit = super::shape_hit(self.d, p, tol);
         let kind = hit.and_then(|h| {
             let obj = match h {
-                ShapeHit::Control { obj, .. } | ShapeHit::Node { obj, .. } | ShapeHit::Corner { obj, .. } | ShapeHit::PolygonNode { obj, .. } | ShapeHit::EllipseNode { obj, .. } | ShapeHit::Segment { obj, .. } => obj,
+                ShapeHit::Control { obj, .. } | ShapeHit::Node { obj, .. } | ShapeHit::Corner { obj, .. } | ShapeHit::PolygonNode { obj, .. } | ShapeHit::EllipseNode { obj, .. } | ShapeHit::Segment { obj, .. } | ShapeHit::TextSpacing { obj, .. } => obj,
             };
             self.d.doc.find(obj).map(|o| o.kind.clone())
         });
@@ -888,6 +1011,12 @@ impl<'a> Cx<'a> {
                 }
                 self.d.seg_sel = Some((obj, si, seg));
                 self.ts.drag = Drag::Segment { obj, si, seg, t, start: p, orig: np, moved: false };
+            }
+            (Some(ShapeHit::TextSpacing { obj, vertical }), Some(ObjKind::Text(t))) => {
+                // Shift as the drag starts: word spacing, or the space after paragraphs (#110)
+                let kind = super::TextSpacing::of_handle(vertical, shift);
+                let per = kind.rate(obj, &t);
+                self.ts.drag = Drag::TextSpacing { obj, kind, start: p, orig: t, per, moved: false };
             }
             _ => {
                 if !shift {
@@ -1044,7 +1173,7 @@ impl<'a> Cx<'a> {
         let idx = match nodes.iter().position(|w| (w.t - t).abs() * total <= tol) {
             Some(i) => i,
             None => {
-                let w = o.style.outline.width.max(self.ts.default_outline_width).max(0.5) / 2.0;
+                let w = o.style.outline.width.max(self.ts.default_outline.width).max(0.5) / 2.0;
                 if nodes.is_empty() {
                     nodes = vec![VarWidth { t: 0.0, side1: w, side2: w }, VarWidth { t: 1.0, side1: w, side2: w }];
                 }
@@ -1406,7 +1535,8 @@ impl<'a> Cx<'a> {
                 }
             }
             Drag::Transform { ids, .. } => {
-                let ex = ids.clone();
+                // nor to the copies Space left on the way (#130)
+                let ex: Vec<ObjId> = ids.iter().chain(&self.ts.stamps).copied().collect();
                 self.ts.cur = self.snap(p, &ex);
             }
             Drag::Nodes { start, orig, moved: started } => {
@@ -1624,6 +1754,22 @@ impl<'a> Cx<'a> {
                             np.bend_segment(*si, *seg, *t, ld);
                         }
                         o.kind = ObjKind::Path(np);
+                    }
+                    self.d.history.touch();
+                }
+            }
+            Drag::TextSpacing { obj, kind, start, orig, per, moved: started } => {
+                if !*started && moved {
+                    self.d.checkpoint(kind.label());
+                    *started = true;
+                }
+                if *started {
+                    if let Some(o) = self.d.doc.find_mut(*obj) {
+                        // the drag along the text's own x (character, word) or y (line, paragraph)
+                        let inv = o.transform.inverse();
+                        let dv = inv * p - inv * *start;
+                        let along = if kind.vertical() { dv.y } else { dv.x };
+                        o.kind = ObjKind::Text(kind.changed(orig, along / *per));
                     }
                     self.d.history.touch();
                 }
@@ -1888,6 +2034,9 @@ impl<'a> Cx<'a> {
                         self.d.selection = ids;
                     }
                     self.d.rotate_mode = false;
+                } else if mods.ctrl && !mods.shift && self.tool == ToolId::Pick && self.d.editing_powerclip().is_some() {
+                    // Ctrl+click off the contents finishes editing the PowerClip (#111)
+                    self.out.cmds.push(Cmd::PowerClipFinish);
                 } else if !mods.shift {
                     self.d.selection.clear();
                     self.d.rotate_mode = false;
@@ -1939,13 +2088,16 @@ impl<'a> Cx<'a> {
                         }
                     }
                     self.ts.copy_on_drop = false;
+                } else if let Some(pc) = matches!(kind, Xform::Move).then(|| self.ctrl_click_powerclip(start, mods)).flatten() {
+                    // Ctrl+click enters the PowerClip to edit its contents (#111)
+                    self.enter_powerclip(pc, start);
                 } else if self.ts.was_selected && !mods.shift && self.tool == ToolId::Pick {
                     self.d.rotate_mode = !self.d.rotate_mode;
                 }
                 self.ts.was_selected = false;
             }
             Drag::Create { start } => self.release_create(start, moved),
-            Drag::Nodes { moved: started, .. } | Drag::Control { moved: started, .. } | Drag::Corner { moved: started, .. } | Drag::PolygonNode { moved: started, .. } | Drag::EllipseNode { moved: started, .. } | Drag::Segment { moved: started, .. } | Drag::Envelope { moved: started, .. } | Drag::VarWidth { moved: started, .. } | Drag::Anchor { moved: started, .. } | Drag::GradientHandle { moved: started, .. } => {
+            Drag::Nodes { moved: started, .. } | Drag::Control { moved: started, .. } | Drag::Corner { moved: started, .. } | Drag::PolygonNode { moved: started, .. } | Drag::EllipseNode { moved: started, .. } | Drag::Segment { moved: started, .. } | Drag::TextSpacing { moved: started, .. } | Drag::Envelope { moved: started, .. } | Drag::VarWidth { moved: started, .. } | Drag::Anchor { moved: started, .. } | Drag::GradientHandle { moved: started, .. } => {
                 if started {
                     self.d.after_change();
                     self.d.history.touch();
@@ -2269,6 +2421,20 @@ impl<'a> Cx<'a> {
                     np
                 };
                 match self.tool {
+                    Freehand if self.mods().ctrl => {
+                        // Ctrl: a straight line from where the drag started, at a multiple of the
+                        // constrain angle, as a click-click line is (#134)
+                        let j = if self.ts.line_start.is_none() { self.join_at(points[0]) } else { None };
+                        self.ts.join = j.map(|(id, at_end, _)| (id, at_end));
+                        let a = j.map_or(points[0], |j| j.2);
+                        let (a, mut b) = constrain_line(a, *points.last().unwrap(), self.mods(), self.s.constrain_angle);
+                        if (b - a).hypot() > 1e-6 {
+                            let close = self.joined_close_at(b).map(|f| b = f).is_some();
+                            let nodes = polyline(&[a, b], false).subpaths.remove(0).nodes;
+                            commit_curve(self.ts, self.d, nodes, close, "Create Line");
+                        }
+                        self.ts.join = None;
+                    }
                     Freehand if self.ts.line_start.is_none() && self.join_at(points[0]).is_some() => {
                         // Auto-join: a stroke started on an end of the selected curve continues it;
                         // ending on the curve's other end closes it
@@ -2409,13 +2575,18 @@ impl<'a> Cx<'a> {
                     }
                     match self.d.doc.find(id).map(|o| &o.kind) {
                         Some(ObjKind::Path(_)) => self.out.tool = Some(Shape),
-                        Some(ObjKind::Group(_)) | Some(ObjKind::PowerClip { .. }) if self.s.dblclick_focus_mode => {
+                        // a PowerClip opens for editing its contents (#111)
+                        Some(ObjKind::PowerClip { .. }) if self.s.dblclick_focus_mode && !self.d.doc.find(id).is_some_and(|o| o.locked) => self.enter_powerclip(id, p),
+                        Some(ObjKind::Group(_)) if self.s.dblclick_focus_mode => {
                             self.d.focus = vec![id];
                             self.d.cache.key = 0;
                         }
                         Some(ObjKind::Image(_)) if self.s.dblclick_bitmap_editor => self.out.cmds.push(Cmd::EditBitmap),
                         _ => {}
                     }
+                } else if self.d.editing_powerclip().is_some() {
+                    // a double-click off the contents finishes editing the PowerClip
+                    self.out.cmds.push(Cmd::PowerClipFinish);
                 } else if !self.d.focus.is_empty() {
                     self.d.focus.clear();
                     self.d.cache.key = 0;
@@ -2505,13 +2676,78 @@ impl<'a> Cx<'a> {
             }
             ColorEyedropper => self.color_eyedropper(true),
             // right-clicking an object selects it before its right-click menu opens
-            Pick | FreehandPick | FreeTransform => match self.hit(self.raw) {
-                Some(t) if !self.d.selection.contains(&t) => self.d.selection = vec![t],
-                Some(_) => {}
-                None => self.d.selection.clear(),
-            },
+            Pick | FreehandPick | FreeTransform => {
+                let hit = self.hit(self.raw);
+                match hit {
+                    Some(t) if !self.d.selection.contains(&t) => self.d.selection = vec![t],
+                    Some(_) => {}
+                    None => self.d.selection.clear(),
+                }
+                // and a drag from it with the right button ends in the drop menu (#140)
+                if let Some(t) = hit {
+                    self.start_right_drag(t);
+                }
+            }
             _ => {}
         }
+    }
+
+    /// A right-button press on object `t` (now selected) with the Pick tool: the start of a
+    /// right-button drag of the selection, as in CorelDRAW (#140).
+    fn start_right_drag(&mut self, t: ObjId) {
+        if !matches!(self.tool, ToolId::Pick | ToolId::FreehandPick) || !self.ts.drag.is_none() || self.ts.pick_target.is_some() || self.d.text_edit.is_some() || self.d.doc.find(t).is_none_or(|o| o.locked) {
+            return;
+        }
+        let Some(bb) = self.d.selection_bounds() else { return };
+        let p = self.raw;
+        self.ts.drag = Drag::Transform { kind: Xform::Move, start: p, bb, ids: self.d.selection.clone(), center: bb.center() };
+        self.ts.cur = p;
+        self.ts.moved = false;
+        self.ts.copy_on_drop = false;
+        self.ts.stamps.clear();
+        self.ts.right_drag = Some(super::drop::RightGrab { obj: t, press: self.inp.pos, far: false });
+    }
+
+    /// A right-button drag: the selection follows the pointer (as an outline, nothing moves yet);
+    /// let go after a real drag, the drop menu opens there. A right-click that did not move
+    /// leaves the right-click menu to the canvas.
+    fn right_drag(&mut self) {
+        let Some(mut grab) = self.ts.right_drag else { return };
+        grab.far |= (self.inp.pos - grab.press).length() > super::drop::RIGHT_DRAG_DIST;
+        self.ts.moved = grab.far;
+        if let Drag::Transform { ids, .. } = &self.ts.drag {
+            let ex: Vec<ObjId> = ids.iter().chain(&self.ts.stamps).copied().collect();
+            self.ts.cur = self.snap(self.raw, &ex);
+        }
+        if self.inp.secondary_down && !self.inp.secondary_released {
+            self.ts.right_drag = Some(grab);
+            return;
+        }
+        self.ts.right_drag = None;
+        self.ts.moved = false;
+        self.ts.snap_mark = None;
+        self.ts.guide_lines.clear();
+        let drag = std::mem::take(&mut self.ts.drag);
+        let Drag::Transform { kind, start, bb, ids, center } = drag else { return };
+        if !grab.far {
+            return;
+        }
+        let affine = xform_affine(kind, start, self.ts.cur, bb, center, self.mods(), self.s.constrain_angle);
+        let target = self.hit_except(self.raw, &ids);
+        self.ts.right_drop = Some(super::drop::RightDrop { ids, source: grab.obj, affine, target, at: self.inp.pos, shown: false });
+    }
+
+    /// The topmost object at `p` other than `skip` (and their parts), as [`Self::hit`] picks.
+    fn hit_except(&self, p: Point, skip: &[ObjId]) -> Option<ObjId> {
+        let filled = self.s.treat_as_filled;
+        let (pi, li) = self.d.active_loc();
+        let layers: Vec<&vector_core::Layer> = if self.s.edit_across_layers {
+            self.d.doc.layers_on_page(self.d.page).into_iter().rev().map(|(_, _, l)| l).collect()
+        } else {
+            self.d.doc.pages.get(pi).and_then(|pg| pg.layers.get(li)).into_iter().collect()
+        };
+        let id = layers.into_iter().filter(|l| l.visible && !l.locked).find_map(|l| l.objects.iter().rev().find(|o| o.visible && !skip.contains(&o.id) && self.d.doc.hit_object(o, p, self.tol(), filled)).map(|o| o.id))?;
+        (self.d.focus.is_empty() || self.d.focus.contains(&id)).then_some(id)
     }
 
     /// A comment of a Comments docker tool; the docker then takes its text.
@@ -2595,32 +2831,9 @@ impl<'a> Cx<'a> {
             PickTarget::CopyProperties { pen, color, fill, text } => {
                 let src = self.d.doc.find(t).cloned();
                 if let Some(src) = src {
-                    self.d.modify("Copy Properties", |doc, _| {
-                        for id in &sel {
-                            if let Some(o) = doc.find_mut(*id) {
-                                if pen {
-                                    let c = o.style.outline.color;
-                                    o.style.outline = src.style.outline.clone();
-                                    o.style.outline.color = c;
-                                }
-                                if color {
-                                    o.style.outline.color = src.style.outline.color;
-                                }
-                                if fill {
-                                    o.style.fill = src.style.fill.clone();
-                                }
-                                if text {
-                                    if let (ObjKind::Text(dst), ObjKind::Text(from)) = (&mut o.kind, &src.kind) {
-                                        dst.format = from.format.clone();
-                                        dst.spans.clear();
-                                        dst.align = from.align.clone();
-                                        dst.paragraphs = from.paragraphs.clone();
-                                        dst.line_spacing = from.line_spacing;
-                                    }
-                                }
-                            }
-                        }
-                    });
+                    // the same as the right-drag menu's Copy Fill / Outline / All Properties Here
+                    let what = super::drop::Props { pen, color, fill, text };
+                    self.d.modify("Copy Properties", |doc, _| super::drop::copy_properties(doc, &src, &sel, what));
                 }
             }
             PickTarget::CopyEffect { kind, clone } => {
@@ -3623,7 +3836,7 @@ pub fn tick(app: &mut AnyVectorApp, ctx: &egui::Context) {
         if app.tool != ToolId::LiveSketch || left <= 0.0 {
             if let Some(ai) = app.active.filter(|a| *a < app.docs.len()) {
                 let mut out = Out::default();
-                let inp = Input { pos: Pos2::ZERO, hovered: false, pressed: false, released: false, down: false, double: false, secondary: false, mods: Default::default(), key_c: false, time: now, dt: 0.0 };
+                let inp = Input { pos: Pos2::ZERO, hovered: false, pressed: false, released: false, down: false, double: false, secondary: false, secondary_down: false, secondary_released: false, mods: Default::default(), key_c: false, time: now, dt: 0.0 };
                 let default_fill = app.default_fill;
                 let tool = app.tool;
                 let mut cx = Cx { ts: &mut app.ts, d: &mut app.docs[ai], s: &app.settings, tool, inp: &inp, out: &mut out, default_fill, raw: Point::ZERO };

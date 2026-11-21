@@ -5381,7 +5381,7 @@ Drag to set the start and end points, then click to set the curvature	Przeciągn
 Sketch strokes; nearby strokes are merged into smooth curves	Szkicuj pociągnięcia; pobliskie pociągnięcia są scalane w gładkie krzywe
 Draw a shape freehand; it is recognized and converted into a basic shape	Narysuj kształt odręcznie; zostanie rozpoznany i przekonwertowany na kształt podstawowy
 Drag to draw a brush, sprayer, calligraphic or pressure stroke	Przeciągnij, aby narysować pociągnięcie pędzla, rozpylacza, kaligraficzne lub z naciskiem
-Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle the size of the page	Przeciągnij, aby narysować prostokąt; Ctrl ogranicza do kwadratu; Shift rysuje od środka. Kliknij dwukrotnie narzędzie, aby uzyskać prostokąt wielkości strony
+Drag to draw a rectangle; Ctrl constrains to a square; Shift draws from the center. Double-click the tool for a rectangle around the selection, or the size of the page	Przeciągnij, aby narysować prostokąt; Ctrl ogranicza do kwadratu; Shift rysuje od środka. Kliknij dwukrotnie narzędzie, aby uzyskać prostokąt wokół zaznaczenia lub wielkości strony
 Drag to set the baseline, then click to set the height	Przeciągnij, aby ustawić linię bazową, a następnie kliknij, aby ustawić wysokość
 Drag to draw an ellipse; Ctrl constrains to a circle; Shift draws from the center	Przeciągnij, aby narysować elipsę; Ctrl ogranicza do okręgu; Shift rysuje od środka
 Drag to set the center line, then click to set the height	Przeciągnij, aby ustawić linię środkową, a następnie kliknij, aby ustawić wysokość
@@ -5612,3 +5612,52 @@ Edit Ellipse	Edytuj elipsę
 Move Segment	Przenieś segment
 Delete Segment	Usuń segment
 A curve needs at least two nodes	Krzywa musi mieć co najmniej dwa węzły
+Select Contents	Zaznacz zawartość
+Adjust contents	Dopasuj zawartość
+Drop Shadow on {}	Cień na {}
+Block Shadow on {}	Cień blokowy na {}
+Default outline set for new objects.	Ustawiono domyślny kontur dla nowych obiektów.
+Outline: double-click to edit	Kontur: kliknij dwukrotnie, aby edytować
+Start arrowhead	Grot początkowy
+End arrowhead	Grot końcowy
+Nothing is selected: these settings are the outline of new objects.	Nic nie jest zaznaczone: te ustawienia są konturem nowych obiektów.
+Share attributes	Współdziel atrybuty
+Stretch:	Rozciągnięcie:
+Nib shape:	Kształt stalówki:
+Drag commands here	Przeciągnij tutaj polecenia
+New Toolbar {}	Nowy pasek narzędzi {}
+CMX - CorelDRAW-compatible (*.cmx)	CMX - Zgodny z CorelDRAW (*.cmx)
+CDR - AnyVector Drawing (*.cdr)	CDR - Rysunek AnyVector (*.cdr)
+VCT - AnyVector Drawing, legacy (*.vct)	VCT - Rysunek AnyVector, starszy format (*.vct)
+CMX - CorelDRAW-compatible copy (*.cmx)	CMX - Kopia zgodna z CorelDRAW (*.cmx)
+PDF - Portable Document Format, copy (*.pdf)	PDF - Portable Document Format, kopia (*.pdf)
+SVG - Scalable Vector Graphics, copy (*.svg)	SVG - Scalable Vector Graphics, kopia (*.svg)
+EMF - Enhanced Windows Metafile, copy (*.emf)	EMF - Enhanced Windows Metafile, kopia (*.emf)
+AnyVector .cdr files open in AnyVector. To open in CorelDRAW, save as CMX, PDF, SVG or EMF.	Pliki .cdr programu AnyVector otwiera się w programie AnyVector. Aby otworzyć je w CorelDRAW, zapisz je jako CMX, PDF, SVG lub EMF.
+Saves a copy for other programs. The drawing keeps its own file.	Zapisuje kopię dla innych programów. Rysunek zachowuje własny plik.
+Saving a .cdr drawing that CorelDRAW cannot open	Zapisywanie rysunku .cdr, którego CorelDRAW nie może otworzyć
+Remind me that CorelDRAW cannot open AnyVector .cdr files	Przypominaj, że CorelDRAW nie otwiera plików .cdr programu AnyVector
+CorelDRAW cannot open this file: AnyVector .cdr files open in AnyVector.	CorelDRAW nie może otworzyć tego pliku: pliki .cdr programu AnyVector otwiera się w programie AnyVector.
+To open the drawing in CorelDRAW, use File ▸ Save As and choose CMX (CorelDRAW-compatible), PDF, SVG or EMF.	Aby otworzyć rysunek w CorelDRAW, użyj polecenia Plik ▸ Zapisz jako i wybierz CMX (zgodny z CorelDRAW), PDF, SVG lub EMF.
+This note is shown once. Turn it back on in Tools ▸ Options ▸ AnyVector ▸ Save.	Ta uwaga pojawia się tylko raz. Włączysz ją ponownie w Narzędzia ▸ Opcje ▸ AnyVector ▸ Zapisz.
+{} was saved with these differences from the drawing:	{} zapisano z następującymi różnicami względem rysunku:
+{} was not written by AnyVector or CorelDRAW, or it is damaged.	Pliku {} nie zapisał AnyVector ani CorelDRAW albo jest on uszkodzony.
+If it came from another program, open a PDF, SVG or EPS copy of it instead.	Jeśli pochodzi z innego programu, otwórz zamiast niego jego kopię w formacie PDF, SVG lub EPS.
+Saved a copy as {}	Zapisano kopię jako {}
+Text was converted to curves.	Tekst został zamieniony na krzywe.
+Bitmaps were left out.	Mapy bitowe zostały pominięte.
+Drop shadows, lenses and bevels were left out.	Cienie, soczewki i fazowania zostały pominięte.
+Transparency was left out.	Przezroczystość została pominięta.
+Pattern, texture and mesh fills were replaced by their main color.	Wypełnienia deseniem, teksturą i siatką zastąpiono ich kolorem głównym.
+Hidden layers and objects were left out.	Ukryte warstwy i obiekty zostały pominięte.
+AnyVector 0.1	AnyVector 0.1
+Move Here	&Przenieś tutaj
+Copy Here	&Kopiuj tutaj
+Copy Fill Here	Kopiuj &wypełnienie tutaj
+Copy Outline Here	Kopiuj k&ontur tutaj
+Copy All Properties	Kopiuj wszystkie wł&aściwości
+Other Commands	Inne polecenia
+Delete conflicts	Usuń konflikty
+Duplicate in Place	Powiel w miejscu
+Toggle Pick State	Przełącz stan zaznaczenia
+(none)	(brak)

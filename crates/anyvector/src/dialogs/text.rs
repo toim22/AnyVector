@@ -663,6 +663,8 @@ fn glyph_picker(app: &mut AnyVectorApp, ui: &mut Ui, font: &str, glyph: &mut cha
 pub fn bullets(app: &mut AnyVectorApp, ctx: &egui::Context) {
     let Some(mut st) = app.dialogs.bullets.take() else { return };
     let (u, dpi) = unit_of(app);
+    // the bullet's size and baseline shift are text lengths: in the text unit (#109)
+    let tu = app.settings.text_unit;
     let fams: Vec<String> = vt::fonts().lock().families().to_vec();
     let (mut ok, mut cancel) = (false, false);
     let ((), dismissed) = window(ctx, "bullets", "Bullets and Numbering", vec2(580.0, 393.0), |ui| {
@@ -779,13 +781,13 @@ pub fn bullets(app: &mut AnyVectorApp, ctx: &egui::Context) {
                     ui.horizontal(|ui| {
                         rlabel(ui, "Size:", 110.0, on && !l.use_para_font);
                         ui.add_space(6.0);
-                        ui.add_enabled(!l.use_para_font, egui::DragValue::new(&mut l.size).range(1.0..=999.0).speed(0.2).max_decimals(1).suffix(" pt"));
+                        ui.add_enabled_ui(!l.use_para_font, |ui| crate::lengths::drag(ui, &mut l.size, tu, dpi, 1.0..=999.0, crate::lengths::size_decimals(tu)));
                     });
                     ui.add_space(4.0);
                     ui.horizontal(|ui| {
                         rlabel(ui, "Baseline shift:", 110.0, on);
                         ui.add_space(6.0);
-                        ui.add(egui::DragValue::new(&mut l.baseline_shift).range(-999.0..=999.0).speed(0.2).max_decimals(1).suffix(" pt"));
+                        crate::lengths::drag(ui, &mut l.baseline_shift, tu, dpi, -999.0..=999.0, crate::lengths::size_decimals(tu));
                     });
                     ui.add_space(4.0);
                     ui.horizontal(|ui| {
@@ -2181,11 +2183,6 @@ impl EditTextState {
     }
 }
 
-fn fmt_num(v: f64) -> String {
-    let s = format!("{v:.1}");
-    s.trim_end_matches('0').trim_end_matches('.').to_string()
-}
-
 const SIZES: [f64; 20] = [6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 14.0, 16.0, 18.0, 24.0, 30.0, 36.0, 48.0, 60.0, 72.0, 100.0, 150.0, 200.0, 300.0];
 
 pub fn edit_text(app: &mut AnyVectorApp, ctx: &egui::Context) {
@@ -2221,9 +2218,11 @@ pub fn edit_text(app: &mut AnyVectorApp, ctx: &egui::Context) {
                 }
             }
             let mut size = cur.size;
-            egui::ComboBox::from_id_salt("et_size").selected_text(format!("{} pt", fmt_num(size))).width(96.0).show_ui(ui, |ui| {
+            // in the text unit (#109)
+            let (tu, tdpi) = crate::lengths::text_unit(app);
+            egui::ComboBox::from_id_salt("et_size").selected_text(crate::lengths::size_text(size, tu, tdpi)).width(96.0).show_ui(ui, |ui| {
                 for s in SIZES {
-                    ui.selectable_value(&mut size, s, format!("{} pt", fmt_num(s)));
+                    ui.selectable_value(&mut size, s, crate::lengths::size_text(s, tu, tdpi));
                 }
             });
             if size != cur.size {

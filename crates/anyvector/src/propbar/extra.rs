@@ -278,7 +278,7 @@ fn vo_now(app: &AnyVectorApp) -> Option<(Vec<VarWidth>, bool)> {
 }
 
 fn edit_vo(app: &mut AnyVectorApp, label: &str, mut f: impl FnMut(&mut Vec<VarWidth>, &mut bool)) {
-    let dflt = app.ts.default_outline_width.max(0.5);
+    let dflt = app.ts.default_outline.width.max(0.5);
     edit_sel(app, label, |o| {
         if o.is_container() {
             return;
