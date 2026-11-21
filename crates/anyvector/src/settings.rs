@@ -148,6 +148,8 @@ pub struct Settings {
     pub center_dialogs: bool,
     pub ui_scale: f64,
     pub desktop_color: [u8; 3],
+    /// The window border and title bar color; `None` follows the theme (`theme::window_border`).
+    pub window_border: Option<[u8; 3]>,
     pub button_size: ButtonSize,
     pub show_floating_title: bool,
     pub lock_toolbars: bool,
@@ -204,6 +206,8 @@ pub struct Settings {
     pub thes_spelling_assist: bool,
     /// Toolbox items shown or hidden with Quick Customize: (first 8 characters of the item id, shown).
     pub toolbox_items: Vec<(String, bool)>,
+    /// The command bars as the user arranged them, and the bars the user made (`crate::customize`).
+    pub bar_layouts: Vec<crate::customize::BarLayout>,
     pub auto_update_doc_palette: bool,
     pub palette_rows: u32,
     pub wide_borders: bool,
@@ -565,6 +569,7 @@ impl Default for Settings {
             center_dialogs: true,
             ui_scale: 100.0,
             desktop_color: [0x26, 0x26, 0x26],
+            window_border: None,
             button_size: ButtonSize::Small,
             show_floating_title: true,
             lock_toolbars: true,
@@ -608,6 +613,7 @@ impl Default for Settings {
             thes_auto_lookup: true,
             thes_spelling_assist: true,
             toolbox_items: vec![],
+            bar_layouts: vec![],
             auto_update_doc_palette: true,
             palette_rows: 1,
             wide_borders: false,

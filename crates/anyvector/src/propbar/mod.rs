@@ -277,12 +277,45 @@ fn shaping_leave(app: &mut AnyVectorApp, ui: &mut Ui) {
     }
 }
 
+/// Quick Customize: the property bar shown now, item by item, to show or hide (#124).
 fn customize_popup(app: &mut AnyVectorApp, r: &egui::Response) {
-    egui::Popup::menu(r).show(|ui| {
+    // its own id: the button moves (and its id changes) as items are hidden, and the menu stays
+    egui::Popup::menu(r).id(egui::Id::unique("propbar_quick_customize")).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
         ui.set_min_width(220.0);
         let mut on = app.settings.show_property_bar;
         if ui.checkbox(&mut on, "Property bar").changed() {
             app.settings.show_property_bar = on;
+        }
+        if let Some(bar) = bar_for(app).and_then(crate::ui::bar) {
+            ui.separator();
+            egui::ScrollArea::vertical().max_height(ui.ctx().content_rect().height() - 160.0).show(ui, |ui| {
+                ui.spacing_mut().item_spacing.y = 1.0;
+                let mut seen = vec![];
+                for it in bar.items {
+                    let name = crate::ui::plain(crate::ui::label(it));
+                    let listed = !matches!(it.kind, ui::Kind::Separator | ui::Kind::GroupBegin | ui::Kind::GroupEnd | ui::Kind::Spacer | ui::Kind::Placeholder);
+                    if !listed || name.trim().is_empty() || seen.contains(&it.id) {
+                        continue;
+                    }
+                    seen.push(it.id);
+                    let mut on = crate::customize::shown(&app.settings, bar.id, it.id);
+                    ui.horizontal(|ui| {
+                        if ui.checkbox(&mut on, "").changed() {
+                            crate::customize::set_shown(&mut app.settings, bar.id, it.id, on);
+                        }
+                        if !it.icon.is_empty() && it.icon != "new" {
+                            if let Some(img) = app.icons.image(ui.ctx(), it.icon, 16.0, true) {
+                                ui.add(img);
+                            }
+                        }
+                        ui.label(name.trim_end_matches("..."));
+                    });
+                }
+            });
+            ui.separator();
+            if ui.button("Reset toolbar").clicked() {
+                crate::customize::reset(&mut app.settings, bar.id);
+            }
         }
         if ui.button("Customize...").clicked() {
             app.run(Cmd::Options(crate::commands::OptionsPage::Customization));

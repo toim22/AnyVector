@@ -11,6 +11,7 @@ mod cmdbar;
 mod color_profiles;
 mod comfyui;
 mod commands;
+mod customize;
 mod dialogs;
 mod dockers;
 mod docview;

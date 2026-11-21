@@ -476,6 +476,14 @@ pub fn cmd(id: &str) -> Option<Cmd> {
         "d2fdc0d9" => ToggleToolbar(Toolbar::Toolbox),
         "24c9cf0c" => ToggleToolbar(Toolbar::PropertyBar),
         "7b90fb1f" => LockToolbars,
+        // right-click on a toolbar ▸ Customize ▸ <bar> Toolbar / Toolbar Item (#124)
+        "6e40f0a4" => CustomizeBar(crate::customize::BarOp::Reset),
+        "5157359e" => CustomizeBar(crate::customize::BarOp::AddSeparator),
+        "dd014902" => CustomizeBar(crate::customize::BarOp::DeleteItem),
+        "8ba33eda" => CustomizeBar(crate::customize::BarOp::Style(1)),
+        "56b47cbb" => CustomizeBar(crate::customize::BarOp::Style(2)),
+        "192b2542" => CustomizeBar(crate::customize::BarOp::Style(3)),
+        "a4ff25fe" => CommandsSetup,
         "3f8a6b23" => AddColorsFromSelection,
         "fbc9febd" => AddColorsFromDocument,
         "3fb0838f" => CreatePaletteFromSelection,
@@ -526,9 +534,14 @@ pub fn checked(app: &AnyVectorApp, id: &str) -> Option<bool> {
         return Some(c);
     }
     match key(id).as_str() {
-        // Customize ▸ … ▸ Default / Image Only: how AnyVector shows toolbar buttons and items
-        "ed8ad191" | "b412a0c2" | "8ba33eda" | "8f5a59d4" => return Some(true),
-        "56b47cbb" | "192b2542" | "b5671d24" | "af261898" => return Some(false),
+        // Customize ▸ <bar> Toolbar ▸ Image Only / Caption Only / Caption to Right of Image: the
+        // style of the bar right-clicked
+        "8ba33eda" => return Some(crate::customize::context_style_is(app, 1)),
+        "56b47cbb" => return Some(crate::customize::context_style_is(app, 2)),
+        "192b2542" => return Some(crate::customize::context_style_is(app, 3)),
+        // Customize ▸ … ▸ Default / Image Only: how AnyVector shows the menu bar and the items
+        "ed8ad191" | "b412a0c2" | "8f5a59d4" => return Some(true),
+        "b5671d24" | "af261898" => return Some(false),
         _ => {}
     }
     // Lock Contents to PowerClip: AnyVector's PowerClip contents always move with the frame

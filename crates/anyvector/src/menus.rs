@@ -439,6 +439,9 @@ pub fn command_bar_context(app: &mut AnyVectorApp, resp: &egui::Response, spot: 
     if resp.container_secondary_clicked() {
         let item = resp.ctx.interaction_snapshot(|s| s.clicked.is_some_and(|id| id != resp.id));
         resp.ctx.data_mut(|d| d.insert_temp(key, item));
+        if let Some(p) = resp.ctx.input(|i| i.pointer.interact_pos()) {
+            crate::customize::note_context(&resp.ctx, p);
+        }
     }
     resp.container_context_menu(|ui| {
         let item = ui.ctx().data(|d| d.get_temp::<bool>(key)).unwrap_or(false);
@@ -572,7 +575,16 @@ pub struct CatalogEntry {
 
 /// The menus of the menu bar, for the Commands page category list.
 pub fn catalog_menus() -> Vec<(String, u16)> {
-    ui::bar(ui::menu_bar_index(true)).map(|b| b.items.iter().filter(|i| i.sub != NO_SUB).map(|i| (ui::plain(i.text), i.sub)).collect()).unwrap_or_default()
+    let mut v: Vec<(String, u16)> = ui::bar(ui::menu_bar_index(true)).map(|b| b.items.iter().filter(|i| i.sub != NO_SUB).map(|i| (ui::plain(i.text), i.sub)).collect()).unwrap_or_default();
+    // then the tools and the toolbars' own commands, as in CorelDRAW's list (#124); a toolbar
+    // named like a menu (Text, Layout) has that menu's commands
+    v.extend(ui::bar_named("Toolbox").map(|(i, _)| ("Toolbox".to_string(), i)));
+    for tb in std::iter::once(crate::app::Toolbar::Standard).chain(crate::app::Toolbar::EXTRA) {
+        if let Some(i) = crate::cmdbar::toolbar_bar(tb).filter(|_| !v.iter().any(|(n, _)| n.eq_ignore_ascii_case(tb.name()))) {
+            v.push((tb.name().to_string(), i));
+        }
+    }
+    v
 }
 
 /// The commands of one menu and its submenus, in menu order.
@@ -588,8 +600,10 @@ pub fn catalog(bar: u16) -> Vec<CatalogEntry> {
                 walk(it.sub, seen, out);
             }
             if let Some(c) = bind::cmd(it.id) {
-                if !it.text.is_empty() && !out.iter().any(|e| e.cmd == c) {
-                    out.push(CatalogEntry { icon: (!it.icon.is_empty()).then(|| it.icon.to_string()), label: it.text.to_string(), cmd: c });
+                // icon-only toolbar buttons go by their tooltip
+                let label = ui::label(it);
+                if !label.is_empty() && !out.iter().any(|e| e.cmd == c) {
+                    out.push(CatalogEntry { icon: (!it.icon.is_empty()).then(|| it.icon.to_string()), label: label.to_string(), cmd: c });
                 }
             }
         }

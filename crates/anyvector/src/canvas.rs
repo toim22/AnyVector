@@ -265,7 +265,8 @@ fn render_cache(app: &mut AnyVectorApp, ctx: &egui::Context, ai: usize, canvas: 
         wireframe: d.view_mode == ViewMode::Wireframe,
         draft: false,
         printing: false,
-        draw_page: d.doc.settings.show_page_border || true,
+        draw_page: true,
+        page_border: d.doc.settings.show_page_border,
         desktop: Color::rgb(dc[0], dc[1], dc[2]),
         hidden: vec![],
         dim_others: (!d.focus.is_empty()).then(|| {
@@ -344,15 +345,7 @@ fn render_cache(app: &mut AnyVectorApp, ctx: &egui::Context, ai: usize, canvas: 
             if pr.x1 < 0.0 || pr.x0 > pw as f64 || pr.y1 < 0.0 || pr.y0 > ph as f64 {
                 continue;
             }
-            let fill = |pm: &mut tiny_skia::Pixmap, r: kurbo::Rect, c: tiny_skia::Color| {
-                if let Some(r) = tiny_skia::Rect::from_ltrb(r.x0 as f32, r.y0 as f32, r.x1 as f32, r.y1 as f32) {
-                    let mut paint = tiny_skia::Paint::default();
-                    paint.set_color(c);
-                    pm.fill_rect(r, &paint, tiny_skia::Transform::identity(), None);
-                }
-            };
-            fill(&mut pm, pr + kurbo::Vec2::new(3.0, 3.0), tiny_skia::Color::from_rgba8(0, 0, 0, 110));
-            fill(&mut pm, pr, tiny_skia::Color::WHITE);
+            vector_render::page_backdrop(&d.doc.pages[i], v, &mut pm, &opts);
             ts.renderer.render_page(&d.doc, i, v, &mut pm, &others);
         }
     }

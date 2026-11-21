@@ -5612,3 +5612,5 @@ Edit Ellipse	編輯橢圓形
 Move Segment	移動線段
 Delete Segment	刪除線段
 A curve needs at least two nodes	曲線至少需要兩個節點
+Drag commands here	將命令拖曳到此處
+New Toolbar {}	新增工具列 {}
