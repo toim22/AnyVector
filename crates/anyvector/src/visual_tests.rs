@@ -4008,3 +4008,244 @@ fn visual_shape_tool_nodes() {
     assert!(matches!(kind_of(&h, eid), ObjKind::Ellipse(e) if e.kind == EllipseKind::Pie));
     assert_eq!(h.state().doc().unwrap().seg_sel, Some((cid, 0, 0)));
 }
+
+// ---- File compatibility: Save As copies, the .cdr note, opening an unknown .cdr (#132) ----
+
+/// The drawing of the #132 tests, on two pages: a red rectangle, a blue ellipse and a line of
+/// text on the first, a green square on the second. Returns the document's index.
+fn compat_drawing(h: &mut Harness<'_, AnyVectorApp>) -> usize {
+    let d = h.state_mut().doc_mut().unwrap();
+    let style = |fill: Color, outline: bool| {
+        let mut st = Style::default();
+        st.fill = Fill::Solid(fill);
+        if outline {
+            st.outline.color = Some(Color::BLACK);
+            st.outline.width = 1.0;
+        }
+        st
+    };
+    let (w, ht) = (d.doc.pages[0].width, d.doc.pages[0].height);
+    let ids = (d.doc.new_id(), d.doc.new_id(), d.doc.new_id(), d.doc.new_id());
+    let text = vector_core::text::TextObj::artistic("Hello CorelDRAW", vector_core::text::CharFormat { size: 36.0, ..Default::default() });
+    d.add_objects(
+        "test",
+        vec![
+            Object::new(ids.0, ObjKind::Rect(RectShape { w: 200.0, h: 140.0, radii: [0.0; 4], corner: CornerType::Round }), Affine::translate((90.0, 90.0)), style(Color::rgb(220, 30, 30), true)),
+            Object::new(ids.1, ObjKind::Ellipse(EllipseShape { w: 180.0, h: 120.0, kind: EllipseKind::Ellipse, start: 0.0, end: 0.0, clockwise: false }), Affine::translate((340.0, 100.0)), style(Color::rgb(30, 90, 220), false)),
+            Object::new(ids.2, ObjKind::Text(text), Affine::translate((90.0, 330.0)), style(Color::BLACK, false)),
+        ],
+    );
+    let p = d.doc.add_page(1, w, ht);
+    d.doc.pages[p].layers[0].objects.push(Object::new(ids.3, ObjKind::Rect(RectShape { w: 150.0, h: 150.0, radii: [0.0; 4], corner: CornerType::Round }), Affine::translate((100.0, 100.0)), style(Color::rgb(0, 160, 60), true)));
+    let i = h.state().active.unwrap();
+    // the one-time note starts on, whatever the settings of this computer say
+    set_cdr_notice(h, true);
+    i
+}
+
+fn cdr_notice_on(h: &Harness<'_, AnyVectorApp>) -> Option<bool> {
+    h.state().settings.warnings.iter().find(|(t, _)| t == crate::settings::CDR_NOTICE_WARNING).map(|w| w.1)
+}
+
+fn set_cdr_notice(h: &mut Harness<'_, AnyVectorApp>, on: bool) {
+    let w = &mut h.state_mut().settings.warnings;
+    match w.iter_mut().find(|(t, _)| t == crate::settings::CDR_NOTICE_WARNING) {
+        Some(e) => e.1 = on,
+        None => w.push((crate::settings::CDR_NOTICE_WARNING.to_string(), on)),
+    }
+}
+
+/// #132: Save As CMX, PDF, SVG or EMF writes a copy other programs (CorelDRAW among them) open,
+/// with every page; the drawing keeps its own .cdr, stays modified, and the copies do not go into
+/// the recent files. What a CMX copy cannot hold is said.
+#[test]
+fn save_as_other_formats_writes_copies_and_keeps_the_drawing() {
+    let mut h = dialog_harness();
+    let i = compat_drawing(&mut h);
+    let cdr = temp_file("compat_copies", "drawing.cdr");
+    let dir = cdr.parent().unwrap().to_path_buf();
+    h.state_mut().docs[i].path = Some(cdr.clone());
+    assert!(h.state_mut().save_doc(i, false), "the drawing saves");
+    assert_eq!(vector_io::cdr::detect(&std::fs::read(&cdr).unwrap()), vector_io::cdr::CdrKind::AnyVector, "as AnyVector's own .cdr");
+    h.state_mut().dialogs.message_box = None;
+    // an edit, so the drawing is modified while the copies are written
+    h.state_mut().run(Cmd::SelectAll);
+    h.state_mut().run(Cmd::Duplicate);
+    settle(&mut h);
+    assert!(h.state().docs[i].history.is_modified());
+
+    for ext in ["cmx", "pdf", "svg", "emf"] {
+        let p = dir.join(format!("copy.{ext}"));
+        h.state_mut().dialogs.message_box = None;
+        assert!(!h.state_mut().save_copy(i, &p), "a copy is not the drawing saved");
+        let files: Vec<std::path::PathBuf> = if matches!(ext, "svg" | "emf") { vec![dir.join(format!("copy-1.{ext}")), dir.join(format!("copy-2.{ext}"))] } else { vec![p.clone()] };
+        for f in &files {
+            let b = std::fs::read(f).unwrap_or_else(|e| panic!("{}: {e}", f.display()));
+            match ext {
+                "cmx" => assert!(&b[0..4] == b"RIFF" && &b[8..12] == b"CMX1", "a Corel metafile"),
+                "pdf" => assert!(b.starts_with(b"%PDF-")),
+                "svg" => assert!(String::from_utf8_lossy(&b).contains("<svg")),
+                _ => assert_eq!(&b[40..44], b" EMF", "an enhanced metafile"),
+            }
+        }
+        let d = &h.state().docs[i];
+        assert_eq!(d.path.as_deref(), Some(cdr.as_path()), "the drawing keeps its file");
+        assert!(d.history.is_modified(), "and is still modified");
+        assert!(!h.state().settings.recent_files.iter().any(|r| r.extension().is_some_and(|e| e == ext)), "copies are not recent drawings");
+        if ext == "cmx" {
+            let (_, text) = h.state().dialogs.message_box.clone().expect("the differences are said");
+            assert!(text.contains("copy.cmx was saved with these differences") && text.contains("Text was converted to curves."), "{text}");
+        } else {
+            assert!(h.state().dialogs.message_box.is_none(), "{ext}: nothing to say");
+        }
+    }
+    // the CMX copy reads back with both pages and the shapes where they were
+    let back = vector_io::open(&dir.join("copy.cmx")).unwrap();
+    assert_eq!(back.pages.len(), 2);
+    let shapes: Vec<_> = back.pages[0].all_objects().filter(|o| !matches!(o.kind, ObjKind::Group(_))).collect();
+    assert!(shapes.iter().any(|o| o.style.fill == Fill::Solid(Color::rgb(220, 30, 30))), "the red rectangle");
+    // Save with the path of a copy type also writes a copy (what Save As does after the dialog)
+    h.state_mut().docs[i].path = Some(dir.join("via_save.pdf"));
+    assert!(!h.state_mut().save_doc(i, false));
+    assert!(dir.join("via_save.pdf").exists());
+    assert!(h.state().docs[i].history.is_modified());
+    h.state_mut().docs[i].path = Some(cdr);
+    h.step();
+}
+
+/// #132: the first .cdr save says, once, that CorelDRAW does not open AnyVector's .cdr and how to
+/// get a file it opens; Options ▸ AnyVector ▸ Save turns the note back on.
+#[test]
+fn the_first_cdr_save_says_once_that_coreldraw_cannot_open_it() {
+    let mut h = dialog_harness();
+    let i = compat_drawing(&mut h);
+    let cdr = temp_file("compat_notice", "first.cdr");
+    h.state_mut().docs[i].path = Some(cdr.clone());
+    assert_eq!(cdr_notice_on(&h), Some(true));
+    assert!(h.state_mut().save_doc(i, false));
+    let (title, text) = h.state().dialogs.message_box.clone().expect("the note shows");
+    assert_eq!(title, "Save");
+    assert!(text.contains("CorelDRAW cannot open this file") && text.contains("CMX (CorelDRAW-compatible), PDF, SVG or EMF"), "{text}");
+    settle(&mut h);
+    click_label(&mut h, "OK");
+    assert!(h.state().dialogs.message_box.is_none());
+    assert_eq!(cdr_notice_on(&h), Some(false), "acknowledged");
+    // the next save is quiet
+    assert!(h.state_mut().save_doc(i, false));
+    assert!(h.state().dialogs.message_box.is_none(), "shown once");
+    // a .vct save never shows it
+    let vct = cdr.with_extension("vct");
+    set_cdr_notice(&mut h, true);
+    h.state_mut().docs[i].path = Some(vct);
+    assert!(h.state_mut().save_doc(i, false));
+    assert!(h.state().dialogs.message_box.is_none());
+    set_cdr_notice(&mut h, false);
+    h.state_mut().docs[i].path = Some(cdr);
+
+    // Options ▸ AnyVector ▸ Save has the switch, the same as its Warnings entry
+    h.state_mut().open_options(crate::commands::OptionsPage::App, Some("Save"));
+    settle(&mut h);
+    let label = "Remind me that CorelDRAW cannot open AnyVector .cdr files";
+    assert!(has_label(&h, label), "the Save page shows the switch");
+    click_label(&mut h, label);
+    assert_eq!(cdr_notice_on(&h), Some(true));
+    h.state_mut().dialogs.options.open = false;
+    settle(&mut h);
+    assert!(h.state_mut().save_doc(i, false));
+    assert!(h.state().dialogs.message_box.is_some(), "on again, it shows again");
+    h.state_mut().dialogs.message_box = None;
+
+    // settings from an older version get the note (on) and the honest version name
+    let mut s = crate::settings::Settings::default();
+    s.warnings.retain(|(t, _)| t != crate::settings::CDR_NOTICE_WARNING);
+    s.default_version = "0.1 (2026.0)".into();
+    s.migrate();
+    assert!(s.warnings.iter().any(|(t, on)| t == crate::settings::CDR_NOTICE_WARNING && *on));
+    assert_eq!(s.default_version, crate::settings::FILE_VERSIONS[0]);
+    // an acknowledged note stays off
+    let n = s.warnings.len();
+    s.warnings.iter_mut().for_each(|w| w.1 = false);
+    s.migrate();
+    assert_eq!(s.warnings.len(), n);
+    assert!(s.warnings.iter().all(|w| !w.1));
+}
+
+/// #132: a .cdr that neither AnyVector nor CorelDRAW wrote is explained, not "Invalid file"; a
+/// damaged CorelDRAW file still says why; AnyVector's CMX copy opens again.
+#[test]
+fn opening_a_cdr_no_one_recognises_explains_what_it_is() {
+    let mut h = dialog_harness();
+    let i = compat_drawing(&mut h);
+    let other = temp_file("compat_open", "other.cdr");
+    let dir = other.parent().unwrap().to_path_buf();
+    std::fs::write(&other, b"made by some other program").unwrap();
+    let docs = h.state().docs.len();
+    assert!(!h.state_mut().open_path(&other));
+    let (title, text) = h.state().dialogs.message_box.clone().expect("the user is told");
+    assert_eq!(title, "Open");
+    assert!(text.starts_with("other.cdr was not written by AnyVector or CorelDRAW, or it is damaged."), "{text}");
+    assert!(text.contains("open a PDF, SVG or EPS copy") && !text.contains("Invalid file"), "{text}");
+    settle(&mut h);
+    click_label(&mut h, "OK");
+    // a cut-off CorelDRAW file is damaged: it says so the usual way
+    let damaged = dir.join("damaged.cdr");
+    std::fs::write(&damaged, b"WL cut off").unwrap();
+    assert!(!h.state_mut().open_path(&damaged));
+    let (_, text) = h.state().dialogs.message_box.clone().unwrap();
+    assert!(text.starts_with("Could not open"), "{text}");
+    h.state_mut().dialogs.message_box = None;
+    assert_eq!(h.state().docs.len(), docs);
+    // the CMX copy opens as a new drawing with both pages
+    let cmx = dir.join("copy.cmx");
+    h.state_mut().save_copy(i, &cmx);
+    h.state_mut().dialogs.message_box = None;
+    assert!(h.state_mut().open_path(&cmx));
+    assert_eq!(h.state().docs.len(), docs + 1);
+    assert_eq!(h.state().doc().unwrap().doc.pages.len(), 2);
+    h.step();
+}
+
+/// #132 in pictures: the note after the first .cdr save, the message for an unknown .cdr, the
+/// switch on Options ▸ AnyVector ▸ Save, CMX in Export, and the CMX copy opened again.
+#[test]
+#[ignore]
+fn visual_issue_132_file_compatibility() {
+    let mut h = doc_harness();
+    let i = compat_drawing(&mut h);
+    let cdr = temp_file("visual_132", "Drawing.cdr");
+    let dir = cdr.parent().unwrap().to_path_buf();
+    h.state_mut().docs[i].path = Some(cdr);
+    assert!(h.state_mut().save_doc(i, false));
+    assert!(h.state().dialogs.message_box.is_some());
+    save(&mut h, "issue_132_01_first_cdr_save_note");
+    h.state_mut().dialogs.message_box = None;
+
+    let other = dir.join("from another program.cdr");
+    std::fs::write(&other, b"not a drawing").unwrap();
+    h.state_mut().open_path(&other);
+    save(&mut h, "issue_132_02_unknown_cdr");
+    h.state_mut().dialogs.message_box = None;
+
+    h.state_mut().open_options(crate::commands::OptionsPage::App, Some("Save"));
+    save(&mut h, "issue_132_03_options_save_reminder");
+    click_label(&mut h, "OK");
+    assert!(!h.state().dialogs.options.open);
+
+    h.state_mut().run(Cmd::Export);
+    settle(&mut h);
+    let cmx_type = vector_io::EXPORT_TYPES.iter().position(|t| t.extensions[0] == "cmx").unwrap();
+    if let Some(st) = h.state_mut().dialogs.export.as_mut() {
+        st.format = cmx_type;
+        st.path = dir.join("Drawing.cmx").display().to_string();
+    }
+    save(&mut h, "issue_132_04_export_cmx");
+    h.state_mut().dialogs.export = None;
+    h.step();
+
+    let cmx = dir.join("Drawing copy.cmx");
+    h.state_mut().save_copy(i, &cmx);
+    save(&mut h, "issue_132_05_cmx_copy_differences");
+    h.state_mut().dialogs.message_box = None;
+    assert!(h.state_mut().open_path(&cmx));
+    save(&mut h, "issue_132_06_cmx_copy_reopened");
+}

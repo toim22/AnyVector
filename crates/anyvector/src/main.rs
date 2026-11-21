@@ -16,6 +16,7 @@ mod dockers;
 mod docview;
 mod bitmaps;
 mod exec;
+mod file_copy;
 mod fx;
 mod fxdata;
 mod help;

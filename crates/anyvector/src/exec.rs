@@ -459,7 +459,7 @@ impl AnyVectorApp {
                 true
             }
             Err(e) => {
-                self.dialogs.message_box = Some(("Open".into(), format!("Could not open {}:\n{e}", p.display())));
+                self.dialogs.message_box = Some(("Open".into(), crate::file_copy::open_error_text(p, &e)));
                 false
             }
         }
@@ -548,7 +548,7 @@ impl AnyVectorApp {
             vec![]
         };
         vector_io::cdr::SaveOptions {
-            version: crate::settings::FILE_VERSIONS.get(version).unwrap_or(&crate::settings::FILE_VERSIONS[0]).to_string(),
+            version: crate::settings::FILE_FORMAT_VERSIONS.get(version).unwrap_or(&crate::settings::FILE_FORMAT_VERSIONS[0]).to_string(),
             fonts,
             color_profiles: if embed_profiles { crate::color_profiles::profile_files(&doc.settings.color) } else { vec![] },
             object_compression: s.object_compression,
@@ -587,9 +587,9 @@ impl AnyVectorApp {
                 let stem = self.docs[i].stem();
                 let dir = self.docs[i].path.as_ref().and_then(|p| p.parent()).map(|p| p.to_path_buf()).or_else(|| self.settings.last_dir.clone()).or_else(|| Some(crate::settings::documents_dir()));
                 let types: Vec<(String, String)> = vector_io::SAVE_TYPES.iter().map(|t| (t.name.to_string(), t.extensions[0].to_string())).collect();
-                // a .vct document stays .vct unless the user picks CDR
+                // a .vct document stays .vct unless the user picks CDR; anything else starts as CDR
                 let type_index = match self.docs[i].path.as_ref().map(|p| vector_io::extension(p)) {
-                    Some(e) if e == "vct" => 1,
+                    Some(e) if e == "vct" => types.iter().position(|t| t.1 == "vct").unwrap_or(0),
                     _ => 0,
                 };
                 let advanced = self.advanced_from_settings();
@@ -616,9 +616,10 @@ impl AnyVectorApp {
                 let res = if cfg!(windows) {
                     crate::save_dialog::show(req)
                 } else {
-                    rfd::FileDialog::new().set_title("Save Drawing").add_filter(types[0].0.as_str(), &["cdr"]).set_file_name(format!("{stem}.cdr")).save_file().map(|p| crate::save_dialog::SaveResult {
+                    let fd = types.iter().fold(rfd::FileDialog::new().set_title("Save Drawing"), |fd, t| fd.add_filter(t.0.as_str(), &[t.1.as_str()]));
+                    fd.set_file_name(format!("{stem}.cdr")).save_file().map(|p| crate::save_dialog::SaveResult {
+                        type_index: types.iter().position(|t| t.1 == vector_io::extension(&p)).unwrap_or(0),
                         path: p,
-                        type_index: 0,
                         title: d.info.title.clone(),
                         subject: d.info.subject.clone(),
                         rating: d.info.rating,
@@ -654,6 +655,10 @@ impl AnyVectorApp {
                 }
             }
         };
+        // CMX, PDF, SVG, EMF: a copy for other programs (the drawing stays as it is)
+        if vector_io::saves_a_copy(&vector_io::extension(&path)) {
+            return self.save_copy(i, &path);
+        }
         if self.settings.backup_on_save && path.exists() {
             let dir = self.settings.backup_dir.clone().unwrap_or_else(|| path.parent().map(|p| p.to_path_buf()).unwrap_or_default());
             let name = format!("Backup_of_{}", path.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default());
@@ -674,6 +679,9 @@ impl AnyVectorApp {
                 self.settings.add_recent(&path);
                 self.settings.last_dir = path.parent().map(|x| x.to_path_buf());
                 self.flash(format!("Saved {}", path.display()));
+                if vector_io::extension(&path) == "cdr" {
+                    self.cdr_saved_notice();
+                }
                 true
             }
             Err(e) => {

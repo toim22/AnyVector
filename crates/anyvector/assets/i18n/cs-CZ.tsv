@@ -5612,3 +5612,28 @@ Edit Ellipse	Upravit elipsu
 Move Segment	Přesunout segment
 Delete Segment	Odstranit segment
 A curve needs at least two nodes	Křivka potřebuje alespoň dva uzly
+CMX - CorelDRAW-compatible (*.cmx)	CMX - Kompatibilní s CorelDRAW (*.cmx)
+CDR - AnyVector Drawing (*.cdr)	CDR - Kresba AnyVector (*.cdr)
+VCT - AnyVector Drawing, legacy (*.vct)	VCT - Kresba AnyVector, starší formát (*.vct)
+CMX - CorelDRAW-compatible copy (*.cmx)	CMX - Kopie kompatibilní s CorelDRAW (*.cmx)
+PDF - Portable Document Format, copy (*.pdf)	PDF - Portable Document Format, kopie (*.pdf)
+SVG - Scalable Vector Graphics, copy (*.svg)	SVG - Scalable Vector Graphics, kopie (*.svg)
+EMF - Enhanced Windows Metafile, copy (*.emf)	EMF - Enhanced Windows Metafile, kopie (*.emf)
+AnyVector .cdr files open in AnyVector. To open in CorelDRAW, save as CMX, PDF, SVG or EMF.	Soubory .cdr z AnyVectoru se otevírají v AnyVectoru. Chcete-li je otevřít v CorelDRAW, uložte je jako CMX, PDF, SVG nebo EMF.
+Saves a copy for other programs. The drawing keeps its own file.	Uloží kopii pro jiné programy. Kresba si ponechá svůj vlastní soubor.
+Saving a .cdr drawing that CorelDRAW cannot open	Ukládání kresby .cdr, kterou CorelDRAW nedokáže otevřít
+Remind me that CorelDRAW cannot open AnyVector .cdr files	Připomenout, že CorelDRAW nedokáže otevřít soubory .cdr z AnyVectoru
+CorelDRAW cannot open this file: AnyVector .cdr files open in AnyVector.	CorelDRAW tento soubor nedokáže otevřít: soubory .cdr z AnyVectoru se otevírají v AnyVectoru.
+To open the drawing in CorelDRAW, use File ▸ Save As and choose CMX (CorelDRAW-compatible), PDF, SVG or EMF.	Chcete-li kresbu otevřít v CorelDRAW, použijte Soubor ▸ Uložit jako a zvolte CMX (kompatibilní s CorelDRAW), PDF, SVG nebo EMF.
+This note is shown once. Turn it back on in Tools ▸ Options ▸ AnyVector ▸ Save.	Tato poznámka se zobrazí jen jednou. Znovu ji zapnete v Nástroje ▸ Možnosti ▸ AnyVector ▸ Uložit.
+{} was saved with these differences from the drawing:	Soubor {} byl uložen s těmito rozdíly oproti kresbě:
+{} was not written by AnyVector or CorelDRAW, or it is damaged.	Soubor {} nevytvořil AnyVector ani CorelDRAW, nebo je poškozený.
+If it came from another program, open a PDF, SVG or EPS copy of it instead.	Pokud pochází z jiného programu, otevřete místo něj jeho kopii ve formátu PDF, SVG nebo EPS.
+Saved a copy as {}	Kopie uložena jako {}
+Text was converted to curves.	Text byl převeden na křivky.
+Bitmaps were left out.	Rastry byly vynechány.
+Drop shadows, lenses and bevels were left out.	Vržené stíny, čočky a zkosení byly vynechány.
+Transparency was left out.	Průhlednost byla vynechána.
+Pattern, texture and mesh fills were replaced by their main color.	Výplně vzorkem, texturou a sítí byly nahrazeny svou hlavní barvou.
+Hidden layers and objects were left out.	Skryté vrstvy a objekty byly vynechány.
+AnyVector 0.1	AnyVector 0.1

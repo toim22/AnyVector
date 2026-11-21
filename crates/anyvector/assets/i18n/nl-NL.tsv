@@ -5612,3 +5612,28 @@ Edit Ellipse	Ellips bewerken
 Move Segment	Segment verplaatsen
 Delete Segment	Segment verwijderen
 A curve needs at least two nodes	Een kromme heeft minstens twee knooppunten nodig
+CMX - CorelDRAW-compatible (*.cmx)	CMX - Compatibel met CorelDRAW (*.cmx)
+CDR - AnyVector Drawing (*.cdr)	CDR - AnyVector-tekening (*.cdr)
+VCT - AnyVector Drawing, legacy (*.vct)	VCT - AnyVector-tekening, oud formaat (*.vct)
+CMX - CorelDRAW-compatible copy (*.cmx)	CMX - Met CorelDRAW compatibele kopie (*.cmx)
+PDF - Portable Document Format, copy (*.pdf)	PDF - Portable Document Format, kopie (*.pdf)
+SVG - Scalable Vector Graphics, copy (*.svg)	SVG - Scalable Vector Graphics, kopie (*.svg)
+EMF - Enhanced Windows Metafile, copy (*.emf)	EMF - Enhanced Windows Metafile, kopie (*.emf)
+AnyVector .cdr files open in AnyVector. To open in CorelDRAW, save as CMX, PDF, SVG or EMF.	AnyVector-.cdr-bestanden worden geopend in AnyVector. Sla op als CMX, PDF, SVG of EMF om ze in CorelDRAW te openen.
+Saves a copy for other programs. The drawing keeps its own file.	Slaat een kopie op voor andere programma's. De tekening houdt haar eigen bestand.
+Saving a .cdr drawing that CorelDRAW cannot open	Een .cdr-tekening opslaan die CorelDRAW niet kan openen
+Remind me that CorelDRAW cannot open AnyVector .cdr files	Mij eraan herinneren dat CorelDRAW AnyVector-.cdr-bestanden niet kan openen
+CorelDRAW cannot open this file: AnyVector .cdr files open in AnyVector.	CorelDRAW kan dit bestand niet openen: AnyVector-.cdr-bestanden worden geopend in AnyVector.
+To open the drawing in CorelDRAW, use File ▸ Save As and choose CMX (CorelDRAW-compatible), PDF, SVG or EMF.	Als u de tekening in CorelDRAW wilt openen, kiest u Bestand ▸ Opslaan als en dan CMX (compatibel met CorelDRAW), PDF, SVG of EMF.
+This note is shown once. Turn it back on in Tools ▸ Options ▸ AnyVector ▸ Save.	Deze melding verschijnt maar één keer. Zet haar weer aan via Extra ▸ Opties ▸ AnyVector ▸ Opslaan.
+{} was saved with these differences from the drawing:	{} is opgeslagen met deze verschillen ten opzichte van de tekening:
+{} was not written by AnyVector or CorelDRAW, or it is damaged.	{} is niet door AnyVector of CorelDRAW geschreven, of is beschadigd.
+If it came from another program, open a PDF, SVG or EPS copy of it instead.	Komt het uit een ander programma, open dan in plaats daarvan een PDF-, SVG- of EPS-kopie ervan.
+Saved a copy as {}	Kopie opgeslagen als {}
+Text was converted to curves.	Tekst is omgezet in krommen.
+Bitmaps were left out.	Bitmaps zijn weggelaten.
+Drop shadows, lenses and bevels were left out.	Slagschaduwen, lenzen en afschuiningen zijn weggelaten.
+Transparency was left out.	Transparantie is weggelaten.
+Pattern, texture and mesh fills were replaced by their main color.	Patroon-, textuur- en gaasvullingen zijn vervangen door hun hoofdkleur.
+Hidden layers and objects were left out.	Verborgen lagen en objecten zijn weggelaten.
+AnyVector 0.1	AnyVector 0.1

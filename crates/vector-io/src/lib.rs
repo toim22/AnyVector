@@ -2,6 +2,7 @@
 //! and import of Corel metafiles (`.cmx`) and PDF files.
 
 pub mod cdr;
+pub mod cmx_export;
 pub mod corel;
 pub mod cutter;
 pub mod dxf;
@@ -59,11 +60,22 @@ pub struct FileType {
     pub vector: bool,
 }
 
-/// "Save as type" entries of Save Drawing; the first is the default.
+/// "Save as type" entries of Save Drawing; the first is the default. AnyVector's own `.cdr`
+/// is a drawing only AnyVector opens, so it is not called "CorelDRAW"; the CMX, PDF, SVG and
+/// EMF entries save a copy CorelDRAW and other programs open (like CorelDRAW's Export).
 pub const SAVE_TYPES: &[FileType] = &[
-    FileType { name: "CDR - CorelDRAW (*.cdr)", extensions: &["cdr"], vector: true },
-    FileType { name: "VCT - AnyVector Drawing (*.vct)", extensions: &["vct"], vector: true },
+    FileType { name: "CDR - AnyVector Drawing (*.cdr)", extensions: &["cdr"], vector: true },
+    FileType { name: "VCT - AnyVector Drawing, legacy (*.vct)", extensions: &["vct"], vector: true },
+    FileType { name: "CMX - CorelDRAW-compatible copy (*.cmx)", extensions: &["cmx"], vector: true },
+    FileType { name: "PDF - Portable Document Format, copy (*.pdf)", extensions: &["pdf"], vector: true },
+    FileType { name: "SVG - Scalable Vector Graphics, copy (*.svg)", extensions: &["svg"], vector: true },
+    FileType { name: "EMF - Enhanced Windows Metafile, copy (*.emf)", extensions: &["emf"], vector: true },
 ];
+
+/// Whether saving as `ext` writes a copy for other programs (the drawing keeps its own file).
+pub fn saves_a_copy(ext: &str) -> bool {
+    matches!(ext, "cmx" | "pdf" | "svg" | "emf")
+}
 
 pub const OPEN_TYPES: &[FileType] = &[
     FileType { name: "CDR - CorelDRAW (*.cdr)", extensions: &["cdr"], vector: true },
@@ -114,6 +126,7 @@ pub const EXPORT_TYPES: &[FileType] = &[
     FileType { name: "DXF - AutoCAD (*.dxf)", extensions: &["dxf"], vector: true },
     FileType { name: "JXL - JPEG XL, lossless (*.jxl)", extensions: &["jxl"], vector: false },
     FileType { name: "EMF - Enhanced Windows Metafile (*.emf)", extensions: &["emf"], vector: true },
+    FileType { name: "CMX - CorelDRAW-compatible (*.cmx)", extensions: &["cmx"], vector: true },
 ];
 
 pub fn extension(path: &Path) -> String {

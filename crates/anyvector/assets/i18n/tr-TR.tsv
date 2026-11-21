@@ -5612,3 +5612,28 @@ Edit Ellipse	Elipsi Düzenle
 Move Segment	Bölümü Taşı
 Delete Segment	Bölümü Sil
 A curve needs at least two nodes	Bir eğrinin en az iki düğümü olmalıdır
+CMX - CorelDRAW-compatible (*.cmx)	CMX - CorelDRAW uyumlu (*.cmx)
+CDR - AnyVector Drawing (*.cdr)	CDR - AnyVector Çizimi (*.cdr)
+VCT - AnyVector Drawing, legacy (*.vct)	VCT - AnyVector Çizimi, eski biçim (*.vct)
+CMX - CorelDRAW-compatible copy (*.cmx)	CMX - CorelDRAW uyumlu kopya (*.cmx)
+PDF - Portable Document Format, copy (*.pdf)	PDF - Portable Document Format, kopya (*.pdf)
+SVG - Scalable Vector Graphics, copy (*.svg)	SVG - Scalable Vector Graphics, kopya (*.svg)
+EMF - Enhanced Windows Metafile, copy (*.emf)	EMF - Enhanced Windows Metafile, kopya (*.emf)
+AnyVector .cdr files open in AnyVector. To open in CorelDRAW, save as CMX, PDF, SVG or EMF.	AnyVector .cdr dosyaları AnyVector'da açılır. CorelDRAW'da açmak için CMX, PDF, SVG veya EMF olarak kaydedin.
+Saves a copy for other programs. The drawing keeps its own file.	Diğer programlar için bir kopya kaydeder. Çizim kendi dosyasında kalır.
+Saving a .cdr drawing that CorelDRAW cannot open	CorelDRAW'ın açamadığı bir .cdr çizimini kaydetme
+Remind me that CorelDRAW cannot open AnyVector .cdr files	CorelDRAW'ın AnyVector .cdr dosyalarını açamadığını hatırlat
+CorelDRAW cannot open this file: AnyVector .cdr files open in AnyVector.	CorelDRAW bu dosyayı açamaz: AnyVector .cdr dosyaları AnyVector'da açılır.
+To open the drawing in CorelDRAW, use File ▸ Save As and choose CMX (CorelDRAW-compatible), PDF, SVG or EMF.	Çizimi CorelDRAW'da açmak için Dosya ▸ Farklı Kaydet'i kullanın ve CMX (CorelDRAW uyumlu), PDF, SVG veya EMF'yi seçin.
+This note is shown once. Turn it back on in Tools ▸ Options ▸ AnyVector ▸ Save.	Bu not yalnızca bir kez gösterilir. Araçlar ▸ Seçenekler ▸ AnyVector ▸ Kaydet bölümünden yeniden açabilirsiniz.
+{} was saved with these differences from the drawing:	{} çizimden şu farklarla kaydedildi:
+{} was not written by AnyVector or CorelDRAW, or it is damaged.	{} AnyVector veya CorelDRAW tarafından yazılmamış ya da hasarlı.
+If it came from another program, open a PDF, SVG or EPS copy of it instead.	Başka bir programdan geldiyse onun yerine PDF, SVG veya EPS kopyasını açın.
+Saved a copy as {}	Kopya {} olarak kaydedildi
+Text was converted to curves.	Metin eğrilere dönüştürüldü.
+Bitmaps were left out.	Bitmap'ler dahil edilmedi.
+Drop shadows, lenses and bevels were left out.	Gölgeler, mercekler ve eğimler dahil edilmedi.
+Transparency was left out.	Saydamlık dahil edilmedi.
+Pattern, texture and mesh fills were replaced by their main color.	Desen, doku ve ağ dolguları ana renkleriyle değiştirildi.
+Hidden layers and objects were left out.	Gizli katmanlar ve nesneler dahil edilmedi.
+AnyVector 0.1	AnyVector 0.1
