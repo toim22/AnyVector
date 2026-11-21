@@ -5612,3 +5612,13 @@ Edit Ellipse	Elipsi Düzenle
 Move Segment	Bölümü Taşı
 Delete Segment	Bölümü Sil
 A curve needs at least two nodes	Bir eğrinin en az iki düğümü olmalıdır
+Move Here	&Buraya taşı
+Copy Here	Buraya &kopyala
+Copy Fill Here	&Dolguyu buraya kopyala
+Copy Outline Here	&Anahattı buraya kopyala
+Copy All Properties	&Tüm özellikleri kopyala
+Other Commands	Diğer komutlar
+Delete conflicts	Çakışmaları sil
+Duplicate in Place	Yerinde çoğalt
+Toggle Pick State	Seçim durumunu değiştir
+(none)	(yok)

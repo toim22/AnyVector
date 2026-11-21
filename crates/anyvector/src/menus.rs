@@ -69,7 +69,8 @@ fn key8(id: &str) -> String {
 /// The shortcut shown for an item: the user's own if they changed it, else the reference one.
 fn shortcut_for(app: &AnyVectorApp, it: &Item, cmd: Option<Cmd>) -> Option<String> {
     if let Some(c) = cmd {
-        let name = format!("{c:?}");
+        // the settings keep the command's script text (`Align(Top)` is `{"Align":"Top"}`, #125)
+        let name = crate::scripting::cmd_to_text(&c);
         if let Some((_, s)) = app.settings.shortcuts.iter().find(|(n, _)| *n == name) {
             return Some(s.clone());
         }

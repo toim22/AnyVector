@@ -5612,3 +5612,13 @@ Edit Ellipse	Editar elipse
 Move Segment	Mover segmento
 Delete Segment	Eliminar segmento
 A curve needs at least two nodes	Una curva necesita al menos dos nodos
+Move Here	&Mover aquí
+Copy Here	&Copiar aquí
+Copy Fill Here	Copiar &relleno aquí
+Copy Outline Here	Copiar c&ontorno aquí
+Copy All Properties	Copiar &todas las propiedades
+Other Commands	Otros comandos
+Delete conflicts	Eliminar conflictos
+Duplicate in Place	Duplicar en el sitio
+Toggle Pick State	Alternar estado de selección
+(none)	(ninguno)

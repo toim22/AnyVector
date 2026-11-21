@@ -5612,3 +5612,13 @@ Edit Ellipse	编辑椭圆形
 Move Segment	移动线段
 Delete Segment	删除线段
 A curve needs at least two nodes	曲线至少需要两个节点
+Move Here	移动到此处(&M)
+Copy Here	复制到此处(&C)
+Copy Fill Here	复制填充到此处(&F)
+Copy Outline Here	复制轮廓到此处(&O)
+Copy All Properties	复制所有属性(&A)
+Other Commands	其他命令
+Delete conflicts	删除冲突
+Duplicate in Place	原位复制
+Toggle Pick State	切换选择状态
+(none)	(无)

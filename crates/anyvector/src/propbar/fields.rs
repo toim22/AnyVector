@@ -128,6 +128,8 @@ fn text_in(ui: &mut Ui, id: Id, rect: Rect, shown: &str, enabled: bool) -> Optio
     let focused = ui.memory(|m| m.has_focus(id));
     let mut text = if focused { ui.data_mut(|d| d.get_temp::<String>(id)).unwrap_or_else(|| shown.to_string()) } else { shown.to_string() };
     let r = ui.place(rect, egui::TextEdit::singleline(&mut text).id(id).frame(egui::Frame::NONE).font(font()).text_color(ink(enabled)).interactive(enabled).margin(vec2(0.0, 0.0)));
+    // Tab into the field selects the value (#121)
+    crate::widgets::select_all_on_key_focus(ui, &r, &text);
     if r.has_focus() {
         ui.data_mut(|d| d.insert_temp(id, text.clone()));
         None

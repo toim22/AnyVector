@@ -1182,7 +1182,7 @@ impl AnyVectorApp {
         }
         let repeatable = matches!(
             cmd,
-            Cmd::Duplicate | Cmd::Delete | Cmd::Group | Cmd::Combine | Cmd::ConvertToCurves | Cmd::Order(_) | Cmd::Align(_) | Cmd::Distribute(_) | Cmd::Shaping(_) | Cmd::MirrorH | Cmd::MirrorV | Cmd::Rotate(_) | Cmd::Nudge(..) | Cmd::BitmapEffect(_) | Cmd::ChangeCase(_) | Cmd::Lock | Cmd::Unlock
+            Cmd::Duplicate | Cmd::DuplicateInPlace | Cmd::Delete | Cmd::Group | Cmd::Combine | Cmd::ConvertToCurves | Cmd::Order(_) | Cmd::Align(_) | Cmd::Distribute(_) | Cmd::Shaping(_) | Cmd::MirrorH | Cmd::MirrorV | Cmd::Rotate(_) | Cmd::Nudge(..) | Cmd::BitmapEffect(_) | Cmd::ChangeCase(_) | Cmd::Lock | Cmd::Unlock
         );
         if repeatable {
             self.last_cmd = Some(cmd);
@@ -1560,6 +1560,23 @@ impl AnyVectorApp {
                 // a moved rotation center goes along to the copies (issue 126)
                 if let (Some((old, bb)), Some(d)) = (before, self.doc_mut()) {
                     d.carry_rot_center(&old, bb);
+                }
+            }
+            Cmd::DuplicateInPlace => {
+                // during a drag the keypad + leaves the original where it was, as in CorelDRAW
+                if matches!(self.ts.drag, crate::tools::Drag::Transform { .. }) {
+                    self.ts.copy_on_drop = true;
+                    self.flash("A copy will be left at the original position");
+                } else {
+                    let before = self.doc().and_then(|d| Some((d.selection.clone(), d.selection_bounds()?)));
+                    self.modify_sel("Duplicate", |doc, sel| {
+                        let ids = sel.clone();
+                        *sel = ops::duplicate(doc, &ids, Vec2::ZERO);
+                    });
+                    // a moved rotation center goes along to the copies (issue 126)
+                    if let (Some((old, bb)), Some(d)) = (before, self.doc_mut()) {
+                        d.carry_rot_center(&old, bb);
+                    }
                 }
             }
             Cmd::StepAndRepeat => self.dockers.show(DockerId::StepRepeat),

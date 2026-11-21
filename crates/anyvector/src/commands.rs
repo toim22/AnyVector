@@ -79,6 +79,8 @@ pub enum Cmd {
     ExitFocusMode,
     Delete,
     Duplicate,
+    /// The numeric keypad's +: a copy exactly on top of the selection (#119).
+    DuplicateInPlace,
     Clone,
     StepAndRepeat,
     CopyPropertiesFrom,
@@ -450,6 +452,7 @@ pub fn default_shortcut(cmd: Cmd) -> Option<&'static str> {
         PasteInView => "Ctrl+Shift+V",
         Delete => "Delete",
         Duplicate => "Ctrl+D",
+        DuplicateInPlace => "Num +",
         StepAndRepeat => "Ctrl+Shift+D",
         FindReplace => "Ctrl+F",
         SelectAll => "Ctrl+A",
@@ -650,19 +653,54 @@ pub struct Shortcut {
     pub shift: bool,
     pub alt: bool,
     pub key: egui::Key,
+    /// "Num +": only the numeric keypad's + (see [`Shortcut::matches`]).
+    pub keypad: bool,
+}
+
+impl Shortcut {
+    /// Whether a key event is this chord. egui matches modifiers logically (extra Shift and Alt
+    /// are let through, the caller tries the most specific chords first). Of the keypad keys only
+    /// the + can be told apart: its physical key is `Plus`, while the main-row + is Shift+= or
+    /// its own key on other layouts; an event without a physical key counts as either.
+    pub fn matches(&self, key: egui::Key, physical: Option<egui::Key>, mods: egui::Modifiers) -> bool {
+        key == self.key && mods.matches_logically(egui::Modifiers { alt: self.alt, ctrl: self.ctrl, shift: self.shift, mac_cmd: false, command: self.ctrl }) && !(self.keypad && physical.is_some_and(|p| p != egui::Key::Plus))
+    }
+}
+
+/// The text of a chord, as [`parse_shortcut`] reads it and the menus spell it ("Ctrl+Shift+S",
+/// "Ctrl++", "Num +", "Shift+PgUp").
+pub fn format_shortcut(s: &Shortcut) -> String {
+    let mut out = String::new();
+    for (on, m) in [(s.ctrl, "Ctrl+"), (s.shift && s.key != egui::Key::Minus, "Shift+"), (s.alt, "Alt+")] {
+        if on {
+            out.push_str(m);
+        }
+    }
+    let key = match s.key {
+        egui::Key::Plus if s.keypad => "Num +",
+        egui::Key::Plus => "+",
+        egui::Key::Minus if s.shift => "_",
+        egui::Key::Minus => "-",
+        egui::Key::PageUp => "PgUp",
+        egui::Key::PageDown => "PgDn",
+        egui::Key::Escape => "Esc",
+        k => k.name(),
+    };
+    out.push_str(key);
+    out
 }
 
 /// Parses "Ctrl+Shift+S", also the reference spellings: "Shift+PgUp", "Ctrl++", "Ctrl+Num +",
 /// "Ctrl+_" (Shift and the minus key), "Ctrl+Num 8".
 pub fn parse_shortcut(s: &str) -> Option<Shortcut> {
-    let mut sc = Shortcut { ctrl: false, shift: false, alt: false, key: egui::Key::A };
+    let mut sc = Shortcut { ctrl: false, shift: false, alt: false, key: egui::Key::A, keypad: false };
     let s = s.trim();
     // the key itself may be "+" ("Ctrl++", "Ctrl+Num +")
     let (mods, last) = match s.strip_suffix("++") {
         _ if s == "+" => ("", "+"),
         Some(m) => (m, "+"),
         None => match s.rfind('+') {
-            Some(i) if s.ends_with("Num +") => (s[..i.saturating_sub(4)].trim_end_matches('+'), "+"),
+            Some(i) if s.ends_with("Num +") => (s[..i.saturating_sub(4)].trim_end_matches('+'), "Num +"),
             Some(i) => (&s[..i], &s[i + 1..]),
             None => ("", s),
         },
@@ -676,6 +714,7 @@ pub fn parse_shortcut(s: &str) -> Option<Shortcut> {
         }
     }
     let k = last.trim();
+    sc.keypad = k.starts_with("Num ");
     let k = k.strip_prefix("Num ").unwrap_or(k);
     sc.key = match k {
         "PgUp" | "Page Up" => egui::Key::PageUp,
@@ -687,6 +726,8 @@ pub fn parse_shortcut(s: &str) -> Option<Shortcut> {
         }
         _ => egui::Key::from_name(k)?,
     };
+    // only the keypad + can be told from the main keys (see `Shortcut::matches`)
+    sc.keypad &= sc.key == egui::Key::Plus;
     Some(sc)
 }
 
@@ -697,7 +738,7 @@ pub fn shortcut_commands() -> Vec<Cmd> {
     use vector_core::ops::{Align as Al, Distribute as Di, Order as Or};
     use Cmd::*;
     let mut v = vec![
-        New, Open, Save, SaveAs, Import, Export, Print, Undo, Redo, Repeat, Cut, Copy, Paste, PasteInView, Delete, Duplicate, SelectAll, ExitFocusMode,
+        New, Open, Save, SaveAs, Import, Export, Print, Undo, Redo, Repeat, Cut, Copy, Paste, PasteInView, Delete, Duplicate, DuplicateInPlace, SelectAll, ExitFocusMode,
         FullScreenPreview, ZoomToSelected, ZoomToAll, ZoomToPage, ZoomOut, ZoomIn, Group, Ungroup, Combine, BreakApart, ConvertToCurves, OutlineToObject, JoinCurves,
         Order(Or::ToFront), Order(Or::ToBack), Order(Or::ForwardOne), Order(Or::BackOne),
         Align(Al::Left), Align(Al::Right), Align(Al::Top), Align(Al::Bottom), Align(Al::CenterH), Align(Al::CenterV), CenterToPage,
@@ -757,6 +798,60 @@ mod tests {
         assert_eq!(k("Num +"), Some((false, false, false, Key::Plus)));
         assert_eq!(k("-"), Some((false, false, false, Key::Minus)));
         assert_eq!(k("Ctrl+Foo"), None);
+        // only the keypad + is told apart from the main keys
+        assert!(parse_shortcut("Num +").unwrap().keypad && parse_shortcut("Ctrl+Num +").unwrap().keypad);
+        assert!(!parse_shortcut("+").unwrap().keypad && !parse_shortcut("Ctrl++").unwrap().keypad);
+        assert_eq!(parse_shortcut("Ctrl+Num -"), parse_shortcut("Ctrl+-"));
+    }
+
+    #[test]
+    fn keypad_plus_is_told_from_the_main_row() {
+        use egui::{Key, Modifiers};
+        let num = parse_shortcut("Num +").unwrap();
+        let any = parse_shortcut("+").unwrap();
+        // the keypad: logical and physical Plus
+        assert!(num.matches(Key::Plus, Some(Key::Plus), Modifiers::NONE));
+        assert!(any.matches(Key::Plus, Some(Key::Plus), Modifiers::NONE));
+        // the main row: Shift+= (US) or the layout's own + key (German: the key right of P)
+        assert!(!num.matches(Key::Plus, Some(Key::Equals), Modifiers::SHIFT));
+        assert!(!num.matches(Key::Plus, Some(Key::CloseBracket), Modifiers::NONE));
+        assert!(any.matches(Key::Plus, Some(Key::Equals), Modifiers::SHIFT));
+        // no physical key known: either
+        assert!(num.matches(Key::Plus, None, Modifiers::NONE));
+        // Ctrl is never extra
+        assert!(!num.matches(Key::Plus, Some(Key::Plus), Modifiers::CTRL));
+        assert!(parse_shortcut("Ctrl+Num +").unwrap().matches(Key::Plus, Some(Key::Plus), Modifiers::CTRL | Modifiers::COMMAND));
+    }
+
+    #[test]
+    fn chords_format_back_to_what_they_parse() {
+        let mut all: Vec<String> = vec![];
+        for c in shortcut_commands() {
+            all.extend(default_shortcut(c).map(str::to_string));
+            all.extend(alt_shortcuts(c).iter().map(|s| s.to_string()));
+        }
+        for c in [KeyContext::Text, KeyContext::Nodes, KeyContext::TableCells] {
+            all.extend(context_shortcuts(c).iter().map(|(k, _)| k.to_string()));
+        }
+        all.extend(["Ctrl+Alt+T", "Shift+F12", "Ctrl+Shift+Up", "Alt+Enter", "Ctrl+Space", "Shift+Esc"].map(str::to_string));
+        for t in all {
+            let s = parse_shortcut(&t).unwrap_or_else(|| panic!("{t}"));
+            let f = format_shortcut(&s);
+            assert_eq!(parse_shortcut(&f), Some(s), "{t} formats as {f}");
+        }
+        assert_eq!(format_shortcut(&parse_shortcut("Ctrl+Num +").unwrap()), "Ctrl+Num +");
+        assert_eq!(format_shortcut(&parse_shortcut("Ctrl++").unwrap()), "Ctrl++");
+        assert_eq!(format_shortcut(&parse_shortcut("Ctrl+_").unwrap()), "Ctrl+_");
+        assert_eq!(format_shortcut(&parse_shortcut("Shift+PgUp").unwrap()), "Shift+PgUp");
+    }
+
+    #[test]
+    fn shortcut_commands_survive_the_settings_text() {
+        // a user's chord is stored under the command's text: it must read back as the command
+        for c in shortcut_commands() {
+            let t = crate::scripting::cmd_to_text(&c);
+            assert_eq!(crate::scripting::text_to_cmd(&t), Some(c), "{t}");
+        }
     }
 
     #[test]

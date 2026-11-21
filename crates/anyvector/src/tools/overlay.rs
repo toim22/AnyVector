@@ -105,6 +105,13 @@ pub fn draw_overlay(app: &mut AnyVectorApp, painter: &Painter) {
     if tool == ToolId::VariableOutline {
         draw_var_outline(painter, d, ts);
     }
+    // Virtual Segment Delete: the piece a click deletes, in red (#119)
+    if let (ToolId::VirtualDelete, Some((_, _, Some(c)))) = (tool, &ts.hover_cut) {
+        let mut bp = BezPath::new();
+        bp.move_to(c.p0);
+        bp.curve_to(c.p1, c.p2, c.p3);
+        stroke_bez(painter, d, &bp, Stroke::new(3.0, Color32::from_rgb(0xe8, 0x30, 0x30)));
+    }
     // LiveSketch strokes waiting for the timer
     if s.topts.ls_preview {
         for st in &ts.ls_pending {

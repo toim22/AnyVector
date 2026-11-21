@@ -5612,3 +5612,13 @@ Edit Ellipse	Ellipse bearbeiten
 Move Segment	Segment verschieben
 Delete Segment	Segment löschen
 A curve needs at least two nodes	Eine Kurve braucht mindestens zwei Knoten
+Move Here	&Hierher verschieben
+Copy Here	Hierher &kopieren
+Copy Fill Here	&Füllung hierher kopieren
+Copy Outline Here	&Umriss hierher kopieren
+Copy All Properties	&Alle Eigenschaften kopieren
+Other Commands	Weitere Befehle
+Delete conflicts	Konflikte löschen
+Duplicate in Place	An Ort und Stelle duplizieren
+Toggle Pick State	Auswahlstatus umschalten
+(none)	(keine)

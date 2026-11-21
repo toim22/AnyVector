@@ -5612,3 +5612,13 @@ Edit Ellipse	Upravit elipsu
 Move Segment	Přesunout segment
 Delete Segment	Odstranit segment
 A curve needs at least two nodes	Křivka potřebuje alespoň dva uzly
+Move Here	&Přesunout sem
+Copy Here	&Kopírovat sem
+Copy Fill Here	Kopírovat &výplň sem
+Copy Outline Here	Kopírovat &obrys sem
+Copy All Properties	Kopírovat všechny vl&astnosti
+Other Commands	Další příkazy
+Delete conflicts	Odstranit konflikty
+Duplicate in Place	Duplikovat na místě
+Toggle Pick State	Přepnout stav výběru
+(none)	(žádná)

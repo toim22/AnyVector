@@ -5612,3 +5612,13 @@ Edit Ellipse	Изменить эллипс
 Move Segment	Переместить сегмент
 Delete Segment	Удалить сегмент
 A curve needs at least two nodes	Кривой нужны хотя бы два узла
+Move Here	&Переместить сюда
+Copy Here	&Копировать сюда
+Copy Fill Here	Копировать &заливку сюда
+Copy Outline Here	Копировать &абрис сюда
+Copy All Properties	Копировать &все свойства
+Other Commands	Другие команды
+Delete conflicts	Удалить конфликты
+Duplicate in Place	Дублировать на месте
+Toggle Pick State	Переключить состояние выбора
+(none)	(нет)
