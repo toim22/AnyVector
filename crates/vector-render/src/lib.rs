@@ -29,6 +29,9 @@ pub struct RenderOptions {
     /// Objects drawn at reduced opacity (inactive objects during focus mode), 0..1.
     pub dim_others: Option<(Vec<ObjId>, f32)>,
     pub show_powerclip_frames: bool,
+    /// The PowerClip whose contents are being edited: its contents are drawn in full, not
+    /// clipped by the frame, and the frame itself is left to the editing overlay.
+    pub editing_powerclip: Option<ObjId>,
     pub antialias: bool,
     /// Simulate overprints: objects set to overprint multiply with what is below them.
     pub overprint: bool,
@@ -45,6 +48,7 @@ impl Default for RenderOptions {
             hidden: vec![],
             dim_others: None,
             show_powerclip_frames: true,
+            editing_powerclip: None,
             antialias: true,
             overprint: false,
         }
@@ -384,6 +388,11 @@ impl Renderer {
         match &o.kind {
             ObjKind::Group(children) => {
                 for c in children {
+                    self.render_object(ctx, c, target);
+                }
+            }
+            ObjKind::PowerClip { contents, .. } if ctx.opts.editing_powerclip == Some(o.id) => {
+                for c in contents {
                     self.render_object(ctx, c, target);
                 }
             }

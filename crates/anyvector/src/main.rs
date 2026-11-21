@@ -23,6 +23,7 @@ mod i18n;
 mod icons;
 mod menus;
 mod palette;
+mod powerclip;
 mod printing;
 mod propbar;
 mod save_dialog;

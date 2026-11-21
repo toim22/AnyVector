@@ -1045,6 +1045,7 @@ fn menus(name: &str) -> Option<&'static str> {
         "powerclip_fill" => r##"<rect x="3.5" y="5.5" width="17" height="13" rx="1"/><ellipse cx="12" cy="12" rx="5" ry="8.5" fill="#c4c4c4" stroke="none" fill-opacity=".85"/>"##,
         "powerclip_fit" => r##"<rect x="3.5" y="5.5" width="17" height="13" rx="1"/><ellipse cx="12" cy="12" rx="8.5" ry="4.5" fill="#c4c4c4" stroke="none"/>"##,
         "powerclip_stretch" => r##"<rect x="3.5" y="5.5" width="17" height="13" rx="1"/><rect x="5.5" y="7.5" width="13" height="9" rx="4.5" fill="#c4c4c4" stroke="none"/><path d="M2 3l3 3M2 5.5V3h2.5M22 21l-3-3M22 18.5V21h-2.5"/>"##,
+        "powerclip_select" => r##"<rect x="3.5" y="7.5" width="13" height="13"/><ellipse cx="10" cy="14" rx="4.5" ry="3" fill="#c4c4c4" stroke="none"/><path d="M15 1.5v10l2.4-2.2 1.9 3.8 1.5-.8-1.9-3.7 3.2-.3z" fill="#c4c4c4" stroke-width="1" stroke-linejoin="round"/>"##,
         // ---------------------------------------------------------------- text, characters, frames
         "fit_text_frame" => r##"<path d="M3 7V3h4M17 3h4v4M21 17v4h-4M7 21H3v-4"/><text x="12" y="17" font-family="Segoe UI" font-size="12" font-weight="bold" fill="#c4c4c4" stroke="none" text-anchor="middle">A</text>"##,
         "text_frames" => r##"<rect x="3.5" y="3.5" width="17" height="17" stroke-dasharray="1.5 1.5"/><path d="M7 8h10M7 11h10M7 14h10M7 17h7"/>"##,

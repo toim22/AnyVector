@@ -433,6 +433,10 @@ impl<'a> Cx<'a> {
     fn hit(&self, p: Point) -> Option<ObjId> {
         // one source of truth: Settings::treat_as_filled (#96)
         let filled = self.s.treat_as_filled;
+        // editing a PowerClip: its contents are what a click picks (#111)
+        if let Some(pc) = self.d.editing_powerclip().and_then(|id| self.d.doc.find(id)) {
+            return self.d.doc.powerclip_child_at(pc, p, self.tol(), filled);
+        }
         let id = if self.s.edit_across_layers {
             self.d.doc.hit_test(self.d.page, p, self.tol(), filled)?
         } else {
@@ -450,12 +454,58 @@ impl<'a> Cx<'a> {
 
     /// The objects a marquee selects (only the active layer's without Edit Across Layers).
     fn in_rect(&self, r: Rect, touching: bool) -> Vec<ObjId> {
+        // editing a PowerClip: the marquee selects among its contents (#111)
+        if let Some(pc) = self.d.editing_powerclip().and_then(|id| self.d.doc.find(id)) {
+            return self.d.doc.powerclip_contents_in_rect(pc, r, touching);
+        }
         let mut ids = self.d.doc.objects_in_rect(self.d.page, r, touching);
         if !self.s.edit_across_layers {
             let (pi, li) = self.d.active_loc();
             ids.retain(|id| self.d.doc.locate(*id).is_some_and(|(p, l, _)| (p, l) == (pi, li)));
         }
         ids
+    }
+
+    /// PowerClip contents a Pick tool press picks instead of the PowerClip under the pointer
+    /// (#111): with Alt, the contents under the pointer (CorelDRAW selects them without entering
+    /// the PowerClip); without Alt, contents already selected that way, so that a press on them
+    /// drags them. None off a PowerClip, where Alt+click keeps its own meaning.
+    fn powerclip_pick(&self, p: Point) -> Option<ObjId> {
+        let top = self.hit(p)?;
+        let o = self.d.doc.find(top)?;
+        if o.locked || !matches!(o.kind, ObjKind::PowerClip { .. }) {
+            return None;
+        }
+        let (tol, filled) = (self.tol(), self.s.treat_as_filled);
+        if self.mods().alt {
+            return self.d.doc.powerclip_content_at(o, p, tol, filled);
+        }
+        self.d.selection.iter().copied().find(|id| *id != top && o.find(*id).is_some_and(|c| self.d.doc.hit_object(c, p, tol, filled)))
+    }
+
+    /// The PowerClip a Ctrl+click at `p` enters for editing (#111): the PowerClip under the
+    /// pointer, for a plain Ctrl+click of the Pick tool. With the Windows modifier keys Ctrl is
+    /// Duplicate, and a Ctrl+click enters nothing.
+    fn ctrl_click_powerclip(&self, p: Point, mods: egui::Modifiers) -> Option<ObjId> {
+        if self.tool != ToolId::Pick || !mods.ctrl || mods.shift || mods.alt || self.s.windows_modifiers {
+            return None;
+        }
+        let id = self.hit(p)?;
+        let o = self.d.doc.find(id)?;
+        (!o.locked && matches!(o.kind, ObjKind::PowerClip { .. })).then_some(id)
+    }
+
+    /// Enter the PowerClip `id` to edit its contents; the content object clicked (under `at`) is
+    /// selected.
+    fn enter_powerclip(&mut self, id: ObjId, at: Point) {
+        self.d.focus = vec![id];
+        self.d.selection.clear();
+        self.d.node_sel.clear();
+        self.d.rotate_mode = false;
+        self.d.cache.key = 0;
+        if let Some(c) = self.hit(at) {
+            self.d.selection = vec![c];
+        }
     }
 
     fn snap(&mut self, p: Point, exclude: &[ObjId]) -> Point {
@@ -783,7 +833,7 @@ impl<'a> Cx<'a> {
                 }
             }
         }
-        let hit = self.hit(p);
+        let hit = self.powerclip_pick(p).or_else(|| self.hit(p));
         // Free Transform: the selection turns around the point clicked
         if self.tool == ToolId::FreeTransform && !self.d.selection.is_empty() && hit.map_or(true, |id| self.d.selection.contains(&id)) {
             if let Some(bb) = self.d.selection_bounds() {
@@ -1910,6 +1960,9 @@ impl<'a> Cx<'a> {
                         self.d.selection = ids;
                     }
                     self.d.rotate_mode = false;
+                } else if mods.ctrl && !mods.shift && self.tool == ToolId::Pick && self.d.editing_powerclip().is_some() {
+                    // Ctrl+click off the contents finishes editing the PowerClip (#111)
+                    self.out.cmds.push(Cmd::PowerClipFinish);
                 } else if !mods.shift {
                     self.d.selection.clear();
                     self.d.rotate_mode = false;
@@ -1961,6 +2014,9 @@ impl<'a> Cx<'a> {
                         }
                     }
                     self.ts.copy_on_drop = false;
+                } else if let Some(pc) = matches!(kind, Xform::Move).then(|| self.ctrl_click_powerclip(start, mods)).flatten() {
+                    // Ctrl+click enters the PowerClip to edit its contents (#111)
+                    self.enter_powerclip(pc, start);
                 } else if self.ts.was_selected && !mods.shift && self.tool == ToolId::Pick {
                     self.d.rotate_mode = !self.d.rotate_mode;
                 }
@@ -2445,13 +2501,18 @@ impl<'a> Cx<'a> {
                     }
                     match self.d.doc.find(id).map(|o| &o.kind) {
                         Some(ObjKind::Path(_)) => self.out.tool = Some(Shape),
-                        Some(ObjKind::Group(_)) | Some(ObjKind::PowerClip { .. }) if self.s.dblclick_focus_mode => {
+                        // a PowerClip opens for editing its contents (#111)
+                        Some(ObjKind::PowerClip { .. }) if self.s.dblclick_focus_mode && !self.d.doc.find(id).is_some_and(|o| o.locked) => self.enter_powerclip(id, p),
+                        Some(ObjKind::Group(_)) if self.s.dblclick_focus_mode => {
                             self.d.focus = vec![id];
                             self.d.cache.key = 0;
                         }
                         Some(ObjKind::Image(_)) if self.s.dblclick_bitmap_editor => self.out.cmds.push(Cmd::EditBitmap),
                         _ => {}
                     }
+                } else if self.d.editing_powerclip().is_some() {
+                    // a double-click off the contents finishes editing the PowerClip
+                    self.out.cmds.push(Cmd::PowerClipFinish);
                 } else if !self.d.focus.is_empty() {
                     self.d.focus.clear();
                     self.d.cache.key = 0;

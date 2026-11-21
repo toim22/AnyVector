@@ -269,6 +269,7 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
         symmetry::insert_object_dialog(app, ctx);
     }
     symmetry::floating_bars(app, ctx);
+    crate::powerclip::floating_toolbar(app, ctx);
     symmetry::poll_ole(app, ctx);
     text::tabs(app, ctx);
     text::columns(app, ctx);

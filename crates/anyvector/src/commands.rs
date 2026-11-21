@@ -203,6 +203,9 @@ pub enum Cmd {
     PowerClipExtract,
     PowerClipEdit,
     PowerClipFinish,
+    /// Select the contents of the selected PowerClip (or of the one being edited) without
+    /// entering it: the floating PowerClip toolbar's Select Contents.
+    PowerClipSelectContents,
     MirrorH,
     MirrorV,
     Rotate(f64),

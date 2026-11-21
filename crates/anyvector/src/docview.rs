@@ -243,6 +243,8 @@ impl DocView {
 
     pub fn undo(&mut self) -> Option<String> {
         let r = self.history.undo(&mut self.doc, &mut self.selection, &mut self.page, &mut self.rot_center);
+        // a PowerClip being edited that the step took away is no longer edited
+        self.focus.retain(|id| self.doc.find(*id).is_some());
         self.text_edit = None;
         self.node_sel.clear();
         self.seg_sel = None;
@@ -252,6 +254,8 @@ impl DocView {
 
     pub fn redo(&mut self) -> Option<String> {
         let r = self.history.redo(&mut self.doc, &mut self.selection, &mut self.page, &mut self.rot_center);
+        // a PowerClip being edited that the step took away is no longer edited
+        self.focus.retain(|id| self.doc.find(*id).is_some());
         self.text_edit = None;
         self.node_sel.clear();
         self.seg_sel = None;
@@ -361,6 +365,18 @@ impl DocView {
 
     pub fn selection_bounds(&self) -> Option<Rect> {
         self.doc.selection_bounds(&self.selection)
+    }
+
+    /// The PowerClip whose contents are being edited (Edit PowerClip, Ctrl+click or a
+    /// double-click on it): the one object in focus when it is a PowerClip, outside Edit Master
+    /// and rollover editing (which use the focus for their own objects).
+    pub fn editing_powerclip(&self) -> Option<ObjId> {
+        match self.focus.as_slice() {
+            [id] if self.symbol_edit.is_none() && self.rollover_edit.is_none() => {
+                self.doc.find(*id).is_some_and(|o| matches!(o.kind, vector_core::ObjKind::PowerClip { .. })).then_some(*id)
+            }
+            _ => None,
+        }
     }
 
     /// What the rotate handles turn the selection around: where its rotation center was moved

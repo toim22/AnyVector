@@ -71,7 +71,7 @@ pub fn drawing_window(app: &mut AnyVectorApp, ui: &mut Ui) {
     // ------------------------------------------------------------------ input
     let ctx = ui.ctx().clone();
     let resp = ui.interact(canvas, Id::unique(("canvas", app.docs[ai].uid)), Sense::click_and_drag());
-    // Edit Master shows a Finish button at the top left of the drawing
+    // Edit Master and Edit PowerClip show a Finish button at the top left of the drawing
     let finish = finish_label(&app.docs[ai]).map(|t| {
         let w = 18.0 + ctx.fonts_mut(|f| f.layout_no_wrap(crate::i18n::t(t), egui::FontId::proportional(12.0), Color32::WHITE).size().x);
         (t, Rect::from_min_size(canvas.min + vec2(8.0, 8.0), vec2(w, 24.0)))
@@ -222,9 +222,10 @@ pub fn drawing_window(app: &mut AnyVectorApp, ui: &mut Ui) {
     }
 }
 
-/// The canvas button that ends Edit Master (Edit Rollover ends from the Internet toolbar).
+/// The canvas button that ends Edit Master and Edit PowerClip (Edit Rollover ends from the
+/// Internet toolbar).
 fn finish_label(d: &crate::docview::DocView) -> Option<&'static str> {
-    d.symbol_edit.is_some().then_some("✓  Finish")
+    (d.symbol_edit.is_some() || d.editing_powerclip().is_some()).then_some("✓  Finish")
 }
 
 /// Re-render the page into the cached texture when anything that affects it changed.
@@ -279,6 +280,7 @@ fn render_cache(app: &mut AnyVectorApp, ctx: &egui::Context, ai: usize, canvas: 
             (keep, (settings.inactive_visibility / 100.0).clamp(0.0, 1.0) as f32)
         }),
         show_powerclip_frames: settings.powerclip_empty_lines,
+        editing_powerclip: d.editing_powerclip(),
         antialias: d.view_mode != ViewMode::Pixels,
         overprint: d.simulate_overprint,
     };

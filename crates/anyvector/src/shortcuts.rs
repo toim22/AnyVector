@@ -173,6 +173,9 @@ pub fn handle(app: &mut AnyVectorApp, ctx: &egui::Context) {
         if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             if app.ts.is_busy() {
                 app.ts.cancel();
+            } else if app.doc().is_some_and(|d| d.selection.is_empty() && d.editing_powerclip().is_some()) {
+                // Esc with nothing selected finishes editing the PowerClip (#111)
+                fired.push(Cmd::PowerClipFinish);
             } else if let Some(d) = app.doc_mut() {
                 d.selection.clear();
                 d.node_sel.clear();
