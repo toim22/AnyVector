@@ -23,6 +23,8 @@ pub struct RenderOptions {
     pub printing: bool,
     /// Draw desktop + page + page shadow.
     pub draw_page: bool,
+    /// With `draw_page`: the page border and its shadow (View ▸ Page ▸ Page Border).
+    pub page_border: bool,
     pub desktop: Color,
     /// Objects not to draw (e.g. those being dragged).
     pub hidden: Vec<ObjId>,
@@ -44,6 +46,7 @@ impl Default for RenderOptions {
             draft: false,
             printing: false,
             draw_page: true,
+            page_border: true,
             desktop: Color::rgb(0x26, 0x26, 0x26),
             hidden: vec![],
             dim_others: None,
@@ -100,9 +103,61 @@ fn paint_solid(c: Color, aa: bool) -> sk::Paint<'static> {
     p
 }
 
+/// The page border's color: dark around a light page and light around a dark one, stronger when
+/// the desktop is nearly the page's color too (a white page on a white desktop, #141).
+pub fn page_border_color(page: Color, desktop: Color) -> Color {
+    let lum = |c: Color| 0.2126 * c.r as f64 + 0.7152 * c.g as f64 + 0.0722 * c.b as f64;
+    let (p, d) = (lum(page), lum(desktop));
+    let close = (p - d).abs() < 60.0;
+    if p > 128.0 {
+        Color::rgba(0, 0, 0, if close { 170 } else { 110 })
+    } else {
+        Color::rgba(255, 255, 255, if close { 140 } else { 90 })
+    }
+}
+
+/// A page on the desktop: its shadow and border (with `opts.page_border`) and its background.
+/// The border is one device pixel wide, on whole pixels, and is drawn under the objects.
+pub fn page_backdrop(pg: &vector_core::document::Page, view: Affine, target: &mut sk::Pixmap, opts: &RenderOptions) {
+    let pr = pg.rect();
+    let dev = view.transform_rect_bbox(pr);
+    let bg = pg.background.unwrap_or(Color::WHITE);
+    if opts.page_border {
+        let shadow = dev + Vec2::new(3.0, 3.0);
+        if let Some(r) = sk::Rect::from_ltrb(shadow.x0 as f32, shadow.y0 as f32, shadow.x1 as f32, shadow.y1 as f32) {
+            target.fill_rect(r, &paint_solid(Color::rgba(0, 0, 0, 110), true), sk::Transform::identity(), None);
+        }
+    }
+    if let Some(path) = to_sk_path(&pr.to_path(0.1)) {
+        target.fill_path(&path, &paint_solid(bg, true), sk::FillRule::Winding, to_sk(view), None);
+    }
+    if opts.page_border {
+        let (x0, y0) = (dev.x0.round() - 0.5, dev.y0.round() - 0.5);
+        let (x1, y1) = (dev.x1.round() + 0.5, dev.y1.round() + 0.5);
+        if let Some(r) = sk::Rect::from_ltrb(x0 as f32, y0 as f32, x1 as f32, y1 as f32) {
+            let st = sk::Stroke { width: 1.0, ..Default::default() };
+            target.stroke_path(&sk::PathBuilder::from_rect(r), &paint_solid(page_border_color(bg, opts.desktop), true), &st, sk::Transform::identity(), None);
+        }
+    }
+}
+
+/// How dark the Wireframe view's ghost of a bitmap is: 0 is white, 1 the bitmap's own grays.
+pub const GHOST_DEPTH: f32 = 0.35;
+
+/// The mapping from an image's pixels (`iw` × `ih`) to the object's local box, through its crop:
+/// local = (px / iw - c0) / cw * w.
+fn image_to_local(img: &ImageObj, iw: f64, ih: f64) -> Affine {
+    let c = img.crop;
+    let cw = (c[2] - c[0]).max(1e-6);
+    let ch = (c[3] - c[1]).max(1e-6);
+    Affine::scale_non_uniform(img.w / (cw * iw), img.h / (ch * ih)) * Affine::translate((-c[0] * iw, -c[1] * ih))
+}
+
 /// Rendering context for one pass.
 pub struct Renderer {
     images: HashMap<(u64, usize, u64), Arc<sk::Pixmap>>,
+    /// The light gray copies of the images that Wireframe view shows (same keys as `images`).
+    ghosts: HashMap<(u64, usize, u64), Arc<sk::Pixmap>>,
     geo_cache: HashMap<ObjId, (u64, Arc<Vec<(BezPath, Fill, Option<Color>)>>)>,
     pattern_cache: HashMap<String, Arc<sk::Pixmap>>,
 }
@@ -121,11 +176,12 @@ struct Ctx<'a> {
 
 impl Renderer {
     pub fn new() -> Renderer {
-        Renderer { images: HashMap::new(), geo_cache: HashMap::new(), pattern_cache: HashMap::new() }
+        Renderer { images: HashMap::new(), ghosts: HashMap::new(), geo_cache: HashMap::new(), pattern_cache: HashMap::new() }
     }
 
     pub fn clear_caches(&mut self) {
         self.images.clear();
+        self.ghosts.clear();
         self.geo_cache.clear();
         self.pattern_cache.clear();
     }
@@ -135,16 +191,7 @@ impl Renderer {
         let Some(pg) = doc.pages.get(page) else { return };
         if opts.draw_page {
             target.fill(sk_color(opts.desktop));
-            let pr = pg.rect();
-            // page shadow
-            let shadow = view.transform_rect_bbox(pr) + Vec2::new(3.0, 3.0);
-            if let Some(r) = sk::Rect::from_ltrb(shadow.x0 as f32, shadow.y0 as f32, shadow.x1 as f32, shadow.y1 as f32) {
-                target.fill_rect(r, &paint_solid(Color::rgba(0, 0, 0, 110), true), sk::Transform::identity(), None);
-            }
-            let bg = pg.background.unwrap_or(Color::WHITE);
-            if let Some(path) = to_sk_path(&pr.to_path(0.1)) {
-                target.fill_path(&path, &paint_solid(bg, true), sk::FillRule::Winding, to_sk(view), None);
-            }
+            page_backdrop(pg, view, target, opts);
         } else if let Some(bg) = pg.background {
             let pr = pg.rect();
             if let Some(path) = to_sk_path(&pr.to_path(0.1)) {
@@ -175,13 +222,41 @@ impl Renderer {
         }
     }
 
-    fn image_pixmap(&mut self, doc: &Document, id: u64, adjust: &ImageAdjust) -> Option<Arc<sk::Pixmap>> {
+    fn image_key(doc: &Document, id: u64, adjust: &ImageAdjust) -> Option<(u64, usize, u64)> {
         let data: &ImageData = doc.images.get(&id)?;
-        let key_adj = {
-            let s = format!("{:?}", adjust);
-            hash_str(&s)
-        };
-        let key = (id, Arc::as_ptr(&data.rgba) as usize, key_adj);
+        Some((id, Arc::as_ptr(&data.rgba) as usize, hash_str(&format!("{:?}", adjust))))
+    }
+
+    /// How Wireframe view shows a bitmap (#129): a light gray ghost of it, so the artwork stays
+    /// in sight while the vectors are edited. Made once per image and adjustment.
+    fn ghost_pixmap(&mut self, doc: &Document, id: u64, adjust: &ImageAdjust) -> Option<Arc<sk::Pixmap>> {
+        let key = Self::image_key(doc, id, adjust)?;
+        if let Some(p) = self.ghosts.get(&key) {
+            return Some(p.clone());
+        }
+        let src = self.image_pixmap(doc, id, adjust)?;
+        let mut pm = (*src).clone();
+        for px in pm.data_mut().chunks_exact_mut(4) {
+            let a = px[3] as f32;
+            if a == 0.0 {
+                continue;
+            }
+            // the gray of the unpremultiplied color, lifted toward white
+            let luma = (0.299 * px[0] as f32 + 0.587 * px[1] as f32 + 0.114 * px[2] as f32) * 255.0 / a;
+            let g = 255.0 - (255.0 - luma.min(255.0)) * GHOST_DEPTH;
+            let v = (g * a / 255.0).round().clamp(0.0, 255.0) as u8;
+            px[0] = v;
+            px[1] = v;
+            px[2] = v;
+        }
+        let arc = Arc::new(pm);
+        self.ghosts.insert(key, arc.clone());
+        Some(arc)
+    }
+
+    fn image_pixmap(&mut self, doc: &Document, id: u64, adjust: &ImageAdjust) -> Option<Arc<sk::Pixmap>> {
+        let key = Self::image_key(doc, id, adjust)?;
+        let data: &ImageData = doc.images.get(&id)?;
         if let Some(p) = self.images.get(&key) {
             return Some(p.clone());
         }
@@ -518,8 +593,23 @@ impl Renderer {
                 self.render_wire(ctx, &b.start, target);
                 self.render_wire(ctx, &b.end, target);
             }
+            ObjKind::Image(img) => {
+                if let Some(pm) = self.ghost_pixmap(ctx.doc, img.image, &img.adjust) {
+                    let map = image_to_local(img, pm.width() as f64, pm.height() as f64);
+                    let mut paint = sk::Paint::default();
+                    paint.shader = sk::Pattern::new(pm.as_ref().as_ref(), sk::SpreadMode::Pad, sk::FilterQuality::Bilinear, 1.0, to_sk(o.transform * map));
+                    paint.anti_alias = ctx.opts.antialias;
+                    if let Some(sp) = to_sk_path(&(o.transform * Rect::new(0.0, 0.0, img.w, img.h).to_path(0.1))) {
+                        target.fill_path(&sp, &paint, sk::FillRule::Winding, to_sk(ctx.view), None);
+                    }
+                }
+                // the frame stays, so the bounds show however light the bitmap is
+                if let Some(sp) = to_sk_path(&(o.transform * o.local_path())) {
+                    target.stroke_path(&sp, &paint, &st, to_sk(ctx.view), None);
+                }
+            }
             _ => {
-                let p = if matches!(o.kind, ObjKind::Image(_) | ObjKind::Table(_)) {
+                let p = if matches!(o.kind, ObjKind::Table(_)) {
                     o.transform * o.local_path()
                 } else {
                     o.world_path()
@@ -879,12 +969,7 @@ impl Renderer {
             }
             return;
         };
-        let (iw, ih) = (pm.width() as f64, pm.height() as f64);
-        let c = img.crop;
-        let cw = (c[2] - c[0]).max(1e-6);
-        let ch = (c[3] - c[1]).max(1e-6);
-        // map image pixels to local: local = (px/iw - c0)/cw * w
-        let img_to_local = Affine::scale_non_uniform(img.w / (cw * iw), img.h / (ch * ih)) * Affine::translate((-c[0] * iw, -c[1] * ih));
+        let img_to_local = image_to_local(img, pm.width() as f64, pm.height() as f64);
         let full = ctx.view * o.transform * img_to_local;
         let quality = if ctx.opts.draft { sk::FilterQuality::Nearest } else if view_scale(full) > 1.5 { sk::FilterQuality::Bicubic } else { sk::FilterQuality::Bilinear };
         let mut paint = sk::Paint::default();

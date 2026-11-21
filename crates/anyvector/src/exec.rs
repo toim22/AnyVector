@@ -2635,6 +2635,7 @@ impl AnyVectorApp {
             Cmd::ToggleToolbar(t) => self.toggle_toolbar(t),
             Cmd::ButtonSize(s) => self.settings.button_size = s,
             Cmd::LockToolbars => self.settings.lock_toolbars = !self.settings.lock_toolbars,
+            Cmd::CustomizeBar(op) => crate::customize::apply_op(self, op),
             Cmd::AddColorsFromSelection => self.palette_from(true, true),
             Cmd::AddColorsFromDocument => self.palette_from(false, true),
             Cmd::CreatePaletteFromSelection => self.palette_from(true, false),

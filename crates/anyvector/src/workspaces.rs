@@ -1,8 +1,9 @@
 //! Workspaces (Window ▸ Workspace, Tools ▸ Options ▸ Workspaces): the built-in layouts, the
 //! user's own workspaces and workspace files (*.cdws).
 //!
-//! A workspace holds the toolbars, the dockers, the menu bar and the shortcut keys. Each
-//! workspace keeps the layout it had when the user left it, so switching back restores it.
+//! A workspace holds the toolbars (and how the user arranged them, `crate::customize`), the
+//! dockers, the menu bar and the shortcut keys. Each workspace keeps the layout it had when the
+//! user left it, so switching back restores it.
 
 use std::collections::BTreeSet;
 use std::io::{Read, Write};
@@ -30,6 +31,10 @@ pub struct Layout {
     pub open_dockers: Vec<String>,
     pub docker_width: f32,
     pub shortcuts: Vec<(String, String)>,
+    /// Toolbox items shown or hidden with Quick Customize.
+    pub toolbox_items: Vec<(String, bool)>,
+    /// The command bars as the user arranged them, and the bars the user made.
+    pub bar_layouts: Vec<crate::customize::BarLayout>,
 }
 
 impl Default for Layout {
@@ -56,6 +61,8 @@ impl Layout {
             open_dockers: s.open_dockers.clone(),
             docker_width: s.docker_width,
             shortcuts: s.shortcuts.clone(),
+            toolbox_items: s.toolbox_items.clone(),
+            bar_layouts: s.bar_layouts.clone(),
         }
     }
 
@@ -73,6 +80,8 @@ impl Layout {
         s.open_dockers = self.open_dockers.clone();
         s.docker_width = self.docker_width;
         s.shortcuts = self.shortcuts.clone();
+        s.toolbox_items = self.toolbox_items.clone();
+        s.bar_layouts = self.bar_layouts.clone();
     }
 }
 
@@ -271,6 +280,7 @@ pub fn elements(l: &Layout) -> Vec<Group> {
         ("bar:status".to_string(), "Status Bar".to_string()),
     ];
     bars.extend(l.extra_toolbars.iter().map(|t| (format!("bar:x:{t}"), t.clone())));
+    bars.extend(crate::customize::custom_bars_of(&l.bar_layouts).map(|b| (format!("bar:c:{}", b.bar), b.name.clone())));
     vec![
         Group { key: "dockers".into(), label: "Dockers".into(), items: dockers },
         Group { key: "toolbars".into(), label: "Toolbars".into(), items: bars },
@@ -315,6 +325,16 @@ pub fn merge(into: &mut Layout, from: &Layout, keys: &BTreeSet<String>) {
                 into.extra_toolbars.push(t.clone());
             }
         }
+    }
+    // the chosen bars come as they were arranged; the bars the user made come along
+    let chosen = |b: &crate::customize::BarLayout| crate::customize::element_of(b).is_some_and(|k| keys.contains(&k));
+    for b in from.bar_layouts.iter().filter(|b| chosen(b)) {
+        any_bar = true;
+        into.bar_layouts.retain(|x| x.bar != b.bar);
+        into.bar_layouts.push(b.clone());
+    }
+    if keys.contains("bar:toolbox") {
+        into.toolbox_items = from.toolbox_items.clone();
     }
     if any_bar {
         into.button_size = from.button_size;
@@ -419,6 +439,36 @@ mod tests {
         assert!(!into.show_toolbox);
         assert_eq!(into.extra_toolbars, vec!["Text".to_string()]);
         assert!(into.shortcuts.is_empty());
+    }
+
+    #[test]
+    fn arranged_bars_belong_to_the_workspace_and_travel_with_it() {
+        use crate::customize as cz;
+        let mut from = preset("Default");
+        let mut s = Settings::default();
+        let std_key = crate::ui::bar_named("Standard").unwrap().1.id;
+        cz::insert(&mut s, std_key, 0, "");
+        let mine = cz::new_bar(&mut s, "Mine");
+        s.toolbox_items = vec![("12345678".into(), false)];
+        from.bar_layouts = s.bar_layouts.clone();
+        from.toolbox_items = s.toolbox_items.clone();
+        // Layout::of / put carry them
+        let mut t = Settings::default();
+        Layout::of(&s).put(&mut t);
+        assert_eq!(t.bar_layouts, s.bar_layouts);
+        assert_eq!(t.toolbox_items, s.toolbox_items);
+        // exported and imported: each bar is an element of its own
+        let keys = all_keys(&elements(&from));
+        assert!(keys.contains(&format!("bar:c:{mine}")), "{keys:?}");
+        let mut into = preset("Default");
+        let chosen: BTreeSet<String> = ["toolbars", "bar:standard", "bar:toolbox"].iter().map(|s| s.to_string()).collect();
+        merge(&mut into, &from, &chosen);
+        assert!(into.bar_layouts.iter().any(|b| b.bar == std_key));
+        assert!(!into.bar_layouts.iter().any(|b| b.bar == mine), "a bar that was not chosen came along");
+        assert_eq!(into.toolbox_items, from.toolbox_items);
+        let chosen: BTreeSet<String> = [format!("bar:c:{mine}")].into_iter().collect();
+        merge(&mut into, &from, &chosen);
+        assert!(into.bar_layouts.iter().any(|b| b.bar == mine));
     }
 
     #[test]

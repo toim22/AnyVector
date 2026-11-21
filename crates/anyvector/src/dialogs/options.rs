@@ -56,7 +56,8 @@ pub struct OptionsState {
     pub pen_strokes: Vec<Vec<egui::Pos2>>,
     pub security_dialog: bool,
     pub zoom_calibrate: bool,
-    pub new_cmd_bar: String,
+    /// Command Bars: the bar selected in the list (its layout key, or its name).
+    pub cmd_bar_sel: String,
     /// The API key typed on the Privacy page (written to the environment variable, never kept).
     pub ai_key: String,
     pub ai_key_msg: Option<(bool, String)>,
@@ -265,6 +266,7 @@ fn close(app: &mut AnyVectorApp, restore: bool) {
     if restore {
         if let Some(mut b) = st.backup {
             crate::workspaces::keep_on_cancel(&mut b, &app.settings);
+            crate::customize::keep_on_cancel(&mut b, &app.settings);
             app.settings = b;
             ctx_zoom_reset(app);
         }
@@ -1463,39 +1465,66 @@ fn appearance(app: &mut AnyVectorApp, ui: &mut Ui) {
             ctx.request_repaint();
         }
     });
+    // left at the default, both colors follow the theme (#141)
     ui.horizontal(|ui| {
         label_w(ui, "Window border:", 110.0);
-        let b = theme::BAR();
+        let b = theme::window_border(s.window_border);
         let mut c = [b.r(), b.g(), b.b()];
-        rgb_edit(ui, &mut c);
+        if rgb_edit(ui, &mut c) {
+            s.window_border = Some(c);
+        }
+        if ui.add_enabled(s.window_border.is_some(), egui::Button::new("Reset").min_size(vec2(60.0, 22.0))).clicked() {
+            s.window_border = None;
+        }
     });
+    let mut repaint = false;
     ui.horizontal(|ui| {
         label_w(ui, "Desktop:", 110.0);
-        if rgb_edit(ui, &mut s.desktop_color) {
-            for d in app.docs.iter_mut() {
-                d.cache.key = 0;
-            }
+        repaint = rgb_edit(ui, &mut s.desktop_color);
+        let d = theme::DESKTOP();
+        let theirs = [d.r(), d.g(), d.b()];
+        if ui.add_enabled(s.desktop_color != theirs, egui::Button::new("Reset").min_size(vec2(60.0, 22.0))).clicked() {
+            s.desktop_color = theirs;
+            repaint = true;
         }
     });
+    if repaint {
+        for d in app.docs.iter_mut() {
+            d.cache.key = 0;
+        }
+    }
 }
 
-fn command_bars(app: &mut AnyVectorApp, ui: &mut Ui) {
+/// The size combo's index of a button size.
+fn size_index(b: ButtonSize) -> usize {
+    match b {
+        ButtonSize::Small => 0,
+        ButtonSize::Medium => 1,
+        ButtonSize::Large => 2,
+    }
+}
+
+const SIZES: [ButtonSize; 3] = [ButtonSize::Small, ButtonSize::Medium, ButtonSize::Large];
+
+/// A row of the Command Bars list.
+struct BarRow {
+    name: String,
+    /// The bar Window ▸ Toolbars shows and hides.
+    toolbar: Option<crate::app::Toolbar>,
+    /// Where its layout and look are kept (`crate::customize`); `None` for the menu and status
+    /// bars, which keep neither.
+    key: Option<String>,
+    /// The buttons have a size and a style (not the toolbox's, the menu's or the status bar's).
+    look: bool,
+}
+
+/// The command bars, in CorelDRAW's order, then the user's.
+fn bar_rows(s: &Settings) -> Vec<BarRow> {
     use crate::app::Toolbar;
-    let mut flash = false;
-    let new_cmd_bar = &mut app.dialogs.options.new_cmd_bar;
-    let s = &mut app.settings;
-    ui.horizontal(|ui| {
-        label_w(ui, "Global button size:", 140.0);
-        let mut i = match s.button_size {
-            ButtonSize::Small => 0,
-            ButtonSize::Medium => 1,
-            ButtonSize::Large => 2,
-        };
-        if combo(ui, "btn_size", &mut i, &["Small", "Medium", "Large"], 100.0) {
-            s.button_size = [ButtonSize::Small, ButtonSize::Medium, ButtonSize::Large][i];
-        }
-    });
-    let list: [(&str, Option<Toolbar>); 14] = [
+    use crate::customize as cz;
+    let key = |tb: Toolbar| crate::cmdbar::toolbar_bar(tb).and_then(crate::ui::bar).map(|b| b.id.to_string());
+    let toolbox = crate::ui::bar_named("Toolbox").map(|(_, b)| b.id.to_string());
+    let mut v: Vec<BarRow> = [
         ("Menu bar", Some(Toolbar::MenuBar)),
         ("Context menu bar", None),
         ("Status bar", Some(Toolbar::StatusBar)),
@@ -1510,66 +1539,165 @@ fn command_bars(app: &mut AnyVectorApp, ui: &mut Ui) {
         ("Parallel Drawing", Some(Toolbar::ParallelDrawing)),
         ("Text", Some(Toolbar::Text)),
         ("Transform", Some(Toolbar::Transform)),
-    ];
-    let mut toggle = None;
+    ]
+    .into_iter()
+    .map(|(name, tb)| {
+        let key = match tb {
+            Some(Toolbar::PropertyBar) => Some(cz::PROPERTY_BARS.to_string()),
+            Some(Toolbar::Toolbox) => toolbox.clone(),
+            Some(t) => key(t),
+            None => None,
+        };
+        let look = key.is_some() && tb != Some(Toolbar::Toolbox);
+        BarRow { name: name.to_string(), toolbar: tb, key, look }
+    })
+    .collect();
+    v.extend(cz::custom_bars(s).map(|l| BarRow { name: l.name.clone(), toolbar: None, key: Some(l.bar.clone()), look: true }));
+    v
+}
+
+/// Command Bars ▸ Reset: a bar as it comes: its items, its look and whether it shows.
+fn reset_bar(s: &mut Settings, row: &BarRow) {
+    use crate::app::Toolbar;
+    use crate::customize as cz;
+    let d = Settings::default();
+    match row.toolbar {
+        Some(Toolbar::MenuBar) => s.show_menu_bar = d.show_menu_bar,
+        Some(Toolbar::StatusBar) => s.show_status_bar = d.show_status_bar,
+        Some(Toolbar::Standard) => s.show_standard = d.show_standard,
+        Some(Toolbar::Toolbox) => {
+            s.show_toolbox = d.show_toolbox;
+            s.toolbox_items.clear();
+        }
+        Some(Toolbar::PropertyBar) => {
+            s.show_property_bar = d.show_property_bar;
+            // every property bar's items, and the look they share
+            s.bar_layouts.retain(|l| l.bar != cz::PROPERTY_BARS && !cz::reference(&l.bar).is_some_and(|b| b.name.starts_with("Property Bar")));
+        }
+        Some(t) => s.extra_toolbars.retain(|x| x != t.name()),
+        None => {}
+    }
+    if let Some(k) = &row.key {
+        cz::reset(s, k);
+    }
+}
+
+/// Options ▸ Customization ▸ Command Bars: which bars show, the bars the user makes, and how
+/// their buttons look (#136). The bars are listed one under the other at the page's full width.
+fn command_bars(app: &mut AnyVectorApp, ui: &mut Ui) {
+    use crate::customize as cz;
+    let s = &mut app.settings;
     ui.horizontal(|ui| {
-        egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP())).inner_margin(4.0).show(ui, |ui| {
-            ui.set_width(260.0);
-            ui.spacing_mut().item_spacing.y = 3.0;
-            for (name, tb) in list {
-                let mut on = match tb {
-                    Some(Toolbar::MenuBar) => s.show_menu_bar,
-                    Some(Toolbar::StatusBar) => s.show_status_bar,
-                    Some(Toolbar::Standard) => s.show_standard,
-                    Some(Toolbar::PropertyBar) => s.show_property_bar,
-                    Some(Toolbar::Toolbox) => s.show_toolbox,
-                    Some(t) => s.extra_toolbars.iter().any(|x| x == t.name()),
+        label_w(ui, "Global button size:", 140.0);
+        let mut i = size_index(s.button_size);
+        if combo(ui, "btn_size", &mut i, &["Small", "Medium", "Large"], 100.0) {
+            s.button_size = SIZES[i];
+        }
+    });
+    let rows = bar_rows(s);
+    let sel_id = |r: &BarRow| r.key.clone().unwrap_or_else(|| r.name.clone());
+    if !rows.iter().any(|r| sel_id(r) == app.dialogs.options.cmd_bar_sel) {
+        app.dialogs.options.cmd_bar_sel = rows.first().map(sel_id).unwrap_or_default();
+    }
+    let mut toggle = None;
+    let mut select = None;
+    egui::Frame::new().stroke(Stroke::new(1.0, theme::SEP())).inner_margin(4.0).show(ui, |ui| {
+        ui.set_width(ui.available_width());
+        egui::ScrollArea::vertical().id_salt("cmd_bars").max_height(236.0).auto_shrink([false, true]).show(ui, |ui| {
+            // whole names, never cut off or wrapped
+            ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
+            ui.spacing_mut().item_spacing.y = 1.0;
+            for (i, row) in rows.iter().enumerate() {
+                let s = &app.settings;
+                let custom = row.key.as_deref().is_some_and(cz::is_custom);
+                let mut on = match row.toolbar {
+                    Some(t) => crate::ui::bind::toolbar_on(app, t),
+                    None if custom => cz::layout(s, row.key.as_deref().unwrap_or_default()).is_some_and(|l| l.shown),
                     None => true,
                 };
-                if ui.add_enabled(tb.is_some(), egui::Checkbox::new(&mut on, name)).changed() {
-                    toggle = tb;
-                }
-            }
-        });
-        ui.vertical(|ui| {
-            ui.add(egui::TextEdit::singleline(new_cmd_bar).hint_text("Name").desired_width(100.0));
-            if ui.add(egui::Button::new("New").min_size(vec2(75.0, 22.0))).clicked() {
-                flash = true;
-            }
-            if ui.add(egui::Button::new("Reset").min_size(vec2(75.0, 22.0))).clicked() {
-                let d = Settings::default();
-                s.show_menu_bar = d.show_menu_bar;
-                s.show_status_bar = d.show_status_bar;
-                s.show_standard = d.show_standard;
-                s.show_property_bar = d.show_property_bar;
-                s.show_toolbox = d.show_toolbox;
-                s.extra_toolbars.clear();
+                let selected = sel_id(row) == app.dialogs.options.cmd_bar_sel;
+                ui.horizontal(|ui| {
+                    if ui.add_enabled(row.toolbar.is_some() || custom, egui::Checkbox::without_text(&mut on)).changed() {
+                        toggle = Some((i, on));
+                    }
+                    let w = ui.available_width();
+                    // the name at the left, the rest of the row empty
+                    if ui.add(egui::Button::selectable(selected, (row.name.as_str(), egui::Atom::grow())).frame_when_inactive(false).min_size(vec2(w, 20.0))).clicked() {
+                        select = Some(sel_id(row));
+                    }
+                });
             }
         });
     });
-    if flash {
-        app.flash("Custom command bars are created from the Commands page.");
+    if let Some(k) = select {
+        app.dialogs.options.cmd_bar_sel = k;
     }
-    if let Some(t) = toggle {
-        app.run(Cmd::ToggleToolbar(t));
+    if let Some((i, on)) = toggle {
+        let row = &rows[i];
+        match (row.toolbar, &row.key) {
+            (Some(t), _) => app.run(Cmd::ToggleToolbar(t)),
+            (None, Some(k)) => {
+                if let Some(l) = app.settings.bar_layouts.iter_mut().find(|l| l.bar == *k) {
+                    l.shown = on;
+                }
+            }
+            _ => {}
+        }
     }
+    let cur = rows.iter().find(|r| sel_id(r) == app.dialogs.options.cmd_bar_sel);
+    let cur_key = cur.and_then(|r| r.key.clone());
+    let custom = cur_key.as_deref().is_some_and(cz::is_custom);
     let s = &mut app.settings;
+    ui.horizontal(|ui| {
+        label_w(ui, "Name:", 50.0);
+        // a bar the user made is renamed here; the others keep their names
+        match cur_key.as_deref().filter(|_| custom).and_then(|k| s.bar_layouts.iter_mut().find(|l| l.bar == k)) {
+            Some(l) => {
+                ui.add(egui::TextEdit::singleline(&mut l.name).desired_width(170.0));
+            }
+            None => {
+                let mut name = cur.map(|r| r.name.clone()).unwrap_or_default();
+                ui.add_enabled(false, egui::TextEdit::singleline(&mut name).desired_width(170.0));
+            }
+        }
+        if ui.add(egui::Button::new("New").min_size(vec2(75.0, 22.0))).clicked() {
+            let k = cz::new_bar(s, "");
+            app.dialogs.options.cmd_bar_sel = k;
+        }
+        if ui.add_enabled(custom, egui::Button::new("Delete").min_size(vec2(75.0, 22.0))).clicked() {
+            if let Some(k) = &cur_key {
+                cz::delete_bar(s, k);
+            }
+        }
+        if ui.add_enabled(cur.is_some() && !custom, egui::Button::new("Reset").min_size(vec2(75.0, 22.0))).clicked() {
+            if let Some(r) = cur {
+                reset_bar(s, r);
+            }
+        }
+    });
     separator(ui);
     heading(ui, "Button properties");
-    ui.horizontal(|ui| {
-        label_w(ui, "Size:", 60.0);
-        let mut i = match s.button_size {
-            ButtonSize::Small => 0,
-            ButtonSize::Medium => 1,
-            ButtonSize::Large => 2,
-        };
-        if combo(ui, "btn_size2", &mut i, &["Small", "Medium", "Large"], 100.0) {
-            s.button_size = [ButtonSize::Small, ButtonSize::Medium, ButtonSize::Large][i];
-        }
-        ui.add_space(20.0);
-        label_w(ui, "Style:", 50.0);
-        let mut st = 0;
-        combo(ui, "btn_style", &mut st, &["Default", "Image only", "Text only", "Image and text"], 120.0);
+    // the size and the style of the selected bar's buttons
+    let look_key = cur.filter(|r| r.look).and_then(|r| r.key.clone());
+    let (style, size) = look_key.as_deref().map(|k| cz::look(s, k)).unwrap_or((0, s.button_size));
+    ui.add_enabled_ui(look_key.is_some(), |ui| {
+        ui.horizontal(|ui| {
+            label_w(ui, "Size:", 60.0);
+            let mut i = size_index(size);
+            if combo(ui, "btn_size2", &mut i, &["Small", "Medium", "Large"], 100.0) {
+                if let Some(k) = &look_key {
+                    cz::set_size(s, k, Some(SIZES[i]));
+                }
+            }
+            ui.add_space(20.0);
+            label_w(ui, "Style:", 50.0);
+            let mut st = style as usize;
+            if combo(ui, "btn_style", &mut st, &cz::STYLES, 120.0) {
+                if let Some(k) = &look_key {
+                    cz::set_style(s, k, st as u8);
+                }
+            }
+        });
     });
     separator(ui);
     heading(ui, "Toolbar properties");
@@ -1641,7 +1769,8 @@ fn commands(app: &mut AnyVectorApp, ui: &mut Ui) {
                         Some(img) => egui::Button::selectable(sel, (img, plain)),
                         None => egui::Button::selectable(sel, format!("      {plain}")),
                     };
-                    if ui.add(b.frame_when_inactive(false).min_size(vec2(236.0, 20.0))).clicked() {
+                    // dragged onto a toolbar, the command goes there (#124)
+                    if crate::customize::drag_cmd(&ctx, ui.add(b.frame_when_inactive(false).min_size(vec2(236.0, 20.0))), e.cmd).clicked() {
                         app.dialogs.options.commands_sel = Some(e.cmd);
                         app.dialogs.options.capture = None;
                     }

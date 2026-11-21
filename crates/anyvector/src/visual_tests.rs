@@ -5548,3 +5548,389 @@ fn visual_outline_units_and_inch_rulers() {
     h.state_mut().doc_mut().unwrap().set_zoom_percent(100.0);
     save(&mut h, "outline_units_07_mm_ruler");
 }
+
+// ---- Desktop, page border and window colours (#141), bitmaps in Wireframe (#129), Command Bars
+// ---- (#136) and command bar customization (#124) ----
+
+/// The darkest pixel (by luma) in the `rad` pixels around `p` along `dir`.
+fn darkest(img: &image::RgbaImage, p: egui::Pos2, dir: egui::Vec2, rad: i32) -> f32 {
+    (-rad..=rad)
+        .filter_map(|k| {
+            let q = p + dir * k as f32;
+            let px = img.get_pixel_checked(q.x.round() as u32, q.y.round() as u32)?;
+            Some(0.2126 * px[0] as f32 + 0.7152 * px[1] as f32 + 0.0722 * px[2] as f32)
+        })
+        .fold(f32::MAX, f32::min)
+}
+
+fn render(h: &mut Harness<'_, AnyVectorApp>) -> image::RgbaImage {
+    for _ in 0..3 {
+        h.step();
+    }
+    h.render().expect("render")
+}
+
+/// #141: a white page on a white desktop shows its border on all four sides (not just a shadow
+/// at the right and bottom), View ▸ Page Border turns it off, and Options ▸ Appearance sets the
+/// window border and the desktop colours with a Reset each.
+#[test]
+#[ignore]
+fn visual_issue_141_page_border_and_window_colors() {
+    use egui_kittest::kittest::Queryable;
+    let mut h = doc_harness();
+    h.state_mut().settings.desktop_color = [255, 255, 255];
+    let img = render(&mut h);
+    let d = h.state().doc().unwrap();
+    let p = d.to_screen_rect(d.page_ref().rect());
+    let edges = [(p.left_center(), egui::Vec2::X), (p.center_top(), egui::Vec2::Y), (p.right_center(), egui::Vec2::X), (p.center_bottom(), egui::Vec2::Y)];
+    for (at, dir) in edges {
+        assert!(darkest(&img, at, dir, 2) < 200.0, "no page border at {at:?} of {p:?}");
+    }
+    // the page and the desktop around it stay white
+    assert!(darkest(&img, p.center(), egui::Vec2::X, 3) > 250.0);
+    assert!(darkest(&img, p.left_center() - egui::vec2(12.0, 0.0), egui::Vec2::X, 2) > 250.0, "the border is wider than a line");
+    save(&mut h, "issue_141_01_white_page_on_white_desktop");
+
+    h.state_mut().run(Cmd::TogglePageBorder);
+    let img = render(&mut h);
+    assert!(!h.state().doc().unwrap().doc.settings.show_page_border);
+    assert!(darkest(&img, p.left_center(), egui::Vec2::X, 2) > 250.0, "View ▸ Page Border off still shows the border");
+    assert!(darkest(&img, p.center_top(), egui::Vec2::Y, 2) > 250.0);
+    save(&mut h, "issue_141_02_page_border_off");
+    h.state_mut().run(Cmd::TogglePageBorder);
+
+    // Options ▸ Customization ▸ Appearance: the window border colour, kept, and its Reset
+    h.state_mut().settings.window_border = Some([0x20, 0x60, 0xb0]);
+    h.state_mut().open_options(crate::commands::OptionsPage::Customization, Some("Appearance"));
+    for _ in 0..3 {
+        h.step();
+    }
+    assert_eq!(h.state().settings.window_border, Some([0x20, 0x60, 0xb0]), "the window border colour was thrown away");
+    save(&mut h, "issue_141_03_appearance");
+    // the Reset buttons of the Window border and the Desktop rows, in that order
+    let resets = |h: &Harness<'_, AnyVectorApp>| {
+        let mut v: Vec<egui::Rect> = h.query_all_by_label("Reset").map(|n| n.rect()).collect();
+        v.sort_by(|a, b| a.top().total_cmp(&b.top()));
+        assert_eq!(v.len(), 2, "a Reset for the window border and one for the desktop");
+        v
+    };
+    let reset = resets(&h)[0];
+    click(&mut h, reset.center());
+    assert_eq!(h.state().settings.window_border, None, "Reset didn't give the window border back to the theme");
+    assert_eq!(crate::theme::window_border(None), crate::theme::pal().bar_dark);
+    // the desktop's Reset gives it the theme's desktop colour
+    let reset = resets(&h)[1];
+    click(&mut h, reset.center());
+    assert_ne!(h.state().settings.desktop_color, [255, 255, 255], "Reset left the desktop white");
+    save(&mut h, "issue_141_04_appearance_reset");
+}
+
+/// #129: in Wireframe view a bitmap shows as a light gray ghost of itself inside its frame,
+/// not as an empty box.
+#[test]
+#[ignore]
+fn visual_issue_129_wireframe_bitmap_ghost() {
+    let mut h = harness();
+    sample_bitmap(&mut h);
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    h.state_mut().doc_mut().unwrap().view_mode = crate::docview::ViewMode::Wireframe;
+    let img = render(&mut h);
+    let d = h.state().doc().unwrap();
+    let id = d.page_ref().all_objects().find(|o| matches!(o.kind, ObjKind::Image(_))).unwrap().id;
+    let b = d.to_screen_rect(d.doc.find(id).unwrap().bounds());
+    // a sample row across the picture: shades of gray, not all white, and no colour
+    let (mut lo, mut hi) = (255u8, 0u8);
+    for k in 1..20 {
+        let x = b.left() + b.width() * k as f32 / 20.0;
+        let px = img.get_pixel(x as u32, (b.top() + b.height() * 0.8) as u32);
+        assert!(px[0].abs_diff(px[1]) < 6 && px[1].abs_diff(px[2]) < 6, "a coloured pixel {px:?} in Wireframe");
+        lo = lo.min(px[0]);
+        hi = hi.max(px[0]);
+    }
+    assert!(lo < 245, "the bitmap is an empty box in Wireframe ({lo}..{hi})");
+    assert!(lo > 120, "the ghost is not light ({lo})");
+    // the sun stands out from the sky
+    let sun = img.get_pixel((b.left() + b.width() * 0.72) as u32, (b.top() + b.height() * 0.28) as u32)[0];
+    let sky = img.get_pixel((b.left() + b.width() * 0.2) as u32, (b.top() + b.height() * 0.2) as u32)[0];
+    assert!(sun.abs_diff(sky) > 6, "the picture can't be made out: sun {sun}, sky {sky}");
+    save(&mut h, "issue_129_01_wireframe_bitmap_ghost");
+    h.state_mut().doc_mut().unwrap().view_mode = crate::docview::ViewMode::Enhanced;
+    save(&mut h, "issue_129_02_enhanced_bitmap");
+}
+
+/// #136: Options ▸ Customization ▸ Command Bars lists every bar on a line of its own, whole and
+/// readable; New makes a bar that floats; Style is kept for the bar; Reset puts the bar back.
+#[test]
+#[ignore]
+fn visual_issue_136_command_bars_page() {
+    use crate::customize as cz;
+    use egui_kittest::kittest::Queryable;
+    let mut h = doc_harness();
+    h.state_mut().run(Cmd::CommandBarsSetup);
+    for _ in 0..4 {
+        h.step();
+    }
+    save(&mut h, "issue_136_01_command_bars");
+    let dlg = h.ctx.memory(|m| m.area_rect(egui::Id::unique(("dlg", "options")))).expect("the Options dialog is open");
+    // the one widget labelled `label` on the dialog
+    let on_dlg = |h: &Harness<'_, AnyVectorApp>, label: &str| h.query_all_by_label(label).map(|n| n.rect()).find(|r| dlg.intersects(*r)).unwrap_or_else(|| panic!("no {label:?} on the dialog"));
+    let rows: Vec<egui::Rect> = ["Standard", "Toolbox", "Zoom", "Transform"].iter().map(|n| on_dlg(&h, n)).collect();
+    let mut sorted = rows.clone();
+    sorted.sort_by(|a, b| a.top().total_cmp(&b.top()));
+    for w in sorted.windows(2) {
+        assert!(w[1].top() >= w[0].bottom() - 0.5, "rows overlap: {w:?}");
+        assert!((w[1].left() - w[0].left()).abs() < 1.0, "rows not one under the other: {w:?}");
+    }
+    for r in &rows {
+        assert!(dlg.contains_rect(*r), "a row runs out of the dialog: {r:?}");
+        assert!(r.width() > 300.0, "a row is cut short: {r:?}");
+    }
+
+    // New: "New Toolbar 1", open and floating, selected with its name editable
+    let new = on_dlg(&h, "New");
+    click(&mut h, new.center());
+    for _ in 0..3 {
+        h.step();
+    }
+    let s = &h.state().settings;
+    let made: Vec<_> = cz::custom_bars(s).collect();
+    assert_eq!(made.len(), 1);
+    assert_eq!(made[0].name, "New Toolbar 1");
+    assert!(made[0].shown);
+    let key = made[0].bar.clone();
+    assert_eq!(h.state().dialogs.options.cmd_bar_sel, key);
+    assert!(cz::drawn_area(&h.ctx, &key).is_some(), "the new bar doesn't float");
+    save(&mut h, "issue_136_02_new_toolbar");
+    // Delete takes it away
+    let del = on_dlg(&h, "Delete");
+    click(&mut h, del.center());
+    assert_eq!(cz::custom_bars(&h.state().settings).count(), 0);
+
+    // the Standard bar: its Style kept, and Reset
+    let std_key = crate::ui::bar_named("Standard").unwrap().1.id;
+    click(&mut h, rows[0].center());
+    assert_eq!(h.state().dialogs.options.cmd_bar_sel, std_key);
+    // the boxes: Global button size, then Size and Style side by side
+    let combo = h.query_all_by_role(egui::accesskit::Role::ComboBox).map(|n| n.rect()).filter(|r| dlg.contains_rect(*r)).max_by(|a, b| (a.top() + a.left() / 10_000.0).total_cmp(&(b.top() + b.left() / 10_000.0))).expect("the Style box");
+    click(&mut h, combo.center());
+    for _ in 0..2 {
+        h.step();
+    }
+    let opt = h.query_all_by_label("Text only").map(|n| n.rect()).last().expect("Text only in the Style list");
+    click(&mut h, opt.center());
+    for _ in 0..3 {
+        h.step();
+    }
+    assert_eq!(cz::look(&h.state().settings, std_key).0, 2, "the Style wasn't kept");
+    save(&mut h, "issue_136_03_standard_text_only");
+    let reset = on_dlg(&h, "Reset");
+    click(&mut h, reset.center());
+    assert_eq!(cz::look(&h.state().settings, std_key).0, 0, "Reset left the style");
+    assert!(cz::layout(&h.state().settings, std_key).is_none());
+}
+
+/// Press at `a` with `mods`, move to `b` in steps and let go there.
+fn drag_with(h: &mut Harness<'_, AnyVectorApp>, a: egui::Pos2, b: egui::Pos2, mods: egui::Modifiers) {
+    h.input_mut().events.push(egui::Event::ModifiersChanged(mods));
+    move_to(h, a);
+    h.step();
+    h.input_mut().events.push(egui::Event::PointerButton { pos: a, button: egui::PointerButton::Primary, pressed: true, modifiers: mods });
+    h.step();
+    for k in 1..=8 {
+        move_to(h, a + (b - a) * (k as f32 / 8.0));
+        h.step();
+    }
+    h.input_mut().events.push(egui::Event::PointerButton { pos: b, button: egui::PointerButton::Primary, pressed: false, modifiers: mods });
+    h.step();
+    h.input_mut().events.push(egui::Event::ModifiersChanged(egui::Modifiers::NONE));
+    h.step();
+}
+
+fn bar_ids(h: &Harness<'_, AnyVectorApp>, key: &str) -> Vec<&'static str> {
+    crate::customize::items_of(&h.state().settings, key).iter().map(|i| i.id).collect()
+}
+
+/// Where the item at `index` of the bar `key` was drawn.
+fn item_rect(h: &Harness<'_, AnyVectorApp>, key: &str, index: usize) -> egui::Rect {
+    crate::customize::drawn_items(&h.ctx, key).into_iter().find(|(i, _)| *i == index).unwrap_or_else(|| panic!("item {index} of {key} isn't drawn")).1
+}
+
+/// #124: Alt+drag moves a button along the Standard toolbar and off it (without running it),
+/// Ctrl+Alt copies it to another bar, and right-click ▸ Customize ▸ Reset puts the bar back.
+#[test]
+fn issue_124_alt_drag_moves_copies_and_removes_buttons() {
+    use crate::customize as cz;
+    let mut h = doc_harness();
+    let key = crate::ui::bar_named("Standard").unwrap().1.id;
+    let before = bar_ids(&h, key);
+    let docs = h.state().docs.len();
+    // New (the first button) dragged to after Save (the third)
+    let (new, save_) = (item_rect(&h, key, 0), item_rect(&h, key, 2));
+    drag_with(&mut h, new.center(), save_.right_center() - egui::vec2(2.0, 0.0), egui::Modifiers::ALT);
+    let after = bar_ids(&h, key);
+    assert_eq!(&after[..3], &[before[1], before[2], before[0]], "New didn't move after Save");
+    assert_eq!(after.len(), before.len());
+    assert_eq!(h.state().docs.len(), docs, "the New button ran while being dragged");
+    assert!(h.state().dialogs.new_doc.is_none(), "the New button ran while being dragged");
+    // an Alt+click without moving does nothing
+    let r = item_rect(&h, key, 0);
+    drag_with(&mut h, r.center(), r.center(), egui::Modifiers::ALT);
+    assert_eq!(bar_ids(&h, key), after);
+    // dragged off every bar (onto the page): gone
+    let canvas = h.state().doc().unwrap().canvas_rect.center();
+    let r = item_rect(&h, key, 2);
+    drag_with(&mut h, r.center(), canvas, egui::Modifiers::ALT);
+    assert!(!bar_ids(&h, key).contains(&before[0]), "New wasn't taken off the bar");
+    assert_eq!(bar_ids(&h, key).len(), before.len() - 1);
+    // Ctrl+Alt copies Open onto the property bar; the Standard bar keeps it
+    let pb = crate::propbar::bar_for(h.state()).and_then(crate::ui::bar).expect("a property bar").id;
+    let pb_before = bar_ids(&h, pb);
+    let open = item_rect(&h, key, 0);
+    let target = item_rect(&h, pb, 0);
+    drag_with(&mut h, open.center(), target.left_center() + egui::vec2(2.0, 0.0), egui::Modifiers::ALT | egui::Modifiers::CTRL);
+    assert_eq!(bar_ids(&h, pb).len(), pb_before.len() + 1, "Ctrl+Alt didn't copy onto the property bar");
+    assert_eq!(bar_ids(&h, pb)[0], before[1]);
+    assert_eq!(bar_ids(&h, key)[0], before[1], "the copy took Open off the Standard bar");
+    // kept with the settings, as part of the workspace
+    assert!(crate::workspaces::Layout::of(&h.state().settings).bar_layouts.iter().any(|l| l.bar == key));
+
+    // right-click ▸ Customize: Add Separator after the item clicked, Delete it, then Reset
+    let r = item_rect(&h, key, 0);
+    right_click(&mut h, r.center());
+    assert_eq!(cz::context_target(), Some((key.to_string(), Some(0))), "the right-click didn't find the bar and its item");
+    h.input_mut().events.push(egui::Event::Key { key: egui::Key::Escape, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::NONE });
+    h.step();
+    h.state_mut().run(Cmd::CustomizeBar(cz::BarOp::AddSeparator));
+    h.step();
+    assert_eq!(cz::items_of(&h.state().settings, key)[1].kind, crate::ui::Kind::Separator);
+    h.state_mut().run(Cmd::CustomizeBar(cz::BarOp::DeleteItem));
+    h.step();
+    // Open (the item clicked) gone, the separator after it now first
+    assert_eq!(&bar_ids(&h, key)[..2], &["", before[2]], "Delete didn't take the item clicked off");
+    h.state_mut().run(Cmd::CustomizeBar(cz::BarOp::Reset));
+    h.step();
+    assert_eq!(bar_ids(&h, key), before, "Reset didn't put the Standard bar back");
+    assert!(cz::layout(&h.state().settings, key).is_none());
+}
+
+/// #124: with Options ▸ Customization open, a command dragged from the Commands list lands on
+/// the Standard toolbar where it is dropped, and the buttons on the bars drag without Alt.
+#[test]
+fn issue_124_commands_drag_onto_a_bar_while_customizing() {
+    use egui_kittest::kittest::Queryable;
+    let mut h = doc_harness();
+    let key = crate::ui::bar_named("Standard").unwrap().1.id;
+    let before = bar_ids(&h, key);
+    h.state_mut().open_options(crate::commands::OptionsPage::Customization, Some("Commands"));
+    for _ in 0..4 {
+        h.step();
+    }
+    // a command of the first menu with a button of its own somewhere
+    let entries = crate::menus::catalog(crate::menus::catalog_menus()[0].1);
+    let e = entries
+        .iter()
+        .find(|e| crate::customize::item_for_cmd(e.cmd).is_some_and(|it| !before.contains(&it.id)) && h.query_all_by_label_contains(crate::widgets::plain(&e.label).trim()).count() == 1)
+        .expect("a command to drag");
+    let id = crate::customize::item_for_cmd(e.cmd).unwrap().id;
+    let row = h.query_by_label_contains(crate::widgets::plain(&e.label).trim()).unwrap().rect();
+    let at = item_rect(&h, key, 1);
+    drag_with(&mut h, row.center(), at.left_center() + egui::vec2(2.0, 0.0), egui::Modifiers::NONE);
+    let after = bar_ids(&h, key);
+    assert_eq!(after.len(), before.len() + 1, "the command didn't land on the bar");
+    assert_eq!(after[1], id, "the command landed at {:?}", after.iter().position(|i| *i == id));
+    assert!(h.state().dialogs.options.open, "the drop closed Options");
+    // the buttons drag without Alt now: the new one taken back off
+    let r = item_rect(&h, key, 1);
+    let canvas = h.state().doc().unwrap().canvas_rect;
+    drag_with(&mut h, r.center(), egui::pos2(canvas.left() + 20.0, canvas.bottom() - 20.0), egui::Modifiers::NONE);
+    assert_eq!(bar_ids(&h, key), before);
+    // Cancel keeps what was done on the bars
+    let mut moved = bar_ids(&h, key);
+    moved.swap(0, 1);
+    let r0 = item_rect(&h, key, 0);
+    let r1 = item_rect(&h, key, 1);
+    drag_with(&mut h, r0.center(), r1.right_center() - egui::vec2(2.0, 0.0), egui::Modifiers::NONE);
+    assert_eq!(bar_ids(&h, key), moved);
+    let cancel = h.query_all_by_label("Cancel").last().expect("a Cancel button").rect();
+    click(&mut h, cancel.center());
+    assert!(!h.state().dialogs.options.open);
+    assert_eq!(bar_ids(&h, key), moved, "Cancel threw away the toolbar change");
+}
+
+/// #124: the toolbox's buttons Alt+drag into a new order, and the property bar's Quick
+/// Customize hides and shows its items.
+#[test]
+#[ignore]
+fn visual_issue_124_toolbox_and_property_bar_customized() {
+    use crate::customize as cz;
+    use egui_kittest::kittest::Queryable;
+    let mut h = doc_harness();
+    let tb = crate::ui::bar_named("Toolbox").unwrap().1.id;
+    let before = bar_ids(&h, tb);
+    let (first, third) = (item_rect(&h, tb, 0), item_rect(&h, tb, 2));
+    // the Pick tool's slot under the third slot
+    drag_with(&mut h, first.center(), third.center_bottom() - egui::vec2(0.0, 2.0), egui::Modifiers::ALT);
+    let after = bar_ids(&h, tb);
+    assert_eq!(&after[..3], &[before[1], before[2], before[0]], "the toolbox didn't take the new order");
+    assert_eq!(h.state().tool, crate::tools::ToolId::Pick);
+    save(&mut h, "issue_124_01_toolbox_reordered");
+    // right-click ▸ Customize ▸ Reset
+    let r = item_rect(&h, tb, 0);
+    right_click(&mut h, r.center());
+    h.input_mut().events.push(egui::Event::Key { key: egui::Key::Escape, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::NONE });
+    h.step();
+    h.state_mut().run(Cmd::CustomizeBar(cz::BarOp::Reset));
+    h.step();
+    assert_eq!(bar_ids(&h, tb), before);
+
+    // the property bar's Quick Customize: an item unchecked goes, checked again comes back
+    blue_rect(&mut h);
+    for _ in 0..3 {
+        h.step();
+    }
+    let pb = crate::propbar::bar_for(h.state()).and_then(crate::ui::bar).expect("a property bar").id;
+    let pb_before = bar_ids(&h, pb);
+    let qc = h.query_all_by_label("Quick Customize").map(|n| n.rect()).max_by(|a, b| a.left().total_cmp(&b.left())).expect("the property bar's Quick Customize");
+    click(&mut h, qc.center());
+    for _ in 0..2 {
+        h.step();
+    }
+    save(&mut h, "issue_124_02_property_bar_quick_customize");
+    // the boxes of the list (the first is "Property bar"); the menu follows the button, which
+    // moves as the bar gets shorter
+    let boxes = |h: &Harness<'_, AnyVectorApp>| -> Vec<egui::Rect> { h.query_all_by_role(egui::accesskit::Role::CheckBox).map(|n| n.rect()).filter(|r| r.top() > 60.0).collect() };
+    assert!(boxes(&h).len() > 3, "Quick Customize lists the bar's items ({})", boxes(&h).len());
+    let first = boxes(&h)[1];
+    click(&mut h, first.center());
+    let fewer = bar_ids(&h, pb);
+    assert_eq!(fewer.len(), pb_before.len() - 1, "unchecking didn't hide an item");
+    save(&mut h, "issue_124_02b_property_bar_item_hidden");
+    let first = boxes(&h)[1];
+    click(&mut h, first.center());
+    assert_eq!(bar_ids(&h, pb), pb_before, "checking again didn't put it back in place");
+    assert!(cz::layout(&h.state().settings, pb).is_none(), "the bar is back as it was, without a layout");
+}
+
+/// #124: a bar the user made (Command Bars ▸ New) takes commands and Alt+dragged buttons.
+#[test]
+#[ignore]
+fn visual_issue_124_custom_bar_takes_buttons() {
+    use crate::customize as cz;
+    let mut h = doc_harness();
+    let key = cz::new_bar(&mut h.state_mut().settings, "My Bar");
+    for _ in 0..4 {
+        h.step();
+    }
+    save(&mut h, "issue_124_03_custom_bar_empty");
+    let std_key = crate::ui::bar_named("Standard").unwrap().1.id;
+    let area = crate::customize::drawn_area(&h.ctx, &key).expect("the new bar is drawn");
+    let open = item_rect(&h, std_key, 1);
+    drag_with(&mut h, open.center(), area.center(), egui::Modifiers::ALT | egui::Modifiers::CTRL);
+    assert_eq!(bar_ids(&h, &key).len(), 1, "the empty bar didn't take the button");
+    let save_ = item_rect(&h, std_key, 2);
+    let first = item_rect(&h, &key, 0);
+    drag_with(&mut h, save_.center(), first.right_center() + egui::vec2(-2.0, 0.0), egui::Modifiers::ALT | egui::Modifiers::CTRL);
+    assert_eq!(bar_ids(&h, &key), vec![bar_ids(&h, std_key)[1], bar_ids(&h, std_key)[2]]);
+    save(&mut h, "issue_124_04_custom_bar_with_buttons");
+    assert!(cz::custom_bars(&h.state().settings).any(|l| l.name == "My Bar" && l.shown));
+}

@@ -29,6 +29,8 @@ log = { workspace = true }
 ureq = { workspace = true }
 zip = { workspace = true }
 thesaurus-wordnet = "0.2"
+# the main window's handle, for coloring its border (already in the tree through eframe)
+raw-window-handle = "0.6"
 
 [target.'cfg(windows)'.dependencies]
 windows-core = "0.62"
@@ -37,6 +39,7 @@ clipboard-win = "5.4"
 windows = { version = "0.62", features = [
     "Win32_Foundation",
     "Win32_Globalization",
+    "Win32_Graphics_Dwm",
     "Win32_Graphics_Gdi",
     "Win32_Graphics_Printing",
     "Win32_Security",

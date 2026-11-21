@@ -378,6 +378,8 @@ pub enum Cmd {
     ToggleToolbar(crate::app::Toolbar),
     ButtonSize(crate::settings::ButtonSize),
     LockToolbars,
+    /// Right-click on a command bar ▸ Customize (`crate::customize::BarOp`).
+    CustomizeBar(crate::customize::BarOp),
     AddColorsFromSelection,
     AddColorsFromDocument,
     CreatePaletteFromSelection,
