@@ -61,6 +61,7 @@ impl TextSpacing {
     }
 
     /// The value, in %, as the Text docker shows it.
+    #[cfg(test)]
     pub fn value(self, t: &TextObj) -> f64 {
         match self {
             TextSpacing::Char => t.format.tracking,
