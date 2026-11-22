@@ -1273,28 +1273,32 @@ fn default_contour() -> vector_core::object::ContourEffect {
 }
 
 fn blend(app: &mut AnyVectorApp, ui: &mut Ui, it: &Item, k: &str) {
-    let cur = selected_kind(app, |k| if let ObjKind::Blend(b) = k { Some((b.steps, b.rotation)) } else { None });
+    // the blend selected, or the blend of the part shown on its own (#145)
+    let target = crate::blendpath::target(app).map(|(_, b)| b);
+    let cur = target.as_ref().map(|b| (b.steps, b.rotation));
+    // a blend along a path with a fixed spacing shows the spacing (#145)
+    let spacing = target.as_ref().filter(|b| b.path.is_some()).and_then(|b| b.spacing);
     let id = pid(ui, k);
     if k == "a869281c" {
+        if let Some(s) = spacing {
+            let f = len(app);
+            let r = fields::stacked(app, ui, id.with("spacing"), [Lead::None, Lead::None], [Some(s), None], f, 64.0, "", false, true, true, &tip(it));
+            if let Some(v) = r[0] {
+                crate::blendpath::edit(app, "Blend", |b| b.spacing = Some(v.max(0.01)));
+            }
+            return;
+        }
         let steps = cur.map(|c| c.0).unwrap_or(app.ts.blend_steps) as f64;
         let r = fields::stacked(app, ui, id, [Lead::None, Lead::None], [Some(steps), None], Fmt::Num(0, ""), 44.0, "", false, true, app.has_doc(), &tip(it));
         if let Some(v) = r[0] {
             let n = v.clamp(1.0, 999.0) as u32;
             app.ts.blend_steps = n;
             if cur.is_some() {
-                edit_sel(app, "Blend", |o| {
-                    if let ObjKind::Blend(b) = &mut o.kind {
-                        b.steps = n;
-                    }
-                });
+                crate::blendpath::edit(app, "Blend", |b| b.steps = n);
             }
         }
     } else if let Some(v) = fields::spin(app, ui, id, lead(it), cur.map(|c| c.1), Fmt::Num(1, ""), 52.0, "°", cur.is_some(), &tip(it)) {
-        edit_sel(app, "Blend", |o| {
-            if let ObjKind::Blend(b) = &mut o.kind {
-                b.rotation = v;
-            }
-        });
+        crate::blendpath::edit(app, "Blend", |b| b.rotation = v);
     }
 }
 
@@ -1467,7 +1471,7 @@ pub const OPTIONS: &[&str] = &[
 
 /// Whether this id is one of [`OPTIONS`].
 pub fn handles(key: &str) -> bool {
-    OPTIONS.contains(&key) || extra::OPTIONS.contains(&key)
+    OPTIONS.contains(&key) || extra::OPTIONS.contains(&key) || crate::blendpath::handles(key)
 }
 
 fn tool_or_sel<T: PartialEq>(cur: T, want: T) -> (bool, bool) {
@@ -1553,8 +1557,11 @@ pub fn option_state(app: &AnyVectorApp, key: &str) -> Option<(bool, bool)> {
             let c = contour_now(app);
             (c.is_some(), c.is_some_and(|c| c.color_dir == contour_colors(key)))
         }
-        "5cefe9f1" => (doc, true),
-        "46327bd4" => (false, false),
+        // steps or fixed spacing; the spacing is for a blend along a path (#145)
+        "5cefe9f1" | "46327bd4" => match crate::blendpath::target(app) {
+            Some((_, b)) => (key == "5cefe9f1" || b.path.is_some(), (key == "46327bd4") == (b.spacing.is_some() && b.path.is_some())),
+            None => (doc, key == "5cefe9f1"),
+        },
         "f1eb59d2" => (selected_kind(app, |k| matches!(k, ObjKind::Blend(_)).then_some(())).is_some(), false),
         "5cc921c9" | "de74addf" | "7e6c8fad" => (doc, distort_kind(app) == distort_of(key)),
         "e3a841f7" => (first(app, |o| o.effects.distort.is_some()).unwrap_or(false), false),
@@ -1770,6 +1777,17 @@ pub fn press(app: &mut AnyVectorApp, key: &str) {
             }
         }
         "f1eb59d2" => clear_blend(app),
+        "5cefe9f1" | "46327bd4" => {
+            let spacing = crate::blendpath::target(app).and_then(|(_, b)| if key == "46327bd4" { crate::blendpath::spacing_now(&b) } else { None });
+            if (key == "5cefe9f1") != spacing.is_some() {
+                crate::blendpath::edit(app, "Blend", |b| {
+                    if spacing.is_none() && b.path.is_some() && b.spacing.is_some() {
+                        b.steps = vector_core::blend_path::effective_steps(b).max(1);
+                    }
+                    b.spacing = spacing;
+                });
+            }
+        }
         "5cc921c9" | "de74addf" | "7e6c8fad" => {
             let k = distort_of(key);
             app.ts.distort_kind = k;
@@ -1836,6 +1854,15 @@ fn clear_blend(app: &mut AnyVectorApp) {
             out.push(b.start.id);
             objs.insert(i, *b.end);
             objs.insert(i, *b.start);
+            // the split objects between them, the path under them (#145)
+            for s in b.splits.into_iter().rev() {
+                out.push(s.obj.id);
+                objs.insert(i + 1, *s.obj);
+            }
+            if let Some(p) = b.path {
+                out.push(p.obj.id);
+                objs.insert(i, *p.obj);
+            }
         }
         *selection = out;
     });

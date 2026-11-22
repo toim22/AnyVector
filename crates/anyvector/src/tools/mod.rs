@@ -87,6 +87,8 @@ pub enum PickTarget {
     DockerPoint,
     /// A docker taking an object clicked on the canvas (Shape ▸ Weld to, Trim, Intersect with).
     DockerObject,
+    /// A blend command waiting for a click (New Path, New Start, New End, Split, Map nodes).
+    Blend(crate::blendpath::Pick),
 }
 
 /// Kind of interactive transform on the Pick tool.
@@ -416,6 +418,7 @@ impl ToolState {
                 PickTarget::Measure { first: Some(_) } => "Click the second point (Esc to cancel)",
                 PickTarget::DockerPoint => "Click a point on the page (Esc to cancel)",
                 PickTarget::DockerObject => "Click the target object (Esc to cancel)",
+                PickTarget::Blend(b) => crate::blendpath::hint(b),
             }
             .into();
         }

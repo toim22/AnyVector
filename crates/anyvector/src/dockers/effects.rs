@@ -174,13 +174,19 @@ pub fn blend(app: &mut AnyVectorApp, ui: &mut Ui) {
     if !guard(app, ui) {
         return;
     }
-    let cur = first(app).and_then(|o| if let ObjKind::Blend(b) = o.kind { Some(b) } else { None });
+    // the blend selected, or the blend of the part shown on its own (#145)
+    let target = crate::blendpath::target(app);
+    let blend_id = target.as_ref().map(|t| t.0);
+    let cur = target.map(|t| t.1);
     let is_blend = cur.is_some();
     // the settings of the selected blend
-    let sel = app.doc().and_then(|d| d.selection.first().copied());
+    let sel = blend_id.or_else(|| app.doc().and_then(|d| d.selection.first().copied()));
     if sel != app.dockers.ui.blend_for {
         app.dockers.ui.blend_for = sel;
         if let Some(b) = &cur {
+            if let Some(s) = crate::blendpath::spacing_now(b) {
+                app.dockers.ui.blend_spacing = s;
+            }
             let u = &mut app.dockers.ui;
             u.blend_steps = b.steps;
             u.blend_rot = b.rotation;
@@ -196,11 +202,19 @@ pub fn blend(app: &mut AnyVectorApp, ui: &mut Ui) {
     let full_w = ui.available_width();
     let (un, dpi) = app.doc().map(|d| (d.doc.settings.unit, d.doc.settings.dpi)).unwrap_or((app.settings.default_unit, 300.0));
     let mut u = std::mem::take(&mut app.dockers.ui);
-    // number of steps or fixed spacing (the spacing is for blends along a path)
+    // number of steps or fixed spacing (the spacing is for blends along a path); these and the
+    // path options below show the blend as it is and change it at once (#145)
+    let on_path = cur.as_ref().is_some_and(|b| b.path.is_some());
+    let fixed = on_path && cur.as_ref().is_some_and(|b| b.spacing.is_some());
+    let mut press: Option<&str> = None;
     ui.horizontal(|ui| {
         ui.add_space((full_w / 2.0 - 40.0).max(0.0));
-        crate::widgets::icon_button_sized(&mut app.icons, ui, "blend_steps", "Number of steps", true, true, 26.0, 18.0);
-        crate::widgets::icon_button_sized(&mut app.icons, ui, "blend_spacing", "Fixed spacing", false, false, 26.0, 18.0);
+        if crate::widgets::icon_button_sized(&mut app.icons, ui, "blend_steps", "Number of steps", true, !fixed, 26.0, 18.0).clicked() && fixed {
+            press = Some("5cefe9f1");
+        }
+        if crate::widgets::icon_button_sized(&mut app.icons, ui, "blend_spacing", "Fixed spacing", on_path, fixed, 26.0, 18.0).clicked() && on_path && !fixed {
+            press = Some("46327bd4");
+        }
     });
     separator(ui);
     let icon_row = |app: &mut AnyVectorApp, ui: &mut Ui, icon: &str, enabled: bool| {
@@ -212,13 +226,13 @@ pub fn blend(app: &mut AnyVectorApp, ui: &mut Ui) {
     let fw = (full_w - 110.0).max(80.0);
     ui.horizontal(|ui| {
         ui.add_space(46.0);
-        icon_row(app, ui, "blend_steps", true);
-        spin(ui, &mut u.blend_steps, 1..=999, 1.0, 0, "", fw);
+        icon_row(app, ui, "blend_steps", !fixed);
+        ui.add_enabled_ui(!fixed, |ui| spin(ui, &mut u.blend_steps, 1..=999, 1.0, 0, "", fw));
     });
     ui.horizontal(|ui| {
         ui.add_space(46.0);
-        icon_row(app, ui, "blend_spacing", false);
-        ui.add_enabled_ui(false, |ui| crate::widgets::unit_field(ui, egui::Id::unique("bl_space"), &mut u.blend_spacing, un, dpi, fw - 14.0, false));
+        icon_row(app, ui, "blend_spacing", fixed);
+        ui.add_enabled_ui(fixed, |ui| crate::widgets::unit_field(ui, egui::Id::unique("bl_space"), &mut u.blend_spacing, un, dpi, fw - 14.0, false));
     });
     ui.horizontal(|ui| {
         ui.add_space(46.0);
@@ -231,12 +245,14 @@ pub fn blend(app: &mut AnyVectorApp, ui: &mut Ui) {
         ui.add_space(64.0);
         ui.add_enabled(rot, egui::Checkbox::new(&mut u.blend_loop, "Loop"));
     });
-    let mut full_path = true;
-    let mut rotate_all = false;
-    for (v, t) in [(&mut full_path, "Blend along full path"), (&mut rotate_all, "Rotate all objects")] {
+    let path = cur.as_ref().and_then(|b| b.path.as_ref());
+    let (mut full_path, mut rotate_all) = (path.is_some_and(|p| p.full), path.is_some_and(|p| p.rotate));
+    for (v, t, key) in [(&mut full_path, "Blend along full path", "247d0e09"), (&mut rotate_all, "Rotate all objects", "50c0c56f")] {
         ui.horizontal(|ui| {
             ui.add_space(64.0);
-            ui.add_enabled(false, egui::Checkbox::new(v, t));
+            if ui.add_enabled(on_path, egui::Checkbox::new(v, t)).clicked() {
+                press = Some(key);
+            }
         });
     }
     ui.add_space(4.0);
@@ -274,6 +290,7 @@ pub fn blend(app: &mut AnyVectorApp, ui: &mut Ui) {
     });
     separator(ui);
     let settings = (u.blend_steps, u.blend_rot, u.blend_loop, u.blend_accel, u.blend_caccel, u.blend_link, u.blend_size, u.blend_dir);
+    let spacing = fixed.then_some(u.blend_spacing.max(0.01));
     let apply = ui
         .with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
             ui.add_space(4.0);
@@ -293,18 +310,41 @@ pub fn blend(app: &mut AnyVectorApp, ui: &mut Ui) {
     let more = u.blend_more;
     app.dockers.ui = u;
     if more {
+        // the commands of the property bar's Options and Start and End / Path Properties (#145)
+        let state = |app: &AnyVectorApp, key: &str| crate::blendpath::option_state(app, key).is_some_and(|s| s.0);
         ui.columns(2, |c| {
-            for (k, t) in ["Map nodes", "Split", "Fuse start", "Fuse end"].into_iter().enumerate() {
+            for (k, (t, key)) in [("Map nodes", "c5cd624e"), ("Split", "339589f8"), ("Fuse start", "e022c80a"), ("Fuse end", "ba9b75cf")].into_iter().enumerate() {
                 let ui = &mut c[k / 2];
-                ui.add_enabled(false, egui::Button::new(t).fill(crate::theme::gray(0x2c)).min_size(egui::vec2(ui.available_width(), 26.0)));
+                let on = state(app, key);
+                if ui.add_enabled(on, egui::Button::new(t).fill(crate::theme::gray(0x2c)).min_size(egui::vec2(ui.available_width(), 26.0))).clicked() {
+                    press = Some(key);
+                }
             }
         });
         separator(ui);
         ui.horizontal(|ui| {
-            for (icon, tip) in [("blend_start", "Start object"), ("blend_end", "End object"), ("blend_path", "Path properties")] {
-                crate::widgets::icon_button(&mut app.icons, ui, icon, tip, false, false);
+            let menus: [(&str, &str, &[(&str, &str)]); 3] = [
+                ("blend_start", "Start object", &[("New Start", "1e32e855"), ("Show Start", "7341835a")]),
+                ("blend_end", "End object", &[("New End", "db7791fd"), ("Show End", "1a1bed58")]),
+                ("blend_path", "Path properties", &[("New Path", "42941bfb"), ("Show Path", "050d45c6"), ("Detach from Path", "3726add2")]),
+            ];
+            for (icon, tip, items) in menus {
+                let r = crate::widgets::icon_button(&mut app.icons, ui, icon, tip, is_blend, false);
+                egui::Popup::menu(&r).close_behavior(egui::PopupCloseBehavior::CloseOnClick).show(|ui| {
+                    crate::menus::menu_style(ui);
+                    ui.set_min_width(150.0);
+                    for (t, key) in items {
+                        if ui.add_enabled(state(app, key), egui::Button::new(*t)).clicked() {
+                            press = Some(key);
+                        }
+                    }
+                });
             }
         });
+    }
+    if let Some(key) = press {
+        crate::propbar::press(app, key);
+        app.dockers.ui.blend_for = None;
     }
     if apply {
         let (steps, rot, looped, accel, caccel, link, size, dir) = settings;
@@ -318,10 +358,13 @@ pub fn blend(app: &mut AnyVectorApp, ui: &mut Ui) {
             b.size_accel = size;
             b.color_dir = dir;
         };
-        if is_blend {
-            edit_sel(app, "Blend", |o| {
-                if let ObjKind::Blend(b) = &mut o.kind {
+        if let (Some(id), Some(d)) = (blend_id.filter(|_| is_blend), app.doc_mut()) {
+            d.modify("Blend", |doc, _| {
+                if let Some(ObjKind::Blend(b)) = doc.find_mut(id).map(|o| &mut o.kind) {
                     set(b);
+                    if b.path.is_some() {
+                        b.spacing = spacing;
+                    }
                 }
             });
         } else if let Some(d) = app.doc_mut() {

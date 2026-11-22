@@ -5,6 +5,7 @@ mod about;
 mod ai;
 mod ai_provider;
 mod app;
+mod blendpath;
 mod bugreport;
 mod canvas;
 mod cmdbar;

@@ -218,6 +218,10 @@ pub fn object_info(app: &AnyVectorApp) -> String {
             Some(vector_core::object::ShadowPart::Drop) => return format!("Drop Shadow on {}", layer_name(o.id)),
             _ => {}
         }
+        // a part of a blend shown on its own (#145)
+        if let Some(s) = crate::blendpath::part_info(d) {
+            return s;
+        }
         let extra = match &o.kind {
             ObjKind::Path(p) => format!(" with {} nodes", p.node_count()),
             ObjKind::Group(c) => format!(" of {} objects", c.len()),

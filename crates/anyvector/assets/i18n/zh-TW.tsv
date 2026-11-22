@@ -5661,3 +5661,22 @@ Delete conflicts	刪除衝突
 Duplicate in Place	原地複製
 Toggle Pick State	切換選取狀態
 (none)	(無)
+Blend start: {} on {}	調和起點:{} 位於 {}
+Blend end: {} on {}	調和終點:{} 位於 {}
+Blend path: {} on {}	調和路徑:{} 位於 {}
+Blend split: {} on {}	調和分割:{} 位於 {}
+Click the path the blend follows (Esc to cancel)	按一下調和要沿著的路徑 (按 Esc 取消)
+Click the new start object of the blend (Esc to cancel)	按一下調和的新起始物件 (按 Esc 取消)
+Click the new end object of the blend (Esc to cancel)	按一下調和的新結束物件 (按 Esc 取消)
+Click the step of the blend where it splits (Esc to cancel)	按一下調和要分割的步驟 (按 Esc 取消)
+Click a node of the start object (Esc to cancel)	按一下起始物件的一個節點 (按 Esc 取消)
+Click the matching node of the end object (Esc to cancel)	按一下結束物件的對應節點 (按 Esc 取消)
+Select a blend first	請先選取一個調和
+Click an object that is not part of the blend	按一下不屬於該調和的物件
+Click a curve or a shape to use as the path	按一下要用作路徑的曲線或形狀
+The path has no length	路徑沒有長度
+Groups, bitmaps and blends can't start or end a blend	群組、點陣圖和調和不能作為調和的起點或終點
+The blend has no split to fuse	調和中沒有可融合的分割
+Click a step of the blend	按一下調和的一個步驟
+Click a node of the start object	按一下起始物件的一個節點
+Click the matching node of the end object	按一下結束物件的對應節點

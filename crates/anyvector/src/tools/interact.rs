@@ -515,6 +515,14 @@ impl<'a> Cx<'a> {
         self.d.selection.iter().copied().find(|id| *id != top && o.find(*id).is_some_and(|c| self.d.doc.hit_object(c, p, tol, filled)))
     }
 
+    /// The blend part shown on its own (Show Start, Show End, Show Path, a split, #145) when `p`
+    /// is on it: a press there drags the part, not the blend.
+    fn blend_part_pick(&self, p: Point) -> Option<ObjId> {
+        let (blend, part) = crate::blendpath::focus(self.d)?;
+        let o = vector_core::blend_path::blend_of(&self.d.doc, blend)?.part(part)?;
+        self.d.doc.hit_object(o, p, self.tol(), self.s.treat_as_filled).then_some(o.id)
+    }
+
     /// The PowerClip a Ctrl+click at `p` enters for editing (#111): the PowerClip under the
     /// pointer, for a plain Ctrl+click of the Pick tool. With the Windows modifier keys Ctrl is
     /// Duplicate, and a Ctrl+click enters nothing.
@@ -870,7 +878,7 @@ impl<'a> Cx<'a> {
                 }
             }
         }
-        let clip_pick = self.powerclip_pick(p);
+        let clip_pick = self.powerclip_pick(p).or_else(|| self.blend_part_pick(p));
         let hit = clip_pick.or_else(|| self.hit(p));
         // Free Transform: the selection turns around the point clicked
         if self.tool == ToolId::FreeTransform && !self.d.selection.is_empty() && hit.map_or(true, |id| self.d.selection.contains(&id)) {
@@ -2782,6 +2790,15 @@ impl<'a> Cx<'a> {
             self.ts.picked_color = Some(c);
             return;
         }
+        if let PickTarget::Blend(b) = target {
+            let hit = self.hit(self.raw);
+            match crate::blendpath::pick_click(self.d, b, self.raw, hit, self.tol()) {
+                crate::blendpath::Picked::Again(next) => self.ts.pick_target = Some(PickTarget::Blend(next)),
+                crate::blendpath::Picked::Flash(m) => self.out.flash = Some(m.into()),
+                crate::blendpath::Picked::Done => {}
+            }
+            return;
+        }
         let Some(t) = self.hit(self.raw) else {
             self.out.flash = Some("No object was clicked".into());
             return;
@@ -2956,7 +2973,7 @@ impl<'a> Cx<'a> {
                     *s = out;
                 });
             }
-            PickTarget::ImpactBoundary { .. } | PickTarget::SampleColor | PickTarget::TileShape | PickTarget::Measure { .. } | PickTarget::DockerPoint | PickTarget::DockerObject => {}
+            PickTarget::ImpactBoundary { .. } | PickTarget::SampleColor | PickTarget::TileShape | PickTarget::Measure { .. } | PickTarget::DockerPoint | PickTarget::DockerObject | PickTarget::Blend(_) => {}
             PickTarget::EnvelopeFrom => {
                 let Some(src) = self.d.doc.find(t) else { return };
                 let Some(handles) = envelope_from_shape(&src.world_path()) else {
