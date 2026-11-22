@@ -5661,3 +5661,12 @@ Delete conflicts	Konflikte löschen
 Duplicate in Place	An Ort und Stelle duplizieren
 Toggle Pick State	Auswahlstatus umschalten
 (none)	(keine)
+Expand Dockers	Andockfenster erweitern
+Collapse Dockers	Andockfenster reduzieren
+Add Docker	Andockfenster hinzufügen
+Dock &Left	&Links andocken
+Dock Ri&ght	&Rechts andocken
+&Float	&Frei schwebend
+&Close	&Schließen
+Close &Others	&Andere schließen
+&Reset Docker Layout	Andockfenster-Layout &zurücksetzen

@@ -5661,3 +5661,12 @@ Delete conflicts	删除冲突
 Duplicate in Place	原位复制
 Toggle Pick State	切换选择状态
 (none)	(无)
+Expand Dockers	展开泊坞窗
+Collapse Dockers	折叠泊坞窗
+Add Docker	添加泊坞窗
+Dock &Left	停靠到左侧(&L)
+Dock Ri&ght	停靠到右侧(&G)
+&Float	浮动(&F)
+&Close	关闭(&C)
+Close &Others	关闭其他(&O)
+&Reset Docker Layout	重置泊坞窗布局(&R)

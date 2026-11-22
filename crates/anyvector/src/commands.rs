@@ -377,6 +377,8 @@ pub enum Cmd {
     WorkspaceImport,
     WorkspaceExport,
     Docker(DockerId),
+    /// Window ▸ Dockers ▸ Reset Docker Layout: every open docker in one group on the right.
+    ResetDockerLayout,
     ToggleToolbar(crate::app::Toolbar),
     ButtonSize(crate::settings::ButtonSize),
     LockToolbars,

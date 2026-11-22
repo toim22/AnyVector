@@ -5661,3 +5661,12 @@ Delete conflicts	Elimina conflitti
 Duplicate in Place	Duplica sul posto
 Toggle Pick State	Attiva/disattiva stato di selezione
 (none)	(nessuno)
+Expand Dockers	Espandi docker
+Collapse Dockers	Comprimi docker
+Add Docker	Aggiungi docker
+Dock &Left	Ancora a &sinistra
+Dock Ri&ght	Ancora a &destra
+&Float	&Mobile
+&Close	&Chiudi
+Close &Others	Chiudi gli &altri
+&Reset Docker Layout	&Reimposta layout docker

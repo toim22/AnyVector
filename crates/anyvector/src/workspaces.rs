@@ -30,6 +30,9 @@ pub struct Layout {
     pub lock_toolbars: bool,
     pub open_dockers: Vec<String>,
     pub docker_width: f32,
+    /// Where the dockers sit (#144); empty in workspaces saved before 0.6.1, which then put
+    /// `open_dockers` in one group on the right.
+    pub docker_layout: crate::dockers::DockerLayout,
     pub shortcuts: Vec<(String, String)>,
     /// Toolbox items shown or hidden with Quick Customize.
     pub toolbox_items: Vec<(String, bool)>,
@@ -41,6 +44,7 @@ impl Default for Layout {
     fn default() -> Layout {
         let mut l = Layout::of(&Settings::default());
         l.open_dockers.clear();
+        l.docker_layout = Default::default();
         l
     }
 }
@@ -60,6 +64,7 @@ impl Layout {
             lock_toolbars: s.lock_toolbars,
             open_dockers: s.open_dockers.clone(),
             docker_width: s.docker_width,
+            docker_layout: s.docker_layout.clone(),
             shortcuts: s.shortcuts.clone(),
             toolbox_items: s.toolbox_items.clone(),
             bar_layouts: s.bar_layouts.clone(),
@@ -67,6 +72,12 @@ impl Layout {
     }
 
     /// Puts the layout into the settings.
+    /// The arrangement of the dockers: `docker_layout`, or the open dockers in one group on the
+    /// right for a workspace saved before 0.6.1.
+    pub fn dockers(&self) -> crate::dockers::DockerLayout {
+        crate::dockers::layout::effective(&self.docker_layout, &self.open_dockers, self.docker_width)
+    }
+
     pub fn put(&self, s: &mut Settings) {
         s.show_menu_bar = self.show_menu_bar;
         s.menu_bar_mode = self.menu_bar_mode;
@@ -79,6 +90,7 @@ impl Layout {
         s.lock_toolbars = self.lock_toolbars;
         s.open_dockers = self.open_dockers.clone();
         s.docker_width = self.docker_width;
+        s.docker_layout = self.docker_layout.clone();
         s.shortcuts = self.shortcuts.clone();
         s.toolbox_items = self.toolbox_items.clone();
         s.bar_layouts = self.bar_layouts.clone();
@@ -193,9 +205,7 @@ pub fn layout_of(app: &mut AnyVectorApp, name: &str) -> Layout {
 /// Shows a layout: the toolbars, the dockers and the shortcut keys.
 pub fn apply(app: &mut AnyVectorApp, l: &Layout) {
     l.put(&mut app.settings);
-    app.dockers.open = l.open_dockers.iter().filter_map(|n| crate::dockers::ALL.iter().copied().find(|d| format!("{d:?}") == *n)).collect();
-    app.dockers.active = app.dockers.open.last().copied();
-    app.dockers.set_width = None;
+    app.dockers.load(&app.settings);
 }
 
 /// Makes `name` the current workspace. The workspace left keeps its layout for later, unless
@@ -267,12 +277,7 @@ pub struct Group {
 
 /// The elements of a layout: dockers, toolbars, menus and shortcut keys.
 pub fn elements(l: &Layout) -> Vec<Group> {
-    let dockers = l
-        .open_dockers
-        .iter()
-        .filter_map(|n| crate::dockers::ALL.iter().copied().find(|d| format!("{d:?}") == *n))
-        .map(|d| (format!("docker:{d:?}"), crate::dockers::title(d)))
-        .collect();
+    let dockers = l.dockers().dockers().map(|d| (format!("docker:{d:?}"), crate::dockers::title(d))).collect();
     let mut bars = vec![
         ("bar:standard".to_string(), "Standard".to_string()),
         ("bar:property".to_string(), "Property Bar".to_string()),
@@ -301,10 +306,13 @@ pub fn all_keys(groups: &[Group]) -> BTreeSet<String> {
 
 /// Copies the chosen elements of `from` into `into`.
 pub fn merge(into: &mut Layout, from: &Layout, keys: &BTreeSet<String>) {
-    let docks: Vec<String> = from.open_dockers.iter().filter(|n| keys.contains(&format!("docker:{n}"))).cloned().collect();
+    // the chosen dockers come as they were arranged (where they sat, their groups and order)
     if keys.contains("dockers") {
-        into.open_dockers = docks;
-        into.docker_width = from.docker_width;
+        let mut docks = from.dockers();
+        docks.retain(|d| keys.contains(&format!("docker:{d:?}")));
+        into.open_dockers = crate::dockers::layout::names_of(docks.dockers());
+        into.docker_width = docks.right_width;
+        into.docker_layout = docks;
     }
     let mut any_bar = false;
     for (k, on, to) in [
@@ -469,6 +477,63 @@ mod tests {
         let chosen: BTreeSet<String> = [format!("bar:c:{mine}")].into_iter().collect();
         merge(&mut into, &from, &chosen);
         assert!(into.bar_layouts.iter().any(|b| b.bar == mine));
+    }
+
+    /// #144: a workspace keeps where its dockers sit (sides, stacked groups, floating windows),
+    /// in its file too; a 0.6.0 workspace (only the open dockers) puts them in one group on the
+    /// right.
+    #[test]
+    fn docker_layout_travels_with_the_workspace() {
+        use crate::dockers::layout::Target;
+        use crate::dockers::{DockerLayout, DockerSide};
+        use DockerId::*;
+        let mut d = DockerLayout::one_group(vec![Properties, Objects, Pages, Color], 310.0);
+        d.dock(Objects, DockerSide::Left);
+        let g = d.group_of(Properties).unwrap();
+        d.place(&[Pages], Target::Stack { group: g, after: true });
+        d.place(&[Color], Target::Float([300.0, 200.0, 280.0, 360.0]));
+        d.left_width = 240.0;
+        let mut l = preset("Default");
+        l.open_dockers = crate::dockers::layout::names_of(d.dockers());
+        l.docker_layout = d.clone();
+        // Layout::of / put carry it
+        let mut s = Settings::default();
+        l.put(&mut s);
+        assert_eq!(Layout::of(&s).docker_layout, d);
+        // written to a file and read back
+        let dir = std::env::temp_dir().join(format!("vector_ws_dock_{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        let p = dir.join("Docks.cdws");
+        let f = WorkspaceFile { name: "Docks".into(), description: String::new(), elements: all_keys(&elements(&l)).into_iter().collect(), layout: l.clone() };
+        write_file(&p, &f).unwrap();
+        let g = read_file(&p).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(g.layout.docker_layout, d);
+        assert_eq!(g.layout, l);
+        // every docker is an element of its own, wherever it sits
+        assert!(f.elements.contains(&"docker:Color".to_string()) && f.elements.contains(&"docker:Objects".to_string()));
+        // importing some of the dockers brings them as they were arranged
+        let mut into = preset("Lite");
+        let keys: BTreeSet<String> = ["dockers", "docker:Objects", "docker:Color", "docker:Properties"].iter().map(|s| s.to_string()).collect();
+        merge(&mut into, &g.layout, &keys);
+        let m = into.docker_layout.clone();
+        assert!(!m.contains(Pages));
+        assert_eq!(m.side_groups(DockerSide::Left).len(), 1);
+        assert!(m.groups[m.group_of(Color).unwrap()].floating);
+        assert_eq!(m.groups[m.group_of(Color).unwrap()].rect, [300.0, 200.0, 280.0, 360.0]);
+        assert_eq!(into.open_dockers, crate::dockers::layout::names_of(m.dockers()));
+        // no docker chosen: the dockers stay as they are
+        let before = into.clone();
+        merge(&mut into, &g.layout, &["menu:bar".to_string()].into_iter().collect());
+        assert_eq!(into.docker_layout, before.docker_layout);
+        // a workspace saved by 0.6.0
+        let old: Layout = serde_json::from_str(r#"{"open_dockers":["Pages","Properties"],"docker_width":300.0}"#).unwrap();
+        let d = old.dockers();
+        assert_eq!(d.groups.len(), 1);
+        assert_eq!(d.groups[0].dockers, vec![Pages, Properties]);
+        assert!(d.groups[0].on(DockerSide::Right));
+        assert_eq!(d.right_width, 300.0);
+        assert_eq!(all_keys(&elements(&old)).iter().filter(|k| k.starts_with("docker:")).count(), 2);
     }
 
     #[test]

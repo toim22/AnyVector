@@ -5661,3 +5661,12 @@ Delete conflicts	競合を削除
 Duplicate in Place	その場に複製
 Toggle Pick State	選択状態の切り替え
 (none)	(なし)
+Expand Dockers	ドッキング ウィンドウを展開
+Collapse Dockers	ドッキング ウィンドウを折りたたむ
+Add Docker	ドッキング ウィンドウを追加
+Dock &Left	左にドッキング(&L)
+Dock Ri&ght	右にドッキング(&G)
+&Float	フローティング(&F)
+&Close	閉じる(&C)
+Close &Others	他を閉じる(&O)
+&Reset Docker Layout	ドッキング ウィンドウのレイアウトをリセット(&R)

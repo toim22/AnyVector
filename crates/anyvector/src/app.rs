@@ -363,6 +363,8 @@ impl AnyVectorApp {
             });
             crate::menus::command_bar_context(self, &r.response, BarSpot::Toolbar("Toolbox"));
         }
+        // the dockers docked on the left, inside the toolbox
+        crate::dockers::side_panel(self, ui, crate::dockers::DockerSide::Left);
         // the open palettes: the default one at the edge, the others docked to its left
         for i in 0..self.palettes.palettes.len() {
             if i == 0 && !self.settings.default_palette_visible {
@@ -373,29 +375,14 @@ impl AnyVectorApp {
                 crate::palette::palette_column(self, ui, i);
             });
         }
-        if self.dockers.visible() {
-            let w = self.settings.docker_width;
-            if self.dockers.collapsed {
-                egui::Panel::right("dockers_folded").frame(Frame::new().fill(theme::BG()).inner_margin(Margin::same(0))).exact_size(crate::dockers::TAB_STRIP + 2.0).show(ui, |ui| {
-                    crate::dockers::dockers_panel(self, ui);
-                });
-            } else {
-                let mut panel = egui::Panel::right("dockers").frame(Frame::new().fill(theme::BG()).inner_margin(Margin::same(0))).resizable(true).default_size(w).size_range(220.0..=600.0);
-                if let Some(w) = self.dockers.set_width.take() {
-                    panel = panel.exact_size(w);
-                }
-                let resp = panel.show(ui, |ui| {
-                    crate::dockers::dockers_panel(self, ui);
-                });
-                self.settings.docker_width = resp.response.rect.width();
-            }
-        }
+        // the dockers docked on the right, inside the palettes
+        crate::dockers::side_panel(self, ui, crate::dockers::DockerSide::Right);
         if self.settings.doc_palette_visible {
             egui::Panel::bottom("docpalette").frame(Frame::new().fill(theme::BG()).inner_margin(Margin::symmetric(2, 0))).exact_size(24.0).show(ui, |ui| {
                 crate::palette::document_palette(self, ui);
             });
         }
-        egui::CentralPanel::default().frame(Frame::new().fill(theme::BG())).show(ui, |ui| {
+        let central = egui::CentralPanel::default().frame(Frame::new().fill(theme::BG())).show(ui, |ui| {
             if self.doc_layout != 0 && self.docs.len() > 1 && self.active.is_some() {
                 crate::canvas::arranged_windows(self, ui);
             } else {
@@ -407,9 +394,13 @@ impl AnyVectorApp {
                 }
             }
         });
+        // the floating dockers, over the drawing window
+        crate::dockers::floats(self, &ctx);
         crate::dialogs::show(self, &ctx);
         // an item dragged onto, along or off a command bar
         crate::customize::end_frame(self, &ctx);
+        // a docker tab or group dragged to another place
+        crate::dockers::end_frame(self, &ctx, central.response.rect);
         self.show_message(&ctx);
         self.process_pending(&ctx);
         self.sync_windows();

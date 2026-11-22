@@ -101,8 +101,9 @@ fn take_fresh_press(i: &mut egui::InputState, key: Key) -> Option<bool> {
 }
 
 pub fn handle(app: &mut AnyVectorApp, ctx: &egui::Context) {
-    // while a menu is open the keyboard belongs to it (Escape closes the menu, nothing else)
-    if app.splash.is_some() || app.dialogs.any_modal_open() || egui::Popup::is_any_open(ctx) {
+    // while a menu is open the keyboard belongs to it (Escape closes the menu, nothing else);
+    // while a docker is dragged, Escape calls the drag off (#144)
+    if app.splash.is_some() || app.dialogs.any_modal_open() || egui::Popup::is_any_open(ctx) || app.dockers.live.drag.is_some() {
         return;
     }
     let typing = ctx.egui_wants_keyboard_input();

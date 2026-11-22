@@ -6817,3 +6817,348 @@ fn visual_issue_060_input_and_keyboard() {
 fn categories_len_minus_one() -> usize {
     crate::dialogs::options::commands_page::categories().len() - 1
 }
+
+// ---- Dockers that can be rearranged (#144) ----
+
+/// A document with `dockers` open in one group on the right (as 0.6.0 had them), the first
+/// one shown.
+fn dock_harness<'a>(dockers: &[crate::dockers::DockerId]) -> Harness<'a, AnyVectorApp> {
+    let mut h = doc_harness();
+    {
+        let app = h.state_mut();
+        app.dockers.open.clear();
+        for d in dockers {
+            app.dockers.show(*d);
+        }
+        app.dockers.reset_layout();
+        app.dockers.set_width = Some(300.0);
+        app.dockers.show(dockers[0]);
+    }
+    for _ in 0..4 {
+        h.step();
+    }
+    h
+}
+
+/// Where docker `d`'s tab was drawn.
+fn dock_tab(h: &Harness<'_, AnyVectorApp>, d: crate::dockers::DockerId) -> egui::Rect {
+    crate::dockers::dock::drawn_tab(h.state(), d).unwrap_or_else(|| panic!("the {d:?} tab isn't drawn"))
+}
+
+/// Where the group of docker `d` was drawn: the whole group and its title bar.
+fn dock_group(h: &Harness<'_, AnyVectorApp>, d: crate::dockers::DockerId) -> (egui::Rect, egui::Rect) {
+    crate::dockers::dock::drawn_group(h.state(), d).unwrap_or_else(|| panic!("the group of {d:?} isn't drawn"))
+}
+
+/// The settings written and read back, as across a restart: the dockers they bring back.
+fn dock_restart(h: &mut Harness<'_, AnyVectorApp>) -> crate::settings::Settings {
+    let app = h.state_mut();
+    app.dockers.save(&mut app.settings);
+    let json = serde_json::to_string(&app.settings).unwrap();
+    serde_json::from_str(&json).unwrap()
+}
+
+fn middle_click(h: &mut Harness<'_, AnyVectorApp>, p: egui::Pos2) {
+    move_to(h, p);
+    h.step();
+    for pressed in [true, false] {
+        h.input_mut().events.push(egui::Event::PointerButton { pos: p, button: egui::PointerButton::Middle, pressed, modifiers: egui::Modifiers::NONE });
+        h.step();
+    }
+}
+
+/// #144: a tab dragged along the tab strip takes its new place, kept with the settings at
+/// once; a click still shows a docker and a middle-click closes it; Escape calls a drag off.
+#[test]
+fn issue_144_tab_drag_reorders_and_persists() {
+    use crate::dockers::DockerId::*;
+    let mut h = dock_harness(&[Properties, Objects, Pages]);
+    assert_eq!(h.state().dockers.open, vec![Properties, Objects, Pages]);
+    // Pages dragged above Properties
+    let (from, to) = (dock_tab(&h, Pages).center(), dock_tab(&h, Properties).center_top() + egui::vec2(0.0, 4.0));
+    move_to(&mut h, from);
+    h.step();
+    press(&mut h, from, true);
+    h.step();
+    for k in 1..=6 {
+        move_to(&mut h, from + (to - from) * (k as f32 / 6.0));
+        h.step();
+        if k == 4 {
+            assert!(h.state().dockers.live.drag.is_some(), "the tab isn't being dragged");
+            assert!(!crate::customize::dragging(&h.ctx), "the command bars think a button is being dragged");
+        }
+    }
+    press(&mut h, to, false);
+    h.step();
+    h.step();
+    assert_eq!(h.state().dockers.open, vec![Pages, Properties, Objects], "the tab didn't take its new place");
+    assert!(h.state().dockers.live.drag.is_none());
+    // kept with the settings at once, and there after a restart
+    assert_eq!(h.state().settings.open_dockers, vec!["Pages", "Properties", "Objects"]);
+    let back = dock_restart(&mut h);
+    assert_eq!(crate::dockers::DockerState::from_settings(&back).open, vec![Pages, Properties, Objects]);
+    // Properties to the end, after Objects
+    let (a, b) = (dock_tab(&h, Properties).center(), dock_tab(&h, Objects).center_bottom() - egui::vec2(0.0, 4.0));
+    drag(&mut h, a, b);
+    assert_eq!(h.state().dockers.open, vec![Pages, Objects, Properties]);
+    // the tabs drawn in their new places
+    h.step();
+    // a click shows a docker
+    let t = dock_tab(&h, Objects).center();
+    click(&mut h, t);
+    assert_eq!(h.state().dockers.layout.groups[0].active, Some(Objects));
+    // a drag called off with Escape changes nothing
+    let (from, to) = (dock_tab(&h, Pages).center(), dock_tab(&h, Properties).center_bottom());
+    move_to(&mut h, from);
+    h.step();
+    press(&mut h, from, true);
+    h.step();
+    for k in 1..=4 {
+        move_to(&mut h, from + (to - from) * (k as f32 / 4.0));
+        h.step();
+    }
+    h.input_mut().events.push(egui::Event::Key { key: egui::Key::Escape, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::NONE });
+    h.step();
+    press(&mut h, to, false);
+    h.step();
+    assert_eq!(h.state().dockers.open, vec![Pages, Objects, Properties], "Escape didn't call the drag off");
+    // a middle-click closes a docker; the last one closed takes the docker area away
+    let canvas = h.state().doc().unwrap().canvas_rect;
+    for d in [Objects, Pages, Properties] {
+        let t = dock_tab(&h, d).center();
+        middle_click(&mut h, t);
+        assert!(!h.state().dockers.open.contains(&d), "middle-click didn't close {d:?}");
+        h.step();
+    }
+    for _ in 0..3 {
+        h.step();
+    }
+    assert!(crate::dockers::dock::drawn_group(h.state(), Properties).is_none());
+    assert!(h.state().doc().unwrap().canvas_rect.right() > canvas.right() + 200.0, "the drawing window didn't take the room");
+}
+
+/// #144: a tab dragged by the left edge of the drawing window docks on the left; onto the
+/// lower quarter of a group, a group stacked under it with a divider between them; onto a
+/// group's tabs, into that group. A group's title bar drags the whole group; the fold button
+/// folds every group of the side into one strip of tabs.
+#[test]
+#[ignore]
+fn visual_issue_144_dock_left_stack_and_split() {
+    use crate::dockers::DockerId::*;
+    use crate::dockers::DockerSide::*;
+    let mut h = dock_harness(&[Properties, Objects, Pages]);
+    save(&mut h, "issue_144_01_one_group");
+    let canvas = h.state().doc().unwrap().canvas_rect;
+    let central = crate::dockers::dock::drawn_central(h.state());
+    // Objects by the left edge of the drawing window: a docker area on the left
+    let t = dock_tab(&h, Objects).center();
+    drag(&mut h, t, egui::pos2(central.left() + 20.0, central.center().y));
+    settle(&mut h);
+    assert_eq!(h.state().dockers.side_of(Objects), Some(Left));
+    assert_eq!(h.state().dockers.layout.side_groups(Left).len(), 1);
+    assert!(!h.state().dockers.layout.groups[h.state().dockers.layout.group_of(Properties).unwrap()].dockers.contains(&Objects));
+    assert!(h.state().doc().unwrap().canvas_rect.left() > canvas.left() + 200.0, "the drawing window didn't make room on the left");
+    save(&mut h, "issue_144_02_docked_left");
+    // Pages onto the lower quarter of the right group: two groups stacked on the right
+    let (block, _) = dock_group(&h, Properties);
+    let t = dock_tab(&h, Pages).center();
+    drag(&mut h, t, egui::pos2(block.center().x - 30.0, block.bottom() - 40.0));
+    settle(&mut h);
+    let l = h.state().dockers.layout.clone();
+    let gs = l.side_groups(Right);
+    assert_eq!(gs.len(), 2, "Pages didn't stack under Properties");
+    assert_eq!(l.groups[gs[0]].dockers, vec![Properties]);
+    assert_eq!(l.groups[gs[1]].dockers, vec![Pages]);
+    assert!((l.groups[gs[0]].share + l.groups[gs[1]].share - 1.0).abs() < 1e-3);
+    save(&mut h, "issue_144_03_stacked_right");
+    // the divider dragged down: the upper group grows, the lower one shrinks
+    let (top, _) = dock_group(&h, Properties);
+    let (bottom, _) = dock_group(&h, Pages);
+    let y = (top.bottom() + bottom.top()) / 2.0;
+    drag(&mut h, egui::pos2(top.center().x, y), egui::pos2(top.center().x, y + 120.0));
+    settle(&mut h);
+    assert!(dock_group(&h, Properties).0.height() > top.height() + 100.0, "the divider didn't move");
+    assert!(dock_group(&h, Pages).0.height() < bottom.height() - 100.0);
+    // Pages onto the left group's tabs: into that group, the right side back to one group
+    let (a, b) = (dock_tab(&h, Pages).center(), dock_tab(&h, Objects).center_bottom() + egui::vec2(0.0, 6.0));
+    drag(&mut h, a, b);
+    settle(&mut h);
+    let l = h.state().dockers.layout.clone();
+    assert_eq!(l.groups[l.group_of(Objects).unwrap()].dockers, vec![Objects, Pages]);
+    assert_eq!(l.side_groups(Right).len(), 1);
+    save(&mut h, "issue_144_04_joined_left");
+    // the left group's title bar onto the top of the right group: stacked above it, both dockers
+    let (_, head) = dock_group(&h, Objects);
+    let (block, _) = dock_group(&h, Properties);
+    drag(&mut h, head.left_center() + egui::vec2(30.0, 0.0), egui::pos2(block.center().x - 30.0, block.top() + 70.0));
+    settle(&mut h);
+    let l = h.state().dockers.layout.clone();
+    assert!(l.side_groups(Left).is_empty(), "the group didn't leave the left side");
+    let gs = l.side_groups(Right);
+    assert_eq!(gs.len(), 2);
+    assert_eq!(l.groups[gs[0]].dockers, vec![Objects, Pages]);
+    save(&mut h, "issue_144_05_group_stacked_on_top");
+    // folded: one strip with the tabs of both groups; a tab clicked unfolds it
+    let (_, head) = dock_group(&h, Objects);
+    click(&mut h, egui::pos2(head.right() - 38.0, head.center().y));
+    settle(&mut h);
+    assert!(h.state().dockers.collapsed, "the fold button didn't fold the side");
+    let (p, o) = (dock_tab(&h, Properties), dock_tab(&h, Objects));
+    assert!(o.bottom() < p.top(), "the folded strip lost the order of the groups");
+    save(&mut h, "issue_144_06_folded");
+    click(&mut h, p.center());
+    settle(&mut h);
+    assert!(!h.state().dockers.collapsed);
+    assert_eq!(h.state().dockers.layout.groups[h.state().dockers.layout.group_of(Properties).unwrap()].active, Some(Properties));
+}
+
+/// #144: a tab dragged onto the drawing window floats in a window of its own, which sizes by
+/// its edges, moves by its title bar and docks again when let go on a group's tabs; right-click
+/// ▸ Float floats it too, and a double-click on its tab docks it back.
+#[test]
+#[ignore]
+fn visual_issue_144_float_and_redock() {
+    use crate::dockers::DockerId::*;
+    let mut h = dock_harness(&[Properties, Objects]);
+    let central = crate::dockers::dock::drawn_central(h.state());
+    let t = dock_tab(&h, Objects).center();
+    drag(&mut h, t, central.center());
+    settle(&mut h);
+    let floating = |h: &Harness<'_, AnyVectorApp>, d| h.state().dockers.layout.group_of(d).map(|g| h.state().dockers.layout.groups[g].floating);
+    assert_eq!(floating(&h, Objects), Some(true), "the tab didn't float");
+    assert_eq!(h.state().dockers.layout.groups.len(), 2);
+    let (fblock, _) = dock_group(&h, Objects);
+    assert!(central.contains(fblock.center()));
+    save(&mut h, "issue_144_07_floating");
+    // wider by its right edge
+    drag(&mut h, egui::pos2(fblock.right() - 2.0, fblock.center().y), egui::pos2(fblock.right() + 78.0, fblock.center().y));
+    settle(&mut h);
+    let (wider, head) = dock_group(&h, Objects);
+    assert!((wider.width() - fblock.width() - 80.0).abs() < 4.0, "the window didn't size: {} -> {}", fblock.width(), wider.width());
+    // moved by its title bar, still floating
+    drag(&mut h, head.left_center() + egui::vec2(40.0, 0.0), head.left_center() + egui::vec2(-160.0, 120.0));
+    settle(&mut h);
+    let (moved, head) = dock_group(&h, Objects);
+    assert!((moved.left() - (wider.left() - 200.0)).abs() < 4.0 && (moved.top() - (wider.top() + 120.0)).abs() < 4.0, "the window didn't move: {wider:?} -> {moved:?}");
+    assert_eq!(floating(&h, Objects), Some(true));
+    save(&mut h, "issue_144_08_floating_moved");
+    // let go on the right group's tabs: docked into that group
+    let t = dock_tab(&h, Properties).center_bottom() + egui::vec2(0.0, 6.0);
+    drag(&mut h, head.left_center() + egui::vec2(40.0, 0.0), t);
+    settle(&mut h);
+    let l = h.state().dockers.layout.clone();
+    assert_eq!(l.groups.len(), 1, "the window didn't dock");
+    assert_eq!(l.groups[0].dockers, vec![Properties, Objects]);
+    assert!(!l.groups[0].floating);
+    save(&mut h, "issue_144_09_redocked");
+    // right-click ▸ Float
+    let t = dock_tab(&h, Objects).center();
+    right_click(&mut h, t);
+    // the menu's items are there from the next frames
+    for _ in 0..3 {
+        h.step();
+    }
+    click_label(&mut h, "Float");
+    settle(&mut h);
+    assert_eq!(floating(&h, Objects), Some(true), "right-click ▸ Float didn't float it");
+    save(&mut h, "issue_144_10_floated_from_the_menu");
+    // a double-click on its tab docks it back where it came from
+    let t = dock_tab(&h, Objects).center();
+    move_to(&mut h, t);
+    h.step();
+    for _ in 0..2 {
+        for pressed in [true, false] {
+            press(&mut h, t, pressed);
+        }
+        h.step();
+    }
+    settle(&mut h);
+    assert_eq!(floating(&h, Objects), Some(false), "a double-click didn't dock it back");
+    assert_eq!(h.state().dockers.side_of(Objects), Some(crate::dockers::DockerSide::Right));
+}
+
+/// #144: the arrangement (sides, stacked groups, a floating window) comes back after the
+/// settings are written and read again, belongs to the workspace (switching away and back
+/// brings it back) and travels in a workspace file. Window ▸ Dockers ▸ Reset Docker Layout puts
+/// every docker back in one group on the right.
+#[test]
+#[ignore]
+fn visual_issue_144_layout_survives_settings_and_workspaces() {
+    use crate::dockers::dock::Act;
+    use crate::dockers::layout::Target;
+    use crate::dockers::DockerId::*;
+    use crate::dockers::DockerSide::*;
+    use crate::workspaces as ws;
+    use egui_kittest::kittest::Queryable;
+    let mut h = dock_harness(&[Properties, Objects, Pages, Color]);
+    {
+        let st = &mut h.state_mut().dockers;
+        st.act(Act::Dock(Objects, Left));
+        let g = st.layout.group_of(Properties).unwrap();
+        st.layout.place(&[Pages], Target::Stack { group: g, after: true });
+        st.act(Act::Float(Color));
+    }
+    settle(&mut h);
+    let arranged = h.state().dockers.layout.clone();
+    assert_eq!(arranged.side_groups(Left).len(), 1);
+    assert_eq!(arranged.side_groups(Right).len(), 2);
+    assert!(arranged.groups.iter().any(|g| g.floating && g.dockers == [Color]));
+    save(&mut h, "issue_144_11_arranged");
+    // as after a restart
+    let back = dock_restart(&mut h);
+    {
+        let app = h.state_mut();
+        app.settings = back;
+        app.dockers = crate::dockers::DockerState::from_settings(&app.settings);
+    }
+    settle(&mut h);
+    assert_eq!(h.state().dockers.layout, arranged, "the settings didn't bring the arrangement back");
+    for d in [Properties, Objects, Pages, Color] {
+        dock_tab(&h, d);
+    }
+    save(&mut h, "issue_144_12_after_restart");
+    // a workspace of its own: switching away and back brings it back
+    let cur = h.state().settings.workspace.clone();
+    ws::create(h.state_mut(), "Docks 144", &cur, "", true);
+    settle(&mut h);
+    assert_eq!(h.state().dockers.layout, arranged);
+    ws::switch(h.state_mut(), "Lite");
+    settle(&mut h);
+    assert_ne!(h.state().dockers.layout, arranged);
+    ws::switch(h.state_mut(), "Docks 144");
+    settle(&mut h);
+    assert_eq!(h.state().dockers.layout, arranged, "the workspace didn't keep the arrangement");
+    // in a workspace file
+    let dir = std::env::temp_dir().join(format!("vector_ws144_{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&dir);
+    let p = dir.join("Docks.cdws");
+    let l = ws::capture(h.state_mut());
+    ws::write_file(&p, &ws::WorkspaceFile { name: "Docks".into(), description: String::new(), elements: vec![], layout: l }).unwrap();
+    let f = ws::read_file(&p).unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+    h.state_mut().run(Cmd::ResetDockerLayout);
+    settle(&mut h);
+    assert_eq!(h.state().dockers.layout.groups.len(), 1);
+    ws::apply(h.state_mut(), &f.layout);
+    settle(&mut h);
+    assert_eq!(h.state().dockers.layout, arranged, "the workspace file didn't bring the arrangement back");
+    // Window ▸ Dockers ▸ Reset Docker Layout
+    open_menu(&mut h, "Window");
+    for _ in 0..3 {
+        h.step();
+    }
+    let dk = h.query_all_by_label("Dockers").map(|n| n.rect()).filter(|r| r.top() > 30.0).last().expect("Window ▸ Dockers");
+    move_to(&mut h, dk.center());
+    for _ in 0..4 {
+        h.step();
+    }
+    save(&mut h, "issue_144_13_window_dockers_menu");
+    click_label(&mut h, "Reset Docker Layout");
+    settle(&mut h);
+    let l = h.state().dockers.layout.clone();
+    assert_eq!(l.groups.len(), 1, "Reset Docker Layout didn't put the dockers in one group");
+    assert!(l.groups[0].on(Right));
+    assert_eq!(l.groups[0].dockers.len(), 4);
+    save(&mut h, "issue_144_14_reset");
+    ws::delete(h.state_mut(), "Docks 144");
+}

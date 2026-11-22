@@ -5661,3 +5661,12 @@ Delete conflicts	Conflicten verwijderen
 Duplicate in Place	Op zijn plaats dupliceren
 Toggle Pick State	Selectiestatus wisselen
 (none)	(geen)
+Expand Dockers	Koppelvensters uitvouwen
+Collapse Dockers	Koppelvensters samenvouwen
+Add Docker	Koppelvenster toevoegen
+Dock &Left	&Links koppelen
+Dock Ri&ght	&Rechts koppelen
+&Float	&Zwevend
+&Close	&Sluiten
+Close &Others	&Andere sluiten
+&Reset Docker Layout	Indeling van koppelvensters &opnieuw instellen
