@@ -5671,3 +5671,22 @@ Dock Ri&ght	Docka till &höger
 &Close	&Stäng
 Close &Others	Stäng &andra
 &Reset Docker Layout	&Återställ layout för dockningsfönster
+Blend start: {} on {}	Övertoningens början: {} på {}
+Blend end: {} on {}	Övertoningens slut: {} på {}
+Blend path: {} on {}	Övertoningens bana: {} på {}
+Blend split: {} on {}	Övertoningens delning: {} på {}
+Click the path the blend follows (Esc to cancel)	Klicka på banan som övertoningen följer (Esc för att avbryta)
+Click the new start object of the blend (Esc to cancel)	Klicka på övertoningens nya startobjekt (Esc för att avbryta)
+Click the new end object of the blend (Esc to cancel)	Klicka på övertoningens nya slutobjekt (Esc för att avbryta)
+Click the step of the blend where it splits (Esc to cancel)	Klicka på steget där övertoningen delas (Esc för att avbryta)
+Click a node of the start object (Esc to cancel)	Klicka på en nod i startobjektet (Esc för att avbryta)
+Click the matching node of the end object (Esc to cancel)	Klicka på motsvarande nod i slutobjektet (Esc för att avbryta)
+Select a blend first	Markera en övertoning först
+Click an object that is not part of the blend	Klicka på ett objekt som inte ingår i övertoningen
+Click a curve or a shape to use as the path	Klicka på en kurva eller form att använda som bana
+The path has no length	Banan har ingen längd
+Groups, bitmaps and blends can't start or end a blend	Grupper, bitmappar och övertoningar kan inte starta eller avsluta en övertoning
+The blend has no split to fuse	Övertoningen har ingen delning att slå ihop
+Click a step of the blend	Klicka på ett steg i övertoningen
+Click a node of the start object	Klicka på en nod i startobjektet
+Click the matching node of the end object	Klicka på motsvarande nod i slutobjektet

@@ -85,6 +85,7 @@ pub fn draw_overlay(app: &mut AnyVectorApp, painter: &Painter) {
     }
     crate::dialogs::symmetry::draw_overlay(painter, d);
     crate::powerclip::draw_overlay(painter, d);
+    crate::blendpath::draw_overlay(painter, d, ts.pick_target);
 
     let dragging_xform = matches!(ts.drag, Drag::Transform { .. });
     match tool {

@@ -5671,3 +5671,22 @@ Dock Ri&ght	Закрепить с&права
 &Close	&Закрыть
 Close &Others	Закрыть &остальные
 &Reset Docker Layout	&Сбросить расположение окон настройки
+Blend start: {} on {}	Начало перетекания: {} на {}
+Blend end: {} on {}	Конец перетекания: {} на {}
+Blend path: {} on {}	Путь перетекания: {} на {}
+Blend split: {} on {}	Разделение перетекания: {} на {}
+Click the path the blend follows (Esc to cancel)	Щелкните путь, вдоль которого идет перетекание (Esc — отмена)
+Click the new start object of the blend (Esc to cancel)	Щелкните новый начальный объект перетекания (Esc — отмена)
+Click the new end object of the blend (Esc to cancel)	Щелкните новый конечный объект перетекания (Esc — отмена)
+Click the step of the blend where it splits (Esc to cancel)	Щелкните шаг перетекания, где оно разделится (Esc — отмена)
+Click a node of the start object (Esc to cancel)	Щелкните узел начального объекта (Esc — отмена)
+Click the matching node of the end object (Esc to cancel)	Щелкните соответствующий узел конечного объекта (Esc — отмена)
+Select a blend first	Сначала выберите перетекание
+Click an object that is not part of the blend	Щелкните объект, который не входит в перетекание
+Click a curve or a shape to use as the path	Щелкните кривую или фигуру, которая станет путем
+The path has no length	Путь не имеет длины
+Groups, bitmaps and blends can't start or end a blend	Группы, растровые изображения и перетекания не могут начинать или заканчивать перетекание
+The blend has no split to fuse	У перетекания нет разделения для слияния
+Click a step of the blend	Щелкните шаг перетекания
+Click a node of the start object	Щелкните узел начального объекта
+Click the matching node of the end object	Щелкните соответствующий узел конечного объекта

@@ -95,6 +95,9 @@ fn shapes(doc: &Document, o: &Object, layer: &str, out: &mut Vec<CutShape>, imag
             contents.iter().for_each(|c| shapes(doc, c, layer, out, images));
         }
         ObjKind::Blend(b) => {
+            if let Some(p) = &b.path {
+                shapes(doc, &p.obj, layer, out, images);
+            }
             shapes(doc, &b.start, layer, out, images);
             for step in vector_core::object::blend_steps(b, || 0) {
                 shapes(doc, &step, layer, out, images);

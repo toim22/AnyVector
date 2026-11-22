@@ -5671,3 +5671,22 @@ Dock Ri&ght	&Rechts andocken
 &Close	&Schließen
 Close &Others	&Andere schließen
 &Reset Docker Layout	Andockfenster-Layout &zurücksetzen
+Blend start: {} on {}	Überblendungsanfang: {} auf {}
+Blend end: {} on {}	Überblendungsende: {} auf {}
+Blend path: {} on {}	Überblendungspfad: {} auf {}
+Blend split: {} on {}	Überblendungsteilung: {} auf {}
+Click the path the blend follows (Esc to cancel)	Klicken Sie auf den Pfad, dem die Überblendung folgt (Esc zum Abbrechen)
+Click the new start object of the blend (Esc to cancel)	Klicken Sie auf das neue Anfangsobjekt der Überblendung (Esc zum Abbrechen)
+Click the new end object of the blend (Esc to cancel)	Klicken Sie auf das neue Endobjekt der Überblendung (Esc zum Abbrechen)
+Click the step of the blend where it splits (Esc to cancel)	Klicken Sie auf den Schritt, an dem die Überblendung geteilt wird (Esc zum Abbrechen)
+Click a node of the start object (Esc to cancel)	Klicken Sie auf einen Knoten des Anfangsobjekts (Esc zum Abbrechen)
+Click the matching node of the end object (Esc to cancel)	Klicken Sie auf den passenden Knoten des Endobjekts (Esc zum Abbrechen)
+Select a blend first	Wählen Sie zuerst eine Überblendung aus
+Click an object that is not part of the blend	Klicken Sie auf ein Objekt, das nicht zur Überblendung gehört
+Click a curve or a shape to use as the path	Klicken Sie auf eine Kurve oder Form, die als Pfad dienen soll
+The path has no length	Der Pfad hat keine Länge
+Groups, bitmaps and blends can't start or end a blend	Gruppen, Bitmaps und Überblendungen können eine Überblendung weder beginnen noch beenden
+The blend has no split to fuse	Die Überblendung hat keine Teilung zum Zusammenfügen
+Click a step of the blend	Klicken Sie auf einen Schritt der Überblendung
+Click a node of the start object	Klicken Sie auf einen Knoten des Anfangsobjekts
+Click the matching node of the end object	Klicken Sie auf den passenden Knoten des Endobjekts

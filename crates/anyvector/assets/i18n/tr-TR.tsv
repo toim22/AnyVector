@@ -5671,3 +5671,22 @@ Dock Ri&ght	Sa&ğa Yerleştir
 &Close	Ka&pat
 Close &Others	&Diğerlerini Kapat
 &Reset Docker Layout	Yerleşik Pencere Düzenini Sı&fırla
+Blend start: {} on {}	Karışım başlangıcı: {}, {} üzerinde
+Blend end: {} on {}	Karışım sonu: {}, {} üzerinde
+Blend path: {} on {}	Karışım yolu: {}, {} üzerinde
+Blend split: {} on {}	Karışım bölmesi: {}, {} üzerinde
+Click the path the blend follows (Esc to cancel)	Karışımın izlediği yola tıklayın (iptal için Esc)
+Click the new start object of the blend (Esc to cancel)	Karışımın yeni başlangıç nesnesine tıklayın (iptal için Esc)
+Click the new end object of the blend (Esc to cancel)	Karışımın yeni bitiş nesnesine tıklayın (iptal için Esc)
+Click the step of the blend where it splits (Esc to cancel)	Karışımın bölüneceği adıma tıklayın (iptal için Esc)
+Click a node of the start object (Esc to cancel)	Başlangıç nesnesinin bir düğümüne tıklayın (iptal için Esc)
+Click the matching node of the end object (Esc to cancel)	Bitiş nesnesinin eşleşen düğümüne tıklayın (iptal için Esc)
+Select a blend first	Önce bir karışım seçin
+Click an object that is not part of the blend	Karışımın parçası olmayan bir nesneye tıklayın
+Click a curve or a shape to use as the path	Yol olarak kullanılacak bir eğriye veya şekle tıklayın
+The path has no length	Yolun uzunluğu yok
+Groups, bitmaps and blends can't start or end a blend	Gruplar, bit eşlemler ve karışımlar bir karışımı başlatamaz veya bitiremez
+The blend has no split to fuse	Karışımda birleştirilecek bölme yok
+Click a step of the blend	Karışımın bir adımına tıklayın
+Click a node of the start object	Başlangıç nesnesinin bir düğümüne tıklayın
+Click the matching node of the end object	Bitiş nesnesinin eşleşen düğümüne tıklayın

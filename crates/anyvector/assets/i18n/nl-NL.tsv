@@ -5671,3 +5671,22 @@ Dock Ri&ght	&Rechts koppelen
 &Close	&Sluiten
 Close &Others	&Andere sluiten
 &Reset Docker Layout	Indeling van koppelvensters &opnieuw instellen
+Blend start: {} on {}	Begin van overvloeiing: {} op {}
+Blend end: {} on {}	Einde van overvloeiing: {} op {}
+Blend path: {} on {}	Pad van overvloeiing: {} op {}
+Blend split: {} on {}	Splitsing van overvloeiing: {} op {}
+Click the path the blend follows (Esc to cancel)	Klik op het pad dat de overvloeiing volgt (Esc om te annuleren)
+Click the new start object of the blend (Esc to cancel)	Klik op het nieuwe beginobject van de overvloeiing (Esc om te annuleren)
+Click the new end object of the blend (Esc to cancel)	Klik op het nieuwe eindobject van de overvloeiing (Esc om te annuleren)
+Click the step of the blend where it splits (Esc to cancel)	Klik op de stap van de overvloeiing waar die splitst (Esc om te annuleren)
+Click a node of the start object (Esc to cancel)	Klik op een knooppunt van het beginobject (Esc om te annuleren)
+Click the matching node of the end object (Esc to cancel)	Klik op het bijbehorende knooppunt van het eindobject (Esc om te annuleren)
+Select a blend first	Selecteer eerst een overvloeiing
+Click an object that is not part of the blend	Klik op een object dat geen deel uitmaakt van de overvloeiing
+Click a curve or a shape to use as the path	Klik op een curve of vorm om als pad te gebruiken
+The path has no length	Het pad heeft geen lengte
+Groups, bitmaps and blends can't start or end a blend	Groepen, bitmaps en overvloeiingen kunnen een overvloeiing niet beginnen of beëindigen
+The blend has no split to fuse	De overvloeiing heeft geen splitsing om samen te voegen
+Click a step of the blend	Klik op een stap van de overvloeiing
+Click a node of the start object	Klik op een knooppunt van het beginobject
+Click the matching node of the end object	Klik op het bijbehorende knooppunt van het eindobject

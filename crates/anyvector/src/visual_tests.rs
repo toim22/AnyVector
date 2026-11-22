@@ -7874,3 +7874,359 @@ fn visual_issue_144_layout_survives_settings_and_workspaces() {
     save(&mut h, "issue_144_14_reset");
     ws::delete(h.state_mut(), "Docks 144");
 }
+
+// ---- #145: blends along a path, their parts and their options ----
+
+fn bp_circle(d: &mut crate::docview::DocView, c: (f64, f64), r: f64, fill: Fill) -> Object {
+    let e = EllipseShape { w: 2.0 * r, h: 2.0 * r, kind: EllipseKind::Ellipse, start: 0.0, end: 0.0, clockwise: false };
+    let mut st = Style::default();
+    st.fill = fill;
+    Object::new(d.doc.new_id(), ObjKind::Ellipse(e), Affine::translate((c.0 - r, c.1 - r)), st)
+}
+
+/// A blend of a red circle (radius 20, at the left of the circle below) to a blue one (radius
+/// 30, at its right) in 8 steps, and an unfilled circle of radius 150 about (400, 400) to use as
+/// its path. The blend is selected. Gives [blend, start, end, path].
+fn bp_add(h: &mut Harness<'_, AnyVectorApp>) -> [u64; 4] {
+    let d = h.state_mut().doc_mut().unwrap();
+    let a = bp_circle(d, (250.0, 400.0), 20.0, Fill::Solid(Color::rgb(220, 40, 40)));
+    let b = bp_circle(d, (550.0, 400.0), 30.0, Fill::Solid(Color::rgb(40, 80, 220)));
+    let path = bp_circle(d, (400.0, 400.0), 150.0, Fill::None);
+    let (ia, ib, ip) = (a.id, b.id, path.id);
+    d.add_objects("test", vec![a, b, path]);
+    let blend = d.modify("Blend", |doc, _| vector_core::ops::create_blend(doc, ia, ib, 8)).unwrap();
+    d.selection = vec![blend];
+    [blend, ia, ib, ip]
+}
+
+/// [`bp_add`] with the path already attached (the blend and the path selected, then New Path).
+fn bp_on_path(h: &mut Harness<'_, AnyVectorApp>) -> [u64; 4] {
+    let ids = bp_add(h);
+    h.state_mut().doc_mut().unwrap().selection = vec![ids[0], ids[3]];
+    run_cmd(h, Cmd::BarOption(0x42941bfb));
+    assert!(bp_blend(h, ids[0]).path.is_some(), "New Path with the blend and the path selected");
+    ids
+}
+
+fn bp_blend(h: &Harness<'_, AnyVectorApp>, id: u64) -> vector_core::object::BlendObj {
+    vector_core::blend_path::blend_of(&h.state().doc().unwrap().doc, id).unwrap().clone()
+}
+
+fn bp_centres(b: &vector_core::object::BlendObj) -> Vec<Point> {
+    vector_core::object::blend_steps(b, || 0).iter().map(|o| o.bounds().center()).collect()
+}
+
+/// How far `p` is off the path circle of [`bp_add`].
+fn bp_off(p: Point) -> f64 {
+    ((p - Point::new(400.0, 400.0)).hypot() - 150.0).abs()
+}
+
+fn bp_state(h: &Harness<'_, AnyVectorApp>, key: &str) -> Option<(bool, bool)> {
+    crate::propbar::option_state(h.state(), key)
+}
+
+/// #145 (§5.4): every button, check box and radio button of the Blend property bar, of its
+/// Path Properties, Options and Start and End Properties flyouts and of the Blend Control Editing
+/// menu runs a command: none of them says "not available in this version yet". (The other bars
+/// still have such items; they are listed, not checked, here.)
+#[test]
+fn blend_bar_items_all_run_a_command() {
+    use crate::ui::Kind;
+    let blend_bars = ["d16cdcfb", "1efc4f62", "428bed7d", "37492bbf", "8a5f6c77"];
+    let runs = |it: &crate::ui::Item| !matches!(it.kind, Kind::Button | Kind::Check | Kind::Radio | Kind::ButtonFlyout) || it.id.is_empty() || crate::ui::bind::cmd(it.id).is_some();
+    let mut seen = 0;
+    let mut missing = vec![];
+    let mut elsewhere = 0;
+    for b in crate::ui::bars() {
+        let ours = blend_bars.contains(&&b.id[..8.min(b.id.len())]);
+        seen += ours as usize;
+        for it in b.items.iter().filter(|it| !runs(it)) {
+            if ours {
+                missing.push(format!("{} ▸ {} ({})", b.name, crate::ui::plain(it.text), it.id));
+            } else {
+                elsewhere += 1;
+            }
+        }
+    }
+    assert_eq!(seen, blend_bars.len(), "a blend bar is missing from the reference data");
+    assert!(missing.is_empty(), "blend items without a command: {missing:#?}");
+    eprintln!("items without a command on the other bars: {elsewhere}");
+    // and each blend command has a state of its own
+    for (k, _) in crate::blendpath::KEYS {
+        assert!(crate::ui::bind::cmd(k).is_some_and(|c| c == Cmd::BarOption(u32::from_str_radix(k, 16).unwrap())), "{k}");
+    }
+}
+
+/// #145: New Path waits for a click on the path (the hint says so); the blend then follows the
+/// circle (every step on it), the circle leaves the page and becomes part of the blend, and one
+/// Undo puts it all back. Show Path, Detach and the path options are on only with a path.
+#[test]
+fn blend_new_path_by_click_follows_the_circle_and_undoes() {
+    use crate::tools::{PickTarget, ToolId};
+    let mut h = join_harness(ToolId::Blend);
+    let [blend, start, end, path] = bp_add(&mut h);
+    h.step();
+    assert_eq!(bp_state(&h, "42941bfb"), Some((true, false)), "New Path");
+    for k in ["050d45c6", "3726add2", "247d0e09", "50c0c56f"] {
+        assert_eq!(bp_state(&h, k), Some((false, false)), "{k} without a path");
+    }
+    let undo0 = undo_steps(&h);
+    run_cmd(&mut h, Cmd::BarOption(0x42941bfb));
+    assert!(matches!(h.state().ts.pick_target, Some(PickTarget::Blend(crate::blendpath::Pick::Path { .. }))));
+    assert!(h.state().ts.hint(ToolId::Blend).starts_with("Click the path the blend follows"));
+    // the blend itself can't be its own path
+    let s = bp_blend(&h, blend).start.bounds().center();
+    pick_click(&mut h, (s.x, s.y), egui::Modifiers::NONE);
+    assert!(bp_blend(&h, blend).path.is_none(), "the start became the path");
+    assert_eq!(undo_steps(&h), undo0, "a refused click left an undo step");
+    // the circle, clicked on its outline at the top
+    run_cmd(&mut h, Cmd::BarOption(0x42941bfb));
+    pick_click(&mut h, (400.0, 250.0), egui::Modifiers::NONE);
+    let b = bp_blend(&h, blend);
+    assert_eq!(b.path.as_ref().map(|p| p.obj.id), Some(path));
+    assert!(h.state().ts.pick_target.is_none());
+    let d = h.state().doc().unwrap();
+    assert!(d.doc.locate(path).is_none(), "the path is still on the page of its own");
+    assert_eq!(d.selection, vec![blend]);
+    assert_eq!((b.start.id, b.end.id), (start, end));
+    let c = bp_centres(&b);
+    assert_eq!(c.len(), 8);
+    for p in &c {
+        assert!(bp_off(*p) < 1.0, "a step off the circle: {p:?}");
+    }
+    // the steps go round the circle, not straight across
+    assert!(c.iter().any(|p| (p.y - 400.0).abs() > 100.0), "{c:?}");
+    assert_eq!(undo_steps(&h), undo0 + 1);
+    for k in ["050d45c6", "3726add2", "247d0e09", "50c0c56f"] {
+        assert_eq!(bp_state(&h, k), Some((true, false)), "{k} with a path");
+    }
+    undo(&mut h);
+    let d = h.state().doc().unwrap();
+    assert!(bp_blend(&h, blend).path.is_none());
+    assert!(d.doc.locate(path).is_some(), "Undo put the path back on the page");
+    // with the blend and the curve both selected it applies at once (the Blend tool's way)
+    h.state_mut().doc_mut().unwrap().selection = vec![path, blend];
+    run_cmd(&mut h, Cmd::BarOption(0x42941bfb));
+    assert!(h.state().ts.pick_target.is_none());
+    assert_eq!(bp_blend(&h, blend).path.as_ref().map(|p| p.obj.id), Some(path));
+    assert_eq!(sel(&h), vec![blend]);
+}
+
+/// #145: Show Start and Show End select the control on its own (the status bar names it, its
+/// outline is drawn); dragging it slides it along the path; Escape lets go of it; Delete on the
+/// end takes the blend apart (the start and the path stay), and Undo brings the blend back.
+#[test]
+fn blend_show_start_and_end_focus_drag_and_delete() {
+    use crate::tools::ToolId;
+    use vector_core::object::BlendPart;
+    let mut h = join_harness(ToolId::Pick);
+    let [blend, start, end, path] = bp_on_path(&mut h);
+    h.state_mut().doc_mut().unwrap().selection = vec![blend];
+    run_cmd(&mut h, Cmd::BarOption(0x7341835a));
+    assert_eq!(sel(&h), vec![start]);
+    assert_eq!(crate::blendpath::focus(h.state().doc().unwrap()), Some((blend, BlendPart::Start)));
+    let info = crate::statusbar::object_info(h.state());
+    assert!(info.starts_with("Blend start: ") && info.contains(" on "), "{info}");
+    // the blend's commands still act on the blend
+    assert_eq!(bp_state(&h, "1a1bed58"), Some((true, false)), "Show End with the start shown");
+    // dragged up and away, it stays on the path
+    let before = bp_blend(&h, blend).start.bounds().center();
+    shape_drag(&mut h, (before.x, before.y), (before.x + 40.0, before.y - 90.0), egui::Modifiers::NONE);
+    h.step();
+    let b = bp_blend(&h, blend);
+    let now = b.start.bounds().center();
+    assert!((now - before).hypot() > 20.0, "the start didn't move: {before:?} → {now:?}");
+    assert!(bp_off(now) < 1.0, "the start left the path: {now:?}");
+    for p in bp_centres(&b) {
+        assert!(bp_off(p) < 1.0, "a step off the circle: {p:?}");
+    }
+    assert_eq!(sel(&h), vec![start], "the start is still the one selected");
+    h.key_press(egui::Key::Escape);
+    h.step();
+    assert_eq!(crate::blendpath::focus(h.state().doc().unwrap()), None);
+    // Show End, then Delete: the blend comes apart
+    h.state_mut().doc_mut().unwrap().selection = vec![blend];
+    run_cmd(&mut h, Cmd::BarOption(0x1a1bed58));
+    assert_eq!(sel(&h), vec![end]);
+    assert!(crate::statusbar::object_info(h.state()).starts_with("Blend end: "));
+    let undo0 = undo_steps(&h);
+    run_cmd(&mut h, Cmd::Delete);
+    let d = h.state().doc().unwrap();
+    assert!(d.doc.find(blend).is_none() && d.doc.find(end).is_none(), "the blend or its end is left");
+    assert!(d.doc.locate(start).is_some() && d.doc.locate(path).is_some(), "the start and the path are on the page");
+    assert_eq!(d.selection, vec![start]);
+    assert_eq!(undo_steps(&h), undo0 + 1);
+    undo(&mut h);
+    assert!(bp_blend(&h, blend).path.is_some(), "Undo brought the blend on its path back");
+}
+
+/// #145: Blend Along Full Path and Rotate All Objects, from the property bar's Options and from
+/// the Blend docker, which shows them as the blend has them; Detach from Path puts the circle
+/// back on the page and the blend goes straight again.
+#[test]
+fn blend_full_path_rotate_all_and_the_docker_follow_each_other() {
+    use crate::dockers::DockerId;
+    use crate::tools::ToolId;
+    use egui_kittest::kittest::{NodeT, Queryable};
+    let mut h = join_harness(ToolId::Blend);
+    let [blend, _, _, path] = bp_on_path(&mut h);
+    {
+        let a = h.state_mut();
+        a.dockers.open.clear();
+        a.dockers.show(DockerId::Blend);
+        a.dockers.collapsed = false;
+        a.dockers.set_width = Some(320.0);
+    }
+    settle(&mut h);
+    let checked = |h: &Harness<'_, AnyVectorApp>, label: &str| {
+        h.query_all_by_label(label).find(|n| n.accesskit_node().role() == egui::accesskit::Role::CheckBox).map(|n| n.accesskit_node().toggled() == Some(egui::accesskit::Toggled::True))
+    };
+    assert_eq!(checked(&h, "Blend along full path"), Some(false));
+    // from the bar: the docker follows
+    run_cmd(&mut h, Cmd::BarOption(0x247d0e09));
+    settle(&mut h);
+    let b = bp_blend(&h, blend);
+    assert!(b.path.as_ref().unwrap().full);
+    assert_eq!(bp_state(&h, "247d0e09"), Some((true, true)));
+    assert_eq!(checked(&h, "Blend along full path"), Some(true), "the docker didn't follow the bar");
+    // on the whole circle the steps are evenly spread
+    let c = bp_centres(&b);
+    let gaps: Vec<f64> = c.windows(2).map(|w| (w[1] - w[0]).hypot()).collect();
+    let (lo, hi) = gaps.iter().fold((f64::MAX, 0.0f64), |(lo, hi), g| (lo.min(*g), hi.max(*g)));
+    assert!(hi - lo < 1.0, "uneven steps on the full circle: {gaps:?}");
+    // from the docker: the bar follows
+    let at = h.query_all_by_label("Rotate all objects").find(|n| n.accesskit_node().role() == egui::accesskit::Role::CheckBox).unwrap().rect().center();
+    click(&mut h, at);
+    settle(&mut h);
+    assert!(bp_blend(&h, blend).path.as_ref().unwrap().rotate, "the docker's Rotate all objects did nothing");
+    assert_eq!(bp_state(&h, "50c0c56f"), Some((true, true)));
+    assert_eq!(checked(&h, "Rotate all objects"), Some(true));
+    // Detach from Path
+    run_cmd(&mut h, Cmd::BarOption(0x3726add2));
+    settle(&mut h);
+    let d = h.state().doc().unwrap();
+    assert!(d.doc.locate(path).is_some(), "the path isn't back on the page");
+    assert!(bp_blend(&h, blend).path.is_none());
+    assert_eq!(checked(&h, "Blend along full path"), Some(false));
+}
+
+/// #145: Split (click a step: the blend passes through it, and it can be moved on its own),
+/// Fuse end (the split goes back), Map nodes (a node of the start, then one of the end) and
+/// fixed spacing (the Spacing radio button), each one undo step.
+#[test]
+fn blend_split_fuse_map_nodes_and_spacing() {
+    use crate::tools::{PickTarget, ToolId};
+    use vector_core::object::BlendPart;
+    let mut h = join_harness(ToolId::Blend);
+    let [blend, _, _, _] = bp_on_path(&mut h);
+    assert_eq!(bp_state(&h, "e022c80a"), Some((false, false)), "Fuse start without a split");
+    // Split at the fourth step
+    let undo0 = undo_steps(&h);
+    run_cmd(&mut h, Cmd::BarOption(0x339589f8));
+    assert!(matches!(h.state().ts.pick_target, Some(PickTarget::Blend(crate::blendpath::Pick::Split { .. }))));
+    let p = bp_centres(&bp_blend(&h, blend))[3];
+    pick_click(&mut h, (p.x, p.y), egui::Modifiers::NONE);
+    let b = bp_blend(&h, blend);
+    assert_eq!(b.splits.len(), 1);
+    assert_eq!(sel(&h), vec![b.splits[0].obj.id], "the split object is selected on its own");
+    assert_eq!(crate::blendpath::focus(h.state().doc().unwrap()), Some((blend, BlendPart::Split(0))));
+    assert!(crate::statusbar::object_info(h.state()).starts_with("Blend split: "));
+    assert_eq!(undo_steps(&h), undo0 + 1);
+    assert_eq!(bp_state(&h, "ba9b75cf"), Some((true, false)), "Fuse end with a split");
+    run_cmd(&mut h, Cmd::BarOption(0xba9b75cf));
+    assert!(bp_blend(&h, blend).splits.is_empty());
+    assert_eq!(sel(&h), vec![blend]);
+    // Map nodes: a node of the start, then the matching node of the end
+    let b = bp_blend(&h, blend);
+    let (na, nb) = (vector_core::blend_path::map_candidates(&b.start), vector_core::blend_path::map_candidates(&b.end));
+    assert!(!na.is_empty() && !nb.is_empty());
+    run_cmd(&mut h, Cmd::BarOption(0xc5cd624e));
+    let q = na[na.len() / 2].0;
+    pick_click(&mut h, (q.x, q.y), egui::Modifiers::NONE);
+    assert!(matches!(h.state().ts.pick_target, Some(PickTarget::Blend(crate::blendpath::Pick::MapNodes { first: Some(_), .. }))));
+    let q = nb[0].0;
+    pick_click(&mut h, (q.x, q.y), egui::Modifiers::NONE);
+    assert!(bp_blend(&h, blend).map.is_some(), "Map nodes did nothing");
+    assert!(h.state().ts.pick_target.is_none());
+    // fixed spacing on the path: the Spacing radio button, and back to steps
+    assert_eq!(bp_state(&h, "46327bd4"), Some((true, false)));
+    run_cmd(&mut h, Cmd::BarOption(0x46327bd4));
+    let b = bp_blend(&h, blend);
+    assert!(b.spacing.is_some_and(|s| s > 1.0), "{:?}", b.spacing);
+    assert_eq!(bp_state(&h, "46327bd4"), Some((true, true)));
+    assert_eq!(bp_state(&h, "5cefe9f1"), Some((true, false)));
+    // the spacing the radio button chose keeps the blend as it was
+    assert_eq!(vector_core::blend_path::effective_steps(&b), 8);
+    run_cmd(&mut h, Cmd::BarOption(0x5cefe9f1));
+    let b = bp_blend(&h, blend);
+    assert!(b.spacing.is_none());
+    assert_eq!(b.steps, 8);
+    // Clear Blend: the start, the end and the path are objects of their own again
+    run_cmd(&mut h, Cmd::BarOption(0xf1eb59d2));
+    let d = h.state().doc().unwrap();
+    assert!(d.doc.find(blend).is_none());
+    assert!(d.doc.locate(b.path.as_ref().unwrap().obj.id).is_some(), "Clear Blend lost the path");
+}
+
+/// #145: blends along paths, as drawn: circles round a circle (as it is, along the full path,
+/// with Rotate All Objects), the start shown on its own, Map nodes waiting for a node, the Blend
+/// docker with its options, and a star to a square along an open wave with fixed spacing.
+#[test]
+#[ignore]
+fn visual_issue_145_blend_along_a_path() {
+    use crate::dockers::DockerId;
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    h.state_mut().set_tool(ToolId::Blend);
+    let [blend, _, _, _] = bp_on_path(&mut h);
+    h.state_mut().doc_mut().unwrap().selection = vec![blend];
+    save(&mut h, "issue_145_01_circles_on_a_circle");
+    run_cmd(&mut h, Cmd::BarOption(0x247d0e09));
+    save(&mut h, "issue_145_02_full_path");
+    run_cmd(&mut h, Cmd::BarOption(0x50c0c56f));
+    save(&mut h, "issue_145_03_rotate_all");
+    h.state_mut().set_tool(ToolId::Pick);
+    run_cmd(&mut h, Cmd::BarOption(0x7341835a));
+    save(&mut h, "issue_145_04_show_start");
+    h.state_mut().set_tool(ToolId::Blend);
+    h.state_mut().doc_mut().unwrap().selection = vec![blend];
+    run_cmd(&mut h, Cmd::BarOption(0xc5cd624e));
+    save(&mut h, "issue_145_05_map_nodes_waits");
+    h.key_press(egui::Key::Escape);
+    h.step();
+    {
+        let a = h.state_mut();
+        a.ts.pick_target = None;
+        a.dockers.open.clear();
+        a.dockers.show(DockerId::Blend);
+        a.dockers.collapsed = false;
+        a.dockers.set_width = Some(320.0);
+        a.dockers.ui.blend_more = true;
+        a.doc_mut().unwrap().selection = vec![blend];
+    }
+    save(&mut h, "issue_145_06_docker");
+    // a star to a square along an open wave, 30 pt apart, turned along it
+    let d = h.state_mut().doc_mut().unwrap();
+    let mut st = Style::default();
+    st.fill = Fill::Solid(Color::rgb(240, 180, 30));
+    let star = Object::new(d.doc.new_id(), ObjKind::Polygon(PolygonShape { kind: PolygonKind::Star, sides: 5, sharpness: 50.0, w: 50.0, h: 50.0, nodes: Default::default() }), Affine::translate((95.0, 655.0)), st.clone());
+    st.fill = Fill::Solid(Color::rgb(30, 160, 90));
+    let square = Object::new(d.doc.new_id(), ObjKind::Rect(RectShape { w: 40.0, h: 40.0, radii: [0.0; 4], corner: CornerType::default() }), Affine::translate((480.0, 660.0)), st);
+    let mut wave = kurbo::BezPath::new();
+    wave.move_to((120.0, 680.0));
+    wave.curve_to((220.0, 560.0), (300.0, 800.0), (380.0, 680.0));
+    wave.curve_to((420.0, 620.0), (470.0, 640.0), (500.0, 680.0));
+    let wave = Object::new(d.doc.new_id(), ObjKind::Path(vector_core::path::NodePath::from_bez(&wave)), Affine::IDENTITY, Style::default());
+    let (a, b, w) = (star.id, square.id, wave.id);
+    d.add_objects("test", vec![star, square, wave]);
+    let second = d.modify("Blend", |doc, _| vector_core::ops::create_blend(doc, a, b, 6)).unwrap();
+    d.selection = vec![second, w];
+    run_cmd(&mut h, Cmd::BarOption(0x42941bfb));
+    run_cmd(&mut h, Cmd::BarOption(0x247d0e09));
+    run_cmd(&mut h, Cmd::BarOption(0x50c0c56f));
+    run_cmd(&mut h, Cmd::BarOption(0x46327bd4));
+    crate::blendpath::edit(h.state_mut(), "Blend", |b| b.spacing = Some(30.0));
+    h.state_mut().dockers.open.clear();
+    save(&mut h, "issue_145_07_star_to_square_on_a_wave");
+    assert!(bp_blend(&h, second).path.as_ref().is_some_and(|p| p.full && p.rotate));
+}

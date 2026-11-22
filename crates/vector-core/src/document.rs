@@ -1383,6 +1383,14 @@ impl Document {
                     crate::geom::contains(&fp, p, false) && contents.iter().any(|x| self.hit_object(x, p, tol, treat_as_filled))
                 }
             }
+            // a blend on a path covers far less than its bounds (the whole path): its steps,
+            // controls and path pick it (#145)
+            ObjKind::Blend(b) if b.path.is_some() => {
+                self.hit_object(&b.start, p, tol, treat_as_filled)
+                    || self.hit_object(&b.end, p, tol, treat_as_filled)
+                    || b.path.as_ref().is_some_and(|x| self.hit_object(&x.obj, p, tol, false))
+                    || crate::blend_path::hit_steps(b, p, tol)
+            }
             ObjKind::Blend(b) => {
                 self.bounds_of(o).inflate(tol, tol).contains(p)
                     || self.hit_object(&b.start, p, tol, treat_as_filled)
@@ -1489,12 +1497,49 @@ impl Document {
 
     /// Transform objects by an affine in document space.
     pub fn transform_objects(&mut self, ids: &[ObjId], a: Affine) {
+        // the start, end, path or split of a blend on a path moved on its own: the blend keeps
+        // its controls on the path afterwards (#145)
+        let mut on_path: Vec<(ObjId, crate::object::BlendObj)> = vec![];
+        if self.has_blend_on_path() {
+            let parts = crate::blend_path::all_parts(self);
+            for id in ids {
+                if let Some((blend, _)) = parts.get(id) {
+                    if ids.contains(blend) || on_path.iter().any(|(b, _)| b == blend) {
+                        continue;
+                    }
+                    if let Some(b) = crate::blend_path::blend_of(self, *blend).filter(|b| b.path.is_some()) {
+                        on_path.push((*blend, b.clone()));
+                    }
+                }
+            }
+        }
         for id in ids {
             if let Some(o) = self.find_mut(*id) {
                 o.apply_transform(a);
             }
         }
+        for (blend, before) in on_path {
+            if let Some(ObjKind::Blend(b)) = self.find_mut(blend).map(|o| &mut o.kind) {
+                crate::blend_path::settle(b, &before);
+            }
+        }
         self.update_connectors();
+    }
+
+    /// Whether any blend of the document follows a path.
+    fn has_blend_on_path(&self) -> bool {
+        let mut any = false;
+        for p in &self.pages {
+            for l in &p.layers {
+                for o in &l.objects {
+                    o.walk(&mut |x| any |= matches!(&x.kind, ObjKind::Blend(b) if b.path.is_some()));
+                    if any {
+                        return true;
+                    }
+                }
+            }
+        }
+        false
     }
 
     /// Recompute connector endpoints attached to objects.

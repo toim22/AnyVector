@@ -5671,3 +5671,22 @@ Dock Ri&ght	Ancora a &destra
 &Close	&Chiudi
 Close &Others	Chiudi gli &altri
 &Reset Docker Layout	&Reimposta layout docker
+Blend start: {} on {}	Inizio della fusione: {} su {}
+Blend end: {} on {}	Fine della fusione: {} su {}
+Blend path: {} on {}	Tracciato della fusione: {} su {}
+Blend split: {} on {}	Divisione della fusione: {} su {}
+Click the path the blend follows (Esc to cancel)	Fare clic sul tracciato che la fusione segue (Esc per annullare)
+Click the new start object of the blend (Esc to cancel)	Fare clic sul nuovo oggetto iniziale della fusione (Esc per annullare)
+Click the new end object of the blend (Esc to cancel)	Fare clic sul nuovo oggetto finale della fusione (Esc per annullare)
+Click the step of the blend where it splits (Esc to cancel)	Fare clic sul passaggio della fusione in cui si divide (Esc per annullare)
+Click a node of the start object (Esc to cancel)	Fare clic su un nodo dell'oggetto iniziale (Esc per annullare)
+Click the matching node of the end object (Esc to cancel)	Fare clic sul nodo corrispondente dell'oggetto finale (Esc per annullare)
+Select a blend first	Selezionare prima una fusione
+Click an object that is not part of the blend	Fare clic su un oggetto che non fa parte della fusione
+Click a curve or a shape to use as the path	Fare clic su una curva o una forma da usare come tracciato
+The path has no length	Il tracciato non ha lunghezza
+Groups, bitmaps and blends can't start or end a blend	Gruppi, bitmap e fusioni non possono iniziare né terminare una fusione
+The blend has no split to fuse	La fusione non ha divisioni da unire
+Click a step of the blend	Fare clic su un passaggio della fusione
+Click a node of the start object	Fare clic su un nodo dell'oggetto iniziale
+Click the matching node of the end object	Fare clic sul nodo corrispondente dell'oggetto finale

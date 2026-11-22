@@ -1243,6 +1243,14 @@ pub fn break_blend(doc: &mut Document, id: ObjId) -> Vec<ObjId> {
     objs.extend(crate::object::blend_steps(b, || doc.new_id()));
     objs.push((*b.end).clone());
     doc.pages[p].layers[l].objects.remove(i);
+    // the path a blend followed stays an object of its own, under the group (#145)
+    let i = match &b.path {
+        Some(path) => {
+            doc.pages[p].layers[l].objects.insert(i, (*path.obj).clone());
+            i + 1
+        }
+        None => i,
+    };
     let mut out = vec![];
     let gid = doc.new_id();
     let mut group = Object::new(gid, ObjKind::Group(vec![]), Affine::IDENTITY, Default::default());

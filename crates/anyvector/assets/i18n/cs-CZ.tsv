@@ -5671,3 +5671,22 @@ Dock Ri&ght	Ukotvit v&pravo
 &Close	&Zavřít
 Close &Others	Zavřít &ostatní
 &Reset Docker Layout	&Obnovit rozvržení ukotvitelných panelů
+Blend start: {} on {}	Začátek prolnutí: {} na {}
+Blend end: {} on {}	Konec prolnutí: {} na {}
+Blend path: {} on {}	Cesta prolnutí: {} na {}
+Blend split: {} on {}	Rozdělení prolnutí: {} na {}
+Click the path the blend follows (Esc to cancel)	Klikněte na cestu, kterou prolnutí sleduje (Esc zruší)
+Click the new start object of the blend (Esc to cancel)	Klikněte na nový počáteční objekt prolnutí (Esc zruší)
+Click the new end object of the blend (Esc to cancel)	Klikněte na nový koncový objekt prolnutí (Esc zruší)
+Click the step of the blend where it splits (Esc to cancel)	Klikněte na krok, ve kterém se prolnutí rozdělí (Esc zruší)
+Click a node of the start object (Esc to cancel)	Klikněte na uzel počátečního objektu (Esc zruší)
+Click the matching node of the end object (Esc to cancel)	Klikněte na odpovídající uzel koncového objektu (Esc zruší)
+Select a blend first	Nejprve vyberte prolnutí
+Click an object that is not part of the blend	Klikněte na objekt, který není součástí prolnutí
+Click a curve or a shape to use as the path	Klikněte na křivku nebo tvar, který se použije jako cesta
+The path has no length	Cesta nemá žádnou délku
+Groups, bitmaps and blends can't start or end a blend	Skupiny, bitmapy a prolnutí nemohou prolnutí začínat ani končit
+The blend has no split to fuse	Prolnutí nemá žádné rozdělení ke sloučení
+Click a step of the blend	Klikněte na krok prolnutí
+Click a node of the start object	Klikněte na uzel počátečního objektu
+Click the matching node of the end object	Klikněte na odpovídající uzel koncového objektu

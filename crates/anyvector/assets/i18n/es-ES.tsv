@@ -5671,3 +5671,22 @@ Dock Ri&ght	Acoplar a la &derecha
 &Close	&Cerrar
 Close &Others	Cerrar &otras
 &Reset Docker Layout	&Restablecer diseño de ventanas acoplables
+Blend start: {} on {}	Inicio de la mezcla: {} en {}
+Blend end: {} on {}	Fin de la mezcla: {} en {}
+Blend path: {} on {}	Trayecto de la mezcla: {} en {}
+Blend split: {} on {}	División de la mezcla: {} en {}
+Click the path the blend follows (Esc to cancel)	Haga clic en el trayecto que sigue la mezcla (Esc para cancelar)
+Click the new start object of the blend (Esc to cancel)	Haga clic en el nuevo objeto inicial de la mezcla (Esc para cancelar)
+Click the new end object of the blend (Esc to cancel)	Haga clic en el nuevo objeto final de la mezcla (Esc para cancelar)
+Click the step of the blend where it splits (Esc to cancel)	Haga clic en el paso de la mezcla donde se divide (Esc para cancelar)
+Click a node of the start object (Esc to cancel)	Haga clic en un nodo del objeto inicial (Esc para cancelar)
+Click the matching node of the end object (Esc to cancel)	Haga clic en el nodo correspondiente del objeto final (Esc para cancelar)
+Select a blend first	Seleccione primero una mezcla
+Click an object that is not part of the blend	Haga clic en un objeto que no forme parte de la mezcla
+Click a curve or a shape to use as the path	Haga clic en una curva o forma para usarla como trayecto
+The path has no length	El trayecto no tiene longitud
+Groups, bitmaps and blends can't start or end a blend	Los grupos, mapas de bits y mezclas no pueden iniciar ni terminar una mezcla
+The blend has no split to fuse	La mezcla no tiene ninguna división que fusionar
+Click a step of the blend	Haga clic en un paso de la mezcla
+Click a node of the start object	Haga clic en un nodo del objeto inicial
+Click the matching node of the end object	Haga clic en el nodo correspondiente del objeto final
