@@ -4,6 +4,7 @@
 
 pub mod drop;
 pub mod ids;
+pub mod ime;
 mod interact;
 pub(crate) mod overlay;
 mod shape_edit;
@@ -243,6 +244,8 @@ pub struct ToolState {
     /// Text typed at a point before the text object exists: (point, paragraph frame).
     pub pending_text: Option<(Point, Option<Rect>)>,
     pub text_last_edit: f64,
+    /// Input method composition for the text typed on the canvas (#147).
+    pub ime: ime::ImeState,
     pub hover_doc: Option<Point>,
     /// Screen position where the primary button went down, and whether it moved since.
     pub press: Option<egui::Pos2>,
@@ -350,6 +353,7 @@ impl Default for ToolState {
             renderer: vector_render::Renderer::new(),
             pending_text: None,
             text_last_edit: -10.0,
+            ime: Default::default(),
             hover_doc: None,
             press: None,
             moved: false,

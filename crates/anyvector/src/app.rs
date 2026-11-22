@@ -308,6 +308,7 @@ impl AnyVectorApp {
             }
         }
         self.handle_dropped_files(&ctx);
+        crate::tools::ime::begin_frame(self);
         crate::shortcuts::handle(self, &ctx);
         self.process_pending(&ctx);
         // a shadow clicked (#106) stays chosen only while its object is the selection

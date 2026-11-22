@@ -370,7 +370,7 @@ fn row(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut OsUi, sel: OsSel, depth: us
                 st.rename = None;
                 rename_style(app, i, n);
             } else {
-                te.request_focus();
+                crate::widgets::keep_focus(&te);
             }
             return out;
         }

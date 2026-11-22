@@ -166,8 +166,12 @@ pub fn drawing_window(app: &mut AnyVectorApp, ui: &mut Ui) {
         if hovered {
             app.cursor_doc = pos.map(|p| app.docs[ai].to_doc(p));
         }
+        // input methods (#147): a composition the click above left behind ends first, and the
+        // window's IME is on (its candidates at the caret) while something here takes typing
+        tools::ime::sync(app);
         tools::handle_text_keys(app, &ctx);
         tools::handle_table_keys(app, &ctx);
+        tools::ime::publish(app, &ctx);
         if app.rollover_live {
             let at = if hovered { pos.map(|p| app.docs[ai].to_doc(p)) } else { None };
             crate::dialogs::object::live_preview(app, at, down);
@@ -277,10 +281,13 @@ fn render_cache(app: &mut AnyVectorApp, ctx: &egui::Context, ai: usize, canvas: 
     d.simulate_overprint.hash(&mut h);
     (settings.proof_colors, settings.proof_env_kind, settings.proof_preserve, gamut).hash(&mut h);
     crate::dialogs::colormgmt::hash_view(settings, &d.doc.settings.color, &mut h);
+    ts.ime.preview_key(d.uid).hash(&mut h);
     let key = h.finish() | 1;
     if d.cache.key == key && d.cache.tex.is_some() {
         return;
     }
+    // an input method composing (#147): the drawing shows the text as it will be once committed
+    let doc = ts.ime.preview_for(d.uid).map(|p| &p.doc).unwrap_or(&d.doc);
     let Some(mut pm) = tiny_skia::Pixmap::new(pw, ph) else { return };
     let view = Affine::scale(ppp as f64) * d.view();
     let dc = settings.desktop_color;
@@ -316,15 +323,15 @@ fn render_cache(app: &mut AnyVectorApp, ctx: &egui::Context, ai: usize, canvas: 
             let sh = ((ph as f64) / k).ceil().max(1.0) as u32;
             if let Some(mut small) = tiny_skia::Pixmap::new(sw, sh) {
                 let sv = Affine::scale(1.0 / k) * view;
-                ts.renderer.render_page(&d.doc, d.page, sv, &mut small, &opts);
+                ts.renderer.render_page(doc, d.page, sv, &mut small, &opts);
                 let paint = tiny_skia::PixmapPaint { quality: tiny_skia::FilterQuality::Nearest, ..Default::default() };
                 pm.draw_pixmap(0, 0, small.as_ref(), &paint, tiny_skia::Transform::from_scale(k as f32, k as f32), None);
             }
         } else {
-            ts.renderer.render_page(&d.doc, d.page, view, &mut pm, &opts);
+            ts.renderer.render_page(doc, d.page, view, &mut pm, &opts);
         }
     } else {
-        ts.renderer.render_page(&d.doc, d.page, view, &mut pm, &opts);
+        ts.renderer.render_page(doc, d.page, view, &mut pm, &opts);
     }
     if d.view_mode == ViewMode::PatternPreview {
         // View ▸ Pattern Preview: the page is one tile, repeated over the whole window
@@ -335,7 +342,7 @@ fn render_cache(app: &mut AnyVectorApp, ctx: &egui::Context, ai: usize, canvas: 
                 tile.fill(tiny_skia::Color::WHITE);
                 let tv = Affine::translate((-pr.x0, -pr.y0)) * view;
                 let inner = vector_render::RenderOptions { draw_page: false, ..opts.clone() };
-                ts.renderer.render_page(&d.doc, d.page, tv, &mut tile, &inner);
+                ts.renderer.render_page(doc, d.page, tv, &mut tile, &inner);
                 let (w, h) = (pr.width(), pr.height());
                 let kx0 = (-pr.x0 / w).floor() as i64 - 1;
                 let kx1 = ((pw as f64 - pr.x0) / w).ceil() as i64;
@@ -370,7 +377,7 @@ fn render_cache(app: &mut AnyVectorApp, ctx: &egui::Context, ai: usize, canvas: 
                 continue;
             }
             vector_render::page_backdrop(&d.doc.pages[i], v, &mut pm, &opts);
-            ts.renderer.render_page(&d.doc, i, v, &mut pm, &others);
+            ts.renderer.render_page(doc, i, v, &mut pm, &others);
         }
     }
     if settings.proof_colors || gamut.is_some() {
