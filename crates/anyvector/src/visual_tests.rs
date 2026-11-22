@@ -6817,3 +6817,411 @@ fn visual_issue_060_input_and_keyboard() {
 fn categories_len_minus_one() -> usize {
     crate::dialogs::options::commands_page::categories().len() - 1
 }
+
+// ---- #147: input methods (IME) typing on the canvas ----
+
+fn ime_event(h: &mut Harness<'_, AnyVectorApp>, e: egui::ImeEvent) {
+    h.input_mut().events.push(egui::Event::Ime(e));
+}
+
+/// The input method shows `s` as the text being composed (`active`: the clause being converted,
+/// or an empty range for the caret inside the composition).
+fn ime_preedit(h: &mut Harness<'_, AnyVectorApp>, s: &str, active: Option<std::ops::Range<usize>>) {
+    ime_event(h, egui::ImeEvent::Preedit { text: s.into(), active_range_chars: active });
+    h.step();
+}
+
+fn ime_commit(h: &mut Harness<'_, AnyVectorApp>, s: &str) {
+    ime_event(h, egui::ImeEvent::Commit(s.into()));
+    h.step();
+}
+
+/// A 36 pt text object `s` edited with the Text tool, the caret at `caret`.
+fn ime_text<'a>(s: &str, caret: usize, tr: Affine) -> (Harness<'a, AnyVectorApp>, u64) {
+    use vector_core::text::{CharFormat, TextObj};
+    let mut h = join_harness(crate::tools::ToolId::Text);
+    let d = h.state_mut().doc_mut().unwrap();
+    let id = d.doc.new_id();
+    let t = TextObj::artistic(s, CharFormat { size: 36.0, ..CharFormat::default() });
+    d.add_objects("test", vec![Object::new(id, ObjKind::Text(t), tr, Style::text_default())]);
+    d.selection = vec![id];
+    d.text_edit = Some(crate::docview::TextEdit { obj: id, caret, anchor: caret, blink: 0.0 });
+    // the next typing starts its own undo step
+    h.state_mut().ts.text_last_edit = -10.0;
+    h.step();
+    h.step();
+    (h, id)
+}
+
+fn ime_out(h: &Harness<'_, AnyVectorApp>) -> Option<egui::output::IMEOutput> {
+    h.output().platform_output.ime
+}
+
+fn ime_caret(h: &Harness<'_, AnyVectorApp>) -> (usize, usize) {
+    let te = h.state().doc().unwrap().text_edit.clone().expect("editing text");
+    (te.caret, te.anchor)
+}
+
+fn text_count(h: &Harness<'_, AnyVectorApp>) -> usize {
+    h.state().doc().unwrap().page_ref().all_objects().filter(|o| matches!(o.kind, ObjKind::Text(_))).count()
+}
+
+/// The screen point on the caret line before character `i` of the text `id` lays out in `doc`.
+fn ime_caret_point(h: &Harness<'_, AnyVectorApp>, doc: &vector_core::Document, id: u64, i: usize) -> egui::Pos2 {
+    let (t, tr) = crate::tools::ime::text_frame(doc, id, None).unwrap();
+    let lay = vector_core::text::layout(&t);
+    let (a, b) = crate::tools::ime::caret_line(&t, &lay.carets, tr, i).unwrap();
+    h.state().doc().unwrap().to_screen(a.midpoint(b))
+}
+
+/// #147: the composition is shown but is not document text; its commit goes in once (also when
+/// the integration repeats it as a text event), as one undo step.
+#[test]
+fn ime_commit_inserts_once() {
+    let (mut h, id) = ime_text("Hello", 0, Affine::translate((100.0, 200.0)));
+    let steps0 = undo_steps(&h);
+    let rev0 = h.state().doc().unwrap().history.revision;
+    ime_preedit(&mut h, "n", Some(1..1));
+    ime_preedit(&mut h, "に", Some(1..1));
+    assert!(h.state().ts.ime.composing());
+    assert_eq!(text_of(&h, id).content, "Hello", "the composition is not document text");
+    assert_eq!(h.state().doc().unwrap().history.revision, rev0, "nor a change");
+    ime_event(&mut h, egui::ImeEvent::Preedit { text: "日本".into(), active_range_chars: Some(0..2) });
+    ime_event(&mut h, egui::ImeEvent::Commit("日本".into()));
+    h.input_mut().events.push(egui::Event::Text("日本".into()));
+    h.step();
+    assert_eq!(text_of(&h, id).content, "日本Hello");
+    assert!(!h.state().ts.ime.composing());
+    assert_eq!(ime_caret(&h), (2, 2), "the caret after the committed text");
+    assert_eq!(undo_steps(&h), steps0 + 1, "one undo step");
+    undo(&mut h);
+    assert_eq!(text_of(&h, id).content, "Hello");
+}
+
+/// #147: the drawing shows the composition in place, from a copy of the document; dismissing it
+/// leaves the text as it was.
+#[test]
+fn ime_preedit_is_drawn_in_place_not_stored() {
+    let (mut h, id) = ime_text("Hello world", 5, Affine::translate((100.0, 200.0)));
+    ime_preedit(&mut h, "に", None);
+    ime_preedit(&mut h, "にほ", Some(2..2));
+    {
+        let app = h.state();
+        let d = app.doc().unwrap();
+        let pv = app.ts.ime.preview_for(d.uid).expect("the composition is drawn");
+        let Some(ObjKind::Text(t)) = pv.doc.find(id).map(|o| &o.kind) else { panic!() };
+        assert_eq!(t.content, "Helloにほ world");
+        assert_eq!((pv.start, pv.len), (5, 2));
+        assert_eq!(app.ts.ime.preedit().unwrap().active, Some(2..2));
+        // the text after the caret moves along, as it will when committed
+        let after = ime_caret_point(&h, &pv.doc, id, 8);
+        let before = ime_caret_point(&h, &d.doc, id, 6);
+        assert!(after.x > before.x + 5.0, "{after:?} {before:?}");
+    }
+    assert_eq!(text_of(&h, id).content, "Hello world");
+    // the input method dismisses the composition (Backspace over its last character)
+    ime_preedit(&mut h, "", None);
+    assert!(!h.state().ts.ime.composing());
+    assert!(h.state().ts.ime.preview_for(h.state().doc().unwrap().uid).is_none());
+    assert_eq!(text_of(&h, id).content, "Hello world");
+    assert_eq!(ime_caret(&h), (5, 5));
+    // an empty commit only ends a composition
+    ime_preedit(&mut h, "ほ", None);
+    ime_commit(&mut h, "");
+    assert!(!h.state().ts.ime.composing());
+    assert_eq!(text_of(&h, id).content, "Hello world");
+}
+
+/// #147: at a Text tool click a cancelled composition leaves no text object; a committed one
+/// makes it.
+#[test]
+fn ime_cancel_leaves_no_text_object() {
+    use crate::tools::ToolId;
+    let mut h = join_harness(ToolId::Text);
+    let n0 = text_count(&h);
+    h.state_mut().ts.pending_text = Some((Point::new(100.0, 150.0), None));
+    h.step();
+    ime_preedit(&mut h, "にほん", None);
+    assert!(h.state().ts.ime.composing());
+    assert_eq!(text_count(&h), n0, "no object while composing");
+    {
+        let app = h.state();
+        let pv = app.ts.ime.preview_for(app.doc().unwrap().uid).expect("drawn where the text goes");
+        let Some(ObjKind::Text(t)) = pv.doc.find(pv.obj).map(|o| &o.kind) else { panic!() };
+        assert_eq!(t.content, "にほん");
+    }
+    // Escape cancels the composition, not the typing
+    key_tap(&mut h, egui::Key::Escape, Some(egui::Key::Escape), egui::Modifiers::NONE);
+    h.step();
+    assert!(!h.state().ts.ime.composing());
+    assert!(h.state().ts.pending_text.is_some(), "still typing at the click");
+    assert_eq!(text_count(&h), n0);
+    // a second Escape ends the typing; nothing was made
+    key_tap(&mut h, egui::Key::Escape, Some(egui::Key::Escape), egui::Modifiers::NONE);
+    h.step();
+    assert!(h.state().ts.pending_text.is_none());
+    assert_eq!(text_count(&h), n0);
+    // a commit makes the text object, edited after the committed text
+    h.state_mut().ts.pending_text = Some((Point::new(100.0, 150.0), None));
+    h.step();
+    ime_preedit(&mut h, "にほん", Some(0..3));
+    ime_commit(&mut h, "日本");
+    assert_eq!(text_count(&h), n0 + 1);
+    let d = h.state().doc().unwrap();
+    let te = d.text_edit.clone().expect("the new text is edited");
+    assert!(matches!(&d.doc.find(te.obj).unwrap().kind, ObjKind::Text(t) if t.content == "日本"));
+    assert_eq!(te.caret, 2);
+}
+
+/// #147: while composing, keys belong to the input method: no shortcut (Undo, Zoom Out), no
+/// editing key (Backspace, Select All), no typed or pasted text.
+#[test]
+fn ime_keys_do_not_run_shortcuts() {
+    use crate::tools::ToolId;
+    let (mut h, id) = ime_text("Hello", 5, Affine::translate((100.0, 200.0)));
+    let steps0 = undo_steps(&h);
+    let zoom0 = h.state().doc().unwrap().zoom;
+    ime_preedit(&mut h, "に", Some(1..1));
+    let ctrl = egui::Modifiers::CTRL | egui::Modifiers::COMMAND;
+    key_tap(&mut h, egui::Key::Z, Some(egui::Key::Z), ctrl);
+    key_tap(&mut h, egui::Key::F3, Some(egui::Key::F3), egui::Modifiers::NONE);
+    key_tap(&mut h, egui::Key::Backspace, Some(egui::Key::Backspace), egui::Modifiers::NONE);
+    key_tap(&mut h, egui::Key::A, Some(egui::Key::A), ctrl);
+    h.input_mut().events.push(egui::Event::Text("e".into()));
+    h.input_mut().events.push(egui::Event::Paste("pasted".into()));
+    h.step();
+    h.step();
+    assert!(h.state().ts.ime.composing(), "the composition goes on");
+    assert_eq!(text_of(&h, id).content, "Hello");
+    assert_eq!(undo_steps(&h), steps0, "Ctrl+Z did not undo");
+    assert_eq!(h.state().doc().unwrap().zoom, zoom0, "F3 did not zoom out");
+    assert_eq!(h.state().tool, ToolId::Text);
+    assert_eq!(ime_caret(&h), (5, 5), "Ctrl+A did not select");
+    // committed: the keys work again
+    ime_commit(&mut h, "に");
+    assert_eq!(text_of(&h, id).content, "Helloに");
+    key_tap(&mut h, egui::Key::Backspace, Some(egui::Key::Backspace), egui::Modifiers::NONE);
+    h.step();
+    assert_eq!(text_of(&h, id).content, "Hello");
+    key_tap(&mut h, egui::Key::F3, Some(egui::Key::F3), egui::Modifiers::NONE);
+    h.step();
+    assert!(h.state().doc().unwrap().zoom < zoom0, "F3 zooms out again");
+}
+
+/// #147: the input method deleting around the caret counts characters, also during a
+/// composition, which then goes on at the new caret.
+#[test]
+fn ime_delete_surrounding_counts_characters() {
+    let (mut h, id) = ime_text("日本語abc", 3, Affine::translate((100.0, 200.0)));
+    ime_event(&mut h, egui::ImeEvent::DeleteSurrounding { before_chars: 1, after_chars: 1 });
+    h.step();
+    assert_eq!(text_of(&h, id).content, "日本bc");
+    assert_eq!(ime_caret(&h), (2, 2));
+    ime_preedit(&mut h, "ご", None);
+    ime_event(&mut h, egui::ImeEvent::DeleteSurrounding { before_chars: 1, after_chars: 0 });
+    h.step();
+    assert!(h.state().ts.ime.composing(), "the composition goes on");
+    assert_eq!(text_of(&h, id).content, "日bc");
+    ime_commit(&mut h, "語");
+    assert_eq!(text_of(&h, id).content, "日語bc");
+}
+
+/// #147: the window's IME is on, with its candidates at the caret, only while typing goes to
+/// the canvas (text, a Text tool click, a table cell), and off in other tools and while a text
+/// field has the keyboard.
+#[test]
+fn ime_on_only_while_typing_on_canvas() {
+    use crate::tools::ToolId;
+    let (mut h, id) = ime_text("Hello", 5, Affine::translate((100.0, 200.0)));
+    let out = ime_out(&h).expect("on while text is edited");
+    let canvas = h.state().doc().unwrap().canvas_rect;
+    assert!(canvas.contains(out.cursor_rect.center()), "{out:?} {canvas:?}");
+    let doc = h.state().doc().unwrap().doc.clone();
+    let p = ime_caret_point(&h, &doc, id, 5);
+    assert!(out.cursor_rect.contains(p) && out.cursor_rect.width() < 6.0, "the caret: {out:?} {p:?}");
+    assert!(out.rect.contains(out.cursor_rect.center()));
+    assert!(!out.should_interrupt_composition);
+    // the caret moved: so does the candidate window
+    h.state_mut().doc_mut().unwrap().text_edit.as_mut().unwrap().caret = 0;
+    h.state_mut().doc_mut().unwrap().text_edit.as_mut().unwrap().anchor = 0;
+    h.step();
+    let out0 = ime_out(&h).unwrap();
+    assert!(out0.cursor_rect.center().x < out.cursor_rect.center().x - 20.0, "{out0:?} {out:?}");
+    // another tool: off
+    h.state_mut().set_tool(ToolId::Pick);
+    h.step();
+    assert!(ime_out(&h).is_none(), "off in the Pick tool");
+    // a Text tool click: on, at the click
+    h.state_mut().set_tool(ToolId::Text);
+    h.state_mut().ts.pending_text = Some((Point::new(300.0, 300.0), None));
+    h.step();
+    let out = ime_out(&h).expect("on at a Text tool click");
+    let at = h.state().doc().unwrap().to_screen(Point::new(300.0, 300.0));
+    assert!((out.cursor_rect.center().x - at.x).abs() < 3.0 && out.cursor_rect.bottom() > at.y, "{out:?} {at:?}");
+    // a property bar field has the keyboard: the IME is the field's, not the canvas's
+    let field = {
+        use egui_kittest::kittest::Queryable;
+        h.query_all_by_role(egui::accesskit::Role::TextInput).map(|n| n.rect()).filter(|r| r.top() < 120.0).min_by(|a, b| a.left().total_cmp(&b.left())).expect("a property bar field")
+    };
+    click(&mut h, field.center());
+    h.step();
+    assert!(h.ctx.egui_wants_keyboard_input());
+    let out = ime_out(&h).expect("the field's IME");
+    assert!(field.expand(2.0).contains(out.cursor_rect.center()), "{out:?} {field:?}");
+}
+
+/// #147: the candidate window follows a turned text object's caret.
+#[test]
+fn ime_candidates_follow_rotated_text() {
+    let tr = Affine::translate((300.0, 200.0)) * Affine::rotate(std::f64::consts::FRAC_PI_2);
+    let (mut h, id) = ime_text("Hello", 2, tr);
+    let out = ime_out(&h).unwrap();
+    // turned a quarter: the caret line lies across the screen
+    assert!(out.cursor_rect.width() > out.cursor_rect.height(), "{out:?}");
+    let doc = h.state().doc().unwrap().doc.clone();
+    let p = ime_caret_point(&h, &doc, id, 2);
+    assert!(out.cursor_rect.contains(p), "{out:?} {p:?}");
+    // composing: around the clause being converted
+    ime_preedit(&mut h, "にほん", Some(0..3));
+    let out = ime_out(&h).unwrap();
+    let pv = h.state().ts.ime.preview_for(h.state().doc().unwrap().uid).unwrap().doc.clone();
+    for i in [2, 5] {
+        let p = ime_caret_point(&h, &pv, id, i);
+        assert!(out.cursor_rect.expand(1.0).contains(p), "{i}: {out:?} {p:?}");
+    }
+}
+
+/// #147: a composition left behind (the caret clicked elsewhere) is kept where it was typed and
+/// the system's composition is interrupted once; one left behind by an undo is dropped.
+#[test]
+fn ime_composition_left_behind() {
+    let (mut h, id) = ime_text("Hello", 5, Affine::translate((100.0, 200.0)));
+    ime_preedit(&mut h, "にほん", None);
+    {
+        let te = h.state_mut().doc_mut().unwrap().text_edit.as_mut().unwrap();
+        te.caret = 0;
+        te.anchor = 0;
+    }
+    h.step();
+    assert!(!h.state().ts.ime.composing());
+    assert_eq!(text_of(&h, id).content, "Helloにほん", "kept where it was typed");
+    assert_eq!(ime_caret(&h), (0, 0), "the caret where it was clicked");
+    assert!(ime_out(&h).unwrap().should_interrupt_composition, "the system's composition ends");
+    h.step();
+    assert!(!ime_out(&h).unwrap().should_interrupt_composition, "only once");
+    // an undo while composing: the undo applies, the composition goes
+    ime_preedit(&mut h, "か", None);
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    h.step();
+    assert!(!h.state().ts.ime.composing());
+    assert_eq!(text_of(&h, id).content, "Hello");
+}
+
+/// #147: the chosen table cell takes input method text like canvas text.
+#[test]
+fn ime_types_into_table_cells() {
+    use crate::tools::ToolId;
+    use vector_core::object::TableObj;
+    let mut h = join_harness(ToolId::Table);
+    let id = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let id = d.doc.new_id();
+        d.add_objects("test", vec![Object::new(id, ObjKind::Table(TableObj::new(2, 2, 240.0, 120.0)), Affine::translate((100.0, 100.0)), Style::default())]);
+        d.selection = vec![id];
+        id
+    };
+    h.state_mut().ts.table_cell = Some((0, 1));
+    h.step();
+    assert!(crate::tools::table_typing(h.state()));
+    let cell = |h: &Harness<'_, AnyVectorApp>| match kind_of(h, id) {
+        ObjKind::Table(t) => t.cell(0, 1).text.clone(),
+        k => panic!("{k:?}"),
+    };
+    let out = ime_out(&h).expect("on for the cell");
+    let cr = {
+        let d = h.state().doc().unwrap();
+        let ObjKind::Table(t) = kind_of(&h, id) else { panic!() };
+        d.to_screen_rect(d.doc.find(id).unwrap().transform.transform_rect_bbox(t.cell_rect(0, 1)))
+    };
+    assert!(cr.contains(out.cursor_rect.center()), "in the cell: {out:?} {cr:?}");
+    ime_preedit(&mut h, "ひょう", Some(0..3));
+    assert_eq!(cell(&h), "", "not cell text yet");
+    assert!(h.state().ts.ime.preview_for(h.state().doc().unwrap().uid).is_some());
+    h.input_mut().events.push(egui::Event::Text("x".into()));
+    h.step();
+    assert_eq!(cell(&h), "");
+    ime_commit(&mut h, "表");
+    assert_eq!(cell(&h), "表");
+    ime_event(&mut h, egui::ImeEvent::DeleteSurrounding { before_chars: 1, after_chars: 0 });
+    h.step();
+    assert_eq!(cell(&h), "");
+}
+
+/// Pictures for #147: a composition in the middle of a text (the clause being converted with the
+/// heavier line), committed, at a Text tool click, and in a table cell.
+#[test]
+#[ignore]
+fn visual_issue_147_ime() {
+    use crate::tools::ToolId;
+    use vector_core::object::TableObj;
+    use vector_core::text::{CharFormat, TextObj};
+    let mut h = doc_harness();
+    h.state_mut().set_tool(ToolId::Text);
+    let id = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let id = d.doc.new_id();
+        let t = TextObj::artistic("Hello world", CharFormat { size: 60.0, ..CharFormat::default() });
+        d.add_objects("test", vec![Object::new(id, ObjKind::Text(t), Affine::translate((80.0, 160.0)), Style::text_default())]);
+        d.selection = vec![id];
+        d.text_edit = Some(crate::docview::TextEdit { obj: id, caret: 5, anchor: 5, blink: 0.0 });
+        id
+    };
+    h.state_mut().ts.text_last_edit = -10.0;
+    settle(&mut h);
+    ime_preedit(&mut h, "にほんご", Some(0..2));
+    assert!(ime_out(&h).is_some());
+    save(&mut h, "issue_147_01_composing");
+    ime_commit(&mut h, "日本語");
+    assert_eq!(text_of(&h, id).content, "Hello日本語 world");
+    save(&mut h, "issue_147_02_committed");
+    h.state_mut().doc_mut().unwrap().text_edit = None;
+    h.state_mut().ts.pending_text = Some((Point::new(80.0, 320.0), None));
+    h.state_mut().ts.text_format.size = 48.0;
+    h.step();
+    ime_preedit(&mut h, "かんじ", Some(3..3));
+    save(&mut h, "issue_147_03_new_text_composing");
+    ime_commit(&mut h, "漢字");
+    h.state_mut().set_tool(ToolId::Table);
+    let tid = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let tid = d.doc.new_id();
+        let mut t = TableObj::new(2, 3, 420.0, 140.0);
+        t.text_format.size = 28.0;
+        d.add_objects("test", vec![Object::new(tid, ObjKind::Table(t), Affine::translate((80.0, 420.0)), Style::default())]);
+        d.selection = vec![tid];
+        tid
+    };
+    h.state_mut().ts.table_cell = Some((0, 1));
+    h.step();
+    ime_preedit(&mut h, "ひょう", Some(0..3));
+    save(&mut h, "issue_147_04_table_cell_composing");
+    ime_commit(&mut h, "表");
+    assert!(matches!(kind_of(&h, tid), ObjKind::Table(t) if t.cell(0, 1).text == "表"));
+}
+
+/// #147: words in Chinese, Japanese, Korean or Thai script are not marked as misspelled by a
+/// Western language's spell checker; other words still are.
+#[test]
+fn ime_text_is_not_spell_checked_as_english() {
+    use crate::spell::unchecked_script;
+    assert!(unchecked_script('日') && unchecked_script('に') && unchecked_script('한') && unchecked_script('ไ'));
+    assert!(!unchecked_script('a') && !unchecked_script('é') && !unchecked_script('đ') && !unchecked_script('Ж'));
+    if !crate::spell::supported("en-US") {
+        return;
+    }
+    let text = "Hello 日本語 wrld 漢字";
+    let flagged: Vec<String> = crate::spell::check(text, "en-US").iter().map(|e| text.chars().skip(e.start).take(e.len).collect()).collect();
+    assert!(flagged.iter().all(|w| !w.chars().any(unchecked_script)), "{flagged:?}");
+    assert!(flagged.iter().any(|w| w == "wrld"), "{flagged:?}");
+}

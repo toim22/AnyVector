@@ -602,7 +602,7 @@ fn draw_row(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut ObjUi, row: &Row, rh: 
                 _ => {}
             }
         } else {
-            te.request_focus();
+            crate::widgets::keep_focus(&te);
         }
     } else {
         let font = if row.bold { theme::bold(12.5) } else { theme::body(12.5) };
@@ -1046,7 +1046,7 @@ fn pages_body(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut PagesUi) {
                         d.modify("Rename Page", |doc, _| doc.pages[i].name = n);
                     }
                 } else {
-                    te.request_focus();
+                    crate::widgets::keep_focus(&te);
                 }
             } else {
                 let font = if i == cur { theme::bold(12.5) } else { theme::body(12.5) };

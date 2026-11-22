@@ -105,6 +105,10 @@ pub fn handle(app: &mut AnyVectorApp, ctx: &egui::Context) {
     if app.splash.is_some() || app.dialogs.any_modal_open() || egui::Popup::is_any_open(ctx) {
         return;
     }
+    // while an input method composes text on the canvas its keys are not shortcuts (#147)
+    if crate::tools::ime::holds_keys(app, ctx) {
+        return;
+    }
     let typing = ctx.egui_wants_keyboard_input();
     let text_editing = app.doc().map(|d| d.text_edit.is_some()).unwrap_or(false) || app.ts.pending_text.is_some() || crate::tools::table_typing(app);
     // keys held while dragging Bézier / Pen handles are tool modifiers (C = cusp), not shortcuts

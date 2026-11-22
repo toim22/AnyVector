@@ -123,7 +123,11 @@ pub fn draw_overlay(app: &mut AnyVectorApp, painter: &Painter) {
         }
     }
     if tool == ToolId::Text {
-        draw_selection(painter, d, false);
+        // while an input method composes (#147): around the text as it is shown
+        match ts.ime.preview_for(d.uid).and_then(|p| p.doc.selection_bounds(&d.selection)) {
+            Some(bb) => draw_selection_around(painter, d, bb, false),
+            None => draw_selection(painter, d, false),
+        }
     }
     draw_drag_preview(painter, d, ts, s, tool);
     draw_in_progress(painter, d, ts, s, tool);
@@ -505,6 +509,11 @@ fn draw_text_frames(painter: &Painter, d: &DocView, s: &Settings) {
 
 fn draw_selection(painter: &Painter, d: &DocView, rotate: bool) {
     let Some(bb) = d.selection_bounds() else { return };
+    draw_selection_around(painter, d, bb, rotate);
+}
+
+/// The selection handles around `bb` (document points).
+fn draw_selection_around(painter: &Painter, d: &DocView, bb: kurbo::Rect, rotate: bool) {
     let e = d.doc_len(6.0);
     let eb = bb.inflate(e, e);
     if rotate {
@@ -1165,13 +1174,54 @@ fn draw_in_progress(painter: &Painter, d: &DocView, ts: &ToolState, s: &Settings
     }
 }
 
+/// An input method's composition (#147). The render shows it in place (from the document with
+/// the composition put in); here it is underlined, the clause being converted with a heavier
+/// line, and gets its caret. False when nothing is being composed in `d`.
+fn draw_composition(painter: &Painter, d: &DocView, ts: &ToolState) -> bool {
+    let (Some(pv), Some(p)) = (ts.ime.preview_for(d.uid), ts.ime.preedit()) else { return false };
+    let Some((t, tr)) = super::ime::text_frame(&pv.doc, pv.obj, pv.cell) else { return false };
+    let lay = vector_core::text::layout(&t);
+    let active = p.active.clone().filter(|r| !r.is_empty()).map(|r| pv.start + r.start..pv.start + r.end);
+    // runs of glyphs on one line, in or out of the active clause: (line, active, from, to, y)
+    let mut runs: Vec<(usize, bool, f64, f64, f64)> = vec![];
+    let mut glyphs: Vec<_> = lay.glyphs.iter().filter(|g| (pv.start..pv.start + pv.len).contains(&g.char_index)).collect();
+    glyphs.sort_by_key(|g| g.char_index);
+    for g in glyphs {
+        let on = active.as_ref().is_some_and(|r| r.contains(&g.char_index));
+        let y = g.origin.y + g.size * 0.15;
+        match runs.last_mut() {
+            Some(r) if r.0 == g.line && r.1 == on => {
+                r.3 = g.origin.x + g.advance;
+                r.4 = r.4.max(y);
+            }
+            _ => runs.push((g.line, on, g.origin.x, g.origin.x + g.advance, y)),
+        }
+    }
+    for (_, on, x0, x1, y) in runs {
+        let (a, b) = (d.to_screen(tr * Point::new(x0, y)), d.to_screen(tr * Point::new(x1, y)));
+        // a small gap where one run meets the next, as Windows draws clauses
+        let v = b - a;
+        let inset = if v.length() > 4.0 { v.normalized() * 1.0 } else { egui::Vec2::ZERO };
+        painter.line_segment([a + inset, b - inset], Stroke::new(if on { 2.5 } else { 1.0 }, Color32::BLACK));
+    }
+    let at = match &p.active {
+        Some(r) if r.is_empty() => pv.start + r.start,
+        _ => pv.start + pv.len,
+    };
+    if let Some((top, bottom)) = super::ime::caret_line(&t, &lay.carets, tr, at) {
+        painter.line_segment([d.to_screen(top), d.to_screen(bottom)], Stroke::new(1.5, Color32::BLACK));
+    }
+    true
+}
+
 fn draw_text_caret(painter: &Painter, d: &DocView, ts: &ToolState, time: f64) {
     let blink_on = |since: f64| ((time - since) * 2.0).floor() as i64 % 2 == 0;
+    let composing = draw_composition(painter, d, ts);
     if let Some((p, frame)) = ts.pending_text {
         if let Some(r) = frame {
             dashed_rect(painter, d.to_screen_rect(r), Color32::from_gray(200));
         }
-        if blink_on(ts.text_last_edit.min(0.0)) {
+        if !composing && blink_on(ts.text_last_edit.min(0.0)) {
             let size = ts.text_format.size;
             let (top, bottom) = match frame {
                 Some(_) => (p, p + Vec2::new(0.0, size * 1.2)),
@@ -1181,6 +1231,10 @@ fn draw_text_caret(painter: &Painter, d: &DocView, ts: &ToolState, time: f64) {
         }
     }
     let Some(te) = &d.text_edit else { return };
+    if composing {
+        // the composition takes the place of the selection and has its own caret
+        return;
+    }
     let Some(o) = d.doc.find(te.obj) else { return };
     let ObjKind::Text(t) = &o.kind else { return };
     let lay = vector_core::text::layout(t);
@@ -1200,10 +1254,8 @@ fn draw_text_caret(painter: &Painter, d: &DocView, ts: &ToolState, time: f64) {
         }
     }
     if blink_on(te.blink) {
-        if let Some(c) = lay.carets.get(te.caret.min(lay.carets.len().saturating_sub(1))) {
-            let size = t.format_at(te.caret.saturating_sub(1)).size;
-            let top = tr * Point::new(c.0, c.1 - size * 0.85);
-            let bottom = tr * Point::new(c.0, c.1 + size * 0.2);
+        // the same caret the input method's candidate window is placed at
+        if let Some((top, bottom)) = super::ime::caret_line(t, &lay.carets, tr, te.caret) {
             painter.line_segment([d.to_screen(top), d.to_screen(bottom)], Stroke::new(1.5, Color32::BLACK));
         }
     }

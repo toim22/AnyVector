@@ -17,6 +17,15 @@ pub fn select_all_on_key_focus(ui: &Ui, r: &Response, text: &str) {
     st.store(ui.ctx(), r.id);
 }
 
+/// Keep the keyboard focus on a field that must have it while it is shown (a rename box). Only
+/// asks for the focus when the field lacks it: asking again every frame interrupts an input
+/// method's composition in the field, so IME typing there never got past the first key (#147).
+pub fn keep_focus(r: &Response) {
+    if !r.has_focus() {
+        r.request_focus();
+    }
+}
+
 /// Flat icon button as in the toolbars (hover box, pressed/checked blue).
 pub fn icon_button(icons: &mut Icons, ui: &mut Ui, icon: &str, tip: &str, enabled: bool, checked: bool) -> Response {
     icon_button_sized(icons, ui, icon, tip, enabled, checked, 26.0, 18.0)

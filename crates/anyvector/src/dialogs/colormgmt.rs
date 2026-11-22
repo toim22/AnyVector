@@ -411,7 +411,7 @@ fn default_tab(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut CmState) {
         ui.horizontal(|ui| {
             ui.add_space(LABEL_W + 10.0);
             let r = ui.add(egui::TextEdit::singleline(&mut name).desired_width(FIELD_W - 52.0));
-            r.request_focus();
+            crate::widgets::keep_focus(&r);
             if r.lost_focus() {
                 keep = false;
                 let name = name.trim().to_string();
