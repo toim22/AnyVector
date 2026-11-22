@@ -5662,3 +5662,12 @@ Duplicate in Place	Duplicera på plats
 Toggle Pick State	Växla markeringsläge
 (none)	(ingen)
 Color Variations	Färgvariationer
+Expand Dockers	Expandera dockningsfönster
+Collapse Dockers	Komprimera dockningsfönster
+Add Docker	Lägg till dockningsfönster
+Dock &Left	Docka till &vänster
+Dock Ri&ght	Docka till &höger
+&Float	&Flytande
+&Close	&Stäng
+Close &Others	Stäng &andra
+&Reset Docker Layout	&Återställ layout för dockningsfönster

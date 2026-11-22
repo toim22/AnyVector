@@ -5662,3 +5662,12 @@ Duplicate in Place	Duplikovat na místě
 Toggle Pick State	Přepnout stav výběru
 (none)	(žádná)
 Color Variations	Variace barvy
+Expand Dockers	Rozbalit ukotvitelné panely
+Collapse Dockers	Sbalit ukotvitelné panely
+Add Docker	Přidat ukotvitelný panel
+Dock &Left	Ukotvit v&levo
+Dock Ri&ght	Ukotvit v&pravo
+&Float	Plo&voucí
+&Close	&Zavřít
+Close &Others	Zavřít &ostatní
+&Reset Docker Layout	&Obnovit rozvržení ukotvitelných panelů

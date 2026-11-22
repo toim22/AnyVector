@@ -5662,3 +5662,12 @@ Duplicate in Place	Dupliquer sur place
 Toggle Pick State	Basculer l'état de sélection
 (none)	(aucun)
 Color Variations	Variations de couleur
+Expand Dockers	Développer les menus fixes
+Collapse Dockers	Réduire les menus fixes
+Add Docker	Ajouter un menu fixe
+Dock &Left	Ancrer à &gauche
+Dock Ri&ght	Ancrer à &droite
+&Float	&Flottant
+&Close	&Fermer
+Close &Others	Fermer les &autres
+&Reset Docker Layout	&Réinitialiser la disposition des menus fixes

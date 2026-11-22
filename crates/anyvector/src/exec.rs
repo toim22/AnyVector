@@ -2614,6 +2614,11 @@ impl AnyVectorApp {
                 }
             }
             Cmd::Docker(id) => self.dockers.toggle(id),
+            Cmd::ResetDockerLayout => {
+                self.dockers.reset_layout();
+                self.dockers.save(&mut self.settings);
+                self.settings.save();
+            }
             Cmd::TransformTab(i) => {
                 self.dockers.show(DockerId::Transform);
                 self.dockers.ui.transform_tab = (i as usize).min(4);

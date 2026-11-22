@@ -130,6 +130,11 @@ fn raw_rows(app: &AnyVectorApp, bar: u16, ctx: u32, strict: bool) -> Vec<Row> {
                 _ => out.push(Row::Item(entry(app, it, ctx, strict))),
             }
         }
+        // Window ▸ Dockers ends with putting the dockers back where they started (#144)
+        if key8(b.id) == "3eaa9bbe" {
+            out.push(Row::Sep);
+            out.push(cmd_row("&Reset Docker Layout", Cmd::ResetDockerLayout));
+        }
     }
     out
 }

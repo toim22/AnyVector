@@ -5662,3 +5662,12 @@ Duplicate in Place	Дублировать на месте
 Toggle Pick State	Переключить состояние выбора
 (none)	(нет)
 Color Variations	Варианты цвета
+Expand Dockers	Развернуть окна настройки
+Collapse Dockers	Свернуть окна настройки
+Add Docker	Добавить окно настройки
+Dock &Left	Закрепить с&лева
+Dock Ri&ght	Закрепить с&права
+&Float	П&лавающее
+&Close	&Закрыть
+Close &Others	Закрыть &остальные
+&Reset Docker Layout	&Сбросить расположение окон настройки

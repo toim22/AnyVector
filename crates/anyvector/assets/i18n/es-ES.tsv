@@ -5662,3 +5662,12 @@ Duplicate in Place	Duplicar en el sitio
 Toggle Pick State	Alternar estado de selección
 (none)	(ninguno)
 Color Variations	Variaciones de color
+Expand Dockers	Expandir ventanas acoplables
+Collapse Dockers	Contraer ventanas acoplables
+Add Docker	Añadir ventana acoplable
+Dock &Left	Acoplar a la &izquierda
+Dock Ri&ght	Acoplar a la &derecha
+&Float	&Flotante
+&Close	&Cerrar
+Close &Others	Cerrar &otras
+&Reset Docker Layout	&Restablecer diseño de ventanas acoplables

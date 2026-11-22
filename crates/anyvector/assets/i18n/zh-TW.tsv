@@ -5662,3 +5662,12 @@ Duplicate in Place	原地複製
 Toggle Pick State	切換選取狀態
 (none)	(無)
 Color Variations	色彩變體
+Expand Dockers	展開泊塢視窗
+Collapse Dockers	摺疊泊塢視窗
+Add Docker	新增泊塢視窗
+Dock &Left	停駐到左側(&L)
+Dock Ri&ght	停駐到右側(&G)
+&Float	浮動(&F)
+&Close	關閉(&C)
+Close &Others	關閉其他(&O)
+&Reset Docker Layout	重設泊塢視窗配置(&R)
