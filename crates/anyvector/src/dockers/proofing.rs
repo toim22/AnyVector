@@ -176,7 +176,7 @@ pub fn proofing(app: &mut AnyVectorApp, ui: &mut Ui) {
         let mut done = None;
         ui.horizontal(|ui| {
             let r = ui.add(egui::TextEdit::singleline(&mut name).desired_width(w - 64.0));
-            r.request_focus();
+            crate::widgets::keep_focus(&r);
             if r.lost_focus() {
                 done = Some(ui.input(|i| i.key_pressed(egui::Key::Enter)));
             }

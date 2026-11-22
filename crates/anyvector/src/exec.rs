@@ -1610,6 +1610,9 @@ impl AnyVectorApp {
                             }
                         }
                     });
+                } else if let Some((blend, part)) = self.doc().and_then(crate::blendpath::focus) {
+                    // a part of a blend shown on its own (#145)
+                    crate::blendpath::delete(self, blend, part);
                 } else {
                     self.modify_sel("Delete", |doc, sel| {
                         for id in sel.drain(..) {
@@ -2614,6 +2617,11 @@ impl AnyVectorApp {
                 }
             }
             Cmd::Docker(id) => self.dockers.toggle(id),
+            Cmd::ResetDockerLayout => {
+                self.dockers.reset_layout();
+                self.dockers.save(&mut self.settings);
+                self.settings.save();
+            }
             Cmd::TransformTab(i) => {
                 self.dockers.show(DockerId::Transform);
                 self.dockers.ui.transform_tab = (i as usize).min(4);

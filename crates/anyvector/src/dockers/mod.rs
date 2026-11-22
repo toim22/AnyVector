@@ -1,4 +1,5 @@
-//! Dockers (Window > Dockers): the right-hand docking panel with a tab per open docker.
+//! Dockers (Window > Dockers): docker areas on either side of the drawing window and floating
+//! docker windows, a tab per open docker (`dock` draws them, `layout` says where they sit).
 
 mod arrange;
 mod assets;
@@ -27,6 +28,10 @@ pub mod ostyles;
 pub mod props;
 pub(crate) mod text;
 mod textdk;
+pub(crate) mod dock;
+pub mod layout;
+pub use dock::{end_frame, floats, side_panel};
+pub use layout::{DockerLayout, DockerSide};
 
 use crate::app::AnyVectorApp;
 use crate::icons::Tone;
@@ -215,13 +220,22 @@ pub fn icon(d: DockerId) -> &'static str {
 }
 
 pub struct DockerState {
-    /// Open dockers in tab order.
+    /// The open dockers, group by group in tab order (`layout` says where each one sits). Code
+    /// may add or take dockers here directly: [`DockerState::sync`] then opens or closes them.
     pub open: Vec<DockerId>,
+    /// The docker brought forward last (each group shows its own, `DockerGroup::active`).
     pub active: Option<DockerId>,
-    /// Only the tabs show (the docker area is folded to the right edge).
+    /// Only the tabs show: the right side's docker area is folded to the edge.
     pub collapsed: bool,
-    /// A width the docker area takes on the next frame (then the user can resize it again).
+    /// The same for the left side.
+    pub collapsed_left: bool,
+    /// A width the docker area of the active docker takes on the next frame (then the user can
+    /// resize it again).
     pub set_width: Option<f32>,
+    /// Where each docker sits: sides, groups, stacking and floating windows (#144).
+    pub layout: DockerLayout,
+    /// Tabs and groups being dragged, and where they were drawn.
+    pub(crate) live: dock::Live,
     /// Per-docker transient UI state.
     pub ui: DockerUi,
 }
@@ -555,157 +569,136 @@ impl Default for DockerUi {
 
 impl DockerState {
     pub fn from_settings(s: &Settings) -> DockerState {
-        let open: Vec<DockerId> = s.open_dockers.iter().filter_map(|n| ALL.iter().copied().find(|d| format!("{d:?}") == *n)).collect();
-        DockerState { active: open.last().copied(), open, collapsed: false, set_width: None, ui: DockerUi::default() }
+        let mut st = DockerState { open: vec![], active: None, collapsed: false, collapsed_left: false, set_width: None, layout: DockerLayout::default(), live: dock::Live::default(), ui: DockerUi::default() };
+        st.load(s);
+        st
     }
-    pub fn visible(&self) -> bool {
-        !self.open.is_empty()
+
+    /// Takes the arrangement the settings hold (at start, and when a workspace is applied).
+    /// Settings older than 0.6.1 have only the list of open dockers: one group on the right.
+    pub fn load(&mut self, s: &Settings) {
+        self.layout = layout::effective(&s.docker_layout, &s.open_dockers, s.docker_width);
+        self.open = self.layout.dockers().collect();
+        self.active = self.layout.groups.last().and_then(|g| g.active);
+        self.collapsed = false;
+        self.collapsed_left = false;
+        self.set_width = None;
+        // a drag is cancelled; the sides take their widths on the next frame
+        self.live = dock::Live::default();
+        self.live.width = [Some(self.layout.left_width), Some(self.layout.right_width)];
     }
+
+    /// Brings the layout in line with `open` (dockers added or taken there directly), and keeps
+    /// `open` and `active` in line with the layout.
+    pub fn sync(&mut self) {
+        let gone: Vec<DockerId> = self.layout.dockers().filter(|d| !self.open.contains(d)).collect();
+        for d in gone {
+            self.layout.take(d);
+        }
+        for d in self.open.clone() {
+            if !self.layout.contains(d) {
+                let t = self.target_for_new();
+                self.layout.place(&[d], t);
+            }
+        }
+        self.layout.normalize();
+        self.open = self.layout.dockers().collect();
+        match self.active.and_then(|a| self.layout.group_of(a).map(|g| (a, g))) {
+            Some((a, g)) => self.layout.groups[g].active = Some(a),
+            None => self.active = self.layout.groups.last().and_then(|g| g.active),
+        }
+    }
+
+    /// Where a docker opened from a menu goes: the group of the docker brought forward last
+    /// when it is docked, else the right side's last group, else a new group on the right.
+    fn target_for_new(&self) -> layout::Target {
+        let l = &self.layout;
+        let g = self
+            .active
+            .and_then(|a| l.group_of(a))
+            .filter(|g| !l.groups[*g].floating)
+            .or_else(|| l.side_groups(DockerSide::Right).last().copied())
+            .or_else(|| l.side_groups(DockerSide::Left).last().copied());
+        match g {
+            Some(g) => layout::Target::Join { group: g, at: l.groups[g].dockers.len() },
+            None => layout::Target::Side(DockerSide::Right),
+        }
+    }
+
+    /// The side a docker is docked on (a floating one's: the side it docks back to).
+    pub fn side_of(&self, d: DockerId) -> Option<DockerSide> {
+        self.layout.group_of(d).map(|g| self.layout.groups[g].side)
+    }
+
+    pub fn side_collapsed(&self, side: DockerSide) -> bool {
+        match side {
+            DockerSide::Left => self.collapsed_left,
+            DockerSide::Right => self.collapsed,
+        }
+    }
+
+    pub fn set_collapsed(&mut self, side: DockerSide, on: bool) {
+        match side {
+            DockerSide::Left => self.collapsed_left = on,
+            DockerSide::Right => self.collapsed = on,
+        }
+    }
+
     pub fn toggle(&mut self, d: DockerId) {
-        if self.active == Some(d) {
+        if self.active == Some(d) && self.open.contains(&d) {
             self.close(d);
         } else {
             self.show(d);
         }
     }
+
+    /// Opens a docker (where [`Self::target_for_new`] says) or brings it forward where it is.
     pub fn show(&mut self, d: DockerId) {
-        if !self.open.contains(&d) {
-            self.open.push(d);
+        self.sync();
+        if !self.layout.contains(d) {
+            let t = self.target_for_new();
+            self.layout.place(&[d], t);
         }
+        self.bring_forward(d);
+    }
+
+    /// Shows a docker in its group and unfolds its side.
+    pub(crate) fn bring_forward(&mut self, d: DockerId) {
+        let Some(g) = self.layout.group_of(d) else { return };
+        self.layout.groups[g].active = Some(d);
         self.active = Some(d);
+        let grp = &self.layout.groups[g];
+        if !grp.floating {
+            self.set_collapsed(grp.side, false);
+        }
+        self.open = self.layout.dockers().collect();
+        self.sync();
     }
+
     pub fn close(&mut self, d: DockerId) {
-        self.open.retain(|x| *x != d);
+        self.sync();
+        let Some((g, _)) = self.layout.take(d) else { return };
+        // the tab next to it comes forward in its group
+        let next = self.layout.groups.get(g).and_then(|g| g.active);
+        self.layout.normalize();
         if self.active == Some(d) {
-            self.active = self.open.last().copied();
+            self.active = next.or_else(|| self.layout.dockers().last());
         }
+        self.open = self.layout.dockers().collect();
+        self.sync();
     }
-    pub fn save(&self, s: &mut Settings) {
-        s.open_dockers = self.open.iter().map(|d| format!("{d:?}")).collect();
+
+    pub fn save(&mut self, s: &mut Settings) {
+        self.sync();
+        s.open_dockers = layout::names_of(self.open.iter().copied());
+        s.docker_layout = self.layout.clone();
+        // the width 0.6.0 reads
+        s.docker_width = self.layout.right_width;
     }
 }
 
-/// Width of the strip of docker tabs at the right of the docker area.
+/// Width of the strip of docker tabs at the edge of the docker area.
 pub const TAB_STRIP: f32 = 28.0;
-
-/// A docker tab: its icon at the top and its name written downward.
-fn docker_tab(app: &mut AnyVectorApp, ui: &mut Ui, p: &egui::Painter, x: f32, y: f32, d: DockerId, active: bool) -> (egui::Response, f32) {
-    let galley = ui.painter().layout_no_wrap(title(d), egui::FontId::proportional(12.0), theme::TEXT());
-    let h = 26.0 + galley.size().x + 8.0;
-    let r = Rect::from_min_size(pos2(x, y), vec2(TAB_STRIP - 4.0, h));
-    let resp = ui.interact(r, ui.scope_id().with(("dk_tab", d)), Sense::click()).on_hover_text(title(d));
-    let fill = if active {
-        theme::TAB_ACTIVE()
-    } else if resp.hovered() {
-        theme::HOVER()
-    } else {
-        theme::BAR()
-    };
-    p.rect_filled(r, egui::CornerRadius { nw: 0, sw: 0, ne: 4, se: 4 }, fill);
-    if let Some(t) = app.icons.get(ui.ctx(), icon(d), 16.0, if active { Tone::Bright } else { Tone::Normal }) {
-        p.image(t.id, Rect::from_center_size(pos2(r.center().x, r.top() + 13.0), vec2(16.0, 16.0)), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
-    }
-    // written downward: the text turns a quarter clockwise about its top-left corner
-    let gh = galley.size().y;
-    let at = pos2(r.center().x + gh / 2.0, r.top() + 26.0);
-    p.add(egui::epaint::TextShape::new(at, galley, if active { theme::STRONG() } else { theme::TEXT() }).with_angle(std::f32::consts::FRAC_PI_2));
-    (resp, h)
-}
-
-pub fn dockers_panel(app: &mut AnyVectorApp, ui: &mut Ui) {
-    let full = ui.max_rect();
-    // the panel keeps the width it is given (a panel shrinks to what its contents use)
-    ui.expand_to_include_rect(full);
-    let p = ui.painter().clone();
-    p.rect_filled(full, 0.0, theme::BG());
-    // left border
-    p.line_segment([full.left_top(), full.left_bottom()], Stroke::new(1.0, theme::SEP()));
-    let Some(active) = app.dockers.active.or(app.dockers.open.first().copied()) else { return };
-    let collapsed = app.dockers.collapsed;
-    // header: title, then expand/collapse and close
-    let header = Rect::from_min_size(full.min, vec2(full.width(), 28.0));
-    let close = Rect::from_center_size(pos2(header.right() - 14.0, header.center().y), vec2(20.0, 20.0));
-    let fold = Rect::from_center_size(pos2(header.right() - 38.0, header.center().y), vec2(20.0, 20.0));
-    if !collapsed {
-        let clip = Rect::from_min_max(header.min, pos2(fold.left() - 4.0, header.bottom()));
-        p.with_clip_rect(clip).text(pos2(header.left() + 8.0, header.center().y), egui::Align2::LEFT_CENTER, title(active), theme::bold(13.0), theme::TEXT());
-        let cr = ui.interact(close, ui.scope_id().with("dk_close"), Sense::click()).on_hover_text("Close");
-        if cr.hovered() {
-            p.rect_filled(close, 2.0, theme::HOVER());
-        }
-        let s = 4.5;
-        p.line_segment([close.center() + vec2(-s, -s), close.center() + vec2(s, s)], Stroke::new(1.3, theme::TEXT()));
-        p.line_segment([close.center() + vec2(s, -s), close.center() + vec2(-s, s)], Stroke::new(1.3, theme::TEXT()));
-        if cr.clicked() {
-            app.dockers.close(active);
-            return;
-        }
-    }
-    let fold = if collapsed { Rect::from_center_size(pos2(full.right() - TAB_STRIP / 2.0, header.center().y), vec2(20.0, 20.0)) } else { fold };
-    let fr = ui.interact(fold, ui.scope_id().with("dk_fold"), Sense::click()).on_hover_text(if collapsed { "Expand Dockers" } else { "Collapse Dockers" });
-    if fr.hovered() {
-        p.rect_filled(fold, 2.0, theme::HOVER());
-    }
-    // two arrowheads, pointing right to collapse and left to expand
-    for dx in [-3.5f32, 2.5] {
-        let c = fold.center() + vec2(dx, 0.0);
-        let pts = if collapsed { vec![c + vec2(2.5, -4.0), c + vec2(-2.5, 0.0), c + vec2(2.5, 4.0)] } else { vec![c + vec2(-2.5, -4.0), c + vec2(2.5, 0.0), c + vec2(-2.5, 4.0)] };
-        p.add(egui::Shape::convex_polygon(pts, theme::TEXT(), Stroke::NONE));
-    }
-    if fr.clicked() {
-        app.dockers.collapsed = !collapsed;
-    }
-    // the tabs of the open dockers, down the right edge, apart from the docker
-    let strip_left = full.right() - TAB_STRIP;
-    if !collapsed {
-        p.line_segment([pos2(strip_left - 2.5, header.bottom()), pos2(strip_left - 2.5, full.bottom())], Stroke::new(1.0, theme::SEP()));
-    }
-    let mut y = header.bottom() + 4.0;
-    let open = app.dockers.open.clone();
-    for d in open {
-        let (resp, h) = docker_tab(app, ui, &p, strip_left, y, d, d == active && !collapsed);
-        if resp.clicked() {
-            if d == active && !collapsed {
-                app.dockers.collapsed = true;
-            } else {
-                app.dockers.active = Some(d);
-                app.dockers.collapsed = false;
-            }
-        }
-        if resp.middle_clicked() {
-            app.dockers.close(d);
-        }
-        y += h + 2.0;
-    }
-    // + : open another docker
-    let plus = Rect::from_center_size(pos2(strip_left + (TAB_STRIP - 4.0) / 2.0, y + 14.0), vec2(22.0, 22.0));
-    let pr = ui.interact(plus, ui.scope_id().with("dk_plus"), Sense::click()).on_hover_text("Add Docker");
-    if pr.hovered() {
-        p.rect_filled(plus, 2.0, theme::HOVER());
-    }
-    p.line_segment([plus.center() - vec2(6.0, 0.0), plus.center() + vec2(6.0, 0.0)], Stroke::new(1.6, theme::TEXT()));
-    p.line_segment([plus.center() - vec2(0.0, 6.0), plus.center() + vec2(0.0, 6.0)], Stroke::new(1.6, theme::TEXT()));
-    egui::Popup::menu(&pr).show(|ui| {
-        ui.set_min_width(200.0);
-        for &d in ALL.iter().filter(|d| **d != Learn) {
-            let on = app.dockers.open.contains(&d);
-            if ui.add(egui::Button::new(title(d)).selected(on)).clicked() {
-                app.dockers.show(d);
-                app.dockers.collapsed = false;
-                ui.close();
-            }
-        }
-    });
-    if collapsed {
-        return;
-    }
-    let content = Rect::from_min_max(pos2(full.left() + 1.0, header.bottom()), pos2(strip_left - 2.0, full.bottom()));
-    let mut cui = ui.new_child(egui::UiBuilder::new().max_rect(content.shrink2(vec2(6.0, 4.0))).layout(egui::Layout::top_down(egui::Align::Min)));
-    egui::ScrollArea::vertical().id_salt(("dk_scroll", active)).auto_shrink([false, false]).show(&mut cui, |ui| {
-        ui.spacing_mut().item_spacing.y = 5.0;
-        docker_content(app, ui, active);
-    });
-}
 
 fn docker_content(app: &mut AnyVectorApp, ui: &mut Ui, d: DockerId) {
     match d {

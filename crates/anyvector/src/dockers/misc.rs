@@ -494,7 +494,7 @@ pub fn symbols(app: &mut AnyVectorApp, ui: &mut Ui) {
                     app.dockers.ui.sym_sel = Some(name);
                 }
             } else {
-                r.request_focus();
+                crate::widgets::keep_focus(&r);
             }
             continue;
         }
@@ -945,7 +945,7 @@ pub fn tray(app: &mut AnyVectorApp, ui: &mut Ui) {
                 }
                 app.dockers.ui.tray_rename = None;
             } else {
-                r.request_focus();
+                crate::widgets::keep_focus(&r);
             }
         } else {
             let names: Vec<String> = app.dockers.ui.trays.iter().map(|t| t.name.clone()).collect();
@@ -1475,7 +1475,7 @@ pub fn views(app: &mut AnyVectorApp, ui: &mut Ui) {
                     }
                 }
             } else {
-                r.request_focus();
+                crate::widgets::keep_focus(&r);
             }
             continue;
         }
@@ -1730,7 +1730,7 @@ pub fn scripts(app: &mut AnyVectorApp, ui: &mut Ui) {
                             }
                         }
                     } else {
-                        r.inner.request_focus();
+                        crate::widgets::keep_focus(&r.inner);
                     }
                     continue;
                 }

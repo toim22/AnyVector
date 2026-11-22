@@ -5661,3 +5661,32 @@ Delete conflicts	Usuń konflikty
 Duplicate in Place	Powiel w miejscu
 Toggle Pick State	Przełącz stan zaznaczenia
 (none)	(brak)
+Color Variations	Warianty koloru
+Expand Dockers	Rozwiń okna dokowane
+Collapse Dockers	Zwiń okna dokowane
+Add Docker	Dodaj okno dokowane
+Dock &Left	Zadokuj po &lewej
+Dock Ri&ght	Zadokuj po &prawej
+&Float	Pły&wające
+&Close	Za&mknij
+Close &Others	Zamknij &pozostałe
+&Reset Docker Layout	&Resetuj układ okien dokowanych
+Blend start: {} on {}	Początek metamorfozy: {} na {}
+Blend end: {} on {}	Koniec metamorfozy: {} na {}
+Blend path: {} on {}	Ścieżka metamorfozy: {} na {}
+Blend split: {} on {}	Podział metamorfozy: {} na {}
+Click the path the blend follows (Esc to cancel)	Kliknij ścieżkę, wzdłuż której biegnie metamorfoza (Esc, aby anulować)
+Click the new start object of the blend (Esc to cancel)	Kliknij nowy obiekt początkowy metamorfozy (Esc, aby anulować)
+Click the new end object of the blend (Esc to cancel)	Kliknij nowy obiekt końcowy metamorfozy (Esc, aby anulować)
+Click the step of the blend where it splits (Esc to cancel)	Kliknij krok, w którym metamorfoza ma się podzielić (Esc, aby anulować)
+Click a node of the start object (Esc to cancel)	Kliknij węzeł obiektu początkowego (Esc, aby anulować)
+Click the matching node of the end object (Esc to cancel)	Kliknij odpowiadający węzeł obiektu końcowego (Esc, aby anulować)
+Select a blend first	Najpierw zaznacz metamorfozę
+Click an object that is not part of the blend	Kliknij obiekt, który nie jest częścią metamorfozy
+Click a curve or a shape to use as the path	Kliknij krzywą lub kształt, który posłuży jako ścieżka
+The path has no length	Ścieżka nie ma długości
+Groups, bitmaps and blends can't start or end a blend	Grupy, mapy bitowe i metamorfozy nie mogą rozpoczynać ani kończyć metamorfozy
+The blend has no split to fuse	Metamorfoza nie ma podziału do scalenia
+Click a step of the blend	Kliknij krok metamorfozy
+Click a node of the start object	Kliknij węzeł obiektu początkowego
+Click the matching node of the end object	Kliknij odpowiadający węzeł obiektu końcowego

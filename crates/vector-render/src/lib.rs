@@ -507,6 +507,10 @@ impl Renderer {
                 self.render_object(ctx, &f2, target);
             }
             ObjKind::Blend(b) => {
+                // the path a blend follows is drawn with its own style, under the blend
+                if let Some(p) = &b.path {
+                    self.render_object(ctx, &p.obj, target);
+                }
                 self.render_object(ctx, &b.start, target);
                 for step in vector_core::object::blend_steps(b, || 0) {
                     self.render_object(ctx, &step, target);
@@ -590,8 +594,14 @@ impl Renderer {
                 }
             }
             ObjKind::Blend(b) => {
+                if let Some(p) = &b.path {
+                    self.render_wire(ctx, &p.obj, target);
+                }
                 self.render_wire(ctx, &b.start, target);
                 self.render_wire(ctx, &b.end, target);
+                for s in &b.splits {
+                    self.render_wire(ctx, &s.obj, target);
+                }
             }
             ObjKind::Image(img) => {
                 if let Some(pm) = self.ghost_pixmap(ctx.doc, img.image, &img.adjust) {

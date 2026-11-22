@@ -515,6 +515,14 @@ impl<'a> Cx<'a> {
         self.d.selection.iter().copied().find(|id| *id != top && o.find(*id).is_some_and(|c| self.d.doc.hit_object(c, p, tol, filled)))
     }
 
+    /// The blend part shown on its own (Show Start, Show End, Show Path, a split, #145) when `p`
+    /// is on it: a press there drags the part, not the blend.
+    fn blend_part_pick(&self, p: Point) -> Option<ObjId> {
+        let (blend, part) = crate::blendpath::focus(self.d)?;
+        let o = vector_core::blend_path::blend_of(&self.d.doc, blend)?.part(part)?;
+        self.d.doc.hit_object(o, p, self.tol(), self.s.treat_as_filled).then_some(o.id)
+    }
+
     /// The PowerClip a Ctrl+click at `p` enters for editing (#111): the PowerClip under the
     /// pointer, for a plain Ctrl+click of the Pick tool. With the Windows modifier keys Ctrl is
     /// Duplicate, and a Ctrl+click enters nothing.
@@ -870,7 +878,7 @@ impl<'a> Cx<'a> {
                 }
             }
         }
-        let clip_pick = self.powerclip_pick(p);
+        let clip_pick = self.powerclip_pick(p).or_else(|| self.blend_part_pick(p));
         let hit = clip_pick.or_else(|| self.hit(p));
         // Free Transform: the selection turns around the point clicked
         if self.tool == ToolId::FreeTransform && !self.d.selection.is_empty() && hit.map_or(true, |id| self.d.selection.contains(&id)) {
@@ -2782,6 +2790,15 @@ impl<'a> Cx<'a> {
             self.ts.picked_color = Some(c);
             return;
         }
+        if let PickTarget::Blend(b) = target {
+            let hit = self.hit(self.raw);
+            match crate::blendpath::pick_click(self.d, b, self.raw, hit, self.tol()) {
+                crate::blendpath::Picked::Again(next) => self.ts.pick_target = Some(PickTarget::Blend(next)),
+                crate::blendpath::Picked::Flash(m) => self.out.flash = Some(m.into()),
+                crate::blendpath::Picked::Done => {}
+            }
+            return;
+        }
         let Some(t) = self.hit(self.raw) else {
             self.out.flash = Some("No object was clicked".into());
             return;
@@ -2956,7 +2973,7 @@ impl<'a> Cx<'a> {
                     *s = out;
                 });
             }
-            PickTarget::ImpactBoundary { .. } | PickTarget::SampleColor | PickTarget::TileShape | PickTarget::Measure { .. } | PickTarget::DockerPoint | PickTarget::DockerObject => {}
+            PickTarget::ImpactBoundary { .. } | PickTarget::SampleColor | PickTarget::TileShape | PickTarget::Measure { .. } | PickTarget::DockerPoint | PickTarget::DockerObject | PickTarget::Blend(_) => {}
             PickTarget::EnvelopeFrom => {
                 let Some(src) = self.d.doc.find(t) else { return };
                 let Some(handles) = envelope_from_shape(&src.world_path()) else {
@@ -4385,6 +4402,21 @@ pub fn handle_text_keys(app: &mut AnyVectorApp, ctx: &egui::Context) {
     let events: Vec<egui::Event> = ctx.input(|i| i.events.clone());
     let now = app.time();
     for ev in events {
+        // an input method composing (#147): its events, and the keys it takes
+        if let egui::Event::Ime(e) = &ev {
+            match super::ime::event(app, e, now) {
+                Some(super::ime::Action::Insert(s)) => type_text(app, &s, now),
+                Some(super::ime::Action::Delete { before, after }) => {
+                    delete_around(app, before, after, now);
+                    super::ime::retarget(app);
+                }
+                None => {}
+            }
+            continue;
+        }
+        if super::ime::swallows(app, &ev, now) {
+            continue;
+        }
         match ev {
             egui::Event::Text(t) | egui::Event::Paste(t) => {
                 let t = t.replace("\r\n", "\n");
@@ -4474,10 +4506,18 @@ pub fn handle_table_keys(app: &mut AnyVectorApp, ctx: &egui::Context) {
     let now = app.time();
     let mut cell = (r, c);
     for ev in events {
+        // characters taken back from the end of the cell, and the text typed
         let (back, typed) = match &ev {
-            egui::Event::Text(s) | egui::Event::Paste(s) => (false, s.replace("\r\n", "\n")),
-            egui::Event::Key { key: egui::Key::Enter, pressed: true, modifiers, .. } if !modifiers.ctrl => (false, "\n".to_string()),
-            egui::Event::Key { key: egui::Key::Backspace, pressed: true, .. } => (true, String::new()),
+            // an input method composing (#147): typing goes to the end of the cell
+            egui::Event::Ime(e) => match super::ime::event(app, e, now) {
+                Some(super::ime::Action::Insert(s)) => (0, s),
+                Some(super::ime::Action::Delete { before, .. }) => (before, String::new()),
+                None => continue,
+            },
+            _ if super::ime::swallows(app, &ev, now) => continue,
+            egui::Event::Text(s) | egui::Event::Paste(s) => (0, s.replace("\r\n", "\n")),
+            egui::Event::Key { key: egui::Key::Enter, pressed: true, modifiers, .. } if !modifiers.ctrl => (0, "\n".to_string()),
+            egui::Event::Key { key: egui::Key::Backspace, pressed: true, .. } => (1, String::new()),
             egui::Event::Key { key: egui::Key::Tab, pressed: true, modifiers, .. } => {
                 let i = anchors.iter().position(|a| *a == cell).unwrap_or(0);
                 let n = anchors.len().max(1);
@@ -4493,7 +4533,7 @@ pub fn handle_table_keys(app: &mut AnyVectorApp, ctx: &egui::Context) {
             }
             _ => continue,
         };
-        if !back && typed.is_empty() {
+        if back == 0 && typed.is_empty() {
             continue;
         }
         let last = app.ts.text_last_edit;
@@ -4506,8 +4546,8 @@ pub fn handle_table_keys(app: &mut AnyVectorApp, ctx: &egui::Context) {
         if let Some(ObjKind::Table(t)) = d.doc.find_mut(id).map(|o| &mut o.kind) {
             let text = &mut t.cell_mut(cell.0, cell.1).text;
             let mut chars: Vec<char> = text.chars().collect();
-            if back {
-                chars.pop();
+            if back > 0 {
+                chars.truncate(chars.len().saturating_sub(back));
             } else {
                 let (k, s) = crate::dialogs::text::quick_correct(&settings, &chars, &typed);
                 chars.truncate(chars.len() - k.min(chars.len()));
@@ -4519,6 +4559,7 @@ pub fn handle_table_keys(app: &mut AnyVectorApp, ctx: &egui::Context) {
             }
         }
         d.history.touch();
+        super::ime::retarget(app);
     }
 }
 
@@ -4533,27 +4574,31 @@ fn selected_text(app: &AnyVectorApp) -> Option<String> {
     Some(t.content.chars().skip(a).take(b - a).collect())
 }
 
+/// The text object typing `s` at a pending text position (`p`, paragraph `frame`) creates,
+/// with the Text tool's character and paragraph settings.
+pub(super) fn new_text_object(ts: &ToolState, id: ObjId, p: Point, frame: Option<Rect>, s: &str) -> Object {
+    let fmt = ts.text_format.clone();
+    let mut t = match frame {
+        Some(r) => TextObj::paragraph(s, r.width(), r.height(), fmt),
+        None => TextObj::artistic(s, fmt),
+    };
+    t.align = ts.text_align;
+    crate::dialogs::text::apply_defaults(&mut t, &ts.text_para);
+    let mut style = Style::text_default();
+    if let Some(f) = ts.new_fill {
+        style.fill = Fill::Solid(f);
+    }
+    Object::new(id, ObjKind::Text(t), Affine::translate(p.to_vec2()), style)
+}
+
 /// Insert typed text: creates the text object for a pending position, coalesces undo steps.
 fn type_text(app: &mut AnyVectorApp, s: &str, now: f64) {
-    let fmt = app.ts.text_format.clone();
-    let align = app.ts.text_align;
-    let fill = app.ts.new_fill;
     let Some(ai) = app.active else { return };
     let ts = &mut app.ts;
     let d = &mut app.docs[ai];
     if let Some((p, frame)) = ts.pending_text.take() {
         let id = d.doc.new_id();
-        let mut t = match frame {
-            Some(r) => TextObj::paragraph(s, r.width(), r.height(), fmt),
-            None => TextObj::artistic(s, fmt),
-        };
-        t.align = align;
-        crate::dialogs::text::apply_defaults(&mut t, &ts.text_para);
-        let mut style = Style::text_default();
-        if let Some(f) = fill {
-            style.fill = Fill::Solid(f);
-        }
-        let o = Object::new(id, ObjKind::Text(t), Affine::translate(p.to_vec2()), style);
+        let o = new_text_object(ts, id, p, frame, s);
         d.add_objects("Create Text", vec![o]);
         let n = s.chars().count();
         d.text_edit = Some(crate::docview::TextEdit { obj: id, caret: n, anchor: n, blink: now });
@@ -4610,6 +4655,42 @@ fn delete_selection_or(app: &mut AnyVectorApp, dir: i32, now: f64) {
     if let Some(te) = d.text_edit.as_mut() {
         te.caret = a;
         te.anchor = a;
+        te.blink = now;
+    }
+}
+
+/// An input method deleting characters around the caret (`before` it and `after` the
+/// selection), counted in characters.
+fn delete_around(app: &mut AnyVectorApp, before: usize, after: usize, now: f64) {
+    let Some(ai) = app.active else { return };
+    let ts = &mut app.ts;
+    let d = &mut app.docs[ai];
+    let Some(te) = d.text_edit.clone() else { return };
+    let len = match d.doc.find(te.obj).map(|o| &o.kind) {
+        Some(ObjKind::Text(t)) => t.char_count(),
+        _ => return,
+    };
+    let (a, b) = (te.caret.min(te.anchor).min(len), te.caret.max(te.anchor).min(len));
+    let (a0, b1) = (a.saturating_sub(before), (b + after).min(len));
+    if a0 == a && b1 == b {
+        return;
+    }
+    if now - ts.text_last_edit > 1.0 {
+        d.checkpoint("Delete Text");
+    }
+    ts.text_last_edit = now;
+    // after the selection first, so the characters before it keep their places
+    if b1 > b {
+        crate::dialogs::text::edit_chain(&mut d.doc, te.obj, b, b1, "");
+    }
+    if a > a0 {
+        crate::dialogs::text::edit_chain(&mut d.doc, te.obj, a0, a, "");
+    }
+    d.history.touch();
+    if let Some(te) = d.text_edit.as_mut() {
+        let k = a - a0;
+        te.caret -= k.min(te.caret);
+        te.anchor -= k.min(te.anchor);
         te.blink = now;
     }
 }

@@ -127,16 +127,13 @@ fn copy_from(app: &mut AnyVectorApp, kind: u8) {
     }
 }
 
+/// The blend selected, or the blend of the part shown on its own (#145).
 fn blend_now(app: &AnyVectorApp) -> Option<vector_core::object::BlendObj> {
-    selected_kind(app, |k| if let ObjKind::Blend(b) = k { Some(b.clone()) } else { None })
+    crate::blendpath::target(app).map(|(_, b)| b)
 }
 
 fn edit_blend(app: &mut AnyVectorApp, f: impl Fn(&mut vector_core::object::BlendObj)) {
-    edit_sel(app, "Blend", |o| {
-        if let ObjKind::Blend(b) = &mut o.kind {
-            f(b);
-        }
-    });
+    crate::blendpath::edit(app, "Blend", f);
 }
 
 fn mesh_now(app: &AnyVectorApp) -> Option<MeshFill> {
@@ -548,7 +545,7 @@ pub fn option_state(app: &AnyVectorApp, key: &str) -> Option<(bool, bool)> {
         "572c7ba4" => (doc, ts.impact_outer.is_some()),
         "d7a05774" => (doc, t.impact_width_random),
         "63df27f5" => (doc, t.impact_spacing_random),
-        _ => return None,
+        _ => return crate::blendpath::option_state(app, key),
     })
 }
 
@@ -946,7 +943,7 @@ pub fn press(app: &mut AnyVectorApp, key: &str) {
             t.impact_spacing_random = !t.impact_spacing_random;
             crate::tools::regen_impacts(app);
         }
-        _ => {}
+        _ => crate::blendpath::press(app, key),
     }
 }
 

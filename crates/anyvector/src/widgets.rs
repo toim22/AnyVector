@@ -17,6 +17,15 @@ pub fn select_all_on_key_focus(ui: &Ui, r: &Response, text: &str) {
     st.store(ui.ctx(), r.id);
 }
 
+/// Keep the keyboard focus on a field that must have it while it is shown (a rename box). Only
+/// asks for the focus when the field lacks it: asking again every frame interrupts an input
+/// method's composition in the field, so IME typing there never got past the first key (#147).
+pub fn keep_focus(r: &Response) {
+    if !r.has_focus() {
+        r.request_focus();
+    }
+}
+
 /// Flat icon button as in the toolbars (hover box, pressed/checked blue).
 pub fn icon_button(icons: &mut Icons, ui: &mut Ui, icon: &str, tip: &str, enabled: bool, checked: bool) -> Response {
     icon_button_sized(icons, ui, icon, tip, enabled, checked, 26.0, 18.0)
@@ -150,6 +159,46 @@ pub fn color_well(ui: &mut Ui, color: Option<vector_core::Color>, size: egui::Ve
         ui.painter().rect_stroke(rect, 0.0, Stroke::new(1.0, Color32::WHITE), egui::StrokeKind::Inside);
     }
     resp
+}
+
+/// A press held on `resp` for `delay` seconds without moving (CorelDRAW's press-and-hold on a
+/// palette swatch). Gives the held button once per press, on the frame the delay is reached;
+/// moving the pointer further than a click may before that makes the press a drag, and the hold
+/// never fires for it. While the hold is pending a repaint is scheduled for when it is due, so it
+/// fires with the pointer still. The click on release is not affected: the caller decides what a
+/// fired hold means for it.
+pub fn press_and_hold(ui: &Ui, resp: &Response, delay: f64) -> Option<egui::PointerButton> {
+    #[derive(Clone, Copy)]
+    struct Hold {
+        start: f64,
+        done: bool,
+    }
+    let id = resp.id.with("press_and_hold");
+    if !resp.is_pointer_button_down_on() {
+        ui.data_mut(|d| d.remove::<Hold>(id));
+        return None;
+    }
+    let slop = ui.ctx().options(|o| o.input_options.max_click_dist);
+    let (time, start, origin, pos, button) = ui.input(|i| {
+        let p = &i.pointer;
+        let button = [egui::PointerButton::Primary, egui::PointerButton::Secondary].into_iter().find(|b| p.button_down(*b));
+        (i.time, p.press_start_time(), p.press_origin(), p.latest_pos(), button)
+    });
+    let (Some(start), Some(button)) = (start, button) else { return None };
+    let mut hold = ui.data(|d| d.get_temp::<Hold>(id)).filter(|h| h.start == start).unwrap_or(Hold { start, done: false });
+    let moved = matches!((origin, pos), (Some(o), Some(p)) if o.distance(p) > slop);
+    let fired = if hold.done || moved {
+        hold.done = true;
+        None
+    } else if time - start >= delay {
+        hold.done = true;
+        Some(button)
+    } else {
+        ui.ctx().request_repaint_after(std::time::Duration::from_secs_f64(delay - (time - start)));
+        None
+    };
+    ui.data_mut(|d| d.insert_temp(id, hold));
+    fired
 }
 
 pub fn paint_well(p: &egui::Painter, rect: Rect, color: Option<vector_core::Color>) {

@@ -5661,3 +5661,32 @@ Delete conflicts	競合を削除
 Duplicate in Place	その場に複製
 Toggle Pick State	選択状態の切り替え
 (none)	(なし)
+Color Variations	カラーのバリエーション
+Expand Dockers	ドッキング ウィンドウを展開
+Collapse Dockers	ドッキング ウィンドウを折りたたむ
+Add Docker	ドッキング ウィンドウを追加
+Dock &Left	左にドッキング(&L)
+Dock Ri&ght	右にドッキング(&G)
+&Float	フローティング(&F)
+&Close	閉じる(&C)
+Close &Others	他を閉じる(&O)
+&Reset Docker Layout	ドッキング ウィンドウのレイアウトをリセット(&R)
+Blend start: {} on {}	ブレンドの始点: {} - {}
+Blend end: {} on {}	ブレンドの終点: {} - {}
+Blend path: {} on {}	ブレンドのパス: {} - {}
+Blend split: {} on {}	ブレンドの分割: {} - {}
+Click the path the blend follows (Esc to cancel)	ブレンドが沿うパスをクリックしてください (Esc でキャンセル)
+Click the new start object of the blend (Esc to cancel)	ブレンドの新しい始点オブジェクトをクリックしてください (Esc でキャンセル)
+Click the new end object of the blend (Esc to cancel)	ブレンドの新しい終点オブジェクトをクリックしてください (Esc でキャンセル)
+Click the step of the blend where it splits (Esc to cancel)	ブレンドを分割するステップをクリックしてください (Esc でキャンセル)
+Click a node of the start object (Esc to cancel)	始点オブジェクトのノードをクリックしてください (Esc でキャンセル)
+Click the matching node of the end object (Esc to cancel)	終点オブジェクトの対応するノードをクリックしてください (Esc でキャンセル)
+Select a blend first	先にブレンドを選択してください
+Click an object that is not part of the blend	ブレンドの一部ではないオブジェクトをクリックしてください
+Click a curve or a shape to use as the path	パスとして使う曲線または図形をクリックしてください
+The path has no length	パスに長さがありません
+Groups, bitmaps and blends can't start or end a blend	グループ、ビットマップ、ブレンドはブレンドの開始や終了にできません
+The blend has no split to fuse	ブレンドに結合する分割がありません
+Click a step of the blend	ブレンドのステップをクリックしてください
+Click a node of the start object	始点オブジェクトのノードをクリックしてください
+Click the matching node of the end object	終点オブジェクトの対応するノードをクリックしてください

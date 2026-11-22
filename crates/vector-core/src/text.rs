@@ -608,6 +608,9 @@ pub struct FontDb {
     glyph_cache: HashMap<(fontdb::ID, u16, u64), Arc<BezPath>>,
     /// Faces that came embedded in drawings (see `add_embedded`).
     embedded: HashMap<fontdb::ID, EmbeddedFace>,
+    /// The face that shows a character its own font lacks, by (character, bold, italic); see
+    /// `fallback_face`.
+    fallback: HashMap<(char, bool, bool), Option<fontdb::ID>>,
 }
 
 /// A face read from a font embedded in a drawing: kept in memory for the session, never
@@ -722,7 +725,7 @@ pub fn preload_fonts() {
 
 impl FontDb {
     pub fn new(db: fontdb::Database) -> FontDb {
-        let mut fdb = FontDb { db, families: vec![], by_lower: HashMap::new(), resolved: Default::default(), legacy: Default::default(), face_cache: HashMap::new(), glyph_cache: HashMap::new(), embedded: HashMap::new() };
+        let mut fdb = FontDb { db, families: vec![], by_lower: HashMap::new(), resolved: Default::default(), legacy: Default::default(), face_cache: HashMap::new(), glyph_cache: HashMap::new(), embedded: HashMap::new(), fallback: HashMap::new() };
         fdb.index();
         fdb
     }
@@ -780,6 +783,7 @@ impl FontDb {
             self.resolved.borrow_mut().clear();
             // the other names faces go by are read again when needed
             self.legacy = Default::default();
+            self.fallback.clear();
         }
         added.sort();
         added.dedup();
@@ -1000,6 +1004,30 @@ impl FontDb {
             stretch: r.stretch,
         };
         self.db.query(&q).or_else(|| self.db.faces().next().map(|f| f.id))
+    }
+
+    /// An installed face that has a glyph for `c`, for text whose own font lacks it (Japanese
+    /// typed in Arial): the character shows in that face, as Windows' font linking does, while
+    /// the text keeps its font. The faces usual for the character's script are tried first, then
+    /// faces with a wide repertoire. `None` when none of them has the character.
+    pub fn fallback_face(&mut self, c: char, bold: bool, italic: bool) -> Option<fontdb::ID> {
+        if let Some(r) = self.fallback.get(&(c, bold, italic)) {
+            return *r;
+        }
+        let found = fallback_families(c).iter().chain(FALLBACK_ANY).find_map(|family| {
+            let fams = [fontdb::Family::Name(family)];
+            let q = fontdb::Query {
+                families: &fams,
+                weight: if bold { fontdb::Weight::BOLD } else { fontdb::Weight::NORMAL },
+                style: if italic { fontdb::Style::Italic } else { fontdb::Style::Normal },
+                stretch: fontdb::Stretch::Normal,
+            };
+            let id = self.db.query(&q)?;
+            let face = self.face(id)?;
+            face_has_glyph(&face, c).then_some(id)
+        });
+        self.fallback.insert((c, bold, italic), found);
+        found
     }
 
     pub fn face(&mut self, id: fontdb::ID) -> Option<Arc<FaceData>> {
@@ -1272,6 +1300,56 @@ fn is_special(c: char) -> bool {
     matches!(c, '\n' | '\t' | COLUMN_BREAK | SOFT_HYPHEN | EM_SPACE | EN_SPACE | QUARTER_EM_SPACE)
 }
 
+/// Faces usual for the script of `c`, tried first when a text's font lacks it (Windows, then
+/// macOS and Linux names). Han characters go to Japanese faces first: they are shared with
+/// Chinese, and kana typed next to them must match.
+fn fallback_families(c: char) -> &'static [&'static str] {
+    const KOREAN: &[&str] = &["Malgun Gothic", "Gulim", "Apple SD Gothic Neo", "Noto Sans CJK KR", "Noto Sans KR", "NanumGothic"];
+    const CJK: &[&str] = &["Yu Gothic", "Meiryo", "MS Gothic", "Microsoft YaHei", "Microsoft JhengHei", "SimSun", "Hiragino Sans", "PingFang SC", "Noto Sans CJK JP", "Noto Sans JP", "Source Han Sans", "Malgun Gothic"];
+    const THAI: &[&str] = &["Leelawadee UI", "Tahoma", "Thonburi", "Noto Sans Thai"];
+    const INDIC: &[&str] = &["Nirmala UI", "Kohinoor Devanagari", "Noto Sans Devanagari"];
+    match c as u32 {
+        0x1100..=0x11FF | 0x3130..=0x318F | 0xA960..=0xA97F | 0xAC00..=0xD7FF => KOREAN,
+        0x2E80..=0x2FDF | 0x3000..=0x30FF | 0x31C0..=0x31FF | 0x3200..=0x33FF | 0x3400..=0x4DBF | 0x4E00..=0x9FFF | 0xF900..=0xFAFF | 0xFE30..=0xFE4F | 0xFF00..=0xFFEF | 0x20000..=0x3FFFF => CJK,
+        0x0E00..=0x0EFF => THAI,
+        0x0900..=0x0DFF => INDIC,
+        _ => &[],
+    }
+}
+
+/// Faces with a wide repertoire, tried after the script's own.
+const FALLBACK_ANY: &[&str] = &["Segoe UI", "Arial Unicode MS", "Segoe UI Symbol", "Segoe UI Historic", "Nirmala UI", "Ebrima", "Gadugi", "Leelawadee UI", "Yu Gothic", "Microsoft YaHei", "Malgun Gothic", "Segoe UI Emoji", "Noto Sans", "DejaVu Sans", "Lucida Grande"];
+
+fn face_has_glyph(face: &FaceData, c: char) -> bool {
+    ttf_parser::Face::parse(&face.data, face.index).ok().and_then(|f| f.glyph_index(c)).is_some_and(|g| g.0 != 0)
+}
+
+/// A character that needs no glyph of its own (spaces, controls, joiners and selectors): never a
+/// reason to change faces.
+fn needs_no_glyph(c: char) -> bool {
+    c.is_whitespace() || c.is_control() || matches!(c as u32, 0x200B..=0x200F | 0xFE00..=0xFE0F | 0xE0100..=0xE01EF | 0x2060..=0x2064)
+}
+
+/// The face each of `chars` shows in: the run's own `face`, or for a character it lacks, the
+/// fallback face that has it (see `FontDb::fallback_face`).
+fn faces_for_run(db: &mut FontDb, chars: &[char], fid: fontdb::ID, face: &Arc<FaceData>, fmt: &CharFormat) -> Vec<(fontdb::ID, Arc<FaceData>)> {
+    let own = ttf_parser::Face::parse(&face.data, face.index).ok();
+    chars
+        .iter()
+        .map(|&c| {
+            let covered = needs_no_glyph(c) || own.as_ref().is_none_or(|f| f.glyph_index(c).is_some_and(|g| g.0 != 0));
+            if !covered {
+                if let Some(id) = db.fallback_face(c, fmt.bold, fmt.italic).filter(|id| *id != fid) {
+                    if let Some(f) = db.face(id) {
+                        return (id, f);
+                    }
+                }
+            }
+            (fid, face.clone())
+        })
+        .collect()
+}
+
 fn shape_text(db: &mut FontDb, t: &TextObj, chars: &[char], fallback: (fontdb::ID, Arc<FaceData>)) -> Vec<ShapedChar> {
     let mut shaped: Vec<ShapedChar> = Vec::with_capacity(chars.len());
     let mut i = 0;
@@ -1287,52 +1365,70 @@ fn shape_text(db: &mut FontDb, t: &TextObj, chars: &[char], fallback: (fontdb::I
             Some(x) => x,
             None => fallback.clone(),
         };
-        let scale = fmt.size / face.units_per_em;
-        let run: String = chars[i..j]
-            .iter()
-            .map(|c| {
-                let c = if *c == NB_HYPHEN { '-' } else { *c };
-                if fmt.caps {
-                    c.to_uppercase().next().unwrap_or(c)
-                } else {
-                    c
-                }
-            })
-            .collect();
-        let per_char = shape_run(&face, &run, scale, j - i, &fmt.variations);
-        for (k, ci) in (i..j).enumerate() {
-            let c = chars[ci];
-            let space_w = fmt.size * 0.25;
-            let mut adv: f64 = per_char[k].iter().map(|g| g.1).sum();
-            let mut glyphs = per_char[k].clone();
-            match c {
-                ' ' | NBSP => adv *= t.word_spacing / 100.0,
-                '\n' | '\t' | COLUMN_BREAK | SOFT_HYPHEN => {
-                    adv = 0.0;
-                    glyphs.clear();
-                }
-                EM_SPACE => {
-                    adv = fmt.size;
-                    glyphs.clear();
-                }
-                EN_SPACE => {
-                    adv = fmt.size / 2.0;
-                    glyphs.clear();
-                }
-                QUARTER_EM_SPACE => {
-                    adv = fmt.size / 4.0;
-                    glyphs.clear();
-                }
-                _ => {}
+        // characters the font lacks show in a face that has them: the run is shaped in pieces,
+        // one per face
+        let faces = faces_for_run(db, &chars[i..j], fid, &face, &fmt);
+        let mut k0 = 0;
+        while k0 < faces.len() {
+            let mut k1 = k0 + 1;
+            while k1 < faces.len() && faces[k1].0 == faces[k0].0 {
+                k1 += 1;
             }
-            if !matches!(c, '\n' | '\t' | COLUMN_BREAK | SOFT_HYPHEN) {
-                adv += fmt.tracking / 100.0 * space_w;
-            }
-            shaped.push(ShapedChar { ch: c, glyphs, advance: adv, face_id: fid, face: face.clone(), fmt: fmt.clone() });
+            let (fid, face) = faces[k0].clone();
+            shape_piece(&mut shaped, t, chars, i + k0, i + k1, &fmt, fid, face);
+            k0 = k1;
         }
         i = j;
     }
     shaped
+}
+
+/// Shape `chars[i..j]` (one format, one face) onto `shaped`.
+#[allow(clippy::too_many_arguments)]
+fn shape_piece(shaped: &mut Vec<ShapedChar>, t: &TextObj, chars: &[char], i: usize, j: usize, fmt: &CharFormat, fid: fontdb::ID, face: Arc<FaceData>) {
+    let scale = fmt.size / face.units_per_em;
+    let run: String = chars[i..j]
+        .iter()
+        .map(|c| {
+            let c = if *c == NB_HYPHEN { '-' } else { *c };
+            if fmt.caps {
+                c.to_uppercase().next().unwrap_or(c)
+            } else {
+                c
+            }
+        })
+        .collect();
+    let per_char = shape_run(&face, &run, scale, j - i, &fmt.variations);
+    for (k, ci) in (i..j).enumerate() {
+        let c = chars[ci];
+        let space_w = fmt.size * 0.25;
+        let mut adv: f64 = per_char[k].iter().map(|g| g.1).sum();
+        let mut glyphs = per_char[k].clone();
+        match c {
+            ' ' | NBSP => adv *= t.word_spacing / 100.0,
+            '\n' | '\t' | COLUMN_BREAK | SOFT_HYPHEN => {
+                adv = 0.0;
+                glyphs.clear();
+            }
+            EM_SPACE => {
+                adv = fmt.size;
+                glyphs.clear();
+            }
+            EN_SPACE => {
+                adv = fmt.size / 2.0;
+                glyphs.clear();
+            }
+            QUARTER_EM_SPACE => {
+                adv = fmt.size / 4.0;
+                glyphs.clear();
+            }
+            _ => {}
+        }
+        if !matches!(c, '\n' | '\t' | COLUMN_BREAK | SOFT_HYPHEN) {
+            adv += fmt.tracking / 100.0 * space_w;
+        }
+        shaped.push(ShapedChar { ch: c, glyphs, advance: adv, face_id: fid, face: face.clone(), fmt: fmt.clone() });
+    }
 }
 
 /// A string shaped in one format (bullets, numbers, hyphens, leaders).

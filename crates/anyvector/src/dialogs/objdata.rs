@@ -54,7 +54,7 @@ pub fn field_editor(app: &mut AnyVectorApp, ctx: &egui::Context) {
                     if r.lost_focus() {
                         renamed = Some((*k, name.trim().to_string()));
                     } else {
-                        r.request_focus();
+                        crate::widgets::keep_focus(&r);
                     }
                     continue;
                 }

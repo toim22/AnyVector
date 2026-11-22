@@ -15,6 +15,14 @@ pub struct SpellError {
 /// The default spell checking language.
 pub const DEFAULT_LANG: &str = "en-US";
 
+/// A character of a script the spell checkers of Western languages cannot judge (Chinese,
+/// Japanese, Korean, Thai): a word with one is not marked as misspelled, as CorelDRAW does not
+/// mark text typed through those input methods (#147).
+#[cfg_attr(not(windows), allow(dead_code))]
+pub fn unchecked_script(c: char) -> bool {
+    matches!(c as u32, 0x0E00..=0x0EFF | 0x1100..=0x11FF | 0x2E80..=0x2FDF | 0x3000..=0x33FF | 0x3400..=0x4DBF | 0x4E00..=0x9FFF | 0xA960..=0xA97F | 0xAC00..=0xD7FF | 0xF900..=0xFAFF | 0xFF00..=0xFFEF | 0x20000..=0x3FFFF)
+}
+
 #[cfg(windows)]
 mod imp {
     use super::SpellError;
@@ -93,6 +101,9 @@ mod imp {
                 let (s, l) = (s as usize, l as usize);
                 let a = to_char.get(s).copied().unwrap_or(0);
                 let b = to_char.get(s + l).copied().unwrap_or(a);
+                if text.chars().skip(a).take(b - a).any(super::unchecked_script) {
+                    continue;
+                }
                 let action = e.CorrectiveAction().unwrap_or(CORRECTIVE_ACTION_NONE);
                 let replacement = if action == CORRECTIVE_ACTION_REPLACE { e.Replacement().ok().map(take) } else { None };
                 out.push(SpellError { start: a, len: b - a, delete: action == CORRECTIVE_ACTION_DELETE, replacement });

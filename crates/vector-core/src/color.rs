@@ -160,6 +160,180 @@ impl Color {
         let [c, m, y, k] = self.to_cmyk();
         format!("C:{:.0} M:{:.0} Y:{:.0} K:{:.0}", c, m, y, k)
     }
+
+    /// A color defined by the CMYK inks `inks` (0..100, rounded to whole percents) with this
+    /// color's alpha.
+    fn with_inks(self, inks: [f64; 4]) -> Color {
+        let k = inks.map(|v| v.round().clamp(0.0, 100.0));
+        Color::from_cmyk(k[0], k[1], k[2], k[3]).with_alpha(self.a)
+    }
+
+    /// The color mixed toward white by `f` (0..1) in its own color model: a CMYK color keeps
+    /// being CMYK with all its inks reduced (a tint), an RGB color is blended with white. The
+    /// alpha is kept.
+    pub fn tint(self, f: f64) -> Color {
+        let f = f.clamp(0.0, 1.0);
+        match self.cmyk {
+            Some(k) => self.with_inks(k.map(|v| v as f64 * (1.0 - f))),
+            None => Color::lerp(self, Color::WHITE, f).with_alpha(self.a),
+        }
+    }
+
+    /// The color mixed toward black by `f` (0..1) in its own color model: a CMYK color gets
+    /// black ink added (a shade, its other inks unchanged), an RGB color is blended with black.
+    /// The alpha is kept.
+    pub fn shade(self, f: f64) -> Color {
+        let f = f.clamp(0.0, 1.0);
+        match self.cmyk {
+            Some([c, m, y, k]) => self.with_inks([c as f64, m as f64, y as f64, k as f64 + (100.0 - k as f64) * f]),
+            None => Color::lerp(self, Color::BLACK, f).with_alpha(self.a),
+        }
+    }
+
+    /// The color with its hue turned by `degrees` and its saturation and brightness kept, in its
+    /// own color model: a CMYK color turns the hue of its cyan, magenta and yellow inks and keeps
+    /// its black ink, an RGB color turns its HSB hue. The alpha is kept.
+    pub fn hue_shifted(self, degrees: f64) -> Color {
+        let turn = |rgb: [f64; 3]| {
+            let [h, s, v] = rgb_to_hsv(rgb);
+            hsv_to_rgb([h + degrees, s, v])
+        };
+        match self.cmyk {
+            Some([c, m, y, k]) => {
+                // cyan, magenta and yellow are the complements of red, green and blue
+                let [r, g, b] = turn([1.0 - c as f64 / 100.0, 1.0 - m as f64 / 100.0, 1.0 - y as f64 / 100.0]);
+                self.with_inks([(1.0 - r) * 100.0, (1.0 - g) * 100.0, (1.0 - b) * 100.0, k as f64])
+            }
+            None => {
+                let [r, g, b] = turn([self.r as f64 / 255.0, self.g as f64 / 255.0, self.b as f64 / 255.0]);
+                let u = |v: f64| (v * 255.0).round().clamp(0.0, 255.0) as u8;
+                Color::rgba(u(r), u(g), u(b), self.a)
+            }
+        }
+    }
+
+    /// Without a hue: a gray (equal cyan, magenta and yellow inks for a CMYK color).
+    pub fn is_neutral(&self) -> bool {
+        match self.cmyk {
+            Some([c, m, y, _]) => c == m && m == y,
+            None => self.r.max(self.g).max(self.b) - self.r.min(self.g).min(self.b) <= 2,
+        }
+    }
+
+    /// The variations CorelDRAW's pop-up color picker shows for a palette color held down,
+    /// computed in the color's own model (see [`Color::tint`], [`Color::shade`] and
+    /// [`Color::hue_shifted`]): a 7 × 7 grid with the color in the middle, lighter tints above it,
+    /// darker shades below and nearby hues (15° apart) to the left and right. A gray has no hue
+    /// to turn, so it gets the gray scale instead: white to black in 5% steps, the color itself in
+    /// the place of the nearest step.
+    pub fn variations(self) -> ColorVariations {
+        if self.is_neutral() {
+            return self.gray_variations();
+        }
+        const N: i32 = VARIATION_GRID as i32 / 2;
+        let mut colors = Vec::with_capacity(VARIATION_GRID * VARIATION_GRID);
+        for row in -N..=N {
+            for col in -N..=N {
+                let hue = if col == 0 { self } else { self.hue_shifted(col as f64 * VARIATION_HUE_STEP) };
+                let f = row.unsigned_abs() as f64 / (N + 1) as f64;
+                colors.push(match row {
+                    0 => hue,
+                    r if r < 0 => hue.tint(f),
+                    _ => hue.shade(f),
+                });
+            }
+        }
+        ColorVariations { cols: VARIATION_GRID, base: colors.len() / 2, colors }
+    }
+
+    fn gray_variations(self) -> ColorVariations {
+        // how dark the color is, 0 (white) to 1 (black)
+        let dark = match self.cmyk {
+            Some(k) => k.iter().copied().max().unwrap_or(0) as f64 / 100.0,
+            None => 1.0 - self.r.max(self.g).max(self.b) as f64 / 255.0,
+        };
+        let steps = GRAY_STEPS - 1;
+        let base = (dark * steps as f64).round() as usize;
+        let colors = (0..GRAY_STEPS)
+            .map(|i| {
+                let t = i as f64 / steps as f64;
+                if i == base {
+                    self
+                } else if t < dark {
+                    self.tint((dark - t) / dark)
+                } else {
+                    self.shade((t - dark) / (1.0 - dark))
+                }
+            })
+            .collect();
+        ColorVariations { cols: VARIATION_GRID, colors, base }
+    }
+
+    /// The tints of a spot color, as its ink can print them: [`SPOT_TINTS`] percent of the color
+    /// (in its own color model, see [`Color::tint`]), from the full ink down.
+    pub fn spot_tints(self) -> ColorVariations {
+        let colors = SPOT_TINTS.iter().map(|p| if *p == 100 { self } else { self.tint(1.0 - *p as f64 / 100.0) }).collect();
+        ColorVariations { cols: 5, colors, base: 0 }
+    }
+}
+
+/// Rows and columns of the grid of [`Color::variations`].
+pub const VARIATION_GRID: usize = 7;
+/// The hue step between the columns of [`Color::variations`], in degrees.
+pub const VARIATION_HUE_STEP: f64 = 15.0;
+/// The cells of the gray scale of a gray's [`Color::variations`]: 0% to 100% in 5% steps.
+const GRAY_STEPS: usize = 21;
+/// The percentages of [`Color::spot_tints`].
+pub const SPOT_TINTS: [u8; 10] = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10];
+
+/// The variations of a color for the pop-up color picker of a palette swatch.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ColorVariations {
+    /// Columns of the grid; `colors` goes row by row.
+    pub cols: usize,
+    pub colors: Vec<Color>,
+    /// Where the color itself is in `colors`.
+    pub base: usize,
+}
+
+impl ColorVariations {
+    pub fn rows(&self) -> usize {
+        self.colors.len().div_ceil(self.cols.max(1))
+    }
+}
+
+/// RGB (each 0..1) to HSV: hue in degrees 0..360, saturation and value 0..1.
+fn rgb_to_hsv([r, g, b]: [f64; 3]) -> [f64; 3] {
+    let max = r.max(g).max(b);
+    let min = r.min(g).min(b);
+    let d = max - min;
+    let h = if d <= 0.0 {
+        0.0
+    } else if max == r {
+        60.0 * ((g - b) / d).rem_euclid(6.0)
+    } else if max == g {
+        60.0 * ((b - r) / d + 2.0)
+    } else {
+        60.0 * ((r - g) / d + 4.0)
+    };
+    [h, if max <= 0.0 { 0.0 } else { d / max }, max]
+}
+
+/// HSV (hue in degrees, saturation and value 0..1) to RGB (each 0..1).
+fn hsv_to_rgb([h, s, v]: [f64; 3]) -> [f64; 3] {
+    let h = h.rem_euclid(360.0) / 60.0;
+    let c = v * s;
+    let x = c * (1.0 - ((h % 2.0) - 1.0).abs());
+    let (r, g, b) = match h as i32 {
+        0 => (c, x, 0.0),
+        1 => (x, c, 0.0),
+        2 => (0.0, c, x),
+        3 => (0.0, x, c),
+        4 => (x, 0.0, c),
+        _ => (c, 0.0, x),
+    };
+    let m = v - c;
+    [r + m, g + m, b + m]
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -694,5 +868,131 @@ mod xml_tests {
         let back = Palette::parse("x", &cmyk.to_xml());
         assert_eq!(back.colors[0].color.cmyk, Some([0, 0, 0, 100]));
         assert_eq!(cmyk.colors[1].color, Color::rgb(128, 128, 128));
+    }
+}
+
+#[cfg(test)]
+mod variation_tests {
+    use super::{Color, SPOT_TINTS, VARIATION_GRID};
+
+    fn inks(c: &Color) -> [u8; 4] {
+        c.cmyk.expect("stays a CMYK color")
+    }
+
+    /// #146: the variations of a CMYK color are CMYK colors: tints reduce every ink, shades add
+    /// black, the nearby hues turn the cyan, magenta and yellow inks, and the color is in the
+    /// middle.
+    #[test]
+    fn cmyk_variations_stay_cmyk() {
+        let red = Color::from_cmyk(0.0, 100.0, 100.0, 0.0);
+        let v = red.variations();
+        assert_eq!((v.cols, v.rows(), v.colors.len()), (VARIATION_GRID, VARIATION_GRID, 49));
+        assert_eq!(v.base, 24);
+        assert_eq!(v.colors[v.base], red);
+        assert!(v.colors.iter().all(|c| c.is_cmyk()), "{:?}", v.colors);
+        // each color's RGB is its inks through the color management
+        for c in &v.colors {
+            let k = inks(c);
+            assert_eq!(*c, Color::from_cmyk(k[0] as f64, k[1] as f64, k[2] as f64, k[3] as f64));
+        }
+        let at = |row: usize, col: usize| inks(&v.colors[row * VARIATION_GRID + col]);
+        // the column of the color itself: tints above, shades below
+        assert_eq!(at(0, 3), [0, 25, 25, 0]);
+        assert_eq!(at(1, 3), [0, 50, 50, 0]);
+        assert_eq!(at(2, 3), [0, 75, 75, 0]);
+        assert_eq!(at(4, 3), [0, 100, 100, 25]);
+        assert_eq!(at(6, 3), [0, 100, 100, 75]);
+        // the nearby hues: toward orange on the right, toward magenta on the left
+        assert_eq!(at(3, 4), [0, 75, 100, 0]);
+        assert_eq!(at(3, 6), [0, 25, 100, 0]);
+        assert_eq!(at(3, 2), [0, 100, 75, 0]);
+        assert_eq!(at(3, 0), [0, 100, 25, 0]);
+        // all different
+        for (i, a) in v.colors.iter().enumerate() {
+            assert!(v.colors[i + 1..].iter().all(|b| b != a), "{a:?} twice");
+        }
+    }
+
+    #[test]
+    fn cmyk_tint_and_shade_keep_the_model_and_black() {
+        let c = Color::from_cmyk(20.0, 80.0, 0.0, 20.0);
+        assert_eq!(inks(&c.tint(0.5)), [10, 40, 0, 10]);
+        assert_eq!(inks(&c.shade(0.5)), [20, 80, 0, 60]);
+        assert_eq!(inks(&c.tint(1.0)), [0, 0, 0, 0]);
+        assert_eq!(inks(&c.shade(1.0)), [20, 80, 0, 100]);
+        // the hue turns, the black ink stays
+        let h = inks(&c.hue_shifted(30.0));
+        assert_eq!(h[3], 20);
+        assert_ne!(h, inks(&c));
+        assert_eq!(c.hue_shifted(0.0), c);
+        assert_eq!(c.hue_shifted(360.0), c);
+    }
+
+    /// An RGB color's variations are RGB colors, blended with white and black, its hue turned.
+    #[test]
+    fn rgb_variations_stay_rgb() {
+        let c = Color::rgb(0, 128, 255);
+        let v = c.variations();
+        assert_eq!(v.colors[v.base], c);
+        assert!(v.colors.iter().all(|x| !x.is_cmyk()));
+        let at = |row: usize, col: usize| v.colors[row * VARIATION_GRID + col];
+        assert_eq!(at(1, 3), Color::lerp(c, Color::WHITE, 0.5));
+        assert_eq!(at(6, 3), Color::lerp(c, Color::BLACK, 0.75));
+        // a nearby hue keeps the saturation and brightness
+        let [h0, s0, b0] = c.to_hsb();
+        let [h, s, b] = at(3, 4).to_hsb();
+        assert!((h - (h0 + 15.0)).abs() < 1.5, "{h} {h0}");
+        assert!((s - s0).abs() < 1.0 && (b - b0).abs() < 1.0);
+        // red's hue wraps around
+        let [h, _, _] = Color::rgb(255, 0, 0).hue_shifted(-15.0).to_hsb();
+        assert!((h - 345.0).abs() < 1.5, "{h}");
+    }
+
+    /// The variations keep the color's transparency.
+    #[test]
+    fn variations_keep_the_alpha() {
+        for c in [Color::rgba(200, 40, 40, 128), Color::from_cmyk(60.0, 0.0, 20.0, 0.0).with_alpha(90), Color::rgba(128, 128, 128, 77)] {
+            let v = c.variations();
+            assert!(v.colors.iter().all(|x| x.a == c.a), "{c:?}");
+            assert!(c.spot_tints().colors.iter().all(|x| x.a == c.a), "{c:?}");
+        }
+    }
+
+    /// A gray has no hue: its variations are the gray scale, white to black in 5% steps, with the
+    /// color itself in place of the nearest step.
+    #[test]
+    fn gray_variations_are_the_gray_scale() {
+        let k50 = Color::from_cmyk(0.0, 0.0, 0.0, 50.0);
+        let v = k50.variations();
+        assert_eq!(v.colors.len(), 21);
+        assert_eq!(v.base, 10);
+        assert_eq!(v.colors[10], k50);
+        let ks: Vec<[u8; 4]> = v.colors.iter().map(inks).collect();
+        assert_eq!(ks, (0..=20).map(|i| [0, 0, 0, i * 5]).collect::<Vec<_>>());
+        // white and black: the whole scale too
+        let white = Color::from_cmyk(0.0, 0.0, 0.0, 0.0).variations();
+        assert_eq!((white.base, inks(&white.colors[20])), (0, [0, 0, 0, 100]));
+        let black = Color::from_cmyk(0.0, 0.0, 0.0, 100.0).variations();
+        assert_eq!((black.base, inks(&black.colors[0])), (20, [0, 0, 0, 0]));
+        // an RGB gray stays RGB and has no hue shift
+        let g = Color::rgb(128, 128, 128);
+        let v = g.variations();
+        assert_eq!(v.colors[v.base], g);
+        assert!(v.colors.iter().all(|c| !c.is_cmyk() && c.r == c.g && c.g == c.b));
+        assert_eq!((v.colors[0], v.colors[20]), (Color::WHITE, Color::BLACK));
+        assert!(v.colors.windows(2).all(|w| w[0].r >= w[1].r), "lighter to darker");
+    }
+
+    /// A spot color's variations are the tints of its ink, in its own model.
+    #[test]
+    fn spot_tints_of_the_ink() {
+        let spot = Color::from_cmyk(0.0, 60.0, 100.0, 0.0);
+        let t = spot.spot_tints();
+        assert_eq!(t.colors.len(), SPOT_TINTS.len());
+        assert_eq!((t.base, t.colors[0]), (0, spot));
+        assert_eq!(inks(&t.colors[5]), [0, 30, 50, 0]);
+        assert_eq!(inks(&t.colors[9]), [0, 6, 10, 0]);
+        let rgb = Color::rgb(0, 128, 255);
+        assert_eq!(rgb.spot_tints().colors[2], Color::lerp(Color::WHITE, rgb, 0.8));
     }
 }

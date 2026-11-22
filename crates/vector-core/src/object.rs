@@ -606,12 +606,98 @@ pub struct BlendObj {
     /// Accelerate the sizes too.
     #[serde(default)]
     pub size_accel: bool,
+    /// The path the steps follow (Path Properties ▸ New Path), when the blend is on a path.
+    #[serde(default)]
+    pub path: Option<BlendPath>,
+    /// Fixed spacing: the distance between the steps along the path (a blend on a path only);
+    /// `None` spreads `steps` steps.
+    #[serde(default)]
+    pub spacing: Option<f64>,
+    /// Split points (Options ▸ Split): intermediate objects the blend passes through, in order
+    /// from the start. Each is the start of the next part of the blend.
+    #[serde(default)]
+    pub splits: Vec<BlendSplit>,
+    /// Map Nodes: (subpath, start fraction, end fraction): that closed subpath of the start and
+    /// of the end object is matched from those points (fractions of its length) on.
+    #[serde(default)]
+    pub map: Option<(usize, f64, f64)>,
+}
+
+/// The path a blend follows. It is embedded like the start and end objects, so the blend stays
+/// self-contained (save, undo, copy and paste); it is drawn with its own style, under the steps.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BlendPath {
+    /// The path object, in document coordinates.
+    pub obj: Box<Object>,
+    /// Blend Along Full Path: the start sits at the beginning of the path and the end at its end.
+    #[serde(default)]
+    pub full: bool,
+    /// Rotate All Objects: every object turns with the direction of the path.
+    #[serde(default)]
+    pub rotate: bool,
+}
+
+/// A split point of a blend: the object, and where it sits in the blend (0..1, the step it was).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BlendSplit {
+    pub obj: Box<Object>,
+    pub at: f64,
+}
+
+/// A part of a blend that can be picked on its own (Show Start, Show End, Show Path, a split).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum BlendPart {
+    Start,
+    End,
+    Path,
+    Split(usize),
+}
+
+impl BlendObj {
+    /// The object of a part, if the blend has it.
+    pub fn part(&self, p: BlendPart) -> Option<&Object> {
+        match p {
+            BlendPart::Start => Some(&self.start),
+            BlendPart::End => Some(&self.end),
+            BlendPart::Path => self.path.as_ref().map(|p| p.obj.as_ref()),
+            BlendPart::Split(i) => self.splits.get(i).map(|s| s.obj.as_ref()),
+        }
+    }
+
+    /// The part whose object has the id `id`.
+    pub fn part_with(&self, id: ObjId) -> Option<BlendPart> {
+        if self.start.id == id {
+            return Some(BlendPart::Start);
+        }
+        if self.end.id == id {
+            return Some(BlendPart::End);
+        }
+        if self.path.as_ref().is_some_and(|p| p.obj.id == id) {
+            return Some(BlendPart::Path);
+        }
+        self.splits.iter().position(|s| s.obj.id == id).map(BlendPart::Split)
+    }
 }
 
 impl Default for BlendObj {
     fn default() -> Self {
         let o = Object::new(0, ObjKind::Group(vec![]), Affine::IDENTITY, crate::style::Style::default());
-        BlendObj { start: Box::new(o.clone()), end: Box::new(o), steps: 20, rotation: 0.0, acceleration: 0.0, color_dir: 0, looped: false, color_accel: 0.0, link_accel: true, size_accel: false }
+        BlendObj {
+            start: Box::new(o.clone()),
+            end: Box::new(o),
+            steps: 20,
+            rotation: 0.0,
+            acceleration: 0.0,
+            color_dir: 0,
+            looped: false,
+            color_accel: 0.0,
+            link_accel: true,
+            size_accel: false,
+            path: None,
+            spacing: None,
+            splits: vec![],
+            map: None,
+        }
     }
 }
 
@@ -1531,7 +1617,12 @@ impl Object {
                 v.extend(contents.iter());
                 v
             }
-            ObjKind::Blend(b) => vec![b.start.as_ref(), b.end.as_ref()],
+            ObjKind::Blend(b) => {
+                let mut v = vec![b.start.as_ref(), b.end.as_ref()];
+                v.extend(b.path.as_ref().map(|p| p.obj.as_ref()));
+                v.extend(b.splits.iter().map(|s| s.obj.as_ref()));
+                v
+            }
             _ => vec![],
         }
     }
@@ -1544,7 +1635,12 @@ impl Object {
                 v.extend(contents.iter_mut());
                 v
             }
-            ObjKind::Blend(b) => vec![b.start.as_mut(), b.end.as_mut()],
+            ObjKind::Blend(b) => {
+                let mut v = vec![b.start.as_mut(), b.end.as_mut()];
+                v.extend(b.path.as_mut().map(|p| p.obj.as_mut()));
+                v.extend(b.splits.iter_mut().map(|s| s.obj.as_mut()));
+                v
+            }
             _ => vec![],
         }
     }
@@ -1637,7 +1733,20 @@ impl Object {
         match &self.kind {
             ObjKind::Group(c) => union_bounds(c.iter().map(|o| o.bounds_with(sym))),
             ObjKind::PowerClip { frame, .. } => frame.bounds_with(sym),
-            ObjKind::Blend(b) => b.start.bounds_with(sym).union(b.end.bounds_with(sym)),
+            ObjKind::Blend(b) => {
+                let (s, e) = (b.start.bounds_with(sym), b.end.bounds_with(sym));
+                let mut r = s.union(e);
+                for x in &b.splits {
+                    r = r.union(x.obj.bounds_with(sym));
+                }
+                if let Some(p) = &b.path {
+                    // the steps sit on the path: it, and half a step on each side of it
+                    let (w, h) = (s.width().max(e.width()), s.height().max(e.height()));
+                    let (dx, dy) = if p.rotate { (w.hypot(h) / 2.0, w.hypot(h) / 2.0) } else { (w / 2.0, h / 2.0) };
+                    r = r.union(p.obj.bounds_with(sym).inflate(dx, dy));
+                }
+                r
+            }
             ObjKind::Symbol(id) => sym(*id).map(|r| self.transform.transform_rect_bbox(r)).unwrap_or(Rect::ZERO),
             ObjKind::Text(t) => {
                 if self.effects.warps_geometry() {
@@ -1704,6 +1813,20 @@ impl Object {
             ObjKind::Blend(b) => {
                 b.start.apply_transform(a);
                 b.end.apply_transform(a);
+                if let Some(p) = &mut b.path {
+                    p.obj.apply_transform(a);
+                }
+                for s in b.splits.iter_mut() {
+                    s.obj.apply_transform(a);
+                }
+                // a fixed spacing is a distance: it scales with the blend
+                if let Some(d) = &mut b.spacing {
+                    let (_, _, _, sx, sy) = geom::decompose(a);
+                    let k = (sx.abs() * sy.abs()).sqrt();
+                    if k.is_finite() && k > 0.0 {
+                        *d *= k;
+                    }
+                }
             }
             ObjKind::Path(np) => {
                 // paths keep their geometry in document space
@@ -2630,45 +2753,25 @@ pub fn blend_color(a: Color, b: Color, t: f64, dir: u8) -> Color {
     c
 }
 
-/// The intermediate objects of a blend, with its accelerations, color direction and loop.
+/// The intermediate objects of a blend, with its accelerations, color direction and loop, its
+/// split points (in their places) and its path. Everything that draws or exports a blend draws
+/// the path (if any), the start, these and the end.
 pub fn blend_steps(b: &BlendObj, mut new_id: impl FnMut() -> ObjId) -> Vec<Object> {
-    let ca = b.start.bounds().center();
-    let cb = b.end.bounds().center();
-    let pivot = ca.midpoint(cb);
-    (1..=b.steps)
-        .map(|k| {
-            let t = k as f64 / (b.steps + 1) as f64;
-            let to = accel(t, b.acceleration);
-            let tc = if b.link_accel { to } else { accel(t, b.color_accel) };
-            let ts = if b.size_accel { to } else { t };
-            let mut o = blend_step(&b.start, &b.end, ts, new_id(), if b.looped { 0.0 } else { b.rotation });
-            // position follows the object acceleration
-            let want = ca.lerp(cb, to);
-            let have = o.bounds().center();
-            o.apply_transform(Affine::translate(want - have));
-            if b.looped && b.rotation != 0.0 {
-                o.apply_transform(Affine::rotate_about((b.rotation * to).to_radians(), pivot));
-            }
-            // colors follow the color acceleration and direction
-            use crate::style::Fill;
-            if let (Fill::Solid(x), Fill::Solid(y)) = (&b.start.style.fill, &b.end.style.fill) {
-                o.style.fill = Fill::Solid(blend_color(*x, *y, tc, b.color_dir));
-            }
-            if let (Some(x), Some(y)) = (b.start.style.outline.color, b.end.style.outline.color) {
-                o.style.outline.color = Some(blend_color(x, y, tc, b.color_dir));
-            }
-            o
-        })
-        .collect()
+    crate::blend_path::steps(b, &mut new_id)
 }
 
 /// Interpolate two objects for a blend step (t in 0..1). Geometry is matched by flattening both
 /// to the same number of points per subpath.
 pub fn blend_step(a: &Object, b: &Object, t: f64, id: ObjId, rotation: f64) -> Object {
-    let pa = a.world_path();
-    let pb = b.world_path();
-    let ra = resample(&pa, 96);
-    let rb = resample(&pb, 96);
+    blend_step_paths(a, b, &a.world_path(), &b.world_path(), (None, None), t, id, rotation)
+}
+
+/// [`blend_step`] on given outlines of `a` and `b` (the objects give the styles), with the closed
+/// subpath of each outline that Map Nodes matched read from that fraction of its length on.
+#[allow(clippy::too_many_arguments)]
+pub fn blend_step_paths(a: &Object, b: &Object, pa: &BezPath, pb: &BezPath, map: (Option<(usize, f64)>, Option<(usize, f64)>), t: f64, id: ObjId, rotation: f64) -> Object {
+    let ra = resample_from(pa, 96, map.0);
+    let rb = resample_from(pb, 96, map.1);
     let mut np = crate::path::NodePath::new();
     let n = ra.len().min(rb.len());
     for k in 0..n {
@@ -2711,10 +2814,17 @@ pub fn lerp_fill(a: &crate::style::Fill, b: &crate::style::Fill, t: f64) -> crat
 
 /// Resample each subpath to `n` evenly spaced points.
 pub fn resample(path: &BezPath, n: usize) -> Vec<(Vec<Point>, bool)> {
+    resample_from(path, n, None)
+}
+
+/// [`resample`], with the closed subpath `map.0` read from the fraction `map.1` of its length
+/// on (Map Nodes).
+pub fn resample_from(path: &BezPath, n: usize, map: Option<(usize, f64)>) -> Vec<(Vec<Point>, bool)> {
     let polys = geom::flatten_polylines(path, 0.2);
     polys
         .into_iter()
-        .map(|(pts, closed)| {
+        .enumerate()
+        .map(|(si, (pts, closed))| {
             let mut pts = pts;
             if closed {
                 pts.push(pts[0]);
@@ -2724,10 +2834,17 @@ pub fn resample(path: &BezPath, n: usize) -> Vec<(Vec<Point>, bool)> {
                 acc.push(acc.last().unwrap() + (w[1] - w[0]).hypot());
             }
             let total = *acc.last().unwrap();
+            let off = match map {
+                Some((k, f)) if k == si && closed && f.is_finite() => f.rem_euclid(1.0) * total,
+                _ => 0.0,
+            };
             let mut out = vec![];
             let m = if closed { n } else { n + 1 };
             for i in 0..m {
-                let s = total * i as f64 / n as f64;
+                let mut s = total * i as f64 / n as f64;
+                if off > 0.0 {
+                    s = (s + off).rem_euclid(total.max(1e-12));
+                }
                 let mut k = 0;
                 while k + 1 < acc.len() - 1 && acc[k + 1] < s {
                     k += 1;

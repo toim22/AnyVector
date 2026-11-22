@@ -5661,3 +5661,32 @@ Delete conflicts	Excluir conflitos
 Duplicate in Place	Duplicar no lugar
 Toggle Pick State	Alternar estado da seleção
 (none)	(nenhum)
+Color Variations	Variações de cor
+Expand Dockers	Expandir dockers
+Collapse Dockers	Recolher dockers
+Add Docker	Adicionar docker
+Dock &Left	Encaixar à &esquerda
+Dock Ri&ght	Encaixar à &direita
+&Float	&Flutuar
+&Close	&Fechar
+Close &Others	Fechar &outros
+&Reset Docker Layout	&Redefinir layout dos dockers
+Blend start: {} on {}	Início da mistura: {} em {}
+Blend end: {} on {}	Fim da mistura: {} em {}
+Blend path: {} on {}	Caminho da mistura: {} em {}
+Blend split: {} on {}	Divisão da mistura: {} em {}
+Click the path the blend follows (Esc to cancel)	Clique no caminho que a mistura segue (Esc para cancelar)
+Click the new start object of the blend (Esc to cancel)	Clique no novo objeto inicial da mistura (Esc para cancelar)
+Click the new end object of the blend (Esc to cancel)	Clique no novo objeto final da mistura (Esc para cancelar)
+Click the step of the blend where it splits (Esc to cancel)	Clique na etapa da mistura onde ela se divide (Esc para cancelar)
+Click a node of the start object (Esc to cancel)	Clique em um nó do objeto inicial (Esc para cancelar)
+Click the matching node of the end object (Esc to cancel)	Clique no nó correspondente do objeto final (Esc para cancelar)
+Select a blend first	Selecione uma mistura primeiro
+Click an object that is not part of the blend	Clique em um objeto que não faça parte da mistura
+Click a curve or a shape to use as the path	Clique em uma curva ou forma para usar como caminho
+The path has no length	O caminho não tem comprimento
+Groups, bitmaps and blends can't start or end a blend	Grupos, bitmaps e misturas não podem iniciar nem terminar uma mistura
+The blend has no split to fuse	A mistura não tem divisão para fundir
+Click a step of the blend	Clique em uma etapa da mistura
+Click a node of the start object	Clique em um nó do objeto inicial
+Click the matching node of the end object	Clique no nó correspondente do objeto final

@@ -231,6 +231,9 @@ impl<'a> Flattener<'a> {
                 self.object(&f2);
             }
             ObjKind::Blend(b) => {
+                if let Some(p) = &b.path {
+                    self.object(&p.obj);
+                }
                 self.object(&b.start);
                 for step in vector_core::object::blend_steps(b, || 0) {
                     self.object(&step);

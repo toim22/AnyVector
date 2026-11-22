@@ -6817,3 +6817,1416 @@ fn visual_issue_060_input_and_keyboard() {
 fn categories_len_minus_one() -> usize {
     crate::dialogs::options::commands_page::categories().len() - 1
 }
+
+// #146: holding a palette swatch down shows its color variations (CorelDRAW's pop-up color
+// picker); a click on one applies it as the fill, a right-click as the outline.
+
+/// A document with a selected rectangle (a yellow fill, a black outline) and the palettes shown.
+fn palette_harness<'a>() -> (Harness<'a, AnyVectorApp>, vector_core::ObjId) {
+    let mut h = doc_harness();
+    {
+        let s = &mut h.state_mut().settings;
+        s.default_palette_visible = true;
+        s.doc_palette_visible = true;
+        s.show_no_color_well = true;
+        s.right_click_outline = true;
+    }
+    let id = outlined_rect(&mut h, vector_core::style::Outline { width: 1.0, color: Some(Color::BLACK), ..Default::default() });
+    for _ in 0..3 {
+        h.step();
+    }
+    (h, id)
+}
+
+/// The swatch of the default palette named `name`: its rectangle and color.
+fn palette_swatch(h: &Harness<'_, AnyVectorApp>, name: &str) -> (egui::Rect, Color) {
+    let a = h.state();
+    let at = a.palettes.palettes[0].colors.iter().position(|c| c.name == name).expect("in the default palette");
+    let k = at + a.settings.show_no_color_well as usize;
+    let d = a.palettes.drawn.iter().find(|d| d.0 == crate::palette::Strip::Column(0) && d.1 == k).expect("the swatch is shown");
+    (d.2, d.3.unwrap())
+}
+
+fn pointer_button(h: &mut Harness<'_, AnyVectorApp>, p: egui::Pos2, button: egui::PointerButton, pressed: bool) {
+    h.input_mut().events.push(egui::Event::PointerButton { pos: p, button, pressed, modifiers: egui::Modifiers::NONE });
+}
+
+/// Press `button` on `p` and keep it down for `HOLD_DELAY` (each step is a quarter second).
+fn hold_down(h: &mut Harness<'_, AnyVectorApp>, p: egui::Pos2, button: egui::PointerButton) {
+    move_to(h, p);
+    h.step();
+    pointer_button(h, p, button, true);
+    h.step();
+    assert!(h.state().palettes.variations.is_none(), "not before the hold delay");
+    for _ in 0..(crate::palette::HOLD_DELAY / 0.25).round() as usize {
+        h.step();
+    }
+}
+
+fn variations_open(h: &Harness<'_, AnyVectorApp>) -> bool {
+    h.state().palettes.variations.is_some() && egui::Popup::is_id_open(&h.ctx, crate::palette::variations_popup_id())
+}
+
+/// The variation `i` of the open picker: where it is drawn and its color.
+fn variation(h: &Harness<'_, AnyVectorApp>, i: usize) -> (egui::Pos2, Color) {
+    let v = h.state().palettes.variations.as_ref().expect("the picker is open");
+    (v.cells[i].center(), v.grid.colors[i])
+}
+
+/// Holding a swatch opens its variations without applying anything, also on release; a click on
+/// a variation applies it as the fill, as one undo step, and closes the picker.
+#[test]
+fn palette_hold_opens_variations_and_a_click_applies_the_fill() {
+    let (mut h, id) = palette_harness();
+    let (r, red) = palette_swatch(&h, "Red");
+    let fill = fill_of(&h, id);
+    let undo = undo_steps(&h);
+    hold_down(&mut h, r.center(), egui::PointerButton::Primary);
+    assert!(h.state().palettes.variations.is_some(), "the hold opened the picker");
+    h.step();
+    assert!(variations_open(&h));
+    {
+        let v = h.state().palettes.variations.as_ref().unwrap();
+        assert_eq!((v.base, v.grid.colors.len(), v.grid.colors[v.grid.base]), (red, 49, red));
+        assert_eq!(v.held, Some(egui::PointerButton::Primary));
+        assert!(v.grid.colors.iter().all(|c| c.is_cmyk()), "the CMYK palette's variations stay CMYK");
+    }
+    // releasing the hold on the swatch applies nothing
+    pointer_button(&mut h, r.center(), egui::PointerButton::Primary, false);
+    h.step();
+    h.step();
+    assert_eq!(fill_of(&h, id), fill, "the release of a hold is not a click");
+    assert_eq!(undo_steps(&h), undo);
+    assert!(variations_open(&h), "the picker stays open");
+    assert_eq!(h.state().palettes.variations.as_ref().unwrap().held, None);
+    // the darkest shade of red, below it
+    let (p, shade) = variation(&h, 6 * 7 + 3);
+    assert_eq!(shade.cmyk, Some([0, 100, 100, 75]));
+    click(&mut h, p);
+    assert_eq!(fill_of(&h, id), Fill::Solid(shade));
+    assert_eq!(undo_steps(&h), undo + 1, "one undo step");
+    h.step();
+    assert!(!variations_open(&h), "a pick closes the picker");
+    assert_eq!(outline_of(&h, id).color, Some(Color::BLACK));
+}
+
+/// A right-click on a variation applies it as the outline.
+#[test]
+fn palette_variation_right_click_sets_the_outline() {
+    let (mut h, id) = palette_harness();
+    let (r, _) = palette_swatch(&h, "Cyan");
+    let fill = fill_of(&h, id);
+    hold_down(&mut h, r.center(), egui::PointerButton::Primary);
+    pointer_button(&mut h, r.center(), egui::PointerButton::Primary, false);
+    h.step();
+    h.step();
+    let (p, tint) = variation(&h, 3);
+    assert_eq!(tint.cmyk, Some([25, 0, 0, 0]));
+    move_to(&mut h, p);
+    h.step();
+    for pressed in [true, false] {
+        pointer_button(&mut h, p, egui::PointerButton::Secondary, pressed);
+        h.step();
+    }
+    assert_eq!(outline_of(&h, id).color, Some(tint));
+    assert_eq!(fill_of(&h, id), fill);
+    h.step();
+    assert!(!variations_open(&h));
+}
+
+/// Holding the right button opens the picker too, and releasing it over a variation sets the
+/// outline; no context menu opens and the swatch color is not applied.
+#[test]
+fn palette_right_hold_released_over_a_variation_sets_the_outline() {
+    for right_click_outline in [true, false] {
+        let (mut h, id) = palette_harness();
+        h.state_mut().settings.right_click_outline = right_click_outline;
+        let (r, _) = palette_swatch(&h, "Green");
+        let fill = fill_of(&h, id);
+        let undo = undo_steps(&h);
+        hold_down(&mut h, r.center(), egui::PointerButton::Secondary);
+        h.step();
+        assert!(variations_open(&h));
+        assert_eq!(h.state().palettes.variations.as_ref().unwrap().held, Some(egui::PointerButton::Secondary));
+        let (p, c) = variation(&h, 2 * 7 + 5);
+        for k in 1..=4 {
+            move_to(&mut h, r.center() + (p - r.center()) * (k as f32 / 4.0));
+            h.step();
+        }
+        pointer_button(&mut h, p, egui::PointerButton::Secondary, false);
+        h.step();
+        assert_eq!(outline_of(&h, id).color, Some(c), "right_click_outline {right_click_outline}");
+        assert_eq!(fill_of(&h, id), fill);
+        assert_eq!(undo_steps(&h), undo + 1);
+        h.step();
+        assert!(!egui::Popup::is_any_open(&h.ctx), "no picker and no context menu left open");
+    }
+}
+
+/// A quick click still applies the swatch at once, with no picker; a quick right-click sets the
+/// outline.
+#[test]
+fn palette_quick_click_applies_at_once() {
+    let (mut h, id) = palette_harness();
+    let (r, red) = palette_swatch(&h, "Red");
+    let undo = undo_steps(&h);
+    move_to(&mut h, r.center());
+    h.step();
+    pointer_button(&mut h, r.center(), egui::PointerButton::Primary, true);
+    h.step();
+    pointer_button(&mut h, r.center(), egui::PointerButton::Primary, false);
+    h.step();
+    assert_eq!(fill_of(&h, id), Fill::Solid(red), "applied on the release, no waiting");
+    assert_eq!(undo_steps(&h), undo + 1);
+    let (r, blue) = palette_swatch(&h, "Blue");
+    move_to(&mut h, r.center());
+    h.step();
+    for pressed in [true, false] {
+        pointer_button(&mut h, r.center(), egui::PointerButton::Secondary, pressed);
+        h.step();
+    }
+    assert_eq!(outline_of(&h, id).color, Some(blue));
+    for _ in 0..4 {
+        h.step();
+    }
+    assert!(h.state().palettes.variations.is_none(), "no picker for a click");
+}
+
+/// Dragging a swatch is not a hold: it still drops its color on the document palette.
+#[test]
+fn palette_drag_still_drops_on_the_document_palette() {
+    let (mut h, id) = palette_harness();
+    let fill = fill_of(&h, id);
+    let first = Color::rgb(10, 20, 30);
+    h.state_mut().doc_mut().unwrap().doc.palette.push(vector_core::NamedColor::new("First", first));
+    for _ in 0..3 {
+        h.step();
+    }
+    let at = h.state().palettes.drawn.iter().find(|d| d.0 == crate::palette::Strip::Document).expect("the document palette is shown").2;
+    let (r, red) = palette_swatch(&h, "Red");
+    drag(&mut h, r.center(), at.center() + egui::vec2(80.0, 0.0));
+    h.step();
+    assert!(h.state().doc().unwrap().doc.palette.iter().any(|n| n.color == red), "{:?}", h.state().doc().unwrap().doc.palette);
+    assert!(h.state().palettes.variations.is_none(), "a drag opens no picker");
+    assert_eq!(fill_of(&h, id), fill);
+}
+
+/// Esc or a click elsewhere closes the picker and applies nothing; Esc does not also clear the
+/// selection.
+#[test]
+fn palette_variations_close_on_escape_and_click_outside() {
+    let (mut h, id) = palette_harness();
+    let (r, _) = palette_swatch(&h, "Orange");
+    let fill = fill_of(&h, id);
+    let undo = undo_steps(&h);
+    for close in ["escape", "click"] {
+        hold_down(&mut h, r.center(), egui::PointerButton::Primary);
+        pointer_button(&mut h, r.center(), egui::PointerButton::Primary, false);
+        h.step();
+        h.step();
+        assert!(variations_open(&h), "{close}");
+        if close == "escape" {
+            key(&mut h, egui::Key::Escape, true);
+            h.step();
+            key(&mut h, egui::Key::Escape, false);
+            h.step();
+        } else {
+            // on the property bar, away from the picker and the selection
+            click(&mut h, egui::pos2(900.0, 60.0));
+        }
+        h.step();
+        assert!(!variations_open(&h), "closed by {close}");
+        assert!(h.state().palettes.variations.is_none(), "{close}");
+        assert_eq!(fill_of(&h, id), fill, "{close} applies nothing");
+        assert_eq!(undo_steps(&h), undo);
+        assert_eq!(h.state().doc().unwrap().selection, vec![id], "{close} keeps the selection");
+    }
+}
+
+/// With right-click set to open the swatch menu, the menu offers the variations too.
+#[test]
+fn palette_context_menu_offers_color_variations() {
+    let (mut h, id) = palette_harness();
+    h.state_mut().settings.right_click_outline = false;
+    h.step();
+    let (r, purple) = palette_swatch(&h, "Purple");
+    right_click(&mut h, r.center());
+    h.step();
+    assert!(has_label(&h, "Set Fill") && has_label(&h, "Color Variations"), "the swatch menu offers the variations");
+    click_label(&mut h, "Color Variations");
+    assert!(variations_open(&h));
+    let v = h.state().palettes.variations.as_ref().unwrap();
+    assert_eq!((v.base, v.held), (purple, None));
+    let (p, c) = variation(&h, 3 * 7 + 4);
+    click(&mut h, p);
+    assert_eq!(fill_of(&h, id), Fill::Solid(c));
+}
+
+/// The document palette strip has the picker too; a spot color's variations are its tints.
+#[test]
+fn palette_document_strip_hold_shows_spot_tints() {
+    let (mut h, id) = palette_harness();
+    let spot = Color::from_cmyk(0.0, 60.0, 100.0, 0.0);
+    h.state_mut().doc_mut().unwrap().doc.palette.push(vector_core::NamedColor { name: "PANTONE Orange".into(), color: spot, spot: true });
+    for _ in 0..3 {
+        h.step();
+    }
+    let r = h.state().palettes.drawn.iter().find(|d| d.0 == crate::palette::Strip::Document && d.1 == 0).expect("the swatch is shown").2;
+    hold_down(&mut h, r.center(), egui::PointerButton::Primary);
+    pointer_button(&mut h, r.center(), egui::PointerButton::Primary, false);
+    h.step();
+    h.step();
+    assert!(variations_open(&h));
+    {
+        let v = h.state().palettes.variations.as_ref().unwrap();
+        assert_eq!(v.grid.colors.len(), vector_core::color::SPOT_TINTS.len());
+        assert!(v.spot && v.name == "PANTONE Orange");
+        // the picker is above the strip, on screen
+        assert!(v.cells.iter().all(|c| c.bottom() <= r.top() && c.top() >= 0.0), "{:?} {r:?}", v.cells);
+    }
+    let (p, half) = variation(&h, 5);
+    assert_eq!(half.cmyk, Some([0, 30, 50, 0]));
+    click(&mut h, p);
+    assert_eq!(fill_of(&h, id), Fill::Solid(half));
+}
+
+/// The pictures: the picker of a CMYK color in the palette column, of a gray, and of a spot color
+/// in the document palette.
+#[test]
+#[ignore]
+fn visual_palette_variations() {
+    let (mut h, _) = palette_harness();
+    let open = |h: &mut Harness<'_, AnyVectorApp>, p: egui::Pos2| {
+        hold_down(h, p, egui::PointerButton::Primary);
+        pointer_button(h, p, egui::PointerButton::Primary, false);
+        h.step();
+        h.step();
+        assert!(variations_open(h));
+    };
+    let (r, _) = palette_swatch(&h, "Red");
+    open(&mut h, r.center());
+    let (p, _) = variation(&h, 2 * 7 + 4);
+    move_to(&mut h, p);
+    save(&mut h, "pal_variations_01_red");
+    let (r, _) = palette_swatch(&h, "50% Black");
+    click(&mut h, egui::pos2(900.0, 60.0));
+    open(&mut h, r.center());
+    save(&mut h, "pal_variations_02_gray");
+    click(&mut h, egui::pos2(900.0, 60.0));
+    h.state_mut().doc_mut().unwrap().doc.palette.push(vector_core::NamedColor { name: "PANTONE Orange".into(), color: Color::from_cmyk(0.0, 60.0, 100.0, 0.0), spot: true });
+    for _ in 0..3 {
+        h.step();
+    }
+    let r = h.state().palettes.drawn.iter().find(|d| d.0 == crate::palette::Strip::Document && d.1 == 0).unwrap().2;
+    open(&mut h, r.center());
+    save(&mut h, "pal_variations_03_spot_tints");
+}
+
+// ---- #147: input methods (IME) typing on the canvas ----
+
+fn ime_event(h: &mut Harness<'_, AnyVectorApp>, e: egui::ImeEvent) {
+    h.input_mut().events.push(egui::Event::Ime(e));
+}
+
+/// The input method shows `s` as the text being composed (`active`: the clause being converted,
+/// or an empty range for the caret inside the composition).
+fn ime_preedit(h: &mut Harness<'_, AnyVectorApp>, s: &str, active: Option<std::ops::Range<usize>>) {
+    ime_event(h, egui::ImeEvent::Preedit { text: s.into(), active_range_chars: active });
+    h.step();
+}
+
+fn ime_commit(h: &mut Harness<'_, AnyVectorApp>, s: &str) {
+    ime_event(h, egui::ImeEvent::Commit(s.into()));
+    h.step();
+}
+
+/// A 36 pt text object `s` edited with the Text tool, the caret at `caret`.
+fn ime_text<'a>(s: &str, caret: usize, tr: Affine) -> (Harness<'a, AnyVectorApp>, u64) {
+    use vector_core::text::{CharFormat, TextObj};
+    let mut h = join_harness(crate::tools::ToolId::Text);
+    let d = h.state_mut().doc_mut().unwrap();
+    let id = d.doc.new_id();
+    let t = TextObj::artistic(s, CharFormat { size: 36.0, ..CharFormat::default() });
+    d.add_objects("test", vec![Object::new(id, ObjKind::Text(t), tr, Style::text_default())]);
+    d.selection = vec![id];
+    d.text_edit = Some(crate::docview::TextEdit { obj: id, caret, anchor: caret, blink: 0.0 });
+    // the next typing starts its own undo step
+    h.state_mut().ts.text_last_edit = -10.0;
+    h.step();
+    h.step();
+    (h, id)
+}
+
+fn ime_out(h: &Harness<'_, AnyVectorApp>) -> Option<egui::output::IMEOutput> {
+    h.output().platform_output.ime
+}
+
+fn ime_caret(h: &Harness<'_, AnyVectorApp>) -> (usize, usize) {
+    let te = h.state().doc().unwrap().text_edit.clone().expect("editing text");
+    (te.caret, te.anchor)
+}
+
+fn text_count(h: &Harness<'_, AnyVectorApp>) -> usize {
+    h.state().doc().unwrap().page_ref().all_objects().filter(|o| matches!(o.kind, ObjKind::Text(_))).count()
+}
+
+/// The screen point on the caret line before character `i` of the text `id` lays out in `doc`.
+fn ime_caret_point(h: &Harness<'_, AnyVectorApp>, doc: &vector_core::Document, id: u64, i: usize) -> egui::Pos2 {
+    let (t, tr) = crate::tools::ime::text_frame(doc, id, None).unwrap();
+    let lay = vector_core::text::layout(&t);
+    let (a, b) = crate::tools::ime::caret_line(&t, &lay.carets, tr, i).unwrap();
+    h.state().doc().unwrap().to_screen(a.midpoint(b))
+}
+
+/// #147: the composition is shown but is not document text; its commit goes in once (also when
+/// the integration repeats it as a text event), as one undo step.
+#[test]
+fn ime_commit_inserts_once() {
+    let (mut h, id) = ime_text("Hello", 0, Affine::translate((100.0, 200.0)));
+    let steps0 = undo_steps(&h);
+    let rev0 = h.state().doc().unwrap().history.revision;
+    ime_preedit(&mut h, "n", Some(1..1));
+    ime_preedit(&mut h, "に", Some(1..1));
+    assert!(h.state().ts.ime.composing());
+    assert_eq!(text_of(&h, id).content, "Hello", "the composition is not document text");
+    assert_eq!(h.state().doc().unwrap().history.revision, rev0, "nor a change");
+    ime_event(&mut h, egui::ImeEvent::Preedit { text: "日本".into(), active_range_chars: Some(0..2) });
+    ime_event(&mut h, egui::ImeEvent::Commit("日本".into()));
+    h.input_mut().events.push(egui::Event::Text("日本".into()));
+    h.step();
+    assert_eq!(text_of(&h, id).content, "日本Hello");
+    assert!(!h.state().ts.ime.composing());
+    assert_eq!(ime_caret(&h), (2, 2), "the caret after the committed text");
+    assert_eq!(undo_steps(&h), steps0 + 1, "one undo step");
+    undo(&mut h);
+    assert_eq!(text_of(&h, id).content, "Hello");
+}
+
+/// #147: the drawing shows the composition in place, from a copy of the document; dismissing it
+/// leaves the text as it was.
+#[test]
+fn ime_preedit_is_drawn_in_place_not_stored() {
+    let (mut h, id) = ime_text("Hello world", 5, Affine::translate((100.0, 200.0)));
+    ime_preedit(&mut h, "に", None);
+    ime_preedit(&mut h, "にほ", Some(2..2));
+    {
+        let app = h.state();
+        let d = app.doc().unwrap();
+        let pv = app.ts.ime.preview_for(d.uid).expect("the composition is drawn");
+        let Some(ObjKind::Text(t)) = pv.doc.find(id).map(|o| &o.kind) else { panic!() };
+        assert_eq!(t.content, "Helloにほ world");
+        assert_eq!((pv.start, pv.len), (5, 2));
+        assert_eq!(app.ts.ime.preedit().unwrap().active, Some(2..2));
+        // the text after the caret moves along, as it will when committed
+        let after = ime_caret_point(&h, &pv.doc, id, 8);
+        let before = ime_caret_point(&h, &d.doc, id, 6);
+        assert!(after.x > before.x + 5.0, "{after:?} {before:?}");
+    }
+    assert_eq!(text_of(&h, id).content, "Hello world");
+    // the input method dismisses the composition (Backspace over its last character)
+    ime_preedit(&mut h, "", None);
+    assert!(!h.state().ts.ime.composing());
+    assert!(h.state().ts.ime.preview_for(h.state().doc().unwrap().uid).is_none());
+    assert_eq!(text_of(&h, id).content, "Hello world");
+    assert_eq!(ime_caret(&h), (5, 5));
+    // an empty commit only ends a composition
+    ime_preedit(&mut h, "ほ", None);
+    ime_commit(&mut h, "");
+    assert!(!h.state().ts.ime.composing());
+    assert_eq!(text_of(&h, id).content, "Hello world");
+}
+
+/// #147: at a Text tool click a cancelled composition leaves no text object; a committed one
+/// makes it.
+#[test]
+fn ime_cancel_leaves_no_text_object() {
+    use crate::tools::ToolId;
+    let mut h = join_harness(ToolId::Text);
+    let n0 = text_count(&h);
+    h.state_mut().ts.pending_text = Some((Point::new(100.0, 150.0), None));
+    h.step();
+    ime_preedit(&mut h, "にほん", None);
+    assert!(h.state().ts.ime.composing());
+    assert_eq!(text_count(&h), n0, "no object while composing");
+    {
+        let app = h.state();
+        let pv = app.ts.ime.preview_for(app.doc().unwrap().uid).expect("drawn where the text goes");
+        let Some(ObjKind::Text(t)) = pv.doc.find(pv.obj).map(|o| &o.kind) else { panic!() };
+        assert_eq!(t.content, "にほん");
+    }
+    // Escape cancels the composition, not the typing
+    key_tap(&mut h, egui::Key::Escape, Some(egui::Key::Escape), egui::Modifiers::NONE);
+    h.step();
+    assert!(!h.state().ts.ime.composing());
+    assert!(h.state().ts.pending_text.is_some(), "still typing at the click");
+    assert_eq!(text_count(&h), n0);
+    // a second Escape ends the typing; nothing was made
+    key_tap(&mut h, egui::Key::Escape, Some(egui::Key::Escape), egui::Modifiers::NONE);
+    h.step();
+    assert!(h.state().ts.pending_text.is_none());
+    assert_eq!(text_count(&h), n0);
+    // a commit makes the text object, edited after the committed text
+    h.state_mut().ts.pending_text = Some((Point::new(100.0, 150.0), None));
+    h.step();
+    ime_preedit(&mut h, "にほん", Some(0..3));
+    ime_commit(&mut h, "日本");
+    assert_eq!(text_count(&h), n0 + 1);
+    let d = h.state().doc().unwrap();
+    let te = d.text_edit.clone().expect("the new text is edited");
+    assert!(matches!(&d.doc.find(te.obj).unwrap().kind, ObjKind::Text(t) if t.content == "日本"));
+    assert_eq!(te.caret, 2);
+}
+
+/// #147: while composing, keys belong to the input method: no shortcut (Undo, Zoom Out), no
+/// editing key (Backspace, Select All), no typed or pasted text.
+#[test]
+fn ime_keys_do_not_run_shortcuts() {
+    use crate::tools::ToolId;
+    let (mut h, id) = ime_text("Hello", 5, Affine::translate((100.0, 200.0)));
+    let steps0 = undo_steps(&h);
+    let zoom0 = h.state().doc().unwrap().zoom;
+    ime_preedit(&mut h, "に", Some(1..1));
+    let ctrl = egui::Modifiers::CTRL | egui::Modifiers::COMMAND;
+    key_tap(&mut h, egui::Key::Z, Some(egui::Key::Z), ctrl);
+    key_tap(&mut h, egui::Key::F3, Some(egui::Key::F3), egui::Modifiers::NONE);
+    key_tap(&mut h, egui::Key::Backspace, Some(egui::Key::Backspace), egui::Modifiers::NONE);
+    key_tap(&mut h, egui::Key::A, Some(egui::Key::A), ctrl);
+    h.input_mut().events.push(egui::Event::Text("e".into()));
+    h.input_mut().events.push(egui::Event::Paste("pasted".into()));
+    h.step();
+    h.step();
+    assert!(h.state().ts.ime.composing(), "the composition goes on");
+    assert_eq!(text_of(&h, id).content, "Hello");
+    assert_eq!(undo_steps(&h), steps0, "Ctrl+Z did not undo");
+    assert_eq!(h.state().doc().unwrap().zoom, zoom0, "F3 did not zoom out");
+    assert_eq!(h.state().tool, ToolId::Text);
+    assert_eq!(ime_caret(&h), (5, 5), "Ctrl+A did not select");
+    // committed: the keys work again
+    ime_commit(&mut h, "に");
+    assert_eq!(text_of(&h, id).content, "Helloに");
+    key_tap(&mut h, egui::Key::Backspace, Some(egui::Key::Backspace), egui::Modifiers::NONE);
+    h.step();
+    assert_eq!(text_of(&h, id).content, "Hello");
+    key_tap(&mut h, egui::Key::F3, Some(egui::Key::F3), egui::Modifiers::NONE);
+    h.step();
+    assert!(h.state().doc().unwrap().zoom < zoom0, "F3 zooms out again");
+}
+
+/// #147: the input method deleting around the caret counts characters, also during a
+/// composition, which then goes on at the new caret.
+#[test]
+fn ime_delete_surrounding_counts_characters() {
+    let (mut h, id) = ime_text("日本語abc", 3, Affine::translate((100.0, 200.0)));
+    ime_event(&mut h, egui::ImeEvent::DeleteSurrounding { before_chars: 1, after_chars: 1 });
+    h.step();
+    assert_eq!(text_of(&h, id).content, "日本bc");
+    assert_eq!(ime_caret(&h), (2, 2));
+    ime_preedit(&mut h, "ご", None);
+    ime_event(&mut h, egui::ImeEvent::DeleteSurrounding { before_chars: 1, after_chars: 0 });
+    h.step();
+    assert!(h.state().ts.ime.composing(), "the composition goes on");
+    assert_eq!(text_of(&h, id).content, "日bc");
+    ime_commit(&mut h, "語");
+    assert_eq!(text_of(&h, id).content, "日語bc");
+}
+
+/// #147: the window's IME is on, with its candidates at the caret, only while typing goes to
+/// the canvas (text, a Text tool click, a table cell), and off in other tools and while a text
+/// field has the keyboard.
+#[test]
+fn ime_on_only_while_typing_on_canvas() {
+    use crate::tools::ToolId;
+    let (mut h, id) = ime_text("Hello", 5, Affine::translate((100.0, 200.0)));
+    let out = ime_out(&h).expect("on while text is edited");
+    let canvas = h.state().doc().unwrap().canvas_rect;
+    assert!(canvas.contains(out.cursor_rect.center()), "{out:?} {canvas:?}");
+    let doc = h.state().doc().unwrap().doc.clone();
+    let p = ime_caret_point(&h, &doc, id, 5);
+    assert!(out.cursor_rect.contains(p) && out.cursor_rect.width() < 6.0, "the caret: {out:?} {p:?}");
+    assert!(out.rect.contains(out.cursor_rect.center()));
+    assert!(!out.should_interrupt_composition);
+    // the caret moved: so does the candidate window
+    h.state_mut().doc_mut().unwrap().text_edit.as_mut().unwrap().caret = 0;
+    h.state_mut().doc_mut().unwrap().text_edit.as_mut().unwrap().anchor = 0;
+    h.step();
+    let out0 = ime_out(&h).unwrap();
+    assert!(out0.cursor_rect.center().x < out.cursor_rect.center().x - 20.0, "{out0:?} {out:?}");
+    // another tool: off
+    h.state_mut().set_tool(ToolId::Pick);
+    h.step();
+    assert!(ime_out(&h).is_none(), "off in the Pick tool");
+    // a Text tool click: on, at the click
+    h.state_mut().set_tool(ToolId::Text);
+    h.state_mut().ts.pending_text = Some((Point::new(300.0, 300.0), None));
+    h.step();
+    let out = ime_out(&h).expect("on at a Text tool click");
+    let at = h.state().doc().unwrap().to_screen(Point::new(300.0, 300.0));
+    assert!((out.cursor_rect.center().x - at.x).abs() < 3.0 && out.cursor_rect.bottom() > at.y, "{out:?} {at:?}");
+    // a property bar field has the keyboard: the IME is the field's, not the canvas's
+    let field = {
+        use egui_kittest::kittest::Queryable;
+        h.query_all_by_role(egui::accesskit::Role::TextInput).map(|n| n.rect()).filter(|r| r.top() < 120.0).min_by(|a, b| a.left().total_cmp(&b.left())).expect("a property bar field")
+    };
+    click(&mut h, field.center());
+    h.step();
+    assert!(h.ctx.egui_wants_keyboard_input());
+    let out = ime_out(&h).expect("the field's IME");
+    assert!(field.expand(2.0).contains(out.cursor_rect.center()), "{out:?} {field:?}");
+}
+
+/// #147: the candidate window follows a turned text object's caret.
+#[test]
+fn ime_candidates_follow_rotated_text() {
+    let tr = Affine::translate((300.0, 200.0)) * Affine::rotate(std::f64::consts::FRAC_PI_2);
+    let (mut h, id) = ime_text("Hello", 2, tr);
+    let out = ime_out(&h).unwrap();
+    // turned a quarter: the caret line lies across the screen
+    assert!(out.cursor_rect.width() > out.cursor_rect.height(), "{out:?}");
+    let doc = h.state().doc().unwrap().doc.clone();
+    let p = ime_caret_point(&h, &doc, id, 2);
+    assert!(out.cursor_rect.contains(p), "{out:?} {p:?}");
+    // composing: around the clause being converted
+    ime_preedit(&mut h, "にほん", Some(0..3));
+    let out = ime_out(&h).unwrap();
+    let pv = h.state().ts.ime.preview_for(h.state().doc().unwrap().uid).unwrap().doc.clone();
+    for i in [2, 5] {
+        let p = ime_caret_point(&h, &pv, id, i);
+        assert!(out.cursor_rect.expand(1.0).contains(p), "{i}: {out:?} {p:?}");
+    }
+}
+
+/// #147: a composition left behind (the caret clicked elsewhere) is kept where it was typed and
+/// the system's composition is interrupted once; one left behind by an undo is dropped.
+#[test]
+fn ime_composition_left_behind() {
+    let (mut h, id) = ime_text("Hello", 5, Affine::translate((100.0, 200.0)));
+    ime_preedit(&mut h, "にほん", None);
+    {
+        let te = h.state_mut().doc_mut().unwrap().text_edit.as_mut().unwrap();
+        te.caret = 0;
+        te.anchor = 0;
+    }
+    h.step();
+    assert!(!h.state().ts.ime.composing());
+    assert_eq!(text_of(&h, id).content, "Helloにほん", "kept where it was typed");
+    assert_eq!(ime_caret(&h), (0, 0), "the caret where it was clicked");
+    assert!(ime_out(&h).unwrap().should_interrupt_composition, "the system's composition ends");
+    h.step();
+    assert!(!ime_out(&h).unwrap().should_interrupt_composition, "only once");
+    // an undo while composing: the undo applies, the composition goes
+    ime_preedit(&mut h, "か", None);
+    h.state_mut().run(Cmd::Undo);
+    h.step();
+    h.step();
+    assert!(!h.state().ts.ime.composing());
+    assert_eq!(text_of(&h, id).content, "Hello");
+}
+
+/// #147: the chosen table cell takes input method text like canvas text.
+#[test]
+fn ime_types_into_table_cells() {
+    use crate::tools::ToolId;
+    use vector_core::object::TableObj;
+    let mut h = join_harness(ToolId::Table);
+    let id = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let id = d.doc.new_id();
+        d.add_objects("test", vec![Object::new(id, ObjKind::Table(TableObj::new(2, 2, 240.0, 120.0)), Affine::translate((100.0, 100.0)), Style::default())]);
+        d.selection = vec![id];
+        id
+    };
+    h.state_mut().ts.table_cell = Some((0, 1));
+    h.step();
+    assert!(crate::tools::table_typing(h.state()));
+    let cell = |h: &Harness<'_, AnyVectorApp>| match kind_of(h, id) {
+        ObjKind::Table(t) => t.cell(0, 1).text.clone(),
+        k => panic!("{k:?}"),
+    };
+    let out = ime_out(&h).expect("on for the cell");
+    let cr = {
+        let d = h.state().doc().unwrap();
+        let ObjKind::Table(t) = kind_of(&h, id) else { panic!() };
+        d.to_screen_rect(d.doc.find(id).unwrap().transform.transform_rect_bbox(t.cell_rect(0, 1)))
+    };
+    assert!(cr.contains(out.cursor_rect.center()), "in the cell: {out:?} {cr:?}");
+    ime_preedit(&mut h, "ひょう", Some(0..3));
+    assert_eq!(cell(&h), "", "not cell text yet");
+    assert!(h.state().ts.ime.preview_for(h.state().doc().unwrap().uid).is_some());
+    h.input_mut().events.push(egui::Event::Text("x".into()));
+    h.step();
+    assert_eq!(cell(&h), "");
+    ime_commit(&mut h, "表");
+    assert_eq!(cell(&h), "表");
+    ime_event(&mut h, egui::ImeEvent::DeleteSurrounding { before_chars: 1, after_chars: 0 });
+    h.step();
+    assert_eq!(cell(&h), "");
+}
+
+/// Pictures for #147: a composition in the middle of a text (the clause being converted with the
+/// heavier line), committed, at a Text tool click, and in a table cell.
+#[test]
+#[ignore]
+fn visual_issue_147_ime() {
+    use crate::tools::ToolId;
+    use vector_core::object::TableObj;
+    use vector_core::text::{CharFormat, TextObj};
+    let mut h = doc_harness();
+    h.state_mut().set_tool(ToolId::Text);
+    let id = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let id = d.doc.new_id();
+        let t = TextObj::artistic("Hello world", CharFormat { size: 60.0, ..CharFormat::default() });
+        d.add_objects("test", vec![Object::new(id, ObjKind::Text(t), Affine::translate((80.0, 160.0)), Style::text_default())]);
+        d.selection = vec![id];
+        d.text_edit = Some(crate::docview::TextEdit { obj: id, caret: 5, anchor: 5, blink: 0.0 });
+        id
+    };
+    h.state_mut().ts.text_last_edit = -10.0;
+    settle(&mut h);
+    ime_preedit(&mut h, "にほんご", Some(0..2));
+    assert!(ime_out(&h).is_some());
+    save(&mut h, "issue_147_01_composing");
+    ime_commit(&mut h, "日本語");
+    assert_eq!(text_of(&h, id).content, "Hello日本語 world");
+    save(&mut h, "issue_147_02_committed");
+    h.state_mut().doc_mut().unwrap().text_edit = None;
+    h.state_mut().ts.pending_text = Some((Point::new(80.0, 320.0), None));
+    h.state_mut().ts.text_format.size = 48.0;
+    h.step();
+    ime_preedit(&mut h, "かんじ", Some(3..3));
+    save(&mut h, "issue_147_03_new_text_composing");
+    ime_commit(&mut h, "漢字");
+    h.state_mut().set_tool(ToolId::Table);
+    let tid = {
+        let d = h.state_mut().doc_mut().unwrap();
+        let tid = d.doc.new_id();
+        let mut t = TableObj::new(2, 3, 420.0, 140.0);
+        t.text_format.size = 28.0;
+        d.add_objects("test", vec![Object::new(tid, ObjKind::Table(t), Affine::translate((80.0, 420.0)), Style::default())]);
+        d.selection = vec![tid];
+        tid
+    };
+    h.state_mut().ts.table_cell = Some((0, 1));
+    h.step();
+    ime_preedit(&mut h, "ひょう", Some(0..3));
+    save(&mut h, "issue_147_04_table_cell_composing");
+    ime_commit(&mut h, "表");
+    assert!(matches!(kind_of(&h, tid), ObjKind::Table(t) if t.cell(0, 1).text == "表"));
+}
+
+/// #147: words in Chinese, Japanese, Korean or Thai script are not marked as misspelled by a
+/// Western language's spell checker; other words still are.
+#[test]
+fn ime_text_is_not_spell_checked_as_english() {
+    use crate::spell::unchecked_script;
+    assert!(unchecked_script('日') && unchecked_script('に') && unchecked_script('한') && unchecked_script('ไ'));
+    assert!(!unchecked_script('a') && !unchecked_script('é') && !unchecked_script('đ') && !unchecked_script('Ж'));
+    if !crate::spell::supported("en-US") {
+        return;
+    }
+    let text = "Hello 日本語 wrld 漢字";
+    let flagged: Vec<String> = crate::spell::check(text, "en-US").iter().map(|e| text.chars().skip(e.start).take(e.len).collect()).collect();
+    assert!(flagged.iter().all(|w| !w.chars().any(unchecked_script)), "{flagged:?}");
+    assert!(flagged.iter().any(|w| w == "wrld"), "{flagged:?}");
+}
+
+// ---- Dockers that can be rearranged (#144) ----
+
+/// A document with `dockers` open in one group on the right (as 0.6.0 had them), the first
+/// one shown.
+fn dock_harness<'a>(dockers: &[crate::dockers::DockerId]) -> Harness<'a, AnyVectorApp> {
+    let mut h = doc_harness();
+    {
+        let app = h.state_mut();
+        app.dockers.open.clear();
+        for d in dockers {
+            app.dockers.show(*d);
+        }
+        app.dockers.reset_layout();
+        app.dockers.set_width = Some(300.0);
+        app.dockers.show(dockers[0]);
+    }
+    for _ in 0..4 {
+        h.step();
+    }
+    h
+}
+
+/// Where docker `d`'s tab was drawn.
+fn dock_tab(h: &Harness<'_, AnyVectorApp>, d: crate::dockers::DockerId) -> egui::Rect {
+    crate::dockers::dock::drawn_tab(h.state(), d).unwrap_or_else(|| panic!("the {d:?} tab isn't drawn"))
+}
+
+/// Where the group of docker `d` was drawn: the whole group and its title bar.
+fn dock_group(h: &Harness<'_, AnyVectorApp>, d: crate::dockers::DockerId) -> (egui::Rect, egui::Rect) {
+    crate::dockers::dock::drawn_group(h.state(), d).unwrap_or_else(|| panic!("the group of {d:?} isn't drawn"))
+}
+
+/// The settings written and read back, as across a restart: the dockers they bring back.
+fn dock_restart(h: &mut Harness<'_, AnyVectorApp>) -> crate::settings::Settings {
+    let app = h.state_mut();
+    app.dockers.save(&mut app.settings);
+    let json = serde_json::to_string(&app.settings).unwrap();
+    serde_json::from_str(&json).unwrap()
+}
+
+fn middle_click(h: &mut Harness<'_, AnyVectorApp>, p: egui::Pos2) {
+    move_to(h, p);
+    h.step();
+    for pressed in [true, false] {
+        h.input_mut().events.push(egui::Event::PointerButton { pos: p, button: egui::PointerButton::Middle, pressed, modifiers: egui::Modifiers::NONE });
+        h.step();
+    }
+}
+
+/// #144: a tab dragged along the tab strip takes its new place, kept with the settings at
+/// once; a click still shows a docker and a middle-click closes it; Escape calls a drag off.
+#[test]
+fn issue_144_tab_drag_reorders_and_persists() {
+    use crate::dockers::DockerId::*;
+    let mut h = dock_harness(&[Properties, Objects, Pages]);
+    assert_eq!(h.state().dockers.open, vec![Properties, Objects, Pages]);
+    // Pages dragged above Properties
+    let (from, to) = (dock_tab(&h, Pages).center(), dock_tab(&h, Properties).center_top() + egui::vec2(0.0, 4.0));
+    move_to(&mut h, from);
+    h.step();
+    press(&mut h, from, true);
+    h.step();
+    for k in 1..=6 {
+        move_to(&mut h, from + (to - from) * (k as f32 / 6.0));
+        h.step();
+        if k == 4 {
+            assert!(h.state().dockers.live.drag.is_some(), "the tab isn't being dragged");
+            assert!(!crate::customize::dragging(&h.ctx), "the command bars think a button is being dragged");
+        }
+    }
+    press(&mut h, to, false);
+    h.step();
+    h.step();
+    assert_eq!(h.state().dockers.open, vec![Pages, Properties, Objects], "the tab didn't take its new place");
+    assert!(h.state().dockers.live.drag.is_none());
+    // kept with the settings at once, and there after a restart
+    assert_eq!(h.state().settings.open_dockers, vec!["Pages", "Properties", "Objects"]);
+    let back = dock_restart(&mut h);
+    assert_eq!(crate::dockers::DockerState::from_settings(&back).open, vec![Pages, Properties, Objects]);
+    // Properties to the end, after Objects
+    let (a, b) = (dock_tab(&h, Properties).center(), dock_tab(&h, Objects).center_bottom() - egui::vec2(0.0, 4.0));
+    drag(&mut h, a, b);
+    assert_eq!(h.state().dockers.open, vec![Pages, Objects, Properties]);
+    // the tabs drawn in their new places
+    h.step();
+    // a click shows a docker
+    let t = dock_tab(&h, Objects).center();
+    click(&mut h, t);
+    assert_eq!(h.state().dockers.layout.groups[0].active, Some(Objects));
+    // a drag called off with Escape changes nothing
+    let (from, to) = (dock_tab(&h, Pages).center(), dock_tab(&h, Properties).center_bottom());
+    move_to(&mut h, from);
+    h.step();
+    press(&mut h, from, true);
+    h.step();
+    for k in 1..=4 {
+        move_to(&mut h, from + (to - from) * (k as f32 / 4.0));
+        h.step();
+    }
+    h.input_mut().events.push(egui::Event::Key { key: egui::Key::Escape, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::NONE });
+    h.step();
+    press(&mut h, to, false);
+    h.step();
+    assert_eq!(h.state().dockers.open, vec![Pages, Objects, Properties], "Escape didn't call the drag off");
+    // a middle-click closes a docker; the last one closed takes the docker area away
+    let canvas = h.state().doc().unwrap().canvas_rect;
+    for d in [Objects, Pages, Properties] {
+        let t = dock_tab(&h, d).center();
+        middle_click(&mut h, t);
+        assert!(!h.state().dockers.open.contains(&d), "middle-click didn't close {d:?}");
+        h.step();
+    }
+    for _ in 0..3 {
+        h.step();
+    }
+    assert!(crate::dockers::dock::drawn_group(h.state(), Properties).is_none());
+    assert!(h.state().doc().unwrap().canvas_rect.right() > canvas.right() + 200.0, "the drawing window didn't take the room");
+}
+
+/// #144: a tab dragged by the left edge of the drawing window docks on the left; onto the
+/// lower quarter of a group, a group stacked under it with a divider between them; onto a
+/// group's tabs, into that group. A group's title bar drags the whole group; the fold button
+/// folds every group of the side into one strip of tabs.
+#[test]
+#[ignore]
+fn visual_issue_144_dock_left_stack_and_split() {
+    use crate::dockers::DockerId::*;
+    use crate::dockers::DockerSide::*;
+    let mut h = dock_harness(&[Properties, Objects, Pages]);
+    save(&mut h, "issue_144_01_one_group");
+    let canvas = h.state().doc().unwrap().canvas_rect;
+    let central = crate::dockers::dock::drawn_central(h.state());
+    // Objects by the left edge of the drawing window: a docker area on the left
+    let t = dock_tab(&h, Objects).center();
+    drag(&mut h, t, egui::pos2(central.left() + 20.0, central.center().y));
+    settle(&mut h);
+    assert_eq!(h.state().dockers.side_of(Objects), Some(Left));
+    assert_eq!(h.state().dockers.layout.side_groups(Left).len(), 1);
+    assert!(!h.state().dockers.layout.groups[h.state().dockers.layout.group_of(Properties).unwrap()].dockers.contains(&Objects));
+    assert!(h.state().doc().unwrap().canvas_rect.left() > canvas.left() + 200.0, "the drawing window didn't make room on the left");
+    save(&mut h, "issue_144_02_docked_left");
+    // Pages onto the lower quarter of the right group: two groups stacked on the right
+    let (block, _) = dock_group(&h, Properties);
+    let t = dock_tab(&h, Pages).center();
+    drag(&mut h, t, egui::pos2(block.center().x - 30.0, block.bottom() - 40.0));
+    settle(&mut h);
+    let l = h.state().dockers.layout.clone();
+    let gs = l.side_groups(Right);
+    assert_eq!(gs.len(), 2, "Pages didn't stack under Properties");
+    assert_eq!(l.groups[gs[0]].dockers, vec![Properties]);
+    assert_eq!(l.groups[gs[1]].dockers, vec![Pages]);
+    assert!((l.groups[gs[0]].share + l.groups[gs[1]].share - 1.0).abs() < 1e-3);
+    save(&mut h, "issue_144_03_stacked_right");
+    // the divider dragged down: the upper group grows, the lower one shrinks
+    let (top, _) = dock_group(&h, Properties);
+    let (bottom, _) = dock_group(&h, Pages);
+    let y = (top.bottom() + bottom.top()) / 2.0;
+    drag(&mut h, egui::pos2(top.center().x, y), egui::pos2(top.center().x, y + 120.0));
+    settle(&mut h);
+    assert!(dock_group(&h, Properties).0.height() > top.height() + 100.0, "the divider didn't move");
+    assert!(dock_group(&h, Pages).0.height() < bottom.height() - 100.0);
+    // Pages onto the left group's tabs: into that group, the right side back to one group
+    let (a, b) = (dock_tab(&h, Pages).center(), dock_tab(&h, Objects).center_bottom() + egui::vec2(0.0, 6.0));
+    drag(&mut h, a, b);
+    settle(&mut h);
+    let l = h.state().dockers.layout.clone();
+    assert_eq!(l.groups[l.group_of(Objects).unwrap()].dockers, vec![Objects, Pages]);
+    assert_eq!(l.side_groups(Right).len(), 1);
+    save(&mut h, "issue_144_04_joined_left");
+    // the left group's title bar onto the top of the right group: stacked above it, both dockers
+    let (_, head) = dock_group(&h, Objects);
+    let (block, _) = dock_group(&h, Properties);
+    drag(&mut h, head.left_center() + egui::vec2(30.0, 0.0), egui::pos2(block.center().x - 30.0, block.top() + 70.0));
+    settle(&mut h);
+    let l = h.state().dockers.layout.clone();
+    assert!(l.side_groups(Left).is_empty(), "the group didn't leave the left side");
+    let gs = l.side_groups(Right);
+    assert_eq!(gs.len(), 2);
+    assert_eq!(l.groups[gs[0]].dockers, vec![Objects, Pages]);
+    save(&mut h, "issue_144_05_group_stacked_on_top");
+    // folded: one strip with the tabs of both groups; a tab clicked unfolds it
+    let (_, head) = dock_group(&h, Objects);
+    click(&mut h, egui::pos2(head.right() - 38.0, head.center().y));
+    settle(&mut h);
+    assert!(h.state().dockers.collapsed, "the fold button didn't fold the side");
+    let (p, o) = (dock_tab(&h, Properties), dock_tab(&h, Objects));
+    assert!(o.bottom() < p.top(), "the folded strip lost the order of the groups");
+    save(&mut h, "issue_144_06_folded");
+    click(&mut h, p.center());
+    settle(&mut h);
+    assert!(!h.state().dockers.collapsed);
+    assert_eq!(h.state().dockers.layout.groups[h.state().dockers.layout.group_of(Properties).unwrap()].active, Some(Properties));
+}
+
+/// #144: a tab dragged onto the drawing window floats in a window of its own, which sizes by
+/// its edges, moves by its title bar and docks again when let go on a group's tabs; right-click
+/// ▸ Float floats it too, and a double-click on its tab docks it back.
+#[test]
+#[ignore]
+fn visual_issue_144_float_and_redock() {
+    use crate::dockers::DockerId::*;
+    let mut h = dock_harness(&[Properties, Objects]);
+    let central = crate::dockers::dock::drawn_central(h.state());
+    let t = dock_tab(&h, Objects).center();
+    drag(&mut h, t, central.center());
+    settle(&mut h);
+    let floating = |h: &Harness<'_, AnyVectorApp>, d| h.state().dockers.layout.group_of(d).map(|g| h.state().dockers.layout.groups[g].floating);
+    assert_eq!(floating(&h, Objects), Some(true), "the tab didn't float");
+    assert_eq!(h.state().dockers.layout.groups.len(), 2);
+    let (fblock, _) = dock_group(&h, Objects);
+    assert!(central.contains(fblock.center()));
+    save(&mut h, "issue_144_07_floating");
+    // wider by its right edge
+    drag(&mut h, egui::pos2(fblock.right() - 2.0, fblock.center().y), egui::pos2(fblock.right() + 78.0, fblock.center().y));
+    settle(&mut h);
+    let (wider, head) = dock_group(&h, Objects);
+    assert!((wider.width() - fblock.width() - 80.0).abs() < 4.0, "the window didn't size: {} -> {}", fblock.width(), wider.width());
+    // moved by its title bar, still floating
+    drag(&mut h, head.left_center() + egui::vec2(40.0, 0.0), head.left_center() + egui::vec2(-160.0, 120.0));
+    settle(&mut h);
+    let (moved, head) = dock_group(&h, Objects);
+    assert!((moved.left() - (wider.left() - 200.0)).abs() < 4.0 && (moved.top() - (wider.top() + 120.0)).abs() < 4.0, "the window didn't move: {wider:?} -> {moved:?}");
+    assert_eq!(floating(&h, Objects), Some(true));
+    save(&mut h, "issue_144_08_floating_moved");
+    // let go on the right group's tabs: docked into that group
+    let t = dock_tab(&h, Properties).center_bottom() + egui::vec2(0.0, 6.0);
+    drag(&mut h, head.left_center() + egui::vec2(40.0, 0.0), t);
+    settle(&mut h);
+    let l = h.state().dockers.layout.clone();
+    assert_eq!(l.groups.len(), 1, "the window didn't dock");
+    assert_eq!(l.groups[0].dockers, vec![Properties, Objects]);
+    assert!(!l.groups[0].floating);
+    save(&mut h, "issue_144_09_redocked");
+    // right-click ▸ Float
+    let t = dock_tab(&h, Objects).center();
+    right_click(&mut h, t);
+    // the menu's items are there from the next frames
+    for _ in 0..3 {
+        h.step();
+    }
+    click_label(&mut h, "Float");
+    settle(&mut h);
+    assert_eq!(floating(&h, Objects), Some(true), "right-click ▸ Float didn't float it");
+    save(&mut h, "issue_144_10_floated_from_the_menu");
+    // a double-click on its tab docks it back where it came from
+    let t = dock_tab(&h, Objects).center();
+    move_to(&mut h, t);
+    h.step();
+    for _ in 0..2 {
+        for pressed in [true, false] {
+            press(&mut h, t, pressed);
+        }
+        h.step();
+    }
+    settle(&mut h);
+    assert_eq!(floating(&h, Objects), Some(false), "a double-click didn't dock it back");
+    assert_eq!(h.state().dockers.side_of(Objects), Some(crate::dockers::DockerSide::Right));
+}
+
+/// #144: the arrangement (sides, stacked groups, a floating window) comes back after the
+/// settings are written and read again, belongs to the workspace (switching away and back
+/// brings it back) and travels in a workspace file. Window ▸ Dockers ▸ Reset Docker Layout puts
+/// every docker back in one group on the right.
+#[test]
+#[ignore]
+fn visual_issue_144_layout_survives_settings_and_workspaces() {
+    use crate::dockers::dock::Act;
+    use crate::dockers::layout::Target;
+    use crate::dockers::DockerId::*;
+    use crate::dockers::DockerSide::*;
+    use crate::workspaces as ws;
+    use egui_kittest::kittest::Queryable;
+    let mut h = dock_harness(&[Properties, Objects, Pages, Color]);
+    {
+        let st = &mut h.state_mut().dockers;
+        st.act(Act::Dock(Objects, Left));
+        let g = st.layout.group_of(Properties).unwrap();
+        st.layout.place(&[Pages], Target::Stack { group: g, after: true });
+        st.act(Act::Float(Color));
+    }
+    settle(&mut h);
+    let arranged = h.state().dockers.layout.clone();
+    assert_eq!(arranged.side_groups(Left).len(), 1);
+    assert_eq!(arranged.side_groups(Right).len(), 2);
+    assert!(arranged.groups.iter().any(|g| g.floating && g.dockers == [Color]));
+    save(&mut h, "issue_144_11_arranged");
+    // as after a restart
+    let back = dock_restart(&mut h);
+    {
+        let app = h.state_mut();
+        app.settings = back;
+        app.dockers = crate::dockers::DockerState::from_settings(&app.settings);
+    }
+    settle(&mut h);
+    assert_eq!(h.state().dockers.layout, arranged, "the settings didn't bring the arrangement back");
+    for d in [Properties, Objects, Pages, Color] {
+        dock_tab(&h, d);
+    }
+    save(&mut h, "issue_144_12_after_restart");
+    // a workspace of its own: switching away and back brings it back
+    let cur = h.state().settings.workspace.clone();
+    ws::create(h.state_mut(), "Docks 144", &cur, "", true);
+    settle(&mut h);
+    assert_eq!(h.state().dockers.layout, arranged);
+    ws::switch(h.state_mut(), "Lite");
+    settle(&mut h);
+    assert_ne!(h.state().dockers.layout, arranged);
+    ws::switch(h.state_mut(), "Docks 144");
+    settle(&mut h);
+    assert_eq!(h.state().dockers.layout, arranged, "the workspace didn't keep the arrangement");
+    // in a workspace file
+    let dir = std::env::temp_dir().join(format!("vector_ws144_{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&dir);
+    let p = dir.join("Docks.cdws");
+    let l = ws::capture(h.state_mut());
+    ws::write_file(&p, &ws::WorkspaceFile { name: "Docks".into(), description: String::new(), elements: vec![], layout: l }).unwrap();
+    let f = ws::read_file(&p).unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+    h.state_mut().run(Cmd::ResetDockerLayout);
+    settle(&mut h);
+    assert_eq!(h.state().dockers.layout.groups.len(), 1);
+    ws::apply(h.state_mut(), &f.layout);
+    settle(&mut h);
+    assert_eq!(h.state().dockers.layout, arranged, "the workspace file didn't bring the arrangement back");
+    // Window ▸ Dockers ▸ Reset Docker Layout
+    open_menu(&mut h, "Window");
+    for _ in 0..3 {
+        h.step();
+    }
+    let dk = h.query_all_by_label("Dockers").map(|n| n.rect()).filter(|r| r.top() > 30.0).last().expect("Window ▸ Dockers");
+    move_to(&mut h, dk.center());
+    for _ in 0..4 {
+        h.step();
+    }
+    save(&mut h, "issue_144_13_window_dockers_menu");
+    click_label(&mut h, "Reset Docker Layout");
+    settle(&mut h);
+    let l = h.state().dockers.layout.clone();
+    assert_eq!(l.groups.len(), 1, "Reset Docker Layout didn't put the dockers in one group");
+    assert!(l.groups[0].on(Right));
+    assert_eq!(l.groups[0].dockers.len(), 4);
+    save(&mut h, "issue_144_14_reset");
+    ws::delete(h.state_mut(), "Docks 144");
+}
+
+// ---- #145: blends along a path, their parts and their options ----
+
+fn bp_circle(d: &mut crate::docview::DocView, c: (f64, f64), r: f64, fill: Fill) -> Object {
+    let e = EllipseShape { w: 2.0 * r, h: 2.0 * r, kind: EllipseKind::Ellipse, start: 0.0, end: 0.0, clockwise: false };
+    let mut st = Style::default();
+    st.fill = fill;
+    Object::new(d.doc.new_id(), ObjKind::Ellipse(e), Affine::translate((c.0 - r, c.1 - r)), st)
+}
+
+/// A blend of a red circle (radius 20, at the left of the circle below) to a blue one (radius
+/// 30, at its right) in 8 steps, and an unfilled circle of radius 150 about (400, 400) to use as
+/// its path. The blend is selected. Gives [blend, start, end, path].
+fn bp_add(h: &mut Harness<'_, AnyVectorApp>) -> [u64; 4] {
+    let d = h.state_mut().doc_mut().unwrap();
+    let a = bp_circle(d, (250.0, 400.0), 20.0, Fill::Solid(Color::rgb(220, 40, 40)));
+    let b = bp_circle(d, (550.0, 400.0), 30.0, Fill::Solid(Color::rgb(40, 80, 220)));
+    let path = bp_circle(d, (400.0, 400.0), 150.0, Fill::None);
+    let (ia, ib, ip) = (a.id, b.id, path.id);
+    d.add_objects("test", vec![a, b, path]);
+    let blend = d.modify("Blend", |doc, _| vector_core::ops::create_blend(doc, ia, ib, 8)).unwrap();
+    d.selection = vec![blend];
+    [blend, ia, ib, ip]
+}
+
+/// [`bp_add`] with the path already attached (the blend and the path selected, then New Path).
+fn bp_on_path(h: &mut Harness<'_, AnyVectorApp>) -> [u64; 4] {
+    let ids = bp_add(h);
+    h.state_mut().doc_mut().unwrap().selection = vec![ids[0], ids[3]];
+    run_cmd(h, Cmd::BarOption(0x42941bfb));
+    assert!(bp_blend(h, ids[0]).path.is_some(), "New Path with the blend and the path selected");
+    ids
+}
+
+fn bp_blend(h: &Harness<'_, AnyVectorApp>, id: u64) -> vector_core::object::BlendObj {
+    vector_core::blend_path::blend_of(&h.state().doc().unwrap().doc, id).unwrap().clone()
+}
+
+fn bp_centres(b: &vector_core::object::BlendObj) -> Vec<Point> {
+    vector_core::object::blend_steps(b, || 0).iter().map(|o| o.bounds().center()).collect()
+}
+
+/// How far `p` is off the path circle of [`bp_add`].
+fn bp_off(p: Point) -> f64 {
+    ((p - Point::new(400.0, 400.0)).hypot() - 150.0).abs()
+}
+
+fn bp_state(h: &Harness<'_, AnyVectorApp>, key: &str) -> Option<(bool, bool)> {
+    crate::propbar::option_state(h.state(), key)
+}
+
+/// #145 (§5.4): every button, check box and radio button of the Blend property bar, of its
+/// Path Properties, Options and Start and End Properties flyouts and of the Blend Control Editing
+/// menu runs a command: none of them says "not available in this version yet". (The other bars
+/// still have such items; they are listed, not checked, here.)
+#[test]
+fn blend_bar_items_all_run_a_command() {
+    use crate::ui::Kind;
+    let blend_bars = ["d16cdcfb", "1efc4f62", "428bed7d", "37492bbf", "8a5f6c77"];
+    let runs = |it: &crate::ui::Item| !matches!(it.kind, Kind::Button | Kind::Check | Kind::Radio | Kind::ButtonFlyout) || it.id.is_empty() || crate::ui::bind::cmd(it.id).is_some();
+    let mut seen = 0;
+    let mut missing = vec![];
+    let mut elsewhere = 0;
+    for b in crate::ui::bars() {
+        let ours = blend_bars.contains(&&b.id[..8.min(b.id.len())]);
+        seen += ours as usize;
+        for it in b.items.iter().filter(|it| !runs(it)) {
+            if ours {
+                missing.push(format!("{} ▸ {} ({})", b.name, crate::ui::plain(it.text), it.id));
+            } else {
+                elsewhere += 1;
+            }
+        }
+    }
+    assert_eq!(seen, blend_bars.len(), "a blend bar is missing from the reference data");
+    assert!(missing.is_empty(), "blend items without a command: {missing:#?}");
+    eprintln!("items without a command on the other bars: {elsewhere}");
+    // and each blend command has a state of its own
+    for (k, _) in crate::blendpath::KEYS {
+        assert!(crate::ui::bind::cmd(k).is_some_and(|c| c == Cmd::BarOption(u32::from_str_radix(k, 16).unwrap())), "{k}");
+    }
+}
+
+/// #145: New Path waits for a click on the path (the hint says so); the blend then follows the
+/// circle (every step on it), the circle leaves the page and becomes part of the blend, and one
+/// Undo puts it all back. Show Path, Detach and the path options are on only with a path.
+#[test]
+fn blend_new_path_by_click_follows_the_circle_and_undoes() {
+    use crate::tools::{PickTarget, ToolId};
+    let mut h = join_harness(ToolId::Blend);
+    let [blend, start, end, path] = bp_add(&mut h);
+    h.step();
+    assert_eq!(bp_state(&h, "42941bfb"), Some((true, false)), "New Path");
+    for k in ["050d45c6", "3726add2", "247d0e09", "50c0c56f"] {
+        assert_eq!(bp_state(&h, k), Some((false, false)), "{k} without a path");
+    }
+    let undo0 = undo_steps(&h);
+    run_cmd(&mut h, Cmd::BarOption(0x42941bfb));
+    assert!(matches!(h.state().ts.pick_target, Some(PickTarget::Blend(crate::blendpath::Pick::Path { .. }))));
+    assert!(h.state().ts.hint(ToolId::Blend).starts_with("Click the path the blend follows"));
+    // the blend itself can't be its own path
+    let s = bp_blend(&h, blend).start.bounds().center();
+    pick_click(&mut h, (s.x, s.y), egui::Modifiers::NONE);
+    assert!(bp_blend(&h, blend).path.is_none(), "the start became the path");
+    assert_eq!(undo_steps(&h), undo0, "a refused click left an undo step");
+    // the circle, clicked on its outline at the top
+    run_cmd(&mut h, Cmd::BarOption(0x42941bfb));
+    pick_click(&mut h, (400.0, 250.0), egui::Modifiers::NONE);
+    let b = bp_blend(&h, blend);
+    assert_eq!(b.path.as_ref().map(|p| p.obj.id), Some(path));
+    assert!(h.state().ts.pick_target.is_none());
+    let d = h.state().doc().unwrap();
+    assert!(d.doc.locate(path).is_none(), "the path is still on the page of its own");
+    assert_eq!(d.selection, vec![blend]);
+    assert_eq!((b.start.id, b.end.id), (start, end));
+    let c = bp_centres(&b);
+    assert_eq!(c.len(), 8);
+    for p in &c {
+        assert!(bp_off(*p) < 1.0, "a step off the circle: {p:?}");
+    }
+    // the steps go round the circle, not straight across
+    assert!(c.iter().any(|p| (p.y - 400.0).abs() > 100.0), "{c:?}");
+    assert_eq!(undo_steps(&h), undo0 + 1);
+    for k in ["050d45c6", "3726add2", "247d0e09", "50c0c56f"] {
+        assert_eq!(bp_state(&h, k), Some((true, false)), "{k} with a path");
+    }
+    undo(&mut h);
+    let d = h.state().doc().unwrap();
+    assert!(bp_blend(&h, blend).path.is_none());
+    assert!(d.doc.locate(path).is_some(), "Undo put the path back on the page");
+    // with the blend and the curve both selected it applies at once (the Blend tool's way)
+    h.state_mut().doc_mut().unwrap().selection = vec![path, blend];
+    run_cmd(&mut h, Cmd::BarOption(0x42941bfb));
+    assert!(h.state().ts.pick_target.is_none());
+    assert_eq!(bp_blend(&h, blend).path.as_ref().map(|p| p.obj.id), Some(path));
+    assert_eq!(sel(&h), vec![blend]);
+}
+
+/// #145: Show Start and Show End select the control on its own (the status bar names it, its
+/// outline is drawn); dragging it slides it along the path; Escape lets go of it; Delete on the
+/// end takes the blend apart (the start and the path stay), and Undo brings the blend back.
+#[test]
+fn blend_show_start_and_end_focus_drag_and_delete() {
+    use crate::tools::ToolId;
+    use vector_core::object::BlendPart;
+    let mut h = join_harness(ToolId::Pick);
+    let [blend, start, end, path] = bp_on_path(&mut h);
+    h.state_mut().doc_mut().unwrap().selection = vec![blend];
+    run_cmd(&mut h, Cmd::BarOption(0x7341835a));
+    assert_eq!(sel(&h), vec![start]);
+    assert_eq!(crate::blendpath::focus(h.state().doc().unwrap()), Some((blend, BlendPart::Start)));
+    let info = crate::statusbar::object_info(h.state());
+    assert!(info.starts_with("Blend start: ") && info.contains(" on "), "{info}");
+    // the blend's commands still act on the blend
+    assert_eq!(bp_state(&h, "1a1bed58"), Some((true, false)), "Show End with the start shown");
+    // dragged up and away, it stays on the path
+    let before = bp_blend(&h, blend).start.bounds().center();
+    shape_drag(&mut h, (before.x, before.y), (before.x + 40.0, before.y - 90.0), egui::Modifiers::NONE);
+    h.step();
+    let b = bp_blend(&h, blend);
+    let now = b.start.bounds().center();
+    assert!((now - before).hypot() > 20.0, "the start didn't move: {before:?} → {now:?}");
+    assert!(bp_off(now) < 1.0, "the start left the path: {now:?}");
+    for p in bp_centres(&b) {
+        assert!(bp_off(p) < 1.0, "a step off the circle: {p:?}");
+    }
+    assert_eq!(sel(&h), vec![start], "the start is still the one selected");
+    h.key_press(egui::Key::Escape);
+    h.step();
+    assert_eq!(crate::blendpath::focus(h.state().doc().unwrap()), None);
+    // Show End, then Delete: the blend comes apart
+    h.state_mut().doc_mut().unwrap().selection = vec![blend];
+    run_cmd(&mut h, Cmd::BarOption(0x1a1bed58));
+    assert_eq!(sel(&h), vec![end]);
+    assert!(crate::statusbar::object_info(h.state()).starts_with("Blend end: "));
+    let undo0 = undo_steps(&h);
+    run_cmd(&mut h, Cmd::Delete);
+    let d = h.state().doc().unwrap();
+    assert!(d.doc.find(blend).is_none() && d.doc.find(end).is_none(), "the blend or its end is left");
+    assert!(d.doc.locate(start).is_some() && d.doc.locate(path).is_some(), "the start and the path are on the page");
+    assert_eq!(d.selection, vec![start]);
+    assert_eq!(undo_steps(&h), undo0 + 1);
+    undo(&mut h);
+    assert!(bp_blend(&h, blend).path.is_some(), "Undo brought the blend on its path back");
+}
+
+/// #145: Blend Along Full Path and Rotate All Objects, from the property bar's Options and from
+/// the Blend docker, which shows them as the blend has them; Detach from Path puts the circle
+/// back on the page and the blend goes straight again.
+#[test]
+fn blend_full_path_rotate_all_and_the_docker_follow_each_other() {
+    use crate::dockers::DockerId;
+    use crate::tools::ToolId;
+    use egui_kittest::kittest::{NodeT, Queryable};
+    let mut h = join_harness(ToolId::Blend);
+    let [blend, _, _, path] = bp_on_path(&mut h);
+    {
+        let a = h.state_mut();
+        a.dockers.open.clear();
+        a.dockers.show(DockerId::Blend);
+        a.dockers.collapsed = false;
+        a.dockers.set_width = Some(320.0);
+    }
+    settle(&mut h);
+    let checked = |h: &Harness<'_, AnyVectorApp>, label: &str| {
+        h.query_all_by_label(label).find(|n| n.accesskit_node().role() == egui::accesskit::Role::CheckBox).map(|n| n.accesskit_node().toggled() == Some(egui::accesskit::Toggled::True))
+    };
+    assert_eq!(checked(&h, "Blend along full path"), Some(false));
+    // from the bar: the docker follows
+    run_cmd(&mut h, Cmd::BarOption(0x247d0e09));
+    settle(&mut h);
+    let b = bp_blend(&h, blend);
+    assert!(b.path.as_ref().unwrap().full);
+    assert_eq!(bp_state(&h, "247d0e09"), Some((true, true)));
+    assert_eq!(checked(&h, "Blend along full path"), Some(true), "the docker didn't follow the bar");
+    // on the whole circle the steps are evenly spread
+    let c = bp_centres(&b);
+    let gaps: Vec<f64> = c.windows(2).map(|w| (w[1] - w[0]).hypot()).collect();
+    let (lo, hi) = gaps.iter().fold((f64::MAX, 0.0f64), |(lo, hi), g| (lo.min(*g), hi.max(*g)));
+    assert!(hi - lo < 1.0, "uneven steps on the full circle: {gaps:?}");
+    // from the docker: the bar follows
+    let at = h.query_all_by_label("Rotate all objects").find(|n| n.accesskit_node().role() == egui::accesskit::Role::CheckBox).unwrap().rect().center();
+    click(&mut h, at);
+    settle(&mut h);
+    assert!(bp_blend(&h, blend).path.as_ref().unwrap().rotate, "the docker's Rotate all objects did nothing");
+    assert_eq!(bp_state(&h, "50c0c56f"), Some((true, true)));
+    assert_eq!(checked(&h, "Rotate all objects"), Some(true));
+    // Detach from Path
+    run_cmd(&mut h, Cmd::BarOption(0x3726add2));
+    settle(&mut h);
+    let d = h.state().doc().unwrap();
+    assert!(d.doc.locate(path).is_some(), "the path isn't back on the page");
+    assert!(bp_blend(&h, blend).path.is_none());
+    assert_eq!(checked(&h, "Blend along full path"), Some(false));
+}
+
+/// #145: Split (click a step: the blend passes through it, and it can be moved on its own),
+/// Fuse end (the split goes back), Map nodes (a node of the start, then one of the end) and
+/// fixed spacing (the Spacing radio button), each one undo step.
+#[test]
+fn blend_split_fuse_map_nodes_and_spacing() {
+    use crate::tools::{PickTarget, ToolId};
+    use vector_core::object::BlendPart;
+    let mut h = join_harness(ToolId::Blend);
+    let [blend, _, _, _] = bp_on_path(&mut h);
+    assert_eq!(bp_state(&h, "e022c80a"), Some((false, false)), "Fuse start without a split");
+    // Split at the fourth step
+    let undo0 = undo_steps(&h);
+    run_cmd(&mut h, Cmd::BarOption(0x339589f8));
+    assert!(matches!(h.state().ts.pick_target, Some(PickTarget::Blend(crate::blendpath::Pick::Split { .. }))));
+    let p = bp_centres(&bp_blend(&h, blend))[3];
+    pick_click(&mut h, (p.x, p.y), egui::Modifiers::NONE);
+    let b = bp_blend(&h, blend);
+    assert_eq!(b.splits.len(), 1);
+    assert_eq!(sel(&h), vec![b.splits[0].obj.id], "the split object is selected on its own");
+    assert_eq!(crate::blendpath::focus(h.state().doc().unwrap()), Some((blend, BlendPart::Split(0))));
+    assert!(crate::statusbar::object_info(h.state()).starts_with("Blend split: "));
+    assert_eq!(undo_steps(&h), undo0 + 1);
+    assert_eq!(bp_state(&h, "ba9b75cf"), Some((true, false)), "Fuse end with a split");
+    run_cmd(&mut h, Cmd::BarOption(0xba9b75cf));
+    assert!(bp_blend(&h, blend).splits.is_empty());
+    assert_eq!(sel(&h), vec![blend]);
+    // Map nodes: a node of the start, then the matching node of the end
+    let b = bp_blend(&h, blend);
+    let (na, nb) = (vector_core::blend_path::map_candidates(&b.start), vector_core::blend_path::map_candidates(&b.end));
+    assert!(!na.is_empty() && !nb.is_empty());
+    run_cmd(&mut h, Cmd::BarOption(0xc5cd624e));
+    let q = na[na.len() / 2].0;
+    pick_click(&mut h, (q.x, q.y), egui::Modifiers::NONE);
+    assert!(matches!(h.state().ts.pick_target, Some(PickTarget::Blend(crate::blendpath::Pick::MapNodes { first: Some(_), .. }))));
+    let q = nb[0].0;
+    pick_click(&mut h, (q.x, q.y), egui::Modifiers::NONE);
+    assert!(bp_blend(&h, blend).map.is_some(), "Map nodes did nothing");
+    assert!(h.state().ts.pick_target.is_none());
+    // fixed spacing on the path: the Spacing radio button, and back to steps
+    assert_eq!(bp_state(&h, "46327bd4"), Some((true, false)));
+    run_cmd(&mut h, Cmd::BarOption(0x46327bd4));
+    let b = bp_blend(&h, blend);
+    assert!(b.spacing.is_some_and(|s| s > 1.0), "{:?}", b.spacing);
+    assert_eq!(bp_state(&h, "46327bd4"), Some((true, true)));
+    assert_eq!(bp_state(&h, "5cefe9f1"), Some((true, false)));
+    // the spacing the radio button chose keeps the blend as it was
+    assert_eq!(vector_core::blend_path::effective_steps(&b), 8);
+    run_cmd(&mut h, Cmd::BarOption(0x5cefe9f1));
+    let b = bp_blend(&h, blend);
+    assert!(b.spacing.is_none());
+    assert_eq!(b.steps, 8);
+    // Clear Blend: the start, the end and the path are objects of their own again
+    run_cmd(&mut h, Cmd::BarOption(0xf1eb59d2));
+    let d = h.state().doc().unwrap();
+    assert!(d.doc.find(blend).is_none());
+    assert!(d.doc.locate(b.path.as_ref().unwrap().obj.id).is_some(), "Clear Blend lost the path");
+}
+
+/// #145: blends along paths, as drawn: circles round a circle (as it is, along the full path,
+/// with Rotate All Objects), the start shown on its own, Map nodes waiting for a node, the Blend
+/// docker with its options, and a star to a square along an open wave with fixed spacing.
+#[test]
+#[ignore]
+fn visual_issue_145_blend_along_a_path() {
+    use crate::dockers::DockerId;
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    h.state_mut().set_tool(ToolId::Blend);
+    let [blend, _, _, _] = bp_on_path(&mut h);
+    h.state_mut().doc_mut().unwrap().selection = vec![blend];
+    save(&mut h, "issue_145_01_circles_on_a_circle");
+    run_cmd(&mut h, Cmd::BarOption(0x247d0e09));
+    save(&mut h, "issue_145_02_full_path");
+    run_cmd(&mut h, Cmd::BarOption(0x50c0c56f));
+    save(&mut h, "issue_145_03_rotate_all");
+    h.state_mut().set_tool(ToolId::Pick);
+    run_cmd(&mut h, Cmd::BarOption(0x7341835a));
+    save(&mut h, "issue_145_04_show_start");
+    h.state_mut().set_tool(ToolId::Blend);
+    h.state_mut().doc_mut().unwrap().selection = vec![blend];
+    run_cmd(&mut h, Cmd::BarOption(0xc5cd624e));
+    save(&mut h, "issue_145_05_map_nodes_waits");
+    h.key_press(egui::Key::Escape);
+    h.step();
+    {
+        let a = h.state_mut();
+        a.ts.pick_target = None;
+        a.dockers.open.clear();
+        a.dockers.show(DockerId::Blend);
+        a.dockers.collapsed = false;
+        a.dockers.set_width = Some(320.0);
+        a.dockers.ui.blend_more = true;
+        a.doc_mut().unwrap().selection = vec![blend];
+    }
+    save(&mut h, "issue_145_06_docker");
+    // a star to a square along an open wave, 30 pt apart, turned along it
+    let d = h.state_mut().doc_mut().unwrap();
+    let mut st = Style::default();
+    st.fill = Fill::Solid(Color::rgb(240, 180, 30));
+    let star = Object::new(d.doc.new_id(), ObjKind::Polygon(PolygonShape { kind: PolygonKind::Star, sides: 5, sharpness: 50.0, w: 50.0, h: 50.0, nodes: Default::default() }), Affine::translate((95.0, 655.0)), st.clone());
+    st.fill = Fill::Solid(Color::rgb(30, 160, 90));
+    let square = Object::new(d.doc.new_id(), ObjKind::Rect(RectShape { w: 40.0, h: 40.0, radii: [0.0; 4], corner: CornerType::default() }), Affine::translate((480.0, 660.0)), st);
+    let mut wave = kurbo::BezPath::new();
+    wave.move_to((120.0, 680.0));
+    wave.curve_to((220.0, 560.0), (300.0, 800.0), (380.0, 680.0));
+    wave.curve_to((420.0, 620.0), (470.0, 640.0), (500.0, 680.0));
+    let wave = Object::new(d.doc.new_id(), ObjKind::Path(vector_core::path::NodePath::from_bez(&wave)), Affine::IDENTITY, Style::default());
+    let (a, b, w) = (star.id, square.id, wave.id);
+    d.add_objects("test", vec![star, square, wave]);
+    let second = d.modify("Blend", |doc, _| vector_core::ops::create_blend(doc, a, b, 6)).unwrap();
+    d.selection = vec![second, w];
+    run_cmd(&mut h, Cmd::BarOption(0x42941bfb));
+    run_cmd(&mut h, Cmd::BarOption(0x247d0e09));
+    run_cmd(&mut h, Cmd::BarOption(0x50c0c56f));
+    run_cmd(&mut h, Cmd::BarOption(0x46327bd4));
+    crate::blendpath::edit(h.state_mut(), "Blend", |b| b.spacing = Some(30.0));
+    h.state_mut().dockers.open.clear();
+    save(&mut h, "issue_145_07_star_to_square_on_a_wave");
+    assert!(bp_blend(&h, second).path.as_ref().is_some_and(|p| p.full && p.rotate));
+}

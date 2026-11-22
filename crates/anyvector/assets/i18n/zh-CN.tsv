@@ -5661,3 +5661,32 @@ Delete conflicts	删除冲突
 Duplicate in Place	原位复制
 Toggle Pick State	切换选择状态
 (none)	(无)
+Color Variations	颜色变体
+Expand Dockers	展开泊坞窗
+Collapse Dockers	折叠泊坞窗
+Add Docker	添加泊坞窗
+Dock &Left	停靠到左侧(&L)
+Dock Ri&ght	停靠到右侧(&G)
+&Float	浮动(&F)
+&Close	关闭(&C)
+Close &Others	关闭其他(&O)
+&Reset Docker Layout	重置泊坞窗布局(&R)
+Blend start: {} on {}	调和起点:{} 位于 {}
+Blend end: {} on {}	调和终点:{} 位于 {}
+Blend path: {} on {}	调和路径:{} 位于 {}
+Blend split: {} on {}	调和拆分:{} 位于 {}
+Click the path the blend follows (Esc to cancel)	单击调和要沿着的路径(按 Esc 取消)
+Click the new start object of the blend (Esc to cancel)	单击调和的新起始对象(按 Esc 取消)
+Click the new end object of the blend (Esc to cancel)	单击调和的新结束对象(按 Esc 取消)
+Click the step of the blend where it splits (Esc to cancel)	单击调和要拆分的步长(按 Esc 取消)
+Click a node of the start object (Esc to cancel)	单击起始对象的一个节点(按 Esc 取消)
+Click the matching node of the end object (Esc to cancel)	单击结束对象的对应节点(按 Esc 取消)
+Select a blend first	请先选择一个调和
+Click an object that is not part of the blend	单击不属于该调和的对象
+Click a curve or a shape to use as the path	单击要用作路径的曲线或形状
+The path has no length	路径没有长度
+Groups, bitmaps and blends can't start or end a blend	群组、位图和调和不能作为调和的起点或终点
+The blend has no split to fuse	调和中没有可熔合的拆分
+Click a step of the blend	单击调和的一个步长
+Click a node of the start object	单击起始对象的一个节点
+Click the matching node of the end object	单击结束对象的对应节点

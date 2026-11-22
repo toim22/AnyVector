@@ -801,7 +801,7 @@ fn settings_tab(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut NewDocState, top: 
                 ui.add_space(6.0);
                 ui.label("Preset name:");
                 let r = ui.add(egui::TextEdit::singleline(name).desired_width(170.0));
-                r.request_focus();
+                crate::widgets::keep_focus(&r);
                 let enter = r.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
                 let save = ui.button("Save").clicked() || enter;
                 let cancel_new = ui.button("Cancel").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape));

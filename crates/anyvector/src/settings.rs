@@ -318,6 +318,10 @@ pub struct Settings {
     /// Artistic Media docker: the custom strokes (name, stroke).
     pub custom_strokes: Vec<(String, vector_core::style::WidthProfile)>,
     pub docker_width: f32,
+    /// How the dockers are arranged: sides, groups, stacking and floating windows (#144). Kept
+    /// with `open_dockers` and `docker_width`, which settings saved before 0.6.1 have alone (one
+    /// group on the right) and 0.6.0 still reads.
+    pub docker_layout: crate::dockers::DockerLayout,
     pub default_unit: Unit,
     /// The unit outline widths are shown and typed in (the Outline Pen dialog's units, which the
     /// Properties docker, the property bar and the status bar follow). Widths stay in points.
@@ -708,6 +712,7 @@ impl Default for Settings {
             open_dockers: vec![],
             custom_strokes: vec![],
             docker_width: 280.0,
+            docker_layout: Default::default(),
             default_unit: Unit::Inches,
             outline_unit: Unit::Points,
             text_unit: Unit::Points,

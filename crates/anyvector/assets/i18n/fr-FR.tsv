@@ -5661,3 +5661,32 @@ Delete conflicts	Supprimer les conflits
 Duplicate in Place	Dupliquer sur place
 Toggle Pick State	Basculer l'état de sélection
 (none)	(aucun)
+Color Variations	Variations de couleur
+Expand Dockers	Développer les menus fixes
+Collapse Dockers	Réduire les menus fixes
+Add Docker	Ajouter un menu fixe
+Dock &Left	Ancrer à &gauche
+Dock Ri&ght	Ancrer à &droite
+&Float	&Flottant
+&Close	&Fermer
+Close &Others	Fermer les &autres
+&Reset Docker Layout	&Réinitialiser la disposition des menus fixes
+Blend start: {} on {}	Début du dégradé : {} sur {}
+Blend end: {} on {}	Fin du dégradé : {} sur {}
+Blend path: {} on {}	Trajet du dégradé : {} sur {}
+Blend split: {} on {}	Division du dégradé : {} sur {}
+Click the path the blend follows (Esc to cancel)	Cliquez sur le trajet que suit le dégradé (Échap pour annuler)
+Click the new start object of the blend (Esc to cancel)	Cliquez sur le nouvel objet de début du dégradé (Échap pour annuler)
+Click the new end object of the blend (Esc to cancel)	Cliquez sur le nouvel objet de fin du dégradé (Échap pour annuler)
+Click the step of the blend where it splits (Esc to cancel)	Cliquez sur l'étape où le dégradé se divise (Échap pour annuler)
+Click a node of the start object (Esc to cancel)	Cliquez sur un nœud de l'objet de début (Échap pour annuler)
+Click the matching node of the end object (Esc to cancel)	Cliquez sur le nœud correspondant de l'objet de fin (Échap pour annuler)
+Select a blend first	Sélectionnez d'abord un dégradé
+Click an object that is not part of the blend	Cliquez sur un objet qui ne fait pas partie du dégradé
+Click a curve or a shape to use as the path	Cliquez sur une courbe ou une forme à utiliser comme trajet
+The path has no length	Le trajet n'a pas de longueur
+Groups, bitmaps and blends can't start or end a blend	Les groupes, bitmaps et dégradés ne peuvent ni commencer ni terminer un dégradé
+The blend has no split to fuse	Le dégradé n'a aucune division à fusionner
+Click a step of the blend	Cliquez sur une étape du dégradé
+Click a node of the start object	Cliquez sur un nœud de l'objet de début
+Click the matching node of the end object	Cliquez sur le nœud correspondant de l'objet de fin

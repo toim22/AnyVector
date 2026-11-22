@@ -1,11 +1,12 @@
 # AnyVector — Status
 
-Last updated: 2026-11-16.
+Last updated: 2026-11-22.
 
 ## Version history
 
 | Version | Date | What it brings |
 | --- | --- | --- |
+| [0.6.1](RELEASE-NOTES-0.6.1.md) | 2026-11-22 | Input methods (IME) on the canvas with font fallback for CJK text; blends along a path with start/end editing, split, fuse and map nodes; hold a palette swatch for its tints, shades and hues; rearrangeable dockers that dock left or right, stack and float. |
 | [0.6.0](RELEASE-NOTES-0.6.0.md) | 2026-11-21 | 27 CorelDRAW-parity fixes: CorelDRAW-compatible CMX copies, Alt+click behind, PowerClip editing and toolbar, clickable and separable shadows, right-drag menu, Outline Pen dialog and default outline, unit-aware outline and text sizes, inch-fraction rulers, toolbar customization by dragging, shortcut keys for every command. |
 | [0.5.5](RELEASE-NOTES-0.5.5.md) | 2026-11-19 | Picking inside shapes is back; Shape tool polygon/ellipse/segment editing, Virtual Segment Delete on shapes, Trim keeps the source, working shadow sliders, kept and snapping rotation center. |
 | [0.5.4](RELEASE-NOTES-0.5.4.md) | 2026-11-17 | Quick Trace and PowerTRACE no longer freeze on anti-aliased images traced with more than two colors. |
