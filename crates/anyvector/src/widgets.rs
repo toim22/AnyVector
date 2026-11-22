@@ -152,6 +152,46 @@ pub fn color_well(ui: &mut Ui, color: Option<vector_core::Color>, size: egui::Ve
     resp
 }
 
+/// A press held on `resp` for `delay` seconds without moving (CorelDRAW's press-and-hold on a
+/// palette swatch). Gives the held button once per press, on the frame the delay is reached;
+/// moving the pointer further than a click may before that makes the press a drag, and the hold
+/// never fires for it. While the hold is pending a repaint is scheduled for when it is due, so it
+/// fires with the pointer still. The click on release is not affected: the caller decides what a
+/// fired hold means for it.
+pub fn press_and_hold(ui: &Ui, resp: &Response, delay: f64) -> Option<egui::PointerButton> {
+    #[derive(Clone, Copy)]
+    struct Hold {
+        start: f64,
+        done: bool,
+    }
+    let id = resp.id.with("press_and_hold");
+    if !resp.is_pointer_button_down_on() {
+        ui.data_mut(|d| d.remove::<Hold>(id));
+        return None;
+    }
+    let slop = ui.ctx().options(|o| o.input_options.max_click_dist);
+    let (time, start, origin, pos, button) = ui.input(|i| {
+        let p = &i.pointer;
+        let button = [egui::PointerButton::Primary, egui::PointerButton::Secondary].into_iter().find(|b| p.button_down(*b));
+        (i.time, p.press_start_time(), p.press_origin(), p.latest_pos(), button)
+    });
+    let (Some(start), Some(button)) = (start, button) else { return None };
+    let mut hold = ui.data(|d| d.get_temp::<Hold>(id)).filter(|h| h.start == start).unwrap_or(Hold { start, done: false });
+    let moved = matches!((origin, pos), (Some(o), Some(p)) if o.distance(p) > slop);
+    let fired = if hold.done || moved {
+        hold.done = true;
+        None
+    } else if time - start >= delay {
+        hold.done = true;
+        Some(button)
+    } else {
+        ui.ctx().request_repaint_after(std::time::Duration::from_secs_f64(delay - (time - start)));
+        None
+    };
+    ui.data_mut(|d| d.insert_temp(id, hold));
+    fired
+}
+
 pub fn paint_well(p: &egui::Painter, rect: Rect, color: Option<vector_core::Color>) {
     match color {
         Some(c) => {
