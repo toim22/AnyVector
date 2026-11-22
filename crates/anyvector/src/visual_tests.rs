@@ -6817,3 +6817,307 @@ fn visual_issue_060_input_and_keyboard() {
 fn categories_len_minus_one() -> usize {
     crate::dialogs::options::commands_page::categories().len() - 1
 }
+
+// #146: holding a palette swatch down shows its color variations (CorelDRAW's pop-up color
+// picker); a click on one applies it as the fill, a right-click as the outline.
+
+/// A document with a selected rectangle (a yellow fill, a black outline) and the palettes shown.
+fn palette_harness<'a>() -> (Harness<'a, AnyVectorApp>, vector_core::ObjId) {
+    let mut h = doc_harness();
+    {
+        let s = &mut h.state_mut().settings;
+        s.default_palette_visible = true;
+        s.doc_palette_visible = true;
+        s.show_no_color_well = true;
+        s.right_click_outline = true;
+    }
+    let id = outlined_rect(&mut h, vector_core::style::Outline { width: 1.0, color: Some(Color::BLACK), ..Default::default() });
+    for _ in 0..3 {
+        h.step();
+    }
+    (h, id)
+}
+
+/// The swatch of the default palette named `name`: its rectangle and color.
+fn palette_swatch(h: &Harness<'_, AnyVectorApp>, name: &str) -> (egui::Rect, Color) {
+    let a = h.state();
+    let at = a.palettes.palettes[0].colors.iter().position(|c| c.name == name).expect("in the default palette");
+    let k = at + a.settings.show_no_color_well as usize;
+    let d = a.palettes.drawn.iter().find(|d| d.0 == crate::palette::Strip::Column(0) && d.1 == k).expect("the swatch is shown");
+    (d.2, d.3.unwrap())
+}
+
+fn pointer_button(h: &mut Harness<'_, AnyVectorApp>, p: egui::Pos2, button: egui::PointerButton, pressed: bool) {
+    h.input_mut().events.push(egui::Event::PointerButton { pos: p, button, pressed, modifiers: egui::Modifiers::NONE });
+}
+
+/// Press `button` on `p` and keep it down for `HOLD_DELAY` (each step is a quarter second).
+fn hold_down(h: &mut Harness<'_, AnyVectorApp>, p: egui::Pos2, button: egui::PointerButton) {
+    move_to(h, p);
+    h.step();
+    pointer_button(h, p, button, true);
+    h.step();
+    assert!(h.state().palettes.variations.is_none(), "not before the hold delay");
+    for _ in 0..(crate::palette::HOLD_DELAY / 0.25).round() as usize {
+        h.step();
+    }
+}
+
+fn variations_open(h: &Harness<'_, AnyVectorApp>) -> bool {
+    h.state().palettes.variations.is_some() && egui::Popup::is_id_open(&h.ctx, crate::palette::variations_popup_id())
+}
+
+/// The variation `i` of the open picker: where it is drawn and its color.
+fn variation(h: &Harness<'_, AnyVectorApp>, i: usize) -> (egui::Pos2, Color) {
+    let v = h.state().palettes.variations.as_ref().expect("the picker is open");
+    (v.cells[i].center(), v.grid.colors[i])
+}
+
+/// Holding a swatch opens its variations without applying anything, also on release; a click on
+/// a variation applies it as the fill, as one undo step, and closes the picker.
+#[test]
+fn palette_hold_opens_variations_and_a_click_applies_the_fill() {
+    let (mut h, id) = palette_harness();
+    let (r, red) = palette_swatch(&h, "Red");
+    let fill = fill_of(&h, id);
+    let undo = undo_steps(&h);
+    hold_down(&mut h, r.center(), egui::PointerButton::Primary);
+    assert!(h.state().palettes.variations.is_some(), "the hold opened the picker");
+    h.step();
+    assert!(variations_open(&h));
+    {
+        let v = h.state().palettes.variations.as_ref().unwrap();
+        assert_eq!((v.base, v.grid.colors.len(), v.grid.colors[v.grid.base]), (red, 49, red));
+        assert_eq!(v.held, Some(egui::PointerButton::Primary));
+        assert!(v.grid.colors.iter().all(|c| c.is_cmyk()), "the CMYK palette's variations stay CMYK");
+    }
+    // releasing the hold on the swatch applies nothing
+    pointer_button(&mut h, r.center(), egui::PointerButton::Primary, false);
+    h.step();
+    h.step();
+    assert_eq!(fill_of(&h, id), fill, "the release of a hold is not a click");
+    assert_eq!(undo_steps(&h), undo);
+    assert!(variations_open(&h), "the picker stays open");
+    assert_eq!(h.state().palettes.variations.as_ref().unwrap().held, None);
+    // the darkest shade of red, below it
+    let (p, shade) = variation(&h, 6 * 7 + 3);
+    assert_eq!(shade.cmyk, Some([0, 100, 100, 75]));
+    click(&mut h, p);
+    assert_eq!(fill_of(&h, id), Fill::Solid(shade));
+    assert_eq!(undo_steps(&h), undo + 1, "one undo step");
+    h.step();
+    assert!(!variations_open(&h), "a pick closes the picker");
+    assert_eq!(outline_of(&h, id).color, Some(Color::BLACK));
+}
+
+/// A right-click on a variation applies it as the outline.
+#[test]
+fn palette_variation_right_click_sets_the_outline() {
+    let (mut h, id) = palette_harness();
+    let (r, _) = palette_swatch(&h, "Cyan");
+    let fill = fill_of(&h, id);
+    hold_down(&mut h, r.center(), egui::PointerButton::Primary);
+    pointer_button(&mut h, r.center(), egui::PointerButton::Primary, false);
+    h.step();
+    h.step();
+    let (p, tint) = variation(&h, 3);
+    assert_eq!(tint.cmyk, Some([25, 0, 0, 0]));
+    move_to(&mut h, p);
+    h.step();
+    for pressed in [true, false] {
+        pointer_button(&mut h, p, egui::PointerButton::Secondary, pressed);
+        h.step();
+    }
+    assert_eq!(outline_of(&h, id).color, Some(tint));
+    assert_eq!(fill_of(&h, id), fill);
+    h.step();
+    assert!(!variations_open(&h));
+}
+
+/// Holding the right button opens the picker too, and releasing it over a variation sets the
+/// outline; no context menu opens and the swatch color is not applied.
+#[test]
+fn palette_right_hold_released_over_a_variation_sets_the_outline() {
+    for right_click_outline in [true, false] {
+        let (mut h, id) = palette_harness();
+        h.state_mut().settings.right_click_outline = right_click_outline;
+        let (r, _) = palette_swatch(&h, "Green");
+        let fill = fill_of(&h, id);
+        let undo = undo_steps(&h);
+        hold_down(&mut h, r.center(), egui::PointerButton::Secondary);
+        h.step();
+        assert!(variations_open(&h));
+        assert_eq!(h.state().palettes.variations.as_ref().unwrap().held, Some(egui::PointerButton::Secondary));
+        let (p, c) = variation(&h, 2 * 7 + 5);
+        for k in 1..=4 {
+            move_to(&mut h, r.center() + (p - r.center()) * (k as f32 / 4.0));
+            h.step();
+        }
+        pointer_button(&mut h, p, egui::PointerButton::Secondary, false);
+        h.step();
+        assert_eq!(outline_of(&h, id).color, Some(c), "right_click_outline {right_click_outline}");
+        assert_eq!(fill_of(&h, id), fill);
+        assert_eq!(undo_steps(&h), undo + 1);
+        h.step();
+        assert!(!egui::Popup::is_any_open(&h.ctx), "no picker and no context menu left open");
+    }
+}
+
+/// A quick click still applies the swatch at once, with no picker; a quick right-click sets the
+/// outline.
+#[test]
+fn palette_quick_click_applies_at_once() {
+    let (mut h, id) = palette_harness();
+    let (r, red) = palette_swatch(&h, "Red");
+    let undo = undo_steps(&h);
+    move_to(&mut h, r.center());
+    h.step();
+    pointer_button(&mut h, r.center(), egui::PointerButton::Primary, true);
+    h.step();
+    pointer_button(&mut h, r.center(), egui::PointerButton::Primary, false);
+    h.step();
+    assert_eq!(fill_of(&h, id), Fill::Solid(red), "applied on the release, no waiting");
+    assert_eq!(undo_steps(&h), undo + 1);
+    let (r, blue) = palette_swatch(&h, "Blue");
+    move_to(&mut h, r.center());
+    h.step();
+    for pressed in [true, false] {
+        pointer_button(&mut h, r.center(), egui::PointerButton::Secondary, pressed);
+        h.step();
+    }
+    assert_eq!(outline_of(&h, id).color, Some(blue));
+    for _ in 0..4 {
+        h.step();
+    }
+    assert!(h.state().palettes.variations.is_none(), "no picker for a click");
+}
+
+/// Dragging a swatch is not a hold: it still drops its color on the document palette.
+#[test]
+fn palette_drag_still_drops_on_the_document_palette() {
+    let (mut h, id) = palette_harness();
+    let fill = fill_of(&h, id);
+    let first = Color::rgb(10, 20, 30);
+    h.state_mut().doc_mut().unwrap().doc.palette.push(vector_core::NamedColor::new("First", first));
+    for _ in 0..3 {
+        h.step();
+    }
+    let at = h.state().palettes.drawn.iter().find(|d| d.0 == crate::palette::Strip::Document).expect("the document palette is shown").2;
+    let (r, red) = palette_swatch(&h, "Red");
+    drag(&mut h, r.center(), at.center() + egui::vec2(80.0, 0.0));
+    h.step();
+    assert!(h.state().doc().unwrap().doc.palette.iter().any(|n| n.color == red), "{:?}", h.state().doc().unwrap().doc.palette);
+    assert!(h.state().palettes.variations.is_none(), "a drag opens no picker");
+    assert_eq!(fill_of(&h, id), fill);
+}
+
+/// Esc or a click elsewhere closes the picker and applies nothing; Esc does not also clear the
+/// selection.
+#[test]
+fn palette_variations_close_on_escape_and_click_outside() {
+    let (mut h, id) = palette_harness();
+    let (r, _) = palette_swatch(&h, "Orange");
+    let fill = fill_of(&h, id);
+    let undo = undo_steps(&h);
+    for close in ["escape", "click"] {
+        hold_down(&mut h, r.center(), egui::PointerButton::Primary);
+        pointer_button(&mut h, r.center(), egui::PointerButton::Primary, false);
+        h.step();
+        h.step();
+        assert!(variations_open(&h), "{close}");
+        if close == "escape" {
+            key(&mut h, egui::Key::Escape, true);
+            h.step();
+            key(&mut h, egui::Key::Escape, false);
+            h.step();
+        } else {
+            // on the property bar, away from the picker and the selection
+            click(&mut h, egui::pos2(900.0, 60.0));
+        }
+        h.step();
+        assert!(!variations_open(&h), "closed by {close}");
+        assert!(h.state().palettes.variations.is_none(), "{close}");
+        assert_eq!(fill_of(&h, id), fill, "{close} applies nothing");
+        assert_eq!(undo_steps(&h), undo);
+        assert_eq!(h.state().doc().unwrap().selection, vec![id], "{close} keeps the selection");
+    }
+}
+
+/// With right-click set to open the swatch menu, the menu offers the variations too.
+#[test]
+fn palette_context_menu_offers_color_variations() {
+    let (mut h, id) = palette_harness();
+    h.state_mut().settings.right_click_outline = false;
+    h.step();
+    let (r, purple) = palette_swatch(&h, "Purple");
+    right_click(&mut h, r.center());
+    h.step();
+    assert!(has_label(&h, "Set Fill") && has_label(&h, "Color Variations"), "the swatch menu offers the variations");
+    click_label(&mut h, "Color Variations");
+    assert!(variations_open(&h));
+    let v = h.state().palettes.variations.as_ref().unwrap();
+    assert_eq!((v.base, v.held), (purple, None));
+    let (p, c) = variation(&h, 3 * 7 + 4);
+    click(&mut h, p);
+    assert_eq!(fill_of(&h, id), Fill::Solid(c));
+}
+
+/// The document palette strip has the picker too; a spot color's variations are its tints.
+#[test]
+fn palette_document_strip_hold_shows_spot_tints() {
+    let (mut h, id) = palette_harness();
+    let spot = Color::from_cmyk(0.0, 60.0, 100.0, 0.0);
+    h.state_mut().doc_mut().unwrap().doc.palette.push(vector_core::NamedColor { name: "PANTONE Orange".into(), color: spot, spot: true });
+    for _ in 0..3 {
+        h.step();
+    }
+    let r = h.state().palettes.drawn.iter().find(|d| d.0 == crate::palette::Strip::Document && d.1 == 0).expect("the swatch is shown").2;
+    hold_down(&mut h, r.center(), egui::PointerButton::Primary);
+    pointer_button(&mut h, r.center(), egui::PointerButton::Primary, false);
+    h.step();
+    h.step();
+    assert!(variations_open(&h));
+    {
+        let v = h.state().palettes.variations.as_ref().unwrap();
+        assert_eq!(v.grid.colors.len(), vector_core::color::SPOT_TINTS.len());
+        assert!(v.spot && v.name == "PANTONE Orange");
+        // the picker is above the strip, on screen
+        assert!(v.cells.iter().all(|c| c.bottom() <= r.top() && c.top() >= 0.0), "{:?} {r:?}", v.cells);
+    }
+    let (p, half) = variation(&h, 5);
+    assert_eq!(half.cmyk, Some([0, 30, 50, 0]));
+    click(&mut h, p);
+    assert_eq!(fill_of(&h, id), Fill::Solid(half));
+}
+
+/// The pictures: the picker of a CMYK color in the palette column, of a gray, and of a spot color
+/// in the document palette.
+#[test]
+#[ignore]
+fn visual_palette_variations() {
+    let (mut h, _) = palette_harness();
+    let open = |h: &mut Harness<'_, AnyVectorApp>, p: egui::Pos2| {
+        hold_down(h, p, egui::PointerButton::Primary);
+        pointer_button(h, p, egui::PointerButton::Primary, false);
+        h.step();
+        h.step();
+        assert!(variations_open(h));
+    };
+    let (r, _) = palette_swatch(&h, "Red");
+    open(&mut h, r.center());
+    let (p, _) = variation(&h, 2 * 7 + 4);
+    move_to(&mut h, p);
+    save(&mut h, "pal_variations_01_red");
+    let (r, _) = palette_swatch(&h, "50% Black");
+    click(&mut h, egui::pos2(900.0, 60.0));
+    open(&mut h, r.center());
+    save(&mut h, "pal_variations_02_gray");
+    click(&mut h, egui::pos2(900.0, 60.0));
+    h.state_mut().doc_mut().unwrap().doc.palette.push(vector_core::NamedColor { name: "PANTONE Orange".into(), color: Color::from_cmyk(0.0, 60.0, 100.0, 0.0), spot: true });
+    for _ in 0..3 {
+        h.step();
+    }
+    let r = h.state().palettes.drawn.iter().find(|d| d.0 == crate::palette::Strip::Document && d.1 == 0).unwrap().2;
+    open(&mut h, r.center());
+    save(&mut h, "pal_variations_03_spot_tints");
+}
