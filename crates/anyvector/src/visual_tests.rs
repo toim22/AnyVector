@@ -3020,6 +3020,20 @@ fn ai_provider_options_follow_the_provider() {
     settle(&mut h);
 }
 
+/// Save Key's note in Options says where the key is kept: in the Windows account, on Linux in the
+/// user's systemd environment file (~/.config/environment.d/anyvector.conf).
+#[test]
+fn ai_key_note_says_where_the_key_is_kept() {
+    use egui_kittest::kittest::Queryable;
+    let mut h = dialog_harness();
+    h.state_mut().settings.language = "en-US".into();
+    h.state_mut().settings.ai_config.provider = crate::ai_provider::Provider::Anthropic;
+    h.state_mut().open_options(crate::commands::OptionsPage::Global, Some("Privacy"));
+    settle(&mut h);
+    let place = if cfg!(windows) { "environment variable of your Windows account" } else { "environment.d/anyvector.conf" };
+    assert!(h.query_by_label_contains(place).is_some(), "Save Key's note names {place}");
+}
+
 /// The new dialogs, as pictures: Import PDF, Color Management (its three tabs), Create Cut
 /// Contour, HPGL and DXF Export, the AI providers in Options, the Options search and Export
 /// for Office.
