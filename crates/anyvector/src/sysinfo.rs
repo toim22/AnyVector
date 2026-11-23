@@ -714,9 +714,7 @@ mod unix {
 
 /// The system in one line, for bug reports: "Ubuntu 24.04.5 LTS (WSL 2); Linux 6.18.58.1-microsoft-
 /// standard-WSL2 (x86_64); desktop WSLg; Wayland (WAYLAND_DISPLAY=wayland-0, DISPLAY=:0)".
-// called by bugreport::system_info on Linux (agent D's branch hooks it up at integration)
 #[cfg(not(windows))]
-#[allow(dead_code)]
 pub fn platform_summary() -> String {
     format!("{}; {}; desktop {}; {}", unix::platform(), unix::kernel(), unix::desktop().unwrap_or_else(|| "unknown".into()), unix::session())
 }

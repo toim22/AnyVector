@@ -199,40 +199,10 @@ fn os_version() -> String {
         .unwrap_or_else(|| std::env::consts::OS.to_string())
 }
 
-/// The distribution, the kernel, the session type and the desktop.
+/// The distribution, the kernel, the desktop and the session type (System Info's summary).
 #[cfg(not(windows))]
 fn os_version() -> String {
-    let release = std::fs::read_to_string("/etc/os-release").or_else(|_| std::fs::read_to_string("/usr/lib/os-release")).ok();
-    let kernel = std::fs::read_to_string("/proc/sys/kernel/osrelease").ok();
-    let var = |k: &str| std::env::var(k).ok().filter(|v| !v.trim().is_empty());
-    let session = var("XDG_SESSION_TYPE").or_else(|| var("WAYLAND_DISPLAY").map(|_| "wayland".into())).or_else(|| var("DISPLAY").map(|_| "x11".into()));
-    unix_os_line(release.as_deref(), kernel.as_deref(), session.as_deref(), var("XDG_CURRENT_DESKTOP").as_deref())
-}
-
-/// "Ubuntu 24.04.3 LTS, kernel 6.8.0-51-generic, Wayland, GNOME" from the text of os-release, the
-/// kernel release, the session type and the desktop; the system's name when nothing is known.
-#[cfg(any(not(windows), test))]
-fn unix_os_line(os_release: Option<&str>, kernel: Option<&str>, session: Option<&str>, desktop: Option<&str>) -> String {
-    let value = |key: &str| {
-        let text = os_release?;
-        let v = text.lines().find_map(|l| l.trim().strip_prefix(key)?.strip_prefix('='))?;
-        Some(v.trim().trim_matches(|c| c == '"' || c == '\'').to_string()).filter(|v| !v.is_empty())
-    };
-    let mut parts: Vec<String> = vec![];
-    parts.extend(value("PRETTY_NAME").or_else(|| value("NAME")));
-    parts.extend(kernel.map(str::trim).filter(|k| !k.is_empty()).map(|k| format!("kernel {k}")));
-    parts.extend(session.map(str::trim).filter(|s| !s.is_empty()).map(|s| match s.to_ascii_lowercase().as_str() {
-        "wayland" => "Wayland".to_string(),
-        "x11" => "X11".to_string(),
-        _ => s.to_string(),
-    }));
-    // "ubuntu:GNOME" names the desktop and what it is based on
-    parts.extend(desktop.map(str::trim).filter(|d| !d.is_empty()).map(|d| d.replace(':', "/")));
-    if parts.is_empty() {
-        std::env::consts::OS.to_string()
-    } else {
-        parts.join(", ")
-    }
+    crate::sysinfo::platform_summary()
 }
 
 fn hide_console(cmd: &mut Command) {
@@ -568,13 +538,7 @@ mod tests {
     }
 
     #[test]
-    fn linux_system_line() {
-        let release = "NAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nPRETTY_NAME=\"Ubuntu 24.04.3 LTS\"\nID=ubuntu\n";
-        assert_eq!(unix_os_line(Some(release), Some("6.8.0-51-generic\n"), Some("wayland"), Some("ubuntu:GNOME")), "Ubuntu 24.04.3 LTS, kernel 6.8.0-51-generic, Wayland, ubuntu/GNOME");
-        // no PRETTY_NAME: NAME; an X11 session; no desktop
-        assert_eq!(unix_os_line(Some("NAME=Fedora Linux\n"), None, Some("x11"), None), "Fedora Linux, X11");
-        assert_eq!(unix_os_line(Some("PRETTY_NAME=''\nNAME='Arch Linux'"), Some(" "), Some("tty"), Some("KDE")), "Arch Linux, tty, KDE");
-        assert_eq!(unix_os_line(None, None, None, None), std::env::consts::OS);
+    fn os_name_names_the_system() {
         assert_eq!(OS_NAME, if cfg!(windows) { "Windows" } else if cfg!(target_os = "linux") { "Linux" } else { std::env::consts::OS });
     }
 
