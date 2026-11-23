@@ -2237,6 +2237,481 @@ fn clip_real_office_formats() {
     cb::SYSTEM_CLIPBOARD.with(|c| c.set(false));
 }
 
+/// A file dropped on the window, as egui-winit hands it over.
+#[derive(Debug)]
+struct DroppedPath(std::path::PathBuf);
+
+impl egui::DroppedFile for DroppedPath {
+    fn path(&self) -> &std::path::Path {
+        &self.0
+    }
+
+    fn bytes(&self) -> Result<Vec<u8>, String> {
+        std::fs::read(&self.0).map_err(|e| e.to_string())
+    }
+}
+
+/// An SVG drawing (a red 80 × 40 rectangle) in a temp folder only this test uses.
+fn clip_svg_file(test: &str) -> std::path::PathBuf {
+    let p = temp_file(test, "dropped.svg");
+    std::fs::write(&p, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"100\" height=\"50\"><rect width=\"80\" height=\"40\" fill=\"red\"/></svg>").unwrap();
+    p
+}
+
+#[cfg(target_os = "linux")]
+fn clip_kind_count(h: &Harness<'_, AnyVectorApp>, f: fn(&ObjKind) -> bool) -> usize {
+    h.state().doc().unwrap().page_ref().all_objects().filter(|o| f(&o.kind)).count()
+}
+
+/// The text of the text objects on the page.
+#[cfg(target_os = "linux")]
+fn clip_texts(h: &Harness<'_, AnyVectorApp>) -> Vec<String> {
+    h.state().doc().unwrap().page_ref().all_objects().filter_map(|o| if let ObjKind::Text(t) = &o.kind { Some(t.content.clone()) } else { None }).collect()
+}
+
+/// Files dropped on the window (winit's DroppedFile on Windows, X11 and macOS): with a drawing
+/// open an SVG is imported into it, once; with none open it opens in a tab of its own.
+#[test]
+fn drop_files_open_or_import() {
+    let svg = clip_svg_file("drop_files");
+    let mut h = clip_harness();
+    let (docs, n) = (h.state().docs.len(), clip_count(&h));
+    h.input_mut().dropped_files.push(std::sync::Arc::new(DroppedPath(svg.clone())));
+    h.step();
+    assert_eq!(h.state().docs.len(), docs, "imported, not opened");
+    let n2 = clip_count(&h);
+    assert!(n2 > n, "the SVG came into the open drawing");
+    h.step();
+    assert_eq!(clip_count(&h), n2, "a drop is handled once");
+    h.state_mut().close_doc_now(0);
+    h.step();
+    assert!(!h.state().has_doc());
+    h.input_mut().dropped_files.push(std::sync::Arc::new(DroppedPath(svg)));
+    h.step();
+    assert_eq!(h.state().docs.len(), 1, "opened in a tab");
+    assert!(clip_count(&h) > 0);
+}
+
+/// Render: the hint on the start page while files are dragged over the window (winit's
+/// HoveredFile).
+#[test]
+#[ignore]
+fn visual_drop_files_hint() {
+    let mut h = harness();
+    let hover = egui::HoveredFile { path: Some(clip_svg_file("visual_drop_hint")), mime: String::new() };
+    // the input is taken every frame: the hover is given again for each one
+    let mut img = Err(String::new());
+    for k in 0..9 {
+        h.input_mut().hovered_files.push(hover.clone());
+        h.step();
+        if k >= 4 {
+            img = h.render().map_err(|e| format!("{e:?}"));
+            if img.is_ok() {
+                break;
+            }
+        }
+    }
+    img.expect("render").save(out_dir().join("clip_01_drop_files_hint.png")).unwrap();
+}
+
+/// Linux: a display of its own for a clipboard test, so the desktop's clipboard (which WSLg
+/// shares with Windows) is never touched: Xvfb for X11, a headless sway for Wayland (it has the
+/// data-control protocol). When it is dropped the programs it started are stopped and the
+/// environment is put back. These tests change the process's environment: run them one at a
+/// time (`--test-threads=1`).
+#[cfg(target_os = "linux")]
+struct ClipDisplay {
+    server: std::process::Child,
+    runtime: Option<std::path::PathBuf>,
+    env: Vec<(&'static str, Option<std::ffi::OsString>)>,
+    /// Other programs serving the clipboard (xclip, wl-copy).
+    others: Vec<std::process::Child>,
+}
+
+#[cfg(target_os = "linux")]
+impl ClipDisplay {
+    const VARS: [&'static str; 3] = ["DISPLAY", "WAYLAND_DISPLAY", "WAYLAND_SOCKET"];
+
+    /// Make `display` (X11) or `wayland` (a socket path) the only display.
+    fn start(server: std::process::Child, runtime: Option<std::path::PathBuf>, display: Option<String>, wayland: Option<&std::path::Path>) -> ClipDisplay {
+        let env = Self::VARS.iter().map(|v| (*v, std::env::var_os(v))).collect();
+        for v in Self::VARS {
+            std::env::remove_var(v);
+        }
+        if let Some(d) = display {
+            std::env::set_var("DISPLAY", d);
+        }
+        if let Some(w) = wayland {
+            std::env::set_var("WAYLAND_DISPLAY", w);
+        }
+        crate::dialogs::clipboard::linux::reset();
+        crate::dialogs::clipboard::SYSTEM_CLIPBOARD.with(|c| c.set(true));
+        ClipDisplay { server, runtime, env, others: vec![] }
+    }
+
+    /// A new Xvfb display on a free number (WSLg's :0 has a socket but no lock file, which
+    /// trips Xvfb's own choice); it prints the number once it is ready.
+    fn xvfb() -> ClipDisplay {
+        use std::io::BufRead;
+        let free = (90..200).find(|n| !std::path::Path::new(&format!("/tmp/.X{n}-lock")).exists() && !std::path::Path::new(&format!("/tmp/.X11-unix/X{n}")).exists()).unwrap();
+        let mut server = std::process::Command::new("Xvfb")
+            .args([&format!(":{free}"), "-displayfd", "1", "-nolisten", "tcp", "-screen", "0", "640x480x24"])
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .expect("Xvfb (apt install xvfb)");
+        let mut line = String::new();
+        let _ = std::io::BufReader::new(server.stdout.as_mut().unwrap()).read_line(&mut line);
+        let n = line.trim().parse::<u32>();
+        let d = Self::start(server, None, n.as_ref().ok().map(|n| format!(":{n}")), None);
+        assert!(n.is_ok(), "Xvfb did not start: {line:?}");
+        d
+    }
+
+    /// A headless Wayland compositor in a runtime folder of its own, once its socket is there.
+    fn compositor(cmd: &mut std::process::Command) -> ClipDisplay {
+        use std::os::unix::fs::PermissionsExt;
+        use std::time::{Duration, Instant};
+        let name = cmd.get_program().to_string_lossy().into_owned();
+        let runtime = std::env::temp_dir().join(format!("anyvector-clip-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&runtime);
+        std::fs::create_dir_all(&runtime).unwrap();
+        std::fs::set_permissions(&runtime, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let server = cmd
+            .env("XDG_RUNTIME_DIR", &runtime)
+            .env_remove("DISPLAY")
+            .env_remove("WAYLAND_DISPLAY")
+            .env_remove("WAYLAND_SOCKET")
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .unwrap_or_else(|e| panic!("{name} (apt install {name}): {e}"));
+        let find = |dir: &std::path::Path| {
+            std::fs::read_dir(dir).ok()?.filter_map(|e| e.ok()).map(|e| e.path()).find(|p| p.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.starts_with("wayland-") && !n.ends_with(".lock")))
+        };
+        let t = Instant::now();
+        let mut socket = find(&runtime);
+        while socket.is_none() && t.elapsed() < Duration::from_secs(10) {
+            std::thread::sleep(Duration::from_millis(50));
+            socket = find(&runtime);
+        }
+        let d = Self::start(server, Some(runtime), None, socket.as_deref());
+        assert!(socket.is_some(), "{name} did not start");
+        d
+    }
+
+    /// A headless sway, once its data-control protocol answers.
+    fn sway() -> ClipDisplay {
+        use crate::dialogs::clipboard::linux;
+        use std::time::{Duration, Instant};
+        let mut cmd = std::process::Command::new("sway");
+        cmd.args(["-c", "/dev/null"]).env("WLR_BACKENDS", "headless").env("WLR_LIBINPUT_NO_DEVICES", "1").env("WLR_RENDERER", "pixman");
+        let d = Self::compositor(&mut cmd);
+        let t = Instant::now();
+        while linux::backend() != Some(linux::Backend::Wayland) && t.elapsed() < Duration::from_secs(10) {
+            std::thread::sleep(Duration::from_millis(100));
+            linux::reset();
+        }
+        d
+    }
+
+    /// Another program's output (within 10 s); None when it failed.
+    fn run(cmd: &[&str]) -> Option<Vec<u8>> {
+        let out = std::process::Command::new("timeout").arg("10").args(cmd).stderr(std::process::Stdio::null()).output().ok()?;
+        out.status.success().then_some(out.stdout)
+    }
+
+    /// Start another program that offers `data` on the clipboard (from its standard input) and
+    /// wait until it does. The programs started before are stopped first, so the clipboard
+    /// changes owner.
+    fn serve(&mut self, cmd: &[&str], data: &[u8], mime: &str) {
+        use std::io::Write;
+        use std::time::{Duration, Instant};
+        for mut c in self.others.drain(..) {
+            let _ = c.kill();
+            let _ = c.wait();
+        }
+        let mut c = std::process::Command::new(cmd[0])
+            .args(&cmd[1..])
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .unwrap_or_else(|e| panic!("{}: {e}", cmd[0]));
+        let mut stdin = c.stdin.take().unwrap();
+        self.others.push(c);
+        stdin.write_all(data).unwrap();
+        drop(stdin);
+        // the data itself: the program stopped may still be listed for a moment
+        let t = Instant::now();
+        while crate::dialogs::clipboard::linux::get(mime).as_deref() != Some(data) {
+            assert!(t.elapsed() < Duration::from_secs(10), "{} never offered {mime}", cmd[0]);
+            std::thread::sleep(Duration::from_millis(50));
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+impl Drop for ClipDisplay {
+    fn drop(&mut self) {
+        crate::dialogs::clipboard::SYSTEM_CLIPBOARD.with(|c| c.set(false));
+        // our X11 connection goes while its display is still there
+        crate::dialogs::clipboard::linux::reset();
+        for c in self.others.iter_mut().chain(std::iter::once(&mut self.server)) {
+            let _ = c.kill();
+            let _ = c.wait();
+        }
+        for (v, value) in &self.env {
+            match value {
+                Some(x) => std::env::set_var(v, x),
+                None => std::env::remove_var(v),
+            }
+        }
+        crate::dialogs::clipboard::linux::reset();
+        if let Some(r) = &self.runtime {
+            let _ = std::fs::remove_dir_all(r);
+        }
+    }
+}
+
+/// A 30 × 20 blue PNG.
+#[cfg(target_os = "linux")]
+fn clip_png() -> Vec<u8> {
+    let mut png = vec![];
+    image::RgbaImage::from_pixel(30, 20, image::Rgba([0, 0, 255, 255])).write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
+    png
+}
+
+/// What egui-winit sends for Ctrl+V when the clipboard has a bitmap and no text.
+#[cfg(target_os = "linux")]
+fn clip_paste_image() -> egui::Event {
+    egui::Event::PasteImage(std::sync::Arc::new(egui::ColorImage::filled([1, 1], egui::Color32::BLUE)))
+}
+
+/// Linux, X11: what Copy offers other programs (by MIME type, and no text, as on Windows), the
+/// copy pasted back as objects, the hand-over to a clipboard manager when the program ends, and
+/// 3 MB served in INCR chunks; on an Xvfb display of its own. Needs Xvfb and xclip; run with
+/// `cargo test -p anyvector clip_real_linux -- --ignored --test-threads=1`.
+#[cfg(target_os = "linux")]
+#[test]
+#[ignore]
+fn clip_real_linux_x11_copy() {
+    use crate::dialogs::clipboard::{self as cb, linux, mime, PasteKind};
+    let _x = ClipDisplay::xvfb();
+    assert_eq!(linux::backend(), Some(linux::Backend::X11));
+    assert!(!cb::system_has_content(), "a new display has an empty clipboard: Paste is off");
+    let mut h = clip_harness();
+    clip_send(&mut h, CLIP_CTRL, vec![egui::Event::Copy]);
+    let xclip = |t: &str| ClipDisplay::run(&["xclip", "-selection", "clipboard", "-o", "-t", t]);
+    let targets = String::from_utf8(xclip("TARGETS").expect("xclip reads the formats")).unwrap();
+    let targets: Vec<&str> = targets.lines().collect();
+    for m in [mime::OWN_MIME, mime::SVG_MIME, mime::PNG_MIME] {
+        assert!(targets.contains(&m), "{m} is offered: {targets:?}");
+    }
+    assert!(!targets.iter().any(|t| mime::TEXT_MIMES.contains(t)), "no text, as on Windows: {targets:?}");
+    assert!(xclip("UTF8_STRING").is_none());
+    let svg = String::from_utf8(xclip(mime::SVG_MIME).unwrap()).unwrap();
+    assert!(svg.contains("<svg") && !svg.contains("data-vector-clip"), "other programs get the plain SVG");
+    assert!(String::from_utf8_lossy(&xclip(mime::OWN_MIME).unwrap()).contains("data-vector-clip"));
+    let png = cb::decode_png(&xclip(mime::PNG_MIME).unwrap()).expect("a PNG");
+    assert!(png.width > 10 && png.height > 10);
+    // Paste: the copy comes back as objects, not as its bitmap
+    assert!(cb::system_has_content());
+    assert_eq!(cb::clipboard_kinds(h.state()).0.first(), Some(&PasteKind::Native));
+    clip_send(&mut h, CLIP_CTRL, vec![clip_paste_image()]);
+    assert_eq!(clip_kind_count(&h, |k| matches!(k, ObjKind::Path(_))), 2, "the rectangle came back as a rectangle");
+    assert_eq!(clip_kind_count(&h, |k| matches!(k, ObjKind::Image(_))), 0);
+    // the SVG source egui may paste as text (Wayland) is dropped; Paste still runs
+    let mut events = vec![egui::Event::Paste(svg.clone())];
+    cb::filter_paste_events(&mut events);
+    assert_eq!(events, vec![egui::Event::Paste(String::new())]);
+    // when the program ends, the clipboard manager copies every format
+    let manager = linux::fake_clipboard_manager().expect("a clipboard manager");
+    cb::persist_on_exit();
+    let saved = manager.join().unwrap();
+    let names: Vec<&str> = saved.iter().map(|(m, _)| m.as_str()).collect();
+    assert_eq!(names, vec![mime::OWN_MIME, mime::SVG_MIME, mime::PNG_MIME]);
+    assert_eq!(saved[1].1, svg.as_bytes());
+    // 3 MB go to xclip in INCR chunks
+    let big: Vec<u8> = (0..3 << 20).map(|i| b'a' + (i % 26) as u8).collect();
+    assert!(linux::set(&[(mime::SVG_MIME, &big[..])]));
+    assert!(xclip(mime::SVG_MIME).is_some_and(|v| v == big), "xclip read the 3 MB");
+}
+
+/// Linux, X11: Paste of what other programs offer, the best format first as on Windows: a bitmap
+/// (xclip), an SVG under Inkscape's name before its bitmap, a LibreOffice metafile as curves,
+/// text, files copied in a file manager (imported, not pasted as their paths), the copy of
+/// another AnyVector as objects, and 3 MB of text read in INCR chunks; on an Xvfb display of its
+/// own. Needs Xvfb and xclip; run with
+/// `cargo test -p anyvector clip_real_linux -- --ignored --test-threads=1`.
+#[cfg(target_os = "linux")]
+#[test]
+#[ignore]
+fn clip_real_linux_x11_paste() {
+    use crate::dialogs::clipboard::{self as cb, linux, mime, PasteKind};
+    let paths = |h: &Harness<'_, AnyVectorApp>| clip_kind_count(h, |k| matches!(k, ObjKind::Path(_)));
+    let images = |h: &Harness<'_, AnyVectorApp>| clip_kind_count(h, |k| matches!(k, ObjKind::Image(_)));
+    let mut x = ClipDisplay::xvfb();
+    let mut h = clip_harness();
+    let png = clip_png();
+    // a bitmap (GIMP, a browser): egui sends PasteImage
+    x.serve(&["xclip", "-selection", "clipboard", "-quiet", "-t", mime::PNG_MIME, "-i"], &png, mime::PNG_MIME);
+    assert!(cb::system_has_content(), "Paste is on");
+    assert_eq!(cb::clipboard_kinds(h.state()).0, vec![PasteKind::Bitmap]);
+    clip_send(&mut h, CLIP_CTRL, vec![clip_paste_image()]);
+    assert_eq!(images(&h), 1, "the bitmap was pasted");
+    let w = h.state().doc().unwrap().page_ref().all_objects().find_map(|o| if let ObjKind::Image(i) = &o.kind { Some(i.w) } else { None }).unwrap();
+    assert!((w - 30.0 * 72.0 / 96.0).abs() < 1e-6, "at 96 dpi, as on Windows");
+    // Inkscape: the SVG (here only under Inkscape's name) comes before the bitmap
+    let svg = b"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"40\" height=\"20\"><rect width=\"40\" height=\"20\" fill=\"green\"/></svg>";
+    let inkscape = linux::other_x11_program(&[("image/x-inkscape-svg", &svg[..]), (mime::PNG_MIME, &png[..])]).expect("another program");
+    assert_eq!(cb::clipboard_kinds(h.state()).0, vec![PasteKind::Svg, PasteKind::Bitmap]);
+    let p = paths(&h);
+    clip_send(&mut h, CLIP_CTRL, vec![clip_paste_image()]);
+    assert!(paths(&h) > p && images(&h) == 1, "pasted as curves");
+    drop(inkscape);
+    // LibreOffice Draw: its metafile comes before its bitmap and pastes as curves
+    let emf = {
+        let d = h.state().doc().unwrap();
+        let rect: Vec<Object> = d.page_ref().all_objects().filter(|o| matches!(o.kind, ObjKind::Path(_))).take(1).cloned().collect();
+        vector_io::emf::objects_to_emf(&d.doc, &rect, &Default::default())
+    };
+    let office = linux::other_x11_program(&[(mime::EMF_MIMES[2], &emf[..]), (mime::PNG_MIME, &png[..])]).expect("another program");
+    assert_eq!(cb::clipboard_kinds(h.state()).0, vec![PasteKind::Metafile, PasteKind::Bitmap]);
+    let p = paths(&h);
+    clip_send(&mut h, CLIP_CTRL, vec![clip_paste_image()]);
+    assert!(paths(&h) > p && images(&h) == 1, "the metafile came in as curves");
+    drop(office);
+    // text: a text object; egui's pasted text is left alone
+    x.serve(&["xclip", "-selection", "clipboard", "-quiet", "-t", "UTF8_STRING", "-i"], "Olá, AnyVector".as_bytes(), "UTF8_STRING");
+    let mut events = vec![egui::Event::Paste("Olá, AnyVector".into())];
+    cb::filter_paste_events(&mut events);
+    assert_eq!(events, vec![egui::Event::Paste("Olá, AnyVector".into())]);
+    clip_send(&mut h, CLIP_CTRL, events);
+    assert_eq!(clip_texts(&h), vec!["Olá, AnyVector".to_string()]);
+    // files copied in a file manager (Nautilus adds the paths as text): the drawing is imported
+    let file = clip_svg_file("clip_linux_x11_files");
+    let uri = format!("file://{}", file.display());
+    let copied = format!("copy\n{uri}");
+    let list = format!("{uri}\r\n");
+    let nautilus = linux::other_x11_program(&[("x-special/gnome-copied-files", copied.as_bytes()), ("text/uri-list", list.as_bytes()), ("UTF8_STRING", file.to_string_lossy().as_bytes())]).expect("another program");
+    assert_eq!(cb::system_files(), vec![file.clone()]);
+    let n = clip_count(&h);
+    clip_send(&mut h, CLIP_CTRL, vec![egui::Event::Paste(file.display().to_string())]);
+    assert!(clip_count(&h) > n, "the file was imported");
+    assert_eq!(clip_texts(&h).len(), 1, "its path was not pasted as text");
+    drop(nautilus);
+    // a copy made in another AnyVector: its objects, not its bitmap
+    let own = "<svg data-vector-clip=\"1\" xmlns=\"http://www.w3.org/2000/svg\" width=\"40\" height=\"20\"><rect width=\"40\" height=\"20\" fill=\"blue\"/></svg>";
+    let other = linux::other_x11_program(&[(mime::OWN_MIME, own.as_bytes()), (mime::SVG_MIME, &svg[..]), (mime::PNG_MIME, &png[..])]).expect("another program");
+    h.state_mut().clip.objects.clear();
+    assert!(cb::system_own().is_some_and(|s| s.contains("data-vector-clip")));
+    let (p, i) = (paths(&h), images(&h));
+    clip_send(&mut h, CLIP_CTRL, vec![clip_paste_image()]);
+    assert!(paths(&h) > p && images(&h) == i, "objects from another AnyVector");
+    drop(other);
+    // 3 MB of text from xclip come in INCR chunks
+    let big: String = (0..3 << 20).map(|i| (b'a' + (i % 26) as u8) as char).collect();
+    x.serve(&["xclip", "-selection", "clipboard", "-quiet", "-t", "UTF8_STRING", "-i"], big.as_bytes(), "UTF8_STRING");
+    assert!(cb::system_text().is_some_and(|t| t == big), "the 3 MB came in whole");
+}
+
+/// Linux, Wayland with the data-control protocol (KDE Plasma, Sway, Hyprland): Copy offers the
+/// same formats (no text types added), the copy pastes back as objects, and Paste takes a bitmap,
+/// text, copied files and 3 MB of text from wl-copy; on a headless sway of its own. Needs sway
+/// and wl-clipboard; run with `cargo test -p anyvector clip_real_linux -- --ignored --test-threads=1`.
+#[cfg(target_os = "linux")]
+#[test]
+#[ignore]
+fn clip_real_linux_wayland() {
+    use crate::dialogs::clipboard::{self as cb, linux, mime, PasteKind};
+    let mut w = ClipDisplay::sway();
+    assert_eq!(linux::backend(), Some(linux::Backend::Wayland));
+    assert!(!cb::system_has_content(), "an empty clipboard: Paste is off");
+    let mut h = clip_harness();
+    clip_send(&mut h, CLIP_CTRL, vec![egui::Event::Copy]);
+    let types = String::from_utf8(ClipDisplay::run(&["wl-paste", "--list-types"]).expect("wl-paste lists the formats")).unwrap();
+    let mut types: Vec<&str> = types.lines().collect();
+    types.sort();
+    let mut want = vec![mime::OWN_MIME, mime::SVG_MIME, mime::PNG_MIME];
+    want.sort();
+    assert_eq!(types, want, "no text types added");
+    let svg = String::from_utf8(ClipDisplay::run(&["wl-paste", "--no-newline", "-t", mime::SVG_MIME]).unwrap()).unwrap();
+    assert!(svg.contains("<svg") && !svg.contains("data-vector-clip"), "other programs get the plain SVG");
+    let png = ClipDisplay::run(&["wl-paste", "--no-newline", "-t", mime::PNG_MIME]).unwrap();
+    assert!(cb::decode_png(&png).is_some());
+    // pasted back: objects (egui sends the SVG as text here, which is dropped)
+    assert_eq!(cb::clipboard_kinds(h.state()).0.first(), Some(&PasteKind::Native));
+    let mut events = vec![egui::Event::Paste(svg)];
+    cb::filter_paste_events(&mut events);
+    assert_eq!(events, vec![egui::Event::Paste(String::new())]);
+    clip_send(&mut h, CLIP_CTRL, events);
+    assert_eq!(clip_kind_count(&h, |k| matches!(k, ObjKind::Path(_))), 2);
+    assert!(clip_texts(&h).is_empty());
+    // a bitmap
+    w.serve(&["wl-copy", "--foreground", "-t", mime::PNG_MIME], &clip_png(), mime::PNG_MIME);
+    assert_eq!(cb::clipboard_kinds(h.state()).0, vec![PasteKind::Bitmap]);
+    clip_send(&mut h, CLIP_CTRL, vec![clip_paste_image()]);
+    assert_eq!(clip_kind_count(&h, |k| matches!(k, ObjKind::Image(_))), 1);
+    // text
+    w.serve(&["wl-copy", "--foreground"], "Olá, Wayland".as_bytes(), "text/plain;charset=utf-8");
+    clip_send(&mut h, CLIP_CTRL, vec![egui::Event::Paste("Olá, Wayland".into())]);
+    assert_eq!(clip_texts(&h), vec!["Olá, Wayland".to_string()]);
+    // copied files (wl-copy adds text types, as file managers do): the drawing is imported
+    let file = clip_svg_file("clip_linux_wayland_files");
+    let uri = format!("file://{}\r\n", file.display());
+    w.serve(&["wl-copy", "--foreground", "-t", "text/uri-list"], uri.as_bytes(), "text/uri-list");
+    let n = clip_count(&h);
+    clip_send(&mut h, CLIP_CTRL, vec![egui::Event::Paste(uri.clone())]);
+    assert!(clip_count(&h) > n, "the file was imported");
+    assert_eq!(clip_texts(&h).len(), 1, "its path was not pasted as text");
+    // 3 MB of text through the pipe
+    let big: String = (0..3 << 20).map(|i| (b'a' + (i % 26) as u8) as char).collect();
+    w.serve(&["wl-copy", "--foreground"], big.as_bytes(), "text/plain;charset=utf-8");
+    assert!(cb::system_text().is_some_and(|t| t == big), "the 3 MB came in whole");
+}
+
+/// Linux: under a Wayland compositor without data-control (Weston, as WSLg runs it; GNOME) or
+/// one that can't be reached, the clipboard goes through X11 (XWayland); with no display at all
+/// there is no system clipboard, Paste is off for it and Copy and Paste work inside the program.
+/// Needs Xvfb and weston; run with
+/// `cargo test -p anyvector clip_real_linux -- --ignored --test-threads=1`.
+#[cfg(target_os = "linux")]
+#[test]
+#[ignore]
+fn clip_real_linux_backend_fallback() {
+    use crate::dialogs::clipboard::{self as cb, linux};
+    let x = ClipDisplay::xvfb();
+    let display = std::env::var_os("DISPLAY").unwrap();
+    {
+        let _weston = ClipDisplay::compositor(std::process::Command::new("weston").args(["--backend=headless", "--no-config"]));
+        std::env::set_var("DISPLAY", &display);
+        linux::reset();
+        assert!(std::env::var_os("WAYLAND_DISPLAY").is_some());
+        assert_eq!(linux::backend(), Some(linux::Backend::X11), "Weston has no data-control");
+        let mut h = clip_harness();
+        clip_send(&mut h, CLIP_CTRL, vec![egui::Event::Copy]);
+        assert!(cb::system_own().is_some(), "copied through X11");
+    }
+    // (Weston's display put DISPLAY back and turned the system clipboard off when it went)
+    cb::SYSTEM_CLIPBOARD.with(|c| c.set(true));
+    std::env::set_var("WAYLAND_DISPLAY", std::env::temp_dir().join("anyvector-no-such-wayland-display"));
+    linux::reset();
+    assert_eq!(linux::backend(), Some(linux::Backend::X11), "no compositor at WAYLAND_DISPLAY");
+    std::env::remove_var("WAYLAND_DISPLAY");
+    std::env::remove_var("DISPLAY");
+    linux::reset();
+    assert_eq!(linux::backend(), None);
+    assert!(!cb::system_has_content() && cb::system_own().is_none());
+    let mut h = clip_harness();
+    let n = clip_count(&h);
+    clip_send(&mut h, CLIP_CTRL, vec![egui::Event::Copy]);
+    assert!(!h.state().clip.objects.is_empty());
+    clip_send(&mut h, CLIP_CTRL, vec![clip_paste_image()]);
+    assert_eq!(clip_count(&h), n + 1, "Copy and Paste inside the program");
+    drop(x);
+}
+
 // ---- tools agent ----
 
 fn key(h: &mut Harness<'_, AnyVectorApp>, k: egui::Key, down: bool) {
