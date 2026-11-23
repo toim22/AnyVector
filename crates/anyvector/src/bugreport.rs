@@ -10,7 +10,7 @@
 //!
 //! A report may carry one file, with the types and sizes GitHub accepts when a file is dragged into an
 //! issue. The relay keeps it on GitHub and the issue links to it (an image shows in the issue). On the
-//! browser path, Explorer opens on the file so the user can drag it into GitHub's page.
+//! browser path, the file manager opens on the file so the user can drag it into GitHub's page.
 
 use crate::app::AnyVectorApp;
 use crate::dialogs::{heading, note, separator, window};
@@ -161,15 +161,16 @@ impl BugReportState {
     }
 }
 
-/// AnyVector version, Windows version and display information.
+/// AnyVector version, the version of Windows (or Linux) and display information.
 pub fn system_info(ctx: &egui::Context) -> String {
-    let os = windows_version();
+    let os = os_version();
     let ppp = ctx.pixels_per_point();
     let screen = ctx.content_rect().size() * ppp;
     format!(
-        "- AnyVector: {} ({})\n- Windows: {}\n- Window size: {:.0} × {:.0} px, scale {:.0}%",
+        "- AnyVector: {} ({})\n- {}: {}\n- Window size: {:.0} × {:.0} px, scale {:.0}%",
         env!("CARGO_PKG_VERSION"),
         if cfg!(debug_assertions) { "debug build" } else { "release build" },
+        OS_NAME,
         os,
         screen.x,
         screen.y,
@@ -177,7 +178,17 @@ pub fn system_info(ctx: &egui::Context) -> String {
     )
 }
 
-fn windows_version() -> String {
+/// The name of the system in the report.
+const OS_NAME: &str = if cfg!(windows) {
+    "Windows"
+} else if cfg!(target_os = "linux") {
+    "Linux"
+} else {
+    std::env::consts::OS
+};
+
+#[cfg(windows)]
+fn os_version() -> String {
     let mut cmd = Command::new("cmd");
     cmd.args(["/C", "ver"]);
     hide_console(&mut cmd);
@@ -188,6 +199,42 @@ fn windows_version() -> String {
         .unwrap_or_else(|| std::env::consts::OS.to_string())
 }
 
+/// The distribution, the kernel, the session type and the desktop.
+#[cfg(not(windows))]
+fn os_version() -> String {
+    let release = std::fs::read_to_string("/etc/os-release").or_else(|_| std::fs::read_to_string("/usr/lib/os-release")).ok();
+    let kernel = std::fs::read_to_string("/proc/sys/kernel/osrelease").ok();
+    let var = |k: &str| std::env::var(k).ok().filter(|v| !v.trim().is_empty());
+    let session = var("XDG_SESSION_TYPE").or_else(|| var("WAYLAND_DISPLAY").map(|_| "wayland".into())).or_else(|| var("DISPLAY").map(|_| "x11".into()));
+    unix_os_line(release.as_deref(), kernel.as_deref(), session.as_deref(), var("XDG_CURRENT_DESKTOP").as_deref())
+}
+
+/// "Ubuntu 24.04.3 LTS, kernel 6.8.0-51-generic, Wayland, GNOME" from the text of os-release, the
+/// kernel release, the session type and the desktop; the system's name when nothing is known.
+#[cfg(any(not(windows), test))]
+fn unix_os_line(os_release: Option<&str>, kernel: Option<&str>, session: Option<&str>, desktop: Option<&str>) -> String {
+    let value = |key: &str| {
+        let text = os_release?;
+        let v = text.lines().find_map(|l| l.trim().strip_prefix(key)?.strip_prefix('='))?;
+        Some(v.trim().trim_matches(|c| c == '"' || c == '\'').to_string()).filter(|v| !v.is_empty())
+    };
+    let mut parts: Vec<String> = vec![];
+    parts.extend(value("PRETTY_NAME").or_else(|| value("NAME")));
+    parts.extend(kernel.map(str::trim).filter(|k| !k.is_empty()).map(|k| format!("kernel {k}")));
+    parts.extend(session.map(str::trim).filter(|s| !s.is_empty()).map(|s| match s.to_ascii_lowercase().as_str() {
+        "wayland" => "Wayland".to_string(),
+        "x11" => "X11".to_string(),
+        _ => s.to_string(),
+    }));
+    // "ubuntu:GNOME" names the desktop and what it is based on
+    parts.extend(desktop.map(str::trim).filter(|d| !d.is_empty()).map(|d| d.replace(':', "/")));
+    if parts.is_empty() {
+        std::env::consts::OS.to_string()
+    } else {
+        parts.join(", ")
+    }
+}
+
 fn hide_console(cmd: &mut Command) {
     #[cfg(windows)]
     {
@@ -195,6 +242,9 @@ fn hide_console(cmd: &mut Command) {
         const CREATE_NO_WINDOW: u32 = 0x0800_0000;
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
+    // programs open no console window elsewhere
+    #[cfg(not(windows))]
+    let _ = cmd;
 }
 
 /// The issue body in GitHub Markdown.
@@ -238,31 +288,9 @@ pub fn new_issue_url(label: &str, title: &str, body: &str) -> String {
     format!("https://github.com/{REPO}/issues/new?labels={label}&title={}&body={}", url_encode(title), url_encode(body))
 }
 
+/// Open a page in the default browser: false when the browser could not be started.
 pub fn open_in_browser(url: &str) -> bool {
-    #[cfg(windows)]
-    {
-        // `start` treats the first quoted argument as the window title, hence the "".
-        let mut cmd = Command::new("cmd");
-        cmd.args(["/C", "start", "", url]);
-        hide_console(&mut cmd);
-        cmd.spawn().is_ok()
-    }
-    #[cfg(not(windows))]
-    {
-        Command::new("xdg-open").arg(url).spawn().is_ok()
-    }
-}
-
-/// Open Explorer with the file selected.
-fn show_in_explorer(path: &Path) {
-    #[cfg(windows)]
-    {
-        let _ = Command::new("explorer").arg(format!("/select,{}", path.display())).spawn();
-    }
-    #[cfg(not(windows))]
-    {
-        let _ = path.parent().map(|p| Command::new("xdg-open").arg(p).spawn());
-    }
+    crate::platform::open_url(url).is_ok()
 }
 
 /// Run the GitHub CLI without a console window; `None` when it is not installed.
@@ -334,9 +362,9 @@ fn send(relay: String, label: &'static str, title: String, body: String, file: O
             Err((status, e)) => {
                 log::warn!("issue relay did not take the report ({status} {e}); opening the browser");
                 if open_in_browser(&new_issue_url(label, &title, &body)) {
-                    // GitHub's page can't be handed the file: show it in Explorer, ready to drag in
+                    // GitHub's page can't be handed the file: show it in the file manager, ready to drag in
                     if let Some(f) = &file {
-                        show_in_explorer(f);
+                        crate::platform::reveal(f);
                     }
                     Sent::Browser
                 } else {
@@ -537,6 +565,17 @@ mod tests {
         let v: serde_json::Value = serde_json::from_str(&relay_body(&BugReportState { expected: "x".into(), title: "é".repeat(300), ..idea }, None)).unwrap();
         assert_eq!((v["kind"].as_str(), v["expected"].as_str(), v["system"].as_str()), (Some("idea"), Some(""), Some("")));
         assert_eq!(v["title"].as_str().unwrap().chars().count(), 200);
+    }
+
+    #[test]
+    fn linux_system_line() {
+        let release = "NAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nPRETTY_NAME=\"Ubuntu 24.04.3 LTS\"\nID=ubuntu\n";
+        assert_eq!(unix_os_line(Some(release), Some("6.8.0-51-generic\n"), Some("wayland"), Some("ubuntu:GNOME")), "Ubuntu 24.04.3 LTS, kernel 6.8.0-51-generic, Wayland, ubuntu/GNOME");
+        // no PRETTY_NAME: NAME; an X11 session; no desktop
+        assert_eq!(unix_os_line(Some("NAME=Fedora Linux\n"), None, Some("x11"), None), "Fedora Linux, X11");
+        assert_eq!(unix_os_line(Some("PRETTY_NAME=''\nNAME='Arch Linux'"), Some(" "), Some("tty"), Some("KDE")), "Arch Linux, tty, KDE");
+        assert_eq!(unix_os_line(None, None, None, None), std::env::consts::OS);
+        assert_eq!(OS_NAME, if cfg!(windows) { "Windows" } else if cfg!(target_os = "linux") { "Linux" } else { std::env::consts::OS });
     }
 
     #[test]
