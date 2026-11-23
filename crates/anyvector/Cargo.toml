@@ -32,6 +32,13 @@ thesaurus-wordnet = "0.2"
 # the main window's handle, for coloring its border (already in the tree through eframe)
 raw-window-handle = "0.6"
 
+# the Linux clipboard by MIME type (X11 selections, Wayland data-control): all already in the
+# tree through eframe (arboard, winit), so no new crates
+[target.'cfg(target_os = "linux")'.dependencies]
+x11rb = { version = "0.13", default-features = false }
+wl-clipboard-rs = "0.9"
+rustix = { version = "1", default-features = false, features = ["std", "event"] }
+
 [target.'cfg(windows)'.dependencies]
 windows-core = "0.62"
 # cheap clipboard format checks and a CF_DIB fallback for pasted bitmaps; already in the tree via arboard
