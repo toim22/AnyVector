@@ -939,7 +939,10 @@ pub fn load_with_units(bytes: &[u8], unknown_unit_points: f64) -> Result<(Docume
                 }
                 "STYLE" => {
                     let (Some(name), Some(file)) = (e.get(2), e.get(3)) else { continue };
-                    let stem = std::path::Path::new(file.trim()).file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+                    // the font file can be a full Windows path ("C:\WINDOWS\Fonts\ARIALBD.TTF"),
+                    // which Linux would not take apart at the backslashes
+                    let file_name = crate::paths::foreign_file_name(file);
+                    let stem = std::path::Path::new(file_name).file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
                     let ttf = file.to_lowercase().ends_with(".ttf") || file.to_lowercase().ends_with(".otf");
                     let family = e.get(1000).map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).or_else(|| ttf.then(|| font_family_of(&stem))).unwrap_or_else(|| "Arial".into());
                     r.styles.insert(name.trim().to_lowercase(), family);
