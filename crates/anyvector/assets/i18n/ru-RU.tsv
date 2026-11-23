@@ -5690,3 +5690,4 @@ The blend has no split to fuse	У перетекания нет разделен
 Click a step of the blend	Щелкните шаг перетекания
 Click a node of the start object	Щелкните узел начального объекта
 Click the matching node of the end object	Щелкните соответствующий узел конечного объекта
+Child {}{} on {}	Дочерний объект: {}{} на {}

@@ -5690,3 +5690,4 @@ The blend has no split to fuse	Övertoningen har ingen delning att slå ihop
 Click a step of the blend	Klicka på ett steg i övertoningen
 Click a node of the start object	Klicka på en nod i startobjektet
 Click the matching node of the end object	Klicka på motsvarande nod i slutobjektet
+Child {}{} on {}	Underordnat objekt: {}{} på {}

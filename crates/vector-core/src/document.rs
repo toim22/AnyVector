@@ -922,6 +922,84 @@ impl Document {
         None
     }
 
+    /// [`Self::remove`], and the groups the removal leaves empty with it: deleting the last
+    /// object of a group (picked with Ctrl+click, #151) deletes the group, as in CorelDRAW, where
+    /// a group is never empty.
+    pub fn remove_pruning(&mut self, id: ObjId) -> Option<Object> {
+        let mut parent = self.parent_of(id);
+        let o = self.remove(id)?;
+        while let Some(pid) = parent {
+            if !matches!(self.find(pid).map(|x| &x.kind), Some(ObjKind::Group(c)) if c.is_empty()) {
+                break;
+            }
+            parent = self.parent_of(pid);
+            self.remove(pid);
+        }
+        Some(o)
+    }
+
+    /// Where the object `id` is kept among the objects it is with: (page, layer, the indices down
+    /// from the layer through groups and PowerClip contents, its own last). None for an object
+    /// that is not in such a list (a PowerClip frame, a part of a blend) or not in the document.
+    pub fn list_path(&self, id: ObjId) -> Option<(usize, usize, Vec<usize>)> {
+        fn rec(list: &[Object], id: ObjId, path: &mut Vec<usize>) -> bool {
+            for (i, o) in list.iter().enumerate() {
+                path.push(i);
+                if o.id == id {
+                    return true;
+                }
+                let inner: &[Object] = match &o.kind {
+                    ObjKind::Group(c) => c,
+                    ObjKind::PowerClip { contents, .. } => contents,
+                    _ => &[],
+                };
+                if rec(inner, id, path) {
+                    return true;
+                }
+                path.pop();
+            }
+            false
+        }
+        for (pi, p) in self.pages.iter().enumerate() {
+            for (li, l) in p.layers.iter().enumerate() {
+                let mut path = vec![];
+                if rec(&l.objects, id, &mut path) {
+                    return Some((pi, li, path));
+                }
+            }
+        }
+        None
+    }
+
+    /// The list the object `id` is kept in (its layer's objects, its group's or its PowerClip's
+    /// contents) and its index there (see [`Self::list_path`]).
+    pub fn siblings_mut(&mut self, id: ObjId) -> Option<(&mut Vec<Object>, usize)> {
+        let (p, l, path) = self.list_path(id)?;
+        let (&last, down) = path.split_last()?;
+        let mut list = &mut self.pages[p].layers[l].objects;
+        for &i in down {
+            list = match &mut list[i].kind {
+                ObjKind::Group(c) => c,
+                ObjKind::PowerClip { contents, .. } => contents,
+                _ => return None,
+            };
+        }
+        Some((list, last))
+    }
+
+    /// Put `o` just above the object `anchor`, among the objects it is with: on its layer, in its
+    /// group or in the contents of its PowerClip. Gives `o` back when `anchor` is in none of
+    /// those (nowhere, or a part of a blend).
+    pub fn insert_above(&mut self, anchor: ObjId, o: Object) -> Result<(), Object> {
+        match self.siblings_mut(anchor) {
+            Some((list, i)) => {
+                list.insert(i + 1, o);
+                Ok(())
+            }
+            None => Err(o),
+        }
+    }
+
     pub fn symbol_bounds(&self, id: u64) -> Option<Rect> {
         let s = self.symbols.iter().find(|s| s.id == id)?;
         Some(crate::object::union_bounds(s.objects.iter().map(|o| o.bounds())))
@@ -1340,6 +1418,103 @@ impl Document {
         out
     }
 
+    /// The object inside the container `o` under `p` that Ctrl+click selects (#151, #149), one
+    /// level down: the topmost visible object of a group, or the control of a blend under the
+    /// pointer (see [`crate::blend_path::control_at`]; its path picks on its outline only). None
+    /// for other objects, for a locked container (what is inside is locked with it) and for a
+    /// PowerClip, whose contents are reached by entering it (#111).
+    pub fn child_at(&self, o: &Object, p: Point, tol: f64, treat_as_filled: bool) -> Option<ObjId> {
+        if o.locked {
+            return None;
+        }
+        match &o.kind {
+            ObjKind::Group(c) => c.iter().rev().find(|x| x.visible && self.hit_object(x, p, tol, treat_as_filled)).map(|x| x.id),
+            ObjKind::Blend(b) => {
+                let part = crate::blend_path::control_at(b, |x, part| self.hit_object(x, p, tol, treat_as_filled && part != crate::object::BlendPart::Path))?;
+                b.part(part).map(|x| x.id)
+            }
+            _ => None,
+        }
+    }
+
+    /// The objects under `p` from `o` down, outermost first: `o`, the object inside it that
+    /// [`Self::child_at`] picks, the object inside that one, and so on ([group, inner group,
+    /// rectangle]).
+    pub fn chain_at(&self, o: &Object, p: Point, tol: f64, treat_as_filled: bool) -> Vec<ObjId> {
+        let mut out = vec![o.id];
+        let mut cur = o;
+        while let Some(c) = self.child_at(cur, p, tol, treat_as_filled).and_then(|id| cur.find(id)) {
+            out.push(c.id);
+            cur = c;
+        }
+        out
+    }
+
+    /// [`Self::chain_at`] from the topmost object at a point on a page (the one
+    /// [`Self::hit_test`] gives, which comes first). Empty when no object is there.
+    pub fn hit_chain(&self, page: usize, p: Point, tol: f64, treat_as_filled: bool) -> Vec<ObjId> {
+        self.hit_test(page, p, tol, treat_as_filled).and_then(|id| self.find(id)).map(|o| self.chain_at(o, p, tol, treat_as_filled)).unwrap_or_default()
+    }
+
+    /// Is the object `inner` inside the object `outer` (at any depth, not `outer` itself)?
+    pub fn is_ancestor(&self, outer: ObjId, inner: ObjId) -> bool {
+        outer != inner && self.find(outer).is_some_and(|o| o.find(inner).is_some())
+    }
+
+    /// `ids` without those inside another of them, in their order: with a group and an object of
+    /// that group both selected the object goes with its group (it must not move twice).
+    pub fn outermost(&self, ids: &[ObjId]) -> Vec<ObjId> {
+        if ids.len() < 2 {
+            return ids.to_vec();
+        }
+        let want: std::collections::HashSet<ObjId> = ids.iter().copied().collect();
+        let mut inner = std::collections::HashSet::new();
+        fn rec(o: &Object, want: &std::collections::HashSet<ObjId>, inside: bool, inner: &mut std::collections::HashSet<ObjId>) {
+            let here = want.contains(&o.id);
+            if inside && here {
+                inner.insert(o.id);
+            }
+            if o.is_container() {
+                for c in o.children() {
+                    rec(c, want, inside || here, inner);
+                }
+            }
+        }
+        for p in &self.pages {
+            for l in &p.layers {
+                for o in &l.objects {
+                    rec(o, &want, false, &mut inner);
+                }
+            }
+        }
+        ids.iter().copied().filter(|id| !inner.contains(id)).collect()
+    }
+
+    /// Those of `ids` that are inside a locked group, PowerClip or blend: locked with it, even
+    /// when picked on their own with Ctrl+click or Show Start (#151, #149).
+    pub fn locked_within(&self, ids: &[ObjId]) -> std::collections::HashSet<ObjId> {
+        let want: std::collections::HashSet<ObjId> = ids.iter().copied().collect();
+        let mut out = std::collections::HashSet::new();
+        fn rec(o: &Object, want: &std::collections::HashSet<ObjId>, locked: bool, out: &mut std::collections::HashSet<ObjId>) {
+            if locked && want.contains(&o.id) {
+                out.insert(o.id);
+            }
+            if o.is_container() {
+                for c in o.children() {
+                    rec(c, want, locked || o.locked, out);
+                }
+            }
+        }
+        for p in &self.pages {
+            for l in &p.layers {
+                for o in &l.objects {
+                    rec(o, &want, false, &mut out);
+                }
+            }
+        }
+        out
+    }
+
     /// Is `p` on the object: on the object itself or on one of its shadows (#106)?
     pub fn hit_object(&self, o: &Object, p: Point, tol: f64, treat_as_filled: bool) -> bool {
         self.hit_body(o, p, tol, treat_as_filled) || self.shadow_at(o, p, tol, treat_as_filled).is_some()
@@ -1497,6 +1672,8 @@ impl Document {
 
     /// Transform objects by an affine in document space.
     pub fn transform_objects(&mut self, ids: &[ObjId], a: Affine) {
+        // an object inside another one of `ids` moves with it, not once more (#151)
+        let ids = &self.outermost(ids);
         // the start, end, path or split of a blend on a path moved on its own: the blend keeps
         // its controls on the path afterwards (#145)
         let mut on_path: Vec<(ObjId, crate::object::BlendObj)> = vec![];

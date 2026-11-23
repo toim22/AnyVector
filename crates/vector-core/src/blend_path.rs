@@ -894,3 +894,16 @@ pub fn map_node_at(o: &Object, p: Point, tol: f64) -> Option<(usize, f64)> {
 pub fn hit_steps(b: &BlendObj, p: Point, tol: f64) -> bool {
     steps(b, &mut || 0).iter().any(|o| o.bounds().inflate(tol, tol).contains(p))
 }
+
+/// The control of the blend `b` that a click picks (#149), where `hit(o, part)` tells whether
+/// the pointer is on the part `part` (object `o`). The controls are the objects the user grabs, so
+/// they win over the steps drawn on them; among themselves the one drawn on top wins: the end, the
+/// split objects (drawn with the steps), the start, then the path under it all. Hidden parts are
+/// left out. None when the pointer is on no control (on a step, or between them).
+pub fn control_at(b: &BlendObj, hit: impl Fn(&Object, BlendPart) -> bool) -> Option<BlendPart> {
+    let mut order = vec![BlendPart::End];
+    order.extend((0..b.splits.len()).rev().map(BlendPart::Split));
+    order.push(BlendPart::Start);
+    order.push(BlendPart::Path);
+    order.into_iter().find(|&part| b.part(part).is_some_and(|o| o.visible && hit(o, part)))
+}

@@ -5690,3 +5690,4 @@ The blend has no split to fuse	Karışımda birleştirilecek bölme yok
 Click a step of the blend	Karışımın bir adımına tıklayın
 Click a node of the start object	Başlangıç nesnesinin bir düğümüne tıklayın
 Click the matching node of the end object	Bitiş nesnesinin eşleşen düğümüne tıklayın
+Child {}{} on {}	Alt nesne: {}{}, {} üzerinde

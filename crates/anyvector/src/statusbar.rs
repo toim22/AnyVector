@@ -206,7 +206,8 @@ pub fn object_info(app: &AnyVectorApp) -> String {
     if n == 0 {
         return String::new();
     }
-    let layer_name = |id| d.doc.locate(id).map(|(p, l, _)| d.doc.pages[p].layers[l].name.clone()).unwrap_or_default();
+    // (an object inside a group or a blend is on the layer of what holds it)
+    let layer_name = |id| d.doc.top_level_of(id).and_then(|t| d.doc.locate(t)).map(|(p, l, _)| d.doc.pages[p].layers[l].name.clone()).unwrap_or_default();
     if n == 1 {
         let o = match d.doc.find(d.selection[0]) {
             Some(o) => o,
@@ -229,6 +230,11 @@ pub fn object_info(app: &AnyVectorApp) -> String {
             ObjKind::Image(i) => d.doc.images.get(&i.image).map(|im| format!(" ({} x {} pixels)", im.width, im.height)).unwrap_or_default(),
             _ => String::new(),
         };
+        // an object selected inside a group (Ctrl+click, #151): "Child Rectangle on Layer 1", as
+        // CorelDRAW says it
+        if d.doc.parent_of(o.id).is_some() {
+            return format!("Child {}{} on {}", o.display_name(), extra, layer_name(o.id));
+        }
         return format!("{}{} on {}", o.display_name(), extra, layer_name(o.id));
     }
     format!("{n} objects selected on {}", layer_name(d.selection[0]))

@@ -664,6 +664,16 @@ impl BlendObj {
         }
     }
 
+    /// The object of a part, to change it.
+    pub fn part_mut(&mut self, p: BlendPart) -> Option<&mut Object> {
+        match p {
+            BlendPart::Start => Some(&mut self.start),
+            BlendPart::End => Some(&mut self.end),
+            BlendPart::Path => self.path.as_mut().map(|p| p.obj.as_mut()),
+            BlendPart::Split(i) => self.splits.get_mut(i).map(|s| s.obj.as_mut()),
+        }
+    }
+
     /// The part whose object has the id `id`.
     pub fn part_with(&self, id: ObjId) -> Option<BlendPart> {
         if self.start.id == id {

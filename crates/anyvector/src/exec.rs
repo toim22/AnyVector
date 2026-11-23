@@ -1615,9 +1615,19 @@ impl AnyVectorApp {
                     crate::blendpath::delete(self, blend, part);
                 } else {
                     self.modify_sel("Delete", |doc, sel| {
-                        for id in sel.drain(..) {
-                            if doc.find(id).map(|o| !o.locked).unwrap_or(false) {
-                                doc.remove(id);
+                        let ids = doc.outermost(&std::mem::take(sel));
+                        let locked = doc.locked_within(&ids);
+                        for id in ids {
+                            if locked.contains(&id) || !doc.find(id).is_some_and(|o| !o.locked) {
+                                continue;
+                            }
+                            if let Some((blend, part)) = vector_core::blend_path::part_of(doc, id) {
+                                // a part of a blend among others picked with Ctrl+click (#149): as
+                                // Delete on a part selected on its own
+                                vector_core::blend_path::delete_part(doc, blend, part);
+                            } else {
+                                // an object picked inside a group (#151): a group left empty goes too
+                                doc.remove_pruning(id);
                             }
                         }
                     });
