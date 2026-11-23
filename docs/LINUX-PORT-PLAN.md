@@ -1,12 +1,14 @@
 # AnyVector for Linux: assessment and roadmap
 
-Status: assessment written 2026-11-23 (AnyVector 0.6.1, commit 7447911); Phase 0 and Phase 1 started the
-same day (issue #51).
+Status: assessment written 2026-11-23 (AnyVector 0.6.1, commit 7447911). **Phase 0 and Phase 1 done**
+the same day (issue #51, PR #153): see section 8 for what was built and section 2 for what is left
+(Phase 2: printing, spell check, code pages, eyedropper, scanners). The audit of file names, the 79
+closed issues and feature gaps is in [LINUX-AUDIT.md](LINUX-AUDIT.md).
 
 First Linux build (2026-11-23, WSL 2 Ubuntu 24.04, Rust 1.99.1, AnyVector 0.6.2): the whole workspace
-builds with no code changes; 254 of 262 app tests and every engine test pass (the 8 failures: the UI
-fonts read from `C:\Windows\Fonts`, and the Windows-only system information rows). The program runs and
-its window works through X11 (XWayland); under Wayland the transparent splash window never appears.
+built with no code changes; 254 of 262 app tests and every engine test passed (the 8 failures: the UI
+fonts read from `C:\Windows\Fonts`, and the Windows-only system information rows). The window was first
+thought missing under Wayland; it was there (X11 tools cannot see Wayland windows), see section 8.
 
 ## 1. Short answer
 
@@ -169,3 +171,87 @@ Rough total for a first public Linux beta: **4–6 weeks** of focused work, most
    platform code into one `platform/` module with `windows.rs` and `linux.rs` (cleaner once there are
    two real implementations, and it prepares a future macOS port). Suggestion: the `platform/`
    module, done gradually as each feature gets its Linux version.
+
+## 8. What Phase 0 and Phase 1 built (2026-11-23, PR #153)
+
+The Linux code sits behind `cfg`, so the Windows program is unchanged, apart from the shared bug
+fixes listed at the end of this section.
+
+**Build and CI.** `.github/workflows/build.yml` builds and tests on `windows-latest` and `ubuntu-22.04`
+(the oldest supported Ubuntu, so the binary runs on newer glibc). Local Linux development and
+testing: WSL 2 with Ubuntu 24.04 (WSLg shows the Linux window on the Windows desktop).
+
+**Window and graphics** (`main.rs`, `splash.rs`, `renderer.rs`).
+- Wayland: the window does appear (WSLg, Weston 13, sway 1.9, mutter 46). Real bug fixed: winit 0.30
+  keeps a non-resizable window's size as its limits, so after the 620×380 splash the main window still
+  advertised a 620×415 maximum; on Linux the switch now re-sends min 480×320 and no maximum.
+- OpenGL fallback: if wgpu cannot start, AnyVector restarts itself with eframe's glow renderer
+  (`ANYVECTOR_RENDERER=gl` forces it).
+- App id `io.github.toim22.AnyVector` (Wayland app_id, X11 WM_CLASS): the .desktop file must have this
+  name (Phase 3). The title is sent only when it changes. Floating dockers and dialogs are drawn inside
+  the main window, so Wayland's no-positioning rule does not affect them.
+
+**Fonts** (`ui_fonts.rs`, vector-core `sysfonts.rs`, `fontsub.rs`).
+- Interface: Segoe UI when installed, otherwise the bundled **Selawik** (Microsoft, OFL-1.1, Segoe UI's
+  metrics within 1%, ~130 KB, embedded only in Linux builds). Fallbacks: Noto Sans, DejaVu, Liberation;
+  symbol faces; CJK by interface language; egui's own fonts last, so no family is ever empty.
+- Drawings: a missing Windows font uses its metric twin (Arial/Helvetica → Liberation Sans, Times New
+  Roman → Liberation Serif, Courier New → Liberation Mono, Calibri → Carlito, Cambria → Caladea), and the
+  substitution is reported. Fonts are read from all XDG folders; SVG import uses the same aliases.
+- Recommended packages: fonts-liberation, fonts-crosextra-carlito, fonts-crosextra-caladea,
+  fonts-dejavu-core, fonts-noto-core, fonts-noto-cjk (or fonts-wqy-microhei).
+
+**Locale, System Info, updates, AI keys** (`i18n.rs`, `settings.rs`, `sysinfo.rs`, `updater.rs`, `ai.rs`).
+- Language by gettext's rules (`LANGUAGE`, `LC_ALL`, `LC_MESSAGES`, `LANG`; C/POSIX = English) with
+  Windows' language mapping. Units and paper (first run only) from the `LC_MEASUREMENT`/`LC_PAPER`
+  territory, checked against glibc 2.39 (Letter in the Americas list, US units for US only).
+- System Info: os-release, /proc, WSL detection, XDG desktop and session, xrandr or /sys/class/drm,
+  `df`, CUPS `lpstat`, loaded libraries from /proc/self/maps; `sysinfo::platform_summary()` is the bug
+  report's system line.
+- Updates: `asset_for` picks each system's file; Linux only announces new releases with **Open Release
+  Page** (nothing is downloaded or run) until the AppImage exists.
+- AI keys: `~/.config/environment.d/anyvector.conf` (mode 0600) plus `systemctl --user
+  import-environment`; AnyVector reads the file itself, so the key works at once.
+
+**Desktop integration** (`platform.rs`).
+
+| Action | Windows (unchanged) | Linux |
+| --- | --- | --- |
+| Open a page, file or folder | `cmd /C start`, `explorer` | `xdg-open` |
+| Show in folder | `explorer /select,` | D-Bus `org.freedesktop.FileManager1.ShowItems`, else open the folder |
+| Send To ▸ Mail Recipient | Simple MAPI | `xdg-email --attach`; on failure show the file and open `mailto:` |
+| File ▸ Send To list | the SendTo folder | Desktop, Documents, Mail Recipient |
+| Acquire Image | WIA | message: scan with the system's scanner app, then File ▸ Import (SANE: Phase 2) |
+| Insert Object ▸ Create New | ShellNew registry | XDG templates folder and KDE template entries |
+| Colour profiles | Windows color folder | XDG ICC folders and colord, 3 levels deep |
+| Temporary files, auto-backups | `%TEMP%` | `$XDG_RUNTIME_DIR/AnyVector` (0700), `~/.local/state/AnyVector/Backups` |
+
+Runtime needs xdg-utils and dbus-send or gdbus (every desktop install has them).
+
+**Clipboard and drag and drop** (`dialogs/clipboard/linux.rs`, `mime.rs`).
+- Wayland data-control through wl-clipboard-rs, otherwise the X11 CLIPBOARD through x11rb (also used on
+  GNOME and Weston through XWayland), chosen once. No new crates (already in the tree).
+- Copy offers AnyVector's own format (`application/x-anyvector-graphic`, lossless between AnyVector
+  windows), `image/svg+xml` and `image/png`. Paste takes, in Windows' order: own → SVG (also Inkscape's)
+  → text → LibreOffice EMF → bitmap; copied files open or import like a drop.
+- Drag and drop of files works on X11; native Wayland has none with winit 0.30 (it comes with winit
+  0.31; until then `WAYLAND_DISPLAY= anyvector` runs under XWayland).
+- Display tests: `cargo test -p anyvector clip_real_linux -- --ignored --test-threads=1` (needs xvfb,
+  xclip, wl-clipboard, sway, weston).
+
+**File names and stored paths** (`vector_io::paths`). Extensions match in any case; Linux file
+dialogs get any-case patterns; links stored as Windows paths (bitmaps, symbol libraries, data sources,
+OLE objects, colour profiles, DXF fonts) are found next to the drawing by file name; non-UTF-8 file
+names no longer panic on the command line or lose the settings file.
+
+**Shared bug fixes (also change Windows).**
+- `cmd /C start` targets with `&` (bug-report URLs, file names) were split and could run commands; the
+  target now goes through an environment variable, and the mail subject is fully percent-encoded.
+- Extensions in capitals (`.CDR`, `.PRS`, `.JSON` presets) are accepted; moved symbol libraries, data
+  sources, linked files and profiles are found next to the drawing; code-page CSV files sync.
+- `settings.json` is written through a temporary file, so a crash cannot truncate it; a variable name
+  with `=` or NUL no longer crashes AI Save Key.
+
+**Known limits after Phase 1.** No native-Wayland drag and drop (winit 0.30); clipboard contents vanish
+on exit under Wayland without a clipboard manager; printing, spell check, code pages, the eyedropper
+outside the window and scanners are Phase 2; packaging and the self-updating AppImage are Phase 3.
