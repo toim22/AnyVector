@@ -27,6 +27,7 @@ mod icons;
 mod lengths;
 mod menus;
 mod palette;
+mod platform;
 mod powerclip;
 mod printing;
 mod propbar;
