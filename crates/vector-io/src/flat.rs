@@ -295,19 +295,9 @@ impl<'a> Flattener<'a> {
                     o2.style.outline.color = Some(Color::BLACK);
                 }
                 self.stroke(&o2, &path);
-                let (label, pos, ang) = dimension_label(d);
-                let mut tobj = text::TextObj::artistic(&label, text::CharFormat { size: d.font_size, ..Default::default() });
-                tobj.align = text::TextAlign::Center;
-                let lay = text::layout(&tobj);
-                let mut a = ang;
-                while a > std::f64::consts::FRAC_PI_2 {
-                    a -= std::f64::consts::PI;
-                }
-                while a < -std::f64::consts::FRAC_PI_2 {
-                    a += std::f64::consts::PI;
-                }
-                let tr = Affine::translate(pos.to_vec2()) * Affine::rotate(a) * Affine::translate((0.0, -d.font_size * 0.3));
-                self.out.push(Prim::Fill { path: tr * lay.to_path(), paint: Paint::Solid(o2.style.outline.color.unwrap()), even_odd: false });
+                // the value as the renderer places it (the box around it is part of the lines)
+                let tp = o.transform * dimension_text(d).path();
+                self.out.push(Prim::Fill { path: tp, paint: Paint::Solid(o2.style.outline.color.unwrap()), even_odd: false });
             }
             _ => {
                 let path = o.world_path();
@@ -618,4 +608,47 @@ fn arrow_paths(path: &BezPath, ol: &Outline, custom: &[vector_core::style::Custo
         out.push(ArrowPrim { path: bp, stroke });
     }
     out
+}
+
+#[cfg(test)]
+mod dimension_tests {
+    use super::*;
+
+    /// #150: exports draw the value of a dimension where its text position puts it, and the box
+    /// around it and the broken line with the outline, as on screen.
+    #[test]
+    fn dimension_text_position_is_exported() {
+        let doc = Document::default();
+        let opts = FlatOptions { raster_dpi: 150.0, conical_gradients: true, repeat_gradients: true, gradient_alpha: true, printing: false, text_as_text: false };
+        for placement in [TextPlacement::Above, TextPlacement::Through, TextPlacement::Below] {
+            for boxed in [false, true] {
+                let d = DimensionObj {
+                    kind: DimensionKind::Parallel,
+                    points: vec![kurbo::Point::new(100.0, 140.0), kurbo::Point::new(300.0, 140.0), kurbo::Point::new(200.0, 100.0)],
+                    font_size: 12.0,
+                    placement,
+                    boxed_text: boxed,
+                    ..Default::default()
+                };
+                let o = Object::new(1, ObjKind::Dimension(d.clone()), Affine::IDENTITY, Style::default());
+                let mut f = Flattener::new(&doc, opts.clone());
+                f.object(&o);
+                let fills: Vec<&BezPath> = f.out.iter().filter_map(|p| if let Prim::Fill { path, .. } = p { Some(path) } else { None }).collect();
+                assert_eq!(fills.len(), 1, "{placement:?}: the value");
+                let want = dimension_text(&d).path().bounding_box();
+                let got = fills[0].bounding_box();
+                let same = [(got.x0, want.x0), (got.y0, want.y0), (got.x1, want.x1), (got.y1, want.y1)].iter().all(|(a, b)| (a - b).abs() < 1e-9);
+                assert!(same, "{placement:?}: {got:?} != {want:?}");
+                // the lines, broken around the value or with the box, are stroked as drawn
+                let strokes: Vec<Rect> = f.out.iter().filter_map(|p| if let Prim::Stroke { path, .. } = p { Some(path.bounding_box()) } else { None }).collect();
+                assert!(!strokes.is_empty(), "{placement:?}: the lines");
+                if boxed {
+                    let t = dimension_text(&d);
+                    let r = (t.transform * t.clear.unwrap().to_path(0.1)).bounding_box();
+                    let all = strokes.iter().skip(1).fold(strokes[0], |a, b| a.union(*b));
+                    assert!(all.union(r) == all, "{placement:?}: the box is exported ({all:?}, {r:?})");
+                }
+            }
+        }
+    }
 }

@@ -8230,3 +8230,282 @@ fn visual_issue_145_blend_along_a_path() {
     save(&mut h, "issue_145_07_star_to_square_on_a_wave");
     assert!(bp_blend(&h, second).path.as_ref().is_some_and(|p| p.full && p.rotate));
 }
+
+// ---- #150: the Text Position options of dimensions ----
+
+/// Text Above, Through and Below Dimension Line, Center Text Between Extension Lines, Force Text
+/// Horizontal and Draw Box Around Text (the Text Position flyout of the dimension bars).
+const DT_KEYS: [&str; 6] = ["5dad5787", "fe24f8fd", "3b48e7f1", "a57e1ff4", "f101e675", "5b07d790"];
+
+fn dt_cmd(k: &str) -> Cmd {
+    Cmd::BarOption(u32::from_str_radix(k, 16).unwrap())
+}
+
+fn dt_state(h: &Harness<'_, AnyVectorApp>, k: &str) -> (bool, bool) {
+    crate::propbar::option_state(h.state(), k).unwrap()
+}
+
+/// Add a dimension (black, 12 pt text) and return its id.
+fn dt_add(h: &mut Harness<'_, AnyVectorApp>, kind: vector_core::object::DimensionKind, pts: &[(f64, f64)], f: impl FnOnce(&mut vector_core::object::DimensionObj)) -> u64 {
+    let d = h.state_mut().doc_mut().unwrap();
+    let mut dim = vector_core::object::DimensionObj { kind, points: pts.iter().map(|p| Point::new(p.0, p.1)).collect(), font_size: 12.0, unit: vector_core::units::Unit::Millimeters, precision: 1, ..Default::default() };
+    f(&mut dim);
+    let mut st = Style::default();
+    st.fill = Fill::Solid(Color::BLACK);
+    st.outline.color = Some(Color::BLACK);
+    let o = Object::new(d.doc.new_id(), ObjKind::Dimension(dim), Affine::IDENTITY, st);
+    let id = o.id;
+    d.add_objects("test", vec![o]);
+    id
+}
+
+fn dt_dim(h: &Harness<'_, AnyVectorApp>, id: u64) -> vector_core::object::DimensionObj {
+    match &h.state().doc().unwrap().doc.find(id).unwrap().kind {
+        ObjKind::Dimension(d) => d.clone(),
+        _ => panic!("not a dimension"),
+    }
+}
+
+/// (placement, centred, horizontal, boxed)
+fn dt_opts(d: &vector_core::object::DimensionObj) -> (vector_core::object::TextPlacement, bool, bool, bool) {
+    (d.placement, d.text_centered, d.horizontal_text, d.boxed_text)
+}
+
+/// #150 (§5.4): every button, check box and radio button of the dimension property bars (a
+/// selected dimension, the dimension tools) and of their Text Position flyout runs a command;
+/// none says "not available in this version yet". The six Text Position items are the dimension
+/// properties, not commands of their own.
+#[test]
+fn dimension_bar_items_all_run_a_command() {
+    use crate::ui::Kind;
+    let dim_bars = ["47015b40", "b1ae77c4", "b477e7c5"];
+    let mut seen = 0;
+    let mut missing = vec![];
+    for b in crate::ui::bars() {
+        if !dim_bars.contains(&&b.id[..8.min(b.id.len())]) {
+            continue;
+        }
+        seen += 1;
+        for it in b.items {
+            let runs = match it.kind {
+                Kind::Button | Kind::Check | Kind::Radio | Kind::ButtonFlyout => it.id.is_empty() || crate::ui::bind::cmd(it.id).is_some(),
+                // the Text Position flyout opens its bar
+                Kind::Flyout => crate::ui::bar(it.sub).is_some_and(|s| s.id.starts_with("b477e7c5")),
+                _ => true,
+            };
+            if !runs {
+                missing.push(format!("{} ▸ {} ({})", b.name, crate::ui::plain(it.text), it.id));
+            }
+        }
+    }
+    assert_eq!(seen, dim_bars.len(), "a dimension bar is missing from the reference data");
+    assert!(missing.is_empty(), "dimension items without a command: {missing:#?}");
+    for k in DT_KEYS {
+        let id = crate::ui::bars().iter().flat_map(|b| b.items.iter()).find(|it| it.id.starts_with(k)).unwrap().id;
+        assert_eq!(crate::ui::bind::cmd(id), Some(dt_cmd(k)), "{k}");
+    }
+}
+
+/// #150: each Text Position option changes the selected dimension (horizontal, vertical, slanted
+/// and angular) in one undo step, the flyout shows it, and Undo puts it back.
+#[test]
+fn dimension_text_position_applies_to_the_selection_with_undo() {
+    use crate::tools::ToolId;
+    use vector_core::object::{DimensionKind as K, TextPlacement as P};
+    let mut h = join_harness(ToolId::Pick);
+    let dims = [
+        ("horizontal", dt_add(&mut h, K::Parallel, &[(100.0, 200.0), (300.0, 200.0), (150.0, 160.0)], |_| {})),
+        ("vertical", dt_add(&mut h, K::HorizontalVertical, &[(400.0, 100.0), (420.0, 300.0), (250.0, 280.0)], |_| {})),
+        ("slanted", dt_add(&mut h, K::Parallel, &[(100.0, 400.0), (273.2, 500.0), (150.0, 380.0)], |_| {})),
+        ("angular", dt_add(&mut h, K::Angular, &[(400.0, 400.0), (550.0, 400.0), (400.0, 550.0), (490.0, 430.0)], |_| {})),
+    ];
+    for (name, id) in dims {
+        h.state_mut().doc_mut().unwrap().selection = vec![id];
+        h.step();
+        let angular = name == "angular";
+        assert_eq!(dt_opts(&dt_dim(&h, id)), (P::Above, true, false, false), "{name}: the defaults");
+        let checked = |h: &Harness<'_, AnyVectorApp>| DT_KEYS.map(|k| dt_state(h, k).1);
+        assert_eq!(checked(&h), [true, false, false, true, false, false], "{name}: the flyout shows Above and centred");
+        for k in DT_KEYS {
+            let (on, was) = dt_state(&h, k);
+            if angular && k == "f101e675" {
+                // an angular value is always level
+                assert!(!on, "{name}: Force Text Horizontal is off");
+                let n = undo_steps(&h);
+                run_cmd(&mut h, dt_cmd(k));
+                assert_eq!(undo_steps(&h), n, "{name}: a disabled option changed nothing");
+                continue;
+            }
+            assert!(on, "{name} {k}: enabled");
+            let before = dt_dim(&h, id);
+            let n = undo_steps(&h);
+            run_cmd(&mut h, dt_cmd(k));
+            let after = dt_dim(&h, id);
+            match k {
+                "5dad5787" => {
+                    // already above: a radio chosen again changes nothing
+                    assert_eq!(after, before);
+                    assert_eq!(undo_steps(&h), n, "{name}: no empty undo step");
+                    continue;
+                }
+                "fe24f8fd" => assert_eq!(after.placement, P::Through),
+                "3b48e7f1" => assert_eq!(after.placement, P::Below),
+                "a57e1ff4" => assert!(!after.text_centered),
+                "f101e675" => assert!(after.horizontal_text),
+                _ => assert!(after.boxed_text),
+            }
+            assert_eq!(undo_steps(&h), n + 1, "{name} {k}: one undo step");
+            assert_eq!((after.points.clone(), after.text.clone()), (before.points.clone(), before.text.clone()), "{name} {k}: only the option changes");
+            let (_, now) = dt_state(&h, k);
+            // a radio is now the one chosen, a check box flips
+            let radio = matches!(k, "fe24f8fd" | "3b48e7f1");
+            assert!(if radio { now } else { now == !was }, "{name} {k}: the flyout shows it");
+            if k == "fe24f8fd" {
+                assert!(!dt_state(&h, "5dad5787").1, "{name}: one radio at a time");
+            }
+            // the value moves, or the lines change
+            let path = |d: &vector_core::object::DimensionObj| (vector_core::object::dimension_text(d).transform, vector_core::object::dimension_path(d).elements().len());
+            // (a level line keeps its value level anyway)
+            if !(name == "horizontal" && k == "f101e675") {
+                assert_ne!(path(&after), path(&before), "{name} {k}: the drawing changes");
+            }
+            undo(&mut h);
+            assert_eq!(dt_dim(&h, id), before, "{name} {k}: undone");
+            run_cmd(&mut h, Cmd::Redo);
+            assert_eq!(dt_dim(&h, id), after, "{name} {k}: redone");
+        }
+        // Above again: the radio goes back
+        run_cmd(&mut h, dt_cmd("5dad5787"));
+        assert_eq!(dt_dim(&h, id).placement, P::Above);
+        assert!(dt_state(&h, "5dad5787").1 && !dt_state(&h, "3b48e7f1").1);
+    }
+    // two dimensions selected: both change, in one step
+    let (a, b) = (dims[0].1, dims[2].1);
+    h.state_mut().doc_mut().unwrap().selection = vec![a, b];
+    let n = undo_steps(&h);
+    let boxed = dt_state(&h, "5b07d790").1;
+    run_cmd(&mut h, dt_cmd("5b07d790"));
+    assert_eq!((dt_dim(&h, a).boxed_text, dt_dim(&h, b).boxed_text), (!boxed, !boxed));
+    assert_eq!(undo_steps(&h), n + 1);
+    // the tool defaults were left alone
+    let t = &h.state().settings.topts;
+    assert_eq!((t.dim_placement, t.dim_text_centered, t.dim_horizontal_text, t.dim_boxed_text), (P::Above, true, false, false));
+}
+
+/// #150: with no dimension selected the options are those of the dimensions drawn next: the
+/// flyout shows them, no undo step is made, and the next dimension drawn uses them.
+#[test]
+fn dimension_text_position_sets_the_tool_defaults() {
+    use crate::tools::ToolId;
+    use vector_core::object::TextPlacement as P;
+    let mut h = join_harness(ToolId::ParallelDim);
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    let n = undo_steps(&h);
+    assert_eq!(DT_KEYS.map(|k| dt_state(&h, k)), [(true, true), (true, false), (true, false), (true, true), (true, false), (true, false)]);
+    for k in ["3b48e7f1", "a57e1ff4", "f101e675", "5b07d790"] {
+        run_cmd(&mut h, dt_cmd(k));
+    }
+    assert_eq!(undo_steps(&h), n, "tool options make no undo step");
+    let t = &h.state().settings.topts;
+    assert_eq!((t.dim_placement, t.dim_text_centered, t.dim_horizontal_text, t.dim_boxed_text), (P::Below, false, true, true));
+    assert_eq!(DT_KEYS.map(|k| dt_state(&h, k).1), [false, false, true, false, true, true], "the flyout shows the tool options");
+    // draw a dimension: drag its ends, click the line's place
+    tool_stroke(&mut h, &[(100.0, 300.0), (300.0, 300.0)]);
+    tool_click(&mut h, (150.0, 260.0), egui::Vec2::ZERO);
+    let id = h.state().doc().unwrap().selection.first().copied().or_else(|| {
+        h.state().doc().unwrap().page_ref().all_objects().find(|o| matches!(o.kind, ObjKind::Dimension(_))).map(|o| o.id)
+    });
+    let d = dt_dim(&h, id.expect("a dimension was drawn"));
+    assert_eq!(dt_opts(&d), (P::Below, false, true, true));
+    // the label point is where the line was clicked, so the value sits there, below the line
+    let t = vector_core::object::dimension_text(&d);
+    let r = kurbo::Shape::bounding_box(&t.ink_outline().unwrap());
+    assert!((r.center().x - 150.0).abs() < 1.0 && r.y0 > 260.0, "{r:?}");
+}
+
+/// #150: callouts have no dimension line, so the options are off for them, and a selection of
+/// callouts doesn't change the tool options either.
+#[test]
+fn dimension_text_position_off_for_callouts() {
+    use crate::tools::ToolId;
+    use vector_core::object::DimensionKind as K;
+    let mut h = join_harness(ToolId::Pick);
+    let callout = dt_add(&mut h, K::Callout, &[(100.0, 100.0), (150.0, 60.0), (200.0, 60.0)], |d| d.text = "Note".into());
+    h.state_mut().doc_mut().unwrap().selection = vec![callout];
+    for k in DT_KEYS {
+        assert!(!dt_state(&h, k).0, "{k} on a callout");
+        assert_eq!(crate::ui::bind::enabled(h.state(), &format!("{k}-0000")), Some(false), "{k}: the flyout row is off");
+    }
+    let before = (dt_dim(&h, callout), undo_steps(&h), h.state().settings.topts.dim_boxed_text);
+    run_cmd(&mut h, dt_cmd("5b07d790"));
+    assert_eq!((dt_dim(&h, callout), undo_steps(&h), h.state().settings.topts.dim_boxed_text), before);
+    // an angular dimension: everything but Force Text Horizontal
+    let angular = dt_add(&mut h, K::Angular, &[(400.0, 400.0), (550.0, 400.0), (400.0, 550.0), (480.0, 480.0)], |_| {});
+    h.state_mut().doc_mut().unwrap().selection = vec![angular];
+    assert_eq!(DT_KEYS.map(|k| dt_state(&h, k).0), [true, true, true, true, false, true]);
+}
+
+/// #150: the six options on horizontal, vertical, slanted and angular dimensions, drawn
+/// (`target/visual/issue_150_*.png`), and the same through the export flattener.
+#[test]
+#[ignore]
+fn visual_dimension_text_positions() {
+    use vector_core::object::{DimensionKind as K, TextPlacement as P};
+    let mut h = harness();
+    h.state_mut().new_default_document();
+    h.state_mut().dialogs.new_doc = None;
+    // columns: the defaults (Above), Through, Below, not centred, forced horizontal, boxed, boxed through
+    let cols: [(&str, fn(&mut vector_core::object::DimensionObj)); 7] = [
+        ("above", |_| {}),
+        ("through", |d| d.placement = P::Through),
+        ("below", |d| d.placement = P::Below),
+        ("not-centred", |d| d.text_centered = false),
+        ("horizontal", |d| d.horizontal_text = true),
+        ("boxed", |d| d.boxed_text = true),
+        ("boxed-through", |d| {
+            d.boxed_text = true;
+            d.placement = P::Through;
+        }),
+    ];
+    let mut ids = vec![];
+    for (c, (_, f)) in cols.iter().enumerate() {
+        let x = 20.0 + c as f64 * 84.0;
+        // horizontal; the label point (for "not centred") near the right end
+        ids.push(dt_add(&mut h, K::Parallel, &[(x, 120.0), (x + 70.0, 120.0), (x + 58.0, 90.0)], |d| f(d)));
+        // vertical
+        ids.push(dt_add(&mut h, K::HorizontalVertical, &[(x + 45.0, 170.0), (x + 50.0, 300.0), (x + 20.0, 280.0)], |d| f(d)));
+        // slanted (30°)
+        ids.push(dt_add(&mut h, K::Parallel, &[(x, 420.0), (x + 69.3, 380.0), (x + 50.0, 360.0)], |d| f(d)));
+        // angular (60°), the label point near the second ray
+        ids.push(dt_add(&mut h, K::Angular, &[(x, 560.0), (x + 75.0, 560.0), (x + 37.5, 495.0), (x + 35.0, 520.0)], |d| f(d)));
+    }
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    run_cmd(&mut h, Cmd::ZoomToAll);
+    save(&mut h, "issue_150_01_text_positions");
+    // the same through the export flattener (PDF, SVG, EMF and CMX draw from it)
+    let doc = h.state().doc().unwrap().doc.clone();
+    let svg = vector_io::svg_export::page_to_svg(&doc, 0, &Default::default());
+    std::fs::write(out_dir().join("issue_150_02_text_positions.svg"), &svg).unwrap();
+    vector_io::pdf::export(&doc, &out_dir().join("issue_150_02_text_positions.pdf"), &vector_io::pdf::PdfOptions::default()).unwrap();
+    // the dimension's bar with a dimension selected (its bounds hold the value)
+    h.state_mut().doc_mut().unwrap().selection = vec![ids[4]];
+    save(&mut h, "issue_150_03_selected");
+    // the Parallel Dimension tool previews the options it will use: boxed, through the line
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    h.state_mut().set_tool(crate::tools::ToolId::ParallelDim);
+    h.state_mut().doc_mut().unwrap().doc.settings.snap_off = true;
+    run_cmd(&mut h, dt_cmd("fe24f8fd"));
+    run_cmd(&mut h, dt_cmd("5b07d790"));
+    let (p0, p1, p2) = (scr(&h, (100.0, 700.0)), scr(&h, (400.0, 700.0)), scr(&h, (250.0, 660.0)));
+    tool_input(&mut h, p0, true, true, false);
+    tool_input(&mut h, p1, false, true, false);
+    tool_input(&mut h, p1, false, false, true);
+    tool_input(&mut h, p2, false, false, false);
+    save(&mut h, "issue_150_04_tool_preview");
+    for (i, (name, _)) in cols.iter().enumerate() {
+        let d = dt_dim(&h, ids[i * 4]);
+        let b = h.state().doc().unwrap().doc.bounds_of(h.state().doc().unwrap().doc.find(ids[i * 4]).unwrap());
+        let t = kurbo::Shape::bounding_box(&vector_core::object::dimension_text(&d).ink_outline().unwrap());
+        assert!(b.union(t) == b, "{name}: the bounds hold the value ({b:?}, {t:?})");
+    }
+}

@@ -1069,6 +1069,12 @@ pub struct ToolOpts {
     pub dim_arrow: Option<vector_core::style::ArrowHead>,
     pub dim_ext_gap: f64,
     pub dim_ext_len: Option<f64>,
+    /// Dimensions drawn next: text position (above, through or below the line), centred between
+    /// the extension lines, forced horizontal, boxed.
+    pub dim_placement: vector_core::object::TextPlacement,
+    pub dim_text_centered: bool,
+    pub dim_horizontal_text: bool,
+    pub dim_boxed_text: bool,
     /// Callouts drawn next: shape around the text and gap.
     pub callout_shape: u8,
     pub callout_gap: f64,
@@ -1177,6 +1183,10 @@ impl Default for ToolOpts {
             dim_arrow: Some(vector_core::style::ArrowHead::OpenTriangle),
             dim_ext_gap: 0.0,
             dim_ext_len: None,
+            dim_placement: vector_core::object::TextPlacement::Above,
+            dim_text_centered: true,
+            dim_horizontal_text: false,
+            dim_boxed_text: false,
             callout_shape: 0,
             callout_gap: 2.0,
             anchor_relative: false,
