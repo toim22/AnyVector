@@ -2905,7 +2905,7 @@ impl<'a> Cx<'a> {
 
     /// A comment of a Comments docker tool; the docker then takes its text.
     fn add_comment(&mut self, mark: u8, pts: Vec<Point>) {
-        let author = if self.s.user_name.is_empty() { std::env::var("USERNAME").unwrap_or_else(|_| "User".into()) } else { self.s.user_name.clone() };
+        let author = crate::dockers::comment_author(&self.s.user_name);
         let page = self.d.page;
         let id = self.d.modify("Add Comment", |doc, _| {
             let id = doc.new_id();
