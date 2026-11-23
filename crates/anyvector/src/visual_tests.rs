@@ -216,6 +216,16 @@ fn visual_about_and_system_info() {
     let gpu = h.state().gpu.clone();
     h.state_mut().dialogs.system_info = Some(crate::about::SystemInfoState::new(&gpu));
     save(&mut h, "11_system_info");
+    // the other categories (on Linux the monitors, CUPS' printers and the libraries loaded), and the
+    // first in Brazilian Portuguese
+    for i in 1..crate::sysinfo::CATEGORIES.len() {
+        h.state_mut().dialogs.system_info = Some(crate::about::SystemInfoState { category: i, rows: crate::sysinfo::collect(i, &gpu) });
+        save(&mut h, &format!("11_system_info_{i}"));
+    }
+    h.state_mut().dialogs.system_info = Some(crate::about::SystemInfoState::new(&gpu));
+    h.state_mut().settings.language = "pt-BR".into();
+    save(&mut h, "11_system_info_ptbr");
+    h.state_mut().settings.language = "en-US".into();
     h.state_mut().dialogs.system_info = None;
     h.state_mut().dialogs.legal_notices = true;
     save(&mut h, "12_legal_notices");
@@ -231,6 +241,36 @@ fn visual_splash() {
     }
     let img = h.render().expect("render");
     img.save(out_dir().join("00_splash.png")).unwrap();
+}
+
+/// After 1.8 s the splash window turns into the main window, in one frame: title bar, resizable
+/// with the real size limits again (Linux: winit on Wayland kept the splash's size as the
+/// limits), opaque, main window size, maximized.
+#[test]
+fn splash_turns_into_the_main_window() {
+    let mut h = Harness::builder().with_size(crate::splash::SPLASH_SIZE).build_eframe(|cc| {
+        let mut app = AnyVectorApp::new(cc);
+        app.pending.clear();
+        app.settings.window_maximized = true;
+        app
+    });
+    let mut frames = 0;
+    while h.state().splash.is_some() {
+        assert!(h.output().viewport_output[&egui::ViewportId::ROOT].commands.iter().all(|c| !matches!(c, egui::ViewportCommand::Resizable(_))), "turned too early");
+        h.step();
+        frames += 1;
+        assert!(frames < 40, "the splash never ended");
+    }
+    // the switch frame sent them all, in order (there was no monitor size to centre on)
+    let sent = &h.output().viewport_output[&egui::ViewportId::ROOT].commands;
+    let mut rest = sent.iter();
+    for want in crate::splash::main_window_commands(None, true) {
+        assert!(rest.any(|c| *c == want), "{want:?} missing or out of order in {sent:?}");
+    }
+    assert_eq!(sent.contains(&egui::ViewportCommand::MaxInnerSize(egui::Vec2::INFINITY)), cfg!(target_os = "linux"));
+    // only that frame sends them
+    h.step();
+    assert!(!h.output().viewport_output[&egui::ViewportId::ROOT].commands.contains(&egui::ViewportCommand::Resizable(true)));
 }
 
 /// Open a menu of the menu bar. Waits first, so the menu closed before has finished fading out.
@@ -419,7 +459,9 @@ fn visual_updates_dialog() {
     h.state_mut().update.dialog = true;
     h.state_mut().update.status = Status::Available(r.clone());
     save(&mut h, "92_updates_available");
-    assert!(h.query_all_by_label("Install Now").next().is_some(), "Install Now is missing when a version is available");
+    // a Windows setup is never installed on Linux: the version is only announced (visual_update_announced)
+    let offered = h.query_all_by_label("Install Now").next().is_some();
+    assert_eq!(offered, cfg!(windows), "Install Now when a version is available (Windows only)");
     h.state_mut().update.status = Status::Downloading(r.clone(), 0.4);
     save(&mut h, "92_updates_downloading");
     assert!(h.query_all_by_label("Install Now").next().is_some(), "Install Now is missing while the setup downloads");
@@ -438,6 +480,52 @@ fn visual_updates_dialog() {
     h.state_mut().update.dialog = false;
     h.state_mut().update.status = Status::Idle;
     h.step();
+}
+
+/// A new version with nothing this system installs (always on Linux: AnyVector has no Linux
+/// package to update yet): the message at start and Help > Updates announce it, with Open Release
+/// Page instead of OK and Install Now, and nothing is downloaded.
+#[test]
+#[ignore]
+fn visual_update_announced() {
+    use egui_kittest::kittest::Queryable;
+    use crate::updater::{Release, Status};
+    let mut h = harness();
+    let r = Release {
+        version: "9.9.9".into(),
+        tag: "v9.9.9".into(),
+        notes: include_str!("../../../docs/RELEASE-NOTES-0.3.0.md").to_string(),
+        page: "https://github.com/toim22/AnyVector/releases/tag/v9.9.9".into(),
+        asset_name: String::new(),
+        asset_url: String::new(),
+        asset_size: 0,
+        via_gh: false,
+    };
+    assert!(!r.installable());
+    h.state_mut().update.status = Status::Available(r.clone());
+    h.state_mut().update.prompt = true;
+    save(&mut h, "92_updates_announced_prompt");
+    assert!(h.query_all_by_label("Open Release Page").next().is_some(), "Open Release Page is missing in the message");
+    assert!(h.query_all_by_label("OK").next().is_none(), "OK would install a setup this system doesn't have");
+    h.state_mut().settings.language = "pt-BR".into();
+    save(&mut h, "92_updates_announced_prompt_ptbr");
+    h.state_mut().settings.language = "en-US".into();
+    h.step();
+    // Open Release Page takes the user to the page (no browser in tests) and closes the message
+    click_label(&mut h, "Open Release Page");
+    assert!(!h.state().update.prompt, "the message stays after Open Release Page");
+    assert!(matches!(h.state().update.status, Status::Available(_)), "nothing is downloaded");
+    h.state_mut().update.dialog = true;
+    save(&mut h, "92_updates_announced_dialog");
+    assert!(h.query_all_by_label("Open Release Page").next().is_some(), "Open Release Page is missing in Help > Updates");
+    assert!(h.query_all_by_label("Install Now").next().is_none(), "Install Now would install a setup this system doesn't have");
+    click_label(&mut h, "Open Release Page");
+    assert!(matches!(h.state().update.status, Status::Available(_)), "nothing is downloaded");
+    assert!(h.state().update.dialog, "Help > Updates stays open");
+    h.state_mut().update.dialog = false;
+    h.state_mut().update.status = Status::Idle;
+    h.step();
+    assert_eq!(crate::i18n::lang(), crate::i18n::Lang::EnUs);
 }
 
 fn right_click(h: &mut Harness<'_, AnyVectorApp>, p: egui::Pos2) {
@@ -2915,6 +3003,24 @@ fn pdf_import_of_a_broken_file_says_so() {
     h.step();
 }
 
+/// File ▸ Acquire Image on Linux: WIA and TWAIN are Windows' ways to reach a scanner, so each
+/// command says how to bring a scan in instead of silently doing nothing. The commands run
+/// directly: the message is what counts here, not how the message box draws it.
+#[cfg(not(windows))]
+#[test]
+fn acquire_image_on_linux_says_how_to_scan() {
+    let mut h = dialog_harness();
+    let ctx = h.ctx.clone();
+    for (cmd, title) in [(Cmd::SelectTwain, "Select TWAIN Source"), (Cmd::SelectWia, "Select WIA Source"), (Cmd::Acquire, "Acquire Image")] {
+        h.state_mut().dialogs.message_box = None;
+        h.state_mut().execute(&ctx, cmd);
+        let (shown, text) = h.state().dialogs.message_box.clone().expect("a message");
+        assert_eq!(shown, title);
+        assert!(text.contains("File ▸ Import"), "{text}");
+        assert!(h.state().background.is_empty(), "nothing is started for {title}");
+    }
+}
+
 /// Tools ▸ Color Management opens, draws its tabs, and Cancel leaves the settings alone.
 #[test]
 fn color_management_dialog_opens_and_cancels() {
@@ -3001,6 +3107,20 @@ fn ai_provider_options_follow_the_provider() {
     assert!(has_label(&h, "ComfyUI"), "the image provider choice");
     h.state_mut().settings.ai_config.image_provider = ImageProvider::ComfyUi;
     settle(&mut h);
+}
+
+/// Save Key's note in Options says where the key is kept: in the Windows account, on Linux in the
+/// user's systemd environment file (~/.config/environment.d/anyvector.conf).
+#[test]
+fn ai_key_note_says_where_the_key_is_kept() {
+    use egui_kittest::kittest::Queryable;
+    let mut h = dialog_harness();
+    h.state_mut().settings.language = "en-US".into();
+    h.state_mut().settings.ai_config.provider = crate::ai_provider::Provider::Anthropic;
+    h.state_mut().open_options(crate::commands::OptionsPage::Global, Some("Privacy"));
+    settle(&mut h);
+    let place = if cfg!(windows) { "environment variable of your Windows account" } else { "environment.d/anyvector.conf" };
+    assert!(h.query_by_label_contains(place).is_some(), "Save Key's note names {place}");
 }
 
 /// The new dialogs, as pictures: Import PDF, Color Management (its three tabs), Create Cut

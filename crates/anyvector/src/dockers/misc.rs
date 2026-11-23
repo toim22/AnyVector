@@ -1390,7 +1390,7 @@ pub fn sources(app: &mut AnyVectorApp, ui: &mut Ui) {
     match (act, sel) {
         (Some(0), Some(id)) => {
             if let Some(p) = links.iter().find(|l| l.0 == id) {
-                let _ = std::process::Command::new("cmd").args(["/C", "start", "", &p.1]).spawn();
+                let _ = crate::platform::open_file(std::path::Path::new(&p.1));
             }
         }
         (Some(1), Some(id)) => sync_links(app, &[id]),

@@ -32,6 +32,11 @@ thesaurus-wordnet = "0.2"
 # the main window's handle, for coloring its border (already in the tree through eframe)
 raw-window-handle = "0.6"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+# OpenGL, the renderer AnyVector falls back to when wgpu can't start on the machine's graphics
+# driver (see main.rs); the libraries are loaded at run time, so nothing new is needed to start
+eframe = { workspace = true, features = ["glow"] }
+
 [target.'cfg(windows)'.dependencies]
 windows-core = "0.62"
 # cheap clipboard format checks and a CF_DIB fallback for pasted bitmaps; already in the tree via arboard

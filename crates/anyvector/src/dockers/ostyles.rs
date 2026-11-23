@@ -573,7 +573,7 @@ struct StyleSheet {
 }
 
 pub(crate) fn import_styles(app: &mut AnyVectorApp) {
-    let Some(p) = rfd::FileDialog::new().set_title("Import Style Sheet").add_filter("AnyVector Style Sheet (*.vstyles)", &["vstyles"]).pick_file() else { return };
+    let Some(p) = rfd::FileDialog::new().set_title("Import Style Sheet").add_filter("AnyVector Style Sheet (*.vstyles)", &vector_io::paths::dialog_extensions(&["vstyles"])).pick_file() else { return };
     let text = std::fs::read_to_string(&p).unwrap_or_default();
     let sheet: Option<StyleSheet> = serde_json::from_str(&text).ok().or_else(|| serde_json::from_str::<Vec<ObjectStyle>>(&text).ok().map(|object_styles| StyleSheet { object_styles, ..Default::default() }));
     let Some(sheet) = sheet else {

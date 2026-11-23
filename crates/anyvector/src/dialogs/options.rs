@@ -2325,7 +2325,7 @@ fn ai_provider(app: &mut AnyVectorApp, ui: &mut Ui) {
     if let Some(k) = save {
         st.ai_key_msg = Some(match crate::ai::save_user_key(&var, &k) {
             Ok(()) if k.is_empty() => (true, format!("The key was removed from the {var} environment variable.")),
-            Ok(()) => (true, format!("The key was saved in the {var} environment variable of your Windows account. AI Generate is ready.")),
+            Ok(()) => (true, crate::ai::key_saved_message(&var)),
             Err(e) => (false, e),
         });
     }
@@ -2343,7 +2343,7 @@ fn ai_provider(app: &mut AnyVectorApp, ui: &mut Ui) {
             "This server is on your computer, so the key is optional."
         },
     );
-    note(ui, "Save Key writes the key into this environment variable of your Windows account, right away. AnyVector never saves the key in its own settings or documents.");
+    note(ui, &crate::ai::save_key_note());
 }
 
 /// Privacy ▸ AI Generate ▸ AI images: what makes the images of Create image and Remix image
@@ -2427,7 +2427,7 @@ fn ai_images(app: &mut AnyVectorApp, ui: &mut Ui) {
         note(ui, "Create Image Guided by Selection and Remix Selection send the selection to ComfyUI as the source image (%image%).");
     }
     if load {
-        if let Some(p) = rfd::FileDialog::new().set_title("Load ComfyUI Workflow (API format)").add_filter("ComfyUI workflow (*.json)", &["json"]).pick_file() {
+        if let Some(p) = rfd::FileDialog::new().set_title("Load ComfyUI Workflow (API format)").add_filter("ComfyUI workflow (*.json)", &vector_io::paths::dialog_extensions(&["json"])).pick_file() {
             let checked = std::fs::read_to_string(&p).map_err(|e| e.to_string()).and_then(|t| crate::comfyui::parse_workflow(&t));
             app.ai.workflow_msg = Some(match checked {
                 Ok(wf) => {

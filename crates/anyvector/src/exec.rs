@@ -179,13 +179,17 @@ fn mapi_send(path: &Path, subject: &str) -> bool {
     }
 }
 
+/// Send To ▸ Mail Recipient when no mail program took the drawing: the drawing shown in its
+/// folder and a new e-mail started.
+const NO_MAIL_PROGRAM: &str = "No mail program accepted the attachment; the drawing is ready to attach to your message.";
+
+/// File ▸ Acquire Image on Linux: WIA and TWAIN are Windows' ways to talk to scanners.
 #[cfg(not(windows))]
-fn mapi_send(_path: &Path, _subject: &str) -> bool {
-    false
-}
+const NO_SCANNING: &str = "Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.";
 
 /// PowerShell for File ▸ Acquire Image through Windows Image Acquisition: select a device
 /// (`select` = true) or scan with the chosen device's dialog and save a PNG to `out`.
+#[cfg(windows)]
 fn wia_script(select: bool, device: Option<&str>, out: &Path) -> String {
     let png = "{B96B3CAF-0728-11D3-9D7B-0000F81EF32E}";
     if select {
@@ -209,10 +213,10 @@ fn wia_script(select: bool, device: Option<&str>, out: &Path) -> String {
 }
 
 /// Run a hidden PowerShell command; returns its output or the error text.
+#[cfg(windows)]
 fn powershell(script: &str) -> Result<String, String> {
     let mut cmd = std::process::Command::new("powershell");
     cmd.args(["-NoProfile", "-NonInteractive", "-STA", "-Command", script]);
-    #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
         cmd.creation_flags(0x0800_0000);
@@ -226,6 +230,7 @@ fn powershell(script: &str) -> Result<String, String> {
 }
 
 /// A readable message for a WIA failure.
+#[cfg(windows)]
 fn wia_error(e: &str) -> String {
     if e.contains("0x80210015") || e.to_lowercase().contains("no wia device") || e.contains("-2145320939") {
         "No scanner or camera was found. Connect a WIA device and try again.".into()
@@ -306,14 +311,6 @@ pub fn selection_document(doc: &Document, ids: &[ObjId]) -> Option<Document> {
     }
     out.pages = vec![page];
     Some(out)
-}
-
-
-fn reveal_in_explorer(path: &Path) {
-    #[cfg(windows)]
-    {
-        let _ = std::process::Command::new("explorer").arg(format!("/select,{}", path.display())).spawn();
-    }
 }
 
 impl AnyVectorApp {
@@ -1347,6 +1344,7 @@ impl AnyVectorApp {
                     }
                 }
             }
+            #[cfg(windows)]
             Cmd::SelectWia => {
                 let (tx, rx) = std::sync::mpsc::channel();
                 std::thread::spawn(move || {
@@ -1355,6 +1353,7 @@ impl AnyVectorApp {
                 });
                 self.background.push(rx);
             }
+            #[cfg(windows)]
             Cmd::SelectTwain => {
                 let dsm = ["twaindsm.dll", "twain_32.dll"].iter().any(|n| {
                     let win = std::env::var("WINDIR").unwrap_or_else(|_| "C:\\Windows".into());
@@ -1367,6 +1366,7 @@ impl AnyVectorApp {
                 };
                 self.info_box("Select TWAIN Source", msg);
             }
+            #[cfg(windows)]
             Cmd::Acquire => {
                 let device = self.settings.wia_device.clone();
                 let out = std::env::temp_dir().join(format!("vector-acquire-{}.png", std::process::id()));
@@ -1378,6 +1378,12 @@ impl AnyVectorApp {
                 self.background.push(rx);
                 self.flash("Waiting for the scanner...");
             }
+            #[cfg(not(windows))]
+            Cmd::SelectWia => self.info_box("Select WIA Source", NO_SCANNING),
+            #[cfg(not(windows))]
+            Cmd::SelectTwain => self.info_box("Select TWAIN Source", NO_SCANNING),
+            #[cfg(not(windows))]
+            Cmd::Acquire => self.info_box("Acquire Image", NO_SCANNING),
             Cmd::Import => self.import_dialog(),
             Cmd::Export => {
                 if has_doc {
@@ -1448,10 +1454,30 @@ impl AnyVectorApp {
                             p
                         }
                     };
-                    if !mapi_send(&p, &stem) {
-                        reveal_in_explorer(&p);
-                        let _ = std::process::Command::new("cmd").args(["/C", "start", "", &format!("mailto:?subject={}", stem.replace(' ', "%20"))]).spawn();
-                        self.flash("No mail program accepted the attachment; the drawing is ready to attach to your message.");
+                    #[cfg(windows)]
+                    {
+                        if !mapi_send(&p, &stem) {
+                            crate::platform::reveal(&p);
+                            let _ = crate::platform::open_mailto(&stem);
+                            self.flash(NO_MAIL_PROGRAM);
+                        }
+                    }
+                    // xdg-email answers on another thread; its result comes back as a background message
+                    #[cfg(not(windows))]
+                    {
+                        let (tx, rx) = std::sync::mpsc::channel();
+                        let (file, subject) = (p.clone(), stem.clone());
+                        crate::platform::send_mail(&stem, &p, move |sent| {
+                            let message = if sent {
+                                String::new()
+                            } else {
+                                crate::platform::reveal(&file);
+                                let _ = crate::platform::open_mailto(&subject);
+                                NO_MAIL_PROGRAM.to_string()
+                            };
+                            let _ = tx.send(Ok(message));
+                        });
+                        self.background.push(rx);
                     }
                 }
             }

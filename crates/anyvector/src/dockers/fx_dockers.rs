@@ -312,7 +312,7 @@ pub fn artistic_media(app: &mut AnyVectorApp, ui: &mut Ui) {
     });
     ui.horizontal(|ui| {
         if icon_button(app, ui, "open", "Open a stroke list", true) {
-            if let Some(path) = rfd::FileDialog::new().add_filter("Strokes", &["json"]).pick_file() {
+            if let Some(path) = rfd::FileDialog::new().add_filter("Strokes", &vector_io::paths::dialog_extensions(&["json"])).pick_file() {
                 match std::fs::read_to_string(&path).map_err(|e| e.to_string()).and_then(|s| serde_json::from_str::<Vec<(String, WidthProfile)>>(&s).map_err(|e| e.to_string())) {
                     Ok(v) => {
                         app.settings.custom_strokes.extend(v);
@@ -474,7 +474,7 @@ pub fn bitmap_mask(app: &mut AnyVectorApp, ui: &mut Ui) {
             }
         }
         if icon_button(app, ui, "open", "Open mask", true) {
-            if let Some(p) = rfd::FileDialog::new().add_filter("Mask", &["ini"]).pick_file() {
+            if let Some(p) = rfd::FileDialog::new().add_filter("Mask", &vector_io::paths::dialog_extensions(&["ini"])).pick_file() {
                 if let Err(e) = open_mask(&p, &mut app.dockers.ui.fx) {
                     app.flash(format!("Could not open the mask: {e}"));
                 }

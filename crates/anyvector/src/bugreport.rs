@@ -10,7 +10,7 @@
 //!
 //! A report may carry one file, with the types and sizes GitHub accepts when a file is dragged into an
 //! issue. The relay keeps it on GitHub and the issue links to it (an image shows in the issue). On the
-//! browser path, Explorer opens on the file so the user can drag it into GitHub's page.
+//! browser path, the file manager opens on the file so the user can drag it into GitHub's page.
 
 use crate::app::AnyVectorApp;
 use crate::dialogs::{heading, note, separator, window};
@@ -161,15 +161,16 @@ impl BugReportState {
     }
 }
 
-/// AnyVector version, Windows version and display information.
+/// AnyVector version, the version of Windows (or Linux) and display information.
 pub fn system_info(ctx: &egui::Context) -> String {
-    let os = windows_version();
+    let os = os_version();
     let ppp = ctx.pixels_per_point();
     let screen = ctx.content_rect().size() * ppp;
     format!(
-        "- AnyVector: {} ({})\n- Windows: {}\n- Window size: {:.0} × {:.0} px, scale {:.0}%",
+        "- AnyVector: {} ({})\n- {}: {}\n- Window size: {:.0} × {:.0} px, scale {:.0}%",
         env!("CARGO_PKG_VERSION"),
         if cfg!(debug_assertions) { "debug build" } else { "release build" },
+        OS_NAME,
         os,
         screen.x,
         screen.y,
@@ -177,7 +178,17 @@ pub fn system_info(ctx: &egui::Context) -> String {
     )
 }
 
-fn windows_version() -> String {
+/// The name of the system in the report.
+const OS_NAME: &str = if cfg!(windows) {
+    "Windows"
+} else if cfg!(target_os = "linux") {
+    "Linux"
+} else {
+    std::env::consts::OS
+};
+
+#[cfg(windows)]
+fn os_version() -> String {
     let mut cmd = Command::new("cmd");
     cmd.args(["/C", "ver"]);
     hide_console(&mut cmd);
@@ -188,6 +199,12 @@ fn windows_version() -> String {
         .unwrap_or_else(|| std::env::consts::OS.to_string())
 }
 
+/// The distribution, the kernel, the desktop and the session type (System Info's summary).
+#[cfg(not(windows))]
+fn os_version() -> String {
+    crate::sysinfo::platform_summary()
+}
+
 fn hide_console(cmd: &mut Command) {
     #[cfg(windows)]
     {
@@ -195,6 +212,9 @@ fn hide_console(cmd: &mut Command) {
         const CREATE_NO_WINDOW: u32 = 0x0800_0000;
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
+    // programs open no console window elsewhere
+    #[cfg(not(windows))]
+    let _ = cmd;
 }
 
 /// The issue body in GitHub Markdown.
@@ -238,31 +258,9 @@ pub fn new_issue_url(label: &str, title: &str, body: &str) -> String {
     format!("https://github.com/{REPO}/issues/new?labels={label}&title={}&body={}", url_encode(title), url_encode(body))
 }
 
+/// Open a page in the default browser: false when the browser could not be started.
 pub fn open_in_browser(url: &str) -> bool {
-    #[cfg(windows)]
-    {
-        // `start` treats the first quoted argument as the window title, hence the "".
-        let mut cmd = Command::new("cmd");
-        cmd.args(["/C", "start", "", url]);
-        hide_console(&mut cmd);
-        cmd.spawn().is_ok()
-    }
-    #[cfg(not(windows))]
-    {
-        Command::new("xdg-open").arg(url).spawn().is_ok()
-    }
-}
-
-/// Open Explorer with the file selected.
-fn show_in_explorer(path: &Path) {
-    #[cfg(windows)]
-    {
-        let _ = Command::new("explorer").arg(format!("/select,{}", path.display())).spawn();
-    }
-    #[cfg(not(windows))]
-    {
-        let _ = path.parent().map(|p| Command::new("xdg-open").arg(p).spawn());
-    }
+    crate::platform::open_url(url).is_ok()
 }
 
 /// Run the GitHub CLI without a console window; `None` when it is not installed.
@@ -334,9 +332,9 @@ fn send(relay: String, label: &'static str, title: String, body: String, file: O
             Err((status, e)) => {
                 log::warn!("issue relay did not take the report ({status} {e}); opening the browser");
                 if open_in_browser(&new_issue_url(label, &title, &body)) {
-                    // GitHub's page can't be handed the file: show it in Explorer, ready to drag in
+                    // GitHub's page can't be handed the file: show it in the file manager, ready to drag in
                     if let Some(f) = &file {
-                        show_in_explorer(f);
+                        crate::platform::reveal(f);
                     }
                     Sent::Browser
                 } else {
@@ -537,6 +535,11 @@ mod tests {
         let v: serde_json::Value = serde_json::from_str(&relay_body(&BugReportState { expected: "x".into(), title: "é".repeat(300), ..idea }, None)).unwrap();
         assert_eq!((v["kind"].as_str(), v["expected"].as_str(), v["system"].as_str()), (Some("idea"), Some(""), Some("")));
         assert_eq!(v["title"].as_str().unwrap().chars().count(), 200);
+    }
+
+    #[test]
+    fn os_name_names_the_system() {
+        assert_eq!(OS_NAME, if cfg!(windows) { "Windows" } else if cfg!(target_os = "linux") { "Linux" } else { std::env::consts::OS });
     }
 
     #[test]

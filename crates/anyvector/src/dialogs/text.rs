@@ -2347,7 +2347,7 @@ pub fn edit_text(app: &mut AnyVectorApp, ctx: &egui::Context) {
         });
     });
     if import {
-        if let Some(p) = rfd::FileDialog::new().add_filter("Text", &["txt"]).pick_file() {
+        if let Some(p) = rfd::FileDialog::new().add_filter("Text", &vector_io::paths::dialog_extensions(&["txt"])).pick_file() {
             if let Ok(s) = std::fs::read_to_string(p) {
                 let s = s.replace("\r\n", "\n");
                 st.t.insert(sa, &s);

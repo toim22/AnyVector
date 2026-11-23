@@ -159,6 +159,7 @@ pub fn window_border(custom: Option<[u8; 3]>) -> Color32 {
 }
 
 /// Black or white, whichever reads better on `bg` (the title text on the window border).
+#[cfg_attr(not(windows), allow(dead_code))]
 pub fn text_on(bg: Color32) -> Color32 {
     let lum = 0.2126 * bg.r() as f32 + 0.7152 * bg.g() as f32 + 0.0722 * bg.b() as f32;
     if lum > 140.0 {
@@ -219,6 +220,25 @@ pub fn sync_window_border(custom: Option<[u8; 3]>) {
             }
         }
     }
+}
+
+#[cfg(target_os = "linux")]
+thread_local! {
+    /// The title last given to the main window.
+    static TITLE: std::cell::RefCell<String> = const { std::cell::RefCell::new(String::new()) };
+}
+
+/// Gives the main window its title. Called every frame. On Linux the window is only told when
+/// the title changes: each time it is told, its title bar is drawn again, by the window manager
+/// (X11) or by AnyVector itself (Wayland without server-side title bars, as on GNOME). The frame
+/// still asks for the next one, as sending the title did.
+pub fn sync_window_title(ctx: &egui::Context, title: String) {
+    #[cfg(target_os = "linux")]
+    if TITLE.with(|t| t.replace(title.clone())) == title {
+        ctx.request_repaint();
+        return;
+    }
+    ctx.send_viewport_cmd(egui::ViewportCommand::Title(title));
 }
 
 macro_rules! colors {
@@ -501,6 +521,23 @@ mod tests {
         select(&ctx, "Light");
         assert_eq!(window_border(Some([0x10, 0x40, 0x90])), Color32::from_rgb(0x10, 0x40, 0x90));
         select(&ctx, "Dark");
+    }
+
+    #[test]
+    fn window_title_is_sent_when_it_changes() {
+        let ctx = egui::Context::default();
+        // (titles sent, next frame asked for at once)
+        let frame = |title: &str| {
+            let mut out = ctx.run_ui(Default::default(), |ui| sync_window_title(ui.ctx(), title.to_string()));
+            out.textures_delta.clear();
+            let root = &out.viewport_output[&egui::ViewportId::ROOT];
+            (root.commands.iter().filter(|c| matches!(c, egui::ViewportCommand::Title(_))).count(), root.repaint_delay.is_zero())
+        };
+        assert_eq!(frame("AnyVector"), (1, true));
+        // the same title again: Linux doesn't redraw the title bar for it; Windows sends it every frame
+        assert_eq!(frame("AnyVector"), (if cfg!(target_os = "linux") { 0 } else { 1 }, true));
+        assert_eq!(frame("AnyVector - [Untitled-1]"), (1, true));
+        assert_eq!(frame("AnyVector"), (1, true));
     }
 
     #[test]

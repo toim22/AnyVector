@@ -12,6 +12,9 @@
 //!   (`gh`, signed in) reads and downloads it instead.
 //! - Installing runs the downloaded setup silently after AnyVector closes (so open drawings are
 //!   saved first); the setup starts AnyVector again when it is done.
+//! - Linux has no package to install yet ([`asset_for`] chooses nothing there): a new version is
+//!   announced the same way, and Open Release Page takes the user to its download page. Nothing is
+//!   downloaded or run.
 
 use crate::app::AnyVectorApp;
 use crate::bugreport::REPO;
@@ -24,8 +27,16 @@ use std::time::Duration;
 
 /// Allow product updates (Options ▸ Global ▸ General), in Corel's order and words.
 pub const MODES: [&str; 3] = ["Keep the product up to date (recommended)", "Check for updates and let me choose when to install them", "Never check for updates"];
+#[cfg(windows)]
 pub const MODE_NOTES: [&str; 3] = [
     "Automatically downloads product updates, but prompts you before installing them.",
+    "AnyVector tells you when a new version is available; you choose when to download and install it.",
+    "AnyVector never connects to the Internet to look for updates. Help ▸ Updates still checks when you ask.",
+];
+/// Without a package to install (Linux), keeping up to date means hearing of each new version.
+#[cfg(not(windows))]
+pub const MODE_NOTES: [&str; 3] = [
+    "AnyVector looks for a new version at every start and tells you when one is available.",
     "AnyVector tells you when a new version is available; you choose when to download and install it.",
     "AnyVector never connects to the Internet to look for updates. Help ▸ Updates still checks when you ask.",
 ];
@@ -42,7 +53,8 @@ pub struct Release {
     pub notes: String,
     /// The release page.
     pub page: String,
-    /// The setup file and its download address.
+    /// The setup file and its download address (empty when the release has nothing this system
+    /// installs, see [`Release::installable`]).
     pub asset_name: String,
     pub asset_url: String,
     /// The setup's size in bytes (0 when unknown): a setup already downloaded is used again.
@@ -104,17 +116,50 @@ pub fn is_newer(remote: &str, local: &str) -> bool {
     parse_version(remote) > parse_version(local)
 }
 
-/// The release described by GitHub's JSON, if it carries a setup for Windows.
+/// The file of a release that AnyVector installs by itself on the system `os`
+/// (`std::env::consts::OS`), among the release's file names: the setup on Windows
+/// (`AnyVector-0.6.2-setup.exe`). Nothing on Linux yet: AnyVector has no Linux package to update
+/// (the plan's phase 3 adds an AppImage, `AnyVector-<version>-<arch>.AppImage`, which would replace
+/// itself here; .deb and Flatpak installs are updated by their package manager), so a new version is
+/// only announced there. A Windows setup is never chosen on Linux.
+pub fn asset_for<'a>(os: &str, names: impl IntoIterator<Item = &'a str>) -> Option<&'a str> {
+    names.into_iter().find(|n| match os {
+        "windows" => n.to_ascii_lowercase().ends_with("-setup.exe"),
+        _ => false,
+    })
+}
+
+impl Release {
+    /// The release carries the file this system installs ([`asset_for`]): Install Now (or OK)
+    /// downloads and installs it. Otherwise it is only announced, with Open Release Page.
+    pub fn installable(&self) -> bool {
+        asset_for(std::env::consts::OS, [self.asset_name.as_str()]).is_some()
+    }
+}
+
+/// The release described by GitHub's JSON. On a system that installs updates by itself (Windows)
+/// only one that carries its setup; elsewhere every release, to announce it.
 pub fn release_from_json(v: &serde_json::Value, via_gh: bool) -> Option<Release> {
+    release_for(std::env::consts::OS, v, via_gh)
+}
+
+fn release_for(os: &str, v: &serde_json::Value, via_gh: bool) -> Option<Release> {
     let tag = v["tag_name"].as_str()?.to_string();
-    let asset = v["assets"].as_array()?.iter().find(|a| a["name"].as_str().is_some_and(|n| n.to_ascii_lowercase().ends_with("-setup.exe")))?;
+    let assets = v["assets"].as_array().map(Vec::as_slice).unwrap_or_default();
+    let name = asset_for(os, assets.iter().filter_map(|a| a["name"].as_str()));
+    let asset = name.and_then(|n| assets.iter().find(|a| a["name"].as_str() == Some(n)));
+    // Windows installs the setup, so a release without one is of no use there
+    if asset.is_none() && os == "windows" {
+        return None;
+    }
+    let field = |k: &str| asset.and_then(|a| a[k].as_str()).unwrap_or_default().to_string();
     Some(Release {
         version: tag.trim_start_matches(['v', 'V']).to_string(),
         notes: v["body"].as_str().unwrap_or_default().to_string(),
         page: v["html_url"].as_str().map(str::to_string).unwrap_or_else(|| format!("https://github.com/{REPO}/releases")),
-        asset_name: asset["name"].as_str().unwrap_or("AnyVector-setup.exe").to_string(),
-        asset_url: asset["browser_download_url"].as_str().unwrap_or_default().to_string(),
-        asset_size: asset["size"].as_u64().unwrap_or(0),
+        asset_name: field("name"),
+        asset_url: field("browser_download_url"),
+        asset_size: asset.and_then(|a| a["size"].as_u64()).unwrap_or(0),
         tag,
         via_gh,
     })
@@ -135,7 +180,7 @@ fn check() -> Result<Option<Release>, String> {
     let release = match web {
         Ok(mut r) if r.status().as_u16() == 200 => {
             let v: serde_json::Value = r.body_mut().read_json().map_err(|e| format!("Invalid answer from the update server: {e}"))?;
-            Some(release_from_json(&v, false).ok_or("The latest release has no setup for Windows.")?)
+            Some(release_from_json(&v, false).ok_or_else(unusable_release)?)
         }
         Ok(_) => {
             reached = true;
@@ -147,12 +192,22 @@ fn check() -> Result<Option<Release>, String> {
         Some(r) => r,
         // not public (or no network): the GitHub CLI, when it is signed in, can read a private repository
         None => match gh_json(&["api", &format!("repos/{REPO}/releases/latest")]) {
-            Some(v) => release_from_json(&v, true).ok_or("The latest release has no setup for Windows.")?,
+            Some(v) => release_from_json(&v, true).ok_or_else(unusable_release)?,
             None if reached => return Err(format!("No published release was found at github.com/{REPO}.")),
             None => return Err(NO_INTERNET.into()),
         },
     };
     Ok(is_newer(&release.version, current_version()).then_some(release))
+}
+
+/// Why the latest release is of no use ([`release_from_json`] refused it): Windows needs its setup;
+/// elsewhere only a release without a tag is refused.
+fn unusable_release() -> String {
+    if cfg!(windows) {
+        "The latest release has no setup for Windows.".to_string()
+    } else {
+        format!("No published release was found at github.com/{REPO}.")
+    }
 }
 
 fn gh_json(args: &[&str]) -> Option<serde_json::Value> {
@@ -163,8 +218,15 @@ fn gh_json(args: &[&str]) -> Option<serde_json::Value> {
     serde_json::from_slice(&out.stdout).ok()
 }
 
+/// Where the update is downloaded: Windows' temporary folder (each user has their own); elsewhere
+/// the user's cache folder (`$XDG_CACHE_HOME/AnyVector/Updates`), not the `/tmp` all users share,
+/// where another user could leave a file of the same name and size to be installed.
 pub fn download_dir() -> PathBuf {
-    std::env::temp_dir().join("AnyVector Updates")
+    if cfg!(windows) {
+        std::env::temp_dir().join("AnyVector Updates")
+    } else {
+        dirs::cache_dir().unwrap_or_else(std::env::temp_dir).join("AnyVector").join("Updates")
+    }
 }
 
 fn download(r: &Release, tx: &Sender<Msg>) -> Result<PathBuf, String> {
@@ -229,7 +291,8 @@ pub fn start_check(app: &mut AnyVectorApp, quiet: bool) {
 
 fn start_download(app: &mut AnyVectorApp, r: Release) {
     let u = &mut app.update;
-    if u.rx.is_some() {
+    // nothing to download for this system (Linux): the release is only announced
+    if u.rx.is_some() || !r.installable() {
         return;
     }
     // the setup downloaded at an earlier start (the user chose Later) is used again
@@ -282,8 +345,15 @@ pub fn run_pending_install(app: &mut AnyVectorApp) {
     let _ = launch_setup(&path);
 }
 
+#[cfg(windows)]
 fn launch_setup(path: &Path) -> std::io::Result<std::process::Child> {
     std::process::Command::new(path).args(["/SILENT", "/SP-", "/SUPPRESSMSGBOXES", "/NORESTART", "/CLOSEAPPLICATIONS", "/RELAUNCH=1"]).spawn()
+}
+
+/// Nothing is installed by AnyVector off Windows (yet), and never a Windows setup.
+#[cfg(not(windows))]
+fn launch_setup(path: &Path) -> std::io::Result<std::process::Child> {
+    Err(std::io::Error::new(std::io::ErrorKind::Unsupported, format!("{} is not installed: AnyVector installs updates on Windows only", path.display())))
 }
 
 /// Background results, each frame.
@@ -343,10 +413,22 @@ pub fn poll(app: &mut AnyVectorApp, ctx: &egui::Context) {
     }
 }
 
+/// Open Release Page, for a release this system doesn't install by itself (Linux): the page to
+/// download it from, in the browser; the message at start has done its job.
+fn open_release_page(app: &mut AnyVectorApp, r: &Release) {
+    // tests never open the browser
+    if !cfg!(test) {
+        crate::bugreport::open_in_browser(&r.page);
+    }
+    app.update.prompt = false;
+}
+
 /// Install Now (or OK in the message): download first when needed, then close and install.
 fn install_now(app: &mut AnyVectorApp) {
     match app.update.status.clone() {
         Status::Ready(_, path) => install(app, path),
+        // nothing this system installs: its download page instead
+        Status::Available(r) if !r.installable() => open_release_page(app, &r),
         Status::Available(r) => {
             app.update.install_when_ready = true;
             app.update.quiet = false;
@@ -484,6 +566,9 @@ fn status_ui(app: &mut AnyVectorApp, ui: &mut egui::Ui, room: f32) {
         }
         Status::Available(r) => {
             ui.label(RichText::new(format!("AnyVector {} is available.", r.version)).strong());
+            if !r.installable() {
+                note(ui, "Click Open Release Page to download it.");
+            }
             release_notes(ui, &r, room);
         }
         Status::Downloading(r, p) => {
@@ -558,13 +643,24 @@ pub fn dialogs(app: &mut AnyVectorApp, ctx: &egui::Context) {
                         close = true;
                     }
                     // also while the setup downloads in the background: it installs when the download ends (issue #33)
-                    let (can_install, enabled) = match app.update.status {
+                    let (can_install, enabled) = match &app.update.status {
+                        // nothing this system installs (Linux): the page to download it from
+                        Status::Available(r) if !r.installable() => (false, false),
                         Status::Available(_) | Status::Ready(..) => (true, app.update.rx.is_none()),
                         Status::Downloading(..) => (true, !app.update.install_when_ready),
                         _ => (false, false),
                     };
                     if can_install && ok_button(ui, "Install Now", enabled) {
                         install_now(app);
+                    }
+                    let announced = match &app.update.status {
+                        Status::Available(r) if !r.installable() => Some(r.clone()),
+                        _ => None,
+                    };
+                    if let Some(r) = announced {
+                        if ok_button(ui, "Open Release Page", true) {
+                            open_release_page(app, &r);
+                        }
                     }
                     let busy = app.update.rx.is_some();
                     if ui.add_enabled(!busy, egui::Button::new("Check Now").min_size(vec2(90.0, 24.0))).clicked() {
@@ -604,6 +700,13 @@ fn prompt(app: &mut AnyVectorApp, ctx: &egui::Context) {
                 ui.add(egui::ProgressBar::new(*p).desired_width(ui.available_width()).show_percentage());
                 note(ui, "AnyVector closes to install it (it asks to save your drawings first) and starts again when it is done.");
             }
+            // nothing this system installs (Linux): the page to download it from
+            (Some(r), _) if !r.installable() => {
+                ui.label(RichText::new("There is a new version of AnyVector available.").strong().size(14.0));
+                ui.label(format!("New version: {}. Your version: {}.", r.version, current_version()));
+                ui.label("Click Open Release Page to download it.");
+                note(ui, "AnyVector cannot install updates by itself on Linux yet.");
+            }
             (Some(r), _) => {
                 ui.label(RichText::new("There is a new version of AnyVector available.").strong().size(14.0));
                 ui.label(format!("New version: {}. Your version: {}.", r.version, current_version()));
@@ -624,7 +727,12 @@ fn prompt(app: &mut AnyVectorApp, ctx: &egui::Context) {
                 if ui.add(egui::Button::new(if failed { "Close" } else { "Later" }).min_size(vec2(80.0, 24.0))).clicked() {
                     close = true;
                 }
-                if !failed && ok_button(ui, "OK", !installing) {
+                let announced = release.as_ref().filter(|r| !r.installable() && matches!(app.update.status, Status::Available(_)));
+                if let Some(r) = announced {
+                    if ok_button(ui, "Open Release Page", true) {
+                        open_release_page(app, r);
+                    }
+                } else if !failed && ok_button(ui, "OK", !installing) {
                     install_now(app);
                 }
             });
@@ -695,12 +803,53 @@ onto a second line.
                 { "name": "AnyVector-0.2.0-setup.exe", "browser_download_url": "https://x/AnyVector-0.2.0-setup.exe", "size": 17972048 }
             ]
         });
-        let r = release_from_json(&v, false).unwrap();
+        let r = release_for("windows", &v, false).unwrap();
         assert_eq!(r.version, "0.2.0");
         assert_eq!(r.asset_name, "AnyVector-0.2.0-setup.exe");
         assert_eq!(r.asset_url, "https://x/AnyVector-0.2.0-setup.exe");
         assert_eq!(r.asset_size, 17972048);
         let none = serde_json::json!({ "tag_name": "v0.2.0", "assets": [] });
-        assert!(release_from_json(&none, false).is_none());
+        assert!(release_for("windows", &none, false).is_none());
+        // Linux: the release is announced, with its page, and nothing to download (never the Windows setup)
+        let r = release_for("linux", &v, false).unwrap();
+        assert_eq!((r.version.as_str(), r.notes.as_str(), r.page.as_str()), ("0.2.0", "New tools", "https://github.com/toim22/AnyVector/releases/tag/v0.2.0"));
+        assert_eq!((r.asset_name.as_str(), r.asset_url.as_str(), r.asset_size), ("", "", 0));
+        assert!(!r.installable());
+        let r = release_for("linux", &none, true).unwrap();
+        assert_eq!((r.page.as_str(), r.via_gh), ("https://github.com/toim22/AnyVector/releases", true));
+        assert!(release_for("linux", &serde_json::json!({ "assets": [] }), false).is_none(), "a release needs its tag");
+        // this system: installable on Windows only
+        assert_eq!(release_from_json(&v, false).is_some_and(|r| r.installable()), cfg!(windows));
+        assert_eq!(release_from_json(&none, false).is_some(), !cfg!(windows));
+    }
+
+    #[test]
+    fn the_asset_each_system_installs() {
+        let names = ["AnyVector-0.7.0-x86_64.AppImage", "anyvector_0.7.0_amd64.deb", "AnyVector-0.7.0-Setup.exe", "AnyVector-0.7.0-setup.exe.sha256"];
+        assert_eq!(asset_for("windows", names), Some("AnyVector-0.7.0-Setup.exe"));
+        // nothing AnyVector installs by itself on Linux (yet), and never the Windows setup
+        for os in ["linux", "macos", "freebsd"] {
+            assert_eq!(asset_for(os, names), None, "{os}");
+            assert_eq!(asset_for(os, ["AnyVector-0.7.0-setup.exe"]), None, "{os}");
+        }
+        assert_eq!(asset_for("windows", ["notes.txt", "setup.exe"]), None);
+        let release = |asset: &str| Release { version: "9.9.9".into(), tag: "v9.9.9".into(), notes: String::new(), page: String::new(), asset_name: asset.into(), asset_url: String::new(), asset_size: 0, via_gh: false };
+        assert_eq!(release("AnyVector-9.9.9-setup.exe").installable(), cfg!(windows));
+        assert!(!release("").installable());
+    }
+
+    #[test]
+    fn updates_download_into_the_users_own_folder() {
+        let dir = download_dir();
+        if cfg!(windows) {
+            assert_eq!(dir, std::env::temp_dir().join("AnyVector Updates"));
+        } else {
+            // not the /tmp every user shares
+            assert!(dir.ends_with("AnyVector/Updates"), "{}", dir.display());
+            if let Some(cache) = dirs::cache_dir() {
+                assert!(dir.starts_with(cache), "{}", dir.display());
+            }
+        }
+        assert!(unusable_release().contains(if cfg!(windows) { "setup for Windows" } else { "No published release" }));
     }
 }

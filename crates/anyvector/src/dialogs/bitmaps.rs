@@ -251,7 +251,7 @@ pub fn edit_bitmap(app: &mut AnyVectorApp) {
         return;
     }
     let stamp = std::fs::metadata(&path).and_then(|m| m.modified()).ok();
-    let _ = std::process::Command::new("cmd").args(["/C", "start", ""]).arg(&path).spawn();
+    let _ = crate::platform::open_file(&path);
     app.dialogs.bm.edits.retain(|e| e.1 != t.obj);
     app.dialogs.bm.edits.push((path, t.obj, stamp));
     app.flash("Edit the bitmap and save it: AnyVector updates it.");

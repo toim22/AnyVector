@@ -1867,8 +1867,10 @@ Silhouette	Silhouette
 Tools ▸ Options ▸ Global ▸ Privacy ▸ AI Generate	Hilfsmittel ▸ Optionen ▸ Global ▸ Datenschutz ▸ KI-Generierung
 Environment	Umgebung
 Type the name of the environment variable first.	Geben Sie zuerst den Namen der Umgebungsvariablen ein.
+The name of the environment variable or the key has characters that cannot be saved.	Der Name der Umgebungsvariablen oder der Schlüssel enthält Zeichen, die nicht gespeichert werden können.
 Could not save the environment variable (error {}).	Die Umgebungsvariable konnte nicht gespeichert werden (Fehler {}).
 AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your Windows account, never in its own files.	Für die KI-Generierung ist ein API-Schlüssel erforderlich. Fügen Sie Ihren Schlüssel unter {} hinzu: AnyVector speichert ihn in der Umgebungsvariablen {} Ihres Windows-Kontos, niemals in eigenen Dateien.
+AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your user account, never in its settings or documents.	Für die KI-Generierung ist ein API-Schlüssel erforderlich. Fügen Sie Ihren Schlüssel unter {} hinzu: AnyVector speichert ihn in der Umgebungsvariablen {} Ihres Benutzerkontos, niemals in seinen Einstellungen oder Dokumenten.
 Generating...	Wird generiert...
 Could not reach the AI service: {}	Der KI-Dienst ist nicht erreichbar: {}
 Invalid response from the AI service: {}	Ungültige Antwort vom KI-Dienst: {}
@@ -1995,6 +1997,8 @@ The page no longer exists.	Die Seite existiert nicht mehr.
 The object no longer exists.	Das Objekt existiert nicht mehr.
 Nothing to export	Nichts zu exportieren
 No scanner or camera was found. Connect a WIA device and try again.	Kein Scanner und keine Kamera gefunden. Schließen Sie ein WIA-Gerät an und versuchen Sie es erneut.
+Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	Scannen ist in AnyVector unter Linux noch nicht verfügbar. Scannen Sie das Bild mit dem Scanprogramm Ihres Systems (zum Beispiel Dokumentenscanner oder XSane), speichern Sie es und holen Sie es mit Datei ▸ Importieren in die Zeichnung.
+Select WIA Source	WIA-Quelle auswählen
 The image could not be acquired:\n{}	Das Bild konnte nicht erfasst werden:\n{}
 All File Formats	Alle Dateiformate
 Open Drawing	Zeichnung öffnen
@@ -2029,6 +2033,7 @@ Could not save the drawing: {}	Die Zeichnung konnte nicht gespeichert werden: {}
 No mail program accepted the attachment; the drawing is ready to attach to your message.	Kein E-Mail-Programm hat den Anhang angenommen; die Zeichnung kann an Ihre Nachricht angehängt werden.
 the Desktop	Desktop
 Documents	Dokumente
+Mail Recipient	E-Mail-Empfänger
 Select at least one record in the print merge data.	Wählen Sie in den Seriendruckdaten mindestens einen Datensatz aus.
 Click the object to copy the effect from.	Klicken Sie auf das Objekt, von dem der Effekt kopiert werden soll.
 Click the object to place the selection in front of.	Klicken Sie auf das Objekt, vor dem die Auswahl platziert werden soll.
@@ -2738,9 +2743,14 @@ Display	Anzeige
 Printing	Drucken
 AnyVector EXEs & DLLs	AnyVector-EXEs und -DLLs
 System DLLs	System-DLLs
+AnyVector Programs & Libraries	AnyVector-Programme und -Bibliotheken
+System Libraries	Systembibliotheken
 {} GB	{} GB
 AnyVector {} - System Info	AnyVector {} - Systeminfo
 Platform:	Plattform:
+Kernel:	Kernel:
+Session type:	Sitzungstyp:
+Locale:	Gebietsschema:
 Processor:	Prozessor:
 Number of Processors:	Anzahl der Prozessoren:
 Math Coprocessor:	Mathematischer Koprozessor:
@@ -2754,6 +2764,7 @@ Total memory used by app:	Von der Anwendung belegter Speicher:
 GDI Object Count:	Anzahl GDI-Objekte:
 User Object Count:	Anzahl Benutzerobjekte:
 Available space on drive {}	Verfügbarer Speicherplatz auf Laufwerk {}
+Available space in {}:	Verfügbarer Speicherplatz in {}:
 Windows Directory:	Windows-Verzeichnis:
 TEMP directory:	TEMP-Verzeichnis:
 Application directory:	Anwendungsverzeichnis:
@@ -2789,6 +2800,7 @@ Keep the product up to date (recommended)	Produkt auf dem neuesten Stand halten 
 Check for updates and let me choose when to install them	Nach Updates suchen und mich entscheiden lassen, wann sie installiert werden
 Never check for updates	Nie nach Updates suchen
 Automatically downloads product updates, but prompts you before installing them.	Lädt Produktupdates automatisch herunter, fragt aber vor der Installation nach.
+AnyVector looks for a new version at every start and tells you when one is available.	AnyVector sucht bei jedem Start nach einer neuen Version und meldet, wenn eine verfügbar ist.
 AnyVector tells you when a new version is available; you choose when to download and install it.	AnyVector meldet, wenn eine neue Version verfügbar ist; Sie entscheiden, wann sie heruntergeladen und installiert wird.
 AnyVector never connects to the Internet to look for updates. Help ▸ Updates still checks when you ask.	AnyVector stellt nie eine Internetverbindung her, um nach Updates zu suchen. Hilfe ▸ Updates sucht weiterhin, wenn Sie es anfordern.
 An Internet connection is required. Please connect to the Internet and try again.	Eine Internetverbindung ist erforderlich. Stellen Sie eine Verbindung zum Internet her und versuchen Sie es erneut.
@@ -2813,6 +2825,9 @@ The update will be installed when AnyVector closes.	Das Update wird beim Schlie�
 Allow product updates:	Produktupdates zulassen:
 Release Notes	Versionshinweise
 Install Now	Jetzt installieren
+Open Release Page	Versionsseite öffnen
+Click Open Release Page to download it.	Klicken Sie auf „Versionsseite öffnen“, um sie herunterzuladen.
+AnyVector cannot install updates by itself on Linux yet.	AnyVector kann Updates unter Linux noch nicht selbst installieren.
 Check Now	Jetzt suchen
 Later	Später
 There is a new version of AnyVector available.	Eine neue Version von AnyVector ist verfügbar.
@@ -3942,9 +3957,11 @@ Save Key	Schlüssel speichern
 Remove Key	Schlüssel entfernen
 The key was removed from the {} environment variable.	Der Schlüssel wurde aus der Umgebungsvariablen {} entfernt.
 The key was saved in the {} environment variable of your Windows account. AI Generate is ready.	Der Schlüssel wurde in der Umgebungsvariablen {} Ihres Windows-Kontos gespeichert. Die KI-Generierung ist bereit.
+The key was saved in the {} environment variable of your user account. AI Generate is ready.	Der Schlüssel wurde in der Umgebungsvariablen {} Ihres Benutzerkontos gespeichert. Die KI-Generierung ist bereit.
 An API key was found in this environment variable.	In dieser Umgebungsvariablen wurde ein API-Schlüssel gefunden.
 AI Generate needs an API key. Paste it above and click Save Key, or set this environment variable yourself.	Für die KI-Generierung ist ein API-Schlüssel erforderlich. Fügen Sie ihn oben ein und klicken Sie auf „Schlüssel speichern“, oder legen Sie diese Umgebungsvariable selbst fest.
 Save Key writes the key into this environment variable of your Windows account, right away. AnyVector never saves the key in its own settings or documents.	„Schlüssel speichern“ schreibt den Schlüssel sofort in diese Umgebungsvariable Ihres Windows-Kontos. AnyVector speichert den Schlüssel niemals in eigenen Einstellungen oder Dokumenten.
+Save Key writes the key into this environment variable of your user account ({}), right away; other programs see it after you log in again. AnyVector never saves the key in its own settings or documents.	„Schlüssel speichern“ schreibt den Schlüssel sofort in diese Umgebungsvariable Ihres Benutzerkontos ({}); andere Programme sehen ihn nach der nächsten Anmeldung. AnyVector speichert den Schlüssel niemals in eigenen Einstellungen oder Dokumenten.
 A reduced set of common tools for new users.	Ein reduzierter Satz gängiger Hilfsmittel für neue Benutzer.
 The standard layout with all toolbars, the toolbox and dockers.	Das Standardlayout mit allen Symbolleisten, der Hilfsmittelpalette und den Andockfenstern.
 Large controls for touch, stylus and dial use.	Große Steuerelemente für Touch, Eingabestift und Drehregler.
@@ -4068,6 +4085,7 @@ Horizon:	Horizont:
 Fill page	Seite füllen
 The perspective field covers the page	Das Perspektivfeld bedeckt die Seite
 Bitmap image	Bitmapbild
+PNG image	PNG-Bild
 Rich Text Document	Rich-Text-Dokument
 Text Document	Textdokument
 Data	Daten

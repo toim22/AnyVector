@@ -251,7 +251,7 @@ fn script_editor(app: &mut AnyVectorApp, ctx: &egui::Context) {
                 st = ScriptEditorState { code: SCRIPT_TEMPLATE.to_string(), ..Default::default() };
             }
             if ui.button("Open...").clicked() {
-                if let Some(p) = rfd::FileDialog::new().add_filter("AnyVector script", &["rhai", "vsc"]).set_directory(crate::scripting::scripts_dir()).pick_file() {
+                if let Some(p) = rfd::FileDialog::new().add_filter("AnyVector script", &vector_io::paths::dialog_extensions(&["rhai", "vsc"])).set_directory(crate::scripting::scripts_dir()).pick_file() {
                     if let Ok(t) = std::fs::read_to_string(&p) {
                         st.code = t;
                         st.path = Some(p);

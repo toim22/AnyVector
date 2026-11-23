@@ -16,12 +16,44 @@ pub struct MergeState {
     /// Single-record view: the record shown; None = all records.
     pub single: Option<usize>,
     pub selected_only: bool,
+    /// The data source looked up by name when its stored path is gone: (source, drawing folder,
+    /// file found).
+    moved_source: Option<(String, Option<std::path::PathBuf>, Option<std::path::PathBuf>)>,
 }
 
 impl MergeState {
     pub fn new(data: Option<PrintMerge>) -> MergeState {
-        MergeState { data: data.unwrap_or_default(), field: 0, new_name: String::new(), new_kind: 0, single: None, selected_only: false }
+        MergeState { data: data.unwrap_or_default(), field: 0, new_name: String::new(), new_kind: 0, single: None, selected_only: false, moved_source: None }
     }
+
+    /// The data source file to sync with: the stored path when it is there, else a file of that
+    /// name (any case) next to the drawing, as when the drawing and its data were copied from
+    /// another computer (`C:\Users\…\Merge data.csv` read on Linux). The search is made once per
+    /// source and drawing folder, not at every frame.
+    fn source_file(&mut self, drawing_dir: Option<&std::path::Path>) -> Option<std::path::PathBuf> {
+        let src = self.data.source.clone()?;
+        let stored = std::path::Path::new(&src);
+        if stored.exists() {
+            return Some(stored.to_path_buf());
+        }
+        let dir = drawing_dir.map(std::path::Path::to_path_buf);
+        if self.moved_source.as_ref().is_none_or(|(s, d, _)| *s != src || *d != dir) {
+            let dirs: Vec<&std::path::Path> = drawing_dir.into_iter().collect();
+            let found = vector_io::paths::resolve_stored_path(&src, &dirs);
+            self.moved_source = Some((src, dir, found));
+        }
+        self.moved_source.as_ref().and_then(|(_, _, p)| p.clone()).filter(|p| p.exists())
+    }
+}
+
+/// The text of a CSV/TXT data source: UTF-8, else one byte per character (files saved in the
+/// Windows code page, as spreadsheets often save them).
+fn read_data_source(p: &std::path::Path) -> std::io::Result<String> {
+    let bytes = std::fs::read(p)?;
+    Ok(match String::from_utf8(bytes) {
+        Ok(text) => text,
+        Err(e) => e.into_bytes().iter().map(|b| *b as char).collect(),
+    })
 }
 
 const KINDS: [&str; 3] = ["Text", "Numeric", "Path"];
@@ -42,14 +74,14 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
     let mut ok = false;
     let mut cancel = false;
     let mut insert: Option<String> = None;
+    let drawing_dir = app.doc().and_then(|d| d.path.as_deref()).and_then(|p| p.parent()).map(|p| p.to_path_buf());
     let ((), dismissed) = window(ctx, "print_merge", "Print Merge", vec2(760.0, 540.0), |ui| {
         ui.add_space(8.0);
         ui.horizontal(|ui| {
             if ui.button("Import Data Source...").clicked() {
-                if let Some(p) = rfd::FileDialog::new().add_filter("Data source (*.csv;*.txt)", &["csv", "txt"]).pick_file() {
-                    match std::fs::read(&p) {
-                        Ok(bytes) => {
-                            let text = String::from_utf8(bytes.clone()).unwrap_or_else(|_| bytes.iter().map(|b| *b as char).collect());
+                if let Some(p) = rfd::FileDialog::new().add_filter("Data source (*.csv;*.txt)", &vector_io::paths::dialog_extensions(&["csv", "txt"])).pick_file() {
+                    match read_data_source(&p) {
+                        Ok(text) => {
                             st.data = PrintMerge::parse(&text);
                             st.data.source = Some(p.display().to_string());
                             st.field = 0;
@@ -59,9 +91,9 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
                     }
                 }
             }
-            let sync = st.data.source.clone();
-            if ui.add_enabled(sync.as_ref().map(|s| std::path::Path::new(s).exists()).unwrap_or(false), egui::Button::new("Sync with data source")).clicked() {
-                if let Some(text) = sync.and_then(|s| std::fs::read_to_string(&s).ok()) {
+            let sync = st.source_file(drawing_dir.as_deref());
+            if ui.add_enabled(sync.is_some(), egui::Button::new("Sync with data source")).clicked() {
+                if let Some(text) = sync.and_then(|p| read_data_source(&p).ok()) {
                     let src = st.data.source.clone();
                     st.data = PrintMerge::parse(&text);
                     st.data.source = src;
@@ -277,4 +309,39 @@ fn insert_field(app: &mut AnyVectorApp, name: &str) {
     let id = d.doc.new_id();
     let o = vector_core::Object::new(id, vector_core::ObjKind::Text(vector_core::text::TextObj::artistic(&text, fmt)), kurbo::Affine::translate((center.x - 40.0, center.y)), vector_core::Style::text_default());
     d.add_objects("Insert Field", vec![o]);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A drawing with print merge data, copied with its CSV from a Windows computer: Sync finds
+    /// the CSV next to the drawing, whatever the case of its name, and reads it like Import does
+    /// (UTF-8, else the Windows code page byte by byte).
+    #[test]
+    fn data_source_found_next_to_a_moved_drawing() {
+        let dir = std::env::temp_dir().join(format!("anyvector-merge-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("Merge Data.CSV"), b"Name,City\nJos\xe9,S\xe3o Paulo\n").unwrap();
+        let mut st = MergeState::new(Some(PrintMerge { source: Some(r"C:\Users\ana\Documents\merge data.csv".into()), ..Default::default() }));
+        let found = st.source_file(Some(&dir)).expect("the CSV next to the drawing");
+        assert!(found.starts_with(&dir));
+        let text = read_data_source(&found).unwrap();
+        assert!(text.contains("Jos\u{e9}") && text.contains("S\u{e3}o Paulo"), "{text}");
+        let data = PrintMerge::parse(&text);
+        assert_eq!(data.fields.len(), 2);
+        assert_eq!(data.records.len(), 1);
+        // the search is kept; a source that is nowhere gives nothing
+        assert_eq!(st.source_file(Some(&dir)), Some(found.clone()));
+        st.data.source = Some(r"C:\Elsewhere\other.csv".into());
+        assert_eq!(st.source_file(Some(&dir)), None);
+        // an unsaved drawing has no folder to look in
+        st.data.source = Some(r"C:\Users\ana\Documents\merge data.csv".into());
+        assert_eq!(st.source_file(None), None);
+        // the stored path itself, when it is there
+        st.data.source = Some(found.to_string_lossy().to_string());
+        assert_eq!(st.source_file(None), Some(found));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

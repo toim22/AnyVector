@@ -516,7 +516,7 @@ fn act(app: &mut AnyVectorApp, r: &str) {
         }
         "location" => {
             if let Some(p) = sel {
-                let _ = std::process::Command::new("explorer").arg(format!("/select,{}", p.display())).spawn();
+                crate::platform::reveal(&p);
             }
         }
         "properties" => {
@@ -538,7 +538,7 @@ fn act(app: &mut AnyVectorApp, r: &str) {
         "edit" => {
             if let Some(p) = sel {
                 if is_raster(&p) {
-                    let _ = std::process::Command::new("cmd").args(["/C", "start", "", &p.to_string_lossy()]).spawn();
+                    let _ = crate::platform::open_file(&p);
                 } else {
                     app.open_path(&p);
                 }

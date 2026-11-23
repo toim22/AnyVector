@@ -136,7 +136,7 @@ pub fn send(app: &mut AnyVectorApp, mut job: printing::Job) {
     }
     if job.settings.to_file {
         let ext = "prn";
-        let name = format!("{}.{ext}", job.title.trim_end_matches(".cdr"));
+        let name = format!("{}.{ext}", vector_io::paths::strip_extension(&job.title, &["cdr"]));
         match rfd::FileDialog::new().set_title("Print to File").add_filter("Print file (*.prn)", &["prn"]).add_filter("PostScript file (*.ps)", &["ps"]).set_file_name(name).save_file() {
             Some(p) => job.file = Some(p),
             None => return,
@@ -366,7 +366,7 @@ fn general(ui: &mut Ui, st: &mut PrintState, has_sel: bool, doc_names: &[String]
                 }
             }
             if ui.selectable_label(false, "Browse...").clicked() {
-                if let Some(p) = rfd::FileDialog::new().add_filter("Print style (*.prs)", &["prs"]).set_directory(printing::styles_dir()).pick_file() {
+                if let Some(p) = rfd::FileDialog::new().add_filter("Print style (*.prs)", &vector_io::paths::dialog_extensions(&["prs"])).set_directory(printing::styles_dir()).pick_file() {
                     if let Some(s) = printing::load_style(&p) {
                         chosen = Some((p.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default(), s));
                     }

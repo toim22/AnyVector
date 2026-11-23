@@ -3,6 +3,7 @@
 
 use crate::{image_io, IoError, Result};
 use kurbo::{Affine, BezPath, Point, Shape};
+use std::path::Path;
 use std::sync::{Arc, OnceLock};
 use tiny_skia::PathSegment;
 use vector_core::color::Color;
@@ -38,12 +39,78 @@ fn fontdb() -> Arc<usvg::fontdb::Database> {
 }
 
 pub fn parse_tree(data: &[u8]) -> Result<usvg::Tree> {
-    let opt = usvg::Options { fontdb: fontdb(), ..Default::default() };
+    parse_tree_in(data, None)
+}
+
+/// [`parse_tree`] for an SVG file in `dir`: its linked images (`<image href="images/logo.png">`)
+/// are read from beside it rather than from the working folder, and a link written on another
+/// system (`images\logo.png`, `C:\Art\Logo.png`, `file:///C:/Art/logo.png`, or a name in another
+/// case) is looked for there by name.
+fn parse_tree_in(data: &[u8], dir: Option<&Path>) -> Result<usvg::Tree> {
+    let mut opt = usvg::Options { fontdb: fontdb(), resources_dir: dir.map(Path::to_path_buf), ..Default::default() };
+    if let Some(dir) = dir.map(Path::to_path_buf) {
+        let default = usvg::ImageHrefResolver::default_string_resolver();
+        opt.image_href_resolver.resolve_string = Box::new(move |href: &str, o: &usvg::Options| {
+            default(href, o).or_else(|| {
+                let found = crate::paths::resolve_stored_path(&file_url_path(href)?, &[dir.as_path()])?;
+                default(&found.to_string_lossy(), o)
+            })
+        });
+    }
     usvg::Tree::from_data(data, &opt).map_err(|e| IoError::Format(e.to_string()))
 }
 
+/// The path in an image link: the link itself, or the path of a `file:` URL with `%20` and the
+/// like decoded (`file:///C:/My%20Art/a.png` gives `C:/My Art/a.png`, `file:///home/a.png` gives
+/// `/home/a.png`). None for other URLs (`http:`, …), which are not read.
+fn file_url_path(href: &str) -> Option<String> {
+    let is_file_url = href.get(..5).is_some_and(|s| s.eq_ignore_ascii_case("file:"));
+    if !is_file_url {
+        // `C:\…` has a drive letter, not a scheme
+        let scheme = href.split_once(':').map(|(s, _)| s).unwrap_or("");
+        let url = scheme.len() > 1 && scheme.chars().all(|c| c.is_ascii_alphanumeric() || "+-.".contains(c));
+        return (!url).then(|| href.to_string());
+    }
+    let mut rest = &href[5..];
+    rest = rest.strip_prefix("//").unwrap_or(rest);
+    let b = rest.as_bytes();
+    if b.len() >= 3 && b[0] == b'/' && b[1].is_ascii_alphabetic() && b[2] == b':' {
+        rest = &rest[1..];
+    }
+    let bytes = rest.as_bytes();
+    let hex = |b: Option<&u8>| b.and_then(|b| (*b as char).to_digit(16));
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        match (bytes[i], hex(bytes.get(i + 1)), hex(bytes.get(i + 2))) {
+            (b'%', Some(h), Some(l)) => {
+                out.push((h * 16 + l) as u8);
+                i += 3;
+            }
+            (c, _, _) => {
+                out.push(c);
+                i += 1;
+            }
+        }
+    }
+    Some(String::from_utf8_lossy(&out).into_owned())
+}
+
+/// Open an SVG file as a document; images it links are read from beside it.
+pub fn document_from_svg_file(path: &Path) -> Result<Document> {
+    document_from_svg_in(&std::fs::read(path)?, path.parent())
+}
+
+/// [`document_from_svg`] for an SVG read from folder `dir` (see [`parse_tree_in`]).
+pub fn document_from_svg_in(data: &[u8], dir: Option<&Path>) -> Result<Document> {
+    document_from_tree(parse_tree_in(data, dir)?)
+}
+
 pub fn document_from_svg(data: &[u8]) -> Result<Document> {
-    let tree = parse_tree(data)?;
+    document_from_tree(parse_tree(data)?)
+}
+
+fn document_from_tree(tree: usvg::Tree) -> Result<Document> {
     let size = tree.size();
     let mut doc = Document::new((size.width() as f64 * PX).max(1.0), (size.height() as f64 * PX).max(1.0));
     let mut objs = vec![];
@@ -347,5 +414,17 @@ mod tests {
             }
             assert_eq!(text_width(windows), text_width(open), "{windows}");
         }
+    }
+
+    #[test]
+    fn image_links_give_paths() {
+        assert_eq!(file_url_path("images/logo.png").as_deref(), Some("images/logo.png"));
+        assert_eq!(file_url_path(r"C:\Art\Logo.png").as_deref(), Some(r"C:\Art\Logo.png"));
+        assert_eq!(file_url_path("file:///C:/My%20Art/a.png").as_deref(), Some("C:/My Art/a.png"));
+        assert_eq!(file_url_path("FILE:///c:/x.png").as_deref(), Some("c:/x.png"));
+        assert_eq!(file_url_path("file:///home/ana/a%2Bb.png").as_deref(), Some("/home/ana/a+b.png"));
+        assert_eq!(file_url_path("file:/home/ana/a.png").as_deref(), Some("/home/ana/a.png"));
+        assert_eq!(file_url_path("100%.png").as_deref(), Some("100%.png"));
+        assert_eq!(file_url_path("https://example.com/a.png"), None);
     }
 }

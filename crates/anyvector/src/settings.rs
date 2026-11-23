@@ -1,4 +1,5 @@
-//! Application settings (Tools > Options), persisted as JSON in %APPDATA%\AnyVector\settings.json.
+//! Application settings (Tools > Options), persisted as JSON in %APPDATA%\AnyVector\settings.json
+//! (on Linux `$XDG_CONFIG_HOME/AnyVector/settings.json`, normally `~/.config/AnyVector`).
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -847,8 +848,9 @@ pub fn config_dir() -> PathBuf {
     d
 }
 
-/// The user's Windows regional settings: the measurement system (0 metric, 1 U.S.) and the
-/// paper size (1 Letter, 5 Legal, 8 A3, 9 A4), when Windows gives them.
+/// The user's regional settings: the measurement system (0 metric, 1 U.S.) and the paper size
+/// (1 Letter, 5 Legal, 8 A3, 9 A4), when the system gives them: Windows' regional settings, or on
+/// Linux the locale (`LC_MEASUREMENT`, `LC_PAPER`, see `i18n::region_from_locale_env`).
 pub fn system_region() -> Option<(u32, u32)> {
     #[cfg(windows)]
     {
@@ -864,6 +866,10 @@ pub fn system_region() -> Option<(u32, u32)> {
         };
         let measure = read(LOCALE_IMEASURE)?;
         return Some((measure, read(LOCALE_IPAPERSIZE).unwrap_or(0)));
+    }
+    #[cfg(not(windows))]
+    {
+        return crate::i18n::region_from_locale_env(|name| std::env::var(name).ok());
     }
     #[allow(unreachable_code)]
     None
@@ -881,7 +887,7 @@ impl Settings {
     pub fn load() -> Settings {
         let path = Self::path();
         // a new install (no settings yet) starts in the unit and page size of the Windows
-        // regional settings (#120); an existing settings file is never changed
+        // regional settings or the Linux locale (#120); an existing settings file is never changed
         let first_run = !cfg!(test) && !path.exists();
         let mut s: Settings = std::fs::read(&path).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default();
         if first_run {
