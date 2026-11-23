@@ -1995,6 +1995,8 @@ The page no longer exists.	La page n'existe plus.
 The object no longer exists.	L'objet n'existe plus.
 Nothing to export	Rien à exporter
 No scanner or camera was found. Connect a WIA device and try again.	Aucun scanner ni appareil photo n'a été trouvé. Connectez un périphérique WIA et réessayez.
+Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	La numérisation n'est pas encore disponible dans AnyVector sous Linux. Numérisez l'image avec le programme de numérisation du système (par exemple Numériseur de documents ou XSane), enregistrez-la, puis ajoutez-la au dessin avec Fichier ▸ Importer.
+Select WIA Source	Sélectionner la source WIA
 The image could not be acquired:\n{}	Impossible d'acquérir l'image :\n{}
 All File Formats	Tous les formats de fichier
 Open Drawing	Ouvrir un dessin
@@ -2029,6 +2031,7 @@ Could not save the drawing: {}	Impossible d'enregistrer le dessin : {}
 No mail program accepted the attachment; the drawing is ready to attach to your message.	Aucun programme de messagerie n'a accepté la pièce jointe ; le dessin est prêt à être joint à votre message.
 the Desktop	le Bureau
 Documents	Documents
+Mail Recipient	Destinataire
 Select at least one record in the print merge data.	Sélectionnez au moins un enregistrement dans les données de fusion d'impression.
 Click the object to copy the effect from.	Cliquez sur l'objet dont vous voulez copier l'effet.
 Click the object to place the selection in front of.	Cliquez sur l'objet devant lequel placer la sélection.
@@ -4068,6 +4071,7 @@ Horizon:	Horizon :
 Fill page	Remplir la page
 The perspective field covers the page	Le champ de perspective couvre la page
 Bitmap image	Image bitmap
+PNG image	Image PNG
 Rich Text Document	Document RTF
 Text Document	Document texte
 Data	Données

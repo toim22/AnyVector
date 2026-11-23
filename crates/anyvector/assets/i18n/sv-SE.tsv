@@ -1995,6 +1995,8 @@ The page no longer exists.	Sidan finns inte längre.
 The object no longer exists.	Objektet finns inte längre.
 Nothing to export	Inget att exportera
 No scanner or camera was found. Connect a WIA device and try again.	Ingen skanner eller kamera hittades. Anslut en WIA-enhet och försök igen.
+Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	Skanning är ännu inte tillgänglig i AnyVector på Linux. Skanna bilden med systemets skanningsprogram (till exempel Dokumentskanner eller XSane), spara den och hämta in den i teckningen med Arkiv ▸ Importera.
+Select WIA Source	Välj WIA-källa
 The image could not be acquired:\n{}	Det gick inte att hämta bilden:\n{}
 All File Formats	Alla filformat
 Open Drawing	Öppna ritning
@@ -2029,6 +2031,7 @@ Could not save the drawing: {}	Det gick inte att spara ritningen: {}
 No mail program accepted the attachment; the drawing is ready to attach to your message.	Inget e-postprogram tog emot bilagan. Ritningen är klar att bifoga i ditt meddelande.
 the Desktop	skrivbordet
 Documents	Dokument
+Mail Recipient	E-postmottagare
 Select at least one record in the print merge data.	Markera minst en post i utskriftskopplingens data.
 Click the object to copy the effect from.	Klicka på objektet som effekten ska kopieras från.
 Click the object to place the selection in front of.	Klicka på objektet som markeringen ska placeras framför.
@@ -4068,6 +4071,7 @@ Horizon:	Horisont:
 Fill page	Fyll sidan
 The perspective field covers the page	Perspektivfältet täcker sidan
 Bitmap image	Bitmappsbild
+PNG image	PNG-bild
 Rich Text Document	RTF-dokument
 Text Document	Textdokument
 Data	Data
