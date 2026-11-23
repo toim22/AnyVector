@@ -228,10 +228,16 @@ pub fn styles_dir() -> PathBuf {
 
 /// The saved print styles, by name.
 pub fn style_names() -> Vec<String> {
-    let mut v: Vec<String> = std::fs::read_dir(styles_dir())
-        .map(|rd| rd.flatten().filter(|e| e.path().extension().map(|x| x == "prs").unwrap_or(false)).filter_map(|e| e.path().file_stem().map(|s| s.to_string_lossy().to_string())).collect())
+    style_names_in(&styles_dir())
+}
+
+/// The print styles (`.prs` files, the extension in any case) of `dir`, by name.
+fn style_names_in(dir: &std::path::Path) -> Vec<String> {
+    let mut v: Vec<String> = std::fs::read_dir(dir)
+        .map(|rd| rd.flatten().map(|e| e.path()).filter(|p| vector_io::paths::has_extension(p, &["prs"])).filter_map(|p| p.file_stem().map(|s| s.to_string_lossy().to_string())).collect())
         .unwrap_or_default();
     v.sort();
+    v.dedup();
     v
 }
 
@@ -240,7 +246,23 @@ pub fn load_style(path: &std::path::Path) -> Option<PrintSettings> {
 }
 
 pub fn style_path(name: &str) -> PathBuf {
-    styles_dir().join(format!("{name}.prs"))
+    style_path_in(&styles_dir(), name)
+}
+
+/// The file of the print style `name` in `dir`: `name.prs`, else the style file whose name
+/// differs only in case, as Windows finds it (Linux tells `Poster.PRS` from `Poster.prs`): one
+/// with the same name first. A new style is `name.prs`.
+fn style_path_in(dir: &std::path::Path, name: &str) -> PathBuf {
+    let exact = dir.join(format!("{name}.prs"));
+    if exact.exists() {
+        return exact;
+    }
+    let stem = |p: &PathBuf| p.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+    let mut hits: Vec<PathBuf> = std::fs::read_dir(dir)
+        .map(|rd| rd.flatten().map(|e| e.path()).filter(|p| vector_io::paths::has_extension(p, &["prs"]) && stem(p).to_lowercase() == name.to_lowercase()).collect())
+        .unwrap_or_default();
+    hits.sort_by_key(|p| (stem(p) != name, p.clone()));
+    hits.into_iter().next().unwrap_or(exact)
 }
 
 pub fn save_style(path: &std::path::Path, st: &PrintSettings) -> std::io::Result<()> {
@@ -1032,5 +1054,26 @@ mod tests {
         let sheets = layout(&st, &[(0, 0, 612.0, 792.0, Rect::new(0.0, 0.0, 612.0, 792.0))], &|_| paper);
         let pm = render_sheet(&jd, &sheets[0].0, &paper, &st, 1, 36.0).unwrap();
         assert_eq!((pm.width(), pm.height()), (306, 396));
+    }
+
+    /// Print styles whose extension is in capitals (copied from another computer) are listed and
+    /// opened on Linux as on Windows.
+    #[test]
+    fn print_styles_with_capital_extensions() {
+        let dir = std::env::temp_dir().join(format!("anyvector-prs-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let st = PrintSettings { copies: 3, ..Default::default() };
+        save_style(&dir.join("Poster.PRS"), &st).unwrap();
+        save_style(&dir.join("Proof.prs"), &PrintSettings::default()).unwrap();
+        std::fs::write(dir.join("notes.txt"), "not a style").unwrap();
+        assert_eq!(style_names_in(&dir), ["Poster", "Proof"]);
+        let p = style_path_in(&dir, "Poster");
+        assert!(p.is_file(), "{p:?}");
+        assert_eq!(load_style(&p).map(|s| s.copies), Some(3));
+        assert!(style_path_in(&dir, "Proof").is_file());
+        // a style saved under a new name is `name.prs`
+        assert_eq!(style_path_in(&dir, "New"), dir.join("New.prs"));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
