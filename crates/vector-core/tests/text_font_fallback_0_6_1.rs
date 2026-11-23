@@ -52,6 +52,31 @@ fn symbols_show_in_a_symbol_face() {
     }
 }
 
+/// Where Windows' script faces (Nirmala UI, Leelawadee UI, Malgun Gothic, Microsoft YaHei...)
+/// aren't installed, the free faces Linux distributions install for each script show it.
+#[test]
+fn other_scripts_show_in_the_installed_free_faces() {
+    let installed = fonts().lock().families().to_vec();
+    let has = |names: &[&str]| names.iter().any(|n| installed.iter().any(|f| f == n));
+    let scripts: [(char, &[&str]); 6] = [
+        ('क', &["Noto Sans Devanagari", "Lohit Devanagari"]),
+        ('ก', &["Noto Sans Thai", "Noto Sans Thai Looped", "Loma", "Garuda"]),
+        ('한', &["Noto Sans CJK KR", "UnDotum", "Baekmuk Gulim", "WenQuanYi Micro Hei", "Droid Sans Fallback"]),
+        ('中', &["Noto Sans CJK SC", "WenQuanYi Micro Hei", "Droid Sans Fallback"]),
+        ('ب', &["Noto Sans Arabic", "Noto Naskh Arabic", "DejaVu Sans"]),
+        ('א', &["Noto Sans Hebrew", "DejaVu Sans"]),
+    ];
+    for (c, free) in scripts {
+        if fallback(c).is_none() {
+            assert!(cfg!(windows) || !has(free), "{c:?} is in a free face that is installed");
+            eprintln!("no font with {c:?} on this computer; skipped");
+            continue;
+        }
+        let lay = vt::layout(&TextObj::artistic(&format!("A{c}B"), fmt("Arial", 100.0)));
+        assert!(lay.glyphs.iter().any(|g| g.char_index == 1 && !g.path.elements().is_empty()), "{c:?} has a glyph");
+    }
+}
+
 #[test]
 fn covered_text_is_shaped_as_before() {
     // characters the font has never look for another face: spaces, accents, Vietnamese

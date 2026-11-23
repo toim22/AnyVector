@@ -1358,14 +1358,19 @@ fn fallback_families(c: char) -> (&'static [&'static str], &'static [&'static st
     const CJK: &[&str] = &["Yu Gothic", "Meiryo", "MS Gothic", "Microsoft YaHei", "Microsoft JhengHei", "SimSun", "Hiragino Sans", "PingFang SC", "Noto Sans CJK JP", "Noto Sans JP", "Source Han Sans", "Malgun Gothic"];
     const THAI: &[&str] = &["Leelawadee UI", "Tahoma", "Thonburi", "Noto Sans Thai"];
     const INDIC: &[&str] = &["Nirmala UI", "Kohinoor Devanagari", "Noto Sans Devanagari"];
-    const KOREAN_FREE: &[&str] = &["UnDotum"];
+    const KOREAN_FREE: &[&str] = &["UnDotum", "Baekmuk Gulim", "WenQuanYi Micro Hei", "WenQuanYi Zen Hei", "Droid Sans Fallback"];
     const CJK_FREE: &[&str] = &["Noto Sans CJK SC", "Noto Sans CJK TC", "IPAGothic", "WenQuanYi Micro Hei", "WenQuanYi Zen Hei", "Droid Sans Fallback"];
-    const THAI_FREE: &[&str] = &["Noto Sans Thai Looped"];
+    const THAI_FREE: &[&str] = &["Noto Sans Thai Looped", "Noto Looped Thai", "Loma", "Garuda", "Norasi"];
+    const INDIC_FREE: &[&str] = &[
+        "Lohit Devanagari", "Noto Sans Bengali", "Lohit Bengali", "Noto Sans Gurmukhi", "Lohit Gurmukhi", "Noto Sans Gujarati", "Lohit Gujarati",
+        "Noto Sans Oriya", "Lohit Odia", "Noto Sans Tamil", "Lohit Tamil", "Noto Sans Telugu", "Lohit Telugu", "Noto Sans Kannada", "Lohit Kannada",
+        "Noto Sans Malayalam", "Lohit Malayalam", "Noto Sans Sinhala",
+    ];
     match c as u32 {
         0x1100..=0x11FF | 0x3130..=0x318F | 0xA960..=0xA97F | 0xAC00..=0xD7FF => (KOREAN, KOREAN_FREE),
         0x2E80..=0x2FDF | 0x3000..=0x30FF | 0x31C0..=0x31FF | 0x3200..=0x33FF | 0x3400..=0x4DBF | 0x4E00..=0x9FFF | 0xF900..=0xFAFF | 0xFE30..=0xFE4F | 0xFF00..=0xFFEF | 0x20000..=0x3FFFF => (CJK, CJK_FREE),
         0x0E00..=0x0EFF => (THAI, THAI_FREE),
-        0x0900..=0x0DFF => (INDIC, &[]),
+        0x0900..=0x0DFF => (INDIC, INDIC_FREE),
         _ => (&[], &[]),
     }
 }
@@ -1374,9 +1379,15 @@ fn fallback_families(c: char) -> (&'static [&'static str], &'static [&'static st
 const FALLBACK_ANY: &[&str] = &["Segoe UI", "Arial Unicode MS", "Segoe UI Symbol", "Segoe UI Historic", "Nirmala UI", "Ebrima", "Gadugi", "Leelawadee UI", "Yu Gothic", "Microsoft YaHei", "Malgun Gothic", "Segoe UI Emoji", "Noto Sans", "DejaVu Sans", "Lucida Grande"];
 
 /// More faces with a wide repertoire where Windows' fonts aren't installed, tried after
-/// `FALLBACK_ANY` there: Noto's symbol faces cover the symbols Segoe UI Symbol has on Windows.
+/// `FALLBACK_ANY` there: Noto's symbol faces cover the symbols Segoe UI Symbol has on Windows,
+/// the other scripts' Noto faces what Segoe UI, Ebrima and Gadugi have there, and the big
+/// CJK faces (Noto Sans CJK, WenQuanYi, Droid Sans Fallback) the rest of Unicode they hold.
 /// Bitmap-only faces (Noto Color Emoji) are left out: they have no outlines to draw.
-const FREE_FALLBACK_ANY: &[&str] = &["Noto Sans Symbols 2", "Noto Sans Symbols2", "Noto Sans Symbols", "Noto Sans Math", "Symbola"];
+const FREE_FALLBACK_ANY: &[&str] = &[
+    "Noto Sans Symbols 2", "Noto Sans Symbols2", "Noto Sans Symbols", "Noto Sans Math", "Symbola",
+    "Noto Sans Arabic", "Noto Naskh Arabic", "Noto Sans Hebrew", "Noto Sans Armenian", "Noto Sans Georgian", "Noto Sans Ethiopic", "Noto Sans Lao", "Noto Sans Khmer", "Noto Sans Myanmar",
+    "Noto Sans CJK JP", "Noto Sans CJK SC", "WenQuanYi Micro Hei", "Droid Sans Fallback",
+];
 
 fn face_has_glyph(face: &FaceData, c: char) -> bool {
     ttf_parser::Face::parse(&face.data, face.index).ok().and_then(|f| f.glyph_index(c)).is_some_and(|g| g.0 != 0)
