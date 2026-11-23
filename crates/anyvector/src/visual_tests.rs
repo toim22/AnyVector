@@ -388,7 +388,9 @@ fn visual_updates_dialog() {
     h.state_mut().update.dialog = true;
     h.state_mut().update.status = Status::Available(r.clone());
     save(&mut h, "92_updates_available");
-    assert!(h.query_all_by_label("Install Now").next().is_some(), "Install Now is missing when a version is available");
+    // a Windows setup is never installed on Linux: the version is only announced (visual_update_announced)
+    let offered = h.query_all_by_label("Install Now").next().is_some();
+    assert_eq!(offered, cfg!(windows), "Install Now when a version is available (Windows only)");
     h.state_mut().update.status = Status::Downloading(r.clone(), 0.4);
     save(&mut h, "92_updates_downloading");
     assert!(h.query_all_by_label("Install Now").next().is_some(), "Install Now is missing while the setup downloads");
@@ -407,6 +409,52 @@ fn visual_updates_dialog() {
     h.state_mut().update.dialog = false;
     h.state_mut().update.status = Status::Idle;
     h.step();
+}
+
+/// A new version with nothing this system installs (always on Linux: AnyVector has no Linux
+/// package to update yet): the message at start and Help > Updates announce it, with Open Release
+/// Page instead of OK and Install Now, and nothing is downloaded.
+#[test]
+#[ignore]
+fn visual_update_announced() {
+    use egui_kittest::kittest::Queryable;
+    use crate::updater::{Release, Status};
+    let mut h = harness();
+    let r = Release {
+        version: "9.9.9".into(),
+        tag: "v9.9.9".into(),
+        notes: include_str!("../../../docs/RELEASE-NOTES-0.3.0.md").to_string(),
+        page: "https://github.com/toim22/AnyVector/releases/tag/v9.9.9".into(),
+        asset_name: String::new(),
+        asset_url: String::new(),
+        asset_size: 0,
+        via_gh: false,
+    };
+    assert!(!r.installable());
+    h.state_mut().update.status = Status::Available(r.clone());
+    h.state_mut().update.prompt = true;
+    save(&mut h, "92_updates_announced_prompt");
+    assert!(h.query_all_by_label("Open Release Page").next().is_some(), "Open Release Page is missing in the message");
+    assert!(h.query_all_by_label("OK").next().is_none(), "OK would install a setup this system doesn't have");
+    h.state_mut().settings.language = "pt-BR".into();
+    save(&mut h, "92_updates_announced_prompt_ptbr");
+    h.state_mut().settings.language = "en-US".into();
+    h.step();
+    // Open Release Page takes the user to the page (no browser in tests) and closes the message
+    click_label(&mut h, "Open Release Page");
+    assert!(!h.state().update.prompt, "the message stays after Open Release Page");
+    assert!(matches!(h.state().update.status, Status::Available(_)), "nothing is downloaded");
+    h.state_mut().update.dialog = true;
+    save(&mut h, "92_updates_announced_dialog");
+    assert!(h.query_all_by_label("Open Release Page").next().is_some(), "Open Release Page is missing in Help > Updates");
+    assert!(h.query_all_by_label("Install Now").next().is_none(), "Install Now would install a setup this system doesn't have");
+    click_label(&mut h, "Open Release Page");
+    assert!(matches!(h.state().update.status, Status::Available(_)), "nothing is downloaded");
+    assert!(h.state().update.dialog, "Help > Updates stays open");
+    h.state_mut().update.dialog = false;
+    h.state_mut().update.status = Status::Idle;
+    h.step();
+    assert_eq!(crate::i18n::lang(), crate::i18n::Lang::EnUs);
 }
 
 fn right_click(h: &mut Harness<'_, AnyVectorApp>, p: egui::Pos2) {
