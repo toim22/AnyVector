@@ -1,8 +1,9 @@
 //! Color management: converting colors between RGB, CMYK and grayscale with the document's ICC
 //! color profiles and rendering intent, showing them on screen, and soft proofing.
 //!
-//! The engine uses the ICC profile files installed on the computer (the Windows color folder,
-//! CorelDRAW's color folder, or folders added with [`add_profile_dir`]), found by the profile's
+//! The engine uses the ICC profile files installed on the computer (the Windows color folder and
+//! CorelDRAW's color folder, the ICC folders of Linux listed by [`unix_profile_dirs`], or folders
+//! added with [`add_profile_dir`]), found by the profile's
 //! description as the dialogs name it (e.g. "U.S. Web Coated (SWOP) v2") or by file name.
 //! sRGB, Adobe RGB (1998), ProPhoto RGB and Display P3 are built in. A CMYK profile that is not
 //! installed falls back to how CorelDRAW 2026 shows that profile on screen (sampled grids, see
@@ -166,13 +167,70 @@ pub fn profile_dirs() -> Vec<PathBuf> {
             }
         }
     } else {
-        v.extend(["/usr/share/color/icc", "/usr/local/share/color/icc", "/Library/ColorSync/Profiles", "/System/Library/ColorSync/Profiles"].map(PathBuf::from));
-        if let Some(h) = std::env::var_os("HOME") {
-            v.push(PathBuf::from(h).join(".local/share/icc"));
-        }
+        let home = std::env::var_os("HOME").map(PathBuf::from);
+        v.extend(unix_profile_dirs(home.as_deref(), std::env::var_os("XDG_DATA_HOME").as_deref(), std::env::var_os("XDG_DATA_DIRS").as_deref()));
     }
     v.extend(EXTRA_DIRS.read().iter().cloned());
     v
+}
+
+/// The ICC profile folders of Linux (and other Unix systems), each once, the user's before the
+/// system's as the XDG base directory specification orders them: `$XDG_DATA_HOME/icc`
+/// (`~/.local/share/icc`, where colord and the desktop's color settings keep the user's profiles),
+/// the older `~/.color/icc`, `color/icc` in each `$XDG_DATA_DIRS` folder and in
+/// `/usr/local/share` and `/usr/share` (where packages such as colord, Ghostscript and the ICC
+/// profile packages install theirs) and colord's `/var/lib/colord/icc`; on macOS also the
+/// ColorSync folders. `data_dirs` is a path list as the environment variable has it.
+pub fn unix_profile_dirs(home: Option<&Path>, data_home: Option<&std::ffi::OsStr>, data_dirs: Option<&std::ffi::OsStr>) -> Vec<PathBuf> {
+    // the specification says to ignore relative paths in its variables
+    let rooted = |p: PathBuf| p.has_root().then_some(p);
+    let mut v: Vec<PathBuf> = vec![];
+    let data_home = data_home.filter(|s| !s.is_empty()).map(PathBuf::from).and_then(rooted).or_else(|| home.map(|h| h.join(".local/share")));
+    v.extend(data_home.map(|d| d.join("icc")));
+    v.extend(home.map(|h| h.join(".color/icc")));
+    let listed = data_dirs.filter(|s| !s.is_empty()).map(|s| std::env::split_paths(s).filter_map(rooted).collect()).unwrap_or_else(Vec::new);
+    v.extend(listed.iter().chain(&[PathBuf::from("/usr/local/share"), PathBuf::from("/usr/share")]).map(|d| d.join("color/icc")));
+    v.push(PathBuf::from("/var/lib/colord/icc"));
+    if cfg!(target_os = "macos") {
+        v.extend(home.map(|h| h.join("Library/ColorSync/Profiles")));
+        v.extend(["/Library/ColorSync/Profiles", "/System/Library/ColorSync/Profiles"].map(PathBuf::from));
+    }
+    let mut out: Vec<PathBuf> = Vec::with_capacity(v.len());
+    for d in v {
+        if !out.contains(&d) {
+            out.push(d);
+        }
+    }
+    out
+}
+
+/// The ICC profile files (.icc, .icm) in `dir`. Linux packages keep theirs in folders of their own
+/// (`/usr/share/color/icc/colord`, `.../ghostscript`), so off Windows the subfolders are searched
+/// too, three levels deep, in name order; the Windows color folder is searched as it is, flat.
+pub fn profile_files_in(dir: &Path) -> Vec<PathBuf> {
+    let mut out = vec![];
+    collect_profile_files(dir, if cfg!(windows) { 0 } else { 3 }, &mut out);
+    out
+}
+
+fn collect_profile_files(dir: &Path, depth: u32, out: &mut Vec<PathBuf>) {
+    let Ok(rd) = std::fs::read_dir(dir) else { return };
+    let mut paths: Vec<PathBuf> = rd.flatten().map(|e| e.path()).collect();
+    if !cfg!(windows) {
+        paths.sort();
+    }
+    let mut folders = vec![];
+    for p in paths {
+        let ext = p.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
+        if ext == "icc" || ext == "icm" {
+            out.push(p);
+        } else if depth > 0 && p.is_dir() {
+            folders.push(p);
+        }
+    }
+    for f in folders {
+        collect_profile_files(&f, depth - 1, out);
+    }
 }
 
 /// Read the header and the description of a profile file without reading all of it.
@@ -227,12 +285,7 @@ pub fn installed_profiles() -> Arc<Vec<InstalledProfile>> {
     }
     let mut v: Vec<InstalledProfile> = vec![];
     for dir in profile_dirs() {
-        for e in std::fs::read_dir(&dir).into_iter().flatten().flatten() {
-            let p = e.path();
-            let ext = p.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
-            if ext != "icc" && ext != "icm" {
-                continue;
-            }
+        for p in profile_files_in(&dir) {
             if let Some(ip) = probe(&p) {
                 if !v.iter().any(|x| x.description.eq_ignore_ascii_case(&ip.description) && x.space == ip.space) {
                     v.push(ip);

@@ -1995,6 +1995,8 @@ The page no longer exists.	该页面已不存在。
 The object no longer exists.	该对象已不存在。
 Nothing to export	没有可导出的内容
 No scanner or camera was found. Connect a WIA device and try again.	未找到扫描仪或相机。请连接 WIA 设备，然后重试。
+Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	Linux 版 AnyVector 尚不支持扫描。请使用系统的扫描程序（例如文档扫描仪或 XSane）扫描图像并保存，然后通过 文件 ▸ 导入 将其导入绘图。
+Select WIA Source	选择 WIA 来源
 The image could not be acquired:\n{}	无法获取图像：\n{}
 All File Formats	所有文件格式
 Open Drawing	打开绘图
@@ -2029,6 +2031,7 @@ Could not save the drawing: {}	无法保存绘图：{}
 No mail program accepted the attachment; the drawing is ready to attach to your message.	没有邮件程序接受附件；绘图已准备好附加到您的邮件中。
 the Desktop	桌面
 Documents	文档
+Mail Recipient	邮件收件人
 Select at least one record in the print merge data.	请在合并打印数据中至少选择一条记录。
 Click the object to copy the effect from.	单击要从中复制效果的对象。
 Click the object to place the selection in front of.	单击要将选定内容置于其前面的对象。
@@ -4068,6 +4071,7 @@ Horizon:	地平线：
 Fill page	填充页面
 The perspective field covers the page	透视场覆盖页面
 Bitmap image	位图图像
+PNG image	PNG 图像
 Rich Text Document	RTF 文档
 Text Document	文本文档
 Data	数据

@@ -1995,6 +1995,8 @@ The page no longer exists.	Stránka již neexistuje.
 The object no longer exists.	Objekt již neexistuje.
 Nothing to export	Není co exportovat
 No scanner or camera was found. Connect a WIA device and try again.	Nebyl nalezen žádný skener ani fotoaparát. Připojte zařízení WIA a zkuste to znovu.
+Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	Skenování zatím v AnyVectoru v Linuxu není k dispozici. Naskenujte obrázek skenovacím programem systému (například Skener dokumentů nebo XSane), uložte jej a vložte jej do kresby pomocí Soubor ▸ Importovat.
+Select WIA Source	Vybrat zdroj WIA
 The image could not be acquired:\n{}	Obrázek nelze načíst:\n{}
 All File Formats	Všechny formáty souborů
 Open Drawing	Otevřít kresbu
@@ -2029,6 +2031,7 @@ Could not save the drawing: {}	Kresbu nelze uložit: {}
 No mail program accepted the attachment; the drawing is ready to attach to your message.	Žádný e-mailový program nepřijal přílohu; kresba je připravena k připojení ke zprávě.
 the Desktop	plocha
 Documents	Dokumenty
+Mail Recipient	Příjemce pošty
 Select at least one record in the print merge data.	Vyberte alespoň jeden záznam v datech hromadného tisku.
 Click the object to copy the effect from.	Klikněte na objekt, ze kterého chcete efekt zkopírovat.
 Click the object to place the selection in front of.	Klikněte na objekt, před který chcete výběr umístit.
@@ -4068,6 +4071,7 @@ Horizon:	Horizont:
 Fill page	Vyplnit stránku
 The perspective field covers the page	Perspektivní pole pokrývá stránku
 Bitmap image	Rastrový obrázek
+PNG image	Obrázek PNG
 Rich Text Document	Dokument RTF
 Text Document	Textový dokument
 Data	Data

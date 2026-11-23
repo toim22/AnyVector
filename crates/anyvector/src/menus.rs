@@ -158,8 +158,12 @@ fn cmd_row(text: impl Into<String>, cmd: Cmd) -> Row {
     Row::Item(Entry::new(text, Act::Cmd(cmd)))
 }
 
-/// The Windows "Send To" folder entries ("Desktop (create shortcut)", "Documents", …).
+/// The Windows "Send To" folder entries ("Desktop (create shortcut)", "Documents", …). Linux has
+/// no such folder: there the list is the places AnyVector sends a copy to itself.
 fn send_to_links() -> Vec<String> {
+    if cfg!(not(windows)) {
+        return ["Desktop", "Documents", "Mail Recipient"].map(String::from).to_vec();
+    }
     let Some(dir) = dirs::data_dir().map(|d| d.join("Microsoft\\Windows\\SendTo")) else {
         return vec![];
     };
@@ -617,4 +621,14 @@ pub fn catalog(bar: u16) -> Vec<CatalogEntry> {
     let mut out = vec![];
     walk(bar, &mut vec![], &mut out);
     out
+}
+
+#[cfg(all(test, not(windows)))]
+mod tests {
+    /// Linux has no Send To folder: File ▸ Send To lists the places AnyVector sends a copy to
+    /// (the names choose the commands: Send To Desktop, Documents and Mail).
+    #[test]
+    fn linux_send_to_lists_desktop_documents_and_mail() {
+        assert_eq!(super::send_to_links(), ["Desktop", "Documents", "Mail Recipient"]);
+    }
 }

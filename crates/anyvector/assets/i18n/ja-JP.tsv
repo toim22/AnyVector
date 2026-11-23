@@ -1995,6 +1995,8 @@ The page no longer exists.	このページはもう存在しません。
 The object no longer exists.	このオブジェクトはもう存在しません。
 Nothing to export	エクスポートする内容がありません
 No scanner or camera was found. Connect a WIA device and try again.	スキャナまたはカメラが見つかりませんでした。WIA デバイスを接続して、もう一度お試しください。
+Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	Linux 版の AnyVector では、スキャンはまだ使用できません。システムのスキャン プログラム (ドキュメント スキャナーや XSane など) で画像をスキャンして保存し、ファイル ▸ インポート で描画に取り込んでください。
+Select WIA Source	WIA ソースの選択
 The image could not be acquired:\n{}	イメージを取り込めませんでした:\n{}
 All File Formats	すべてのファイル形式
 Open Drawing	描画を開く
@@ -2029,6 +2031,7 @@ Could not save the drawing: {}	描画を保存できませんでした: {}
 No mail program accepted the attachment; the drawing is ready to attach to your message.	添付ファイルを受け付けるメール プログラムがありませんでした。描画はメッセージに添付できる状態です。
 the Desktop	デスクトップ
 Documents	ドキュメント
+Mail Recipient	メール受信者
 Select at least one record in the print merge data.	差し込み印刷データのレコードを少なくとも 1 つ選択してください。
 Click the object to copy the effect from.	効果のコピー元のオブジェクトをクリックしてください。
 Click the object to place the selection in front of.	選択範囲をその前面に配置するオブジェクトをクリックしてください。
@@ -4068,6 +4071,7 @@ Horizon:	地平線:
 Fill page	ページを塗りつぶす
 The perspective field covers the page	遠近フィールドがページ全体を覆います
 Bitmap image	ビットマップ イメージ
+PNG image	PNG イメージ
 Rich Text Document	リッチ テキスト ドキュメント
 Text Document	テキスト ドキュメント
 Data	データ

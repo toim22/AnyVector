@@ -1995,6 +1995,8 @@ The page no longer exists.	Страница больше не существуе
 The object no longer exists.	Объект больше не существует.
 Nothing to export	Нечего экспортировать
 No scanner or camera was found. Connect a WIA device and try again.	Сканер или камера не найдены. Подключите устройство WIA и повторите попытку.
+Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	Сканирование в AnyVector для Linux пока недоступно. Отсканируйте изображение программой сканирования вашей системы (например, «Сканер документов» или XSane), сохраните его и добавьте в рисунок командой Файл ▸ Импорт.
+Select WIA Source	Выбрать источник WIA
 The image could not be acquired:\n{}	Не удалось получить изображение:\n{}
 All File Formats	Все форматы файлов
 Open Drawing	Открыть рисунок
@@ -2029,6 +2031,7 @@ Could not save the drawing: {}	Не удалось сохранить рисун
 No mail program accepted the attachment; the drawing is ready to attach to your message.	Ни одна почтовая программа не приняла вложение; рисунок готов для вложения в сообщение.
 the Desktop	рабочий стол
 Documents	Документы
+Mail Recipient	Адресат
 Select at least one record in the print merge data.	Выберите хотя бы одну запись в данных слияния при печати.
 Click the object to copy the effect from.	Щелкните объект, из которого нужно скопировать эффект.
 Click the object to place the selection in front of.	Щелкните объект, перед которым нужно поместить выделенное.
@@ -4068,6 +4071,7 @@ Horizon:	Горизонт:
 Fill page	Заполнить страницу
 The perspective field covers the page	Поле перспективы охватывает страницу
 Bitmap image	Растровое изображение
+PNG image	Изображение PNG
 Rich Text Document	Документ RTF
 Text Document	Текстовый документ
 Data	Данные

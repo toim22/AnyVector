@@ -1995,6 +1995,8 @@ The page no longer exists.	Sayfa artık yok.
 The object no longer exists.	Nesne artık yok.
 Nothing to export	Dışa aktarılacak bir şey yok
 No scanner or camera was found. Connect a WIA device and try again.	Tarayıcı veya kamera bulunamadı. Bir WIA aygıtı bağlayıp yeniden deneyin.
+Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	Tarama, Linux'ta AnyVector'da henüz kullanılamıyor. Görüntüyü sisteminizin tarama programıyla (örneğin Belge Tarayıcı veya XSane) tarayın, kaydedin ve Dosya ▸ İçe Aktar ile çizime ekleyin.
+Select WIA Source	WIA Kaynağını Seç
 The image could not be acquired:\n{}	Görüntü alınamadı:\n{}
 All File Formats	Tüm Dosya Biçimleri
 Open Drawing	Çizimi Aç
@@ -2029,6 +2031,7 @@ Could not save the drawing: {}	Çizim kaydedilemedi: {}
 No mail program accepted the attachment; the drawing is ready to attach to your message.	Hiçbir posta programı eki kabul etmedi; çizim iletinize eklenmeye hazır.
 the Desktop	Masaüstü
 Documents	Belgeler
+Mail Recipient	Posta alıcısı
 Select at least one record in the print merge data.	Yazdırma birleştirme verilerinde en az bir kayıt seçin.
 Click the object to copy the effect from.	Efektin kopyalanacağı nesneye tıklayın.
 Click the object to place the selection in front of.	Seçimin önüne yerleştirileceği nesneye tıklayın.
@@ -4068,6 +4071,7 @@ Horizon:	Ufuk:
 Fill page	Sayfayı doldur
 The perspective field covers the page	Perspektif alanı sayfayı kaplar
 Bitmap image	Bitmap görüntüsü
+PNG image	PNG görüntüsü
 Rich Text Document	Zengin Metin Belgesi
 Text Document	Metin Belgesi
 Data	Veri

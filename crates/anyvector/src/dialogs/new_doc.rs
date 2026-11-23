@@ -990,7 +990,7 @@ fn templates_tab(_app: &mut AnyVectorApp, ui: &mut Ui, st: &mut NewDocState, top
                     if ui.button("Open Templates Folder").clicked() {
                         let dir = crate::settings::config_dir().join("Templates");
                         let _ = std::fs::create_dir_all(&dir);
-                        let _ = std::process::Command::new("explorer").arg(dir).spawn();
+                        let _ = crate::platform::open_folder(&dir);
                     }
                 });
                 return;
