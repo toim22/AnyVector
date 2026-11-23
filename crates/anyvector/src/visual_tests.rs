@@ -324,6 +324,47 @@ fn visual_languages() {
     assert_eq!(crate::i18n::lang(), crate::i18n::Lang::EnUs);
 }
 
+/// The interface's fonts (`theme::install_fonts`): each family with text in the scripts of the
+/// interface's languages, and the symbols its labels use. On Linux the interface face is Selawik,
+/// made to Segoe UI's metrics, so each line is as wide as on Windows; what it lacks (Cyrillic,
+/// Greek, symbols, Chinese and Japanese) comes from the installed fonts (`ui_fonts`).
+#[test]
+#[ignore]
+fn visual_interface_fonts() {
+    use crate::theme;
+    let text = [
+        "Object Properties   Align and Distribute   Ctrl+Shift+A   0123456789 %  ª º №",
+        "Português: Propriedades do objeto · Configurações · Ação",
+        "Русский: Свойства объекта · Ελληνικά: Ιδιότητες αντικειμένου",
+        "中文 日本語: 对象属性 · オブジェクトのプロパティ",
+    ];
+    // the symbols are in the regular family's fonts (Segoe UI Symbol on Windows)
+    let symbols = "✓ ✔ ▸ ▶ ◀ ◂ △ □ ○ ◯ ◇ ◦ ★ ☆ ⚠ ✦ → − ⊕ ⊣ ⊥ ⌄ ⏷ ⟳ ℹ 📋 🔒";
+    let installed = std::cell::Cell::new(false);
+    let mut h = Harness::builder().with_size(egui::vec2(760.0, 470.0)).wgpu().build_ui(move |ui| {
+        // the fonts are installed in the first pass and used from the next one
+        if !installed.replace(true) {
+            theme::apply(ui.ctx());
+            return;
+        }
+        for (name, font) in [("Regular", theme::body(12.5)), ("Bold", theme::bold(12.5)), ("Light", theme::light(15.0)), ("Monospace", egui::FontId::monospace(12.5))] {
+            ui.label(egui::RichText::new(name).font(theme::body(11.0)).weak());
+            for t in text {
+                ui.label(egui::RichText::new(t).font(font.clone()));
+            }
+            if name == "Regular" {
+                ui.label(egui::RichText::new(symbols).font(font));
+            }
+            ui.add_space(4.0);
+        }
+    });
+    for _ in 0..3 {
+        h.step();
+    }
+    let img = h.render().expect("render");
+    img.save(out_dir().join("93_interface_fonts.png")).unwrap();
+}
+
 /// The message shown at start when a new version is found, in English and in Brazilian Portuguese.
 #[test]
 #[ignore]
