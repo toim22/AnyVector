@@ -36,6 +36,22 @@ fn missing_characters_show_in_a_face_that_has_them() {
     assert_eq!(t.format.font, "Arial", "the text keeps its font");
 }
 
+/// Symbols Arial lacks (⏷ 📋 ⟳, which the interface uses too) show in a symbol face: Segoe UI
+/// Symbol on Windows; on Linux Noto's symbol faces, which are tried there after the Windows ones.
+#[test]
+fn symbols_show_in_a_symbol_face() {
+    let noto = fonts().lock().families().iter().any(|f| f == "Noto Sans Symbols2" || f == "Noto Sans Symbols 2");
+    for c in ['⏷', '📋', '⟳'] {
+        if fallback(c).is_none() {
+            assert!(cfg!(windows) || !noto, "{c:?} is in Noto Sans Symbols 2, which is installed");
+            eprintln!("no font with {c:?} on this computer; skipped");
+            continue;
+        }
+        let lay = vt::layout(&TextObj::artistic(&format!("A{c}B"), fmt("Arial", 100.0)));
+        assert!(lay.glyphs.iter().any(|g| g.char_index == 1 && !g.path.elements().is_empty()), "{c:?} has a glyph");
+    }
+}
+
 #[test]
 fn covered_text_is_shaped_as_before() {
     // characters the font has never look for another face: spaces, accents, Vietnamese

@@ -611,6 +611,8 @@ pub struct FontDb {
     /// The face that shows a character its own font lacks, by (character, bold, italic); see
     /// `fallback_face`.
     fallback: HashMap<(char, bool, bool), Option<fontdb::ID>>,
+    /// Windows fonts that aren't installed show in their open equivalents (see `with_equivalents`).
+    equivalents: bool,
 }
 
 /// A face read from a font embedded in a drawing: kept in memory for the session, never
@@ -665,9 +667,30 @@ static FONTS: OnceLock<Mutex<FontDb>> = OnceLock::new();
 
 pub fn fonts() -> &'static Mutex<FontDb> {
     FONTS.get_or_init(|| {
-        let mut db = fontdb::Database::new();
-        db.load_system_fonts();
+        // Windows: a scan of their own (the interface reads its fonts from the fonts folder);
+        // elsewhere the installed fonts the interface finds its fonts in too
+        #[cfg(windows)]
+        let db = {
+            let mut db = fontdb::Database::new();
+            db.load_system_fonts();
+            db
+        };
+        #[cfg(not(windows))]
+        let db = system_fonts().clone();
         Mutex::new(FontDb::new(db))
+    })
+}
+
+static SYSTEM: OnceLock<fontdb::Database> = OnceLock::new();
+
+/// The installed fonts, read once for the whole program (see `sysfonts`): the drawing fonts
+/// (`fonts`) start from them off Windows, where the interface also finds its fonts in them.
+/// The first call reads them; a call meanwhile on another thread waits for it.
+pub fn system_fonts() -> &'static fontdb::Database {
+    SYSTEM.get_or_init(|| {
+        let mut db = fontdb::Database::new();
+        crate::sysfonts::load(&mut db);
+        db
     })
 }
 
@@ -724,8 +747,17 @@ pub fn preload_fonts() {
 }
 
 impl FontDb {
+    /// The fonts of `db`, with Windows fonts that aren't installed shown in their open
+    /// equivalents everywhere but on Windows (see `with_equivalents`).
     pub fn new(db: fontdb::Database) -> FontDb {
-        let mut fdb = FontDb { db, families: vec![], by_lower: HashMap::new(), resolved: Default::default(), legacy: Default::default(), face_cache: HashMap::new(), glyph_cache: HashMap::new(), embedded: HashMap::new(), fallback: HashMap::new() };
+        FontDb::with_equivalents(db, cfg!(not(windows)))
+    }
+
+    /// The fonts of `db`. With `equivalents`, a Windows font that isn't installed shows in the
+    /// open font made to its metrics, or its look-alike (`fontsub::EQUIVALENTS`: Liberation Sans
+    /// for Arial), as where the installed fonts are Linux's; off on Windows, which has its fonts.
+    pub fn with_equivalents(db: fontdb::Database, equivalents: bool) -> FontDb {
+        let mut fdb = FontDb { db, families: vec![], by_lower: HashMap::new(), resolved: Default::default(), legacy: Default::default(), face_cache: HashMap::new(), glyph_cache: HashMap::new(), embedded: HashMap::new(), fallback: HashMap::new(), equivalents };
         fdb.index();
         fdb
     }
@@ -918,6 +950,15 @@ impl FontDb {
         (bold || dist <= 100).then_some(id)
     }
 
+    /// The installed family of a Windows font's open equivalent (`fontsub::EQUIVALENTS`), when
+    /// equivalents are on (see `with_equivalents`).
+    fn equivalent(&self, family: &str) -> Option<crate::fontsub::Resolved> {
+        if !self.equivalents {
+            return None;
+        }
+        crate::fontsub::equivalents(family).iter().find_map(|e| self.installed(e))
+    }
+
     fn resolve_uncached(&self, family: &str) -> crate::fontsub::Resolved {
         use crate::fontsub::{aliases, width_hint, How, Resolved, Width, CONDENSED};
         if self.db.faces().any(|f| f.families.iter().any(|(n, _)| n == family)) {
@@ -933,8 +974,12 @@ impl FontDb {
             return r;
         }
         let with = |r: Resolved, how| Resolved { how, ..r };
+        // a Windows font where Windows' fonts aren't installed: the open font made to its metrics
+        if let Some(r) = self.equivalent(family) {
+            return with(r, How::Alias);
+        }
         let alias = aliases(family);
-        if let Some(r) = alias.iter().find_map(|a| self.installed(a)) {
+        if let Some(r) = alias.iter().find_map(|a| self.installed(a).or_else(|| self.equivalent(a))) {
             return with(r, How::Alias);
         }
         // the width the name asks for, or the width of the look-alike that isn't installed
@@ -1014,7 +1059,10 @@ impl FontDb {
         if let Some(r) = self.fallback.get(&(c, bold, italic)) {
             return *r;
         }
-        let found = fallback_families(c).iter().chain(FALLBACK_ANY).find_map(|family| {
+        // where Windows' fonts aren't installed, the fonts Linux has after them
+        let (script, free) = fallback_families(c);
+        let (free, free_any): (&[&str], &[&str]) = if cfg!(windows) { (&[], &[]) } else { (free, FREE_FALLBACK_ANY) };
+        let found = script.iter().chain(free).chain(FALLBACK_ANY).chain(free_any).find_map(|family| {
             let fams = [fontdb::Family::Name(family)];
             let q = fontdb::Query {
                 families: &fams,
@@ -1302,23 +1350,33 @@ fn is_special(c: char) -> bool {
 
 /// Faces usual for the script of `c`, tried first when a text's font lacks it (Windows, then
 /// macOS and Linux names). Han characters go to Japanese faces first: they are shared with
-/// Chinese, and kana typed next to them must match.
-fn fallback_families(c: char) -> &'static [&'static str] {
+/// Chinese, and kana typed next to them must match. Then more for where Windows' fonts aren't
+/// installed (the Chinese, Japanese, Korean and Thai fonts Linux distributions install), tried
+/// after the first ones there only.
+fn fallback_families(c: char) -> (&'static [&'static str], &'static [&'static str]) {
     const KOREAN: &[&str] = &["Malgun Gothic", "Gulim", "Apple SD Gothic Neo", "Noto Sans CJK KR", "Noto Sans KR", "NanumGothic"];
     const CJK: &[&str] = &["Yu Gothic", "Meiryo", "MS Gothic", "Microsoft YaHei", "Microsoft JhengHei", "SimSun", "Hiragino Sans", "PingFang SC", "Noto Sans CJK JP", "Noto Sans JP", "Source Han Sans", "Malgun Gothic"];
     const THAI: &[&str] = &["Leelawadee UI", "Tahoma", "Thonburi", "Noto Sans Thai"];
     const INDIC: &[&str] = &["Nirmala UI", "Kohinoor Devanagari", "Noto Sans Devanagari"];
+    const KOREAN_FREE: &[&str] = &["UnDotum"];
+    const CJK_FREE: &[&str] = &["Noto Sans CJK SC", "Noto Sans CJK TC", "IPAGothic", "WenQuanYi Micro Hei", "WenQuanYi Zen Hei", "Droid Sans Fallback"];
+    const THAI_FREE: &[&str] = &["Noto Sans Thai Looped"];
     match c as u32 {
-        0x1100..=0x11FF | 0x3130..=0x318F | 0xA960..=0xA97F | 0xAC00..=0xD7FF => KOREAN,
-        0x2E80..=0x2FDF | 0x3000..=0x30FF | 0x31C0..=0x31FF | 0x3200..=0x33FF | 0x3400..=0x4DBF | 0x4E00..=0x9FFF | 0xF900..=0xFAFF | 0xFE30..=0xFE4F | 0xFF00..=0xFFEF | 0x20000..=0x3FFFF => CJK,
-        0x0E00..=0x0EFF => THAI,
-        0x0900..=0x0DFF => INDIC,
-        _ => &[],
+        0x1100..=0x11FF | 0x3130..=0x318F | 0xA960..=0xA97F | 0xAC00..=0xD7FF => (KOREAN, KOREAN_FREE),
+        0x2E80..=0x2FDF | 0x3000..=0x30FF | 0x31C0..=0x31FF | 0x3200..=0x33FF | 0x3400..=0x4DBF | 0x4E00..=0x9FFF | 0xF900..=0xFAFF | 0xFE30..=0xFE4F | 0xFF00..=0xFFEF | 0x20000..=0x3FFFF => (CJK, CJK_FREE),
+        0x0E00..=0x0EFF => (THAI, THAI_FREE),
+        0x0900..=0x0DFF => (INDIC, &[]),
+        _ => (&[], &[]),
     }
 }
 
 /// Faces with a wide repertoire, tried after the script's own.
 const FALLBACK_ANY: &[&str] = &["Segoe UI", "Arial Unicode MS", "Segoe UI Symbol", "Segoe UI Historic", "Nirmala UI", "Ebrima", "Gadugi", "Leelawadee UI", "Yu Gothic", "Microsoft YaHei", "Malgun Gothic", "Segoe UI Emoji", "Noto Sans", "DejaVu Sans", "Lucida Grande"];
+
+/// More faces with a wide repertoire where Windows' fonts aren't installed, tried after
+/// `FALLBACK_ANY` there: Noto's symbol faces cover the symbols Segoe UI Symbol has on Windows.
+/// Bitmap-only faces (Noto Color Emoji) are left out: they have no outlines to draw.
+const FREE_FALLBACK_ANY: &[&str] = &["Noto Sans Symbols 2", "Noto Sans Symbols2", "Noto Sans Symbols", "Noto Sans Math", "Symbola"];
 
 fn face_has_glyph(face: &FaceData, c: char) -> bool {
     ttf_parser::Face::parse(&face.data, face.index).ok().and_then(|f| f.glyph_index(c)).is_some_and(|g| g.0 != 0)
