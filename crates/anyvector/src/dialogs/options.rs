@@ -2427,7 +2427,7 @@ fn ai_images(app: &mut AnyVectorApp, ui: &mut Ui) {
         note(ui, "Create Image Guided by Selection and Remix Selection send the selection to ComfyUI as the source image (%image%).");
     }
     if load {
-        if let Some(p) = rfd::FileDialog::new().set_title("Load ComfyUI Workflow (API format)").add_filter("ComfyUI workflow (*.json)", &["json"]).pick_file() {
+        if let Some(p) = rfd::FileDialog::new().set_title("Load ComfyUI Workflow (API format)").add_filter("ComfyUI workflow (*.json)", &vector_io::paths::dialog_extensions(&["json"])).pick_file() {
             let checked = std::fs::read_to_string(&p).map_err(|e| e.to_string()).and_then(|t| crate::comfyui::parse_workflow(&t));
             app.ai.workflow_msg = Some(match checked {
                 Ok(wf) => {

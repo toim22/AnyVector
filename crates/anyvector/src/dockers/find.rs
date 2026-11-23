@@ -276,7 +276,7 @@ fn find_objects(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut FrUi) {
             st.q = preset_query(st.preset);
         }
         if super::icon_button(app, ui, "open", "Load a query", true) {
-            if let Some(q) = rfd::FileDialog::new().set_title("Load Query").add_filter("AnyVector Find Query (*.vfind)", &["vfind"]).pick_file().and_then(|p| std::fs::read_to_string(p).ok()).and_then(|s| serde_json::from_str::<FindQuery>(&s).ok()) {
+            if let Some(q) = rfd::FileDialog::new().set_title("Load Query").add_filter("AnyVector Find Query (*.vfind)", &vector_io::paths::dialog_extensions(&["vfind"])).pick_file().and_then(|p| std::fs::read_to_string(p).ok()).and_then(|s| serde_json::from_str::<FindQuery>(&s).ok()) {
                 st.q = q;
                 st.preset = 0;
             }
