@@ -48,6 +48,9 @@ mod tools;
 mod trace;
 mod updater;
 mod ui;
+// the interface's fonts off Windows (its tests run everywhere)
+#[cfg(any(test, not(windows)))]
+mod ui_fonts;
 mod welcome;
 mod widgets;
 mod workspaces;

@@ -1308,14 +1308,20 @@ fn usvg_opts() -> &'static usvg::Options<'static> {
     static O: std::sync::OnceLock<usvg::Options<'static>> = std::sync::OnceLock::new();
     O.get_or_init(|| {
         let mut o = usvg::Options::default();
-        let windir = std::env::var("WINDIR").unwrap_or_else(|_| "C:\\Windows".into());
-        let f = std::path::Path::new(&windir).join("Fonts");
-        let db = o.fontdb_mut();
-        for name in ["segoeui.ttf", "segoeuib.ttf", "times.ttf"] {
-            let _ = db.load_font_file(f.join(name));
+        #[cfg(windows)]
+        {
+            let windir = std::env::var("WINDIR").unwrap_or_else(|_| "C:\\Windows".into());
+            let f = std::path::Path::new(&windir).join("Fonts");
+            let db = o.fontdb_mut();
+            for name in ["segoeui.ttf", "segoeuib.ttf", "times.ttf"] {
+                let _ = db.load_font_file(f.join(name));
+            }
+            db.set_sans_serif_family("Segoe UI");
+            db.set_serif_family("Times New Roman");
         }
-        db.set_sans_serif_family("Segoe UI");
-        db.set_serif_family("Times New Roman");
+        // the installed fonts, or their stand-ins, by the same names
+        #[cfg(not(windows))]
+        crate::ui_fonts::icon_fonts(o.fontdb_mut());
         o
     })
 }

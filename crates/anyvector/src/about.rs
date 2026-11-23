@@ -10,6 +10,10 @@ use egui::{pos2, vec2, Align2, Color32, Rect, Sense, Stroke, Ui, UiBuilder};
 pub const SOURCE_ID: &str = env!("ANYVECTOR_SOURCE_ID");
 pub const RELEASE: &str = env!("ANYVECTOR_RELEASE");
 const LEGAL: &str = include_str!("../assets/legal/third-party-licenses.txt");
+/// The license of Selawik, the interface font built in where Windows' fonts aren't installed
+/// (`ui_fonts`).
+#[cfg(not(windows))]
+const FONT_LICENSE: &str = concat!("\nSelawik 1.01\n\n", include_str!("../assets/legal/Selawik-OFL.txt"));
 
 #[derive(Clone)]
 pub struct SystemInfoState {
@@ -159,6 +163,8 @@ pub fn legal_notices(app: &mut AnyVectorApp, ctx: &egui::Context) {
         ui.scope_builder(UiBuilder::new().max_rect(text_rect.shrink(6.0)), |ui| {
             egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
                 ui.label(egui::RichText::new(LEGAL).font(egui::FontId::monospace(11.5)).color(theme::TEXT()));
+                #[cfg(not(windows))]
+                ui.label(egui::RichText::new(FONT_LICENSE).font(egui::FontId::monospace(11.5)).color(theme::TEXT()));
             });
         });
         close = button_at(ui, Rect::from_min_size(pos2(b.right() - 85.0, b.bottom() - 25.0), vec2(82.0, 24.0)), "Close", true);

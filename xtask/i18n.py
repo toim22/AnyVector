@@ -157,8 +157,8 @@ for m in re.finditer(r'name: "((?:[^"\\]|\\.)*)"', data):
     if re.search(r'[A-Za-z]{2}', v):
         add(v, 'ui/data.rs')
 
-# 2. string literals of the app's source
-skip_files = {'data.rs', 'visual_tests.rs'}
+# 2. string literals of the app's source (ui_fonts.rs: font family names, never shown)
+skip_files = {'data.rs', 'visual_tests.rs', 'ui_fonts.rs'}
 for dirpath, _, files in os.walk(src):
     for f in sorted(files):
         if not f.endswith('.rs') or f in skip_files:

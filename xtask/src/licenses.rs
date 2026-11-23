@@ -7,11 +7,19 @@ use serde_json::Value;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 /// Parts of other projects kept inside AnyVector's own crates: (name, license, source).
-const BUNDLED: [(&str, &str, &str); 1] = [(
-    "libcdr colour palette tables",
-    "MPL-2.0",
-    "Taken from https://git.libreoffice.org/libcdr. The source as AnyVector uses it is\n    legal\\palettes.rs in the install folder, and\n    https://github.com/toim22/AnyVector/blob/main/crates/vector-io/src/corel/palettes.rs\n    The license text is legal\\MPL-2.0.txt in the install folder.",
-)];
+const BUNDLED: [(&str, &str, &str); 2] = [
+    (
+        "libcdr colour palette tables",
+        "MPL-2.0",
+        "Taken from https://git.libreoffice.org/libcdr. The source as AnyVector uses it is\n    legal\\palettes.rs in the install folder, and\n    https://github.com/toim22/AnyVector/blob/main/crates/vector-io/src/corel/palettes.rs\n    The license text is legal\\MPL-2.0.txt in the install folder.",
+    ),
+    // crates/anyvector/assets/fonts (see ui_fonts.rs); its license is legal/Selawik-OFL.txt
+    (
+        "Selawik 1.01",
+        "OFL-1.1",
+        "https://github.com/microsoft/Selawik\n    Copyright 2015 Microsoft Corporation, with Reserved Font Name Selawik. The interface\n    font of the Linux builds where Segoe UI isn't installed (not in the Windows build);\n    the license text follows these notices there.",
+    ),
+];
 
 pub fn run() -> Result<()> {
     let out = std::process::Command::new(env!("CARGO"))

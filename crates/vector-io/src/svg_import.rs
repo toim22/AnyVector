@@ -18,8 +18,21 @@ const PX: f64 = 0.75;
 fn fontdb() -> Arc<usvg::fontdb::Database> {
     static DB: OnceLock<Arc<usvg::fontdb::Database>> = OnceLock::new();
     DB.get_or_init(|| {
-        let mut db = usvg::fontdb::Database::new();
-        db.load_system_fonts();
+        #[cfg(windows)]
+        let db = {
+            let mut db = usvg::fontdb::Database::new();
+            db.load_system_fonts();
+            db
+        };
+        // the installed fonts as the program reads them, with the Windows fonts an SVG names
+        // standing for their open equivalents where they aren't installed (Liberation Sans for
+        // Arial), as in drawings
+        #[cfg(not(windows))]
+        let db = {
+            let mut db = vector_core::text::system_fonts().clone();
+            vector_core::sysfonts::alias_equivalents(&mut db);
+            db
+        };
         Arc::new(db)
     })
     .clone()
@@ -380,7 +393,28 @@ fn paint_to_fill(p: &usvg::Paint, opacity: f32, xf: Affine, to_unit: &dyn Fn(Poi
 
 #[cfg(test)]
 mod tests {
-    use super::file_url_path;
+    use super::*;
+
+    /// The width of a line of text an SVG sets in `family`.
+    fn text_width(family: &str) -> f32 {
+        let svg = format!(r#"<svg xmlns="http://www.w3.org/2000/svg" width="600" height="100"><text x="10" y="50" font-family="{family}" font-size="24">Hamburgefonstiv 0123</text></svg>"#);
+        parse_tree(svg.as_bytes()).unwrap().root().abs_bounding_box().width()
+    }
+
+    /// An SVG's Windows fonts where they aren't installed (Linux): the text is set in the open
+    /// font made to their metrics (Liberation Sans for Arial), not in the serif face, so it is as
+    /// wide as on Windows.
+    #[test]
+    fn windows_fonts_import_in_their_open_equivalents() {
+        let installed = |name: &str| vector_core::text::system_fonts().faces().any(|f| f.families.iter().any(|(n, _)| n == name));
+        for (windows, open) in [("Arial", "Liberation Sans"), ("Times New Roman", "Liberation Serif"), ("Courier New", "Liberation Mono")] {
+            if installed(windows) || !installed(open) {
+                eprintln!("{windows} is installed or {open} isn't; skipped");
+                continue;
+            }
+            assert_eq!(text_width(windows), text_width(open), "{windows}");
+        }
+    }
 
     #[test]
     fn image_links_give_paths() {
