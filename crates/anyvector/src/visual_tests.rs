@@ -2874,6 +2874,24 @@ fn pdf_import_of_a_broken_file_says_so() {
     h.step();
 }
 
+/// File ▸ Acquire Image on Linux: WIA and TWAIN are Windows' ways to reach a scanner, so each
+/// command says how to bring a scan in instead of silently doing nothing. The commands run
+/// directly: the message is what counts here, not how the message box draws it.
+#[cfg(not(windows))]
+#[test]
+fn acquire_image_on_linux_says_how_to_scan() {
+    let mut h = dialog_harness();
+    let ctx = h.ctx.clone();
+    for (cmd, title) in [(Cmd::SelectTwain, "Select TWAIN Source"), (Cmd::SelectWia, "Select WIA Source"), (Cmd::Acquire, "Acquire Image")] {
+        h.state_mut().dialogs.message_box = None;
+        h.state_mut().execute(&ctx, cmd);
+        let (shown, text) = h.state().dialogs.message_box.clone().expect("a message");
+        assert_eq!(shown, title);
+        assert!(text.contains("File ▸ Import"), "{text}");
+        assert!(h.state().background.is_empty(), "nothing is started for {title}");
+    }
+}
+
 /// Tools ▸ Color Management opens, draws its tabs, and Cancel leaves the settings alone.
 #[test]
 fn color_management_dialog_opens_and_cancels() {
