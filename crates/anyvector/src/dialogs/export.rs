@@ -112,8 +112,15 @@ fn user_presets() -> Vec<String> {
 }
 
 fn user_preset(name: &str) -> Option<PdfSettings> {
-    let s = std::fs::read_to_string(presets_dir().join(format!("{name}.json"))).ok()?;
+    let s = std::fs::read_to_string(preset_file(&presets_dir(), name)).ok()?;
     serde_json::from_str(&s).ok()
+}
+
+/// The file of the user's PDF preset `name` in `dir`: `name.json`, or the file whose name differs
+/// only in case (`name.JSON`), as Windows finds it.
+fn preset_file(dir: &std::path::Path, name: &str) -> PathBuf {
+    let file = format!("{name}.json");
+    vector_io::paths::find_in_dir(dir, &file).unwrap_or_else(|| dir.join(file))
 }
 
 fn all_presets() -> Vec<String> {
@@ -568,7 +575,7 @@ fn general_tab(ui: &mut Ui, st: &mut PdfState, has_sel: bool, doc_names: &[Strin
         }
         let user = !PRESETS.contains(&st.preset.as_str()) && !st.preset.is_empty();
         if ui.add_enabled(user, egui::Button::new("−")).on_hover_text("Delete PDF preset").clicked() {
-            let _ = std::fs::remove_file(presets_dir().join(format!("{}.json", st.preset)));
+            let _ = std::fs::remove_file(preset_file(&presets_dir(), &st.preset));
             st.preset.clear();
         }
     });
@@ -1466,6 +1473,22 @@ mod tests {
         assert_eq!(base64(b"Man"), "TWFu");
         assert_eq!(base64(b"Ma"), "TWE=");
         assert_eq!(base64(b"user:pass word"), "dXNlcjpwYXNzIHdvcmQ=");
+    }
+
+    /// A user PDF preset whose file has its extension in capitals (copied from another
+    /// computer) is read and deleted on Linux as on Windows.
+    #[test]
+    fn user_presets_with_capital_extensions() {
+        let dir = std::env::temp_dir().join(format!("anyvector-pdf-presets-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("Print Shop.JSON"), "{}").unwrap();
+        let p = preset_file(&dir, "Print Shop");
+        assert!(p.is_file(), "{p:?}");
+        assert!(std::fs::read_to_string(&p).is_ok_and(|s| s == "{}"));
+        // a new preset is `name.json`
+        assert_eq!(preset_file(&dir, "Mine"), dir.join("Mine.json"));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

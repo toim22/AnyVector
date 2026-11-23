@@ -190,12 +190,13 @@ impl DocView {
         }
     }
 
-    /// The document name without the modified mark and the drawing extension.
+    /// The document name without the modified mark and the drawing extension, in any case
+    /// (`LOGO.CDR` gives `LOGO`).
     pub fn stem(&self) -> String {
         let n = self.display_name();
         let n = n.trim_end_matches('*');
         let n = if self.window_no > 0 { n.rsplit_once(':').map(|(a, _)| a).unwrap_or(n) } else { n };
-        n.strip_suffix(".cdr").or_else(|| n.strip_suffix(".vct")).unwrap_or(n).to_string()
+        vector_io::paths::strip_extension(n, &["cdr", "vct"]).to_string()
     }
 
     pub fn display_name(&self) -> String {
@@ -623,5 +624,24 @@ mod tests {
         // snapping off: no snap
         d.doc.settings.snap_off = true;
         assert_eq!(snap(&d, 103.0, 98.0), None);
+    }
+
+    /// The name exports and backups start from loses the drawing extension in any case: a file
+    /// from an old CorelDRAW or a FAT disk is often `LOGO.CDR` (Linux keeps the capitals).
+    #[test]
+    fn the_stem_drops_the_drawing_extension_in_any_case() {
+        let mut d = DocView::new(Document::new(100.0, 100.0), "Untitled-1.cdr".into(), 5);
+        assert_eq!(d.stem(), "Untitled-1");
+        for (file, stem) in [("LOGO.CDR", "LOGO"), ("Logo.Cdr", "Logo"), ("logo.cdr", "logo"), ("Old.VCT", "Old"), ("Plan.svg", "Plan.svg"), ("Ação.CDR", "Ação")] {
+            d.path = Some(std::path::Path::new("dir").join(file));
+            assert_eq!(d.stem(), stem, "{file}");
+        }
+        // a second window of the document, then modified
+        d.path = Some(std::path::PathBuf::from("LOGO.CDR"));
+        d.window_no = 2;
+        assert_eq!(d.stem(), "LOGO");
+        d.modify("Change", |_, _| {});
+        assert!(d.display_name().ends_with('*'));
+        assert_eq!(d.stem(), "LOGO");
     }
 }

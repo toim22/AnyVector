@@ -284,10 +284,10 @@ fn format_key(n: roxmltree::Node) -> String {
 fn load() -> Result<Defs> {
     let c = corel();
     let read = |p: PathBuf| std::fs::read_to_string(&p).map_err(|e| format!("{}: {e} (set ANYVECTOR_COREL to the CorelDRAW folder)", p.display()));
-    let ui_s = read(c.join(r"Draw\UIConfig\DrawUI.xml"))?;
-    let items_s = read(c.join(r"Draw\UIConfig\DrawUI.items.xml"))?;
-    let strings_s = read(c.join(r"Languages\EN\Data\strings.xml"))?;
-    let icons_s = read(c.join(r"Resources\icons.map.xml"))?;
+    let ui_s = read(c.join("Draw/UIConfig/DrawUI.xml"))?;
+    let items_s = read(c.join("Draw/UIConfig/DrawUI.items.xml"))?;
+    let strings_s = read(c.join("Languages/EN/Data/strings.xml"))?;
+    let icons_s = read(c.join("Resources/icons.map.xml"))?;
     let opt = || roxmltree::ParsingOptions { allow_dtd: true, ..Default::default() };
     let ui = roxmltree::Document::parse_with_options(&ui_s, opt())?;
     let it = roxmltree::Document::parse_with_options(&items_s, opt())?;
@@ -326,8 +326,8 @@ fn load() -> Result<Defs> {
         items,
         bars,
         strings,
-        caption: csv_map(c.join(r"Resources\caption.csv"))?,
-        tooltip: csv_map(c.join(r"Resources\tooltipHeader.csv"))?,
+        caption: csv_map(c.join("Resources/caption.csv"))?,
+        tooltip: csv_map(c.join("Resources/tooltipHeader.csv"))?,
         icons,
         keys,
     })
@@ -512,7 +512,7 @@ struct Reference {
 
 fn load_reference() -> Result<Reference> {
     let r = reference();
-    let m = std::fs::read_to_string(r.join(r"90-relatorios\matriz_contextos.csv"))?;
+    let m = std::fs::read_to_string(r.join("90-relatorios/matriz_contextos.csv"))?;
     let mut matrix = HashMap::new();
     for l in m.lines().skip(1) {
         let f: Vec<&str> = l.trim_start_matches('\u{feff}').split(';').collect();
@@ -524,7 +524,7 @@ fn load_reference() -> Result<Reference> {
         }
         matrix.insert(f[0].to_string(), bits);
     }
-    let inv = std::fs::read_to_string(r.join(r"01-inventario\inventory.csv"))?;
+    let inv = std::fs::read_to_string(r.join("01-inventario/inventory.csv"))?;
     let mut paths = HashMap::new();
     for l in inv.lines().skip(1) {
         let f = split_csv(l);
@@ -798,7 +798,7 @@ fn report_heights(g: &Gen, rep: &mut String) -> Result<()> {
     let nodoc = g.index[&key(MENU_MODE_NO_DOC)];
     let (mut ok, mut bad) = (0, 0);
     for (i, ctx) in CONTEXTS.iter().enumerate() {
-        let p = reference().join(format!(r"90-relatorios\menus_{ctx}.json"));
+        let p = reference().join(format!("90-relatorios/menus_{ctx}.json"));
         let Ok(text) = std::fs::read_to_string(&p) else { continue };
         let v: serde_json::Value = serde_json::from_str(&text)?;
         for e in v.as_array().into_iter().flatten() {
@@ -850,7 +850,7 @@ fn report_heights(g: &Gen, rep: &mut String) -> Result<()> {
 /// count gives the same height.
 fn report_context_menus(g: &Gen, rep: &mut String) -> Result<()> {
     writeln!(rep, "# Right-click menus (reference height, bars of the same height)\n")?;
-    let p = reference().join(r"90-relatorios\menus_contexto.json");
+    let p = reference().join("90-relatorios/menus_contexto.json");
     let Ok(text) = std::fs::read_to_string(&p) else { return Ok(()) };
     let v: serde_json::Value = serde_json::from_str(&text)?;
     for e in v.as_array().into_iter().flatten() {

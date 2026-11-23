@@ -1682,7 +1682,7 @@ fn pattern(app: &mut AnyVectorApp, ui: &mut Ui, o: &Object, p: PatternFill, kind
                         ui.close();
                     }
                     if ui.button("New source from file...").clicked() {
-                        if let Some(path) = rfd::FileDialog::new().add_filter("Images", &["png", "jpg", "jpeg", "bmp", "gif", "tif", "tiff", "webp", "jxl"]).pick_file() {
+                        if let Some(path) = rfd::FileDialog::new().add_filter("Images", &vector_io::paths::dialog_extensions(&["png", "jpg", "jpeg", "bmp", "gif", "tif", "tiff", "webp", "jxl"])).pick_file() {
                             if let Some(id) = load_pattern_image(app, &path) {
                                 p.image = Some(id);
                                 p.vector = false;

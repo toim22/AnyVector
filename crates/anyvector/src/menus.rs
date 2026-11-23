@@ -158,13 +158,14 @@ fn cmd_row(text: impl Into<String>, cmd: Cmd) -> Row {
     Row::Item(Entry::new(text, Act::Cmd(cmd)))
 }
 
-/// The Windows "Send To" folder entries ("Desktop (create shortcut)", "Documents", …). Linux has
-/// no such folder: there the list is the places AnyVector sends a copy to itself.
+/// The "Send To" entries: on Windows those of the user's Send To folder ("Desktop (create
+/// shortcut)", "Documents", "Mail recipient", …); elsewhere, with no such folder, the ones
+/// AnyVector carries out itself.
 fn send_to_links() -> Vec<String> {
-    if cfg!(not(windows)) {
+    if !cfg!(windows) {
         return ["Desktop", "Documents", "Mail Recipient"].map(String::from).to_vec();
     }
-    let Some(dir) = dirs::data_dir().map(|d| d.join("Microsoft\\Windows\\SendTo")) else {
+    let Some(dir) = dirs::data_dir().map(|d| d.join("Microsoft").join("Windows").join("SendTo")) else {
         return vec![];
     };
     let mut names: Vec<String> = std::fs::read_dir(dir)
@@ -178,6 +179,21 @@ fn send_to_links() -> Vec<String> {
         .unwrap_or_default();
     names.sort_by_key(|n| n.to_lowercase());
     names
+}
+
+/// What a Send To entry does: the desktop, documents and mail entries are AnyVector commands;
+/// any other is not done yet.
+fn send_to_command(name: &str) -> Option<Cmd> {
+    let lower = name.to_lowercase();
+    if lower.starts_with("desktop") {
+        Some(Cmd::SendToDesktop)
+    } else if lower.starts_with("documents") {
+        Some(Cmd::SendToDocuments)
+    } else if lower.contains("mail") {
+        Some(Cmd::SendToMail)
+    } else {
+        None
+    }
 }
 
 /// Fill in a placeholder: the items of its source bar, or a run-time list.
@@ -209,15 +225,9 @@ fn placeholder(app: &AnyVectorApp, it: &'static Item, ctx: u32, strict: bool, ou
         // File ▸ Send To
         "4038b5c7" => {
             for name in send_to_links() {
-                let lower = name.to_lowercase();
-                let act = if lower.starts_with("desktop") {
-                    Act::Cmd(Cmd::SendToDesktop)
-                } else if lower.starts_with("documents") {
-                    Act::Cmd(Cmd::SendToDocuments)
-                } else if lower.contains("mail") {
-                    Act::Cmd(Cmd::SendToMail)
-                } else {
-                    Act::Pending(format!("Send To {name}"))
+                let act = match send_to_command(&name) {
+                    Some(c) => Act::Cmd(c),
+                    None => Act::Pending(format!("Send To {name}")),
                 };
                 out.push(Row::Item(Entry::new(name, act).enabled(app.has_doc())));
             }
@@ -623,12 +633,22 @@ pub fn catalog(bar: u16) -> Vec<CatalogEntry> {
     out
 }
 
-#[cfg(all(test, not(windows)))]
+#[cfg(test)]
 mod tests {
-    /// Linux has no Send To folder: File ▸ Send To lists the places AnyVector sends a copy to
-    /// (the names choose the commands: Send To Desktop, Documents and Mail).
+    use super::*;
+
+    /// File ▸ Send To: Windows lists the user's Send To folder; Linux has no such folder and gets
+    /// the desktop, documents and mail entries, each carried out by AnyVector.
     #[test]
-    fn linux_send_to_lists_desktop_documents_and_mail() {
-        assert_eq!(super::send_to_links(), ["Desktop", "Documents", "Mail Recipient"]);
+    fn send_to_has_entries_on_every_system() {
+        assert_eq!(send_to_command("Desktop (create shortcut)"), Some(Cmd::SendToDesktop));
+        assert_eq!(send_to_command("Documents"), Some(Cmd::SendToDocuments));
+        assert_eq!(send_to_command("Mail recipient"), Some(Cmd::SendToMail));
+        assert_eq!(send_to_command("Compressed (zipped) Folder"), None);
+        let names = send_to_links();
+        if !cfg!(windows) {
+            assert_eq!(names, ["Desktop", "Documents", "Mail Recipient"]);
+            assert!(names.iter().all(|n| send_to_command(n).is_some()));
+        }
     }
 }

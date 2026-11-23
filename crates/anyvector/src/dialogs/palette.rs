@@ -201,7 +201,7 @@ pub fn open_editor_for(app: &mut AnyVectorApp, s: Source) {
 
 /// Window ▸ Color Palettes ▸ Open Palette.
 pub fn open_palette(app: &mut AnyVectorApp) {
-    let Some(p) = rfd::FileDialog::new().set_title("Open Palette").set_directory(crate::dockers::palettes::my_palettes_dir()).add_filter(OPEN_FILTER, OPEN_EXTS).pick_file() else { return };
+    let Some(p) = rfd::FileDialog::new().set_title("Open Palette").set_directory(crate::dockers::palettes::my_palettes_dir()).add_filter(OPEN_FILTER, &vector_io::paths::dialog_extensions(OPEN_EXTS)).pick_file() else { return };
     show_palette_file(app, &p);
 }
 
@@ -458,7 +458,7 @@ fn editor_window(app: &mut AnyVectorApp, ctx: &egui::Context, st: &mut EditorSta
             }
         }
         Some("open") => {
-            if let Some(p) = rfd::FileDialog::new().set_title("Open Palette").set_directory(crate::dockers::palettes::my_palettes_dir()).add_filter(OPEN_FILTER, OPEN_EXTS).pick_file() {
+            if let Some(p) = rfd::FileDialog::new().set_title("Open Palette").set_directory(crate::dockers::palettes::my_palettes_dir()).add_filter(OPEN_FILTER, &vector_io::paths::dialog_extensions(OPEN_EXTS)).pick_file() {
                 if let Some(pal) = read_file(&p) {
                     st.edits.push(Edit { source: Source::File(p), palette: pal.clone(), original: pal });
                     st.cur = st.edits.len() - 1;
@@ -670,7 +670,7 @@ fn select_color(app: &mut AnyVectorApp, ctx: &egui::Context, st: &mut EditorStat
                 sc.row = 0;
             }
             if icon_btn(app, ui, at(240.0, 75.0), "open", "Open Palette", true) {
-                if let Some(p) = rfd::FileDialog::new().set_title("Open Palette").set_directory(crate::dockers::palettes::my_palettes_dir()).add_filter(OPEN_FILTER, OPEN_EXTS).pick_file() {
+                if let Some(p) = rfd::FileDialog::new().set_title("Open Palette").set_directory(crate::dockers::palettes::my_palettes_dir()).add_filter(OPEN_FILTER, &vector_io::paths::dialog_extensions(OPEN_EXTS)).pick_file() {
                     if let Some(pal) = read_file(&p) {
                         sc.choices.push(Choice { label: pal.name.clone(), indent: 0, palette: Some(pal) });
                         sc.pal = sc.choices.len() - 1;
