@@ -524,6 +524,35 @@ pub struct DimensionObj {
     /// Gap between the callout text and its line or shape, points.
     #[serde(default = "callout_gap")]
     pub callout_gap: f64,
+    /// Text position: above, through or below the dimension line (CorelDRAW's `Placement`).
+    #[serde(default)]
+    pub placement: TextPlacement,
+    /// Center Text Between Extension Lines (`TextCentered`); off, the text sits at the label
+    /// point along the line.
+    #[serde(default = "yes")]
+    pub text_centered: bool,
+    /// Force Text Horizontal (`HorizontalText`).
+    #[serde(default)]
+    pub horizontal_text: bool,
+    /// Draw Box Around Text (`BoxedText`): a box stroked with the dimension's outline.
+    #[serde(default)]
+    pub boxed_text: bool,
+}
+
+/// Where the value of a dimension sits against its dimension line, CorelDRAW's
+/// `cdrDimensionPlacement` (`cdrDimensionAboveLine`, `cdrDimensionWithinLine`,
+/// `cdrDimensionBelowLine`). Above and below follow the text's own up: with the text forced
+/// horizontal they are up and down on the page, on an angular dimension out from and in towards
+/// the vertex.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TextPlacement {
+    /// The value stands on the line: the only placement before 0.6.2, so files without the
+    /// field keep their look.
+    #[default]
+    Above,
+    /// The value is centred on the line, which is broken around it.
+    Through,
+    Below,
 }
 
 fn dim_arrow() -> Option<crate::style::ArrowHead> {
@@ -552,7 +581,11 @@ impl Default for DimensionObj {
             ext_len: None,
             arrow: dim_arrow(),
             callout_shape: 0,
-            callout_gap: callout_gap()
+            callout_gap: callout_gap(),
+            placement: TextPlacement::Above,
+            text_centered: true,
+            horizontal_text: false,
+            boxed_text: false,
         }
     }
 }
@@ -1766,6 +1799,17 @@ impl Object {
                     self.transform.transform_rect_bbox(l.bounds)
                 }
             }
+            // the lines and the value, wherever its placement puts it
+            ObjKind::Dimension(d) => {
+                let p = self.world_path();
+                let t = dimension_text(d).ink_outline().map(|t| (self.transform * t).bounding_box());
+                match (p.elements().is_empty(), t) {
+                    (false, Some(t)) => p.bounding_box().union(t),
+                    (false, None) => p.bounding_box(),
+                    (true, Some(t)) => t,
+                    (true, None) => self.transform.transform_rect_bbox(Rect::ZERO),
+                }
+            }
             _ => {
                 let p = self.world_path();
                 if p.elements().is_empty() {
@@ -2425,6 +2469,9 @@ pub fn dimension_path(d: &DimensionObj) -> BezPath {
     let gap = d.ext_gap.max(0.0);
     let past = d.ext_len.unwrap_or(2.0);
     let sz = (d.font_size * 0.5).max(3.0);
+    let carrier = DimCarrier::of(d);
+    // the value only shapes the lines when they break around it, reach out to it or box it
+    let text = carrier.filter(|_| d.placement == TextPlacement::Through || d.boxed_text || !d.text_centered).map(|_| dimension_text(d));
     match d.kind {
         DimensionKind::Parallel | DimensionKind::Segment if pts.len() >= 2 => {
             let (a, b) = (pts[0], pts[1]);
@@ -2440,8 +2487,7 @@ pub fn dimension_path(d: &DimensionObj) -> BezPath {
             bp.line_to(a2 + ext);
             bp.move_to(b + g);
             bp.line_to(b2 + ext);
-            bp.move_to(a2);
-            bp.line_to(b2);
+            line_spans(&mut bp, a2, b2, &spans(d, carrier, text.as_ref(), 2.0 * sz));
             arrow(&mut bp, a2, a2 - b2, sz);
             arrow(&mut bp, b2, b2 - a2, sz);
         }
@@ -2456,8 +2502,7 @@ pub fn dimension_path(d: &DimensionObj) -> BezPath {
                 bp.line_to((a.x, y + past * sa));
                 bp.move_to((b.x, b.y + gap * sb));
                 bp.line_to((b.x, y + past * sb));
-                bp.move_to((a.x, y));
-                bp.line_to((b.x, y));
+                line_spans(&mut bp, Point::new(a.x, y), Point::new(b.x, y), &spans(d, carrier, text.as_ref(), 2.0 * sz));
                 arrow(&mut bp, Point::new(a.x, y), Vec2::new(a.x - b.x, 0.0), sz);
                 arrow(&mut bp, Point::new(b.x, y), Vec2::new(b.x - a.x, 0.0), sz);
             } else {
@@ -2468,8 +2513,7 @@ pub fn dimension_path(d: &DimensionObj) -> BezPath {
                 bp.line_to((x + past * sa, a.y));
                 bp.move_to((b.x + gap * sb, b.y));
                 bp.line_to((x + past * sb, b.y));
-                bp.move_to((x, a.y));
-                bp.line_to((x, b.y));
+                line_spans(&mut bp, Point::new(x, a.y), Point::new(x, b.y), &spans(d, carrier, text.as_ref(), 2.0 * sz));
                 arrow(&mut bp, Point::new(x, a.y), Vec2::new(0.0, a.y - b.y), sz);
                 arrow(&mut bp, Point::new(x, b.y), Vec2::new(0.0, b.y - a.y), sz);
             }
@@ -2490,10 +2534,21 @@ pub fn dimension_path(d: &DimensionObj) -> BezPath {
                 sweep += 2.0 * PI;
             }
             a2 = a1 + sweep;
-            let arc = kurbo::Arc::new(v, (r, r), a1, a2 - a1, 0.0);
-            let p0 = Point::new(v.x + r * a1.cos(), v.y + r * a1.sin());
-            bp.move_to(p0);
-            arc.to_cubic_beziers(0.01, |p1, p2, p3| bp.curve_to(p1, p2, p3));
+            let pieces = spans(d, carrier, text.as_ref(), 2.0 * sz);
+            if pieces == [(0.0, sweep.abs())] {
+                let arc = kurbo::Arc::new(v, (r, r), a1, a2 - a1, 0.0);
+                let p0 = Point::new(v.x + r * a1.cos(), v.y + r * a1.sin());
+                bp.move_to(p0);
+                arc.to_cubic_beziers(0.01, |p1, p2, p3| bp.curve_to(p1, p2, p3));
+            } else {
+                // broken around the value, or reaching out to it
+                let sg = if sweep < 0.0 { -1.0 } else { 1.0 };
+                for (u0, u1) in pieces {
+                    let th = a1 + sg * u0;
+                    bp.move_to(Point::new(v.x + r * th.cos(), v.y + r * th.sin()));
+                    kurbo::Arc::new(v, (r, r), th, sg * (u1 - u0), 0.0).to_cubic_beziers(0.01, |p1, p2, p3| bp.curve_to(p1, p2, p3));
+                }
+            }
         }
         DimensionKind::Callout if pts.len() >= 2 => {
             bp.move_to(pts[0]);
@@ -2505,7 +2560,394 @@ pub fn dimension_path(d: &DimensionObj) -> BezPath {
         }
         _ => {}
     }
+    if d.boxed_text {
+        if let Some(b) = text.as_ref().and_then(|t| t.clear.map(|r| t.transform * r.to_path(0.1))) {
+            bp.extend(b.elements().iter().copied());
+        }
+    }
     bp
+}
+
+/// Draw the stretches `spans` (distances from `a`) of the dimension line from `a` to `b`; the
+/// whole line is drawn from `a` to `b` exactly.
+fn line_spans(bp: &mut BezPath, a: Point, b: Point, spans: &[(f64, f64)]) {
+    let len = (b - a).hypot();
+    let t = if len > 1e-12 { (b - a) / len } else { Vec2::ZERO };
+    let at = |u: f64| {
+        if u == 0.0 {
+            a
+        } else if u == len {
+            b
+        } else {
+            a + t * u
+        }
+    };
+    for &(u0, u1) in spans {
+        bp.move_to(at(u0));
+        bp.line_to(at(u1));
+    }
+}
+
+/// The space between a dimension line and its value (above or below), times the font size.
+const DIM_TEXT_GAP: f64 = 0.3;
+/// The margin around the value kept by a line broken around it and by the box around it,
+/// times the font size.
+const DIM_TEXT_PAD: f64 = 0.2;
+
+/// An angle turned half a turn when needed, so that text along it doesn't read upside down.
+fn readable_angle(a: f64) -> f64 {
+    let mut a = a;
+    while a > PI / 2.0 {
+        a -= PI;
+    }
+    while a < -PI / 2.0 {
+        a += PI;
+    }
+    a
+}
+
+fn rotate_vec(v: Vec2, a: f64) -> Vec2 {
+    (Affine::rotate(a) * v.to_point()).to_vec2()
+}
+
+/// The line or arc the value of a dimension is placed against. Positions along it (`u`) are
+/// distances from its start on a line, and angles from its start in the sweep's direction on an
+/// arc.
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum DimCarrier {
+    /// A dimension line from `a` to `b`; `angle`: the readable angle of text along it.
+    Line { a: Point, b: Point, angle: f64 },
+    /// The arc of an angular dimension: centre, radius, start angle and signed sweep (radians).
+    Arc { c: Point, r: f64, start: f64, sweep: f64 },
+}
+
+impl DimCarrier {
+    /// The dimension line of a linear dimension, the arc of an angular one; none for callouts.
+    fn of(d: &DimensionObj) -> Option<DimCarrier> {
+        let pts = &d.points;
+        match d.kind {
+            DimensionKind::Parallel | DimensionKind::Segment if pts.len() >= 2 => {
+                let (a, b) = (pts[0], pts[1]);
+                if (b - a).hypot2() < 1e-18 {
+                    return None;
+                }
+                let lp = pts.get(2).copied().unwrap_or(a.midpoint(b));
+                let dir = (b - a).normalize();
+                let normal = Vec2::new(-dir.y, dir.x);
+                let off = (lp - a).dot(normal);
+                Some(DimCarrier::Line { a: a + normal * off, b: b + normal * off, angle: readable_angle(dir.y.atan2(dir.x)) })
+            }
+            DimensionKind::HorizontalVertical if pts.len() >= 2 => {
+                let (a, b) = (pts[0], pts[1]);
+                let (_, mid, ang) = dimension_label(d);
+                Some(if ang == 0.0 {
+                    DimCarrier::Line { a: Point::new(a.x, mid.y), b: Point::new(b.x, mid.y), angle: 0.0 }
+                } else {
+                    DimCarrier::Line { a: Point::new(mid.x, a.y), b: Point::new(mid.x, b.y), angle: -PI / 2.0 }
+                })
+            }
+            DimensionKind::Angular if pts.len() >= 3 => {
+                let (v, a, b) = (pts[0], pts[1], pts[2]);
+                let r = pts.get(3).map(|lp| (*lp - v).hypot() * 0.8).unwrap_or(30.0);
+                let start = (a - v).atan2();
+                let mut sweep = (b - v).atan2() - start;
+                if sweep > PI {
+                    sweep -= 2.0 * PI;
+                }
+                if sweep < -PI {
+                    sweep += 2.0 * PI;
+                }
+                Some(DimCarrier::Arc { c: v, r, start, sweep })
+            }
+            _ => None,
+        }
+    }
+
+    /// The length of the line, the angle of the arc.
+    fn len(&self) -> f64 {
+        match *self {
+            DimCarrier::Line { a, b, .. } => (b - a).hypot(),
+            DimCarrier::Arc { sweep, .. } => sweep.abs(),
+        }
+    }
+
+    /// How far a unit of `u` reaches on the page: 1 on a line, the radius on an arc.
+    fn scale(&self) -> f64 {
+        match *self {
+            DimCarrier::Line { .. } => 1.0,
+            DimCarrier::Arc { r, .. } => r.max(1e-9),
+        }
+    }
+
+    fn angle_at(&self, u: f64) -> f64 {
+        match *self {
+            DimCarrier::Line { .. } => 0.0,
+            DimCarrier::Arc { start, sweep, .. } => start + if sweep < 0.0 { -u } else { u },
+        }
+    }
+
+    fn at(&self, u: f64) -> Point {
+        match *self {
+            DimCarrier::Line { a, .. } => a + self.tangent(u) * u,
+            DimCarrier::Arc { c, r, .. } => {
+                let th = self.angle_at(u);
+                c + Vec2::new(th.cos(), th.sin()) * r
+            }
+        }
+    }
+
+    /// The direction of increasing `u`.
+    fn tangent(&self, u: f64) -> Vec2 {
+        match *self {
+            DimCarrier::Line { a, b, angle } => {
+                let l = (b - a).hypot();
+                if l > 1e-12 {
+                    (b - a) / l
+                } else {
+                    Vec2::new(angle.cos(), angle.sin())
+                }
+            }
+            DimCarrier::Arc { sweep, .. } => {
+                let th = self.angle_at(u);
+                Vec2::new(-th.sin(), th.cos()) * if sweep < 0.0 { -1.0 } else { 1.0 }
+            }
+        }
+    }
+
+    /// "Above": the up of text along the line; out from the vertex on an arc.
+    fn up(&self, u: f64) -> Vec2 {
+        match *self {
+            DimCarrier::Line { angle, .. } => Vec2::new(angle.sin(), -angle.cos()),
+            DimCarrier::Arc { .. } => {
+                let th = self.angle_at(u);
+                Vec2::new(th.cos(), th.sin())
+            }
+        }
+    }
+
+    /// The angle of the value: along the line unless forced horizontal; level on an arc.
+    fn text_angle(&self, d: &DimensionObj) -> f64 {
+        match *self {
+            DimCarrier::Line { angle, .. } if !d.horizontal_text => angle,
+            _ => 0.0,
+        }
+    }
+
+    /// The position of `p` along the carrier: its projection on a line; on an arc its angle,
+    /// taken the way round nearer to the arc.
+    fn param(&self, p: Point) -> f64 {
+        match *self {
+            DimCarrier::Line { a, .. } => (p - a).dot(self.tangent(0.0)),
+            DimCarrier::Arc { c, start, sweep, .. } => {
+                let sg = if sweep < 0.0 { -1.0 } else { 1.0 };
+                let len = sweep.abs();
+                let u = (((p - c).atan2() - start) * sg).rem_euclid(2.0 * PI);
+                // past the end: nearer to the start the other way round
+                if u > len && u - len > 2.0 * PI - u {
+                    u - 2.0 * PI
+                } else {
+                    u
+                }
+            }
+        }
+    }
+
+    /// Where the value goes: the middle with Center Text Between Extension Lines, else the
+    /// label point.
+    fn anchor(&self, d: &DimensionObj) -> f64 {
+        let label = match d.kind {
+            DimensionKind::Angular => d.points.get(3),
+            _ => d.points.get(2),
+        };
+        match label {
+            Some(p) if !d.text_centered => self.param(*p),
+            _ => self.len() / 2.0,
+        }
+    }
+
+    fn anchor_point(&self, d: &DimensionObj) -> Point {
+        match *self {
+            // the middle of the line computed as before 0.6.2
+            DimCarrier::Line { a, b, .. } if d.text_centered => a.midpoint(b),
+            _ => self.at(self.anchor(d)),
+        }
+    }
+}
+
+/// The value of a dimension as drawn: its text, where it goes and the box kept around it, in the
+/// dimension's own space (that of `points`).
+#[derive(Clone, Debug)]
+pub struct DimText {
+    pub text: String,
+    /// Places the label (artistic text, centred, baseline at the origin) in the dimension.
+    pub transform: Affine,
+    /// The glyph outlines, in the label's space.
+    pub glyphs: BezPath,
+    /// The ink box of the glyphs, in the label's space (none without text).
+    pub ink: Option<Rect>,
+    /// The ink box with a margin: what a line broken around the value leaves out and what Draw
+    /// Box Around Text draws, in the label's space.
+    pub clear: Option<Rect>,
+}
+
+impl DimText {
+    /// The glyphs in the dimension's space.
+    pub fn path(&self) -> BezPath {
+        self.transform * self.glyphs.clone()
+    }
+
+    /// The ink box in the dimension's space (turned with the text).
+    pub fn ink_outline(&self) -> Option<BezPath> {
+        self.ink.map(|r| self.transform * r.to_path(0.1))
+    }
+
+    /// Is `p` (dimension space) on the value, within `tol`?
+    pub fn hit(&self, p: Point, tol: f64) -> bool {
+        self.ink.is_some_and(|r| r.inflate(tol, tol).contains(self.transform.inverse() * p))
+    }
+}
+
+fn dimension_glyphs(text: &str, size: f64) -> BezPath {
+    if text.is_empty() {
+        return BezPath::new();
+    }
+    let mut t = TextObj::artistic(text, text::CharFormat { size, ..Default::default() });
+    t.align = text::TextAlign::Center;
+    text::layout(&t).to_path()
+}
+
+/// The value of a dimension and where it goes (CorelDRAW's `Placement`, `TextCentered`,
+/// `HorizontalText` and `BoxedText`). Above puts the baseline a gap above the line (where the
+/// value always sat before 0.6.2), Below the top of the text a gap below it, Through the middle
+/// of the text on it; a boxed value keeps its box clear of the line instead. A value forced
+/// horizontal, or on an arc, keeps its whole box that far from the line, along the line's up.
+pub fn dimension_text(d: &DimensionObj) -> DimText {
+    let text = dimension_label(d).0;
+    let size = d.font_size;
+    let glyphs = dimension_glyphs(&text, size);
+    let ink = (!glyphs.elements().is_empty()).then(|| glyphs.bounding_box());
+    let pad = size * DIM_TEXT_PAD;
+    let gap = size * DIM_TEXT_GAP;
+    let clear = ink.map(|r| r.inflate(pad, pad));
+    let transform = match DimCarrier::of(d) {
+        // callouts: the value at the label point, as always
+        None => {
+            let (_, at, ang) = dimension_label(d);
+            Affine::translate(at.to_vec2()) * Affine::rotate(readable_angle(ang)) * Affine::translate((0.0, -gap))
+        }
+        Some(c) => {
+            let u = c.anchor(d);
+            let angle = c.text_angle(d);
+            // the line's up in the label's space
+            let up = rotate_vec(c.up(u), -angle);
+            // what keeps clear of the line: the text from its top down to the baseline, or the box
+            let body = match ink {
+                Some(i) if d.boxed_text => i.inflate(pad, pad),
+                Some(i) => Rect::new(i.x0, i.y0.min(0.0), i.x1, 0.0),
+                None => Rect::ZERO,
+            };
+            let reach = body.width() / 2.0 * up.x.abs() + body.height() / 2.0 * up.y.abs();
+            let target = match d.placement {
+                TextPlacement::Above => reach + gap,
+                TextPlacement::Through => 0.0,
+                TextPlacement::Below => -(reach + gap),
+            };
+            let shift = up * (target - body.center().to_vec2().dot(up));
+            Affine::translate(c.anchor_point(d).to_vec2()) * Affine::rotate(angle) * Affine::translate(shift)
+        }
+    };
+    DimText { text, transform, glyphs, ink, clear }
+}
+
+/// The stretches of a dimension's line or arc to draw (positions along it, see [`DimCarrier`]):
+/// all of it, reaching out to a value set past its ends, broken around a value that goes
+/// through it. The ends keep a stub of `stub` points (a third of the line at most) when the value
+/// is wider than the line.
+fn spans(d: &DimensionObj, carrier: Option<DimCarrier>, text: Option<&DimText>, stub: f64) -> Vec<(f64, f64)> {
+    let Some(c) = carrier else { return vec![] };
+    let len = c.len();
+    let (Some(t), Some(clear)) = (text, text.and_then(|t| t.clear)) else { return vec![(0.0, len)] };
+    let u = c.anchor(d);
+    let inside = (0.0..=len).contains(&u);
+    let (mut lo, mut hi): (f64, f64) = (0.0, len);
+    if !inside {
+        // the line goes on under the value
+        let mid = c.param(t.transform * clear.center());
+        let along = rotate_vec(c.tangent(mid), -c.text_angle(d));
+        let half = (clear.width() / 2.0 * along.x.abs() + clear.height() / 2.0 * along.y.abs()) / c.scale();
+        lo = lo.min(mid - half);
+        hi = hi.max(mid + half);
+    }
+    if d.placement != TextPlacement::Through {
+        return vec![(lo, hi)];
+    }
+    let Some((mut b0, mut b1)) = crossing(&c, t, clear, u) else { return vec![(lo, hi)] };
+    if inside {
+        let stub = (stub / c.scale()).min(len / 3.0);
+        b0 = b0.max(stub);
+        b1 = b1.min(len - stub);
+    }
+    if b1 <= b0 {
+        return vec![(lo, hi)];
+    }
+    let mut v = vec![];
+    if b0 > lo {
+        v.push((lo, b0.min(hi)));
+    }
+    if b1 < hi {
+        v.push((b1.max(lo), hi));
+    }
+    v
+}
+
+/// Where the line or arc runs through the box `clear` of the value placed at `u`: the stretch
+/// to leave out.
+fn crossing(c: &DimCarrier, t: &DimText, clear: Rect, u: f64) -> Option<(f64, f64)> {
+    let inv = t.transform.inverse();
+    match *c {
+        DimCarrier::Line { a, .. } => {
+            // the line in the label's space (the text is only turned and moved: lengths stay)
+            let p = inv * a;
+            let dir = inv * (a + c.tangent(0.0)) - p;
+            let (mut t0, mut t1) = (f64::NEG_INFINITY, f64::INFINITY);
+            for (o, dv, lo, hi) in [(p.x, dir.x, clear.x0, clear.x1), (p.y, dir.y, clear.y0, clear.y1)] {
+                if dv.abs() < 1e-12 {
+                    if o < lo || o > hi {
+                        return None;
+                    }
+                } else {
+                    let (s0, s1) = ((lo - o) / dv, (hi - o) / dv);
+                    t0 = t0.max(s0.min(s1));
+                    t1 = t1.min(s0.max(s1));
+                }
+            }
+            (t0 < t1).then_some((t0, t1))
+        }
+        DimCarrier::Arc { .. } => {
+            let inside = |v: f64| clear.contains(inv * c.at(v));
+            if !inside(u) {
+                return None;
+            }
+            // out from the value both ways to where the arc leaves its box
+            let edge = |dir: f64| {
+                let (mut lo, mut hi) = (0.0, (clear.width().hypot(clear.height()) / c.scale()).max(1e-6));
+                while inside(u + dir * hi) && hi < 2.0 * PI {
+                    lo = hi;
+                    hi *= 2.0;
+                }
+                for _ in 0..48 {
+                    let m = (lo + hi) / 2.0;
+                    if inside(u + dir * m) {
+                        lo = m;
+                    } else {
+                        hi = m;
+                    }
+                }
+                u + dir * hi
+            };
+            Some((edge(-1.0), edge(1.0)))
+        }
+    }
 }
 
 pub fn connector_path(c: &ConnectorObj) -> BezPath {
@@ -2910,5 +3352,305 @@ mod table_tests {
         assert_eq!(t.cols, 3);
         assert_eq!(t.cell(0, 0).cspan, 1);
         assert_eq!(t.cell(1, 1).cspan, 2);
+    }
+}
+
+/// #150: the text position of dimensions (CorelDRAW's Placement, TextCentered, HorizontalText and
+/// BoxedText).
+#[cfg(test)]
+mod dimension_text_tests {
+    use super::*;
+    use kurbo::PathEl;
+
+    const SIZE: f64 = 12.0;
+
+    fn dim(kind: DimensionKind, points: Vec<Point>) -> DimensionObj {
+        DimensionObj { kind, points, font_size: SIZE, ..Default::default() }
+    }
+
+    /// A horizontal parallel dimension 200 pt long, its line at y = 100.
+    fn horizontal() -> DimensionObj {
+        dim(DimensionKind::Parallel, vec![Point::new(100.0, 140.0), Point::new(300.0, 140.0), Point::new(200.0, 100.0)])
+    }
+
+    fn with(mut d: DimensionObj, f: impl FnOnce(&mut DimensionObj)) -> DimensionObj {
+        f(&mut d);
+        d
+    }
+
+    /// The ink box of the value in the dimension's space.
+    fn ink(d: &DimensionObj) -> Rect {
+        dimension_text(d).ink_outline().expect("a value").bounding_box()
+    }
+
+    /// The straight segments of a path (move-to then line-to), in order.
+    fn segments(bp: &BezPath) -> Vec<(Point, Point)> {
+        let mut out = vec![];
+        let mut at = Point::ZERO;
+        for el in bp.elements() {
+            match *el {
+                PathEl::MoveTo(p) => at = p,
+                PathEl::LineTo(p) => {
+                    out.push((at, p));
+                    at = p;
+                }
+                PathEl::QuadTo(_, p) | PathEl::CurveTo(_, _, p) => at = p,
+                PathEl::ClosePath => {}
+            }
+        }
+        out
+    }
+
+    /// The pieces of the dimension line y = `y` (horizontal segments on it), left to right.
+    fn on_line(d: &DimensionObj, y: f64) -> Vec<(f64, f64)> {
+        let mut v: Vec<(f64, f64)> = segments(&dimension_path(d))
+            .into_iter()
+            .filter(|(a, b)| (a.y - y).abs() < 1e-6 && (b.y - y).abs() < 1e-6 && (a.x - b.x).abs() > 1e-6)
+            .map(|(a, b)| (a.x.min(b.x), a.x.max(b.x)))
+            .collect();
+        v.sort_by(|a, b| a.0.total_cmp(&b.0));
+        v
+    }
+
+    fn close(a: f64, b: f64) -> bool {
+        (a - b).abs() < 1e-6
+    }
+
+    /// Documents from before the option existed keep their look: the value centred, its baseline
+    /// 0.3 × the font size above an unbroken line, turned with the line, as in 0.6.1.
+    #[test]
+    fn defaults_place_the_value_as_before() {
+        for d in [
+            horizontal(),
+            dim(DimensionKind::Parallel, vec![Point::new(0.0, 0.0), Point::new(120.0, 90.0), Point::new(20.0, 60.0)]),
+            dim(DimensionKind::Segment, vec![Point::new(300.0, 0.0), Point::new(100.0, 50.0), Point::new(0.0, 0.0)]),
+            dim(DimensionKind::HorizontalVertical, vec![Point::new(0.0, 0.0), Point::new(30.0, 200.0), Point::new(-40.0, 90.0)]),
+            dim(DimensionKind::HorizontalVertical, vec![Point::new(0.0, 0.0), Point::new(150.0, 20.0), Point::new(70.0, 80.0)]),
+        ] {
+            let (_, pos, ang) = dimension_label(&d);
+            let old = Affine::translate(pos.to_vec2()) * Affine::rotate(readable_angle(ang)) * Affine::translate((0.0, -SIZE * 0.3));
+            let new = dimension_text(&d).transform;
+            for (a, b) in old.as_coeffs().iter().zip(new.as_coeffs()) {
+                assert!((a - b).abs() < 1e-9, "{:?}: {old:?} != {new:?}", d.kind);
+            }
+        }
+        // and the line runs unbroken from one arrow to the other
+        assert_eq!(on_line(&horizontal(), 100.0), vec![(100.0, 300.0)]);
+    }
+
+    #[test]
+    fn above_through_and_below_the_line() {
+        let gap = SIZE * 0.3;
+        let above = horizontal();
+        let t = dimension_text(&above);
+        assert!(close(t.transform.translation().y, 100.0 - gap), "Above: the baseline a gap above the line");
+        assert!(ink(&above).y1 < 100.0);
+        let below = with(horizontal(), |d| d.placement = TextPlacement::Below);
+        assert!(close(ink(&below).y0, 100.0 + gap), "Below: the top of the text a gap below the line: {:?}", ink(&below));
+        let through = with(horizontal(), |d| d.placement = TextPlacement::Through);
+        let t = dimension_text(&through);
+        let i = t.ink.unwrap();
+        // the text above its baseline is centred on the line
+        let mid = t.transform * Point::new(0.0, i.y0 / 2.0);
+        assert!(close(mid.y, 100.0), "Through: {mid:?}");
+        // all three stay centred between the extension lines
+        for d in [&above, &below, &through] {
+            assert!((ink(d).center().x - 200.0).abs() < SIZE, "{:?}", ink(d));
+        }
+    }
+
+    #[test]
+    fn through_breaks_the_line_around_the_value() {
+        let d = with(horizontal(), |d| d.placement = TextPlacement::Through);
+        let i = ink(&d);
+        let pad = SIZE * 0.2;
+        let pieces = on_line(&d, 100.0);
+        assert_eq!(pieces.len(), 2, "{pieces:?}");
+        assert!(close(pieces[0].0, 100.0) && close(pieces[1].1, 300.0), "the line still reaches both arrows: {pieces:?}");
+        assert!(close(pieces[0].1, i.x0 - pad) && close(pieces[1].0, i.x1 + pad), "broken a margin around the text: {pieces:?} {i:?}");
+        // a value wider than the line: the arrows keep a stub, no piece is inverted
+        let short = with(d.clone(), |d| d.points = vec![Point::new(190.0, 140.0), Point::new(210.0, 140.0), Point::new(200.0, 100.0)]);
+        let pieces = on_line(&short, 100.0);
+        assert_eq!(pieces.len(), 2, "{pieces:?}");
+        // two arrowheads long, a third of the line at most
+        let stub = ((SIZE * 0.5).max(3.0) * 2.0).min(20.0 / 3.0);
+        assert!(close(pieces[0].1 - pieces[0].0, stub) && close(pieces[1].1 - pieces[1].0, stub), "{pieces:?}");
+    }
+
+    #[test]
+    fn boxed_text_adds_a_box_around_the_value() {
+        for p in [TextPlacement::Above, TextPlacement::Through, TextPlacement::Below] {
+            let plain = with(horizontal(), |d| d.placement = p);
+            let boxed = with(plain.clone(), |d| d.boxed_text = true);
+            let closes = |d: &DimensionObj| dimension_path(d).elements().iter().filter(|e| matches!(e, PathEl::ClosePath)).count();
+            assert_eq!(closes(&boxed), closes(&plain) + 1, "{p:?}: one more closed figure, the box");
+            let t = dimension_text(&boxed);
+            let r = (t.transform * t.clear.unwrap().to_path(0.1)).bounding_box();
+            let i = ink(&boxed);
+            assert!(r.contains(Point::new(i.x0, i.y0)) && r.contains(Point::new(i.x1, i.y1)), "{p:?}: the box holds the text");
+            assert!(close(r.width() - i.width(), SIZE * 0.4), "{p:?}: a margin of 0.2 × the font size");
+            match p {
+                // the box, not the text, keeps the gap from the line
+                TextPlacement::Above => assert!(close(r.y1, 100.0 - SIZE * 0.3), "{r:?}"),
+                TextPlacement::Below => assert!(close(r.y0, 100.0 + SIZE * 0.3), "{r:?}"),
+                // the line stops at the box
+                TextPlacement::Through => {
+                    let pieces = on_line(&boxed, 100.0);
+                    assert!(close(pieces[0].1, r.x0) && close(pieces[1].0, r.x1), "{pieces:?} {r:?}");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn centered_uses_the_middle_else_the_label_point() {
+        let off = |c: bool| with(horizontal(), |d| {
+            d.points[2] = Point::new(130.0, 100.0);
+            d.text_centered = c;
+        });
+        assert!(close(dimension_text(&off(true)).transform.translation().x, 200.0));
+        assert!(close(dimension_text(&off(false)).transform.translation().x, 130.0));
+        // the label point decides only where along the line the value goes
+        assert!(close(dimension_text(&off(false)).transform.translation().y, 100.0 - SIZE * 0.3));
+        // set past an extension line, the line reaches out under the value
+        let out = with(horizontal(), |d| {
+            d.points[2] = Point::new(360.0, 100.0);
+            d.text_centered = false;
+        });
+        let i = ink(&out);
+        let pieces = on_line(&out, 100.0);
+        assert_eq!(pieces.len(), 1);
+        assert!(close(pieces[0].0, 100.0) && pieces[0].1 >= i.x1, "{pieces:?} {i:?}");
+        // through and past the end: the line reaches out to the value and stops at it
+        let out = with(out, |d| d.placement = TextPlacement::Through);
+        let pieces = on_line(&out, 100.0);
+        assert_eq!(pieces.len(), 1, "{pieces:?}");
+        assert!(close(pieces[0].0, 100.0) && pieces[0].1 > 300.0 && pieces[0].1 < ink(&out).x0, "{pieces:?}");
+    }
+
+    #[test]
+    fn force_horizontal_keeps_the_value_level_and_clear_of_the_line() {
+        // a line at 30°, and a vertical one
+        for pts in [vec![Point::new(0.0, 0.0), Point::new(173.2, 100.0), Point::new(0.0, -40.0)], vec![Point::new(0.0, 0.0), Point::new(0.0, 200.0), Point::new(-50.0, 100.0)]] {
+            let turned = dim(DimensionKind::Parallel, pts.clone());
+            assert!(dimension_text(&turned).transform.as_coeffs()[1].abs() > 0.1, "the value turns with the line");
+            let c = DimCarrier::of(&turned).unwrap();
+            let DimCarrier::Line { a, b, .. } = c else { unreachable!() };
+            let up = c.up(0.0);
+            let side = |p: Point| (p - a).dot(up);
+            for (placement, sign) in [(TextPlacement::Above, 1.0), (TextPlacement::Below, -1.0), (TextPlacement::Through, 0.0)] {
+                let d = with(turned.clone(), |d| {
+                    d.horizontal_text = true;
+                    d.placement = placement;
+                });
+                let t = dimension_text(&d);
+                let k = t.transform.as_coeffs();
+                assert!(k[1].abs() < 1e-12 && close(k[0], 1.0), "level: {k:?}");
+                let r = ink(&d);
+                let corners = [Point::new(r.x0, r.y0), Point::new(r.x1, r.y0), Point::new(r.x0, r.y1), Point::new(r.x1, r.y1)];
+                if sign == 0.0 {
+                    assert!(corners.iter().any(|p| side(*p) > 0.0) && corners.iter().any(|p| side(*p) < 0.0), "{placement:?}: on the line");
+                    // and broken around it
+                    let gap = segments(&dimension_path(&d)).iter().filter(|(p, q)| side(*p).abs() < 1e-6 && side(*q).abs() < 1e-6).count();
+                    assert_eq!(gap, 2, "{placement:?}: two pieces of line");
+                } else {
+                    let nearest = corners.iter().map(|p| side(*p) * sign).fold(f64::INFINITY, f64::min);
+                    assert!(nearest > 0.0, "{placement:?}: the whole value on its side of the line ({nearest})");
+                }
+                // still by the middle of the line
+                assert!((r.center() - a.midpoint(b)).hypot() < 60.0);
+            }
+        }
+    }
+
+    /// An angle of 90° at (100, 100) with its arc at radius 80.
+    fn angular() -> DimensionObj {
+        dim(DimensionKind::Angular, vec![Point::new(100.0, 100.0), Point::new(300.0, 100.0), Point::new(100.0, 300.0), Point::new(200.0, 100.0)])
+    }
+
+    #[test]
+    fn angular_above_is_outward_and_through_breaks_the_arc() {
+        let v = Point::new(100.0, 100.0);
+        let r = 80.0;
+        let dist = |d: &DimensionObj| (ink(d).center() - v).hypot();
+        let above = angular();
+        let below = with(angular(), |d| d.placement = TextPlacement::Below);
+        let through = with(angular(), |d| d.placement = TextPlacement::Through);
+        assert!(dist(&above) > r + SIZE * 0.3, "outward: {}", dist(&above));
+        assert!(dist(&below) < r - SIZE * 0.3, "inward: {}", dist(&below));
+        assert!((dist(&through) - r).abs() < SIZE, "on the arc: {}", dist(&through));
+        // centred: on the bisector (45°)
+        for d in [&above, &below, &through] {
+            let c = ink(d).center() - v;
+            assert!((c.y.atan2(c.x) - PI / 4.0).abs() < 0.05, "{:?}", c);
+        }
+        // the arc is one piece, or two around the value
+        let arcs = |d: &DimensionObj| segments(&dimension_path(d)).len();
+        let moves = |d: &DimensionObj| dimension_path(d).elements().iter().filter(|e| matches!(e, PathEl::MoveTo(_))).count();
+        assert_eq!(arcs(&through), arcs(&above));
+        assert_eq!(moves(&through), moves(&above) + 1, "the arc broken around the value");
+        // no point of the arc inside the value's box
+        let t = dimension_text(&through);
+        let inv = t.transform.inverse();
+        let clear = t.clear.unwrap().inflate(-0.05, -0.05);
+        for el in dimension_path(&through).elements() {
+            if let PathEl::CurveTo(_, _, p) | PathEl::MoveTo(p) = *el {
+                assert!(!clear.contains(inv * p), "{p:?} inside the box");
+            }
+        }
+        // not centred: at the label point's angle
+        let off = with(angular(), |d| {
+            d.points[3] = Point::new(100.0 + 100.0 * 0.3f64.cos(), 100.0 + 100.0 * 0.3f64.sin());
+            d.text_centered = false;
+        });
+        let c = ink(&off).center() - v;
+        assert!((c.y.atan2(c.x) - 0.3).abs() < 0.1, "{c:?}");
+        // an angular value is always level
+        let level = with(angular(), |d| d.horizontal_text = true);
+        assert_eq!(dimension_text(&level).transform, dimension_text(&angular()).transform);
+    }
+
+    #[test]
+    fn bounds_and_hits_take_in_the_value() {
+        let mk = |d: DimensionObj| Object::new(1, ObjKind::Dimension(d), Affine::IDENTITY, Style::default());
+        for p in [TextPlacement::Above, TextPlacement::Below] {
+            let d = with(horizontal(), |d| d.placement = p);
+            let i = ink(&d);
+            let o = mk(d);
+            let b = o.bounds();
+            assert!(b.contains(Point::new(i.x0, i.y0)) && b.contains(Point::new(i.x1, i.y1)), "{p:?}: {b:?} {i:?}");
+            let doc = crate::document::Document::default();
+            assert!(doc.hit_body(&o, i.center(), 0.5, false), "{p:?}: a click on the value");
+        }
+        // the box around the value is in the outline
+        let o = mk(with(horizontal(), |d| d.boxed_text = true));
+        let t = match &o.kind {
+            ObjKind::Dimension(d) => dimension_text(d),
+            _ => unreachable!(),
+        };
+        let r = (t.transform * t.clear.unwrap().to_path(0.1)).bounding_box();
+        assert!(o.bounds().contains(Point::new(r.x0, r.y0)));
+    }
+
+    #[test]
+    fn old_files_load_with_the_old_placement() {
+        let d = with(horizontal(), |d| {
+            d.placement = TextPlacement::Below;
+            d.text_centered = false;
+            d.horizontal_text = true;
+            d.boxed_text = true;
+        });
+        // a dimension saved by 0.6.1: no text position fields
+        let mut v = serde_json::to_value(&d).unwrap();
+        for k in ["placement", "text_centered", "horizontal_text", "boxed_text"] {
+            assert!(v.as_object_mut().unwrap().remove(k).is_some(), "{k}");
+        }
+        let old: DimensionObj = serde_json::from_value(v).unwrap();
+        assert_eq!((old.placement, old.text_centered, old.horizontal_text, old.boxed_text), (TextPlacement::Above, true, false, false));
+        assert_eq!(dimension_text(&old).transform, dimension_text(&horizontal()).transform);
+        // and the new fields survive a save
+        let back: DimensionObj = serde_json::from_str(&serde_json::to_string(&d).unwrap()).unwrap();
+        assert_eq!(back, d);
+        assert_eq!(serde_json::to_value(TextPlacement::Through).unwrap(), serde_json::json!("Through"));
     }
 }

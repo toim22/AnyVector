@@ -3179,6 +3179,10 @@ impl<'a> Cx<'a> {
             arrow: t.dim_arrow,
             callout_shape: t.callout_shape,
             callout_gap: t.callout_gap,
+            placement: t.dim_placement,
+            text_centered: t.dim_text_centered,
+            horizontal_text: t.dim_horizontal_text,
+            boxed_text: t.dim_boxed_text,
         };
         if !dim.dynamic {
             dim.text = dimension_label(&dim).0;

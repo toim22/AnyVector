@@ -1594,6 +1594,8 @@ impl Document {
                 let local = o.local_path().bounding_box();
                 local.inflate(tol, tol).contains(lp) || b.width() == 0.0 && false
             }
+            // a click on the value of a dimension picks it too (#150)
+            ObjKind::Dimension(d) if crate::object::dimension_text(d).hit(o.transform.inverse() * p, tol) => true,
             _ => {
                 let path = o.world_path();
                 let filled = !o.style.fill.is_none() || treat_as_filled;

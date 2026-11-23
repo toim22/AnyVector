@@ -1144,11 +1144,26 @@ fn draw_in_progress(painter: &Painter, d: &DocView, ts: &ToolState, s: &Settings
                         suffix: s.dim_suffix.clone(),
                         show_units: true,
                         font_size: 12.0,
-                        unit: d.doc.settings.unit, ..Default::default()
+                        unit: d.doc.settings.unit,
+                        placement: s.topts.dim_placement,
+                        text_centered: s.topts.dim_text_centered,
+                        horizontal_text: s.topts.dim_horizontal_text,
+                        boxed_text: s.topts.dim_boxed_text,
+                        ..Default::default()
                     };
                     stroke_bez(painter, d, &dimension_path(&dim), Stroke::new(1.0, PREVIEW));
-                    let (label, at, _) = vector_core::object::dimension_label(&dim);
-                    painter.text(d.to_screen(at), egui::Align2::CENTER_BOTTOM, label, egui::FontId::proportional(12.0), PREVIEW);
+                    // the value where the text position options put it
+                    let t = vector_core::object::dimension_text(&dim);
+                    if let Some(ink) = t.ink {
+                        let m = screen_affine(d) * t.transform;
+                        let c = m * ink.center();
+                        let x = m * (ink.center() + kurbo::Vec2::new(1.0, 0.0)) - c;
+                        let angle = x.y.atan2(x.x) as f32;
+                        let galley = painter.layout_no_wrap(t.text.clone(), egui::FontId::proportional((dim.font_size * x.hypot()).clamp(4.0, 200.0) as f32), PREVIEW);
+                        let half = egui::Vec2::new(galley.size().x / 2.0, galley.size().y / 2.0);
+                        let turned = egui::Vec2::new(half.x * angle.cos() - half.y * angle.sin(), half.x * angle.sin() + half.y * angle.cos());
+                        painter.add(egui::epaint::TextShape::new(to_pos(c) - turned, galley, PREVIEW).with_angle(angle));
+                    }
                 }
             }
             _ => {}
