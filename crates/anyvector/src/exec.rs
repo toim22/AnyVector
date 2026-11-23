@@ -412,8 +412,7 @@ impl AnyVectorApp {
         for k in 1..st.pages.max(1) {
             doc.add_page(k, st.width, st.height);
         }
-        let name = st.name.trim();
-        let stem = name.strip_suffix(".cdr").or_else(|| name.strip_suffix(".vct")).unwrap_or(name);
+        let stem = vector_io::paths::strip_extension(st.name.trim(), &["cdr", "vct"]);
         let mut dv = DocView::new(doc, format!("{stem}.cdr"), self.settings.undo_levels);
         dv.history.mark_saved();
         self.push_doc(dv);
@@ -446,9 +445,10 @@ impl AnyVectorApp {
                 all.extend(t.extensions.iter().copied());
             }
         }
-        let mut d = d.add_filter("All File Formats", &all);
+        // Linux file dialogs match extensions in their case only
+        let mut d = d.add_filter("All File Formats", &vector_io::paths::dialog_extensions(&all));
         for t in types {
-            d = d.add_filter(t.name, t.extensions);
+            d = d.add_filter(t.name, &t.dialog_extensions());
         }
         d
     }
@@ -2576,7 +2576,7 @@ impl AnyVectorApp {
                 }
             }
             Cmd::RunScript => {
-                if let Some(p) = rfd::FileDialog::new().set_title("Run Script").add_filter("AnyVector script", &["rhai", "vsc"]).set_directory(crate::scripting::scripts_dir()).pick_file() {
+                if let Some(p) = rfd::FileDialog::new().set_title("Run Script").add_filter("AnyVector script", &vector_io::paths::dialog_extensions(&["rhai", "vsc"])).set_directory(crate::scripting::scripts_dir()).pick_file() {
                     match std::fs::read_to_string(&p) {
                         Ok(src) => {
                             if let Err(e) = crate::scripting::run_script(self, &src) {

@@ -428,7 +428,7 @@ pub fn symbols(app: &mut AnyVectorApp, ui: &mut Ui) {
     ui.add_space(4.0);
     // the libraries
     let locals: Vec<std::path::PathBuf> = {
-        let mut v: Vec<_> = std::fs::read_dir(crate::dialogs::object::symbols_dir()).map(|r| r.filter_map(|e| e.ok()).map(|e| e.path()).filter(|p| p.extension().is_some_and(|e| e == "csl")).collect()).unwrap_or_default();
+        let mut v: Vec<_> = std::fs::read_dir(crate::dialogs::object::symbols_dir()).map(|r| r.filter_map(|e| e.ok()).map(|e| e.path()).filter(|p| vector_io::paths::has_extension(p, &["csl"])).collect()).unwrap_or_default();
         v.sort();
         v
     };
@@ -1280,7 +1280,7 @@ fn image_page(doc: &vector_core::Document, image: u64) -> Option<usize> {
 /// Add linked file: import an image that stays linked to its file.
 fn add_linked_file(app: &mut AnyVectorApp) {
     let exts = ["png", "jpg", "jpeg", "jfif", "bmp", "tif", "tiff", "webp", "jxl", "gif", "ico", "tga"];
-    let mut fd = rfd::FileDialog::new().set_title("Add linked file").add_filter("Bitmaps", &exts);
+    let mut fd = rfd::FileDialog::new().set_title("Add linked file").add_filter("Bitmaps", &vector_io::paths::dialog_extensions(&exts));
     if let Some(d) = app.settings.last_dir.clone() {
         fd = fd.set_directory(d);
     }
@@ -1597,7 +1597,7 @@ pub fn history(app: &mut AnyVectorApp, ui: &mut Ui) {
 // ------------------------------------------------------------------ Scripts
 
 fn rhai_files(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
-    let mut v: Vec<_> = std::fs::read_dir(dir).map(|r| r.filter_map(|e| e.ok()).map(|e| e.path()).filter(|p| p.extension().is_some_and(|e| e == "rhai")).collect()).unwrap_or_default();
+    let mut v: Vec<_> = std::fs::read_dir(dir).map(|r| r.filter_map(|e| e.ok()).map(|e| e.path()).filter(|p| vector_io::paths::has_extension(p, &["rhai"])).collect()).unwrap_or_default();
     v.sort();
     v
 }
