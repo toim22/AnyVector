@@ -355,7 +355,19 @@ fn apply_visuals(ctx: &egui::Context) {
     ctx.set_theme(if p.light { egui::ThemePreference::Light } else { egui::ThemePreference::Dark });
 }
 
+/// The interface's fonts: Segoe UI, Consolas and Segoe UI Symbol on Windows; elsewhere the
+/// installed fonts or the bundled Selawik in their place (`ui_fonts`). With the Chinese or Japanese
+/// font of the interface language (`i18n::add_fonts`).
 pub(crate) fn install_fonts(ctx: &egui::Context) {
+    #[cfg(windows)]
+    let defs = windows_fonts();
+    #[cfg(not(windows))]
+    let defs = crate::ui_fonts::definitions();
+    ctx.set_fonts(defs);
+}
+
+#[cfg(windows)]
+fn windows_fonts() -> egui::FontDefinitions {
     let windir = std::env::var("WINDIR").unwrap_or_else(|_| "C:\\Windows".into());
     let fonts = std::path::Path::new(&windir).join("Fonts");
     let mut defs = egui::FontDefinitions::default();
@@ -390,8 +402,13 @@ pub(crate) fn install_fonts(ctx: &egui::Context) {
         let p = defs.families.get(&FontFamily::Proportional).cloned().unwrap_or_default();
         defs.families.insert(FontFamily::Name("light".into()), p);
     }
-    crate::i18n::add_fonts(&mut defs, &fonts);
-    ctx.set_fonts(defs);
+    // the collection's second face is the one made for interfaces
+    crate::i18n::add_fonts(&mut defs, |_, file| {
+        let mut data = egui::FontData::from_owned(std::fs::read(fonts.join(file)).ok()?);
+        data.index = 1;
+        Some(data)
+    });
+    defs
 }
 
 pub fn bold(size: f32) -> FontId {

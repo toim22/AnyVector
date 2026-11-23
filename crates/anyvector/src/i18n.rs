@@ -272,13 +272,12 @@ fn set_installed_font(name: &'static str) {
 }
 
 /// Adds the Chinese or Japanese font of the user interface language to the end of every font family, so
-/// those characters show (Segoe UI has none). Called by `theme::install_fonts`.
-pub fn add_fonts(defs: &mut egui::FontDefinitions, fonts: &std::path::Path) {
+/// those characters show (Segoe UI has none). `load` reads it, given the language and its Windows font file
+/// (see `cjk_font`); None when it can't. Called by `theme::install_fonts` (and `ui_fonts` off Windows).
+pub fn add_fonts(defs: &mut egui::FontDefinitions, load: impl FnOnce(Lang, &str) -> Option<egui::FontData>) {
     let (name, file) = lang().cjk_font();
     set_installed_font(name);
-    let Ok(bytes) = std::fs::read(fonts.join(file)) else { return };
-    let mut data = egui::FontData::from_owned(bytes);
-    data.index = 1;
+    let Some(data) = load(lang(), file) else { return };
     defs.font_data.insert(name.to_string(), std::sync::Arc::new(data));
     for list in defs.families.values_mut() {
         list.push(name.to_string());
