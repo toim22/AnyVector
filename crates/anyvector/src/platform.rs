@@ -113,6 +113,28 @@ fn make_private(dir: &Path) -> io::Result<()> {
     Ok(())
 }
 
+/// The default folder for auto-backups (Options ▸ Save, when no folder is chosen). Windows:
+/// `%TEMP%\AnyVector Backups`, as always. Linux: `$XDG_STATE_HOME/AnyVector/Backups`
+/// (`~/.local/state/AnyVector/Backups`), which outlives a restart, unlike `/tmp`.
+pub fn backups_dir() -> PathBuf {
+    #[cfg(windows)]
+    {
+        std::env::temp_dir().join("AnyVector Backups")
+    }
+    #[cfg(not(windows))]
+    {
+        state_backups_dir(std::env::var_os("XDG_STATE_HOME").as_deref(), dirs::home_dir().as_deref()).unwrap_or_else(|| std::env::temp_dir().join("AnyVector Backups"))
+    }
+}
+
+/// [`backups_dir`] of Linux from `$XDG_STATE_HOME` (only an absolute one), else its default under
+/// `home`.
+#[cfg(any(not(windows), test))]
+fn state_backups_dir(state_home: Option<&std::ffi::OsStr>, home: Option<&Path>) -> Option<PathBuf> {
+    let state = state_home.map(PathBuf::from).filter(|p| p.is_absolute()).or_else(|| home.filter(|h| h.is_absolute()).map(|h| h.join(".local").join("state")))?;
+    Some(state.join("AnyVector").join("Backups"))
+}
+
 /// `bytes` percent-encoded: only letters, digits, `-._~` and, with `keep_slash`, `/` stay as they
 /// are.
 fn percent_encode(bytes: &[u8], keep_slash: bool) -> String {
@@ -467,6 +489,22 @@ mod tests {
         assert_eq!(private_temp_dir(None, None, None), None);
         #[cfg(windows)]
         assert_eq!(temp_dir(), std::env::temp_dir(), "Windows keeps %TEMP%");
+    }
+
+    /// Linux's auto-backups go to the state folder, not to /tmp, which a restart empties.
+    #[test]
+    fn backups_go_to_the_state_folder() {
+        use std::ffi::OsStr;
+        let (home, state) = (abs("/home/ana"), abs("/data/state"));
+        let home = Some(home.as_path());
+        assert_eq!(state_backups_dir(Some(state.as_os_str()), home), Some(abs("/data/state/AnyVector/Backups")));
+        assert_eq!(state_backups_dir(None, home), Some(abs("/home/ana/.local/state/AnyVector/Backups")));
+        assert_eq!(state_backups_dir(Some(OsStr::new("state")), home), Some(abs("/home/ana/.local/state/AnyVector/Backups")));
+        assert_eq!(state_backups_dir(None, None), None);
+        #[cfg(windows)]
+        assert_eq!(backups_dir(), std::env::temp_dir().join("AnyVector Backups"), "Windows keeps %TEMP%");
+        #[cfg(not(windows))]
+        assert!(backups_dir().ends_with("AnyVector/Backups"));
     }
 
     /// The folder is made open to its owner only, also when it was there with wider rights.
