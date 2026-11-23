@@ -36,6 +36,11 @@ raw-window-handle = "0.6"
 # OpenGL, the renderer AnyVector falls back to when wgpu can't start on the machine's graphics
 # driver (see main.rs); the libraries are loaded at run time, so nothing new is needed to start
 eframe = { workspace = true, features = ["glow"] }
+# the Linux clipboard by MIME type (X11 selections, Wayland data-control): all already in the
+# tree through eframe (arboard, winit), so no new crates
+x11rb = { version = "0.13", default-features = false }
+wl-clipboard-rs = "0.9"
+rustix = { version = "1", default-features = false, features = ["std", "event"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-core = "0.62"

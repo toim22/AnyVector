@@ -489,12 +489,7 @@ impl AnyVectorApp {
         for f in files {
             let p = f.path().to_path_buf();
             if !p.as_os_str().is_empty() {
-                let ext = vector_io::extension(&p);
-                if self.has_doc() && !matches!(ext.as_str(), "cdr" | "cdt" | "cdrt" | "vct") {
-                    self.import_path(&p, None);
-                } else {
-                    self.open_path(&p);
-                }
+                self.open_or_import(&p, None);
             }
         }
     }
@@ -549,7 +544,15 @@ impl eframe::App for AnyVectorApp {
     fn on_exit(&mut self, #[cfg(target_os = "linux")] _gl: Option<&eframe::glow::Context>) {
         self.dockers.save(&mut self.settings);
         self.settings.save();
+        // Linux (X11): the clipboard manager keeps what was copied once the program is gone
+        crate::dialogs::clipboard::persist_on_exit();
         crate::updater::run_pending_install(self);
+    }
+
+    /// Linux: no SVG source pasted as text (see `filter_paste_events`).
+    #[cfg(target_os = "linux")]
+    fn raw_input_hook(&mut self, _ctx: &egui::Context, raw_input: &mut egui::RawInput) {
+        crate::dialogs::clipboard::filter_paste_events(&mut raw_input.events);
     }
 }
 

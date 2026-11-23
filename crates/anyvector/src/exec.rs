@@ -546,6 +546,17 @@ impl AnyVectorApp {
         }
     }
 
+    /// A file dropped on the window (or pasted from a file manager): drawings open in a tab of
+    /// their own, anything else is imported into the open drawing (opened when there is none).
+    pub fn open_or_import(&mut self, p: &Path, at: Option<Point>) {
+        let ext = vector_io::extension(p);
+        if self.has_doc() && !matches!(ext.as_str(), "cdr" | "cdt" | "cdrt" | "vct") {
+            self.import_path(p, at);
+        } else {
+            self.open_path(p);
+        }
+    }
+
     /// Import a file into the active document, centered on the page (or at a point).
     pub fn import_path(&mut self, p: &Path, at: Option<Point>) {
         if vector_io::extension(p) == "pdf" {
@@ -858,10 +869,11 @@ impl AnyVectorApp {
             });
         }
         let symbols = d.doc.symbols.clone();
-        // system clipboard: SVG, EMF+ metafile, PNG and DIB together (Office pastes vectors)
+        // system clipboard: SVG, EMF+ metafile, PNG and DIB together (Office pastes vectors);
+        // there are no metafiles on the Linux clipboard
         if crate::dialogs::clipboard::system_enabled() {
             let svg = vector_io::svg_export::objects_to_svg(&d.doc, &objs);
-            let emf = vector_io::emf::objects_to_emf(&d.doc, &objs, &Default::default());
+            let emf = if cfg!(windows) { vector_io::emf::objects_to_emf(&d.doc, &objs, &Default::default()) } else { Vec::new() };
             let png = vector_render::render_objects_image(&d.doc, &objs, 1024, None);
             let rgba = png.as_ref().map(vector_render::pixmap_to_rgba);
             let bitmap = png.as_ref().zip(rgba.as_deref()).map(|(pm, px)| (pm.width(), pm.height(), px));
@@ -881,6 +893,16 @@ impl AnyVectorApp {
     pub fn paste_as(&mut self, kind: Option<crate::dialogs::clipboard::PasteKind>, at: Option<Point>) {
         use crate::dialogs::clipboard::PasteKind;
         let want = |k: PasteKind| kind.is_none() || kind == Some(k);
+        // files copied in a file manager (Linux) open or import as if dropped on the window
+        if kind.is_none() {
+            let files = crate::dialogs::clipboard::system_files();
+            if !files.is_empty() {
+                for p in files {
+                    self.open_or_import(&p, at);
+                }
+                return;
+            }
+        }
         if !self.has_doc() {
             self.new_default_document();
         }

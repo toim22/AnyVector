@@ -6,6 +6,12 @@ use crate::app::AnyVectorApp;
 use crate::theme;
 use egui::vec2;
 
+/// The clipboard formats by MIME type (X11, Wayland), used on Linux.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+pub mod mime;
+#[cfg(target_os = "linux")]
+pub(crate) mod linux;
+
 /// The formats Paste Special can paste.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PasteKind {
@@ -118,7 +124,12 @@ pub fn set_system(formats: &[(ClipFormat, Vec<u8>)]) -> bool {
         }
         true
     }
-    #[cfg(not(windows))]
+    #[cfg(target_os = "linux")]
+    {
+        // by MIME type: AnyVector's own format, the SVG and the PNG (no metafile on Linux)
+        linux::set(&mime::offers(formats))
+    }
+    #[cfg(not(any(windows, target_os = "linux")))]
     {
         // elsewhere: the SVG (with the marker) as text, which Paste recognizes
         let Ok(mut cb) = arboard::Clipboard::new() else { return false };
@@ -143,7 +154,11 @@ pub fn system_named(name: &str) -> Option<Vec<u8>> {
         raw::get_vec(f.get(), &mut v).ok()?;
         (!v.is_empty()).then_some(v)
     }
-    #[cfg(not(windows))]
+    #[cfg(target_os = "linux")]
+    {
+        linux::get_first(&mime::read_mimes(name)).map(|(_, v)| v)
+    }
+    #[cfg(not(any(windows, target_os = "linux")))]
     {
         let _ = name;
         None
@@ -168,7 +183,10 @@ pub fn system_has_emf() -> bool {
     }
     #[cfg(windows)]
     return clipboard_win::is_format_avail(clipboard_win::formats::CF_ENHMETAFILE);
-    #[cfg(not(windows))]
+    // Linux: LibreOffice offers its drawings as EMF too
+    #[cfg(target_os = "linux")]
+    return mime::pick(&linux::types(), mime::EMF_MIMES).is_some();
+    #[cfg(not(any(windows, target_os = "linux")))]
     false
 }
 
@@ -193,7 +211,9 @@ pub fn system_emf() -> Option<Vec<u8>> {
         v.truncate(got);
         (got > 0).then_some(v)
     }
-    #[cfg(not(windows))]
+    #[cfg(target_os = "linux")]
+    return linux::get_first(mime::EMF_MIMES).map(|(_, v)| v).filter(|v| vector_io::emf_import::is_emf(v));
+    #[cfg(not(any(windows, target_os = "linux")))]
     None
 }
 
@@ -239,7 +259,12 @@ pub fn system_has_content() -> bool {
         let named = ["PNG", "image/png", OWN_FORMAT, SVG_FORMAT].iter().any(|n| register_format(n).is_some_and(|f| is_format_avail(f.get())));
         named || [formats::CF_UNICODETEXT, formats::CF_DIB, formats::CF_DIBV5, formats::CF_BITMAP, formats::CF_ENHMETAFILE].iter().any(|f| is_format_avail(*f))
     }
-    #[cfg(not(windows))]
+    // Linux: what the formats on offer are (no data is read)
+    #[cfg(target_os = "linux")]
+    {
+        mime::Offered::of(&linux::types()).any()
+    }
+    #[cfg(not(any(windows, target_os = "linux")))]
     {
         arboard::Clipboard::new().map(|mut cb| cb.get_text().is_ok_and(|t| !t.is_empty()) || cb.get_image().is_ok()).unwrap_or(false)
     }
@@ -250,7 +275,59 @@ pub fn system_text() -> Option<String> {
     if !system_enabled() {
         return None;
     }
+    #[cfg(target_os = "linux")]
+    {
+        let (m, v) = linux::get_first(mime::TEXT_MIMES)?;
+        Some(mime::decode_text(&m, &v)).filter(|t| !t.is_empty())
+    }
+    #[cfg(not(target_os = "linux"))]
     arboard::Clipboard::new().ok()?.get_text().ok().filter(|t| !t.is_empty())
+}
+
+/// Files copied in a file manager (Linux: `text/uri-list`), the ones that exist, that Paste opens
+/// or imports as if they were dropped on the window: only when there is no picture on the
+/// clipboard, which Paste takes first. Empty elsewhere.
+pub fn system_files() -> Vec<std::path::PathBuf> {
+    if !system_enabled() {
+        return vec![];
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let types = linux::types();
+        if !mime::Offered::of(&types).paste_files() {
+            return vec![];
+        }
+        linux::get_first_in(&types, mime::FILE_MIMES).map(|(_, v)| mime::uri_list_paths(&v)).unwrap_or_default().into_iter().filter(|p| p.is_file()).collect()
+    }
+    #[cfg(not(target_os = "linux"))]
+    vec![]
+}
+
+/// Before egui handles a frame's input (Linux). On Wayland egui pastes the SVG source as text
+/// when the clipboard has an SVG and no plain text (Copy in AnyVector or Inkscape): such a paste
+/// carries no text, as on Windows, where egui finds no text there. Paste still runs (it reads
+/// the clipboard itself) and nothing is typed into a text field or the text being edited.
+#[cfg(target_os = "linux")]
+pub fn filter_paste_events(events: &mut [egui::Event]) {
+    if !events.iter().any(|e| matches!(e, egui::Event::Paste(t) if !t.is_empty())) || !system_enabled() {
+        return;
+    }
+    if mime::Offered::of(&linux::types()).text_is_svg_source() {
+        for e in events.iter_mut() {
+            if let egui::Event::Paste(t) = e {
+                t.clear();
+            }
+        }
+    }
+}
+
+/// When the program ends: hand what Copy offered to the desktop's clipboard manager, so it can
+/// still be pasted (X11; the Windows clipboard keeps the data by itself).
+pub fn persist_on_exit() {
+    #[cfg(target_os = "linux")]
+    if system_enabled() {
+        linux::persist();
+    }
 }
 
 /// The bitmap on the system clipboard: the "PNG" format first (browsers, Office), then
@@ -290,10 +367,19 @@ pub fn system_image() -> Option<ClipImage> {
             return Some(img);
         }
     }
-    let img = arboard::Clipboard::new().ok()?.get_image().ok()?;
-    let mut rgba = img.bytes.into_owned();
-    fix_zero_alpha(&mut rgba);
-    Some(ClipImage { width: img.width as u32, height: img.height as u32, rgba, png: vec![] })
+    // Linux: the best bitmap format on offer that decodes (PNG first: browsers, GIMP, LibreOffice)
+    #[cfg(target_os = "linux")]
+    {
+        let types = linux::types();
+        mime::IMAGE_MIMES.iter().filter_map(|m| mime::pick(&types, &[*m])).find_map(|m| linux::get(m).and_then(|v| mime::decode_image(m, &v)))
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let img = arboard::Clipboard::new().ok()?.get_image().ok()?;
+        let mut rgba = img.bytes.into_owned();
+        fix_zero_alpha(&mut rgba);
+        Some(ClipImage { width: img.width as u32, height: img.height as u32, rgba, png: vec![] })
+    }
 }
 
 /// Decode PNG bytes from the clipboard.
