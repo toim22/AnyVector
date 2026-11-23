@@ -216,6 +216,16 @@ fn visual_about_and_system_info() {
     let gpu = h.state().gpu.clone();
     h.state_mut().dialogs.system_info = Some(crate::about::SystemInfoState::new(&gpu));
     save(&mut h, "11_system_info");
+    // the other categories (on Linux the monitors, CUPS' printers and the libraries loaded), and the
+    // first in Brazilian Portuguese
+    for i in 1..crate::sysinfo::CATEGORIES.len() {
+        h.state_mut().dialogs.system_info = Some(crate::about::SystemInfoState { category: i, rows: crate::sysinfo::collect(i, &gpu) });
+        save(&mut h, &format!("11_system_info_{i}"));
+    }
+    h.state_mut().dialogs.system_info = Some(crate::about::SystemInfoState::new(&gpu));
+    h.state_mut().settings.language = "pt-BR".into();
+    save(&mut h, "11_system_info_ptbr");
+    h.state_mut().settings.language = "en-US".into();
     h.state_mut().dialogs.system_info = None;
     h.state_mut().dialogs.legal_notices = true;
     save(&mut h, "12_legal_notices");
