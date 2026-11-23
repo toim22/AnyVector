@@ -3,14 +3,15 @@
 //!
 //! | Action | Windows | Linux |
 //! | --- | --- | --- |
-//! | [`open_url`] | `cmd /C start "" <url>`, without a console window | `xdg-open <url>` |
-//! | [`open_file`] | `cmd /C start "" <file>` | `xdg-open <file>` |
+//! | [`open_url`] | `cmd /C start "" "<url>"`, without a console window | `xdg-open <url>` |
+//! | [`open_file`] | `cmd /C start "" "<file>"` | `xdg-open <file>` |
 //! | [`open_folder`] | `explorer <folder>` | `xdg-open <folder>` |
 //! | [`reveal`] | `explorer /select,<file>` | the file manager's D-Bus method `org.freedesktop.FileManager1.ShowItems` (Files, Dolphin, Nemo, Caja and Thunar have it), called with `dbus-send`, else `gdbus`; when no file manager answers, `xdg-open <folder>` |
-//! | [`open_mailto`] | `cmd /C start "" mailto:?subject=<subject>` | `xdg-open mailto:?subject=<subject>` |
+//! | [`open_mailto`] | `cmd /C start "" "mailto:?subject=<subject>"` | `xdg-open mailto:?subject=<subject>` |
 //! | `send_mail` | Simple MAPI (in `exec.rs`) | `xdg-email --utf8 --subject <subject> --attach <file>` |
 //!
-//! The Windows commands are the ones AnyVector always ran. Nothing here waits for the program it
+//! On Windows the target of `start` reaches `cmd` through an environment variable, in quotes, so
+//! a `&` in a URL or file name is not read as another command. Nothing here waits for the program it
 //! starts: an error comes back only when the program could not be started, as on Windows. On Linux
 //! a thread waits for each program to end, so none stays behind as a zombie process, and a program
 //! that ends with an error is logged.
@@ -61,7 +62,6 @@ pub fn send_mail(subject: &str, attachment: &Path, done: impl FnOnce(bool) + Sen
 
 /// `bytes` percent-encoded: only letters, digits, `-._~` and, with `keep_slash`, `/` stay as they
 /// are.
-#[cfg(any(not(windows), test))]
 fn percent_encode(bytes: &[u8], keep_slash: bool) -> String {
     let mut out = String::with_capacity(bytes.len() * 3);
     for &b in bytes {
@@ -83,7 +83,6 @@ fn file_uri(path: &[u8]) -> String {
 }
 
 /// The `mailto:` URL of a new e-mail with this subject.
-#[cfg(any(not(windows), test))]
 fn mailto_url(subject: &str) -> String {
     format!("mailto:?subject={}", percent_encode(subject.as_bytes(), false))
 }
@@ -100,11 +99,25 @@ mod win {
 
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
-    /// `cmd /C start "" <target>`: `start` treats the first quoted argument as the window title,
+    /// The environment variable that hands `cmd` the target of `start`.
+    pub(super) const TARGET_VAR: &str = "ANYVECTOR_START_TARGET";
+
+    /// `cmd /C start "" "<target>"`: `start` treats the first quoted argument as the window title,
     /// hence the "".
     fn start(target: &OsStr) -> Command {
+        cmd_with_target(&["start", ""], target)
+    }
+
+    /// `cmd /C <before> "%ANYVECTOR_START_TARGET%"` with the target in that variable. Written on
+    /// `cmd`'s command line, a target would be read as more commands at a `&` outside quotes
+    /// (`...?labels=bug&title=...`, `Art&Logos.png`) and its `%NAME%` parts replaced; `cmd`
+    /// replaces the variable once, and the quotes keep `&`, `|`, `^`, `<` and `>` in it plain. A `"`
+    /// (no file name has one) would end the quotes: it is sent as %22, as in a URL.
+    pub(super) fn cmd_with_target(before: &[&str], target: &OsStr) -> Command {
+        let lossy = target.to_string_lossy();
+        let target = if lossy.contains('"') { lossy.replace('"', "%22").into() } else { target.to_os_string() };
         let mut c = Command::new("cmd");
-        c.args(["/C", "start", ""]).arg(target);
+        c.arg("/C").args(before).raw_arg(format!("\"%{TARGET_VAR}%\"")).env(TARGET_VAR, target);
         c
     }
 
@@ -131,7 +144,7 @@ mod win {
     }
 
     pub(super) fn mailto_command(subject: &str) -> Command {
-        start(OsStr::new(&format!("mailto:?subject={}", subject.replace(' ', "%20"))))
+        start(OsStr::new(&super::mailto_url(subject)))
     }
 
     pub(super) fn open_url(url: &str) -> io::Result<()> {
@@ -382,23 +395,49 @@ mod tests {
         assert_eq!(mailto_url(""), "mailto:?subject=");
     }
 
-    /// The Windows commands must stay the ones AnyVector always ran.
+    /// The Windows commands: `start` for pages, files and e-mail, Explorer for folders.
     #[cfg(windows)]
     #[test]
-    fn windows_runs_the_commands_anyvector_always_ran() {
+    fn windows_runs_start_and_explorer() {
         use std::process::Command;
         fn line(c: &Command) -> Vec<String> {
             std::iter::once(c.get_program()).chain(c.get_args()).map(|a| a.to_string_lossy().into_owned()).collect()
         }
+        fn target(c: &Command) -> String {
+            c.get_envs().find(|(k, _)| *k == win::TARGET_VAR).and_then(|(_, v)| v).map(|v| v.to_string_lossy().into_owned()).unwrap_or_default()
+        }
+        let start = ["cmd", "/C", "start", "", "\"%ANYVECTOR_START_TARGET%\""];
         let url = "https://github.com/toim22/AnyVector/issues/new?labels=bug&title=T";
-        assert_eq!(line(&win::url_command(url)), ["cmd", "/C", "start", "", url]);
+        assert_eq!(line(&win::url_command(url)), start);
+        assert_eq!(target(&win::url_command(url)), url);
         let file = Path::new(r"C:\Users\Ana\AppData\Local\Temp\AnyVector\bitmap-12.png");
-        assert_eq!(line(&win::file_command(file)), ["cmd", "/C", "start", "", r"C:\Users\Ana\AppData\Local\Temp\AnyVector\bitmap-12.png"]);
+        assert_eq!(line(&win::file_command(file)), start);
+        assert_eq!(target(&win::file_command(file)), file.to_str().unwrap());
         let dir = Path::new(r"C:\Users\Ana\AppData\Roaming\AnyVector\Templates");
         assert_eq!(line(&win::folder_command(dir)), ["explorer", r"C:\Users\Ana\AppData\Roaming\AnyVector\Templates"]);
         let doc = Path::new(r"C:\Users\Ana\Documents\My Logo.cdr");
         assert_eq!(line(&win::reveal_command(doc)), ["explorer", r"/select,C:\Users\Ana\Documents\My Logo.cdr"]);
-        assert_eq!(line(&win::mailto_command("My Logo")), ["cmd", "/C", "start", "", "mailto:?subject=My%20Logo"]);
+        assert_eq!(target(&win::mailto_command("Logo & Card")), "mailto:?subject=Logo%20%26%20Card");
+        // a quote would end cmd's quotes: as in a URL, %22
+        assert_eq!(target(&win::url_command("https://example.com/?q=\"a\"")), "https://example.com/?q=%22a%22");
+    }
+
+    /// What `cmd` makes of a target with `&` (a bug report URL, a file name): one whole argument,
+    /// not a second command, and `%NAME%` in it left alone. `echo` stands in for `start` here, so
+    /// nothing opens; a split would run `ver`, which only prints.
+    #[cfg(windows)]
+    #[test]
+    fn windows_targets_with_ampersands_stay_whole() {
+        let targets = [
+            "https://github.com/toim22/AnyVector/issues/new?labels=bug&title=Crash&body=Steps%20%26%20more",
+            r"C:\Users\Ana\Art&ver\logo&ver.png",
+            r"C:\Users\Ana\Art & Logos\a|b^c %OS% <d>.png",
+        ];
+        for t in targets {
+            let out = win::cmd_with_target(&["echo"], std::ffi::OsStr::new(t)).output().expect("cmd");
+            let said = String::from_utf8_lossy(&out.stdout);
+            assert_eq!(said.trim_end(), format!("\"{t}\""), "cmd split or changed {t}");
+        }
     }
 
     #[cfg(not(windows))]
