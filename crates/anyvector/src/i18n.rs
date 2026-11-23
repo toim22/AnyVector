@@ -143,9 +143,23 @@ impl Lang {
             })
     }
 
-    /// The language of a settings value; an empty value follows Windows' display language.
+    /// The language of a settings value; an empty value follows the system's display language.
     pub fn resolve(setting: &str) -> Lang {
         Lang::from_setting(setting).unwrap_or_else(system_lang)
+    }
+
+    /// The language of a POSIX locale name (`pt_BR.UTF-8`, `de_DE@euro`, `zh_TW`, or a language alone,
+    /// `pt`), with Windows' rules: every Portuguese is Brazilian, every Spanish is Spain's, Chinese of
+    /// Taiwan, Hong Kong and Macao is traditional and any other is simplified. `None` for C/POSIX and for
+    /// languages AnyVector doesn't have.
+    #[cfg_attr(windows, allow(dead_code))]
+    pub fn from_posix_locale(name: &str) -> Option<Lang> {
+        let (language, territory) = posix_locale_parts(name)?;
+        if language == "zh" {
+            return Some(if matches!(territory.as_str(), "TW" | "HK" | "MO") { Lang::ZhTw } else { Lang::ZhCn });
+        }
+        // the language alone: Lang::from_setting takes the region of the language AnyVector has
+        Lang::from_setting(&language)
     }
 
     /// The language of a Windows language id (LANGID), English when AnyVector doesn't have it.
@@ -189,7 +203,8 @@ impl Lang {
     }
 }
 
-/// Windows' display language, English when AnyVector doesn't have it (never in tests).
+/// The system's display language, English when AnyVector doesn't have it (never in tests): Windows'
+/// display language; on Linux the language of the locale environment ([`lang_from_locale_env`]).
 pub fn system_lang() -> Lang {
     if cfg!(test) {
         return Lang::EnUs;
@@ -199,8 +214,86 @@ pub fn system_lang() -> Lang {
         let id = unsafe { windows::Win32::Globalization::GetUserDefaultUILanguage() };
         return Lang::from_langid(id);
     }
+    #[cfg(not(windows))]
+    {
+        return lang_from_locale_env(|name| std::env::var(name).ok()).unwrap_or(Lang::EnUs);
+    }
     #[allow(unreachable_code)]
     Lang::EnUs
+}
+
+/// The language and the territory of a POSIX locale name: `pt_BR.UTF-8` gives ("pt", "BR"), `de_DE@euro`
+/// ("de", "DE"), `pt` ("pt", ""). `None` for C and POSIX (also `C.UTF-8`) and for what is not a locale
+/// name. The language comes in lower case, the territory in upper case.
+#[cfg_attr(windows, allow(dead_code))]
+pub fn posix_locale_parts(name: &str) -> Option<(String, String)> {
+    // language[_territory][.codeset][@modifier]
+    let name = name.trim().split(['.', '@']).next().unwrap_or("");
+    let (language, territory) = name.split_once('_').unwrap_or((name, ""));
+    if language.eq_ignore_ascii_case("c") || language.eq_ignore_ascii_case("posix") {
+        return None;
+    }
+    let letters = |s: &str, n: std::ops::RangeInclusive<usize>| n.contains(&s.len()) && s.bytes().all(|b| b.is_ascii_alphabetic());
+    // a territory is a country code (BR) or a UN M.49 region (es_419, Latin America)
+    let region = territory.len() == 3 && territory.bytes().all(|b| b.is_ascii_digit());
+    if !letters(language, 2..=3) || !(territory.is_empty() || letters(territory, 2..=2) || region) {
+        return None;
+    }
+    Some((language.to_ascii_lowercase(), territory.to_ascii_uppercase()))
+}
+
+/// The user interface language a POSIX locale environment asks for (Linux), the way gettext picks the
+/// language of its messages: the locale is the first of `LC_ALL`, `LC_MESSAGES` and `LANG` that is set;
+/// unless that locale is C or POSIX, the `LANGUAGE` list (`pt_BR:pt:en`) comes first and its first
+/// language AnyVector has wins (a `C` in the list stops at the untranslated English). `None` (English,
+/// as on Windows) when the locale is C or POSIX, or none of its languages is one AnyVector has.
+/// `var` reads an environment variable.
+#[cfg_attr(windows, allow(dead_code))]
+pub fn lang_from_locale_env(var: impl Fn(&str) -> Option<String>) -> Option<Lang> {
+    let set = |name: &str| var(name).filter(|v| !v.trim().is_empty());
+    let locale = ["LC_ALL", "LC_MESSAGES", "LANG"].into_iter().find_map(&set)?;
+    let is_c = |s: &str| matches!(s.trim(), "C" | "POSIX");
+    // gettext ignores LANGUAGE in the C locale (C.UTF-8 is not "C": LANGUAGE still counts there)
+    if is_c(&locale) {
+        return None;
+    }
+    if let Some(list) = set("LANGUAGE") {
+        for entry in list.split(':').filter(|e| !e.trim().is_empty()) {
+            if is_c(entry) {
+                return Some(Lang::EnUs);
+            }
+            if let Some(l) = Lang::from_posix_locale(entry) {
+                return Some(l);
+            }
+        }
+        return None;
+    }
+    Lang::from_posix_locale(&locale)
+}
+
+/// The territories whose locales print on US Letter in glibc's locale data (LC_PAPER 279 x 216 mm,
+/// glibc 2.39 `localedata/locales`); every other territory prints on A4.
+const LETTER_TERRITORIES: [&str; 14] = ["BO", "CA", "CL", "CO", "CR", "GT", "MX", "NI", "PA", "PH", "PR", "SV", "US", "VE"];
+
+/// The territories whose locales measure in U.S. units in glibc's locale data (LC_MEASUREMENT 2);
+/// every other territory is metric (glibc has no Liberian locale, and Myanmar's are metric).
+const US_MEASURE_TERRITORIES: [&str; 1] = ["US"];
+
+/// The measurement system and the paper size a POSIX locale environment asks for (Linux), in the
+/// codes of Windows' regional settings (see `settings::system_region`): the measurement (0 metric,
+/// 1 U.S.) of the first locale set in `LC_ALL`, `LC_MEASUREMENT` and `LANG`, and the paper (1 Letter,
+/// 9 A4, 0 unknown) of the first set in `LC_ALL`, `LC_PAPER` and `LANG`, as glibc's locale data has
+/// them for the locale's territory (so they hold also when that locale is not installed). `None`
+/// when the measurement locale has no territory (C, POSIX), as when Windows can't tell.
+#[cfg_attr(windows, allow(dead_code))]
+pub fn region_from_locale_env(var: impl Fn(&str) -> Option<String>) -> Option<(u32, u32)> {
+    let territory = |category: &str| {
+        let locale = ["LC_ALL", category, "LANG"].into_iter().find_map(|name| var(name).filter(|v| !v.trim().is_empty()))?;
+        posix_locale_parts(&locale).map(|(_, t)| t).filter(|t| !t.is_empty())
+    };
+    let measure = territory("LC_MEASUREMENT").map(|t| u32::from(US_MEASURE_TERRITORIES.contains(&t.as_str())))?;
+    let paper = territory("LC_PAPER").map_or(0, |t| if LETTER_TERRITORIES.contains(&t.as_str()) { 1 } else { 9 });
+    Some((measure, paper))
 }
 
 #[cfg(not(test))]
@@ -576,7 +669,7 @@ fn with_access_key(v: &str, key: Option<char>) -> String {
 }
 
 /// The language chosen in the setup (Software\AnyVector: Language, LanguageStamp), for the user
-/// or for all users.
+/// or for all users. Always `None` on Linux, which has no setup that asks (yet).
 pub fn installer_choice() -> Option<(Lang, String)> {
     #[cfg(windows)]
     {
@@ -687,6 +780,107 @@ mod tests {
         assert_eq!(Lang::from_langid(0x0411), Lang::JaJp);
         assert_eq!(Lang::from_langid(0x0409), Lang::EnUs);
         assert_eq!(Lang::from_langid(0x0412), Lang::EnUs);
+    }
+
+    #[test]
+    fn posix_locale_names() {
+        let parts = |l: &str, t: &str| Some((l.to_string(), t.to_string()));
+        assert_eq!(posix_locale_parts("pt_BR.UTF-8"), parts("pt", "BR"));
+        assert_eq!(posix_locale_parts("de_DE@euro"), parts("de", "DE"));
+        assert_eq!(posix_locale_parts("sr_RS.UTF-8@latin"), parts("sr", "RS"));
+        assert_eq!(posix_locale_parts("pt"), parts("pt", ""));
+        assert_eq!(posix_locale_parts("es_419"), parts("es", "419"));
+        assert_eq!(posix_locale_parts("nds_DE"), parts("nds", "DE"));
+        assert_eq!(posix_locale_parts("en_us.utf8"), parts("en", "US"));
+        for not_a_locale in ["C", "C.UTF-8", "C.utf8", "POSIX", "", "  ", "/usr/share/locale", "english_United States.1252", "x_YZ", "pt_BRA"] {
+            assert_eq!(posix_locale_parts(not_a_locale), None, "{not_a_locale}");
+        }
+        // Windows' rules: Portuguese is Brazilian, Spanish is Spain's, Chinese by its territory
+        assert_eq!(Lang::from_posix_locale("pt_BR.UTF-8"), Some(Lang::PtBr));
+        assert_eq!(Lang::from_posix_locale("pt_PT.UTF-8"), Some(Lang::PtBr));
+        assert_eq!(Lang::from_posix_locale("es_MX.UTF-8"), Some(Lang::EsEs));
+        assert_eq!(Lang::from_posix_locale("de_AT.UTF-8"), Some(Lang::DeDe));
+        assert_eq!(Lang::from_posix_locale("zh_TW.UTF-8"), Some(Lang::ZhTw));
+        assert_eq!(Lang::from_posix_locale("zh_HK.UTF-8"), Some(Lang::ZhTw));
+        assert_eq!(Lang::from_posix_locale("zh_CN.GB18030"), Some(Lang::ZhCn));
+        assert_eq!(Lang::from_posix_locale("zh_SG"), Some(Lang::ZhCn));
+        assert_eq!(Lang::from_posix_locale("zh"), Some(Lang::ZhCn));
+        assert_eq!(Lang::from_posix_locale("ja_JP.UTF-8"), Some(Lang::JaJp));
+        assert_eq!(Lang::from_posix_locale("en_GB.UTF-8"), Some(Lang::EnUs));
+        assert_eq!(Lang::from_posix_locale("ko_KR.UTF-8"), None);
+        assert_eq!(Lang::from_posix_locale("C.UTF-8"), None);
+        // every language AnyVector has, from its code written the POSIX way
+        for l in Lang::ALL {
+            assert_eq!(Lang::from_posix_locale(&format!("{}.UTF-8", l.code().replace('-', "_"))), Some(l));
+        }
+    }
+
+    #[test]
+    fn language_from_the_locale_environment() {
+        let env = |pairs: &[(&str, &str)]| {
+            let map: HashMap<String, String> = pairs.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+            lang_from_locale_env(move |k| map.get(k).cloned())
+        };
+        assert_eq!(env(&[("LANG", "pt_BR.UTF-8")]), Some(Lang::PtBr));
+        // LC_ALL, then LC_MESSAGES, then LANG
+        assert_eq!(env(&[("LANG", "pt_BR.UTF-8"), ("LC_MESSAGES", "de_DE.UTF-8")]), Some(Lang::DeDe));
+        assert_eq!(env(&[("LANG", "pt_BR.UTF-8"), ("LC_MESSAGES", "de_DE.UTF-8"), ("LC_ALL", "fr_FR.UTF-8")]), Some(Lang::FrFr));
+        assert_eq!(env(&[("LANG", "pt_BR.UTF-8"), ("LC_ALL", "")]), Some(Lang::PtBr));
+        // the other categories don't choose the language
+        assert_eq!(env(&[("LANG", "en_US.UTF-8"), ("LC_TIME", "pt_BR.UTF-8"), ("LC_PAPER", "de_DE.UTF-8")]), Some(Lang::EnUs));
+        // LANGUAGE comes first: its first language AnyVector has
+        assert_eq!(env(&[("LANG", "en_US.UTF-8"), ("LANGUAGE", "pt_BR:pt:en")]), Some(Lang::PtBr));
+        assert_eq!(env(&[("LANG", "ko_KR.UTF-8"), ("LANGUAGE", "ko_KR:ko:ja")]), Some(Lang::JaJp));
+        assert_eq!(env(&[("LANG", "pt_BR.UTF-8"), ("LANGUAGE", "eo:ko")]), None);
+        assert_eq!(env(&[("LANG", "de_DE.UTF-8"), ("LANGUAGE", "C:de")]), Some(Lang::EnUs));
+        assert_eq!(env(&[("LANG", "de_DE.UTF-8"), ("LANGUAGE", "en_GB:de")]), Some(Lang::EnUs));
+        assert_eq!(env(&[("LANG", "de_DE.UTF-8"), ("LANGUAGE", "")]), Some(Lang::DeDe));
+        // the C locale is untranslated and ignores LANGUAGE (C.UTF-8 is a locale of its own)
+        assert_eq!(env(&[("LANG", "C"), ("LANGUAGE", "pt_BR")]), None);
+        assert_eq!(env(&[("LC_ALL", "POSIX"), ("LANG", "pt_BR.UTF-8")]), None);
+        assert_eq!(env(&[("LANGUAGE", "pt_BR")]), None);
+        assert_eq!(env(&[("LANG", "C.UTF-8")]), None);
+        assert_eq!(env(&[("LANG", "C.UTF-8"), ("LANGUAGE", "pt_BR")]), Some(Lang::PtBr));
+        assert_eq!(env(&[]), None);
+        // a language AnyVector doesn't have: English, as on Windows
+        assert_eq!(env(&[("LANG", "ko_KR.UTF-8")]), None);
+    }
+
+    #[test]
+    fn units_and_paper_from_the_locale_environment() {
+        let env = |pairs: &[(&str, &str)]| {
+            let map: HashMap<String, String> = pairs.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+            region_from_locale_env(move |k| map.get(k).cloned())
+        };
+        // (measurement 0 metric / 1 U.S., paper 1 Letter / 9 A4), as LOCALE_IMEASURE and LOCALE_IPAPERSIZE
+        assert_eq!(env(&[("LANG", "en_US.UTF-8")]), Some((1, 1)));
+        assert_eq!(env(&[("LANG", "es_US.UTF-8")]), Some((1, 1)));
+        assert_eq!(env(&[("LANG", "pt_BR.UTF-8")]), Some((0, 9)));
+        assert_eq!(env(&[("LANG", "de_DE@euro")]), Some((0, 9)));
+        assert_eq!(env(&[("LANG", "en_GB.UTF-8")]), Some((0, 9)));
+        // metric countries on Letter paper
+        for l in ["en_CA.UTF-8", "fr_CA.UTF-8", "es_MX.UTF-8", "en_PH.UTF-8", "fil_PH", "es_CL.UTF-8", "es_CO.UTF-8", "es_VE.UTF-8", "es_PR.UTF-8", "es_BO"] {
+            assert_eq!(env(&[("LANG", l)]), Some((0, 1)), "{l}");
+        }
+        // metric in glibc, whatever CLDR says
+        assert_eq!(env(&[("LANG", "my_MM.UTF-8")]), Some((0, 9)));
+        // LC_ALL, then the category, then LANG; the two categories apart
+        assert_eq!(env(&[("LANG", "pt_BR.UTF-8"), ("LC_PAPER", "en_US.UTF-8")]), Some((0, 1)));
+        assert_eq!(env(&[("LANG", "pt_BR.UTF-8"), ("LC_MEASUREMENT", "en_US.UTF-8")]), Some((1, 9)));
+        assert_eq!(env(&[("LANG", "en_US.UTF-8"), ("LC_MEASUREMENT", "de_DE.UTF-8"), ("LC_PAPER", "de_DE.UTF-8")]), Some((0, 9)));
+        assert_eq!(env(&[("LC_ALL", "de_DE.UTF-8"), ("LC_MEASUREMENT", "en_US.UTF-8"), ("LC_PAPER", "en_US.UTF-8")]), Some((0, 9)));
+        assert_eq!(env(&[("LANG", "en_US.UTF-8"), ("LC_MESSAGES", "de_DE.UTF-8")]), Some((1, 1)));
+        // no territory: no regional settings (the program's defaults stay), or an unknown paper
+        assert_eq!(env(&[("LANG", "C.UTF-8")]), None);
+        assert_eq!(env(&[("LANG", "pt")]), None);
+        assert_eq!(env(&[("LC_ALL", "POSIX"), ("LANG", "en_US.UTF-8")]), None);
+        assert_eq!(env(&[]), None);
+        assert_eq!(env(&[("LANG", "C.UTF-8"), ("LC_MEASUREMENT", "en_US.UTF-8")]), Some((1, 0)));
+        // what the codes give a new install (vector_core::units::regional_defaults)
+        use vector_core::units::{regional_defaults, Unit};
+        assert_eq!(regional_defaults(1, 1), (Unit::Inches, "Letter"));
+        assert_eq!(regional_defaults(0, 9), (Unit::Millimeters, "A4"));
+        assert_eq!(regional_defaults(0, 1), (Unit::Millimeters, "Letter"));
     }
 
     #[test]

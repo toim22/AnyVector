@@ -2325,7 +2325,7 @@ fn ai_provider(app: &mut AnyVectorApp, ui: &mut Ui) {
     if let Some(k) = save {
         st.ai_key_msg = Some(match crate::ai::save_user_key(&var, &k) {
             Ok(()) if k.is_empty() => (true, format!("The key was removed from the {var} environment variable.")),
-            Ok(()) => (true, format!("The key was saved in the {var} environment variable of your Windows account. AI Generate is ready.")),
+            Ok(()) => (true, crate::ai::key_saved_message(&var)),
             Err(e) => (false, e),
         });
     }
@@ -2343,7 +2343,7 @@ fn ai_provider(app: &mut AnyVectorApp, ui: &mut Ui) {
             "This server is on your computer, so the key is optional."
         },
     );
-    note(ui, "Save Key writes the key into this environment variable of your Windows account, right away. AnyVector never saves the key in its own settings or documents.");
+    note(ui, &crate::ai::save_key_note());
 }
 
 /// Privacy ▸ AI Generate ▸ AI images: what makes the images of Create image and Remix image

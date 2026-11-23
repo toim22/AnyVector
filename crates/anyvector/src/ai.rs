@@ -7,7 +7,8 @@
 //! API keys are read from the environment variable named in Settings (default
 //! `ANTHROPIC_API_KEY`, or `OPENAI_API_KEY` for OpenAI-compatible endpoints); they are never
 //! stored in settings or documents. Tools ▸ Options ▸ Global ▸ Privacy can write the key into
-//! that variable of the user's Windows account. Local providers need no key.
+//! that variable of the user's Windows account, or on Linux of the user's systemd environment
+//! (`~/.config/environment.d`, see [`environment_d`]). Local providers need no key.
 
 use crate::ai_provider::{self as prov, ImageProvider, Provider};
 use crate::app::AnyVectorApp;
@@ -158,7 +159,8 @@ pub fn key_var(app: &AnyVectorApp) -> Option<String> {
 }
 
 /// The API key: the environment of this process, then the variable of the user's Windows account
-/// (so a key saved in Options, or with Windows' Environment Variables, works without a restart).
+/// (so a key saved in Options, or with Windows' Environment Variables, works without a restart); on
+/// Linux the user's environment.d files stand for the Windows account.
 pub fn api_key(app: &AnyVectorApp) -> Option<String> {
     let name = key_var(app)?;
     std::env::var(&name).ok().or_else(|| user_env(&name)).filter(|k| !k.trim().is_empty())
@@ -193,17 +195,366 @@ fn user_env(name: &str) -> Option<String> {
 }
 
 #[cfg(not(windows))]
-fn user_env(_name: &str) -> Option<String> {
-    None
+fn user_env(name: &str) -> Option<String> {
+    environment_d::lookup(&environment_d::dir()?, name)
 }
 
-/// Write the API key into the environment variable `name` of the user's Windows account (an
-/// empty key removes it), and into this process's environment. Other programs see it when they
-/// next start.
+/// The user's own environment variables on Linux, the counterpart of Windows' user environment
+/// (HKCU\Environment): systemd's environment.d(5) files in `$XDG_CONFIG_HOME/environment.d`
+/// (normally `~/.config/environment.d`). The systemd user manager reads them when the user logs in
+/// and hands the variables to the session, so the desktop (GNOME, KDE...) and the programs it starts
+/// see them. Save Key keeps its keys in `anyvector.conf` there, readable by the user alone.
+#[cfg(any(not(windows), test))]
+#[cfg_attr(windows, allow(dead_code))]
+pub mod environment_d {
+    use std::io;
+    use std::path::{Path, PathBuf};
+
+    /// The file Save Key writes.
+    pub const FILE: &str = "anyvector.conf";
+
+    const HEADER: &str = "# AnyVector's AI Generate API keys (Tools > Options > Global > Privacy > AI Generate).\n\
+# systemd gives these environment variables to the programs of your session when you log in\n\
+# (man environment.d). Remove Key in AnyVector, or deleting a line here, removes a key.\n";
+
+    /// `$XDG_CONFIG_HOME/environment.d`.
+    pub fn dir() -> Option<PathBuf> {
+        dirs::config_dir().map(|d| d.join("environment.d"))
+    }
+
+    /// The file Save Key writes, as messages show it (`~/.config/environment.d/anyvector.conf`).
+    pub fn shown_path() -> String {
+        let Some(path) = dir().map(|d| d.join(FILE)) else { return format!("~/.config/environment.d/{FILE}") };
+        match dirs::home_dir().and_then(|h| path.strip_prefix(h).ok().map(Path::to_path_buf)) {
+            Some(rel) => format!("~/{}", rel.display()),
+            None => path.display().to_string(),
+        }
+    }
+
+    /// The value the files of `dir` give the variable `name`, as systemd reads them: every `*.conf`
+    /// in the order of their names, the last assignment winning, `$OTHER` / `${OTHER}` taken from
+    /// the assignments before it or from this process's environment. An empty value is no value.
+    pub fn lookup(dir: &Path, name: &str) -> Option<String> {
+        let mut files: Vec<PathBuf> = std::fs::read_dir(dir).ok()?.flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|e| e == "conf") && p.is_file()).collect();
+        files.sort();
+        let mut vars: Vec<(String, String)> = vec![];
+        for file in files {
+            let Ok(text) = std::fs::read_to_string(&file) else { continue };
+            for (k, v) in parse(&text) {
+                // systemd skips names it doesn't take and assignments without a value
+                if !valid_name(&k) || v.is_empty() {
+                    continue;
+                }
+                let v = expand(&v, &vars);
+                vars.retain(|(n, _)| *n != k);
+                vars.push((k, v));
+            }
+        }
+        vars.into_iter().find(|(k, _)| k == name).map(|(_, v)| v).filter(|v| !v.trim().is_empty())
+    }
+
+    /// A variable name systemd takes: letters, digits and `_`, not starting with a digit.
+    pub fn valid_name(name: &str) -> bool {
+        name.bytes().next().is_some_and(|b| !b.is_ascii_digit()) && name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+    }
+
+    /// The `KEY=value` assignments of an environment.d file, unquoted, in order. The syntax of
+    /// systemd's environment files: `#` and `;` comments, values in '…' or "…" (with `\` escapes),
+    /// `\` before a line break continues the line; space around an unquoted value is dropped.
+    pub fn parse(text: &str) -> Vec<(String, String)> {
+        #[derive(Clone, Copy, PartialEq)]
+        enum S {
+            PreKey,
+            Key,
+            PreValue,
+            Value,
+            ValueEscape,
+            Single,
+            Double,
+            DoubleEscape,
+            Comment,
+        }
+        let mut out = vec![];
+        let (mut key, mut value) = (String::new(), String::new());
+        // unquoted spaces at the end of the value, dropped unless more text follows
+        let mut spaces = String::new();
+        let mut state = S::PreKey;
+        let mut finish = |key: &mut String, value: &mut String, spaces: &mut String| {
+            let k = key.trim().to_string();
+            if !k.is_empty() {
+                out.push((k, std::mem::take(value)));
+            }
+            key.clear();
+            value.clear();
+            spaces.clear();
+        };
+        for c in text.chars() {
+            state = match (state, c) {
+                (S::PreKey, '#' | ';') => S::Comment,
+                (S::PreKey, c) if c.is_whitespace() => S::PreKey,
+                (S::PreKey, c) => {
+                    key.push(c);
+                    S::Key
+                }
+                // a line without '=' is no assignment
+                (S::Key, '\n' | '\r') => {
+                    key.clear();
+                    S::PreKey
+                }
+                (S::Key, '=') => S::PreValue,
+                (S::Key, c) => {
+                    key.push(c);
+                    S::Key
+                }
+                (S::PreValue | S::Value, '\n' | '\r') => {
+                    finish(&mut key, &mut value, &mut spaces);
+                    S::PreKey
+                }
+                (S::PreValue, c) if c.is_whitespace() => S::PreValue,
+                (S::PreValue, '\'') => S::Single,
+                (S::PreValue, '"') => S::Double,
+                (S::PreValue | S::Value, '\\') => {
+                    value.push_str(&std::mem::take(&mut spaces));
+                    S::ValueEscape
+                }
+                (S::PreValue | S::Value, c) if c.is_whitespace() => {
+                    spaces.push(c);
+                    S::Value
+                }
+                (S::PreValue | S::Value, c) => {
+                    value.push_str(&std::mem::take(&mut spaces));
+                    value.push(c);
+                    S::Value
+                }
+                (S::ValueEscape, '\n' | '\r') => S::Value,
+                (S::ValueEscape, c) => {
+                    value.push(c);
+                    S::Value
+                }
+                (S::Single, '\'') => S::PreValue,
+                (S::Single, c) => {
+                    value.push(c);
+                    S::Single
+                }
+                (S::Double, '"') => S::PreValue,
+                (S::Double, '\\') => S::DoubleEscape,
+                (S::Double, c) => {
+                    value.push(c);
+                    S::Double
+                }
+                (S::DoubleEscape, '\n') => S::Double,
+                (S::DoubleEscape, c) => {
+                    if !"\"\\`$".contains(c) {
+                        value.push('\\');
+                    }
+                    value.push(c);
+                    S::Double
+                }
+                // a `\` at the end of a comment doesn't continue it (systemd 254 and later)
+                (S::Comment, '\n' | '\r') => S::PreKey,
+                (S::Comment, _) => S::Comment,
+            };
+        }
+        // the last line needs no line break, and a quote left open still gives its value
+        if matches!(state, S::PreValue | S::Value | S::ValueEscape | S::Single | S::Double | S::DoubleEscape) {
+            finish(&mut key, &mut value, &mut spaces);
+        }
+        out
+    }
+
+    /// `$NAME`, `${NAME}`, `${NAME:-default}`, `${NAME:+alternate}` and `$$` (a `$`), as systemd
+    /// expands environment.d values: `vars` first, then this process's environment.
+    pub fn expand(v: &str, vars: &[(String, String)]) -> String {
+        let get = |n: &str| vars.iter().rev().find(|(k, _)| k == n).map(|(_, v)| v.clone()).or_else(|| std::env::var(n).ok()).unwrap_or_default();
+        let is_name = |c: char| c.is_ascii_alphanumeric() || c == '_';
+        let mut out = String::with_capacity(v.len());
+        let mut rest = v;
+        while let Some(i) = rest.find('$') {
+            out.push_str(&rest[..i]);
+            let after = &rest[i + 1..];
+            if let Some(tail) = after.strip_prefix('$') {
+                out.push('$');
+                rest = tail;
+            } else if let Some(body) = after.strip_prefix('{') {
+                let Some(end) = body.find('}') else {
+                    // no closing brace: as written
+                    out.push_str(&rest[i..]);
+                    return out;
+                };
+                let inner = &body[..end];
+                out.push_str(&match (inner.split_once(":-"), inner.split_once(":+")) {
+                    (Some((n, default)), _) => Some(get(n)).filter(|x| !x.is_empty()).unwrap_or_else(|| expand(default, vars)),
+                    (None, Some((n, alternate))) => if get(n).is_empty() { String::new() } else { expand(alternate, vars) },
+                    _ => get(inner),
+                });
+                rest = &body[end + 1..];
+            } else {
+                let n = after.find(|c: char| !is_name(c)).unwrap_or(after.len());
+                if n == 0 {
+                    out.push('$');
+                } else {
+                    out.push_str(&get(&after[..n]));
+                }
+                rest = &after[n..];
+            }
+        }
+        out.push_str(rest);
+        out
+    }
+
+    /// A value as written into the file: as it is when it is plain, else in double quotes with
+    /// `"`, `\` and `` ` `` escaped and `$` doubled (systemd would expand it).
+    pub fn quote(v: &str) -> String {
+        if !v.is_empty() && v.chars().all(|c| c.is_ascii_alphanumeric() || "-_.:/+=@,%^~".contains(c)) {
+            return v.to_string();
+        }
+        let mut out = String::from("\"");
+        for c in v.chars() {
+            match c {
+                '"' | '\\' | '`' => {
+                    out.push('\\');
+                    out.push(c);
+                }
+                '$' => out.push_str("$$"),
+                c => out.push(c),
+            }
+        }
+        out.push('"');
+        out
+    }
+
+    /// The name a line assigns (`NAME=…`), if it is an assignment.
+    fn assigned(line: &str) -> Option<&str> {
+        let l = line.trim_start();
+        if l.starts_with(['#', ';']) {
+            return None;
+        }
+        l.split_once('=').map(|(k, _)| k.trim()).filter(|k| !k.is_empty())
+    }
+
+    /// Sets `name` to `value` in `dir`'s [`FILE`], or removes it (`None`), keeping the file's other
+    /// lines. The file is created as needed, readable and writable by the user alone (it holds
+    /// secrets), and deleted when it has nothing left to set.
+    pub fn store(dir: &Path, name: &str, value: Option<&str>) -> io::Result<()> {
+        let path = dir.join(FILE);
+        let old = match std::fs::read_to_string(&path) {
+            Ok(t) => t,
+            Err(e) if e.kind() == io::ErrorKind::NotFound => String::new(),
+            Err(e) => return Err(e),
+        };
+        let mut lines: Vec<String> = old.lines().filter(|l| assigned(l) != Some(name)).map(str::to_string).collect();
+        if let Some(v) = value {
+            lines.push(format!("{name}={}", quote(v)));
+        }
+        if !lines.iter().any(|l| assigned(l).is_some()) {
+            return match std::fs::remove_file(&path) {
+                Err(e) if e.kind() != io::ErrorKind::NotFound => Err(e),
+                _ => Ok(()),
+            };
+        }
+        let mut text = if old.trim().is_empty() { HEADER.to_string() } else { String::new() };
+        for l in lines {
+            text.push_str(&l);
+            text.push('\n');
+        }
+        std::fs::create_dir_all(dir)?;
+        write_private(&path, &text)
+    }
+
+    /// Writes the file whole or not at all (through a temporary file systemd doesn't read), with
+    /// permissions for the user alone.
+    fn write_private(path: &Path, text: &str) -> io::Result<()> {
+        use std::io::Write;
+        let tmp = path.with_extension("conf.tmp");
+        let _ = std::fs::remove_file(&tmp);
+        let mut options = std::fs::OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        std::os::unix::fs::OpenOptionsExt::mode(&mut options, 0o600);
+        let mut f = options.open(&tmp)?;
+        f.write_all(text.as_bytes())?;
+        f.sync_all()?;
+        drop(f);
+        std::fs::rename(&tmp, path)
+    }
+
+    /// Tells the running systemd user manager, when there is one, so the programs it starts from now
+    /// on (services, D-Bus activated programs) have the variable before the next login. The key goes
+    /// through the environment of `systemctl`, never its command line, in the background; without
+    /// systemd nothing happens (the file counts from the next login).
+    #[cfg(not(windows))]
+    pub fn tell_session(name: &str, value: Option<&str>) {
+        use std::process::{Command, Stdio};
+        let mut cmd = Command::new("systemctl");
+        cmd.arg("--user").stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
+        match value {
+            Some(v) => cmd.args(["import-environment", name]).env(name, v),
+            None => cmd.args(["unset-environment", name]),
+        };
+        std::thread::spawn(move || {
+            let _ = cmd.status();
+        });
+    }
+}
+
+/// The variable name and the key can go into the environment: `=` and NUL would make the system
+/// refuse it (and the program stop); on Linux the name must also be one systemd accepts and the key
+/// a single line.
+fn valid_key(name: &str, key: &str) -> bool {
+    if name.contains(['=', '\0']) || key.contains('\0') {
+        return false;
+    }
+    #[cfg(not(windows))]
+    if !environment_d::valid_name(name) || key.chars().any(char::is_control) {
+        return false;
+    }
+    true
+}
+
+/// The message after Save Key: where the key went.
+pub fn key_saved_message(var: &str) -> String {
+    if cfg!(windows) {
+        format!("The key was saved in the {var} environment variable of your Windows account. AI Generate is ready.")
+    } else {
+        format!("The key was saved in the {var} environment variable of your user account. AI Generate is ready.")
+    }
+}
+
+/// What Save Key does, under the key.
+pub fn save_key_note() -> String {
+    #[cfg(windows)]
+    {
+        "Save Key writes the key into this environment variable of your Windows account, right away. AnyVector never saves the key in its own settings or documents.".to_string()
+    }
+    #[cfg(not(windows))]
+    {
+        format!(
+            "Save Key writes the key into this environment variable of your user account ({}), right away; other programs see it after you log in again. AnyVector never saves the key in its own settings or documents.",
+            environment_d::shown_path()
+        )
+    }
+}
+
+/// Write the API key into the environment variable `name` of the user's Windows account (on Linux
+/// the user's systemd environment, [`environment_d`]); an empty key removes it. Also into this
+/// process's environment. Other programs see it when they next start (on Linux, after the next
+/// login, or when systemd starts them).
 pub fn save_user_key(name: &str, key: &str) -> Result<(), String> {
     let key = key.trim();
     if name.trim().is_empty() {
         return Err("Type the name of the environment variable first.".into());
+    }
+    if !valid_key(name.trim(), key) {
+        return Err("The name of the environment variable or the key has characters that cannot be saved.".into());
+    }
+    // tests never write the user's environment
+    #[cfg(not(windows))]
+    if !cfg!(test) {
+        let name = name.trim();
+        let dir = environment_d::dir().ok_or_else(|| format!("Could not save {}:\n{}", environment_d::shown_path(), std::io::Error::from(std::io::ErrorKind::NotFound)))?;
+        let value = (!key.is_empty()).then_some(key);
+        environment_d::store(&dir, name, value).map_err(|e| format!("Could not save {}:\n{e}", dir.join(environment_d::FILE).display()))?;
+        environment_d::tell_session(name, value);
     }
     #[cfg(windows)]
     {
@@ -242,7 +593,10 @@ pub fn target(app: &AnyVectorApp, need_model: bool) -> Result<prov::Target, Stri
     let key = api_key(app);
     if key.is_none() && needs_key(app) {
         let var = key_var(app).unwrap_or_default();
-        return Err(format!("AI Generate needs an API key. Add your key in {KEY_PLACE}: AnyVector keeps it in the {var} environment variable of your Windows account, never in its own files."));
+        if cfg!(windows) {
+            return Err(format!("AI Generate needs an API key. Add your key in {KEY_PLACE}: AnyVector keeps it in the {var} environment variable of your Windows account, never in its own files."));
+        }
+        return Err(format!("AI Generate needs an API key. Add your key in {KEY_PLACE}: AnyVector keeps it in the {var} environment variable of your user account, never in its settings or documents."));
     }
     let model = c.model();
     if need_model && model.is_empty() {
@@ -722,6 +1076,84 @@ mod tests {
         let (with, plain) = user_texts(2, "make it blue", "Cartoon", 6, Some("<svg/>"));
         assert!(with.starts_with("Remix the attached artwork") && with.ends_with("<svg/>"));
         assert!(plain.starts_with("Remix the artwork whose SVG source is below"));
+    }
+
+    #[test]
+    fn environment_d_files_read_as_systemd_reads_them() {
+        use environment_d::{expand, parse, quote};
+        let text = "# comment\n; another\nA=1\n  B = two words  \nC=\"quoted \\\"x\\\" \\\\ \\$ \\n\"\nD='single $A \\n'\nE=con\\\ntinued\nF=\nnot an assignment\nG=\"a\" \"b\"\nH=x#y\n# a comment ending in \\\nJ=after\r\nI=\"no end";
+        let pairs: Vec<(&str, &str)> = vec![("A", "1"), ("B", "two words"), ("C", "quoted \"x\" \\ $ \\n"), ("D", "single $A \\n"), ("E", "continued"), ("F", ""), ("G", "ab"), ("H", "x#y"), ("J", "after"), ("I", "no end")];
+        assert_eq!(parse(text), pairs.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect::<Vec<_>>());
+        let vars = vec![("A".to_string(), "1".to_string()), ("EMPTY".to_string(), String::new())];
+        assert_eq!(expand("$A-${A}-$$A-${EMPTY:-def}-${A:-def}-${A:+alt}-${EMPTY:+alt}-${NO_SUCH_VARIABLE_ANYVECTOR}-$-${A", &vars), "1-1-$A-def-1-alt---$-${A");
+        // keys are written plain when they can be, and always read back as they were
+        assert_eq!(quote("sk-ant-api03_AbC.12/+=="), "sk-ant-api03_AbC.12/+==");
+        assert_eq!(quote("a b"), "\"a b\"");
+        assert_eq!(quote("p$ss\"w\\rd`"), "\"p$$ss\\\"w\\\\rd\\`\"");
+        for v in ["sk-ant-api03_AbC.12/+==", "a b", "p$ss\"w\\rd`", "x'y", "ção", "#;=", "$HOME", ""] {
+            let parsed = parse(&format!("K={}\n", quote(v)));
+            assert_eq!(expand(&parsed[0].1, &[]), v, "{v}");
+        }
+    }
+
+    #[test]
+    fn environment_d_keys_are_saved_and_found_again() {
+        use environment_d::{lookup, store, FILE};
+        let dir = std::env::temp_dir().join(format!("anyvector-environment-d-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        // a new file, readable by the user alone
+        store(&dir, "ANYVECTOR_TEST_KEY", Some("sk-test $1 \"q\"")).unwrap();
+        assert_eq!(lookup(&dir, "ANYVECTOR_TEST_KEY").as_deref(), Some("sk-test $1 \"q\""));
+        let text = std::fs::read_to_string(dir.join(FILE)).unwrap();
+        assert!(text.starts_with("# AnyVector") && text.ends_with("\nANYVECTOR_TEST_KEY=\"sk-test $$1 \\\"q\\\"\"\n"), "{text}");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(std::fs::metadata(dir.join(FILE)).unwrap().permissions().mode() & 0o777, 0o600);
+        }
+        // the user's own lines stay; the key is replaced, not repeated
+        std::fs::write(dir.join(FILE), format!("{text}# mine\nOTHER_ANYVECTOR=1\n")).unwrap();
+        store(&dir, "ANYVECTOR_TEST_KEY", Some("new")).unwrap();
+        let text = std::fs::read_to_string(dir.join(FILE)).unwrap();
+        assert_eq!(text.matches("ANYVECTOR_TEST_KEY=").count(), 1, "{text}");
+        assert!(text.contains("# mine\nOTHER_ANYVECTOR=1\n") && text.ends_with("ANYVECTOR_TEST_KEY=new\n"), "{text}");
+        assert_eq!(lookup(&dir, "ANYVECTOR_TEST_KEY").as_deref(), Some("new"));
+        // the files in the order of their names, the last assignment winning, earlier variables
+        // expanding; systemd skips assignments without a value and names it doesn't take
+        std::fs::write(dir.join("zz-later.conf"), "ANYVECTOR_TEST_KEY=${OTHER_ANYVECTOR}-later\nANYVECTOR_TEST_KEY=\nANYVECTOR_TEST_KEY=''\n").unwrap();
+        std::fs::write(dir.join("00-first.conf"), "OTHER_ANYVECTOR=0\n").unwrap();
+        std::fs::write(dir.join("notes.txt"), "ANYVECTOR_TEST_KEY=ignored\n").unwrap();
+        assert_eq!(lookup(&dir, "ANYVECTOR_TEST_KEY").as_deref(), Some("1-later"));
+        std::fs::remove_file(dir.join("zz-later.conf")).unwrap();
+        // Remove Key: the line goes, and the file with its last assignment
+        store(&dir, "ANYVECTOR_TEST_KEY", None).unwrap();
+        assert_eq!(lookup(&dir, "ANYVECTOR_TEST_KEY"), None);
+        assert!(std::fs::read_to_string(dir.join(FILE)).unwrap().contains("OTHER_ANYVECTOR=1"));
+        store(&dir, "OTHER_ANYVECTOR", None).unwrap();
+        assert!(!dir.join(FILE).exists());
+        store(&dir, "OTHER_ANYVECTOR", None).unwrap();
+        assert_eq!(lookup(&dir.join("missing"), "ANYVECTOR_TEST_KEY"), None);
+        let _ = std::fs::remove_dir_all(&dir);
+        if cfg!(unix) {
+            assert!(environment_d::shown_path().ends_with("environment.d/anyvector.conf"), "{}", environment_d::shown_path());
+        }
+    }
+
+    #[test]
+    fn key_names_and_keys_that_cannot_be_saved() {
+        assert!(valid_key("ANTHROPIC_API_KEY", "sk-ant-api03-x"));
+        // the environment cannot hold these (std::env::set_var would stop the program)
+        assert!(!valid_key("A=B", "x"));
+        assert!(!valid_key("KEY", "a\0b"));
+        assert!(save_user_key("A=B", "x").is_err());
+        // systemd's rules on Linux; Windows takes any other name
+        assert_eq!(valid_key("MY-KEY", "x"), cfg!(windows));
+        assert_eq!(valid_key("1KEY", "x"), cfg!(windows));
+        assert_eq!(valid_key("KEY", "two\nlines"), cfg!(windows));
+        assert!(environment_d::valid_name("_A1") && !environment_d::valid_name("") && !environment_d::valid_name("A B"));
+        // where the messages say the key goes
+        assert!(key_saved_message("K").contains(if cfg!(windows) { "Windows account" } else { "user account" }));
+        assert!(save_key_note().contains(if cfg!(windows) { "Windows account" } else { "environment.d" }));
     }
 
     #[test]

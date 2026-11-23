@@ -1867,8 +1867,10 @@ Silhouette	剪影
 Tools ▸ Options ▸ Global ▸ Privacy ▸ AI Generate	工具 ▸ 選項 ▸ 全域 ▸ 隱私權 ▸ AI 產生
 Environment	環境
 Type the name of the environment variable first.	請先輸入環境變數的名稱。
+The name of the environment variable or the key has characters that cannot be saved.	環境變數的名稱或金鑰包含無法儲存的字元。
 Could not save the environment variable (error {}).	無法儲存環境變數 (錯誤 {})。
 AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your Windows account, never in its own files.	AI 產生需要 API 金鑰。請在 {} 中新增您的金鑰：AnyVector 會將其保存在您 Windows 帳戶的 {} 環境變數中，絕不存放在自己的檔案裡。
+AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your user account, never in its settings or documents.	AI 產生需要 API 金鑰。請在 {} 中新增您的金鑰：AnyVector 會將其保存在您使用者帳戶的 {} 環境變數中，絕不存放在其設定或文件中。
 Generating...	正在產生...
 Could not reach the AI service: {}	無法連線至 AI 服務：{}
 Invalid response from the AI service: {}	AI 服務的回應無效：{}
@@ -2741,9 +2743,14 @@ Display	顯示
 Printing	列印
 AnyVector EXEs & DLLs	AnyVector EXE 與 DLL
 System DLLs	系統 DLL
+AnyVector Programs & Libraries	AnyVector 程式與程式庫
+System Libraries	系統程式庫
 {} GB	{} GB
 AnyVector {} - System Info	AnyVector {} - 系統資訊
 Platform:	平台：
+Kernel:	核心：
+Session type:	工作階段類型：
+Locale:	地區設定：
 Processor:	處理器：
 Number of Processors:	處理器數目：
 Math Coprocessor:	數學輔助處理器：
@@ -2757,6 +2764,7 @@ Total memory used by app:	應用程式使用的記憶體總計：
 GDI Object Count:	GDI 物件數：
 User Object Count:	使用者物件數：
 Available space on drive {}	磁碟機 {} 的可用空間
+Available space in {}:	{} 的可用空間：
 Windows Directory:	Windows 目錄：
 TEMP directory:	TEMP 目錄：
 Application directory:	應用程式目錄：
@@ -2792,6 +2800,7 @@ Keep the product up to date (recommended)	定期更新產品 (建議)
 Check for updates and let me choose when to install them	檢查更新資訊，並讓我選擇安裝時機
 Never check for updates	永遠不要檢查更新資訊
 Automatically downloads product updates, but prompts you before installing them.	自動下載產品更新，但會在安裝前提示您。
+AnyVector looks for a new version at every start and tells you when one is available.	AnyVector 每次啟動時都會檢查新版本，並在有新版本時通知您。
 AnyVector tells you when a new version is available; you choose when to download and install it.	有新版本時 AnyVector 會通知您；由您選擇何時下載並安裝。
 AnyVector never connects to the Internet to look for updates. Help ▸ Updates still checks when you ask.	AnyVector 永遠不會連線至網際網路尋找更新。當您要求時，說明 ▸ 更新 仍會進行檢查。
 An Internet connection is required. Please connect to the Internet and try again.	您必須有網際網路連線。請連線至網際網路，然後再試一次。
@@ -2816,6 +2825,9 @@ The update will be installed when AnyVector closes.	更新將在 AnyVector 關�
 Allow product updates:	允許產品更新：
 Release Notes	版本資訊
 Install Now	立即安裝
+Open Release Page	開啟版本頁面
+Click Open Release Page to download it.	按一下「開啟版本頁面」以進行下載。
+AnyVector cannot install updates by itself on Linux yet.	AnyVector 目前還無法在 Linux 上自行安裝更新。
 Check Now	立即檢查
 Later	稍後
 There is a new version of AnyVector available.	AnyVector 有新版本可用。
@@ -3945,9 +3957,11 @@ Save Key	儲存金鑰
 Remove Key	移除金鑰
 The key was removed from the {} environment variable.	已從 {} 環境變數中移除金鑰。
 The key was saved in the {} environment variable of your Windows account. AI Generate is ready.	金鑰已儲存在您 Windows 帳戶的 {} 環境變數中。AI 產生已可使用。
+The key was saved in the {} environment variable of your user account. AI Generate is ready.	金鑰已儲存在您使用者帳戶的 {} 環境變數中。AI 產生已可使用。
 An API key was found in this environment variable.	在此環境變數中找到 API 金鑰。
 AI Generate needs an API key. Paste it above and click Save Key, or set this environment variable yourself.	AI 產生需要 API 金鑰。請貼到上方並按一下「儲存金鑰」，或自行設定此環境變數。
 Save Key writes the key into this environment variable of your Windows account, right away. AnyVector never saves the key in its own settings or documents.	「儲存金鑰」會立即將金鑰寫入您 Windows 帳戶的此環境變數。AnyVector 絕不會將金鑰儲存在自己的設定或文件中。
+Save Key writes the key into this environment variable of your user account ({}), right away; other programs see it after you log in again. AnyVector never saves the key in its own settings or documents.	「儲存金鑰」會立即將金鑰寫入您使用者帳戶的此環境變數（{}）；其他程式會在您下次登入後看到它。AnyVector 絕不會將金鑰儲存在自己的設定或文件中。
 A reduced set of common tools for new users.	精簡的常用工具組合，適合新使用者。
 The standard layout with all toolbars, the toolbox and dockers.	包含所有工具列、工具箱和泊塢視窗的標準版面配置。
 Large controls for touch, stylus and dial use.	適合觸控、手寫筆和旋鈕使用的大型控制項。

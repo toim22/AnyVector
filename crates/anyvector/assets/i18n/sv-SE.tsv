@@ -1867,8 +1867,10 @@ Silhouette	Siluett
 Tools ▸ Options ▸ Global ▸ Privacy ▸ AI Generate	Verktyg ▸ Alternativ ▸ Globalt ▸ Sekretess ▸ AI-generera
 Environment	Miljö
 Type the name of the environment variable first.	Skriv först namnet på miljövariabeln.
+The name of the environment variable or the key has characters that cannot be saved.	Namnet på miljövariabeln eller nyckeln innehåller tecken som inte kan sparas.
 Could not save the environment variable (error {}).	Det gick inte att spara miljövariabeln (fel {}).
 AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your Windows account, never in its own files.	AI-generera behöver en API-nyckel. Lägg till nyckeln under {}: AnyVector sparar den i miljövariabeln {} för ditt Windows-konto, aldrig i sina egna filer.
+AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your user account, never in its settings or documents.	AI-generera behöver en API-nyckel. Lägg till nyckeln under {}: AnyVector sparar den i miljövariabeln {} för ditt användarkonto, aldrig i sina inställningar eller dokument.
 Generating...	Genererar...
 Could not reach the AI service: {}	Det gick inte att nå AI-tjänsten: {}
 Invalid response from the AI service: {}	Ogiltigt svar från AI-tjänsten: {}
@@ -2741,9 +2743,14 @@ Display	Bildskärm
 Printing	Utskrift
 AnyVector EXEs & DLLs	AnyVector EXE- och DLL-filer
 System DLLs	System-DLL-filer
+AnyVector Programs & Libraries	AnyVector-program och -bibliotek
+System Libraries	Systembibliotek
 {} GB	{} GB
 AnyVector {} - System Info	AnyVector {} - Systeminformation
 Platform:	Plattform:
+Kernel:	Kärna:
+Session type:	Sessionstyp:
+Locale:	Nationella inställningar:
 Processor:	Processor:
 Number of Processors:	Antal processorer:
 Math Coprocessor:	Matematisk samprocessor:
@@ -2757,6 +2764,7 @@ Total memory used by app:	Totalt minne som används av programmet:
 GDI Object Count:	Antal GDI-objekt:
 User Object Count:	Antal användarobjekt:
 Available space on drive {}	Tillgängligt utrymme på enhet {}
+Available space in {}:	Tillgängligt utrymme i {}:
 Windows Directory:	Windows-katalog:
 TEMP directory:	TEMP-katalog:
 Application directory:	Programkatalog:
@@ -2792,6 +2800,7 @@ Keep the product up to date (recommended)	Håll produkten uppdaterad (rekommende
 Check for updates and let me choose when to install them	Sök efter uppdateringar och låt mig välja när de ska installeras
 Never check for updates	Sök aldrig efter uppdateringar
 Automatically downloads product updates, but prompts you before installing them.	Hämtar produktuppdateringar automatiskt, men frågar innan de installeras.
+AnyVector looks for a new version at every start and tells you when one is available.	AnyVector söker efter en ny version vid varje start och meddelar dig när en finns.
 AnyVector tells you when a new version is available; you choose when to download and install it.	AnyVector meddelar dig när en ny version finns. Du väljer när den ska hämtas och installeras.
 AnyVector never connects to the Internet to look for updates. Help ▸ Updates still checks when you ask.	AnyVector ansluter aldrig till Internet för att söka efter uppdateringar. Hjälp ▸ Uppdateringar söker ändå när du ber om det.
 An Internet connection is required. Please connect to the Internet and try again.	En Internetanslutning krävs. Anslut till Internet och försök igen.
@@ -2816,6 +2825,9 @@ The update will be installed when AnyVector closes.	Uppdateringen installeras n�
 Allow product updates:	Tillåt produktuppdateringar:
 Release Notes	Viktig information
 Install Now	Installera nu
+Open Release Page	Öppna versionssidan
+Click Open Release Page to download it.	Klicka på Öppna versionssidan för att hämta den.
+AnyVector cannot install updates by itself on Linux yet.	AnyVector kan ännu inte installera uppdateringar själv i Linux.
 Check Now	Sök nu
 Later	Senare
 There is a new version of AnyVector available.	Det finns en ny version av AnyVector.
@@ -3945,9 +3957,11 @@ Save Key	Spara nyckel
 Remove Key	Ta bort nyckel
 The key was removed from the {} environment variable.	Nyckeln togs bort från miljövariabeln {}.
 The key was saved in the {} environment variable of your Windows account. AI Generate is ready.	Nyckeln sparades i miljövariabeln {} för ditt Windows-konto. AI-generera är klart att använda.
+The key was saved in the {} environment variable of your user account. AI Generate is ready.	Nyckeln sparades i miljövariabeln {} för ditt användarkonto. AI-generera är klart att använda.
 An API key was found in this environment variable.	En API-nyckel hittades i den här miljövariabeln.
 AI Generate needs an API key. Paste it above and click Save Key, or set this environment variable yourself.	AI-generera behöver en API-nyckel. Klistra in den ovan och klicka på Spara nyckel, eller ange miljövariabeln själv.
 Save Key writes the key into this environment variable of your Windows account, right away. AnyVector never saves the key in its own settings or documents.	Spara nyckel skriver omedelbart nyckeln till den här miljövariabeln för ditt Windows-konto. AnyVector sparar aldrig nyckeln i sina egna inställningar eller dokument.
+Save Key writes the key into this environment variable of your user account ({}), right away; other programs see it after you log in again. AnyVector never saves the key in its own settings or documents.	Spara nyckel skriver omedelbart nyckeln till den här miljövariabeln för ditt användarkonto ({}); andra program ser den efter nästa inloggning. AnyVector sparar aldrig nyckeln i sina egna inställningar eller dokument.
 A reduced set of common tools for new users.	En begränsad uppsättning vanliga verktyg för nya användare.
 The standard layout with all toolbars, the toolbox and dockers.	Standardlayouten med alla verktygsfält, verktygslådan och dockningsfönster.
 Large controls for touch, stylus and dial use.	Stora kontroller för användning med touch, penna och vridratt.
