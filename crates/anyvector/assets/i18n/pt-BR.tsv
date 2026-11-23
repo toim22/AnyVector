@@ -5690,3 +5690,4 @@ The blend has no split to fuse	A mistura não tem divisão para fundir
 Click a step of the blend	Clique em uma etapa da mistura
 Click a node of the start object	Clique em um nó do objeto inicial
 Click the matching node of the end object	Clique no nó correspondente do objeto final
+Child {}{} on {}	Objeto filho: {}{} em {}

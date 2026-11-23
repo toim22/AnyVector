@@ -5690,3 +5690,4 @@ The blend has no split to fuse	Le dégradé n'a aucune division à fusionner
 Click a step of the blend	Cliquez sur une étape du dégradé
 Click a node of the start object	Cliquez sur un nœud de l'objet de début
 Click the matching node of the end object	Cliquez sur le nœud correspondant de l'objet de fin
+Child {}{} on {}	Objet enfant : {}{} sur {}

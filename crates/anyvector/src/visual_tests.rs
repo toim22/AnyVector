@@ -8230,3 +8230,511 @@ fn visual_issue_145_blend_along_a_path() {
     save(&mut h, "issue_145_07_star_to_square_on_a_wave");
     assert!(bp_blend(&h, second).path.as_ref().is_some_and(|p| p.full && p.rotate));
 }
+
+// ---- 0.6.2: Ctrl+click inside a group (#151), a blend's start and end picked and dragged (#149) ----
+
+const CTRL_SHIFT: egui::Modifiers = egui::Modifiers { alt: false, ctrl: true, shift: true, mac_cmd: false, command: true };
+
+fn si_rect(d: &mut crate::docview::DocView, at: (f64, f64), w: f64, rgb: (u8, u8, u8)) -> Object {
+    let r = RectShape { w, h: w, radii: [0.0; 4], corner: CornerType::default() };
+    let st = Style { fill: Fill::Solid(Color::rgb(rgb.0, rgb.1, rgb.2)), ..Style::default() };
+    Object::new(d.doc.new_id(), ObjKind::Rect(r), Affine::translate(at), st)
+}
+
+fn si_group(d: &mut crate::docview::DocView, children: Vec<Object>) -> Object {
+    Object::new(d.doc.new_id(), ObjKind::Group(children), Affine::IDENTITY, Style::default())
+}
+
+/// #151: a red rectangle R (100,100)–(200,200) and a blue circle E (250,100)–(350,200) grouped
+/// (G); a group G2 of a green rectangle R2 (100,300)–(200,400) and a group G3 of two rectangles,
+/// R3 (250,300)–(350,400) and R4 (400,300)–(500,400); and a square S (600,100)–(700,200) of its
+/// own. Nothing selected. Gives [G, R, E, G2, R2, G3, R3, R4, S].
+fn si_groups(h: &mut Harness<'_, AnyVectorApp>) -> [u64; 9] {
+    let d = h.state_mut().doc_mut().unwrap();
+    let r = si_rect(d, (100.0, 100.0), 100.0, (220, 40, 40));
+    let circle = EllipseShape { w: 100.0, h: 100.0, kind: EllipseKind::Ellipse, start: 0.0, end: 0.0, clockwise: false };
+    let e = Object::new(d.doc.new_id(), ObjKind::Ellipse(circle), Affine::translate((250.0, 100.0)), Style { fill: Fill::Solid(Color::rgb(40, 90, 220)), ..Style::default() });
+    let r2 = si_rect(d, (100.0, 300.0), 100.0, (40, 160, 80));
+    let r3 = si_rect(d, (250.0, 300.0), 100.0, (240, 180, 30));
+    let r4 = si_rect(d, (400.0, 300.0), 100.0, (160, 60, 200));
+    let s = si_rect(d, (600.0, 100.0), 100.0, (90, 90, 90));
+    let ids = [r.id, e.id, r2.id, r3.id, r4.id, s.id];
+    let g = si_group(d, vec![r, e]);
+    let g3 = si_group(d, vec![r3, r4]);
+    let (gid, g3id) = (g.id, g3.id);
+    let g2 = si_group(d, vec![r2, g3]);
+    let g2id = g2.id;
+    d.add_objects("test", vec![g, g2, s]);
+    d.selection.clear();
+    [gid, ids[0], ids[1], g2id, ids[2], g3id, ids[3], ids[4], ids[5]]
+}
+
+/// #151: a plain click selects the group; Ctrl+click selects the object of the group under the
+/// pointer, with its own handles (the selection box is the object's) and "Child Rectangle on
+/// Layer 1" in the status bar; Ctrl+click on another object of the group picks that one; a press
+/// on the object picked goes on with it; a plain click elsewhere on the group gives the group
+/// back; Ctrl+click off a group is a plain click; a click on empty space selects nothing.
+#[test]
+fn issue_151_ctrl_click_selects_an_object_of_a_group() {
+    use crate::tools::ToolId;
+    let mut h = join_harness(ToolId::Pick);
+    let [g, r, e, _, _, _, _, _, s] = si_groups(&mut h);
+    let none = egui::Modifiers::NONE;
+    pick_click(&mut h, (150.0, 150.0), none);
+    assert_eq!(sel(&h), vec![g], "a plain click selects the group");
+    pick_click(&mut h, (150.0, 150.0), CTRL);
+    assert_eq!(sel(&h), vec![r], "Ctrl+click didn't select the rectangle in the group");
+    assert_eq!(h.state().doc().unwrap().selection_bounds(), Some(bounds_of(&h, r)), "the handles aren't the rectangle's");
+    let info = crate::statusbar::object_info(h.state());
+    assert!(info.starts_with("Child Rectangle on ") && !info.ends_with(" on "), "{info}");
+    assert!(!h.state().doc().unwrap().rotate_mode);
+    // another object of the same group
+    pick_click(&mut h, (300.0, 150.0), CTRL);
+    assert_eq!(sel(&h), vec![e]);
+    assert!(crate::statusbar::object_info(h.state()).starts_with("Child Ellipse on "));
+    // a plain press on the object picked keeps it (a second click is for rotating, as anywhere)
+    pick_click(&mut h, (300.0, 150.0), none);
+    assert_eq!(sel(&h), vec![e]);
+    assert!(h.state().doc().unwrap().rotate_mode, "a second click on the object picked didn't turn on the rotate handles");
+    pick_click(&mut h, (300.0, 150.0), none);
+    // a plain click on the group off that object: the group again
+    pick_click(&mut h, (150.0, 150.0), none);
+    assert_eq!(sel(&h), vec![g]);
+    // Ctrl+click on an object that is in no group: as a plain click
+    pick_click(&mut h, (650.0, 150.0), CTRL);
+    assert_eq!(sel(&h), vec![s]);
+    assert!(crate::statusbar::object_info(h.state()).starts_with("Rectangle on "));
+    // empty space: nothing, not the group
+    pick_click(&mut h, (150.0, 150.0), CTRL);
+    pick_click(&mut h, (225.0, 250.0), none);
+    assert!(sel(&h).is_empty());
+}
+
+/// #151: in nested groups each Ctrl+click goes one level down (the inner group, then its
+/// object); at the bottom it stays there; with an object of the inner group picked, a Ctrl+click
+/// on the other one picks it; in another branch, the object there.
+#[test]
+fn issue_151_ctrl_click_goes_one_level_down_per_click() {
+    use crate::tools::ToolId;
+    let mut h = join_harness(ToolId::Pick);
+    let [_, _, _, g2, r2, g3, r3, r4, _] = si_groups(&mut h);
+    pick_click(&mut h, (300.0, 350.0), egui::Modifiers::NONE);
+    assert_eq!(sel(&h), vec![g2]);
+    pick_click(&mut h, (300.0, 350.0), CTRL);
+    assert_eq!(sel(&h), vec![g3], "the first Ctrl+click selects the inner group");
+    let info = crate::statusbar::object_info(h.state());
+    assert!(info.starts_with("Child Group of 2 objects on "), "{info}");
+    pick_click(&mut h, (300.0, 350.0), CTRL);
+    assert_eq!(sel(&h), vec![r3], "the second Ctrl+click selects the rectangle in it");
+    pick_click(&mut h, (300.0, 350.0), CTRL);
+    assert_eq!(sel(&h), vec![r3], "at the bottom it stays");
+    pick_click(&mut h, (450.0, 350.0), CTRL);
+    assert_eq!(sel(&h), vec![r4], "the other object of the inner group");
+    pick_click(&mut h, (150.0, 350.0), CTRL);
+    assert_eq!(sel(&h), vec![r2]);
+    // from nothing selected, the inner group's object takes two
+    pick_click(&mut h, (700.0, 700.0), egui::Modifiers::NONE);
+    pick_click(&mut h, (450.0, 350.0), CTRL);
+    assert_eq!(sel(&h), vec![g3]);
+}
+
+/// #151: Ctrl+Shift+click adds objects of groups to the selection (never their group with them)
+/// and takes them off again; Shift+click on the group puts the group in place of its objects;
+/// with the group selected, Ctrl+Shift+click puts the object in its place.
+#[test]
+fn issue_151_ctrl_shift_click_adds_and_removes_objects_of_groups() {
+    use crate::tools::ToolId;
+    let mut h = join_harness(ToolId::Pick);
+    let [g, r, e, _, _, g3, _, _, s] = si_groups(&mut h);
+    let shift = egui::Modifiers { shift: true, ..egui::Modifiers::NONE };
+    pick_click(&mut h, (150.0, 150.0), CTRL_SHIFT);
+    assert_eq!(sel(&h), vec![r]);
+    pick_click(&mut h, (300.0, 150.0), CTRL_SHIFT);
+    assert_eq!(sel(&h), vec![r, e], "Ctrl+Shift+click didn't add the circle");
+    assert!(crate::statusbar::object_info(h.state()).starts_with("2 objects selected on Layer"));
+    // an object of another group, and one of no group
+    pick_click(&mut h, (300.0, 350.0), CTRL_SHIFT);
+    pick_click(&mut h, (650.0, 150.0), shift);
+    assert_eq!(sel(&h), vec![r, e, g3, s]);
+    // again on one: it is taken off (so does Shift+click on one, as on any object selected)
+    pick_click(&mut h, (300.0, 150.0), CTRL_SHIFT);
+    assert_eq!(sel(&h), vec![r, g3, s]);
+    pick_click(&mut h, (150.0, 150.0), shift);
+    assert_eq!(sel(&h), vec![g3, s]);
+    // Shift+click on the group off its object selected: the group in place of that object
+    pick_click(&mut h, (300.0, 150.0), CTRL_SHIFT);
+    assert_eq!(sel(&h), vec![g3, s, e]);
+    pick_click(&mut h, (150.0, 150.0), shift);
+    assert_eq!(sel(&h), vec![g3, s, g]);
+    // and Ctrl+Shift+click on the group selected: its object in place of the group
+    pick_click(&mut h, (300.0, 150.0), CTRL_SHIFT);
+    assert_eq!(sel(&h), vec![g3, s, e]);
+}
+
+/// #151: a Ctrl+click that drags moves only the object of the group (the group grows), as one
+/// undo step that Undo takes back; the object picked then drags without Ctrl; Ctrl held during
+/// the drag still keeps the move straight, as Ctrl always does.
+#[test]
+fn issue_151_dragging_an_object_of_a_group_moves_only_it() {
+    use crate::tools::ToolId;
+    let mut h = join_harness(ToolId::Pick);
+    let [g, r, e, _, _, _, _, _, _] = si_groups(&mut h);
+    let (rb, eb, gb) = (bounds_of(&h, r), bounds_of(&h, e), bounds_of(&h, g));
+    let undo0 = undo_steps(&h);
+    shape_drag(&mut h, (150.0, 150.0), (150.0, 230.0), CTRL);
+    assert_eq!(sel(&h), vec![r]);
+    let now = bounds_of(&h, r);
+    assert!((now.y0 - rb.y0 - 80.0).abs() < 0.01 && (now.x0 - rb.x0).abs() < 0.01, "the rectangle didn't move: {rb:?} → {now:?}");
+    assert_eq!(bounds_of(&h, e), eb, "the circle moved with it");
+    assert!((bounds_of(&h, g).y1 - gb.y1 - 80.0).abs() < 0.01, "the group didn't grow");
+    assert_eq!(h.state().doc().unwrap().doc.parent_of(r), Some(g), "the rectangle left the group");
+    assert_eq!(undo_steps(&h), undo0 + 1, "one undo step");
+    undo(&mut h);
+    assert_eq!(bounds_of(&h, r), rb);
+    // picked, it drags without Ctrl; with Ctrl the move stays straight
+    pick_click(&mut h, (150.0, 150.0), CTRL);
+    shape_drag(&mut h, (150.0, 150.0), (190.0, 160.0), egui::Modifiers::NONE);
+    let now = bounds_of(&h, r);
+    assert!((now.x0 - rb.x0 - 40.0).abs() < 0.01 && (now.y0 - rb.y0 - 10.0).abs() < 0.01, "{now:?}");
+    assert_eq!(bounds_of(&h, e), eb);
+    shape_drag(&mut h, (170.0, 170.0), (230.0, 178.0), CTRL);
+    let then = bounds_of(&h, r);
+    assert!((then.x0 - now.x0 - 60.0).abs() < 0.01 && (then.y0 - now.y0).abs() < 0.01, "Ctrl didn't keep the move straight: {now:?} → {then:?}");
+    assert_eq!(sel(&h), vec![r]);
+}
+
+/// #151: Delete on an object of a group deletes it alone (the group stays, one undo step); a
+/// copy of it stays in the group; deleting every object of a group deletes the group, and Undo
+/// brings it all back.
+#[test]
+fn issue_151_delete_and_duplicate_an_object_of_a_group() {
+    use crate::tools::ToolId;
+    let mut h = join_harness(ToolId::Pick);
+    let [g, r, e, _, _, _, _, _, _] = si_groups(&mut h);
+    pick_click(&mut h, (150.0, 150.0), CTRL);
+    let undo0 = undo_steps(&h);
+    run_cmd(&mut h, Cmd::Delete);
+    let d = h.state().doc().unwrap();
+    assert!(d.doc.find(r).is_none(), "the rectangle is still there");
+    assert!(d.doc.find(e).is_some() && d.doc.find(g).is_some(), "the group or the circle went too");
+    assert_eq!(undo_steps(&h), undo0 + 1);
+    undo(&mut h);
+    assert_eq!(h.state().doc().unwrap().doc.parent_of(r), Some(g), "Undo didn't put the rectangle back in its group");
+    // Duplicate: the copy is in the group, selected
+    pick_click(&mut h, (150.0, 150.0), CTRL);
+    run_cmd(&mut h, Cmd::Duplicate);
+    let copy = sel(&h);
+    assert_eq!(copy.len(), 1);
+    assert_ne!(copy[0], r);
+    assert_eq!(h.state().doc().unwrap().doc.parent_of(copy[0]), Some(g), "the copy left the group");
+    undo(&mut h);
+    // every object of the group: the group goes
+    pick_click(&mut h, (150.0, 150.0), CTRL);
+    pick_click(&mut h, (300.0, 150.0), CTRL_SHIFT);
+    assert_eq!(sel(&h), vec![r, e]);
+    run_cmd(&mut h, Cmd::Delete);
+    assert!(h.state().doc().unwrap().doc.find(g).is_none(), "an empty group was left");
+    undo(&mut h);
+    let d = h.state().doc().unwrap();
+    assert!(d.doc.find(g).is_some() && d.doc.parent_of(e) == Some(g));
+}
+
+/// #151: Ctrl's other meanings stay: with the Windows modifier keys (Ctrl is Duplicate) a
+/// Ctrl+click selects the group; a double-click on a group is Focus Mode, where Ctrl+click picks
+/// inside the group too; Alt+click still selects what is behind (#139), not inside; the marquee
+/// selects whole groups; Ctrl+click on a PowerClip enters it (#111).
+#[test]
+fn issue_151_ctrl_click_keeps_its_other_meanings() {
+    use crate::tools::ToolId;
+    let mut h = join_harness(ToolId::Pick);
+    let [g, r, _, g2, _, _, _, _, _] = si_groups(&mut h);
+    h.state_mut().settings.windows_modifiers = true;
+    pick_click(&mut h, (150.0, 150.0), CTRL);
+    assert_eq!(sel(&h), vec![g], "with Ctrl as Duplicate, Ctrl+click went inside the group");
+    h.state_mut().settings.windows_modifiers = false;
+    // Focus Mode by double-click, and Ctrl+click inside it
+    h.state_mut().settings.dblclick_focus_mode = true;
+    pick_click(&mut h, (700.0, 700.0), egui::Modifiers::NONE);
+    pick_double(&mut h, (150.0, 150.0));
+    assert_eq!(h.state().doc().unwrap().focus, vec![g], "the double-click didn't enter Focus Mode");
+    pick_click(&mut h, (150.0, 150.0), CTRL);
+    assert_eq!(sel(&h), vec![r]);
+    h.state_mut().doc_mut().unwrap().focus.clear();
+    // Alt+click: the whole object behind
+    let behind = square_at(&mut h, (120.0, 120.0), 40.0, (0, 0, 0));
+    h.state_mut().doc_mut().unwrap().doc.pages[0].layers.last_mut().unwrap().objects.rotate_right(1);
+    pick_click(&mut h, (140.0, 140.0), egui::Modifiers::NONE);
+    assert_eq!(sel(&h), vec![g]);
+    pick_click(&mut h, (140.0, 140.0), ALT);
+    assert_eq!(sel(&h), vec![behind], "Alt+click went inside the group instead of behind it");
+    // the marquee: whole groups
+    shape_drag(&mut h, (90.0, 280.0), (520.0, 420.0), egui::Modifiers::NONE);
+    assert_eq!(sel(&h), vec![g2]);
+    // a PowerClip: Ctrl+click enters it, as before
+    let (mut h2, [pc, ..]) = powerclip_doc();
+    pick_click(&mut h2, (300.0, 200.0), CTRL);
+    assert_eq!(editing(&h2), Some(pc), "Ctrl+click no longer enters the PowerClip");
+}
+
+/// #149: a straight blend of a red circle at (200, 400) (radius 25) to a blue one at (500, 400)
+/// (radius 35) in 6 steps, selected. Gives [blend, start, end].
+fn si_blend(h: &mut Harness<'_, AnyVectorApp>) -> [u64; 3] {
+    let d = h.state_mut().doc_mut().unwrap();
+    let a = bp_circle(d, (200.0, 400.0), 25.0, Fill::Solid(Color::rgb(220, 40, 40)));
+    let b = bp_circle(d, (500.0, 400.0), 35.0, Fill::Solid(Color::rgb(40, 80, 220)));
+    let (ia, ib) = (a.id, b.id);
+    d.add_objects("test", vec![a, b]);
+    let blend = d.modify("Blend", |doc, _| vector_core::ops::create_blend(doc, ia, ib, 6)).unwrap();
+    d.selection = vec![blend];
+    [blend, ia, ib]
+}
+
+fn si_focus(h: &Harness<'_, AnyVectorApp>) -> Option<(u64, vector_core::object::BlendPart)> {
+    crate::blendpath::focus(h.state().doc().unwrap())
+}
+
+/// #149: the blend selected shows a grip on its start and end; a click on its start selects the
+/// start (the status bar names it) and one on its end the end; a click on a step selects the
+/// blend again; with nothing selected a click selects the blend, the next one the control; the
+/// grip picks too; Shift+click stays a plain multi-select; a locked blend gives no part.
+#[test]
+fn issue_149_click_selects_the_start_and_end_of_the_blend() {
+    use crate::tools::ToolId;
+    use vector_core::object::BlendPart;
+    let mut h = join_harness(ToolId::Pick);
+    let [blend, start, end] = si_blend(&mut h);
+    let none = egui::Modifiers::NONE;
+    let grips = crate::blendpath::grips(h.state().doc().unwrap());
+    assert_eq!(grips.iter().map(|g| (g.0, g.1)).collect::<Vec<_>>(), vec![(BlendPart::Start, start), (BlendPart::End, end)]);
+    assert!((grips[0].2 - scr(&h, (200.0, 400.0))).length() < 0.5, "the start's grip isn't in its middle");
+    pick_click(&mut h, (200.0, 400.0), none);
+    assert_eq!(sel(&h), vec![start], "a click on the start of the blend selected didn't select it");
+    assert_eq!(si_focus(&h), Some((blend, BlendPart::Start)));
+    let info = crate::statusbar::object_info(h.state());
+    assert!(info.starts_with("Blend start: Ellipse on "), "{info}");
+    assert!(!h.state().doc().unwrap().rotate_mode);
+    // the start selected: the end keeps its grip
+    let grips = crate::blendpath::grips(h.state().doc().unwrap());
+    assert_eq!(grips.iter().map(|g| g.1).collect::<Vec<_>>(), vec![end]);
+    pick_click(&mut h, (500.0, 400.0), none);
+    assert_eq!(sel(&h), vec![end]);
+    assert!(crate::statusbar::object_info(h.state()).starts_with("Blend end: "));
+    // a step: the blend again
+    let c = bp_centres(&bp_blend(&h, blend))[2];
+    pick_click(&mut h, (c.x, c.y), none);
+    assert_eq!(sel(&h), vec![blend], "a click on a step didn't select the blend again");
+    assert_eq!(si_focus(&h), None);
+    // nothing selected: a click on the start selects the blend, the next one the start
+    pick_click(&mut h, (700.0, 700.0), none);
+    pick_click(&mut h, (200.0, 400.0), none);
+    assert_eq!(sel(&h), vec![blend]);
+    pick_click(&mut h, (200.0, 400.0), none);
+    assert_eq!(sel(&h), vec![start]);
+    // the grip, on the end's middle
+    h.state_mut().doc_mut().unwrap().selection = vec![blend];
+    let at = crate::blendpath::grips(h.state().doc().unwrap())[1].2;
+    assert_eq!(crate::blendpath::grip_at(h.state().doc().unwrap(), at + egui::vec2(3.0, -3.0)), Some((BlendPart::End, end)));
+    assert_eq!(crate::blendpath::grip_at(h.state().doc().unwrap(), at + egui::vec2(30.0, 0.0)), None);
+    // Shift+click is a plain multi-select: the blend comes off
+    pick_click(&mut h, (200.0, 400.0), egui::Modifiers { shift: true, ..none });
+    assert!(sel(&h).is_empty());
+    // a locked blend: no grips, no part picked
+    h.state_mut().doc_mut().unwrap().doc.find_mut(blend).unwrap().locked = true;
+    h.state_mut().doc_mut().unwrap().selection = vec![blend];
+    assert!(crate::blendpath::grips(h.state().doc().unwrap()).is_empty());
+    pick_click(&mut h, (200.0, 400.0), none);
+    assert_eq!(sel(&h), vec![blend], "a part of a locked blend was picked");
+}
+
+/// #149: dragging the start of a straight blend moves it freely and the steps follow, as one
+/// undo step; the end drags the same way; on a blend along a path the end slides along the path
+/// and the steps stay on it; the path itself is picked on its outline.
+#[test]
+fn issue_149_dragging_the_start_or_end_reshapes_the_blend() {
+    use crate::tools::ToolId;
+    let mut h = join_harness(ToolId::Pick);
+    let [blend, start, end] = si_blend(&mut h);
+    let none = egui::Modifiers::NONE;
+    let before = bp_centres(&bp_blend(&h, blend));
+    let undo0 = undo_steps(&h);
+    // the blend selected: a drag from its start moves the start
+    shape_drag(&mut h, (200.0, 400.0), (230.0, 300.0), none);
+    assert_eq!(sel(&h), vec![start]);
+    let b = bp_blend(&h, blend);
+    assert!((b.start.bounds().center() - Point::new(230.0, 300.0)).hypot() < 0.01, "{:?}", b.start.bounds().center());
+    assert!((b.end.bounds().center() - Point::new(500.0, 400.0)).hypot() < 0.01, "the end moved");
+    let now = bp_centres(&b);
+    assert_eq!(now.len(), before.len());
+    for (p, q) in before.iter().zip(&now) {
+        assert!(q.y < p.y - 1.0 && q.y > 300.0, "a step didn't follow: {p:?} → {q:?}");
+    }
+    assert_eq!(undo_steps(&h), undo0 + 1, "one undo step");
+    undo(&mut h);
+    assert!((bp_blend(&h, blend).start.bounds().center() - Point::new(200.0, 400.0)).hypot() < 0.01);
+    // the end, picked then dragged
+    h.state_mut().doc_mut().unwrap().selection = vec![blend];
+    pick_click(&mut h, (500.0, 400.0), none);
+    shape_drag(&mut h, (500.0, 400.0), (520.0, 480.0), none);
+    let b = bp_blend(&h, blend);
+    assert!((b.end.bounds().center() - Point::new(520.0, 480.0)).hypot() < 0.01);
+    assert!(bp_centres(&b).iter().all(|p| p.y > 400.0 && p.y < 480.0), "the steps didn't follow the end");
+    assert_eq!(sel(&h), vec![end]);
+
+    // a blend along a path: the end slides along it
+    let mut h = join_harness(ToolId::Pick);
+    let [blend, _, end, path] = bp_on_path(&mut h);
+    h.state_mut().doc_mut().unwrap().selection = vec![blend];
+    let e = bp_blend(&h, blend).end.bounds().center();
+    shape_drag(&mut h, (e.x, e.y), (e.x - 30.0, e.y + 100.0), none);
+    assert_eq!(sel(&h), vec![end]);
+    let b = bp_blend(&h, blend);
+    let now = b.end.bounds().center();
+    assert!((now - e).hypot() > 20.0, "the end didn't move: {e:?} → {now:?}");
+    assert!(bp_off(now) < 1.0, "the end left the path: {now:?}");
+    for p in bp_centres(&b) {
+        assert!(bp_off(p) < 1.0, "a step off the circle: {p:?}");
+    }
+    // the path is a control too: a click on its outline where no step is selects it
+    h.state_mut().doc_mut().unwrap().selection = vec![blend];
+    let free = (0..72)
+        .map(|k| {
+            let a = k as f64 * std::f64::consts::TAU / 72.0;
+            Point::new(400.0 + 150.0 * a.cos(), 400.0 + 150.0 * a.sin())
+        })
+        .find(|q| bp_centres(&b).iter().chain([b.start.bounds().center(), b.end.bounds().center()].iter()).all(|c| (*c - *q).hypot() > 45.0))
+        .expect("a free spot on the path");
+    pick_click(&mut h, (free.x, free.y), none);
+    assert_eq!(sel(&h), vec![path], "a click on the path of the blend selected didn't select the path");
+    assert!(crate::statusbar::object_info(h.state()).starts_with("Blend path: "));
+}
+
+/// #149: Ctrl+click goes straight to a control of a blend, even unselected, and Ctrl+Shift+click
+/// adds another; Show Start still selects the start and Esc lets go of it; Delete on an end
+/// picked by a click takes the blend apart (one undo step); a blend in a group takes two
+/// Ctrl+clicks (the blend, then its control), and then a click on a step gives the blend back,
+/// not the group.
+#[test]
+fn issue_149_ctrl_click_delete_and_show_start() {
+    use crate::tools::ToolId;
+    use vector_core::object::BlendPart;
+    let mut h = join_harness(ToolId::Pick);
+    let [blend, start, end] = si_blend(&mut h);
+    let none = egui::Modifiers::NONE;
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    pick_click(&mut h, (200.0, 400.0), CTRL);
+    assert_eq!(sel(&h), vec![start], "Ctrl+click didn't select the start");
+    pick_click(&mut h, (500.0, 400.0), CTRL_SHIFT);
+    assert_eq!(sel(&h), vec![start, end]);
+    // Show Start, Esc
+    h.state_mut().doc_mut().unwrap().selection = vec![blend];
+    run_cmd(&mut h, Cmd::BarOption(0x7341835a));
+    assert_eq!(sel(&h), vec![start]);
+    h.key_press(egui::Key::Escape);
+    h.step();
+    assert!(sel(&h).is_empty());
+    // the end clicked, then Delete: the blend comes apart, the start stays on the page
+    h.state_mut().doc_mut().unwrap().selection = vec![blend];
+    pick_click(&mut h, (500.0, 400.0), none);
+    assert_eq!(si_focus(&h), Some((blend, BlendPart::End)));
+    let undo0 = undo_steps(&h);
+    run_cmd(&mut h, Cmd::Delete);
+    let d = h.state().doc().unwrap();
+    assert!(d.doc.find(blend).is_none() && d.doc.find(end).is_none());
+    assert!(d.doc.locate(start).is_some());
+    assert_eq!(d.selection, vec![start]);
+    assert_eq!(undo_steps(&h), undo0 + 1);
+    undo(&mut h);
+    assert!(h.state().doc().unwrap().doc.find(blend).is_some());
+    // a blend in a group
+    let other = square_at(&mut h, (100.0, 600.0), 50.0, (0, 0, 0));
+    let g = h.state_mut().doc_mut().unwrap().modify("Group", |doc, _| vector_core::ops::group(doc, &[blend, other])).unwrap();
+    h.state_mut().doc_mut().unwrap().selection.clear();
+    pick_click(&mut h, (200.0, 400.0), none);
+    assert_eq!(sel(&h), vec![g]);
+    pick_click(&mut h, (200.0, 400.0), CTRL);
+    assert_eq!(sel(&h), vec![blend]);
+    pick_click(&mut h, (200.0, 400.0), CTRL);
+    assert_eq!(sel(&h), vec![start]);
+    let c = bp_centres(&bp_blend(&h, blend))[2];
+    pick_click(&mut h, (c.x, c.y), none);
+    assert_eq!(sel(&h), vec![blend], "a step of the blend in the group gave the group, not the blend");
+    pick_click(&mut h, (500.0, 400.0), none);
+    assert_eq!(sel(&h), vec![end], "the blend in a group: its end wasn't picked");
+}
+
+/// #151: a group, then an object of it picked with Ctrl+click (its own handles), two picked with
+/// Ctrl+Shift+click, one level per Ctrl+click in nested groups, and the object dragged out of its
+/// place (the group around it grows).
+#[test]
+#[ignore]
+fn visual_issue_151_ctrl_click_inside_a_group() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    h.state_mut().set_tool(ToolId::Pick);
+    h.state_mut().doc_mut().unwrap().doc.settings.snap_off = true;
+    let [g, r, e, _, _, g3, r3, _, _] = si_groups(&mut h);
+    let q = scr(&h, (150.0, 150.0));
+    click(&mut h, q);
+    assert_eq!(selection(&h), vec![g]);
+    save(&mut h, "issue_151_01_click_selects_the_group");
+    let q = scr(&h, (150.0, 150.0));
+    click_mods(&mut h, q, CTRL);
+    assert_eq!(selection(&h), vec![r]);
+    save(&mut h, "issue_151_02_ctrl_click_selects_the_rectangle");
+    let q = scr(&h, (300.0, 150.0));
+    click_mods(&mut h, q, CTRL_SHIFT);
+    assert_eq!(selection(&h), vec![r, e]);
+    save(&mut h, "issue_151_03_ctrl_shift_click_adds_the_circle");
+    let q = scr(&h, (300.0, 350.0));
+    click_mods(&mut h, q, CTRL);
+    assert_eq!(selection(&h), vec![g3]);
+    let q = scr(&h, (300.0, 350.0));
+    click_mods(&mut h, q, CTRL);
+    assert_eq!(selection(&h), vec![r3]);
+    save(&mut h, "issue_151_04_nested_one_level_per_click");
+    let q = scr(&h, (150.0, 150.0));
+    click_mods(&mut h, q, CTRL);
+    let (a, b) = (scr(&h, (150.0, 150.0)), scr(&h, (150.0, 220.0)));
+    drag(&mut h, a, b);
+    assert_eq!(selection(&h), vec![r]);
+    assert!((bounds_of(&h, r).y0 - 170.0).abs() < 0.5, "{:?}", bounds_of(&h, r));
+    save(&mut h, "issue_151_05_the_rectangle_dragged_out");
+}
+
+/// #149: a blend selected shows grips on its start and end; the start clicked is selected with
+/// its handles; while it is dragged the steps follow it; dropped, the blend is reshaped; a blend
+/// on a path shows its path dashed.
+#[test]
+#[ignore]
+fn visual_issue_149_blend_start_and_end() {
+    use crate::tools::ToolId;
+    let mut h = doc_harness();
+    h.state_mut().set_tool(ToolId::Pick);
+    h.state_mut().doc_mut().unwrap().doc.settings.snap_off = true;
+    let [blend, start, _] = si_blend(&mut h);
+    save(&mut h, "issue_149_01_blend_selected_shows_grips");
+    let q = scr(&h, (200.0, 400.0));
+    click(&mut h, q);
+    assert_eq!(selection(&h), vec![start]);
+    save(&mut h, "issue_149_02_start_selected");
+    // a drag in progress: the steps follow the start
+    let (a, b) = (scr(&h, (200.0, 400.0)), scr(&h, (240.0, 280.0)));
+    move_to(&mut h, a);
+    h.step();
+    press(&mut h, a, true);
+    h.step();
+    for k in 1..=6 {
+        move_to(&mut h, a + (b - a) * (k as f32 / 6.0));
+        h.step();
+    }
+    save(&mut h, "issue_149_03_dragging_the_start");
+    press(&mut h, b, false);
+    h.step();
+    assert!((bp_blend(&h, blend).start.bounds().center() - Point::new(240.0, 280.0)).hypot() < 0.5);
+    save(&mut h, "issue_149_04_start_dropped");
+    // a blend on a path: its path dashed, grips on its start and end
+    h.state_mut().doc_mut().unwrap().doc.pages[0].layers.last_mut().unwrap().objects.clear();
+    let [blend2, ..] = bp_on_path(&mut h);
+    h.state_mut().doc_mut().unwrap().selection = vec![blend2];
+    save(&mut h, "issue_149_05_blend_on_a_path_selected");
+}

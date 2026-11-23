@@ -36,7 +36,7 @@ pub fn stroke_bez(painter: &Painter, d: &DocView, bp: &BezPath, stroke: Stroke) 
     }
 }
 
-fn dashed_bez(painter: &Painter, d: &DocView, bp: &BezPath, color: Color32) {
+pub(crate) fn dashed_bez(painter: &Painter, d: &DocView, bp: &BezPath, color: Color32) {
     let mut t = bp.clone();
     t.apply_affine(screen_affine(d));
     for (mut pts, closed) in geom::flatten_polylines(&t, 0.35) {
@@ -85,7 +85,7 @@ pub fn draw_overlay(app: &mut AnyVectorApp, painter: &Painter) {
     }
     crate::dialogs::symmetry::draw_overlay(painter, d);
     crate::powerclip::draw_overlay(painter, d);
-    crate::blendpath::draw_overlay(painter, d, ts.pick_target);
+    crate::blendpath::draw_overlay(painter, d, ts.pick_target, tool == ToolId::Pick && !(matches!(ts.drag, Drag::Transform { .. }) && ts.moved));
 
     let dragging_xform = matches!(ts.drag, Drag::Transform { .. });
     match tool {
@@ -935,6 +935,8 @@ fn draw_drag_preview(painter: &Painter, d: &DocView, ts: &ToolState, s: &Setting
         Drag::Transform { kind, start, bb, ids, center } => {
             if ts.moved {
                 let a = xform_affine(*kind, *start, cur, *bb, *center, ts.mods, s.constrain_angle);
+                // a control of a blend dragged: the blend follows it (#149)
+                crate::blendpath::draw_drag_preview(painter, d, ids, a, PREVIEW.gamma_multiply(0.5));
                 for id in ids {
                     if let Some(o) = d.doc.find(*id) {
                         let mut bp = o.world_path();

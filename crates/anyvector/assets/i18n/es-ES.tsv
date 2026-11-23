@@ -5690,3 +5690,4 @@ The blend has no split to fuse	La mezcla no tiene ninguna división que fusionar
 Click a step of the blend	Haga clic en un paso de la mezcla
 Click a node of the start object	Haga clic en un nodo del objeto inicial
 Click the matching node of the end object	Haga clic en el nodo correspondiente del objeto final
+Child {}{} on {}	Objeto secundario: {}{} en {}

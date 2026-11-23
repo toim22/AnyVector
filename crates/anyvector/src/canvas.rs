@@ -619,6 +619,10 @@ pub(crate) fn cursor_for(app: &AnyVectorApp, pos: Pos2) -> CursorIcon {
                     return CursorIcon::Move;
                 }
             }
+            // the grip of a control of the blend selected (#149): it drags that control
+            if app.tool == ToolId::Pick && crate::blendpath::grip_at(d, pos).is_some() {
+                return CursorIcon::Move;
+            }
             CursorIcon::Default
         }
         ToolId::Pan => CursorIcon::Grab,

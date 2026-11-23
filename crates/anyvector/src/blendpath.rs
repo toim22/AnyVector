@@ -12,6 +12,10 @@
 //! on its own: [`focus`] is that part while it is the whole selection. It can be moved, sized,
 //! deleted and edited like any object; the blend follows it, and on a path the start, end and
 //! splits stay on the path.
+//!
+//! The parts are picked on the canvas too (#149): with the blend selected, a click on its start,
+//! end, path or a split object selects that part (the canvas outlines them and puts a grip on
+//! each, [`grips`]), and Ctrl+click selects one straight away, as inside a group (#151).
 
 use crate::app::AnyVectorApp;
 use crate::docview::DocView;
@@ -375,11 +379,100 @@ pub fn part_info(d: &DocView) -> Option<String> {
 
 // ------------------------------------------------------------------------------ the canvas
 
-/// The part shown, outlined; while Map nodes waits for a click, the nodes it can match.
-pub fn draw_overlay(painter: &Painter, d: &DocView, pick: Option<PickTarget>) {
+/// The blend whose controls a click picks (#149): the blend selected on its own, or the blend of
+/// the part selected; none when it is locked (or what it is in is), or its layer is locked or
+/// hidden.
+pub fn context(d: &DocView) -> Option<ObjId> {
+    let [id] = d.selection.as_slice() else { return None };
+    let blend = if bp::blend_of(&d.doc, *id).is_some() { *id } else { focus(d)?.0 };
+    if d.doc.find(blend)?.locked || !d.doc.locked_within(&[blend]).is_empty() {
+        return None;
+    }
+    let (p, l, _) = d.doc.locate(d.doc.top_level_of(blend)?)?;
+    let layer = &d.doc.pages[p].layers[l];
+    (layer.visible && !layer.locked).then_some(blend)
+}
+
+/// The side of a control's grip on the canvas, in screen pixels.
+pub const GRIP: f32 = 7.0;
+
+/// The controls of the blend in [`context`] that show a grip, the selected one left out: the
+/// start, the end and the split objects, each with its grip (the middle of its box, on screen).
+/// A click on a control or on its grip selects it (#149).
+pub fn grips(d: &DocView) -> Vec<(BlendPart, ObjId, egui::Pos2)> {
+    let Some(b) = context(d).and_then(|blend| bp::blend_of(&d.doc, blend)) else { return vec![] };
+    let mut parts = vec![BlendPart::Start, BlendPart::End];
+    parts.extend((0..b.splits.len()).map(BlendPart::Split));
+    parts
+        .into_iter()
+        .filter_map(|part| {
+            let o = b.part(part)?;
+            (o.visible && !d.selection.contains(&o.id)).then(|| (part, o.id, d.to_screen(d.doc.bounds_of(o).center())))
+        })
+        .collect()
+}
+
+/// The grip under the screen position `pos` (see [`grips`]): the control's part and id.
+pub fn grip_at(d: &DocView, pos: egui::Pos2) -> Option<(BlendPart, ObjId)> {
+    let reach = GRIP / 2.0 + 2.0;
+    grips(d).into_iter().rev().find(|(_, _, c)| (c.x - pos.x).abs() <= reach && (c.y - pos.y).abs() <= reach).map(|(part, id, _)| (part, id))
+}
+
+/// While controls of blends are dragged (`ids`, moved by `a`): each blend as it will be, its
+/// steps outlined in `color`, so the blend is seen to follow (#149). A blend on a path keeps its
+/// controls on the path, as the drop will.
+pub fn draw_drag_preview(painter: &Painter, d: &DocView, ids: &[ObjId], a: kurbo::Affine, color: egui::Color32) {
+    if ids.len() > 8 {
+        return;
+    }
+    let ids = d.doc.outermost(ids);
+    let mut moved: Vec<(ObjId, BlendObj, BlendObj)> = vec![];
+    for id in &ids {
+        let Some((blend, part)) = bp::part_of(&d.doc, *id) else { continue };
+        if ids.contains(&blend) {
+            continue;
+        }
+        if !moved.iter().any(|(b, _, _)| *b == blend) {
+            let Some(b) = bp::blend_of(&d.doc, blend) else { continue };
+            moved.push((blend, b.clone(), b.clone()));
+        }
+        if let Some((_, _, b)) = moved.iter_mut().find(|(b, _, _)| *b == blend) {
+            if let Some(o) = b.part_mut(part) {
+                o.apply_transform(a);
+            }
+        }
+    }
+    for (_, before, mut b) in moved {
+        if b.path.is_some() {
+            bp::settle(&mut b, &before);
+        }
+        for s in bp::steps(&b, &mut || 0) {
+            crate::tools::overlay::stroke_bez(painter, d, &s.world_path(), Stroke::new(1.0, color));
+        }
+    }
+}
+
+/// The part shown, outlined; the controls of the blend selected, outlined with a grip each, and
+/// its path dashed (#149), with `show_grips` (the Pick tool, no drag going on); while Map nodes waits
+/// for a click, the nodes it can match.
+pub fn draw_overlay(painter: &Painter, d: &DocView, pick: Option<PickTarget>, show_grips: bool) {
     if let Some((blend, part)) = focus(d) {
         if let Some(o) = bp::blend_of(&d.doc, blend).and_then(|b| b.part(part)) {
             crate::tools::overlay::stroke_bez(painter, d, &o.world_path(), Stroke::new(1.0, theme::SELECTION));
+        }
+    }
+    if let Some(b) = context(d).filter(|_| show_grips).and_then(|blend| bp::blend_of(&d.doc, blend)) {
+        let dim = theme::SELECTION.gamma_multiply(0.6);
+        if let Some(path) = b.path.as_ref().filter(|x| x.obj.visible && !d.selection.contains(&x.obj.id)) {
+            crate::tools::overlay::dashed_bez(painter, d, &path.obj.world_path(), dim);
+        }
+        for (part, _, c) in grips(d) {
+            if let Some(o) = b.part(part) {
+                crate::tools::overlay::stroke_bez(painter, d, &o.world_path(), Stroke::new(1.0, dim));
+            }
+            let r = egui::Rect::from_center_size(c, egui::vec2(GRIP, GRIP));
+            painter.rect_filled(r, 0.0, egui::Color32::WHITE);
+            painter.rect_stroke(r, 0.0, Stroke::new(1.5, theme::SELECTION), egui::StrokeKind::Inside);
         }
     }
     let Some(PickTarget::Blend(Pick::MapNodes { blend, first })) = pick else { return };
