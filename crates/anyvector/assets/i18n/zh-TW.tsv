@@ -5690,3 +5690,4 @@ The blend has no split to fuse	調和中沒有可融合的分割
 Click a step of the blend	按一下調和的一個步驟
 Click a node of the start object	按一下起始物件的一個節點
 Click the matching node of the end object	按一下結束物件的對應節點
+Child {}{} on {}	子物件:{}{} 位於 {}

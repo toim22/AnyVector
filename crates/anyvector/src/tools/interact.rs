@@ -498,29 +498,133 @@ impl<'a> Cx<'a> {
         ids
     }
 
-    /// PowerClip contents a Pick tool press picks instead of the PowerClip under the pointer
-    /// (#111): with Alt, the contents under the pointer (CorelDRAW selects them without entering
-    /// the PowerClip); without Alt, contents already selected that way, so that a press on them
-    /// drags them. None off a PowerClip, where Alt+click keeps its own meaning.
+    /// PowerClip contents an Alt+click picks instead of the PowerClip under the pointer (#111):
+    /// the contents under the pointer (CorelDRAW selects them without entering the PowerClip).
+    /// None off a PowerClip, where Alt+click keeps its own meaning.
     fn powerclip_pick(&self, p: Point) -> Option<ObjId> {
         let top = self.hit(p)?;
         let o = self.d.doc.find(top)?;
         if o.locked || !matches!(o.kind, ObjKind::PowerClip { .. }) {
             return None;
         }
-        let (tol, filled) = (self.tol(), self.s.treat_as_filled);
-        if self.mods().alt {
-            return self.d.doc.powerclip_content_at(o, p, tol, filled);
-        }
-        self.d.selection.iter().copied().find(|id| *id != top && o.find(*id).is_some_and(|c| self.d.doc.hit_object(c, p, tol, filled)))
+        self.d.doc.powerclip_content_at(o, p, self.tol(), self.s.treat_as_filled)
     }
 
-    /// The blend part shown on its own (Show Start, Show End, Show Path, a split, #145) when `p`
-    /// is on it: a press there drags the part, not the blend.
-    fn blend_part_pick(&self, p: Point) -> Option<ObjId> {
-        let (blend, part) = crate::blendpath::focus(self.d)?;
-        let o = vector_core::blend_path::blend_of(&self.d.doc, blend)?.part(part)?;
-        self.d.doc.hit_object(o, p, self.tol(), self.s.treat_as_filled).then_some(o.id)
+    /// The objects under `p` a Ctrl+click goes down through (#151, #149): the object
+    /// [`Cx::hit`] picks, the object of that group or blend under the pointer, and so on (see
+    /// `Document::chain_at`). Empty off every object.
+    fn pick_chain(&self, p: Point) -> Vec<ObjId> {
+        let Some(o) = self.hit(p).and_then(|id| self.d.doc.find(id)) else { return vec![] };
+        self.d.doc.chain_at(o, p, self.tol(), self.s.treat_as_filled)
+    }
+
+    /// Is `p` on `o`, an object inside another one? (The path of a blend picks on its outline
+    /// only, as in `Document::child_at`.)
+    fn on_inner(&self, o: &Object, p: Point) -> bool {
+        let path = vector_core::blend_path::part_of(&self.d.doc, o.id).is_some_and(|(_, part)| part == BlendPart::Path);
+        o.visible && self.d.doc.hit_object(o, p, self.tol(), self.s.treat_as_filled && !path)
+    }
+
+    /// A selected object inside the object under `p`, when `p` is on it: an object of a group
+    /// or a blend picked with Ctrl+click (#151, #149), a part of a blend clicked or shown on its own
+    /// (#145), PowerClip contents picked with Alt+click (#111). A press there goes on with it (a
+    /// drag moves it, not what it is in).
+    fn selected_inside(&self, p: Point) -> Option<ObjId> {
+        let top = self.hit(p)?;
+        let o = self.d.doc.find(top)?;
+        self.d.selection.iter().copied().find(|id| *id != top && o.find(*id).is_some_and(|c| self.on_inner(c, p)))
+    }
+
+    /// What a Ctrl+click at `p` selects inside a group or a blend (#151, #149), one level per
+    /// click as in CorelDRAW: the object just below the deepest object under the pointer that is
+    /// selected or holds something selected. So the first Ctrl+click on a group picks its object
+    /// under the pointer, the next one goes inside that object if it is a group too, and with an
+    /// object of a group selected a Ctrl+click on another object of that group picks that one.
+    /// At the bottom, the object there. None off a group or a blend: there a Ctrl+click is a
+    /// plain click (on a PowerClip it enters it, #111).
+    fn inside_pick(&self, p: Point) -> Option<ObjId> {
+        let chain = self.pick_chain(p);
+        if chain.len() < 2 {
+            return None;
+        }
+        let sel: std::collections::HashSet<ObjId> = self.d.selection.iter().copied().collect();
+        let holds = |c: ObjId| {
+            let mut any = false;
+            if let Some(o) = self.d.doc.find(c) {
+                o.walk(&mut |x| any |= sel.contains(&x.id));
+            }
+            any
+        };
+        Some(match chain.iter().rposition(|c| holds(*c)) {
+            Some(k) => chain[(k + 1).min(chain.len() - 1)],
+            None => chain[1],
+        })
+    }
+
+    /// A Ctrl+click (Ctrl+Shift+click with `add`) picked `id` inside a group or a blend: it is
+    /// selected (added, or taken off when it is selected already), and a drag goes on to move the
+    /// selection.
+    fn select_inside(&mut self, id: ObjId, add: bool, p: Point) {
+        let before = self.d.selection.clone();
+        if add && before.contains(&id) {
+            self.d.selection.retain(|x| *x != id);
+        } else if add {
+            self.add_inside(id);
+        } else if !before.contains(&id) {
+            self.d.selection = vec![id];
+        }
+        if self.d.selection != before {
+            self.d.rotate_mode = false;
+        }
+        self.d.shadow_sel = None;
+        self.d.node_sel.clear();
+        self.ts.was_selected = false;
+        if self.d.selection.contains(&id) {
+            if let Some(bb) = self.d.selection_bounds() {
+                self.ts.drag = Drag::Transform { kind: Xform::Move, start: p, bb, ids: self.d.selection.clone(), center: bb.center() };
+                self.ts.cur = p;
+                self.ts.copy_on_drop = false;
+            }
+        }
+    }
+
+    /// Add `id` to the selection in place of what holds it and what is inside it: an object and
+    /// the group it is in are never both selected (a move would move it twice).
+    fn add_inside(&mut self, id: ObjId) {
+        let doc = &self.d.doc;
+        let mut drop = std::collections::HashSet::new();
+        if let Some(o) = doc.find(id) {
+            o.walk(&mut |x| {
+                drop.insert(x.id);
+            });
+        }
+        let mut cur = id;
+        while let Some(parent) = doc.parent_of(cur) {
+            drop.insert(parent);
+            cur = parent;
+        }
+        self.d.selection.retain(|x| !drop.contains(x));
+        self.d.selection.push(id);
+    }
+
+    /// A plain click on a control of the blend selected, or of the blend one of whose parts is
+    /// selected: that control, its start, end, path or a split object (#149). Its grip on the
+    /// canvas picks it too. A click elsewhere on that blend while one of its parts is selected:
+    /// the blend again. CorelDRAW's controls are objects of their own; here they live in the
+    /// blend, so the blend is selected first (or Ctrl+click goes straight to a control).
+    fn blend_control_pick(&self, p: Point) -> Option<ObjId> {
+        let [id] = self.d.selection.as_slice() else { return None };
+        let doc = &self.d.doc;
+        let blend = if vector_core::blend_path::blend_of(doc, *id).is_some() { *id } else { vector_core::blend_path::part_of(doc, *id)?.0 };
+        if let Some((_, c)) = crate::blendpath::grip_at(self.d, self.inp.pos) {
+            return Some(c);
+        }
+        let chain = self.pick_chain(p);
+        let i = chain.iter().position(|c| *c == blend)?;
+        match chain.get(i + 1) {
+            Some(c) => Some(*c),
+            None => (blend != *id).then_some(blend),
+        }
     }
 
     /// The PowerClip a Ctrl+click at `p` enters for editing (#111): the PowerClip under the
@@ -878,7 +982,24 @@ impl<'a> Cx<'a> {
                 }
             }
         }
-        let clip_pick = self.powerclip_pick(p).or_else(|| self.blend_part_pick(p));
+        let m = self.mods();
+        // Ctrl+click selects inside a group or a blend, one level per click; Ctrl+Shift+click adds
+        // such an object or takes it off (#151, #149). With the Windows modifier keys Ctrl is
+        // Duplicate, and a Ctrl+click stays a plain click.
+        if self.tool == ToolId::Pick && m.ctrl && !m.alt && !self.s.windows_modifiers {
+            if let Some(id) = self.inside_pick(p) {
+                self.select_inside(id, m.shift, p);
+                return;
+            }
+        }
+        // what a press picks instead of the object under the pointer: with Alt, PowerClip
+        // contents (#111); else a control of the blend selected, or an object selected inside it
+        let clip_pick = if m.alt {
+            self.powerclip_pick(p)
+        } else {
+            let control = if self.tool == ToolId::Pick && !m.shift { self.blend_control_pick(p) } else { None };
+            control.or_else(|| self.selected_inside(p))
+        };
         let hit = clip_pick.or_else(|| self.hit(p));
         // Free Transform: the selection turns around the point clicked
         if self.tool == ToolId::FreeTransform && !self.d.selection.is_empty() && hit.map_or(true, |id| self.d.selection.contains(&id)) {
@@ -902,6 +1023,8 @@ impl<'a> Cx<'a> {
                 if let Some(id) = super::alt_pick(&list, &self.d.selection, shift) {
                     if shift {
                         self.d.selection.push(id);
+                        // what was picked inside it goes with it (#151)
+                        self.d.selection = self.d.doc.outermost(&self.d.selection);
                     } else {
                         self.d.selection = vec![id];
                     }
@@ -933,6 +1056,8 @@ impl<'a> Cx<'a> {
                         self.d.selection.retain(|x| *x != id);
                     } else {
                         self.d.selection.push(id);
+                        // what was picked inside it with Ctrl+click goes with it (#151)
+                        self.d.selection = self.d.doc.outermost(&self.d.selection);
                     }
                 } else if !self.ts.was_selected {
                     self.d.selection = vec![id];
@@ -2038,6 +2163,8 @@ impl<'a> Cx<'a> {
                                 self.d.selection.push(id);
                             }
                         }
+                        // what was picked inside them with Ctrl+click goes with them (#151)
+                        self.d.selection = self.d.doc.outermost(&self.d.selection);
                     } else {
                         self.d.selection = ids;
                     }
@@ -2081,7 +2208,9 @@ impl<'a> Cx<'a> {
                         Xform::Skew(_) => "Skew",
                         Xform::Free(m) => ["Rotate", "Reflect", "Scale", "Skew"][m.min(3) as usize],
                     };
-                    let ids: Vec<ObjId> = ids.into_iter().filter(|id| self.d.doc.find(*id).map(|o| !o.locked).unwrap_or(false)).collect();
+                    // (an object inside a locked group, PowerClip or blend is locked with it)
+                    let locked = self.d.doc.locked_within(&ids);
+                    let ids: Vec<ObjId> = ids.into_iter().filter(|id| !locked.contains(id) && self.d.doc.find(*id).map(|o| !o.locked).unwrap_or(false)).collect();
                     if !ids.is_empty() {
                         self.d.modify(label, |doc, sel| {
                             let targets = if copy { ops::duplicate(doc, &ids, Vec2::ZERO) } else { ids.clone() };
@@ -2553,7 +2682,13 @@ impl<'a> Cx<'a> {
                 self.ts.anchor_sel = Some((id, n));
             }
             Pick => {
-                if let Some(id) = self.hit(p) {
+                // an object selected inside a group or a blend (Ctrl+click, #151, #149) is what a
+                // double-click on it opens; PowerClip contents picked with Alt+click are not (a
+                // double-click there enters the PowerClip, #111)
+                let top = self.hit(p);
+                let clip = top.and_then(|t| self.d.doc.find(t)).is_some_and(|o| matches!(o.kind, ObjKind::PowerClip { .. }));
+                let inner = if clip { None } else { self.selected_inside(p) };
+                if let Some(id) = inner.or(top) {
                     // symmetry and perspective groups open for editing; inserted objects open in
                     // their programs
                     let open = match self.d.doc.find(id).and_then(|o| o.special.as_ref()) {
@@ -2585,7 +2720,7 @@ impl<'a> Cx<'a> {
                         Some(ObjKind::Path(_)) => self.out.tool = Some(Shape),
                         // a PowerClip opens for editing its contents (#111)
                         Some(ObjKind::PowerClip { .. }) if self.s.dblclick_focus_mode && !self.d.doc.find(id).is_some_and(|o| o.locked) => self.enter_powerclip(id, p),
-                        Some(ObjKind::Group(_)) if self.s.dblclick_focus_mode => {
+                        Some(ObjKind::Group(_)) if self.s.dblclick_focus_mode && Some(id) == top => {
                             self.d.focus = vec![id];
                             self.d.cache.key = 0;
                         }
@@ -2685,7 +2820,9 @@ impl<'a> Cx<'a> {
             ColorEyedropper => self.color_eyedropper(true),
             // right-clicking an object selects it before its right-click menu opens
             Pick | FreehandPick | FreeTransform => {
-                let hit = self.hit(self.raw);
+                // an object selected inside the one under the pointer (#151, #149, #111) keeps
+                // its selection: the menu and a right-button drag are for it
+                let hit = self.selected_inside(self.raw).or_else(|| self.hit(self.raw));
                 match hit {
                     Some(t) if !self.d.selection.contains(&t) => self.d.selection = vec![t],
                     Some(_) => {}
@@ -2746,15 +2883,23 @@ impl<'a> Cx<'a> {
     }
 
     /// The topmost object at `p` other than `skip` (and their parts), as [`Self::hit`] picks.
+    /// An object that holds one of `skip` (the group of an object picked with Ctrl+click, #151)
+    /// is not a target either.
     fn hit_except(&self, p: Point, skip: &[ObjId]) -> Option<ObjId> {
         let filled = self.s.treat_as_filled;
+        let skipped: std::collections::HashSet<ObjId> = skip.iter().copied().collect();
+        let holds = |o: &Object| {
+            let mut any = false;
+            o.walk(&mut |x| any |= skipped.contains(&x.id));
+            any
+        };
         let (pi, li) = self.d.active_loc();
         let layers: Vec<&vector_core::Layer> = if self.s.edit_across_layers {
             self.d.doc.layers_on_page(self.d.page).into_iter().rev().map(|(_, _, l)| l).collect()
         } else {
             self.d.doc.pages.get(pi).and_then(|pg| pg.layers.get(li)).into_iter().collect()
         };
-        let id = layers.into_iter().filter(|l| l.visible && !l.locked).find_map(|l| l.objects.iter().rev().find(|o| o.visible && !skip.contains(&o.id) && self.d.doc.hit_object(o, p, self.tol(), filled)).map(|o| o.id))?;
+        let id = layers.into_iter().filter(|l| l.visible && !l.locked).find_map(|l| l.objects.iter().rev().find(|o| o.visible && self.d.doc.hit_object(o, p, self.tol(), filled) && !holds(o)).map(|o| o.id))?;
         (self.d.focus.is_empty() || self.d.focus.contains(&id)).then_some(id)
     }
 
@@ -3034,6 +3179,10 @@ impl<'a> Cx<'a> {
             arrow: t.dim_arrow,
             callout_shape: t.callout_shape,
             callout_gap: t.callout_gap,
+            placement: t.dim_placement,
+            text_centered: t.dim_text_centered,
+            horizontal_text: t.dim_horizontal_text,
+            boxed_text: t.dim_boxed_text,
         };
         if !dim.dynamic {
             dim.text = dimension_label(&dim).0;

@@ -5690,3 +5690,4 @@ The blend has no split to fuse	ブレンドに結合する分割がありませ�
 Click a step of the blend	ブレンドのステップをクリックしてください
 Click a node of the start object	始点オブジェクトのノードをクリックしてください
 Click the matching node of the end object	終点オブジェクトの対応するノードをクリックしてください
+Child {}{} on {}	子オブジェクト: {}{} - {}

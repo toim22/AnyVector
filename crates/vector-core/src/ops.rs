@@ -83,8 +83,8 @@ pub fn reverse_order(doc: &mut Document, ids: &[ObjId]) {
 
 pub fn group(doc: &mut Document, ids: &[ObjId]) -> Option<ObjId> {
     let ls = locs(doc, ids);
-    if ls.len() < 1 {
-        return None;
+    if ls.is_empty() {
+        return group_inside(doc, ids);
     }
     let (p, l, at, _) = *ls.last().unwrap();
     let mut children = vec![];
@@ -102,10 +102,48 @@ pub fn group(doc: &mut Document, ids: &[ObjId]) -> Option<ObjId> {
     Some(gid)
 }
 
+/// Group objects that are all in the same group (or the same PowerClip's contents), picked with
+/// Ctrl+click (#151): the new group goes inside that group, where the topmost of them was.
+fn group_inside(doc: &mut Document, ids: &[ObjId]) -> Option<ObjId> {
+    let (p, l, path) = doc.list_path(*ids.first()?)?;
+    let parent = &path[..path.len() - 1];
+    for id in ids {
+        let (q, m, other) = doc.list_path(*id)?;
+        if (q, m) != (p, l) || other[..other.len() - 1] != *parent {
+            return None;
+        }
+    }
+    let gid = doc.new_id();
+    let (list, _) = doc.siblings_mut(ids[0])?;
+    let at: Vec<usize> = (0..list.len()).filter(|&i| ids.contains(&list[i].id)).collect();
+    let top = *at.last()?;
+    let mut children: Vec<Object> = at.iter().rev().map(|&i| list.remove(i)).collect();
+    children.reverse();
+    let at = top + 1 - children.len();
+    list.insert(at, Object::new(gid, ObjKind::Group(children), Affine::IDENTITY, Default::default()));
+    Some(gid)
+}
+
 pub fn ungroup(doc: &mut Document, ids: &[ObjId], all: bool) -> Vec<ObjId> {
     let mut out = vec![];
     for id in ids {
-        let Some((p, l, i)) = doc.locate(*id) else { continue };
+        let Some((p, l, i)) = doc.locate(*id) else {
+            // a group inside a group or a PowerClip (picked with Ctrl+click, #151): its objects
+            // take its place there
+            if !matches!(doc.find(*id).map(|o| &o.kind), Some(ObjKind::Group(_))) {
+                out.push(*id);
+                continue;
+            }
+            let Some((list, i)) = doc.siblings_mut(*id) else {
+                out.push(*id);
+                continue;
+            };
+            let ObjKind::Group(children) = list.remove(i).kind else { continue };
+            let insert: Vec<Object> = if all { children.into_iter().flat_map(flatten_groups).collect() } else { children };
+            out.extend(insert.iter().map(|c| c.id));
+            list.splice(i..i, insert);
+            continue;
+        };
         let o = doc.pages[p].layers[l].objects[i].clone();
         if let ObjKind::Group(children) = o.kind {
             doc.pages[p].layers[l].objects.remove(i);
@@ -1194,14 +1232,32 @@ pub fn fit_objects_to_path(doc: &mut Document, ids: &[ObjId], path_id: ObjId, o:
 
 /// Duplicate objects with an offset; returns new ids (placed above originals).
 pub fn duplicate(doc: &mut Document, ids: &[ObjId], offset: Vec2) -> Vec<ObjId> {
+    let ids = doc.outermost(ids);
+    let nested: Vec<ObjId> = ids.iter().copied().filter(|id| doc.locate(*id).is_none()).collect();
     let mut out = vec![];
-    for (p, l, _, id) in locs(doc, ids) {
+    for (p, l, _, id) in locs(doc, &ids) {
         let Some(mut o) = doc.find(id).cloned() else { continue };
         doc.reassign_ids(&mut o);
         o.apply_transform(Affine::translate(offset));
         let nid = o.id;
         let layer = &mut doc.pages[p].layers[l];
         layer.objects.push(o);
+        out.push(nid);
+    }
+    // an object inside a group or a PowerClip (picked with Ctrl+click or Alt+click, #151): the
+    // copy goes just above it, in the same group; a copy of a part of a blend goes on the page,
+    // above the blend
+    for id in nested {
+        let Some(mut o) = doc.find(id).cloned() else { continue };
+        doc.reassign_ids(&mut o);
+        o.apply_transform(Affine::translate(offset));
+        let nid = o.id;
+        if let Err(o) = doc.insert_above(id, o) {
+            let Some(top) = doc.top_level_of(id) else { continue };
+            if doc.insert_above(top, o).is_err() {
+                continue;
+            }
+        }
         out.push(nid);
     }
     out

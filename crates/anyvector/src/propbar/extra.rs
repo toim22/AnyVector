@@ -5,7 +5,7 @@
 use super::*;
 use crate::settings::ToolOpts;
 use crate::tools::PickTarget;
-use vector_core::object::{DimensionObj, ObjAnchor, TextWrap};
+use vector_core::object::{DimensionKind, DimensionObj, ObjAnchor, TextPlacement, TextWrap};
 use vector_core::style::{ArrowHead, MeshFill, PaintOpts, VarWidth, WidthProfile};
 
 // ----------------------------------------------------------------------------- catalogs
@@ -63,6 +63,8 @@ pub const OPTIONS: &[&str] = &[
     "5e1fc86c", "5024706a", "8a929185", "f6d38abb",
     // dimensions: dynamic, leading zero, show units, successive
     "fdaf006a", "0cf00463", "91a0ffc5", "d3154914",
+    // dimension text position: above, through, below, centred, horizontal, boxed
+    "5dad5787", "fe24f8fd", "3b48e7f1", "a57e1ff4", "f101e675", "5b07d790",
     // 2-point line modes; bounding box; parallel drawing
     "cf3843d7", "5e89d7ab", "7ec5ed5a", "3b408305", "a1df5fa2",
     // painterly: recent brushes, clear brushstroke, glow, reset, simulate pressure
@@ -189,6 +191,91 @@ fn set_dim(app: &mut AnyVectorApp, f: impl Fn(&mut DimensionObj), t: impl FnOnce
         });
     } else {
         t(&mut app.settings.topts);
+    }
+}
+
+/// The text position of the selected dimensions (the first one's), callouts left out; none
+/// without a dimension in the selection.
+fn dim_text_now(app: &AnyVectorApp) -> Option<DimensionObj> {
+    let d = app.doc()?;
+    d.selection.iter().filter_map(|id| d.doc.find(*id)).find_map(|o| match &o.kind {
+        ObjKind::Dimension(x) if x.kind != DimensionKind::Callout => Some(x.clone()),
+        _ => None,
+    })
+}
+
+/// The Text Position options (#150): (placement, centred, horizontal, boxed) of the selected
+/// dimensions, else of the dimensions drawn next.
+fn dim_text_opts(app: &AnyVectorApp) -> (TextPlacement, bool, bool, bool) {
+    match dim_text_now(app) {
+        Some(d) => (d.placement, d.text_centered, d.horizontal_text, d.boxed_text),
+        None => {
+            let t = to(app);
+            (t.dim_placement, t.dim_text_centered, t.dim_horizontal_text, t.dim_boxed_text)
+        }
+    }
+}
+
+/// (enabled, checked) of a Text Position option. Callouts have no dimension line, so the options
+/// are off for them; an angular dimension's value is always level, so Force Text Horizontal is
+/// off for it.
+fn dim_text_state(app: &AnyVectorApp, key: &str) -> (bool, bool) {
+    let sel: Vec<&DimensionObj> = app
+        .doc()
+        .map(|d| d.selection.iter().filter_map(|id| d.doc.find(*id)).filter_map(|o| if let ObjKind::Dimension(x) = &o.kind { Some(x) } else { None }).collect())
+        .unwrap_or_default();
+    let lines = sel.iter().filter(|d| d.kind != DimensionKind::Callout).count();
+    let mut on = app.has_doc() && (sel.is_empty() || lines > 0);
+    if key == "f101e675" && !sel.is_empty() && sel.iter().all(|d| matches!(d.kind, DimensionKind::Angular | DimensionKind::Callout)) {
+        on = false;
+    }
+    let (p, centred, horizontal, boxed) = dim_text_opts(app);
+    let checked = match key {
+        "a57e1ff4" => centred,
+        "f101e675" => horizontal,
+        "5b07d790" => boxed,
+        _ => Some(p) == placement_of(key),
+    };
+    (on, checked)
+}
+
+fn placement_of(key: &str) -> Option<TextPlacement> {
+    match key {
+        "5dad5787" => Some(TextPlacement::Above),
+        "fe24f8fd" => Some(TextPlacement::Through),
+        "3b48e7f1" => Some(TextPlacement::Below),
+        _ => None,
+    }
+}
+
+/// Set a Text Position option on the selected dimensions (one undo step), or on the dimensions
+/// drawn next when none is selected.
+fn set_dim_text(app: &mut AnyVectorApp, f: impl Fn(&mut DimensionObj), t: impl FnOnce(&mut ToolOpts)) {
+    if dim_text_now(app).is_some() {
+        edit_sel(app, "Dimension", |o| {
+            if let ObjKind::Dimension(d) = &mut o.kind {
+                if d.kind != DimensionKind::Callout {
+                    f(d);
+                }
+            }
+        });
+    } else {
+        t(&mut app.settings.topts);
+    }
+}
+
+fn press_dim_text(app: &mut AnyVectorApp, key: &str) {
+    let (p, centred, horizontal, boxed) = dim_text_opts(app);
+    match key {
+        "a57e1ff4" => set_dim_text(app, |d| d.text_centered = !centred, |t| t.dim_text_centered = !centred),
+        "f101e675" => set_dim_text(app, |d| d.horizontal_text = !horizontal, |t| t.dim_horizontal_text = !horizontal),
+        "5b07d790" => set_dim_text(app, |d| d.boxed_text = !boxed, |t| t.dim_boxed_text = !boxed),
+        _ => {
+            // a radio: choosing the placement already set changes nothing (no empty undo step)
+            if let Some(v) = placement_of(key).filter(|v| *v != p) {
+                set_dim_text(app, |d| d.placement = v, |t| t.dim_placement = v);
+            }
+        }
     }
 }
 
@@ -433,6 +520,7 @@ pub fn option_state(app: &AnyVectorApp, key: &str) -> Option<(bool, bool)> {
         "0cf00463" => (doc, dim_flag(app, |d| d.leading_zero, |t| t.dim_leading_zero)),
         "91a0ffc5" => (doc, dim_flag(app, |d| d.show_units, |t| t.dim_units)),
         "d3154914" => (doc, t.dim_successive),
+        "5dad5787" | "fe24f8fd" | "3b48e7f1" | "a57e1ff4" | "f101e675" | "5b07d790" => dim_text_state(app, key),
         "cf3843d7" | "5e89d7ab" | "7ec5ed5a" => (doc, t.line2_mode == line2_of(key)),
         "3b408305" => (doc, !app.settings.hide_bbox_curve_tools),
         "a1df5fa2" => (doc, ts.parallel_drawing),
@@ -663,6 +751,7 @@ pub fn press(app: &mut AnyVectorApp, key: &str) {
             set_dim(app, |d| d.show_units = v, |t| t.dim_units = v);
         }
         "d3154914" => t.dim_successive = !t.dim_successive,
+        "5dad5787" | "fe24f8fd" | "3b48e7f1" | "a57e1ff4" | "f101e675" | "5b07d790" => press_dim_text(app, key),
         "cf3843d7" | "5e89d7ab" | "7ec5ed5a" => t.line2_mode = line2_of(key),
         "3b408305" => app.settings.hide_bbox_curve_tools = !app.settings.hide_bbox_curve_tools,
         "a1df5fa2" => app.ts.parallel_drawing = !app.ts.parallel_drawing,

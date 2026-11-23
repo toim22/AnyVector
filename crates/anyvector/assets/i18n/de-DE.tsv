@@ -5690,3 +5690,4 @@ The blend has no split to fuse	Die Überblendung hat keine Teilung zum Zusammenf
 Click a step of the blend	Klicken Sie auf einen Schritt der Überblendung
 Click a node of the start object	Klicken Sie auf einen Knoten des Anfangsobjekts
 Click the matching node of the end object	Klicken Sie auf den passenden Knoten des Endobjekts
+Child {}{} on {}	Untergeordnetes Objekt: {}{} auf {}

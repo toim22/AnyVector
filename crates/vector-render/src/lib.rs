@@ -537,12 +537,8 @@ impl Renderer {
                 }
                 st.fill = Fill::None;
                 self.stroke(ctx, &path, &st.outline, o, target, None);
-                let (label, pos, ang) = dimension_label(d);
-                let mut tobj = text::TextObj::artistic(&label, text::CharFormat { size: d.font_size, ..Default::default() });
-                tobj.align = text::TextAlign::Center;
-                let lay = text::layout(&tobj);
-                let tr = Affine::translate(pos.to_vec2()) * Affine::rotate(normalize_text_angle(ang)) * Affine::translate((0.0, -d.font_size * 0.3));
-                let tp = tr * lay.to_path();
+                // the value where its placement puts it (the box around it is part of the lines)
+                let tp = o.transform * dimension_text(d).path();
                 let c = st.outline.color.unwrap_or(Color::BLACK);
                 self.fill_path_simple(&tp, c, view, target, aa);
                 if d.kind == vector_core::object::DimensionKind::Callout && d.callout_shape > 0 && !tp.elements().is_empty() {
@@ -1438,17 +1434,6 @@ fn effect_scale(ctx: &Ctx, o: &Object) -> f32 {
 
 pub fn view_scale(a: Affine) -> f64 {
     a.determinant().abs().sqrt()
-}
-
-fn normalize_text_angle(a: f64) -> f64 {
-    let mut a = a;
-    while a > std::f64::consts::FRAC_PI_2 {
-        a -= std::f64::consts::PI;
-    }
-    while a < -std::f64::consts::FRAC_PI_2 {
-        a += std::f64::consts::PI;
-    }
-    a
 }
 
 

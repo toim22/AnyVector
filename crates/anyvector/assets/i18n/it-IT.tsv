@@ -5690,3 +5690,4 @@ The blend has no split to fuse	La fusione non ha divisioni da unire
 Click a step of the blend	Fare clic su un passaggio della fusione
 Click a node of the start object	Fare clic su un nodo dell'oggetto iniziale
 Click the matching node of the end object	Fare clic sul nodo corrispondente dell'oggetto finale
+Child {}{} on {}	Oggetto figlio: {}{} su {}
