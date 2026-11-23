@@ -193,7 +193,7 @@ impl AnyVectorApp {
             update: Default::default(),
             frame_count: 0,
             background: vec![],
-            gpu: cc.wgpu_render_state.as_ref().map(|rs| gpu_name(&rs.adapter.get_info())).unwrap_or_default(),
+            gpu: cc.wgpu_render_state.as_ref().map(|rs| gpu_name(&rs.adapter.get_info())).unwrap_or_else(|| crate::renderer::opengl_name(cc)),
         };
         // the outline of new objects, as the user left it (Outline Pen with nothing selected)
         app.ts.default_outline = app.settings.default_outline.clone();
@@ -415,7 +415,7 @@ impl AnyVectorApp {
             Some(d) => format!("{} - [{}]", vector_core::APP_NAME, d.display_name()),
             None => vector_core::APP_NAME.to_string(),
         };
-        ctx.send_viewport_cmd(egui::ViewportCommand::Title(title));
+        theme::sync_window_title(&ctx, title);
         // close request
         if ctx.input(|i| i.viewport().close_requested()) && !self.allow_close {
             if self.docs.iter().any(|d| d.history.is_modified()) {
@@ -544,7 +544,9 @@ impl eframe::App for AnyVectorApp {
         [0.149, 0.149, 0.149, 1.0]
     }
 
-    fn on_exit(&mut self) {
+    // Linux builds eframe with its OpenGL renderer too (the fallback, see renderer.rs), which
+    // passes the OpenGL context here
+    fn on_exit(&mut self, #[cfg(target_os = "linux")] _gl: Option<&eframe::glow::Context>) {
         self.dockers.save(&mut self.settings);
         self.settings.save();
         crate::updater::run_pending_install(self);

@@ -243,6 +243,36 @@ fn visual_splash() {
     img.save(out_dir().join("00_splash.png")).unwrap();
 }
 
+/// After 1.8 s the splash window turns into the main window, in one frame: title bar, resizable
+/// with the real size limits again (Linux: winit on Wayland kept the splash's size as the
+/// limits), opaque, main window size, maximized.
+#[test]
+fn splash_turns_into_the_main_window() {
+    let mut h = Harness::builder().with_size(crate::splash::SPLASH_SIZE).build_eframe(|cc| {
+        let mut app = AnyVectorApp::new(cc);
+        app.pending.clear();
+        app.settings.window_maximized = true;
+        app
+    });
+    let mut frames = 0;
+    while h.state().splash.is_some() {
+        assert!(h.output().viewport_output[&egui::ViewportId::ROOT].commands.iter().all(|c| !matches!(c, egui::ViewportCommand::Resizable(_))), "turned too early");
+        h.step();
+        frames += 1;
+        assert!(frames < 40, "the splash never ended");
+    }
+    // the switch frame sent them all, in order (there was no monitor size to centre on)
+    let sent = &h.output().viewport_output[&egui::ViewportId::ROOT].commands;
+    let mut rest = sent.iter();
+    for want in crate::splash::main_window_commands(None, true) {
+        assert!(rest.any(|c| *c == want), "{want:?} missing or out of order in {sent:?}");
+    }
+    assert_eq!(sent.contains(&egui::ViewportCommand::MaxInnerSize(egui::Vec2::INFINITY)), cfg!(target_os = "linux"));
+    // only that frame sends them
+    h.step();
+    assert!(!h.output().viewport_output[&egui::ViewportId::ROOT].commands.contains(&egui::ViewportCommand::Resizable(true)));
+}
+
 /// Open a menu of the menu bar. Waits first, so the menu closed before has finished fading out.
 fn open_menu(h: &mut Harness<'_, AnyVectorApp>, label: &str) {
     use egui_kittest::kittest::Queryable;
