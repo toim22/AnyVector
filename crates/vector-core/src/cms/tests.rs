@@ -301,3 +301,18 @@ fn finds_the_profiles_linux_packages_install() {
     assert!(found.iter().any(|p| p.space == "RGB" && p.description.contains("sRGB")), "sRGB not found in {}: {found:?}", colord.display());
     assert!(found.iter().any(|p| p.space == "CMYK"), "no CMYK profile found in {}", colord.display());
 }
+
+#[test]
+fn profiles_stored_as_paths_of_another_system_are_found_by_file_name() {
+    assert_eq!(stored_file_name(r"C:\Windows\System32\spool\drivers\color\sRGB Color Space Profile.icm"), "sRGB Color Space Profile.icm");
+    assert_eq!(stored_file_name("/usr/share/color/icc/colord/sRGB.icc"), "sRGB.icc");
+    assert_eq!(stored_file_name("sRGB.icc"), "sRGB.icc");
+    // whatever profile this computer has, named by a path it never had
+    let all = installed_profiles();
+    let Some(p) = all.first() else { return };
+    let file = p.path.file_name().unwrap().to_string_lossy().to_string();
+    for stored in [format!(r"Z:\Nowhere\color\{file}"), format!("/nowhere/icc/{}", file.to_uppercase())] {
+        let found = find_profile(&stored).unwrap_or_else(|| panic!("{stored} not found"));
+        assert!(found.file_name().unwrap().to_string_lossy().eq_ignore_ascii_case(&file), "{stored} -> {}", found.display());
+    }
+}

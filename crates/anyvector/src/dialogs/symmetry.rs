@@ -1036,7 +1036,8 @@ fn modified(p: &Path) -> Option<std::time::SystemTime> {
 pub fn open_ole(app: &mut AnyVectorApp, id: ObjId) {
     let Some(Special::Ole { name, path, linked, data, .. }) = app.doc().and_then(|d| d.doc.find(id)).and_then(|o| o.special.clone()) else { return };
     let file = if linked {
-        PathBuf::from(path)
+        // a drawing from Windows or another computer stores the path it had there
+        crate::dockers::misc::linked_file(&path, app.doc().and_then(|d| d.path.as_deref()))
     } else {
         let dir = ole_dir().join(id.to_string());
         let f = dir.join(&name);
