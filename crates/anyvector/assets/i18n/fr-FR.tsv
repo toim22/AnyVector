@@ -1867,8 +1867,10 @@ Silhouette	Silhouette
 Tools ▸ Options ▸ Global ▸ Privacy ▸ AI Generate	Outils ▸ Options ▸ Global ▸ Confidentialité ▸ Générer par IA
 Environment	Environnement
 Type the name of the environment variable first.	Tapez d'abord le nom de la variable d'environnement.
+The name of the environment variable or the key has characters that cannot be saved.	Le nom de la variable d'environnement ou la clé contient des caractères qui ne peuvent pas être enregistrés.
 Could not save the environment variable (error {}).	Impossible d'enregistrer la variable d'environnement (erreur {}).
 AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your Windows account, never in its own files.	Générer par IA nécessite une clé API. Ajoutez votre clé dans {} : AnyVector la conserve dans la variable d'environnement {} de votre compte Windows, jamais dans ses propres fichiers.
+AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your user account, never in its settings or documents.	Générer par IA nécessite une clé API. Ajoutez votre clé dans {} : AnyVector la conserve dans la variable d'environnement {} de votre compte utilisateur, jamais dans ses paramètres ou documents.
 Generating...	Génération...
 Could not reach the AI service: {}	Impossible de joindre le service d'IA : {}
 Invalid response from the AI service: {}	Réponse non valide du service d'IA : {}
@@ -2738,9 +2740,14 @@ Display	Affichage
 Printing	Impression
 AnyVector EXEs & DLLs	EXE et DLL d'AnyVector
 System DLLs	DLL système
+AnyVector Programs & Libraries	Programmes et bibliothèques d'AnyVector
+System Libraries	Bibliothèques système
 {} GB	{} Go
 AnyVector {} - System Info	AnyVector {} - Informations système
 Platform:	Plateforme :
+Kernel:	Noyau :
+Session type:	Type de session :
+Locale:	Paramètres régionaux :
 Processor:	Processeur :
 Number of Processors:	Nombre de processeurs :
 Math Coprocessor:	Coprocesseur mathématique :
@@ -2754,6 +2761,7 @@ Total memory used by app:	Mémoire totale utilisée par l'application :
 GDI Object Count:	Nombre d'objets GDI :
 User Object Count:	Nombre d'objets utilisateur :
 Available space on drive {}	Espace disponible sur le lecteur {}
+Available space in {}:	Espace disponible dans {} :
 Windows Directory:	Répertoire Windows :
 TEMP directory:	Répertoire TEMP :
 Application directory:	Répertoire de l'application :
@@ -2789,6 +2797,7 @@ Keep the product up to date (recommended)	Garder le produit à jour (recommandé
 Check for updates and let me choose when to install them	Rechercher les mises à jour et me laisser choisir quand les installer
 Never check for updates	Ne jamais rechercher de mises à jour
 Automatically downloads product updates, but prompts you before installing them.	Télécharge automatiquement les mises à jour produit, mais vous demande confirmation avant de les installer.
+AnyVector looks for a new version at every start and tells you when one is available.	AnyVector recherche une nouvelle version à chaque démarrage et vous prévient lorsqu'une version est disponible.
 AnyVector tells you when a new version is available; you choose when to download and install it.	AnyVector vous prévient lorsqu'une nouvelle version est disponible ; vous choisissez quand la télécharger et l'installer.
 AnyVector never connects to the Internet to look for updates. Help ▸ Updates still checks when you ask.	AnyVector ne se connecte jamais à Internet pour rechercher des mises à jour. Aide ▸ Mises à jour effectue toujours la recherche à votre demande.
 An Internet connection is required. Please connect to the Internet and try again.	Une connexion Internet est nécessaire. Connectez-vous à Internet et réessayez.
@@ -2813,6 +2822,9 @@ The update will be installed when AnyVector closes.	La mise à jour sera install
 Allow product updates:	Autoriser les mises à jour de produit :
 Release Notes	Notes de version
 Install Now	Installer maintenant
+Open Release Page	Ouvrir la page de la version
+Click Open Release Page to download it.	Cliquez sur Ouvrir la page de la version pour la télécharger.
+AnyVector cannot install updates by itself on Linux yet.	AnyVector ne peut pas encore installer lui-même les mises à jour sous Linux.
 Check Now	Rechercher maintenant
 Later	Plus tard
 There is a new version of AnyVector available.	Une nouvelle version d'AnyVector est disponible.
@@ -3942,9 +3954,11 @@ Save Key	Enregistrer la clé
 Remove Key	Supprimer la clé
 The key was removed from the {} environment variable.	La clé a été supprimée de la variable d'environnement {}.
 The key was saved in the {} environment variable of your Windows account. AI Generate is ready.	La clé a été enregistrée dans la variable d'environnement {} de votre compte Windows. Générer par IA est prêt.
+The key was saved in the {} environment variable of your user account. AI Generate is ready.	La clé a été enregistrée dans la variable d'environnement {} de votre compte utilisateur. Générer par IA est prêt.
 An API key was found in this environment variable.	Une clé API a été trouvée dans cette variable d'environnement.
 AI Generate needs an API key. Paste it above and click Save Key, or set this environment variable yourself.	Générer par IA nécessite une clé API. Collez-la ci-dessus et cliquez sur Enregistrer la clé, ou définissez vous-même cette variable d'environnement.
 Save Key writes the key into this environment variable of your Windows account, right away. AnyVector never saves the key in its own settings or documents.	Enregistrer la clé écrit immédiatement la clé dans cette variable d'environnement de votre compte Windows. AnyVector n'enregistre jamais la clé dans ses propres paramètres ou documents.
+Save Key writes the key into this environment variable of your user account ({}), right away; other programs see it after you log in again. AnyVector never saves the key in its own settings or documents.	Enregistrer la clé écrit immédiatement la clé dans cette variable d'environnement de votre compte utilisateur ({}) ; les autres programmes la voient après votre prochaine connexion. AnyVector n'enregistre jamais la clé dans ses propres paramètres ou documents.
 A reduced set of common tools for new users.	Un ensemble réduit d'outils courants pour les nouveaux utilisateurs.
 The standard layout with all toolbars, the toolbox and dockers.	La disposition standard avec toutes les barres d'outils, la boîte à outils et les menus fixes.
 Large controls for touch, stylus and dial use.	De grandes commandes pour une utilisation tactile, au stylet ou à la molette.

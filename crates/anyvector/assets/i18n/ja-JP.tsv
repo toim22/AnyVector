@@ -1867,8 +1867,10 @@ Silhouette	シルエット
 Tools ▸ Options ▸ Global ▸ Privacy ▸ AI Generate	ツール ▸ オプション ▸ グローバル ▸ プライバシー ▸ AI 生成
 Environment	環境
 Type the name of the environment variable first.	最初に環境変数の名前を入力してください。
+The name of the environment variable or the key has characters that cannot be saved.	環境変数の名前またはキーに、保存できない文字が含まれています。
 Could not save the environment variable (error {}).	環境変数を保存できませんでした (エラー {})。
 AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your Windows account, never in its own files.	AI 生成には API キーが必要です。{} でキーを追加してください。AnyVector はキーを Windows アカウントの環境変数 {} に保存し、独自のファイルには保存しません。
+AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your user account, never in its settings or documents.	AI 生成には API キーが必要です。{} でキーを追加してください。AnyVector はキーをユーザー アカウントの環境変数 {} に保存し、設定やドキュメントには保存しません。
 Generating...	生成中...
 Could not reach the AI service: {}	AI サービスに接続できませんでした: {}
 Invalid response from the AI service: {}	AI サービスからの応答が無効です: {}
@@ -2738,9 +2740,14 @@ Display	表示
 Printing	印刷
 AnyVector EXEs & DLLs	AnyVector の EXE と DLL
 System DLLs	システム DLL
+AnyVector Programs & Libraries	AnyVector のプログラムとライブラリ
+System Libraries	システム ライブラリ
 {} GB	{} GB
 AnyVector {} - System Info	AnyVector {} - システム情報
 Platform:	プラットフォーム:
+Kernel:	カーネル:
+Session type:	セッションの種類:
+Locale:	ロケール:
 Processor:	プロセッサ:
 Number of Processors:	プロセッサ数:
 Math Coprocessor:	数値演算コプロセッサ:
@@ -2754,6 +2761,7 @@ Total memory used by app:	アプリケーションが使用している合計メ
 GDI Object Count:	GDI オブジェクト数:
 User Object Count:	ユーザー オブジェクト数:
 Available space on drive {}	ドライブ {} の空き容量
+Available space in {}:	{} の空き容量:
 Windows Directory:	Windows ディレクトリ:
 TEMP directory:	TEMP ディレクトリ:
 Application directory:	アプリケーション ディレクトリ:
@@ -2789,6 +2797,7 @@ Keep the product up to date (recommended)	製品を最新の状態に保つ (推
 Check for updates and let me choose when to install them	更新プログラムを確認し、インストールのタイミングを選択する
 Never check for updates	更新プログラムを確認しない
 Automatically downloads product updates, but prompts you before installing them.	製品の更新プログラムを自動的にダウンロードしますが、インストール前に確認します。
+AnyVector looks for a new version at every start and tells you when one is available.	AnyVector は起動するたびに新しいバージョンを確認し、利用可能になると通知します。
 AnyVector tells you when a new version is available; you choose when to download and install it.	新しいバージョンが利用可能になると AnyVector が通知します。ダウンロードとインストールのタイミングはユーザーが選択します。
 AnyVector never connects to the Internet to look for updates. Help ▸ Updates still checks when you ask.	AnyVector は更新プログラムを探すためにインターネットに接続しません。[ヘルプ] ▸ [更新] では、要求したときに確認が行われます。
 An Internet connection is required. Please connect to the Internet and try again.	インターネット接続が必要です。インターネットに接続してからやり直してください。
@@ -2813,6 +2822,9 @@ The update will be installed when AnyVector closes.	更新プログラムは Any
 Allow product updates:	製品の更新を許可:
 Release Notes	リリース ノート
 Install Now	今すぐインストール
+Open Release Page	リリース ページを開く
+Click Open Release Page to download it.	ダウンロードするには [リリース ページを開く] をクリックしてください。
+AnyVector cannot install updates by itself on Linux yet.	AnyVector は Linux ではまだ更新プログラムを自動でインストールできません。
 Check Now	今すぐ確認
 Later	後で
 There is a new version of AnyVector available.	AnyVector の新しいバージョンが利用可能です。
@@ -3942,9 +3954,11 @@ Save Key	キーの保存
 Remove Key	キーの削除
 The key was removed from the {} environment variable.	環境変数 {} からキーを削除しました。
 The key was saved in the {} environment variable of your Windows account. AI Generate is ready.	キーを Windows アカウントの環境変数 {} に保存しました。AI 生成を使用できます。
+The key was saved in the {} environment variable of your user account. AI Generate is ready.	キーをユーザー アカウントの環境変数 {} に保存しました。AI 生成を使用できます。
 An API key was found in this environment variable.	この環境変数に API キーが見つかりました。
 AI Generate needs an API key. Paste it above and click Save Key, or set this environment variable yourself.	AI 生成には API キーが必要です。上に貼り付けて [キーの保存] をクリックするか、この環境変数をご自身で設定してください。
 Save Key writes the key into this environment variable of your Windows account, right away. AnyVector never saves the key in its own settings or documents.	[キーの保存] をクリックすると、キーが Windows アカウントのこの環境変数にすぐに書き込まれます。AnyVector がキーを独自の設定やドキュメントに保存することはありません。
+Save Key writes the key into this environment variable of your user account ({}), right away; other programs see it after you log in again. AnyVector never saves the key in its own settings or documents.	[キーの保存] をクリックすると、キーがユーザー アカウント ({}) のこの環境変数にすぐに書き込まれます。ほかのプログラムでは、次回のログイン後に使用できます。AnyVector がキーを独自の設定やドキュメントに保存することはありません。
 A reduced set of common tools for new users.	新しいユーザー向けに、よく使うツールを絞り込んだセットです。
 The standard layout with all toolbars, the toolbox and dockers.	すべてのツールバー、ツールボックス、ドッキング ウィンドウを含む標準のレイアウトです。
 Large controls for touch, stylus and dial use.	タッチ、スタイラス、ダイヤル操作用の大きなコントロールです。

@@ -1867,8 +1867,10 @@ Silhouette	Silueta
 Tools ▸ Options ▸ Global ▸ Privacy ▸ AI Generate	Herramientas ▸ Opciones ▸ Global ▸ Privacidad ▸ Generar con IA
 Environment	Entorno
 Type the name of the environment variable first.	Escriba primero el nombre de la variable de entorno.
+The name of the environment variable or the key has characters that cannot be saved.	El nombre de la variable de entorno o la clave contiene caracteres que no se pueden guardar.
 Could not save the environment variable (error {}).	No se pudo guardar la variable de entorno (error {}).
 AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your Windows account, never in its own files.	Generar con IA necesita una clave de API. Añada su clave en {}: AnyVector la guarda en la variable de entorno {} de su cuenta de Windows, nunca en sus propios archivos.
+AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your user account, never in its settings or documents.	Generar con IA necesita una clave de API. Añada su clave en {}: AnyVector la guarda en la variable de entorno {} de su cuenta de usuario, nunca en su configuración ni en los documentos.
 Generating...	Generando...
 Could not reach the AI service: {}	No se pudo conectar con el servicio de IA: {}
 Invalid response from the AI service: {}	Respuesta no válida del servicio de IA: {}
@@ -2738,9 +2740,14 @@ Display	Pantalla
 Printing	Impresión
 AnyVector EXEs & DLLs	EXE y DLL de AnyVector
 System DLLs	DLL del sistema
+AnyVector Programs & Libraries	Programas y bibliotecas de AnyVector
+System Libraries	Bibliotecas del sistema
 {} GB	{} GB
 AnyVector {} - System Info	AnyVector {} - Información del sistema
 Platform:	Plataforma:
+Kernel:	Kernel:
+Session type:	Tipo de sesión:
+Locale:	Configuración regional:
 Processor:	Procesador:
 Number of Processors:	Número de procesadores:
 Math Coprocessor:	Coprocesador matemático:
@@ -2754,6 +2761,7 @@ Total memory used by app:	Memoria total usada por la aplicación:
 GDI Object Count:	Número de objetos GDI:
 User Object Count:	Número de objetos de usuario:
 Available space on drive {}	Espacio disponible en la unidad {}
+Available space in {}:	Espacio disponible en {}:
 Windows Directory:	Directorio de Windows:
 TEMP directory:	Directorio TEMP:
 Application directory:	Directorio de la aplicación:
@@ -2789,6 +2797,7 @@ Keep the product up to date (recommended)	Mantener el producto actualizado (reco
 Check for updates and let me choose when to install them	Buscar actualizaciones y dejarme elegir cuándo instalarlas
 Never check for updates	No buscar nunca actualizaciones
 Automatically downloads product updates, but prompts you before installing them.	Descarga automáticamente las actualizaciones del producto, pero le pregunta antes de instalarlas.
+AnyVector looks for a new version at every start and tells you when one is available.	AnyVector busca una nueva versión en cada inicio y le avisa cuando hay una disponible.
 AnyVector tells you when a new version is available; you choose when to download and install it.	AnyVector le avisa cuando hay una nueva versión disponible; usted elige cuándo descargarla e instalarla.
 AnyVector never connects to the Internet to look for updates. Help ▸ Updates still checks when you ask.	AnyVector nunca se conecta a Internet para buscar actualizaciones. Ayuda ▸ Actualizaciones sigue comprobándolas cuando usted lo pide.
 An Internet connection is required. Please connect to the Internet and try again.	Se necesita una conexión a Internet. Conéctese a Internet e inténtelo de nuevo.
@@ -2813,6 +2822,9 @@ The update will be installed when AnyVector closes.	La actualización se instala
 Allow product updates:	Permitir actualizaciones del producto:
 Release Notes	Notas de la versión
 Install Now	Instalar ahora
+Open Release Page	Abrir página de la versión
+Click Open Release Page to download it.	Haga clic en Abrir página de la versión para descargarla.
+AnyVector cannot install updates by itself on Linux yet.	AnyVector aún no puede instalar actualizaciones por sí mismo en Linux.
 Check Now	Comprobar ahora
 Later	Más tarde
 There is a new version of AnyVector available.	Hay una nueva versión de AnyVector disponible.
@@ -3942,9 +3954,11 @@ Save Key	Guardar clave
 Remove Key	Quitar clave
 The key was removed from the {} environment variable.	La clave se ha quitado de la variable de entorno {}.
 The key was saved in the {} environment variable of your Windows account. AI Generate is ready.	La clave se ha guardado en la variable de entorno {} de su cuenta de Windows. Generar con IA está listo.
+The key was saved in the {} environment variable of your user account. AI Generate is ready.	La clave se ha guardado en la variable de entorno {} de su cuenta de usuario. Generar con IA está listo.
 An API key was found in this environment variable.	Se ha encontrado una clave de API en esta variable de entorno.
 AI Generate needs an API key. Paste it above and click Save Key, or set this environment variable yourself.	Generar con IA necesita una clave de API. Péguela arriba y haga clic en Guardar clave, o establezca usted mismo esta variable de entorno.
 Save Key writes the key into this environment variable of your Windows account, right away. AnyVector never saves the key in its own settings or documents.	Guardar clave escribe la clave en esta variable de entorno de su cuenta de Windows de inmediato. AnyVector nunca guarda la clave en su propia configuración ni en los documentos.
+Save Key writes the key into this environment variable of your user account ({}), right away; other programs see it after you log in again. AnyVector never saves the key in its own settings or documents.	Guardar clave escribe la clave en esta variable de entorno de su cuenta de usuario ({}) de inmediato; los demás programas la verán cuando vuelva a iniciar sesión. AnyVector nunca guarda la clave en su propia configuración ni en los documentos.
 A reduced set of common tools for new users.	Un conjunto reducido de herramientas comunes para usuarios nuevos.
 The standard layout with all toolbars, the toolbox and dockers.	La disposición estándar con todas las barras de herramientas, la caja de herramientas y las ventanas acoplables.
 Large controls for touch, stylus and dial use.	Controles grandes para uso táctil, con lápiz y con dial.

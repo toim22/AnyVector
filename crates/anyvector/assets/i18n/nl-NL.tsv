@@ -1867,8 +1867,10 @@ Silhouette	Silhouet
 Tools ▸ Options ▸ Global ▸ Privacy ▸ AI Generate	Extra ▸ Opties ▸ Algemeen ▸ Privacy ▸ Genereren met AI
 Environment	Omgeving
 Type the name of the environment variable first.	Typ eerst de naam van de omgevingsvariabele.
+The name of the environment variable or the key has characters that cannot be saved.	De naam van de omgevingsvariabele of de sleutel bevat tekens die niet kunnen worden opgeslagen.
 Could not save the environment variable (error {}).	Kan de omgevingsvariabele niet opslaan (fout {}).
 AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your Windows account, never in its own files.	Genereren met AI vereist een API-sleutel. Voeg uw sleutel toe in {}: AnyVector bewaart deze in de omgevingsvariabele {} van uw Windows-account, nooit in de eigen bestanden.
+AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your user account, never in its settings or documents.	Genereren met AI vereist een API-sleutel. Voeg uw sleutel toe in {}: AnyVector bewaart deze in de omgevingsvariabele {} van uw gebruikersaccount, nooit in de eigen instellingen of documenten.
 Generating...	Bezig met genereren...
 Could not reach the AI service: {}	Kan de AI-service niet bereiken: {}
 Invalid response from the AI service: {}	Ongeldig antwoord van de AI-service: {}
@@ -2738,9 +2740,14 @@ Display	Beeldscherm
 Printing	Afdrukken
 AnyVector EXEs & DLLs	AnyVector EXE's en DLL's
 System DLLs	Systeem-DLL's
+AnyVector Programs & Libraries	AnyVector-programma's en -bibliotheken
+System Libraries	Systeembibliotheken
 {} GB	{} GB
 AnyVector {} - System Info	AnyVector {} - Systeeminformatie
 Platform:	Platform:
+Kernel:	Kernel:
+Session type:	Sessietype:
+Locale:	Landinstelling:
 Processor:	Processor:
 Number of Processors:	Aantal processors:
 Math Coprocessor:	Wiskundige coprocessor:
@@ -2754,6 +2761,7 @@ Total memory used by app:	Totaal geheugen gebruikt door app:
 GDI Object Count:	Aantal GDI-objecten:
 User Object Count:	Aantal gebruikersobjecten:
 Available space on drive {}	Beschikbare ruimte op station {}
+Available space in {}:	Beschikbare ruimte in {}:
 Windows Directory:	Windows-map:
 TEMP directory:	TEMP-map:
 Application directory:	Toepassingsmap:
@@ -2789,6 +2797,7 @@ Keep the product up to date (recommended)	Het product up-to-date houden (aanbevo
 Check for updates and let me choose when to install them	Controleren op updates en mij laten kiezen wanneer ze worden geïnstalleerd
 Never check for updates	Nooit controleren op updates
 Automatically downloads product updates, but prompts you before installing them.	Downloadt productupdates automatisch, maar vraagt het u voordat ze worden geïnstalleerd.
+AnyVector looks for a new version at every start and tells you when one is available.	AnyVector zoekt bij elke start naar een nieuwe versie en laat u weten wanneer er een beschikbaar is.
 AnyVector tells you when a new version is available; you choose when to download and install it.	AnyVector laat u weten wanneer er een nieuwe versie beschikbaar is; u kiest zelf wanneer u deze downloadt en installeert.
 AnyVector never connects to the Internet to look for updates. Help ▸ Updates still checks when you ask.	AnyVector maakt nooit verbinding met internet om naar updates te zoeken. Help ▸ Updates controleert nog steeds wanneer u daarom vraagt.
 An Internet connection is required. Please connect to the Internet and try again.	Een internetverbinding is vereist. Maak verbinding met internet en probeer het opnieuw.
@@ -2813,6 +2822,9 @@ The update will be installed when AnyVector closes.	De update wordt geïnstallee
 Allow product updates:	Productupdates toestaan:
 Release Notes	Releaseopmerkingen
 Install Now	Nu installeren
+Open Release Page	Releasepagina openen
+Click Open Release Page to download it.	Klik op Releasepagina openen om deze te downloaden.
+AnyVector cannot install updates by itself on Linux yet.	AnyVector kan onder Linux nog niet zelf updates installeren.
 Check Now	Nu controleren
 Later	Later
 There is a new version of AnyVector available.	Er is een nieuwe versie van AnyVector beschikbaar.
@@ -3942,9 +3954,11 @@ Save Key	Sleutel opslaan
 Remove Key	Sleutel verwijderen
 The key was removed from the {} environment variable.	De sleutel is verwijderd uit de omgevingsvariabele {}.
 The key was saved in the {} environment variable of your Windows account. AI Generate is ready.	De sleutel is opgeslagen in de omgevingsvariabele {} van uw Windows-account. Genereren met AI is gereed.
+The key was saved in the {} environment variable of your user account. AI Generate is ready.	De sleutel is opgeslagen in de omgevingsvariabele {} van uw gebruikersaccount. Genereren met AI is gereed.
 An API key was found in this environment variable.	Er is een API-sleutel gevonden in deze omgevingsvariabele.
 AI Generate needs an API key. Paste it above and click Save Key, or set this environment variable yourself.	Genereren met AI vereist een API-sleutel. Plak deze hierboven en klik op Sleutel opslaan, of stel deze omgevingsvariabele zelf in.
 Save Key writes the key into this environment variable of your Windows account, right away. AnyVector never saves the key in its own settings or documents.	Sleutel opslaan schrijft de sleutel direct naar deze omgevingsvariabele van uw Windows-account. AnyVector slaat de sleutel nooit op in de eigen instellingen of documenten.
+Save Key writes the key into this environment variable of your user account ({}), right away; other programs see it after you log in again. AnyVector never saves the key in its own settings or documents.	Sleutel opslaan schrijft de sleutel direct naar deze omgevingsvariabele van uw gebruikersaccount ({}); andere programma's zien deze nadat u zich opnieuw hebt aangemeld. AnyVector slaat de sleutel nooit op in de eigen instellingen of documenten.
 A reduced set of common tools for new users.	Een beperkte set veelgebruikte hulpmiddelen voor nieuwe gebruikers.
 The standard layout with all toolbars, the toolbox and dockers.	De standaardindeling met alle werkbalken, de hulpmiddelenset en de koppelvensters.
 Large controls for touch, stylus and dial use.	Grote besturingselementen voor gebruik met aanraking, stylus en draaiknop.

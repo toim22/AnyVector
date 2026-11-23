@@ -1867,8 +1867,10 @@ Silhouette	Sylwetka
 Tools ▸ Options ▸ Global ▸ Privacy ▸ AI Generate	Narzędzia ▸ Opcje ▸ Globalne ▸ Prywatność ▸ Generowanie AI
 Environment	Środowisko
 Type the name of the environment variable first.	Najpierw wpisz nazwę zmiennej środowiskowej.
+The name of the environment variable or the key has characters that cannot be saved.	Nazwa zmiennej środowiskowej lub klucz zawiera znaki, których nie można zapisać.
 Could not save the environment variable (error {}).	Nie można zapisać zmiennej środowiskowej (błąd {}).
 AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your Windows account, never in its own files.	Generowanie AI wymaga klucza API. Dodaj klucz w {}: AnyVector przechowuje go w zmiennej środowiskowej {} Twojego konta Windows, nigdy we własnych plikach.
+AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your user account, never in its settings or documents.	Generowanie AI wymaga klucza API. Dodaj klucz w {}: AnyVector przechowuje go w zmiennej środowiskowej {} Twojego konta użytkownika, nigdy w swoich ustawieniach ani dokumentach.
 Generating...	Generowanie...
 Could not reach the AI service: {}	Nie można połączyć się z usługą AI: {}
 Invalid response from the AI service: {}	Nieprawidłowa odpowiedź usługi AI: {}
@@ -2738,9 +2740,14 @@ Display	Wyświetlanie
 Printing	Drukowanie
 AnyVector EXEs & DLLs	Pliki EXE i DLL programu AnyVector
 System DLLs	Systemowe pliki DLL
+AnyVector Programs & Libraries	Programy i biblioteki AnyVector
+System Libraries	Biblioteki systemowe
 {} GB	{} GB
 AnyVector {} - System Info	AnyVector {} — informacje o systemie
 Platform:	Platforma:
+Kernel:	Jądro:
+Session type:	Typ sesji:
+Locale:	Ustawienia regionalne:
 Processor:	Procesor:
 Number of Processors:	Liczba procesorów:
 Math Coprocessor:	Koprocesor matematyczny:
@@ -2754,6 +2761,7 @@ Total memory used by app:	Całkowita pamięć używana przez aplikację:
 GDI Object Count:	Liczba obiektów GDI:
 User Object Count:	Liczba obiektów użytkownika:
 Available space on drive {}	Dostępne miejsce na dysku {}
+Available space in {}:	Dostępne miejsce w {}:
 Windows Directory:	Katalog systemu Windows:
 TEMP directory:	Katalog TEMP:
 Application directory:	Katalog aplikacji:
@@ -2789,6 +2797,7 @@ Keep the product up to date (recommended)	Aktualizuj produkt na bieżąco (zalec
 Check for updates and let me choose when to install them	Sprawdzaj aktualizacje i pozwól mi wybrać, kiedy je zainstalować
 Never check for updates	Nigdy nie sprawdzaj aktualizacji
 Automatically downloads product updates, but prompts you before installing them.	Automatycznie pobiera aktualizacje produktu, ale pyta przed ich zainstalowaniem.
+AnyVector looks for a new version at every start and tells you when one is available.	AnyVector przy każdym uruchomieniu sprawdza, czy jest nowa wersja, i informuje, gdy jest dostępna.
 AnyVector tells you when a new version is available; you choose when to download and install it.	AnyVector informuje o dostępności nowej wersji; Ty decydujesz, kiedy ją pobrać i zainstalować.
 AnyVector never connects to the Internet to look for updates. Help ▸ Updates still checks when you ask.	AnyVector nigdy nie łączy się z Internetem w celu wyszukania aktualizacji. Polecenie Pomoc ▸ Aktualizacje nadal sprawdza je na żądanie.
 An Internet connection is required. Please connect to the Internet and try again.	Wymagane jest połączenie internetowe. Nawiąż połączenie z Internetem i spróbuj ponownie.
@@ -2813,6 +2822,9 @@ The update will be installed when AnyVector closes.	Aktualizacja zostanie zainst
 Allow product updates:	Zezwalaj na aktualizacje produktu:
 Release Notes	Informacje o wersji
 Install Now	Zainstaluj teraz
+Open Release Page	Otwórz stronę wydania
+Click Open Release Page to download it.	Kliknij Otwórz stronę wydania, aby ją pobrać.
+AnyVector cannot install updates by itself on Linux yet.	AnyVector nie potrafi jeszcze samodzielnie instalować aktualizacji w systemie Linux.
 Check Now	Sprawdź teraz
 Later	Później
 There is a new version of AnyVector available.	Dostępna jest nowa wersja programu AnyVector.
@@ -3942,9 +3954,11 @@ Save Key	Zapisz klucz
 Remove Key	Usuń klucz
 The key was removed from the {} environment variable.	Klucz został usunięty ze zmiennej środowiskowej {}.
 The key was saved in the {} environment variable of your Windows account. AI Generate is ready.	Klucz został zapisany w zmiennej środowiskowej {} Twojego konta Windows. Generowanie AI jest gotowe.
+The key was saved in the {} environment variable of your user account. AI Generate is ready.	Klucz został zapisany w zmiennej środowiskowej {} Twojego konta użytkownika. Generowanie AI jest gotowe.
 An API key was found in this environment variable.	W tej zmiennej środowiskowej znaleziono klucz API.
 AI Generate needs an API key. Paste it above and click Save Key, or set this environment variable yourself.	Generowanie AI wymaga klucza API. Wklej go powyżej i kliknij Zapisz klucz albo samodzielnie ustaw tę zmienną środowiskową.
 Save Key writes the key into this environment variable of your Windows account, right away. AnyVector never saves the key in its own settings or documents.	Zapisz klucz natychmiast zapisuje klucz w tej zmiennej środowiskowej Twojego konta Windows. AnyVector nigdy nie zapisuje klucza we własnych ustawieniach ani dokumentach.
+Save Key writes the key into this environment variable of your user account ({}), right away; other programs see it after you log in again. AnyVector never saves the key in its own settings or documents.	Zapisz klucz natychmiast zapisuje klucz w tej zmiennej środowiskowej Twojego konta użytkownika ({}); inne programy zobaczą go po ponownym zalogowaniu. AnyVector nigdy nie zapisuje klucza we własnych ustawieniach ani dokumentach.
 A reduced set of common tools for new users.	Ograniczony zestaw popularnych narzędzi dla nowych użytkowników.
 The standard layout with all toolbars, the toolbox and dockers.	Standardowy układ ze wszystkimi paskami narzędzi, przybornikiem i oknami dokowanymi.
 Large controls for touch, stylus and dial use.	Duże elementy sterujące do obsługi dotykiem, piórem i pokrętłem.

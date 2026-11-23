@@ -1867,8 +1867,10 @@ Silhouette	Silueta
 Tools ▸ Options ▸ Global ▸ Privacy ▸ AI Generate	Nástroje ▸ Možnosti ▸ Globální ▸ Ochrana osobních údajů ▸ Generovat pomocí AI
 Environment	Prostředí
 Type the name of the environment variable first.	Nejprve zadejte název proměnné prostředí.
+The name of the environment variable or the key has characters that cannot be saved.	Název proměnné prostředí nebo klíč obsahuje znaky, které nelze uložit.
 Could not save the environment variable (error {}).	Proměnnou prostředí nelze uložit (chyba {}).
 AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your Windows account, never in its own files.	Generování pomocí AI vyžaduje klíč API. Přidejte klíč v {}: AnyVector jej uchovává v proměnné prostředí {} vašeho účtu Windows, nikdy ve vlastních souborech.
+AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your user account, never in its settings or documents.	Generování pomocí AI vyžaduje klíč API. Přidejte klíč v {}: AnyVector jej uchovává v proměnné prostředí {} vašeho uživatelského účtu, nikdy ve svém nastavení ani dokumentech.
 Generating...	Generování...
 Could not reach the AI service: {}	Službu AI nelze kontaktovat: {}
 Invalid response from the AI service: {}	Neplatná odpověď služby AI: {}
@@ -2738,9 +2740,14 @@ Display	Zobrazení
 Printing	Tisk
 AnyVector EXEs & DLLs	Soubory EXE a DLL aplikace AnyVector
 System DLLs	Systémové knihovny DLL
+AnyVector Programs & Libraries	Programy a knihovny aplikace AnyVector
+System Libraries	Systémové knihovny
 {} GB	{} GB
 AnyVector {} - System Info	AnyVector {} – Informace o systému
 Platform:	Platforma:
+Kernel:	Jádro:
+Session type:	Typ relace:
+Locale:	Národní prostředí:
 Processor:	Procesor:
 Number of Processors:	Počet procesorů:
 Math Coprocessor:	Matematický koprocesor:
@@ -2754,6 +2761,7 @@ Total memory used by app:	Celková paměť používaná aplikací:
 GDI Object Count:	Počet objektů GDI:
 User Object Count:	Počet objektů User:
 Available space on drive {}	Volné místo na jednotce {}
+Available space in {}:	Volné místo v {}:
 Windows Directory:	Adresář Windows:
 TEMP directory:	Adresář TEMP:
 Application directory:	Adresář aplikace:
@@ -2789,6 +2797,7 @@ Keep the product up to date (recommended)	Udržovat produkt aktuální (doporuč
 Check for updates and let me choose when to install them	Vyhledávat aktualizace a nechat mě zvolit, kdy je nainstalovat
 Never check for updates	Nikdy nevyhledávat aktualizace
 Automatically downloads product updates, but prompts you before installing them.	Automaticky stahuje aktualizace produktu, ale před instalací se zeptá.
+AnyVector looks for a new version at every start and tells you when one is available.	AnyVector při každém spuštění hledá novou verzi a upozorní vás, když je k dispozici.
 AnyVector tells you when a new version is available; you choose when to download and install it.	AnyVector vás upozorní, když je k dispozici nová verze; vy zvolíte, kdy ji stáhnout a nainstalovat.
 AnyVector never connects to the Internet to look for updates. Help ▸ Updates still checks when you ask.	AnyVector se nikdy nepřipojuje k Internetu kvůli hledání aktualizací. Nápověda ▸ Aktualizace je i tak vyhledá, když o to požádáte.
 An Internet connection is required. Please connect to the Internet and try again.	Je vyžadováno připojení k Internetu. Připojte se k Internetu a zkuste to znovu.
@@ -2813,6 +2822,9 @@ The update will be installed when AnyVector closes.	Aktualizace se nainstaluje p
 Allow product updates:	Povolit aktualizace produktu:
 Release Notes	Poznámky k verzi
 Install Now	Nainstalovat nyní
+Open Release Page	Otevřít stránku verze
+Click Open Release Page to download it.	Kliknutím na Otevřít stránku verze ji stáhnete.
+AnyVector cannot install updates by itself on Linux yet.	AnyVector zatím v Linuxu neumí instalovat aktualizace sám.
 Check Now	Zkontrolovat nyní
 Later	Později
 There is a new version of AnyVector available.	K dispozici je nová verze aplikace AnyVector.
@@ -3942,9 +3954,11 @@ Save Key	Uložit klíč
 Remove Key	Odebrat klíč
 The key was removed from the {} environment variable.	Klíč byl odebrán z proměnné prostředí {}.
 The key was saved in the {} environment variable of your Windows account. AI Generate is ready.	Klíč byl uložen do proměnné prostředí {} vašeho účtu Windows. Generování pomocí AI je připraveno.
+The key was saved in the {} environment variable of your user account. AI Generate is ready.	Klíč byl uložen do proměnné prostředí {} vašeho uživatelského účtu. Generování pomocí AI je připraveno.
 An API key was found in this environment variable.	V této proměnné prostředí byl nalezen klíč API.
 AI Generate needs an API key. Paste it above and click Save Key, or set this environment variable yourself.	Generování pomocí AI vyžaduje klíč API. Vložte jej výše a klikněte na Uložit klíč, nebo tuto proměnnou prostředí nastavte sami.
 Save Key writes the key into this environment variable of your Windows account, right away. AnyVector never saves the key in its own settings or documents.	Uložit klíč okamžitě zapíše klíč do této proměnné prostředí vašeho účtu Windows. AnyVector nikdy neukládá klíč do vlastního nastavení ani dokumentů.
+Save Key writes the key into this environment variable of your user account ({}), right away; other programs see it after you log in again. AnyVector never saves the key in its own settings or documents.	Uložit klíč okamžitě zapíše klíč do této proměnné prostředí vašeho uživatelského účtu ({}); ostatní programy jej uvidí po dalším přihlášení. AnyVector nikdy neukládá klíč do vlastního nastavení ani dokumentů.
 A reduced set of common tools for new users.	Omezená sada běžných nástrojů pro nové uživatele.
 The standard layout with all toolbars, the toolbox and dockers.	Standardní rozvržení se všemi panely nástrojů, sadou nástrojů a ukotvitelnými panely.
 Large controls for touch, stylus and dial use.	Velké ovládací prvky pro dotyk, pero a otočný ovladač.

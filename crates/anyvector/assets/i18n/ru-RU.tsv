@@ -1867,8 +1867,10 @@ Silhouette	Силуэт
 Tools ▸ Options ▸ Global ▸ Privacy ▸ AI Generate	Инструменты ▸ Параметры ▸ Общие ▸ Конфиденциальность ▸ Создать с ИИ
 Environment	Среда
 Type the name of the environment variable first.	Сначала введите имя переменной среды.
+The name of the environment variable or the key has characters that cannot be saved.	Имя переменной среды или ключ содержит символы, которые невозможно сохранить.
 Could not save the environment variable (error {}).	Не удалось сохранить переменную среды (ошибка {}).
 AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your Windows account, never in its own files.	Для функции «Создать с ИИ» нужен ключ API. Добавьте ключ в {}: AnyVector хранит его в переменной среды {} вашей учетной записи Windows, а не в своих файлах.
+AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your user account, never in its settings or documents.	Для функции «Создать с ИИ» нужен ключ API. Добавьте ключ в {}: AnyVector хранит его в переменной среды {} вашей учетной записи пользователя, а не в своих параметрах или документах.
 Generating...	Создание...
 Could not reach the AI service: {}	Не удалось подключиться к службе ИИ: {}
 Invalid response from the AI service: {}	Недопустимый ответ службы ИИ: {}
@@ -2738,9 +2740,14 @@ Display	Экран
 Printing	Печать
 AnyVector EXEs & DLLs	EXE и DLL AnyVector
 System DLLs	Системные DLL
+AnyVector Programs & Libraries	Программы и библиотеки AnyVector
+System Libraries	Системные библиотеки
 {} GB	{} ГБ
 AnyVector {} - System Info	AnyVector {} — сведения о системе
 Platform:	Платформа:
+Kernel:	Ядро:
+Session type:	Тип сеанса:
+Locale:	Языковой стандарт:
 Processor:	Процессор:
 Number of Processors:	Число процессоров:
 Math Coprocessor:	Математический сопроцессор:
@@ -2754,6 +2761,7 @@ Total memory used by app:	Всего памяти использует прил�
 GDI Object Count:	Число объектов GDI:
 User Object Count:	Число объектов USER:
 Available space on drive {}	Свободное место на диске {}
+Available space in {}:	Свободное место в {}:
 Windows Directory:	Папка Windows:
 TEMP directory:	Папка TEMP:
 Application directory:	Папка приложения:
@@ -2789,6 +2797,7 @@ Keep the product up to date (recommended)	Поддерживать продук�
 Check for updates and let me choose when to install them	Проверять обновления и давать мне выбрать время установки
 Never check for updates	Никогда не проверять обновления
 Automatically downloads product updates, but prompts you before installing them.	Автоматически загружает обновления продукта, но спрашивает перед установкой.
+AnyVector looks for a new version at every start and tells you when one is available.	AnyVector проверяет наличие новой версии при каждом запуске и сообщает, когда она доступна.
 AnyVector tells you when a new version is available; you choose when to download and install it.	AnyVector сообщает о выходе новой версии; вы сами выбираете, когда загрузить и установить ее.
 AnyVector never connects to the Internet to look for updates. Help ▸ Updates still checks when you ask.	AnyVector никогда не подключается к Интернету для поиска обновлений. Справка ▸ Обновления по-прежнему проверяет их по вашему запросу.
 An Internet connection is required. Please connect to the Internet and try again.	Требуется подключение к Интернету. Подключитесь к Интернету и повторите попытку.
@@ -2813,6 +2822,9 @@ The update will be installed when AnyVector closes.	Обновление буд�
 Allow product updates:	Разрешить обновления продукта:
 Release Notes	Заметки о выпуске
 Install Now	Установить
+Open Release Page	Открыть страницу выпуска
+Click Open Release Page to download it.	Нажмите «Открыть страницу выпуска», чтобы загрузить ее.
+AnyVector cannot install updates by itself on Linux yet.	AnyVector пока не умеет сам устанавливать обновления в Linux.
 Check Now	Проверить
 Later	Позже
 There is a new version of AnyVector available.	Доступна новая версия AnyVector.
@@ -3942,9 +3954,11 @@ Save Key	Сохранить ключ
 Remove Key	Удалить ключ
 The key was removed from the {} environment variable.	Ключ удален из переменной среды {}.
 The key was saved in the {} environment variable of your Windows account. AI Generate is ready.	Ключ сохранен в переменной среды {} вашей учетной записи Windows. Функция «Создать с ИИ» готова к работе.
+The key was saved in the {} environment variable of your user account. AI Generate is ready.	Ключ сохранен в переменной среды {} вашей учетной записи пользователя. Функция «Создать с ИИ» готова к работе.
 An API key was found in this environment variable.	В этой переменной среды найден ключ API.
 AI Generate needs an API key. Paste it above and click Save Key, or set this environment variable yourself.	Для функции «Создать с ИИ» нужен ключ API. Вставьте его выше и нажмите «Сохранить ключ» или задайте эту переменную среды самостоятельно.
 Save Key writes the key into this environment variable of your Windows account, right away. AnyVector never saves the key in its own settings or documents.	«Сохранить ключ» сразу записывает ключ в эту переменную среды вашей учетной записи Windows. AnyVector никогда не сохраняет ключ в своих параметрах или документах.
+Save Key writes the key into this environment variable of your user account ({}), right away; other programs see it after you log in again. AnyVector never saves the key in its own settings or documents.	«Сохранить ключ» сразу записывает ключ в эту переменную среды вашей учетной записи пользователя ({}); другие программы увидят его после следующего входа в систему. AnyVector никогда не сохраняет ключ в своих параметрах или документах.
 A reduced set of common tools for new users.	Сокращенный набор основных инструментов для новых пользователей.
 The standard layout with all toolbars, the toolbox and dockers.	Стандартный макет со всеми панелями инструментов, набором инструментов и окнами настройки.
 Large controls for touch, stylus and dial use.	Крупные элементы управления для касаний, пера и диска.
