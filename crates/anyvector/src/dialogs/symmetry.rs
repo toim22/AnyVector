@@ -975,7 +975,7 @@ fn new_ole(app: &mut AnyVectorApp, kind: usize, as_icon: bool) -> Result<(), Str
 }
 
 fn ole_dir() -> PathBuf {
-    std::env::temp_dir().join("AnyVector OLE")
+    crate::platform::temp_dir().join("AnyVector OLE")
 }
 
 /// What an object shows: the file's contents when AnyVector can read it, else an icon with its name.

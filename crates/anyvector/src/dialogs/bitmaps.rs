@@ -242,7 +242,7 @@ pub fn update_link(app: &mut AnyVectorApp) {
 /// Edit Bitmap: the bitmap opens in the default image editor; saving it there updates it here.
 pub fn edit_bitmap(app: &mut AnyVectorApp) {
     let Some(t) = need_bitmap(app) else { return };
-    let dir = std::env::temp_dir().join("AnyVector");
+    let dir = crate::platform::temp_dir().join("AnyVector");
     let _ = std::fs::create_dir_all(&dir);
     let path = dir.join(format!("bitmap-{}.png", t.obj));
     let bytes = vector_io::image_io::encode_png(t.full.w as u32, t.full.h as u32, &t.full.p.iter().flat_map(|c| *c).collect::<Vec<u8>>());

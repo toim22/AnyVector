@@ -1462,7 +1462,7 @@ impl AnyVectorApp {
                     let p = match d.path.clone().filter(|p| p.exists() && !d.history.is_modified()) {
                         Some(p) => p,
                         None => {
-                            let p = std::env::temp_dir().join(format!("{stem}.cdr"));
+                            let p = crate::platform::temp_dir().join(format!("{stem}.cdr"));
                             let opts = self.cdr_options(&d.doc, self.settings.embed_fonts, self.settings.save.embed_color_profiles, self.default_version_index());
                             if let Err(e) = vector_io::cdr::save(&d.doc, &p, &opts) {
                                 self.info_box("Send To Mail", &format!("Could not save the drawing: {e}"));

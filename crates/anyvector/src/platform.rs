@@ -17,7 +17,7 @@
 //! that ends with an error is logged.
 
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[cfg(windows)]
 use self::win as os;
@@ -58,6 +58,59 @@ pub fn open_mailto(subject: &str) -> io::Result<()> {
 #[cfg(not(windows))]
 pub fn send_mail(subject: &str, attachment: &Path, done: impl FnOnce(bool) + Send + 'static) {
     let _ = xdg::send_mail(&xdg::Tools::default(), subject, attachment, xdg::MAIL_GRACE, done);
+}
+
+/// The folder for AnyVector's temporary files (Edit Bitmap's copies, inserted objects, the drawing
+/// sent by e-mail). Windows: `%TEMP%`, as always. Linux: a folder only this user can open,
+/// `$XDG_RUNTIME_DIR/AnyVector`, else `$XDG_CACHE_HOME/AnyVector/tmp` (`~/.cache/AnyVector/tmp`),
+/// made with mode 0700: in the shared `/tmp` another user could read those files or put a link
+/// where AnyVector is about to write one of its predictable names.
+pub fn temp_dir() -> PathBuf {
+    #[cfg(windows)]
+    {
+        std::env::temp_dir()
+    }
+    #[cfg(not(windows))]
+    {
+        let var = |k: &str| std::env::var_os(k);
+        match private_temp_dir(var("XDG_RUNTIME_DIR").as_deref(), var("XDG_CACHE_HOME").as_deref(), dirs::home_dir().as_deref()) {
+            Some(dir) => match make_private(&dir) {
+                Ok(()) => dir,
+                Err(e) => {
+                    log::warn!("no private folder for temporary files ({}): {e}", dir.display());
+                    std::env::temp_dir()
+                }
+            },
+            None => std::env::temp_dir(),
+        }
+    }
+}
+
+/// [`temp_dir`] of Linux from the environment: the runtime folder, else the cache folder (its
+/// default under `home`). Relative paths do not count, as the XDG specification says.
+#[cfg(any(not(windows), test))]
+fn private_temp_dir(runtime: Option<&std::ffi::OsStr>, cache_home: Option<&std::ffi::OsStr>, home: Option<&Path>) -> Option<PathBuf> {
+    let rooted = |v: Option<&std::ffi::OsStr>| v.map(PathBuf::from).filter(|p| p.is_absolute());
+    if let Some(r) = rooted(runtime) {
+        return Some(r.join("AnyVector"));
+    }
+    let cache = rooted(cache_home).or_else(|| home.filter(|h| h.is_absolute()).map(|h| h.join(".cache")))?;
+    Some(cache.join("AnyVector").join("tmp"))
+}
+
+/// Create `dir` (and its parents) and leave it open to its owner only.
+#[cfg(not(windows))]
+fn make_private(dir: &Path) -> io::Result<()> {
+    use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
+    std::fs::DirBuilder::new().recursive(true).mode(0o700).create(dir)?;
+    let meta = std::fs::symlink_metadata(dir)?;
+    if !meta.is_dir() {
+        return Err(io::Error::other("not a folder"));
+    }
+    if meta.permissions().mode() & 0o077 != 0 {
+        std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700))?;
+    }
+    Ok(())
 }
 
 /// `bytes` percent-encoded: only letters, digits, `-._~` and, with `keep_slash`, `/` stay as they
@@ -393,6 +446,53 @@ mod tests {
         assert_eq!(file_uri(b"/tmp/\xff~x_y-z.png"), "file:///tmp/%FF~x_y-z.png");
         assert_eq!(mailto_url("Logo & Card #2/3"), "mailto:?subject=Logo%20%26%20Card%20%232%2F3");
         assert_eq!(mailto_url(""), "mailto:?subject=");
+    }
+
+    /// `p` made absolute on this system: Windows needs a drive.
+    fn abs(p: &str) -> PathBuf {
+        PathBuf::from(if cfg!(windows) { format!("C:{p}") } else { p.to_string() })
+    }
+
+    /// Linux's temporary files go to the runtime folder, else the cache folder, never the shared
+    /// /tmp by a relative or missing variable.
+    #[test]
+    fn private_temp_folder_comes_from_the_xdg_folders() {
+        use std::ffi::OsStr;
+        let (home, run, cache) = (abs("/home/ana"), abs("/run/user/1000"), abs("/data/cache"));
+        let home = Some(home.as_path());
+        assert_eq!(private_temp_dir(Some(run.as_os_str()), Some(cache.as_os_str()), home), Some(abs("/run/user/1000/AnyVector")));
+        assert_eq!(private_temp_dir(None, Some(cache.as_os_str()), home), Some(abs("/data/cache/AnyVector/tmp")));
+        assert_eq!(private_temp_dir(Some(OsStr::new("run")), Some(OsStr::new("cache")), home), Some(abs("/home/ana/.cache/AnyVector/tmp")));
+        assert_eq!(private_temp_dir(None, None, Some(Path::new("ana"))), None);
+        assert_eq!(private_temp_dir(None, None, None), None);
+        #[cfg(windows)]
+        assert_eq!(temp_dir(), std::env::temp_dir(), "Windows keeps %TEMP%");
+    }
+
+    /// The folder is made open to its owner only, also when it was there with wider rights.
+    #[cfg(not(windows))]
+    #[test]
+    fn private_temp_folder_is_the_users_alone() {
+        use std::os::unix::fs::PermissionsExt;
+        let mode = |p: &Path| std::fs::metadata(p).unwrap().permissions().mode() & 0o777;
+        let root = std::env::temp_dir().join(format!("anyvector-private-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let dir = root.join("cache").join("AnyVector").join("tmp");
+        make_private(&dir).unwrap();
+        assert_eq!(mode(&dir), 0o700);
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o755)).unwrap();
+        make_private(&dir).unwrap();
+        assert_eq!(mode(&dir), 0o700);
+        // a link put in its place is refused
+        let link = root.join("link");
+        std::os::unix::fs::symlink(&dir, &link).unwrap();
+        assert!(make_private(&link).is_err());
+        std::fs::remove_dir_all(&root).unwrap();
+        let t = temp_dir();
+        assert!(t.is_dir());
+        if t != std::env::temp_dir() {
+            assert_eq!(mode(&t), 0o700, "{}", t.display());
+        }
     }
 
     /// The Windows commands: `start` for pages, files and e-mail, Explorer for folders.
