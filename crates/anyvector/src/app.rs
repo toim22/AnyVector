@@ -119,6 +119,13 @@ pub struct AnyVectorApp {
     pub background: Vec<std::sync::mpsc::Receiver<Result<String, String>>>,
 }
 
+/// The files named on the command line that exist, in order. Names are taken as the system gives
+/// them: a Linux file name need not be valid UTF-8 (`std::env::args` would panic on it at start-up
+/// when the file manager opens such a file with AnyVector).
+fn command_line_files(args: impl Iterator<Item = std::ffi::OsString>) -> Vec<std::path::PathBuf> {
+    args.map(std::path::PathBuf::from).filter(|p| p.exists()).collect()
+}
+
 /// "NVIDIA GeForce RTX 3080 (Vulkan, NVIDIA 566.36)": the adapter, its API and driver.
 fn gpu_name(i: &eframe::egui_wgpu::wgpu::AdapterInfo) -> String {
     let driver = [i.driver.trim(), i.driver_info.trim()].iter().filter(|s| !s.is_empty()).cloned().collect::<Vec<_>>().join(" ");
@@ -191,11 +198,8 @@ impl AnyVectorApp {
         // the outline of new objects, as the user left it (Outline Pen with nothing selected)
         app.ts.default_outline = app.settings.default_outline.clone();
         // command line: open files
-        for a in std::env::args().skip(1) {
-            let p = std::path::PathBuf::from(&a);
-            if p.exists() {
-                app.open_path(&p);
-            }
+        for p in command_line_files(std::env::args_os().skip(1)) {
+            app.open_path(&p);
         }
         if app.settings.startup == crate::settings::StartupAction::Nothing {
             app.home_open = false;
@@ -614,5 +618,30 @@ impl AnyVectorApp {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    /// Files given on the command line open whatever their name, including (on Linux) a name
+    /// that is not UTF-8; names of files that are not there are skipped.
+    #[test]
+    fn command_line_files_with_any_name() {
+        let dir = std::env::temp_dir().join(format!("anyvector-args-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        #[cfg(unix)]
+        let latin1: Option<std::ffi::OsString> = Some(std::os::unix::ffi::OsStringExt::from_vec(b"caf\xe9 latin-1.svg".to_vec()));
+        #[cfg(not(unix))]
+        let latin1: Option<std::ffi::OsString> = None;
+        let names: Vec<std::ffi::OsString> = ["Logo.CDR".into(), "Caf\u{e9}.svg".into()].into_iter().chain(latin1).collect();
+        for n in &names {
+            std::fs::write(dir.join(n), b"x").unwrap();
+        }
+        let mut args: Vec<std::ffi::OsString> = names.iter().map(|n| dir.join(n).into_os_string()).collect();
+        args.insert(1, dir.join("missing.cdr").into_os_string());
+        let files = super::command_line_files(args.into_iter());
+        assert_eq!(files, names.iter().map(|n| dir.join(n)).collect::<Vec<_>>());
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
