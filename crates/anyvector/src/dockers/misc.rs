@@ -156,7 +156,7 @@ pub fn comments(app: &mut AnyVectorApp, ui: &mut Ui) {
     if let Some(id) = select {
         app.dockers.ui.comment_sel = Some(id);
     }
-    let author = if app.settings.user_name.is_empty() { std::env::var("USERNAME").unwrap_or_else(|_| "User".into()) } else { app.settings.user_name.clone() };
+    let author = crate::dockers::comment_author(&app.settings.user_name);
     if commit.is_some() {
         app.dockers.ui.comment_edit = None;
     }
