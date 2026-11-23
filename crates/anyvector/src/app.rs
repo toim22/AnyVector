@@ -411,7 +411,7 @@ impl AnyVectorApp {
             Some(d) => format!("{} - [{}]", vector_core::APP_NAME, d.display_name()),
             None => vector_core::APP_NAME.to_string(),
         };
-        ctx.send_viewport_cmd(egui::ViewportCommand::Title(title));
+        theme::sync_window_title(&ctx, title);
         // close request
         if ctx.input(|i| i.viewport().close_requested()) && !self.allow_close {
             if self.docs.iter().any(|d| d.history.is_modified()) {
