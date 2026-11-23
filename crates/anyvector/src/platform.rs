@@ -3,20 +3,21 @@
 //!
 //! | Action | Windows | Linux |
 //! | --- | --- | --- |
-//! | [`open_url`] | `cmd /C start "" <url>`, without a console window | `xdg-open <url>` |
-//! | [`open_file`] | `cmd /C start "" <file>` | `xdg-open <file>` |
+//! | [`open_url`] | `cmd /C start "" "<url>"`, without a console window | `xdg-open <url>` |
+//! | [`open_file`] | `cmd /C start "" "<file>"` | `xdg-open <file>` |
 //! | [`open_folder`] | `explorer <folder>` | `xdg-open <folder>` |
 //! | [`reveal`] | `explorer /select,<file>` | the file manager's D-Bus method `org.freedesktop.FileManager1.ShowItems` (Files, Dolphin, Nemo, Caja and Thunar have it), called with `dbus-send`, else `gdbus`; when no file manager answers, `xdg-open <folder>` |
-//! | [`open_mailto`] | `cmd /C start "" mailto:?subject=<subject>` | `xdg-open mailto:?subject=<subject>` |
+//! | [`open_mailto`] | `cmd /C start "" "mailto:?subject=<subject>"` | `xdg-open mailto:?subject=<subject>` |
 //! | `send_mail` | Simple MAPI (in `exec.rs`) | `xdg-email --utf8 --subject <subject> --attach <file>` |
 //!
-//! The Windows commands are the ones AnyVector always ran. Nothing here waits for the program it
+//! On Windows the target of `start` reaches `cmd` through an environment variable, in quotes, so
+//! a `&` in a URL or file name is not read as another command. Nothing here waits for the program it
 //! starts: an error comes back only when the program could not be started, as on Windows. On Linux
 //! a thread waits for each program to end, so none stays behind as a zombie process, and a program
 //! that ends with an error is logged.
 
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[cfg(windows)]
 use self::win as os;
@@ -59,9 +60,83 @@ pub fn send_mail(subject: &str, attachment: &Path, done: impl FnOnce(bool) + Sen
     let _ = xdg::send_mail(&xdg::Tools::default(), subject, attachment, xdg::MAIL_GRACE, done);
 }
 
+/// The folder for AnyVector's temporary files (Edit Bitmap's copies, inserted objects, the drawing
+/// sent by e-mail). Windows: `%TEMP%`, as always. Linux: a folder only this user can open,
+/// `$XDG_RUNTIME_DIR/AnyVector`, else `$XDG_CACHE_HOME/AnyVector/tmp` (`~/.cache/AnyVector/tmp`),
+/// made with mode 0700: in the shared `/tmp` another user could read those files or put a link
+/// where AnyVector is about to write one of its predictable names.
+pub fn temp_dir() -> PathBuf {
+    #[cfg(windows)]
+    {
+        std::env::temp_dir()
+    }
+    #[cfg(not(windows))]
+    {
+        let var = |k: &str| std::env::var_os(k);
+        match private_temp_dir(var("XDG_RUNTIME_DIR").as_deref(), var("XDG_CACHE_HOME").as_deref(), dirs::home_dir().as_deref()) {
+            Some(dir) => match make_private(&dir) {
+                Ok(()) => dir,
+                Err(e) => {
+                    log::warn!("no private folder for temporary files ({}): {e}", dir.display());
+                    std::env::temp_dir()
+                }
+            },
+            None => std::env::temp_dir(),
+        }
+    }
+}
+
+/// [`temp_dir`] of Linux from the environment: the runtime folder, else the cache folder (its
+/// default under `home`). Relative paths do not count, as the XDG specification says.
+#[cfg(any(not(windows), test))]
+fn private_temp_dir(runtime: Option<&std::ffi::OsStr>, cache_home: Option<&std::ffi::OsStr>, home: Option<&Path>) -> Option<PathBuf> {
+    let rooted = |v: Option<&std::ffi::OsStr>| v.map(PathBuf::from).filter(|p| p.is_absolute());
+    if let Some(r) = rooted(runtime) {
+        return Some(r.join("AnyVector"));
+    }
+    let cache = rooted(cache_home).or_else(|| home.filter(|h| h.is_absolute()).map(|h| h.join(".cache")))?;
+    Some(cache.join("AnyVector").join("tmp"))
+}
+
+/// Create `dir` (and its parents) and leave it open to its owner only.
+#[cfg(not(windows))]
+fn make_private(dir: &Path) -> io::Result<()> {
+    use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
+    std::fs::DirBuilder::new().recursive(true).mode(0o700).create(dir)?;
+    let meta = std::fs::symlink_metadata(dir)?;
+    if !meta.is_dir() {
+        return Err(io::Error::other("not a folder"));
+    }
+    if meta.permissions().mode() & 0o077 != 0 {
+        std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700))?;
+    }
+    Ok(())
+}
+
+/// The default folder for auto-backups (Options ▸ Save, when no folder is chosen). Windows:
+/// `%TEMP%\AnyVector Backups`, as always. Linux: `$XDG_STATE_HOME/AnyVector/Backups`
+/// (`~/.local/state/AnyVector/Backups`), which outlives a restart, unlike `/tmp`.
+pub fn backups_dir() -> PathBuf {
+    #[cfg(windows)]
+    {
+        std::env::temp_dir().join("AnyVector Backups")
+    }
+    #[cfg(not(windows))]
+    {
+        state_backups_dir(std::env::var_os("XDG_STATE_HOME").as_deref(), dirs::home_dir().as_deref()).unwrap_or_else(|| std::env::temp_dir().join("AnyVector Backups"))
+    }
+}
+
+/// [`backups_dir`] of Linux from `$XDG_STATE_HOME` (only an absolute one), else its default under
+/// `home`.
+#[cfg(any(not(windows), test))]
+fn state_backups_dir(state_home: Option<&std::ffi::OsStr>, home: Option<&Path>) -> Option<PathBuf> {
+    let state = state_home.map(PathBuf::from).filter(|p| p.is_absolute()).or_else(|| home.filter(|h| h.is_absolute()).map(|h| h.join(".local").join("state")))?;
+    Some(state.join("AnyVector").join("Backups"))
+}
+
 /// `bytes` percent-encoded: only letters, digits, `-._~` and, with `keep_slash`, `/` stay as they
 /// are.
-#[cfg(any(not(windows), test))]
 fn percent_encode(bytes: &[u8], keep_slash: bool) -> String {
     let mut out = String::with_capacity(bytes.len() * 3);
     for &b in bytes {
@@ -83,7 +158,6 @@ fn file_uri(path: &[u8]) -> String {
 }
 
 /// The `mailto:` URL of a new e-mail with this subject.
-#[cfg(any(not(windows), test))]
 fn mailto_url(subject: &str) -> String {
     format!("mailto:?subject={}", percent_encode(subject.as_bytes(), false))
 }
@@ -100,11 +174,25 @@ mod win {
 
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
-    /// `cmd /C start "" <target>`: `start` treats the first quoted argument as the window title,
+    /// The environment variable that hands `cmd` the target of `start`.
+    pub(super) const TARGET_VAR: &str = "ANYVECTOR_START_TARGET";
+
+    /// `cmd /C start "" "<target>"`: `start` treats the first quoted argument as the window title,
     /// hence the "".
     fn start(target: &OsStr) -> Command {
+        cmd_with_target(&["start", ""], target)
+    }
+
+    /// `cmd /C <before> "%ANYVECTOR_START_TARGET%"` with the target in that variable. Written on
+    /// `cmd`'s command line, a target would be read as more commands at a `&` outside quotes
+    /// (`...?labels=bug&title=...`, `Art&Logos.png`) and its `%NAME%` parts replaced; `cmd`
+    /// replaces the variable once, and the quotes keep `&`, `|`, `^`, `<` and `>` in it plain. A `"`
+    /// (no file name has one) would end the quotes: it is sent as %22, as in a URL.
+    pub(super) fn cmd_with_target(before: &[&str], target: &OsStr) -> Command {
+        let lossy = target.to_string_lossy();
+        let target = if lossy.contains('"') { lossy.replace('"', "%22").into() } else { target.to_os_string() };
         let mut c = Command::new("cmd");
-        c.args(["/C", "start", ""]).arg(target);
+        c.arg("/C").args(before).raw_arg(format!("\"%{TARGET_VAR}%\"")).env(TARGET_VAR, target);
         c
     }
 
@@ -131,7 +219,7 @@ mod win {
     }
 
     pub(super) fn mailto_command(subject: &str) -> Command {
-        start(OsStr::new(&format!("mailto:?subject={}", subject.replace(' ', "%20"))))
+        start(OsStr::new(&super::mailto_url(subject)))
     }
 
     pub(super) fn open_url(url: &str) -> io::Result<()> {
@@ -382,23 +470,112 @@ mod tests {
         assert_eq!(mailto_url(""), "mailto:?subject=");
     }
 
-    /// The Windows commands must stay the ones AnyVector always ran.
+    /// `p` made absolute on this system: Windows needs a drive.
+    fn abs(p: &str) -> PathBuf {
+        PathBuf::from(if cfg!(windows) { format!("C:{p}") } else { p.to_string() })
+    }
+
+    /// Linux's temporary files go to the runtime folder, else the cache folder, never the shared
+    /// /tmp by a relative or missing variable.
+    #[test]
+    fn private_temp_folder_comes_from_the_xdg_folders() {
+        use std::ffi::OsStr;
+        let (home, run, cache) = (abs("/home/ana"), abs("/run/user/1000"), abs("/data/cache"));
+        let home = Some(home.as_path());
+        assert_eq!(private_temp_dir(Some(run.as_os_str()), Some(cache.as_os_str()), home), Some(abs("/run/user/1000/AnyVector")));
+        assert_eq!(private_temp_dir(None, Some(cache.as_os_str()), home), Some(abs("/data/cache/AnyVector/tmp")));
+        assert_eq!(private_temp_dir(Some(OsStr::new("run")), Some(OsStr::new("cache")), home), Some(abs("/home/ana/.cache/AnyVector/tmp")));
+        assert_eq!(private_temp_dir(None, None, Some(Path::new("ana"))), None);
+        assert_eq!(private_temp_dir(None, None, None), None);
+        #[cfg(windows)]
+        assert_eq!(temp_dir(), std::env::temp_dir(), "Windows keeps %TEMP%");
+    }
+
+    /// Linux's auto-backups go to the state folder, not to /tmp, which a restart empties.
+    #[test]
+    fn backups_go_to_the_state_folder() {
+        use std::ffi::OsStr;
+        let (home, state) = (abs("/home/ana"), abs("/data/state"));
+        let home = Some(home.as_path());
+        assert_eq!(state_backups_dir(Some(state.as_os_str()), home), Some(abs("/data/state/AnyVector/Backups")));
+        assert_eq!(state_backups_dir(None, home), Some(abs("/home/ana/.local/state/AnyVector/Backups")));
+        assert_eq!(state_backups_dir(Some(OsStr::new("state")), home), Some(abs("/home/ana/.local/state/AnyVector/Backups")));
+        assert_eq!(state_backups_dir(None, None), None);
+        #[cfg(windows)]
+        assert_eq!(backups_dir(), std::env::temp_dir().join("AnyVector Backups"), "Windows keeps %TEMP%");
+        #[cfg(not(windows))]
+        assert!(backups_dir().ends_with("AnyVector/Backups"));
+    }
+
+    /// The folder is made open to its owner only, also when it was there with wider rights.
+    #[cfg(not(windows))]
+    #[test]
+    fn private_temp_folder_is_the_users_alone() {
+        use std::os::unix::fs::PermissionsExt;
+        let mode = |p: &Path| std::fs::metadata(p).unwrap().permissions().mode() & 0o777;
+        let root = std::env::temp_dir().join(format!("anyvector-private-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let dir = root.join("cache").join("AnyVector").join("tmp");
+        make_private(&dir).unwrap();
+        assert_eq!(mode(&dir), 0o700);
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o755)).unwrap();
+        make_private(&dir).unwrap();
+        assert_eq!(mode(&dir), 0o700);
+        // a link put in its place is refused
+        let link = root.join("link");
+        std::os::unix::fs::symlink(&dir, &link).unwrap();
+        assert!(make_private(&link).is_err());
+        std::fs::remove_dir_all(&root).unwrap();
+        let t = temp_dir();
+        assert!(t.is_dir());
+        if t != std::env::temp_dir() {
+            assert_eq!(mode(&t), 0o700, "{}", t.display());
+        }
+    }
+
+    /// The Windows commands: `start` for pages, files and e-mail, Explorer for folders.
     #[cfg(windows)]
     #[test]
-    fn windows_runs_the_commands_anyvector_always_ran() {
+    fn windows_runs_start_and_explorer() {
         use std::process::Command;
         fn line(c: &Command) -> Vec<String> {
             std::iter::once(c.get_program()).chain(c.get_args()).map(|a| a.to_string_lossy().into_owned()).collect()
         }
+        fn target(c: &Command) -> String {
+            c.get_envs().find(|(k, _)| *k == win::TARGET_VAR).and_then(|(_, v)| v).map(|v| v.to_string_lossy().into_owned()).unwrap_or_default()
+        }
+        let start = ["cmd", "/C", "start", "", "\"%ANYVECTOR_START_TARGET%\""];
         let url = "https://github.com/toim22/AnyVector/issues/new?labels=bug&title=T";
-        assert_eq!(line(&win::url_command(url)), ["cmd", "/C", "start", "", url]);
+        assert_eq!(line(&win::url_command(url)), start);
+        assert_eq!(target(&win::url_command(url)), url);
         let file = Path::new(r"C:\Users\Ana\AppData\Local\Temp\AnyVector\bitmap-12.png");
-        assert_eq!(line(&win::file_command(file)), ["cmd", "/C", "start", "", r"C:\Users\Ana\AppData\Local\Temp\AnyVector\bitmap-12.png"]);
+        assert_eq!(line(&win::file_command(file)), start);
+        assert_eq!(target(&win::file_command(file)), file.to_str().unwrap());
         let dir = Path::new(r"C:\Users\Ana\AppData\Roaming\AnyVector\Templates");
         assert_eq!(line(&win::folder_command(dir)), ["explorer", r"C:\Users\Ana\AppData\Roaming\AnyVector\Templates"]);
         let doc = Path::new(r"C:\Users\Ana\Documents\My Logo.cdr");
         assert_eq!(line(&win::reveal_command(doc)), ["explorer", r"/select,C:\Users\Ana\Documents\My Logo.cdr"]);
-        assert_eq!(line(&win::mailto_command("My Logo")), ["cmd", "/C", "start", "", "mailto:?subject=My%20Logo"]);
+        assert_eq!(target(&win::mailto_command("Logo & Card")), "mailto:?subject=Logo%20%26%20Card");
+        // a quote would end cmd's quotes: as in a URL, %22
+        assert_eq!(target(&win::url_command("https://example.com/?q=\"a\"")), "https://example.com/?q=%22a%22");
+    }
+
+    /// What `cmd` makes of a target with `&` (a bug report URL, a file name): one whole argument,
+    /// not a second command, and `%NAME%` in it left alone. `echo` stands in for `start` here, so
+    /// nothing opens; a split would run `ver`, which only prints.
+    #[cfg(windows)]
+    #[test]
+    fn windows_targets_with_ampersands_stay_whole() {
+        let targets = [
+            "https://github.com/toim22/AnyVector/issues/new?labels=bug&title=Crash&body=Steps%20%26%20more",
+            r"C:\Users\Ana\Art&ver\logo&ver.png",
+            r"C:\Users\Ana\Art & Logos\a|b^c %OS% <d>.png",
+        ];
+        for t in targets {
+            let out = win::cmd_with_target(&["echo"], std::ffi::OsStr::new(t)).output().expect("cmd");
+            let said = String::from_utf8_lossy(&out.stdout);
+            assert_eq!(said.trim_end(), format!("\"{t}\""), "cmd split or changed {t}");
+        }
     }
 
     #[cfg(not(windows))]

@@ -516,7 +516,7 @@ impl AnyVectorApp {
         }
         let now = self.time();
         let interval = self.settings.auto_backup_minutes.max(1) as f64 * 60.0;
-        let dir = self.settings.auto_backup_dir.clone().unwrap_or_else(|| std::env::temp_dir().join("AnyVector Backups"));
+        let dir = self.settings.auto_backup_dir.clone().unwrap_or_else(crate::platform::backups_dir);
         for d in self.docs.iter_mut() {
             if d.history.is_modified() && now - d.last_saved_backup > interval {
                 d.last_saved_backup = now;

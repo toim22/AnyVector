@@ -242,7 +242,7 @@ pub fn update_link(app: &mut AnyVectorApp) {
 /// Edit Bitmap: the bitmap opens in the default image editor; saving it there updates it here.
 pub fn edit_bitmap(app: &mut AnyVectorApp) {
     let Some(t) = need_bitmap(app) else { return };
-    let dir = std::env::temp_dir().join("AnyVector");
+    let dir = crate::platform::temp_dir().join("AnyVector");
     let _ = std::fs::create_dir_all(&dir);
     let path = dir.join(format!("bitmap-{}.png", t.obj));
     let bytes = vector_io::image_io::encode_png(t.full.w as u32, t.full.h as u32, &t.full.p.iter().flat_map(|c| *c).collect::<Vec<u8>>());
@@ -1280,7 +1280,7 @@ fn duotone(app: &mut AnyVectorApp, ctx: &egui::Context) {
             });
             ui.horizontal(|ui| {
                 if ui.add_sized(vec2(78.0, 24.0), egui::Button::new("Load")).clicked() {
-                    if let Some(p) = rfd::FileDialog::new().add_filter("Duotone curves", &["txt"]).pick_file() {
+                    if let Some(p) = rfd::FileDialog::new().add_filter("Duotone curves", &vector_io::paths::dialog_extensions(&["txt"])).pick_file() {
                         if let Ok(t) = std::fs::read_to_string(p) {
                             load_curves(&mut st.d, &t);
                         }
@@ -1490,7 +1490,7 @@ fn paletted(app: &mut AnyVectorApp, ctx: &egui::Context) {
                         if super::combo(ui, "bm_pal_p", &mut p, &bitmaps::PALETTES, 120.0) {
                             if p == 8 {
                                 // More Palettes…: a palette file
-                                if let Some(f) = rfd::FileDialog::new().add_filter("Palettes", &["xml", "gpl", "txt", "cpl"]).pick_file() {
+                                if let Some(f) = rfd::FileDialog::new().add_filter("Palettes", &vector_io::paths::dialog_extensions(&["xml", "gpl", "txt", "cpl"])).pick_file() {
                                     if let Ok(t) = std::fs::read_to_string(&f) {
                                         let pal = vector_core::color::Palette::parse("palette", &t);
                                         st.doc_pal = pal.colors.iter().map(|c| c.color).collect();
@@ -2503,7 +2503,7 @@ fn trace_settings(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut TraceState, mode
             let mut k = st.o.color_mode;
             if super::combo(ui, "bm_tr_cm", &mut k, &refs, cw) {
                 if k + 1 == refs.len() {
-                    if let Some(f) = rfd::FileDialog::new().add_filter("Palettes", &["xml", "gpl", "txt", "cpl"]).pick_file() {
+                    if let Some(f) = rfd::FileDialog::new().add_filter("Palettes", &vector_io::paths::dialog_extensions(&["xml", "gpl", "txt", "cpl"])).pick_file() {
                         if let Ok(t) = std::fs::read_to_string(&f) {
                             let name = f.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
                             app.palettes.palettes.push(vector_core::color::Palette::parse(&name, &t));
@@ -2590,7 +2590,7 @@ fn trace_settings(app: &mut AnyVectorApp, ui: &mut Ui, st: &mut TraceState, mode
         ui.horizontal(|ui| {
             ui.add_space(64.0);
             if icon(app, ui, "open", "Open color palette", false) {
-                if let Some(f) = rfd::FileDialog::new().add_filter("Palettes", &["xml", "gpl", "txt", "cpl"]).pick_file() {
+                if let Some(f) = rfd::FileDialog::new().add_filter("Palettes", &vector_io::paths::dialog_extensions(&["xml", "gpl", "txt", "cpl"])).pick_file() {
                     if let Ok(t) = std::fs::read_to_string(&f) {
                         let p = vector_core::color::Palette::parse("palette", &t);
                         st.o.palette = Some(p.colors.iter().map(|c| [c.color.r, c.color.g, c.color.b]).collect());

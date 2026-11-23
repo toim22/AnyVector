@@ -187,6 +187,19 @@ const NO_MAIL_PROGRAM: &str = "No mail program accepted the attachment; the draw
 #[cfg(not(windows))]
 const NO_SCANNING: &str = "Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.";
 
+/// The order of the Save dialog's filters off Windows (`rfd`): the type chosen first, as the
+/// dialogs start on their first filter, then the others in their order.
+fn save_filter_order(count: usize, chosen: usize) -> Vec<usize> {
+    std::iter::once(chosen).filter(|&c| c < count).chain((0..count).filter(|&k| k != chosen)).collect()
+}
+
+/// The type a drawing saved as `path` gets: the one of its extension, in any case, else the type
+/// chosen in the dialog.
+fn saved_type(types: &[(String, String)], path: &Path, chosen: usize) -> usize {
+    let ext = vector_io::extension(path);
+    types.iter().position(|t| t.1.eq_ignore_ascii_case(&ext)).unwrap_or(chosen)
+}
+
 /// PowerShell for File ▸ Acquire Image through Windows Image Acquisition: select a device
 /// (`select` = true) or scan with the chosen device's dialog and save a PNG to `out`.
 #[cfg(windows)]
@@ -412,8 +425,7 @@ impl AnyVectorApp {
         for k in 1..st.pages.max(1) {
             doc.add_page(k, st.width, st.height);
         }
-        let name = st.name.trim();
-        let stem = name.strip_suffix(".cdr").or_else(|| name.strip_suffix(".vct")).unwrap_or(name);
+        let stem = vector_io::paths::strip_extension(st.name.trim(), &["cdr", "vct"]);
         let mut dv = DocView::new(doc, format!("{stem}.cdr"), self.settings.undo_levels);
         dv.history.mark_saved();
         self.push_doc(dv);
@@ -446,9 +458,10 @@ impl AnyVectorApp {
                 all.extend(t.extensions.iter().copied());
             }
         }
-        let mut d = d.add_filter("All File Formats", &all);
+        // Linux file dialogs match extensions in their case only
+        let mut d = d.add_filter("All File Formats", &vector_io::paths::dialog_extensions(&all));
         for t in types {
-            d = d.add_filter(t.name, t.extensions);
+            d = d.add_filter(t.name, &t.dialog_extensions());
         }
         d
     }
@@ -657,9 +670,13 @@ impl AnyVectorApp {
                 let res = if cfg!(windows) {
                     crate::save_dialog::show(req)
                 } else {
-                    let fd = types.iter().fold(rfd::FileDialog::new().set_title("Save Drawing"), |fd, t| fd.add_filter(t.0.as_str(), &[t.1.as_str()]));
-                    fd.set_file_name(format!("{stem}.cdr")).save_file().map(|p| crate::save_dialog::SaveResult {
-                        type_index: types.iter().position(|t| t.1 == vector_io::extension(&p)).unwrap_or(0),
+                    // the dialog starts on its first filter: the type of the drawing (.vct stays .vct)
+                    let mut fd = save_filter_order(types.len(), type_index).into_iter().fold(rfd::FileDialog::new().set_title("Save Drawing"), |fd, k| fd.add_filter(types[k].0.as_str(), &[types[k].1.as_str()]));
+                    if let Some(dir) = &req.dir {
+                        fd = fd.set_directory(dir);
+                    }
+                    fd.set_file_name(req.file_name.as_str()).save_file().map(|p| crate::save_dialog::SaveResult {
+                        type_index: saved_type(&types, &p, type_index),
                         path: p,
                         title: d.info.title.clone(),
                         subject: d.info.subject.clone(),
@@ -1445,7 +1462,7 @@ impl AnyVectorApp {
                     let p = match d.path.clone().filter(|p| p.exists() && !d.history.is_modified()) {
                         Some(p) => p,
                         None => {
-                            let p = std::env::temp_dir().join(format!("{stem}.cdr"));
+                            let p = crate::platform::temp_dir().join(format!("{stem}.cdr"));
                             let opts = self.cdr_options(&d.doc, self.settings.embed_fonts, self.settings.save.embed_color_profiles, self.default_version_index());
                             if let Err(e) = vector_io::cdr::save(&d.doc, &p, &opts) {
                                 self.info_box("Send To Mail", &format!("Could not save the drawing: {e}"));
@@ -2576,7 +2593,7 @@ impl AnyVectorApp {
                 }
             }
             Cmd::RunScript => {
-                if let Some(p) = rfd::FileDialog::new().set_title("Run Script").add_filter("AnyVector script", &["rhai", "vsc"]).set_directory(crate::scripting::scripts_dir()).pick_file() {
+                if let Some(p) = rfd::FileDialog::new().set_title("Run Script").add_filter("AnyVector script", &vector_io::paths::dialog_extensions(&["rhai", "vsc"])).set_directory(crate::scripting::scripts_dir()).pick_file() {
                     match std::fs::read_to_string(&p) {
                         Ok(src) => {
                             if let Err(e) = crate::scripting::run_script(self, &src) {
@@ -2852,6 +2869,20 @@ mod tests {
     fn case_conversions() {
         assert_eq!(title_case("hello big-world"), "Hello Big-World");
         assert_eq!(sentence_case("HELLO. WORLD"), "Hello. World");
+    }
+
+    /// The Linux Save dialog starts on the drawing's type (a .vct drawing on VCT) and a name typed
+    /// with a capital extension still picks its type.
+    #[test]
+    fn save_dialog_types_off_windows() {
+        assert_eq!(save_filter_order(4, 0), [0, 1, 2, 3]);
+        assert_eq!(save_filter_order(4, 2), [2, 0, 1, 3]);
+        assert_eq!(save_filter_order(2, 5), [0, 1]);
+        let types: Vec<(String, String)> = [("CDR", "cdr"), ("VCT", "vct")].iter().map(|(n, e)| (n.to_string(), e.to_string())).collect();
+        assert_eq!(saved_type(&types, Path::new("/home/ana/Logo.VCT"), 0), 1);
+        assert_eq!(saved_type(&types, Path::new("/home/ana/Logo.cdr"), 1), 0);
+        // no extension typed: the type chosen in the dialog
+        assert_eq!(saved_type(&types, Path::new("/home/ana/Logo"), 1), 1);
     }
 }
 

@@ -355,12 +355,14 @@ fn attachment_row(ui: &mut egui::Ui, st: &mut BugReportState) {
         if ui.add_enabled(enabled, egui::Button::new("Attach File...")).clicked() {
             let mut all: Vec<&str> = ATTACH_IMAGES.iter().chain(ATTACH_VIDEOS).chain(ATTACH_OTHERS).copied().collect();
             all.sort_unstable();
+            // Linux file dialogs match extensions in their case only
+            use vector_io::paths::dialog_extensions as any_case;
             let picked = rfd::FileDialog::new()
                 .set_title("Attach a File")
-                .add_filter("Files GitHub accepts", &all)
-                .add_filter("Images", ATTACH_IMAGES)
-                .add_filter("Videos", ATTACH_VIDEOS)
-                .add_filter("Archives (.zip, .gz, .tgz)", &["zip", "gz", "tgz"])
+                .add_filter("Files GitHub accepts", &any_case(&all))
+                .add_filter("Images", &any_case(ATTACH_IMAGES))
+                .add_filter("Videos", &any_case(ATTACH_VIDEOS))
+                .add_filter("Archives (.zip, .gz, .tgz)", &any_case(&["zip", "gz", "tgz"]))
                 .pick_file();
             if let Some(p) = picked {
                 let size = std::fs::metadata(&p).map(|m| m.len()).unwrap_or(0);

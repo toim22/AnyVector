@@ -309,11 +309,19 @@ pub fn find_profile(name: &str) -> Option<PathBuf> {
     if p.is_absolute() && p.is_file() {
         return Some(p.to_path_buf());
     }
+    // a path stored on another system (`C:\Windows\...\color\sRGB Color Space Profile.icm` read
+    // on Linux) is looked up by its file name
+    let file = stored_file_name(name);
     let list = installed_profiles();
     list.iter()
         .find(|x| x.description.eq_ignore_ascii_case(name))
-        .or_else(|| list.iter().find(|x| x.path.file_name().is_some_and(|f| f.to_string_lossy().eq_ignore_ascii_case(name))))
+        .or_else(|| list.iter().find(|x| x.path.file_name().is_some_and(|f| f.to_string_lossy().eq_ignore_ascii_case(file))))
         .map(|x| x.path.clone())
+}
+
+/// The file name at the end of a path written on any system, split at `/` and `\`.
+fn stored_file_name(path: &str) -> &str {
+    path.rsplit(['/', '\\']).next().unwrap_or(path)
 }
 
 type Loaded = Option<(Arc<ColorProfile>, Arc<Vec<u8>>)>;
