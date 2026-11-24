@@ -3546,6 +3546,7 @@ fn scan_devices() -> Vec<crate::dialogs::sane::Device> {
 #[ignore]
 fn visual_scan_dialog() {
     use crate::dialogs::{sane, scan::ScanState};
+    use egui_kittest::kittest::Queryable;
     let mut h = doc_harness();
     h.state_mut().settings.scan = Default::default();
     let devices = scan_devices();
@@ -3563,6 +3564,10 @@ fn visual_scan_dialog() {
     settle(&mut h);
     assert!(has_label(&h, "Scan") && has_label(&h, &devices[0].label));
     assert_eq!(h.state().dialogs.scan.as_ref().unwrap().chosen(), Some(("Color".into(), 300)), "of what the scanner offers");
+    let window = egui::Rect::from_center_size(h.ctx.content_rect().center(), egui::vec2(420.0, 220.0));
+    for b in ["Scan", "Cancel"] {
+        assert!(window.contains_rect(h.get_by_label(b).rect()), "a long scanner name leaves {b} inside the dialog");
+    }
     save(&mut h, "scan_02_settings");
     click_label(&mut h, "Cancel");
     assert!(h.state().dialogs.scan.is_none(), "Cancel closes it");

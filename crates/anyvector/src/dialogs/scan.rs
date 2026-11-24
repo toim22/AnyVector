@@ -299,7 +299,9 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
             }
             Stage::Settings { device, reading, opts, mode, dpi } => {
                 let w = 100.0;
-                super::row(ui, "Scanner:", w, |ui| ui.label(&device.label).on_hover_text(&device.name));
+                // cut short: a long name would push the buttons out of the window
+                let name = format!("{}\n{}", device.label, device.name);
+                super::row(ui, "Scanner:", w, |ui| ui.add(egui::Label::new(&device.label).truncate()).on_hover_text(name));
                 ui.add_space(4.0);
                 let modes: Vec<&str> = opts.modes.iter().map(|m| sane::mode_label(m)).collect();
                 let dpis: Vec<String> = opts.resolutions.iter().map(|d| format!("{d} dpi")).collect();
