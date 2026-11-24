@@ -499,11 +499,8 @@ mod tests {
 
     #[test]
     fn server_not_running() {
-        // a port that nothing listens on
-        let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-        let url = format!("http://{}", l.local_addr().unwrap());
-        drop(l);
-        let e = list_checkpoints(&url).unwrap_err();
+        let none = crate::ai_provider::test_server::none();
+        let e = list_checkpoints(&none.url).unwrap_err();
         assert!(e.contains("Make sure ComfyUI is running"), "{e}");
     }
 }
