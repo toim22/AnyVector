@@ -418,7 +418,11 @@ impl AnyVectorApp {
         theme::sync_window_title(&ctx, title);
         // close request
         if ctx.input(|i| i.viewport().close_requested()) && !self.allow_close {
-            if self.docs.iter().any(|d| d.history.is_modified()) {
+            if self.dialogs.save_options.is_some() {
+                // a save is being asked about (Linux): answer it first, as Windows' save dialog
+                // blocks the main window
+                ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+            } else if self.docs.iter().any(|d| d.history.is_modified()) {
                 ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
                 self.dialogs.confirm_quit = true;
             } else {

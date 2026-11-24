@@ -80,6 +80,7 @@ pub fn size_text(bytes: u64) -> String {
 }
 
 /// Shell rating (System.Rating is 1..99) <-> stars.
+#[cfg(any(windows, test))]
 pub fn stars_to_rating(stars: u8) -> u32 {
     match stars {
         0 => 0,
@@ -91,6 +92,7 @@ pub fn stars_to_rating(stars: u8) -> u32 {
     }
 }
 
+#[cfg(any(windows, test))]
 pub fn rating_to_stars(r: u32) -> u8 {
     match r {
         0 => 0,

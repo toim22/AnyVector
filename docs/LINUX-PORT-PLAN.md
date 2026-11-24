@@ -264,6 +264,23 @@ name, with quarter-inch margins).
 - Real job test: `cargo test -p anyvector print_job_to_cups_pdf -- --ignored` (needs cups and
   printer-driver-cups-pdf).
 
+**Save options** (Phase 2, `dialogs/save_options.rs`). On Windows, Save As is the system dialog with
+AnyVector's controls in it (`save_dialog.rs`). rfd cannot add controls, so on Linux Save As has two
+steps: the system dialog (the desktop portal, or zenity without one) picks the folder, name and type,
+then AnyVector's **Save Drawing** dialog shows the rest, with the Windows labels, defaults and rules.
+- File name, folder and type. Browse... goes back to the system dialog; the type can be changed here,
+  because rfd does not say which filter was chosen (the extension gives the type).
+- Title, Subject and Rating for every type. For CDR and VCT: Embed color profiles, Embed fonts, Version
+  and Advanced... (Advanced Save Options); for CMX, PDF, SVG and EMF the "saves a copy" note instead.
+- A name the system dialog did not ask about (extension added, type changed) is not replaced unasked.
+- Save runs the same code as the Windows result (`save_with`); Cancel saves nothing.
+- The dialog is drawn over frames, so the save returns `SaveOutcome::Pending` and the dialog carries
+  what comes next (`AfterSave`): Close and Close All go on after Save, Exit saves the next drawing and
+  then quits, Cancel stops them. The main window does not close while the dialog is open.
+- File ▸ Export needs nothing: it is AnyVector's own dialog on both systems.
+- Tests give the file names instead of opening rfd (`give_picked_paths`), so the flow is tested on
+  Windows too; `visual_save_options_dialog` renders the dialogs.
+
 **Shared bug fixes (also change Windows).**
 - `cmd /C start` targets with `&` (bug-report URLs, file names) were split and could run commands; the
   target now goes through an environment variable, and the mail subject is fully percent-encoded.

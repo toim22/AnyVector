@@ -19,6 +19,7 @@ pub mod palette;
 pub mod options;
 pub mod pdf_import;
 pub mod print;
+pub mod save_options;
 pub mod symmetry;
 pub mod table;
 pub mod text;
@@ -72,6 +73,8 @@ pub struct Dialogs {
     pub goto_page: Option<usize>,
     /// Confirm closing a modified document (doc index).
     pub confirm_close: Option<usize>,
+    /// File ▸ Save As on Linux: the drawing options after the system save dialog.
+    pub save_options: Option<save_options::SaveOptionsState>,
     /// The Bitmaps menu dialogs.
     pub bm: bitmaps::BitmapDialogs,
     /// Window ▸ Workspace: New, Delete, Import and Export.
@@ -151,6 +154,7 @@ impl Dialogs {
             || self.rename_page.is_some()
             || self.goto_page.is_some()
             || self.confirm_close.is_some()
+            || self.save_options.is_some()
             || self.bm.any_open()
             || self.message_box.is_some()
             || self.insert_page.is_some()

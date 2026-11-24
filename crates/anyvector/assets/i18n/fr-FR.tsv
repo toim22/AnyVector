@@ -2573,6 +2573,11 @@ Embed color profiles ({})	Incorporer les profils de couleur ({})
 Color profiles:	Profils de couleur :
 Embed fonts ({})	Incorporer les polices ({})
 Ver&sion:	&Version :
+Version:	Version :
+Advanced...	Avancé...
+Folder:	Dossier :
+{} already exists.	{} existe déjà.
+Do you want to replace it?	Voulez-vous le remplacer ?
 &Advanced...	&Avancé...
 Advanced Save Options	Options d'enregistrement avancées
 Optimize for	Optimiser pour

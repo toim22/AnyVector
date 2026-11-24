@@ -2573,6 +2573,11 @@ Embed color profiles ({})	Farbprofile einbetten ({})
 Color profiles:	Farbprofile:
 Embed fonts ({})	Schriften einbetten ({})
 Ver&sion:	&Version:
+Version:	Version:
+Advanced...	Erweitert...
+Folder:	Ordner:
+{} already exists.	{} ist bereits vorhanden.
+Do you want to replace it?	Möchten Sie die Datei ersetzen?
 &Advanced...	&Erweitert...
 Advanced Save Options	Erweiterte Speicheroptionen
 Optimize for	Optimieren für
