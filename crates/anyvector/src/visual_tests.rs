@@ -872,6 +872,94 @@ fn visual_context_menus() {
     }
 }
 
+/// The texts drawn in the status bar (the bottom 30 points of the window), left to right.
+fn status_bar_texts(h: &Harness<'_, AnyVectorApp>) -> Vec<(String, egui::Rect)> {
+    fn add(s: &egui::Shape, top: f32, out: &mut Vec<(String, egui::Rect)>) {
+        match s {
+            egui::Shape::Vec(v) => v.iter().for_each(|s| add(s, top, out)),
+            egui::Shape::Text(t) => {
+                let r = t.galley.rect.translate(t.pos.to_vec2());
+                if r.center().y > top && !t.galley.text().is_empty() {
+                    out.push((t.galley.text().to_string(), r));
+                }
+            }
+            _ => {}
+        }
+    }
+    let mut out = vec![];
+    for c in &h.output().shapes {
+        add(&c.shape, h.ctx.content_rect().bottom() - 30.0, &mut out);
+    }
+    out.sort_by(|a, b| a.1.left().total_cmp(&b.1.left()));
+    out
+}
+
+/// Nothing in the status bar overlaps, however narrow the window is: the hint is cut with "...",
+/// then the object information. On a wide window they are whole.
+#[test]
+fn status_bar_texts_never_overlap() {
+    use crate::tools::ToolId;
+    for (width, lang) in [(1920.0, "en-US"), (1200.0, "en-US"), (1200.0, "pt-BR"), (1200.0, "de-DE"), (900.0, "en-US"), (640.0, "de-DE"), (480.0, "en-US"), (480.0, "de-DE")] {
+        let mut h = Harness::builder().with_size(egui::vec2(width, 700.0)).build_eframe(|cc| {
+            let mut app = AnyVectorApp::new(cc);
+            app.splash = None;
+            app.pending.clear();
+            app.settings.language = lang.into();
+            app
+        });
+        h.state_mut().new_default_document();
+        let id = blue_rect(&mut h);
+        for selected in [false, true] {
+            for mode in 0..4 {
+                for tool in [ToolId::Pick, ToolId::Rectangle, ToolId::ColorEyedropper] {
+                    let app = h.state_mut();
+                    app.settings.show_tool_hints = mode;
+                    app.tool = tool;
+                    app.doc_mut().unwrap().selection = if selected { vec![id] } else { vec![] };
+                    h.step();
+                    h.step();
+                    let texts = status_bar_texts(&h);
+                    assert!(texts.len() >= 2, "{width} {lang}: {texts:?}");
+                    for w in texts.windows(2) {
+                        assert!(w[0].1.right() <= w[1].1.left(), "{width} {lang} mode {mode} {tool:?}: {:?} over {:?}", w[0], w[1]);
+                    }
+                    assert!(texts[0].1.left() >= 24.0 && texts.last().unwrap().1.right() <= width - 36.0, "{width} {lang}: {texts:?}");
+                    if width > 1900.0 {
+                        let hint = h.state().ts.hint(tool);
+                        assert!(mode != 0 || texts[0].0 == hint, "{texts:?}");
+                        assert!(texts.iter().all(|t| t.1.left() > width - 468.0 || !t.0.ends_with("...")), "{texts:?}");
+                    }
+                    if width == 1200.0 && selected && mode == 0 {
+                        let info = crate::i18n::t(&crate::statusbar::object_info(h.state()));
+                        assert!(texts.iter().any(|t| t.0 == info), "{lang}: {info:?} is cut: {texts:?}");
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// The status bar at several window widths.
+#[test]
+#[ignore]
+fn visual_status_bar_widths() {
+    for width in [1400.0f32, 1200.0, 900.0, 480.0] {
+        let mut h = Harness::builder().with_size(egui::vec2(width, 500.0)).wgpu_setup(test_wgpu()).build_eframe(|cc| {
+            let mut app = AnyVectorApp::new(cc);
+            app.splash = None;
+            app.pending.clear();
+            app
+        });
+        h.state_mut().new_default_document();
+        let id = blue_rect(&mut h);
+        h.state_mut().doc_mut().unwrap().selection = vec![id];
+        for _ in 0..4 {
+            h.step();
+        }
+        save(&mut h, &format!("32_status_bar_{width}"));
+    }
+}
+
 /// The standard toolbar, and every optional toolbar of Window ▸ Toolbars turned on.
 #[test]
 #[ignore]
