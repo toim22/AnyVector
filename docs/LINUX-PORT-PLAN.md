@@ -1,8 +1,8 @@
 # AnyVector for Linux: assessment and roadmap
 
 Status: assessment written 2026-11-23 (AnyVector 0.6.1, commit 7447911). **Phase 0 and Phase 1 done**
-the same day (issue #51, PR #153): see section 8 for what was built and section 2 for what is left
-(Phase 2: printing, spell check, code pages, eyedropper, scanners). The audit of file names, the 79
+the same day (issue #51, PR #153) and **Phase 2 done** 2026-11-24 (printing, spell check, code pages,
+eyedropper outside the window, scanners, save options): section 8 says what was built. The audit of file names, the 79
 closed issues and feature gaps is in [LINUX-AUDIT.md](LINUX-AUDIT.md).
 
 First Linux build (2026-11-23, WSL 2 Ubuntu 24.04, Rust 1.99.1, AnyVector 0.6.2): the whole workspace
@@ -172,7 +172,7 @@ Rough total for a first public Linux beta: **4–6 weeks** of focused work, most
    two real implementations, and it prepares a future macOS port). Suggestion: the `platform/`
    module, done gradually as each feature gets its Linux version.
 
-## 8. What Phase 0 and Phase 1 built (2026-11-23, PR #153)
+## 8. What Phases 0 to 2 built (from 2026-11-23, PR #153)
 
 The Linux code sits behind `cfg`, so the Windows program is unchanged, apart from the shared bug
 fixes listed at the end of this section.
@@ -224,7 +224,7 @@ program when several did that at once. Set `WGPU_BACKEND` to choose another back
 | Show in folder | `explorer /select,` | D-Bus `org.freedesktop.FileManager1.ShowItems`, else open the folder |
 | Send To ▸ Mail Recipient | Simple MAPI | `xdg-email --attach`; on failure show the file and open `mailto:` |
 | File ▸ Send To list | the SendTo folder | Desktop, Documents, Mail Recipient |
-| Acquire Image | WIA | message: scan with the system's scanner app, then File ▸ Import (SANE: Phase 2) |
+| Acquire Image | WIA | SANE (`scanimage`), see Scanning below |
 | Insert Object ▸ Create New | ShellNew registry | XDG templates folder and KDE template entries |
 | Colour profiles | Windows color folder | XDG ICC folders and colord, 3 levels deep |
 | Temporary files, auto-backups | `%TEMP%` | `$XDG_RUNTIME_DIR/AnyVector` (0700), `~/.local/state/AnyVector/Backups` |
@@ -303,6 +303,32 @@ then AnyVector's **Save Drawing** dialog shows the rest, with the Windows labels
   for Czech and Polish, 1251 for Russian, 932 for Japanese, 1252 for C and Western languages.
 - The Legal Notices now also list the crates only the Linux build links.
 
+**Eyedropper outside the window (Phase 2)** (`screen_pick.rs`). The Color Eyedropper's Select from
+Desktop button.
+- Wayland: the desktop's own color picker (xdg-desktop-portal `Screenshot.PickColor`, version 2, through
+  zbus, already in the tree) opens as soon as the button is pressed. X11: the pixel clicked is read from
+  the root window (`GetImage`, any visual) while the button is polled, as Windows does with GDI. Chosen as
+  the clipboard is: the portal under Wayland, else X11. Under XWayland only X11 programs' windows can be
+  sampled, and AnyVector says so; with neither way, a message says what to install.
+- Clicks inside the window stay with the drawing's eyedropper. The eyedropper dragged out of the drawing
+  and let go outside the window samples the screen too.
+- The portal is asked from a thread; calls it should answer at once have a 5 s limit (8 s in all until
+  its picker is open), then it counts as missing. Only the user's click is waited for without limit;
+  turning the button off, or leaving AnyVector, closes the connection, and with it the picker.
+- Tests with a display or a bus of their own (Xvfb; a fake portal on dbus-daemon) run with the clipboard's:
+  `cargo test -p anyvector clip_real_linux -- --ignored --test-threads=1`. All of these are named
+  `clip_real_linux_*`, as several change the environment of the whole test program: the visual set leaves
+  them out (`cargo test -p anyvector visual_ -- --ignored --skip clip_real`).
+
+**Scanning (Phase 2)** (`dialogs/scan.rs`, `dialogs/sane.rs`). File ▸ Acquire Image through SANE's
+`scanimage` (sane-utils).
+- Select WIA Source and Select TWAIN Source both list the scanners (`scanimage -L`); the chosen one is
+  kept in the settings. Acquire asks for the resolution and color mode, from the scanner's own options
+  (`scanimage -A`), scans in the background to a PNG in the private temporary folder and imports it as
+  the WIA scan is. Without `scanimage` or a scanner a message says what to install, and mentions Document
+  Scanner (simple-scan) when it is there.
+- A real scan with SANE's virtual test scanner is one of the `clip_real_linux` tests (needs sane-utils).
+
 **Shared bug fixes (also change Windows).**
 - `cmd /C start` targets with `&` (bug-report URLs, file names) were split and could run commands; the
   target now goes through an environment variable, and the mail subject is fully percent-encoded.
@@ -311,6 +337,7 @@ then AnyVector's **Save Drawing** dialog shows the rest, with the Windows labels
 - `settings.json` is written through a temporary file, so a crash cannot truncate it; a variable name
   with `=` or NUL no longer crashes AI Save Key.
 
-**Known limits after Phase 1.** No native-Wayland drag and drop (winit 0.30); clipboard contents vanish
-on exit under Wayland without a clipboard manager; the eyedropper outside the window and scanners are
-Phase 2; packaging and the self-updating AppImage are Phase 3.
+**Known limits after Phase 2.** No native-Wayland drag and drop (winit 0.30); clipboard contents vanish
+on exit under Wayland without a clipboard manager; packaging and the self-updating AppImage are Phase 3
+(the packages should depend on xdg-desktop-portal or zenity: without one of them file dialogs do not
+open). Not tried yet: a physical printer or scanner, and the color picker of a real GNOME or KDE desktop.

@@ -300,6 +300,9 @@ pub struct Settings {
     pub wordpress_user: Option<String>,
     /// File ▸ Acquire Image ▸ Select WIA Source: the chosen device.
     pub wia_device: Option<String>,
+    /// File ▸ Acquire Image off Windows: the SANE scanner and the last scan settings.
+    #[cfg(not(windows))]
+    pub scan: crate::dialogs::sane::ScanSettings,
     pub file_locations: Vec<(String, String)>,
     pub show_choose_palette: bool,
     pub user_name: String,
@@ -699,6 +702,8 @@ impl Default for Settings {
             wordpress_site: None,
             wordpress_user: None,
             wia_device: None,
+            #[cfg(not(windows))]
+            scan: Default::default(),
             file_locations: vec![],
             show_choose_palette: true,
             // the login name: USERNAME on Windows, USER or LOGNAME on Linux

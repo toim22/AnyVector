@@ -45,6 +45,9 @@ eframe = { workspace = true, features = ["glow"] }
 x11rb = { version = "0.13", default-features = false }
 wl-clipboard-rs = "0.9"
 rustix = { version = "1", default-features = false, features = ["std", "event"] }
+# the desktop's color picker for the eyedropper under Wayland (xdg-desktop-portal over D-Bus):
+# already in the tree through eframe (AccessKit); only its blocking API is added
+zbus = { version = "5.19", default-features = false, features = ["async-io", "blocking-api"] }
 
 [target.'cfg(not(windows))'.dependencies]
 # spell checking with the system's Hunspell dictionaries (pure Rust, MPL-2.0); Windows uses its own

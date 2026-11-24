@@ -1543,6 +1543,11 @@ Block Shadow	Blok Gölge
 Block Shadow tool	Blok Gölge aracı
 Color Eyedropper	Renk Damlalığı
 Color Eyedropper tool	Renk Damlalığı aracı
+AnyVector cannot see the screen outside its window: the desktop's color picker (xdg-desktop-portal) was not found. Install xdg-desktop-portal and your desktop's portal (for example xdg-desktop-portal-gnome or xdg-desktop-portal-kde), or sample colors inside the drawing window.	AnyVector penceresinin dışındaki ekranı göremiyor: masaüstünün renk seçicisi (xdg-desktop-portal) bulunamadı. xdg-desktop-portal ile masaüstünüzün portalını (örneğin xdg-desktop-portal-gnome veya xdg-desktop-portal-kde) kurun ya da renkleri çizim penceresinin içinden alın.
+Without the desktop's color picker (xdg-desktop-portal), only the windows of X11 programs can be sampled.	Masaüstünün renk seçicisi (xdg-desktop-portal) olmadan yalnızca X11 programlarının pencerelerinden renk alınabilir.
+The desktop's color picker failed:	Masaüstünün renk seçicisi başarısız oldu:
+The desktop's color picker failed:\n{}	Masaüstünün renk seçicisi başarısız oldu:\n{}
+The desktop's color picker failed.	Masaüstünün renk seçicisi başarısız oldu.
 Attributes Eyedropper	Öznitelik Damlalığı
 Attributes Eyedropper tool	Öznitelik Damlalığı aracı
 Interactive Fill	Etkileşimli Dolgu
@@ -1997,7 +2002,18 @@ The page no longer exists.	Sayfa artık yok.
 The object no longer exists.	Nesne artık yok.
 Nothing to export	Dışa aktarılacak bir şey yok
 No scanner or camera was found. Connect a WIA device and try again.	Tarayıcı veya kamera bulunamadı. Bir WIA aygıtı bağlayıp yeniden deneyin.
-Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	Tarama, Linux'ta AnyVector'da henüz kullanılamıyor. Görüntüyü sisteminizin tarama programıyla (örneğin Belge Tarayıcı veya XSane) tarayın, kaydedin ve Dosya ▸ İçe Aktar ile çizime ekleyin.
+Select Source	Kaynak Seç
+Looking for scanners...	Tarayıcılar aranıyor...
+Choose the scanner to use:	Kullanılacak tarayıcıyı seçin:
+Scanner:	Tarayıcı:
+Scan	Tara
+Reading the scanner's settings...	Tarayıcının ayarları okunuyor...
+Scanning on Linux uses SANE, and its scanimage program was not found. Install it with your package manager (sane-utils on Debian and Ubuntu, sane-backends on Fedora and Arch) together with your scanner's SANE driver, then try again.	Linux'ta tarama SANE ile yapılır ve onun scanimage programı bulunamadı. Paket yöneticinizle (Debian ve Ubuntu'da sane-utils, Fedora ve Arch'ta sane-backends) tarayıcınızın SANE sürücüsüyle birlikte kurun ve yeniden deneyin.
+No scanner was found. Check that the scanner is connected and turned on, and that its SANE driver is installed (for network scanners, sane-airscan). The command scanimage -L lists the scanners SANE sees.	Tarayıcı bulunamadı. Tarayıcının bağlı ve açık olduğunu ve SANE sürücüsünün kurulu olduğunu (ağ tarayıcıları için sane-airscan) denetleyin. scanimage -L komutu SANE'nin gördüğü tarayıcıları listeler.
+Document Scanner (simple-scan) is installed: you can scan with it, save the image and bring it in with File ▸ Import.	Belge Tarayıcı (simple-scan) kurulu: onunla tarayabilir, görüntüyü kaydedebilir ve Dosya ▸ İçe Aktar ile çizime ekleyebilirsiniz.
+Looking for scanners failed:	Tarayıcı araması başarısız oldu:
+Looking for scanners failed:\n{}	Tarayıcı araması başarısız oldu:\n{}
+The image could not be acquired:	Görüntü alınamadı:
 Select WIA Source	WIA Kaynağını Seç
 The image could not be acquired:\n{}	Görüntü alınamadı:\n{}
 All File Formats	Tüm Dosya Biçimleri

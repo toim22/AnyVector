@@ -1543,6 +1543,11 @@ Block Shadow	Ombre bloc
 Block Shadow tool	Outil Ombre bloc
 Color Eyedropper	Pipette de couleur
 Color Eyedropper tool	Outil Pipette de couleur
+AnyVector cannot see the screen outside its window: the desktop's color picker (xdg-desktop-portal) was not found. Install xdg-desktop-portal and your desktop's portal (for example xdg-desktop-portal-gnome or xdg-desktop-portal-kde), or sample colors inside the drawing window.	AnyVector ne peut pas voir l'écran en dehors de sa fenêtre : le sélecteur de couleur du bureau (xdg-desktop-portal) est introuvable. Installez xdg-desktop-portal et le portail de votre bureau (par exemple xdg-desktop-portal-gnome ou xdg-desktop-portal-kde), ou échantillonnez les couleurs dans la fenêtre de dessin.
+Without the desktop's color picker (xdg-desktop-portal), only the windows of X11 programs can be sampled.	Sans le sélecteur de couleur du bureau (xdg-desktop-portal), seules les fenêtres des programmes X11 peuvent être échantillonnées.
+The desktop's color picker failed:	Le sélecteur de couleur du bureau a échoué :
+The desktop's color picker failed:\n{}	Le sélecteur de couleur du bureau a échoué :\n{}
+The desktop's color picker failed.	Le sélecteur de couleur du bureau a échoué.
 Attributes Eyedropper	Pipette d'attributs
 Attributes Eyedropper tool	Outil Pipette d'attributs
 Interactive Fill	Remplissage interactif
@@ -1997,7 +2002,18 @@ The page no longer exists.	La page n'existe plus.
 The object no longer exists.	L'objet n'existe plus.
 Nothing to export	Rien à exporter
 No scanner or camera was found. Connect a WIA device and try again.	Aucun scanner ni appareil photo n'a été trouvé. Connectez un périphérique WIA et réessayez.
-Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	La numérisation n'est pas encore disponible dans AnyVector sous Linux. Numérisez l'image avec le programme de numérisation du système (par exemple Numériseur de documents ou XSane), enregistrez-la, puis ajoutez-la au dessin avec Fichier ▸ Importer.
+Select Source	Sélectionner la source
+Looking for scanners...	Recherche des scanners...
+Choose the scanner to use:	Choisissez le scanner à utiliser :
+Scanner:	Scanner :
+Scan	Numériser
+Reading the scanner's settings...	Lecture des réglages du scanner...
+Scanning on Linux uses SANE, and its scanimage program was not found. Install it with your package manager (sane-utils on Debian and Ubuntu, sane-backends on Fedora and Arch) together with your scanner's SANE driver, then try again.	Sous Linux, la numérisation passe par SANE, et son programme scanimage est introuvable. Installez-le avec votre gestionnaire de paquets (sane-utils sous Debian et Ubuntu, sane-backends sous Fedora et Arch) avec le pilote SANE de votre scanner, puis réessayez.
+No scanner was found. Check that the scanner is connected and turned on, and that its SANE driver is installed (for network scanners, sane-airscan). The command scanimage -L lists the scanners SANE sees.	Aucun scanner n'a été trouvé. Vérifiez que le scanner est branché et allumé, et que son pilote SANE est installé (pour les scanners réseau, sane-airscan). La commande scanimage -L liste les scanners que SANE détecte.
+Document Scanner (simple-scan) is installed: you can scan with it, save the image and bring it in with File ▸ Import.	Numériseur de documents (simple-scan) est installé : vous pouvez numériser avec lui, enregistrer l'image, puis l'ajouter au dessin avec Fichier ▸ Importer.
+Looking for scanners failed:	La recherche de scanners a échoué :
+Looking for scanners failed:\n{}	La recherche de scanners a échoué :\n{}
+The image could not be acquired:	Impossible d'acquérir l'image :
 Select WIA Source	Sélectionner la source WIA
 The image could not be acquired:\n{}	Impossible d'acquérir l'image :\n{}
 All File Formats	Tous les formats de fichier

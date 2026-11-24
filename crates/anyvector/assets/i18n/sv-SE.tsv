@@ -1543,6 +1543,11 @@ Block Shadow	Blockskugga
 Block Shadow tool	Verktyget Blockskugga
 Color Eyedropper	Färgpipett
 Color Eyedropper tool	Verktyget Färgpipett
+AnyVector cannot see the screen outside its window: the desktop's color picker (xdg-desktop-portal) was not found. Install xdg-desktop-portal and your desktop's portal (for example xdg-desktop-portal-gnome or xdg-desktop-portal-kde), or sample colors inside the drawing window.	AnyVector kan inte se skärmen utanför sitt fönster: skrivbordets färgväljare (xdg-desktop-portal) hittades inte. Installera xdg-desktop-portal och skrivbordets portal (till exempel xdg-desktop-portal-gnome eller xdg-desktop-portal-kde), eller hämta färger i ritfönstret.
+Without the desktop's color picker (xdg-desktop-portal), only the windows of X11 programs can be sampled.	Utan skrivbordets färgväljare (xdg-desktop-portal) kan bara fönster från X11-program användas.
+The desktop's color picker failed:	Skrivbordets färgväljare misslyckades:
+The desktop's color picker failed:\n{}	Skrivbordets färgväljare misslyckades:\n{}
+The desktop's color picker failed.	Skrivbordets färgväljare misslyckades.
 Attributes Eyedropper	Attributpipett
 Attributes Eyedropper tool	Verktyget Attributpipett
 Interactive Fill	Interaktiv fyllning
@@ -1997,7 +2002,18 @@ The page no longer exists.	Sidan finns inte längre.
 The object no longer exists.	Objektet finns inte längre.
 Nothing to export	Inget att exportera
 No scanner or camera was found. Connect a WIA device and try again.	Ingen skanner eller kamera hittades. Anslut en WIA-enhet och försök igen.
-Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	Skanning är ännu inte tillgänglig i AnyVector på Linux. Skanna bilden med systemets skanningsprogram (till exempel Dokumentskanner eller XSane), spara den och hämta in den i teckningen med Arkiv ▸ Importera.
+Select Source	Välj källa
+Looking for scanners...	Söker efter skannrar...
+Choose the scanner to use:	Välj den skanner som ska användas:
+Scanner:	Skanner:
+Scan	Skanna
+Reading the scanner's settings...	Läser skannerns inställningar...
+Scanning on Linux uses SANE, and its scanimage program was not found. Install it with your package manager (sane-utils on Debian and Ubuntu, sane-backends on Fedora and Arch) together with your scanner's SANE driver, then try again.	Skanning på Linux använder SANE, och dess program scanimage hittades inte. Installera det med pakethanteraren (sane-utils på Debian och Ubuntu, sane-backends på Fedora och Arch) tillsammans med skannerns SANE-drivrutin och försök igen.
+No scanner was found. Check that the scanner is connected and turned on, and that its SANE driver is installed (for network scanners, sane-airscan). The command scanimage -L lists the scanners SANE sees.	Ingen skanner hittades. Kontrollera att skannern är ansluten och påslagen och att dess SANE-drivrutin är installerad (för nätverksskannrar sane-airscan). Kommandot scanimage -L listar de skannrar som SANE ser.
+Document Scanner (simple-scan) is installed: you can scan with it, save the image and bring it in with File ▸ Import.	Dokumentskanner (simple-scan) är installerad: du kan skanna med den, spara bilden och hämta in den i teckningen med Arkiv ▸ Importera.
+Looking for scanners failed:	Det gick inte att söka efter skannrar:
+Looking for scanners failed:\n{}	Det gick inte att söka efter skannrar:\n{}
+The image could not be acquired:	Det gick inte att hämta bilden:
 Select WIA Source	Välj WIA-källa
 The image could not be acquired:\n{}	Det gick inte att hämta bilden:\n{}
 All File Formats	Alla filformat

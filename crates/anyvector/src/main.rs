@@ -34,6 +34,8 @@ mod propbar;
 mod renderer;
 mod save_dialog;
 mod scripting;
+#[cfg(any(target_os = "linux", test))]
+mod screen_pick;
 mod settings;
 mod shortcuts;
 mod spell;
