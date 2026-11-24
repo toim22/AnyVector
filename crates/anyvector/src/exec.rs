@@ -183,10 +183,6 @@ fn mapi_send(path: &Path, subject: &str) -> bool {
 /// folder and a new e-mail started.
 const NO_MAIL_PROGRAM: &str = "No mail program accepted the attachment; the drawing is ready to attach to your message.";
 
-/// File ▸ Acquire Image on Linux: WIA and TWAIN are Windows' ways to talk to scanners.
-#[cfg(not(windows))]
-const NO_SCANNING: &str = "Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.";
-
 /// The order of the Save dialog's filters off Windows (`rfd`): the type chosen first, as the
 /// dialogs start on their first filter, then the others in their order.
 fn save_filter_order(count: usize, chosen: usize) -> Vec<usize> {
@@ -1417,12 +1413,11 @@ impl AnyVectorApp {
                 self.background.push(rx);
                 self.flash("Waiting for the scanner...");
             }
+            // off Windows both "Select Source" items choose a SANE scanner
             #[cfg(not(windows))]
-            Cmd::SelectWia => self.info_box("Select WIA Source", NO_SCANNING),
+            Cmd::SelectWia | Cmd::SelectTwain => crate::dialogs::scan::select_source(self),
             #[cfg(not(windows))]
-            Cmd::SelectTwain => self.info_box("Select TWAIN Source", NO_SCANNING),
-            #[cfg(not(windows))]
-            Cmd::Acquire => self.info_box("Acquire Image", NO_SCANNING),
+            Cmd::Acquire => crate::dialogs::scan::acquire(self),
             Cmd::Import => self.import_dialog(),
             Cmd::Export => {
                 if has_doc {

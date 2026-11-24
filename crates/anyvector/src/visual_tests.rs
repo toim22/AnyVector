@@ -3511,22 +3511,268 @@ fn pdf_import_of_a_broken_file_says_so() {
     h.step();
 }
 
-/// File ▸ Acquire Image on Linux: WIA and TWAIN are Windows' ways to reach a scanner, so each
-/// command says how to bring a scan in instead of silently doing nothing. The commands run
-/// directly: the message is what counts here, not how the message box draws it.
+/// File ▸ Acquire Image off Windows: the Select Source items (WIA and TWAIN alike) and Acquire
+/// open the SANE scan dialog, which starts by looking for scanners; nothing is scanned yet.
 #[cfg(not(windows))]
 #[test]
-fn acquire_image_on_linux_says_how_to_scan() {
+fn acquire_image_off_windows_opens_the_sane_dialog() {
     let mut h = dialog_harness();
     let ctx = h.ctx.clone();
-    for (cmd, title) in [(Cmd::SelectTwain, "Select TWAIN Source"), (Cmd::SelectWia, "Select WIA Source"), (Cmd::Acquire, "Acquire Image")] {
-        h.state_mut().dialogs.message_box = None;
+    h.state_mut().settings.scan = Default::default();
+    for cmd in [Cmd::SelectTwain, Cmd::SelectWia, Cmd::Acquire] {
+        h.state_mut().dialogs.scan = None;
         h.state_mut().execute(&ctx, cmd);
-        let (shown, text) = h.state().dialogs.message_box.clone().expect("a message");
-        assert_eq!(shown, title);
-        assert!(text.contains("File ▸ Import"), "{text}");
-        assert!(h.state().background.is_empty(), "nothing is started for {title}");
+        assert!(h.state().dialogs.scan.is_some(), "{cmd:?} opens the scan dialog");
+        assert!(h.state().dialogs.message_box.is_none());
+        assert!(h.state().background.is_empty(), "nothing is scanned by {cmd:?}");
     }
+}
+
+/// Two scanners as `scanimage -L` lists them.
+#[cfg(not(windows))]
+fn scan_devices() -> Vec<crate::dialogs::sane::Device> {
+    use crate::dialogs::sane::Device;
+    vec![
+        Device { name: "pixma:04A91912".into(), label: "CANON Canon PIXMA MG5200 multi-function peripheral".into() },
+        Device { name: "airscan:e0:Canon MF240".into(), label: "eSCL Canon MF240 ip=192.168.1.20".into() },
+    ]
+}
+
+/// File ▸ Acquire Image off Windows (SANE): Select Source lists the scanners and keeps the one
+/// chosen; Acquire shows the scan settings (the resolutions and color modes the scanner offers)
+/// and Cancel scans nothing. The scanner list and options are given, so no scanner is needed.
+#[cfg(not(windows))]
+#[test]
+#[ignore]
+fn visual_scan_dialog() {
+    use crate::dialogs::{sane, scan::ScanState};
+    let mut h = doc_harness();
+    h.state_mut().settings.scan = Default::default();
+    let devices = scan_devices();
+    h.state_mut().dialogs.scan = Some(ScanState::choosing(devices.clone(), false));
+    settle(&mut h);
+    save(&mut h, "scan_01_select_source");
+    click_label(&mut h, &devices[1].label);
+    click_label(&mut h, "OK");
+    assert!(h.state().dialogs.scan.is_none(), "OK closes Select Source");
+    assert_eq!(h.state().settings.scan.device.as_deref(), Some("airscan:e0:Canon MF240"), "the chosen scanner is kept");
+    assert!(h.state().background.is_empty(), "choosing scans nothing");
+    // Acquire: the scanner's own resolutions and modes, 300 dpi and color to start with
+    let opts = sane::parse_options("    --resolution 75|150|300|600|1200dpi [75]\n    --mode Lineart|Gray|Color [Lineart]\n");
+    h.state_mut().dialogs.scan = Some(ScanState::settings(devices[0].clone(), opts));
+    settle(&mut h);
+    assert!(has_label(&h, "Scan") && has_label(&h, &devices[0].label));
+    assert!(has_label(&h, "75 dpi") && has_label(&h, "Black and White"), "the first values without remembered ones");
+    save(&mut h, "scan_02_settings");
+    click_label(&mut h, "Cancel");
+    assert!(h.state().dialogs.scan.is_none(), "Cancel closes it");
+    assert!(h.state().background.is_empty(), "Cancel scans nothing");
+    // Acquire with several scanners and none chosen: the list first, then the settings
+    h.state_mut().dialogs.scan = Some(ScanState::choosing(devices.clone(), true));
+    settle(&mut h);
+    save(&mut h, "scan_03_acquire_choose");
+    click_label(&mut h, "OK");
+    assert!(h.state().dialogs.scan.is_some(), "on to the scan settings");
+    assert_eq!(h.state().settings.scan.device.as_deref(), Some("airscan:e0:Canon MF240"), "the scanner Acquire takes is kept only once it scans");
+    h.state_mut().dialogs.scan = None;
+}
+
+/// File ▸ Acquire Image off Windows without a scanner, and without SANE: a message says why and
+/// what to install; no dialog stays open.
+#[cfg(not(windows))]
+#[test]
+#[ignore]
+fn visual_scan_no_scanner_message() {
+    use crate::dialogs::scan::{ListError, ScanState, NO_SANE, NO_SCANNER};
+    let mut h = doc_harness();
+    for (r, text, name) in [(Ok(vec![]), NO_SCANNER, "scan_04_no_scanner"), (Err(ListError::NotInstalled), NO_SANE, "scan_05_no_sane")] {
+        h.state_mut().dialogs.message_box = None;
+        h.state_mut().dialogs.scan = Some(ScanState::listed(r, true));
+        settle(&mut h);
+        assert!(h.state().dialogs.scan.is_none(), "{name}: the dialog closes");
+        let (title, shown) = h.state().dialogs.message_box.clone().expect("a message");
+        assert_eq!(title, "Acquire Image");
+        assert!(shown.starts_with(text), "{shown}");
+        save(&mut h, name);
+    }
+    assert!(NO_SANE.contains("sane-utils"), "says what to install");
+    // a single scanner is taken without asking
+    h.state_mut().dialogs.message_box = None;
+    h.state_mut().dialogs.scan = Some(ScanState::listed(Ok(scan_devices()[..1].to_vec()), true));
+    settle(&mut h);
+    assert!(h.state().dialogs.scan.is_some() && has_label(&h, "Scan"), "straight to the scan settings");
+    h.state_mut().dialogs.scan = None;
+}
+
+/// A private SANE configuration with only the "test" backend (two virtual scanners); the
+/// variable is put back when this goes.
+#[cfg(target_os = "linux")]
+struct SaneTestBackend {
+    dir: std::path::PathBuf,
+    old: Option<std::ffi::OsString>,
+}
+
+#[cfg(target_os = "linux")]
+impl SaneTestBackend {
+    fn new() -> SaneTestBackend {
+        let dir = std::env::temp_dir().join(format!("anyvector-sane-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("dll.conf"), "test\n").unwrap();
+        let old = std::env::var_os("SANE_CONFIG_DIR");
+        std::env::set_var("SANE_CONFIG_DIR", &dir);
+        SaneTestBackend { dir, old }
+    }
+}
+
+#[cfg(target_os = "linux")]
+impl Drop for SaneTestBackend {
+    fn drop(&mut self) {
+        match &self.old {
+            Some(v) => std::env::set_var("SANE_CONFIG_DIR", v),
+            None => std::env::remove_var("SANE_CONFIG_DIR"),
+        }
+        let _ = std::fs::remove_dir_all(&self.dir);
+    }
+}
+
+/// Linux, a real scan: SANE's "test" backend (virtual scanners, in a SANE configuration of the
+/// test's own) is listed, scans a PNG, and Scan in the dialog imports it as the Windows WIA scan
+/// is. Needs sane-utils (scanimage with PNG output); run with
+/// `cargo test -p anyvector scan_real_linux -- --ignored --test-threads=1`.
+#[cfg(target_os = "linux")]
+#[test]
+#[ignore]
+fn scan_real_linux_sane_test_backend() {
+    use crate::dialogs::{sane, scan};
+    use std::time::{Duration, Instant};
+    let _sane = SaneTestBackend::new();
+    let devices = scan::devices_now().expect("scanimage (apt install sane-utils)");
+    let test = devices.iter().find(|d| d.name == "test:0").unwrap_or_else(|| panic!("the test backend is listed: {devices:?}")).clone();
+    assert!(test.label.contains("frontend-tester"), "{test:?}");
+    // the scan itself, to a PNG
+    let out = temp_file("scan_real", "scan.png");
+    let r = scan::scan_now(&test.name, Some("Color"), Some(75), &out).expect("scanned");
+    assert_eq!(r, format!("\u{1}import:{}", out.display()));
+    let img = image::open(&out).expect("a PNG");
+    assert!(img.width() > 100 && img.height() > 100, "{}x{}", img.width(), img.height());
+    // an unknown device: the error scanimage gives
+    let e = scan::scan_now("nonexistent:0", None, None, &out).unwrap_err();
+    assert!(e.starts_with("The image could not be acquired:\n"), "{e}");
+    assert!(!out.exists(), "no empty file is left");
+    // through the dialog: Scan imports the image into the drawing
+    let mut h = dialog_harness();
+    h.state_mut().settings.scan = Default::default();
+    let before = object_count(&h);
+    let opts = sane::parse_options("    --mode Gray|Color [Gray]\n    --resolution 1..1200dpi (in steps of 1) [50]\n");
+    h.state_mut().dialogs.scan = Some(scan::ScanState::settings(test.clone(), opts));
+    settle(&mut h);
+    click_label(&mut h, "Scan");
+    assert!(h.state().dialogs.scan.is_none());
+    assert_eq!(h.state().settings.scan.device.as_deref(), Some("test:0"), "the scanner used is kept");
+    let t = Instant::now();
+    while !h.state().background.is_empty() {
+        assert!(t.elapsed() < Duration::from_secs(60), "the scan never finished");
+        std::thread::sleep(Duration::from_millis(100));
+        h.step();
+    }
+    h.step();
+    assert!(h.state().dialogs.message_box.is_none(), "{:?}", h.state().dialogs.message_box);
+    assert_eq!(object_count(&h), before + 1, "the scan was imported");
+    assert_eq!(clip_kind_count(&h, |k| matches!(k, ObjKind::Image(_))), 1);
+}
+
+/// Linux, X11: "Select color from desktop" reads the screen pixel under the pointer (a window of
+/// a known color on an Xvfb display of the test's own). Needs Xvfb; run with
+/// `cargo test -p anyvector pick_real_linux -- --ignored --test-threads=1`.
+#[cfg(target_os = "linux")]
+#[test]
+#[ignore]
+fn pick_real_linux_x11() {
+    use crate::screen_pick::{self, x11::Screen, Polled};
+    use x11rb::connection::Connection;
+    use x11rb::protocol::xproto::{ConnectionExt, CreateWindowAux, WindowClass};
+    use x11rb::wrapper::ConnectionExt as _;
+    let _x = ClipDisplay::xvfb();
+    // another program's window, orange
+    let (c, n) = x11rb::rust_connection::RustConnection::connect(None).unwrap();
+    let root = c.setup().roots[n].root;
+    let w = c.generate_id().unwrap();
+    c.create_window(x11rb::COPY_DEPTH_FROM_PARENT, w, root, 100, 50, 40, 30, 0, WindowClass::INPUT_OUTPUT, 0, &CreateWindowAux::new().background_pixel(0x00ff_8020).override_redirect(1)).unwrap();
+    c.map_window(w).unwrap();
+    c.warp_pointer(x11rb::NONE, root, 0, 0, 0, 0, 110, 60).unwrap();
+    c.sync().unwrap();
+    let screen = Screen::open().expect("the display");
+    assert_eq!(screen.pixel(110, 60), Some(Color::rgb(0xff, 0x80, 0x20)));
+    assert_eq!(screen.pointer().map(|p| (p.0, p.1)), Some((110, 60)));
+    // picking: a frame without a click waits; the eyedropper let go outside the window samples
+    assert_eq!(screen_pick::poll(false, false), Polled::Waiting);
+    assert_eq!(screen_pick::poll(true, false), Polled::Color(Color::rgb(0xff, 0x80, 0x20)));
+    screen_pick::stop();
+}
+
+/// Linux, Wayland: the desktop's color picker over D-Bus (xdg-desktop-portal's
+/// `Screenshot.PickColor`), played by a fake portal on a private session bus: the color it
+/// answers, Cancel, and no portal at all. Needs dbus-daemon; run with
+/// `cargo test -p anyvector pick_real_linux -- --ignored --test-threads=1`.
+#[cfg(target_os = "linux")]
+#[test]
+#[ignore]
+fn pick_real_linux_portal() {
+    use crate::screen_pick::{portal, request_path, Answer};
+    use std::collections::HashMap;
+    use std::io::BufRead;
+    use zbus::zvariant::{ObjectPath, OwnedValue, Value};
+    let mut bus = std::process::Command::new("dbus-daemon")
+        .args(["--session", "--nofork", "--print-address"])
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .expect("dbus-daemon");
+    let mut addr = String::new();
+    std::io::BufReader::new(bus.stdout.as_mut().unwrap()).read_line(&mut addr).unwrap();
+    let addr = addr.trim().to_string();
+    let connect = || zbus::blocking::connection::Builder::address(addr.as_str()).unwrap().build().unwrap();
+    let client = connect();
+    assert_eq!(portal::pick(&client), Answer::NoPortal, "nothing on the bus");
+    // the fake portal: version 2 of the Screenshot interface; PickColor answers with `answers`
+    let fake = connect();
+    fake.request_name("org.freedesktop.portal.Desktop").unwrap();
+    let answers: Vec<(u32, Option<(f64, f64, f64)>)> = vec![(0, Some((1.0, 0.5, 0.0))), (1, None)];
+    let server = std::thread::spawn(move || {
+        let mut left = answers.into_iter();
+        for m in zbus::blocking::MessageIterator::from(&fake) {
+            let Ok(m) = m else { continue };
+            if m.message_type() != zbus::message::Type::MethodCall {
+                continue;
+            }
+            let h = m.header();
+            match h.member().map(|n| n.as_str()) {
+                Some("Get") => fake.reply(&h, &Value::from(2u32)).unwrap(),
+                Some("PickColor") => {
+                    let (_, opts): (String, HashMap<String, OwnedValue>) = m.body().deserialize().unwrap();
+                    let token: String = opts["handle_token"].try_clone().unwrap().try_into().unwrap();
+                    let sender = h.sender().unwrap().to_string();
+                    let path = request_path(&sender, &token);
+                    fake.reply(&h, &ObjectPath::try_from(path.as_str()).unwrap()).unwrap();
+                    let (code, color) = left.next().unwrap();
+                    let mut results: HashMap<&str, Value> = HashMap::new();
+                    if let Some(c) = color {
+                        results.insert("color", Value::from(c));
+                    }
+                    fake.emit_signal(Some(sender.as_str()), path.as_str(), "org.freedesktop.portal.Request", "Response", &(code, results)).unwrap();
+                    if left.len() == 0 {
+                        return;
+                    }
+                }
+                _ => {}
+            }
+        }
+    });
+    assert_eq!(portal::pick(&client), Answer::Color(Color::rgb(255, 128, 0)));
+    assert_eq!(portal::pick(&client), Answer::Cancelled);
+    server.join().unwrap();
+    let _ = bus.kill();
+    let _ = bus.wait();
 }
 
 /// Tools ▸ Color Management opens, draws its tabs, and Cancel leaves the settings alone.

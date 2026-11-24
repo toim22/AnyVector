@@ -19,6 +19,10 @@ pub mod palette;
 pub mod options;
 pub mod pdf_import;
 pub mod print;
+#[cfg(any(not(windows), test))]
+pub mod sane;
+#[cfg(not(windows))]
+pub mod scan;
 pub mod symmetry;
 pub mod table;
 pub mod text;
@@ -134,11 +138,18 @@ pub struct Dialogs {
     pub edit_text: Option<text::EditTextState>,
     /// HPGL Export, DXF Export and Create Cut Contour.
     pub cutter: cutter::CutterDialogs,
+    /// File ▸ Acquire Image through SANE (Windows uses WIA's own dialogs).
+    #[cfg(not(windows))]
+    pub scan: Option<scan::ScanState>,
 }
 
 impl Dialogs {
     pub fn any_modal_open(&self) -> bool {
-        self.confirm_quit
+        #[cfg(not(windows))]
+        let scan = self.scan.is_some();
+        #[cfg(windows)]
+        let scan = false;
+        scan || self.confirm_quit
             || self.options.open
             || self.new_doc.is_some()
             || self.export.is_some()
@@ -237,6 +248,10 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
     }
     if app.dialogs.pdf_import.is_some() {
         pdf_import::show(app, ctx);
+    }
+    #[cfg(not(windows))]
+    if app.dialogs.scan.is_some() {
+        scan::show(app, ctx);
     }
     if app.dialogs.bitmap.is_some() {
         export::show_bitmap(app, ctx);
