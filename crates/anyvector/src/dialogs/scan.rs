@@ -58,10 +58,21 @@ impl ScanState {
         ScanState { acquire, stage: Stage::Choose { devices, sel: 0 } }
     }
 
-    /// Tests: the scan settings of `device` with options already read.
+    /// Tests: the scan settings of `device`, whose options arrive as if read from the scanner.
     #[cfg(test)]
     pub fn settings(device: Device, opts: DeviceOptions) -> ScanState {
-        ScanState { acquire: true, stage: Stage::Settings { device, reading: None, opts, mode: 0, dpi: 0 } }
+        let (tx, rx) = channel();
+        let _ = tx.send(Some(opts));
+        ScanState { acquire: true, stage: Stage::Settings { device, reading: Some(rx), opts: DeviceOptions::default(), mode: 0, dpi: 0 } }
+    }
+
+    /// Tests: the color mode and resolution Scan would use now.
+    #[cfg(test)]
+    pub fn chosen(&self) -> Option<(String, u32)> {
+        match &self.stage {
+            Stage::Settings { opts, mode, dpi, .. } => Some((opts.modes.get(*mode)?.clone(), *opts.resolutions.get(*dpi)?)),
+            _ => None,
+        }
     }
 
     /// Tests: the device list as `scanimage -L` would have given it.

@@ -264,8 +264,13 @@ Desktop button.
   sampled, and AnyVector says so; with neither way, a message says what to install.
 - Clicks inside the window stay with the drawing's eyedropper. The eyedropper dragged out of the drawing
   and let go outside the window samples the screen too.
-- Tests with a display or a bus of their own (Xvfb; a fake portal on dbus-daemon):
-  `cargo test -p anyvector pick_real_linux -- --ignored --test-threads=1`.
+- The portal is asked from a thread; calls it should answer at once have a 5 s limit (8 s in all until
+  its picker is open), then it counts as missing. Only the user's click is waited for without limit;
+  turning the button off, or leaving AnyVector, closes the connection, and with it the picker.
+- Tests with a display or a bus of their own (Xvfb; a fake portal on dbus-daemon) run with the clipboard's:
+  `cargo test -p anyvector clip_real_linux -- --ignored --test-threads=1`. All of these are named
+  `clip_real_linux_*`, as several change the environment of the whole test program: the visual set leaves
+  them out (`cargo test -p anyvector visual_ -- --ignored --skip clip_real`).
 
 **Scanning (Phase 2)** (`dialogs/scan.rs`, `dialogs/sane.rs`). File ▸ Acquire Image through SANE's
 `scanimage` (sane-utils).
@@ -274,8 +279,7 @@ Desktop button.
   (`scanimage -A`), scans in the background to a PNG in the private temporary folder and imports it as
   the WIA scan is. Without `scanimage` or a scanner a message says what to install, and mentions Document
   Scanner (simple-scan) when it is there.
-- Real scan with SANE's virtual test scanner:
-  `cargo test -p anyvector scan_real_linux -- --ignored --test-threads=1` (needs sane-utils).
+- A real scan with SANE's virtual test scanner is one of the `clip_real_linux` tests (needs sane-utils).
 
 **Known limits after Phase 1.** No native-Wayland drag and drop (winit 0.30); clipboard contents vanish
 on exit under Wayland without a clipboard manager; printing, spell check and code pages are Phase 2;

@@ -116,10 +116,11 @@ pub use session::{poll, stop, Polled};
 
 #[cfg(target_os = "linux")]
 pub mod session {
+    use super::portal::Step;
     use super::{Answer, Way};
-    use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::mpsc::{Receiver, TryRecvError};
     use std::sync::Mutex;
+    use std::time::{Duration, Instant};
     use vector_core::Color;
 
     /// What one frame's look gave.
@@ -134,33 +135,70 @@ pub mod session {
         Message(String),
     }
 
+    /// How long the portal may take to open its color picker, in all: then it counts as missing.
+    const OPEN_LIMIT: Duration = Duration::from_secs(8);
+
+    /// The desktop's color picker, asked from a thread of its own: the window only ever looks
+    /// whether something has arrived. The thread is not waited for when AnyVector ends (the end of
+    /// the program closes the connection, and the portal then closes its picker).
+    pub struct PortalPick {
+        rx: Receiver<Step>,
+        since: Instant,
+        /// The connection of the picker on the screen.
+        open: Option<zbus::blocking::Connection>,
+    }
+
+    impl PortalPick {
+        pub fn new(rx: Receiver<Step>) -> PortalPick {
+            PortalPick { rx, since: Instant::now(), open: None }
+        }
+
+        fn start() -> PortalPick {
+            let (tx, rx) = std::sync::mpsc::channel();
+            std::thread::spawn(move || super::portal::run(super::portal::session_bus(), tx));
+            PortalPick::new(rx)
+        }
+
+        /// The answer, if it is there by `now`. A portal that has not opened its picker in time
+        /// counts as none; an open picker waits for the user as long as it takes.
+        pub fn poll(&mut self, now: Instant) -> Option<Answer> {
+            loop {
+                match self.rx.try_recv() {
+                    Ok(Step::Open(c)) => self.open = Some(c),
+                    Ok(Step::Done(a)) => return Some(a),
+                    Err(TryRecvError::Disconnected) => return Some(Answer::NoPortal),
+                    Err(TryRecvError::Empty) => return (self.open.is_none() && now.duration_since(self.since) > OPEN_LIMIT).then_some(Answer::NoPortal),
+                }
+            }
+        }
+    }
+
+    impl Drop for PortalPick {
+        /// Given up: closing the connection makes the portal close its picker and ends the thread.
+        fn drop(&mut self) {
+            let unseen = self.rx.try_iter().find_map(|s| if let Step::Open(c) = s { Some(c) } else { None });
+            if let Some(c) = self.open.take().or(unseen) {
+                std::thread::spawn(move || c.close());
+            }
+        }
+    }
+
     enum Session {
         X11 { screen: super::x11::Screen, armed: bool },
-        Portal(Receiver<Answer>),
+        Portal(PortalPick),
     }
 
     static SESSION: Mutex<Option<Session>> = Mutex::new(None);
-    /// The portal said it is not there (asked once per run).
-    static NO_PORTAL: AtomicBool = AtomicBool::new(false);
 
     fn env_set(name: &str) -> bool {
         std::env::var_os(name).is_some_and(|v| !v.is_empty())
     }
 
-    fn start() -> Result<(Session, Option<String>), String> {
+    /// Begin; `portal` is off once the portal has not answered.
+    fn start(portal: bool) -> Result<(Session, Option<String>), String> {
         let wayland = env_set("WAYLAND_DISPLAY") || env_set("WAYLAND_SOCKET");
-        match super::choose(wayland, !NO_PORTAL.load(Ordering::Relaxed), env_set("DISPLAY")) {
-            Some(Way::Portal) => {
-                let (tx, rx) = std::sync::mpsc::channel();
-                std::thread::spawn(move || {
-                    let a = match zbus::blocking::Connection::session() {
-                        Ok(c) => super::portal::pick(&c),
-                        Err(_) => Answer::NoPortal,
-                    };
-                    let _ = tx.send(a);
-                });
-                Ok((Session::Portal(rx), None))
-            }
+        match super::choose(wayland, portal, env_set("DISPLAY")) {
+            Some(Way::Portal) => Ok((Session::Portal(PortalPick::start()), None)),
             Some(Way::X11) => {
                 let screen = super::x11::Screen::open().ok_or_else(|| super::NO_PICKER.to_string())?;
                 Ok((Session::X11 { screen, armed: false }, wayland.then(|| super::ONLY_X11.to_string())))
@@ -176,7 +214,7 @@ pub mod session {
         let mut s = SESSION.lock().unwrap_or_else(|e| e.into_inner());
         let mut note = None;
         if s.is_none() {
-            match start() {
+            match start(true) {
                 Ok((session, n)) => {
                     *s = Some(session);
                     note = n;
@@ -201,19 +239,20 @@ pub mod session {
                     }
                 }
             },
-            Some(Session::Portal(rx)) => match rx.try_recv() {
-                Err(TryRecvError::Empty) => Polled::Waiting,
-                Ok(Answer::Color(c)) => Polled::Color(c),
-                Ok(Answer::Cancelled) => Polled::Cancelled,
-                Ok(Answer::Failed(e)) if e.is_empty() => Polled::Message("The desktop's color picker failed.".into()),
-                Ok(Answer::Failed(e)) => Polled::Message(format!("The desktop's color picker failed:\n{e}")),
-                Ok(Answer::NoPortal) | Err(TryRecvError::Disconnected) => {
-                    // no portal after all: X11, when there is one
-                    NO_PORTAL.store(true, Ordering::Relaxed);
-                    *s = None;
-                    drop(s);
-                    return poll(now, inside);
-                }
+            Some(Session::Portal(pick)) => match pick.poll(Instant::now()) {
+                None => Polled::Waiting,
+                Some(Answer::Color(c)) => Polled::Color(c),
+                Some(Answer::Cancelled) => Polled::Cancelled,
+                Some(Answer::Failed(e)) if e.is_empty() => Polled::Message("The desktop's color picker failed.".into()),
+                Some(Answer::Failed(e)) => Polled::Message(format!("The desktop's color picker failed:\n{e}")),
+                // no portal after all: X11, when there is one
+                Some(Answer::NoPortal) => match start(false) {
+                    Ok((session, n)) => {
+                        *s = Some(session);
+                        return n.map_or(Polled::Waiting, Polled::Note);
+                    }
+                    Err(m) => Polled::Message(m),
+                },
             },
             None => Polled::Waiting,
         };
@@ -224,8 +263,8 @@ pub mod session {
         note.map_or(Polled::Waiting, Polled::Note)
     }
 
-    /// Picking ended (the button was turned off): drop the X11 connection. A portal picker on
-    /// the screen stays until the user clicks; its answer is then dropped.
+    /// Picking ended (the button was turned off): drop the X11 connection, or close the portal's
+    /// picker.
     pub fn stop() {
         let mut s = SESSION.lock().unwrap_or_else(|e| e.into_inner());
         if s.is_some() {
@@ -285,14 +324,48 @@ pub mod x11 {
 pub mod portal {
     use super::Answer;
     use std::collections::HashMap;
+    use std::sync::mpsc::Sender;
+    use std::time::Duration;
+    use zbus::blocking::{connection::Builder, Connection};
     use zbus::zvariant::{OwnedObjectPath, OwnedValue, Value};
 
     const DEST: &str = "org.freedesktop.portal.Desktop";
     const PATH: &str = "/org/freedesktop/portal/desktop";
     const IFACE: &str = "org.freedesktop.portal.Screenshot";
 
+    /// How long the portal may take for each call it answers at once (all but the user's click,
+    /// which comes as a signal).
+    pub const CALL_LIMIT: Duration = Duration::from_secs(5);
+
+    /// What the thread asking the portal reports.
+    pub enum Step {
+        /// The picker is open on this connection; the rest is up to the user.
+        Open(Connection),
+        Done(Answer),
+    }
+
+    /// The session bus, with a limit on every call.
+    pub fn session_bus() -> zbus::Result<Connection> {
+        limited(Builder::session()?, CALL_LIMIT)
+    }
+
+    pub fn limited(b: Builder<'_>, limit: Duration) -> zbus::Result<Connection> {
+        b.method_timeout(limit).build()
+    }
+
+    /// The thread: ask over `bus`, reporting to `tx` until the answer or until no one listens.
+    pub fn run(bus: zbus::Result<Connection>, tx: Sender<Step>) {
+        let answer = match bus {
+            Ok(c) => pick(&c, || tx.send(Step::Open(c.clone())).is_ok()),
+            Err(_) => Answer::NoPortal,
+        };
+        let _ = tx.send(Step::Done(answer));
+    }
+
     fn error_answer(e: zbus::Error) -> Answer {
         match &e {
+            // no answer in time
+            zbus::Error::InputOutput(io) if io.kind() == std::io::ErrorKind::TimedOut => Answer::NoPortal,
             zbus::Error::MethodError(name, _, _) if super::means_no_portal(name.as_str()) => Answer::NoPortal,
             zbus::Error::MethodError(_, Some(text), _) => Answer::Failed(text.clone()),
             _ => Answer::Failed(e.to_string()),
@@ -300,7 +373,7 @@ pub mod portal {
     }
 
     /// The version of the portal's Screenshot interface (PickColor came with version 2).
-    fn version(conn: &zbus::blocking::Connection) -> Result<u32, zbus::Error> {
+    fn version(conn: &Connection) -> Result<u32, zbus::Error> {
         let r = conn.call_method(Some(DEST), PATH, Some("org.freedesktop.DBus.Properties"), "Get", &(IFACE, "version"))?;
         let v: OwnedValue = r.body().deserialize()?;
         u32::try_from(v).map_err(zbus::Error::from)
@@ -312,22 +385,19 @@ pub mod portal {
         <(f64, f64, f64)>::try_from(v).ok()
     }
 
-    fn signals(conn: &zbus::blocking::Connection, path: &str) -> Result<zbus::blocking::MessageIterator, zbus::Error> {
+    fn signals(conn: &Connection, path: &str) -> Result<zbus::blocking::MessageIterator, zbus::Error> {
         let rule = zbus::MatchRule::builder().msg_type(zbus::message::Type::Signal).interface("org.freedesktop.portal.Request")?.member("Response")?.path(path)?.build();
         zbus::blocking::MessageIterator::for_match_rule(rule, conn, Some(4))
     }
 
-    /// Ask the desktop's color picker for a color (waits until the user clicks or cancels).
-    pub fn pick(conn: &zbus::blocking::Connection) -> Answer {
+    /// Ask the desktop's color picker for a color. `opened` is called once the picker is on the
+    /// screen and says whether to go on; then this waits until the user clicks or cancels, or the
+    /// connection is closed.
+    pub fn pick(conn: &Connection, opened: impl FnOnce() -> bool) -> Answer {
         match version(conn) {
             Ok(v) if v >= 2 => {}
             Ok(_) => return Answer::NoPortal,
-            Err(e) => {
-                return match error_answer(e) {
-                    Answer::Failed(_) => Answer::NoPortal,
-                    a => a,
-                }
-            }
+            Err(_) => return Answer::NoPortal,
         }
         static NEXT: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
         let token = format!("anyvector{}_{}", std::process::id(), NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed));
@@ -335,7 +405,7 @@ pub mod portal {
         let path = super::request_path(&unique, &token);
         let mut it = match signals(conn, &path) {
             Ok(it) => it,
-            Err(e) => return Answer::Failed(e.to_string()),
+            Err(e) => return error_answer(e),
         };
         let mut opts: HashMap<&str, Value> = HashMap::new();
         opts.insert("handle_token", Value::from(token.as_str()));
@@ -347,17 +417,19 @@ pub mod portal {
         if handle.as_str() != path {
             it = match signals(conn, handle.as_str()) {
                 Ok(it) => it,
-                Err(e) => return Answer::Failed(e.to_string()),
+                Err(e) => return error_answer(e),
             };
         }
-        for m in it {
-            let Ok(m) = m else { continue };
+        if !opened() {
+            return Answer::Cancelled;
+        }
+        if let Some(Ok(m)) = it.next() {
             return match m.body().deserialize::<(u32, HashMap<String, OwnedValue>)>() {
                 Ok((code, results)) => super::answer(code, color_of(&results)),
                 Err(e) => Answer::Failed(e.to_string()),
             };
         }
-        // the bus went away
+        // the connection was closed
         Answer::Failed(String::new())
     }
 }
@@ -420,6 +492,24 @@ mod tests {
         assert!(means_no_portal("org.freedesktop.DBus.Error.ServiceUnknown"));
         assert!(means_no_portal("org.freedesktop.DBus.Error.UnknownMethod"));
         assert!(!means_no_portal("org.freedesktop.portal.Error.Failed"));
+    }
+
+    /// The window's side of a portal that never answers: it only looks, and gives up.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn a_portal_that_never_opens_its_picker_is_given_up() {
+        use std::time::{Duration, Instant};
+        let (tx, rx) = std::sync::mpsc::channel();
+        let mut p = session::PortalPick::new(rx);
+        let t = Instant::now();
+        assert_eq!(p.poll(t), None, "waits");
+        assert_eq!(p.poll(t + Duration::from_secs(60)), Some(Answer::NoPortal));
+        assert!(t.elapsed() < Duration::from_secs(1), "looking never waits");
+        tx.send(portal::Step::Done(Answer::Cancelled)).unwrap();
+        assert_eq!(p.poll(t), Some(Answer::Cancelled));
+        // the thread ended without a word
+        drop(tx);
+        assert_eq!(p.poll(t), Some(Answer::NoPortal));
     }
 
     /// The results dictionary of a real Response signal, as the portal sends it.

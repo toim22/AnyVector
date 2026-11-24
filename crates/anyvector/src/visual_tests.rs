@@ -3562,7 +3562,7 @@ fn visual_scan_dialog() {
     h.state_mut().dialogs.scan = Some(ScanState::settings(devices[0].clone(), opts));
     settle(&mut h);
     assert!(has_label(&h, "Scan") && has_label(&h, &devices[0].label));
-    assert!(has_label(&h, "75 dpi") && has_label(&h, "Black and White"), "the first values without remembered ones");
+    assert_eq!(h.state().dialogs.scan.as_ref().unwrap().chosen(), Some(("Color".into(), 300)), "of what the scanner offers");
     save(&mut h, "scan_02_settings");
     click_label(&mut h, "Cancel");
     assert!(h.state().dialogs.scan.is_none(), "Cancel closes it");
@@ -3638,11 +3638,11 @@ impl Drop for SaneTestBackend {
 /// Linux, a real scan: SANE's "test" backend (virtual scanners, in a SANE configuration of the
 /// test's own) is listed, scans a PNG, and Scan in the dialog imports it as the Windows WIA scan
 /// is. Needs sane-utils (scanimage with PNG output); run with
-/// `cargo test -p anyvector scan_real_linux -- --ignored --test-threads=1`.
+/// `cargo test -p anyvector clip_real_linux -- --ignored --test-threads=1`.
 #[cfg(target_os = "linux")]
 #[test]
 #[ignore]
-fn scan_real_linux_sane_test_backend() {
+fn clip_real_linux_scan_sane_test_backend() {
     use crate::dialogs::{sane, scan};
     use std::time::{Duration, Instant};
     let _sane = SaneTestBackend::new();
@@ -3683,11 +3683,11 @@ fn scan_real_linux_sane_test_backend() {
 
 /// Linux, X11: "Select from Desktop" reads the screen pixel under the pointer (a window of
 /// a known color on an Xvfb display of the test's own). Needs Xvfb; run with
-/// `cargo test -p anyvector pick_real_linux -- --ignored --test-threads=1`.
+/// `cargo test -p anyvector clip_real_linux -- --ignored --test-threads=1`.
 #[cfg(target_os = "linux")]
 #[test]
 #[ignore]
-fn pick_real_linux_x11() {
+fn clip_real_linux_pick_x11() {
     use crate::screen_pick::{self, x11::Screen, Polled};
     use x11rb::connection::Connection;
     use x11rb::protocol::xproto::{ConnectionExt, CreateWindowAux, WindowClass};
@@ -3732,69 +3732,168 @@ fn pick_real_linux_x11() {
     assert_eq!(h.state().ts.eyedrop_color, Some(Color::WHITE));
 }
 
+/// What the fake portal does with a PickColor call.
+#[cfg(target_os = "linux")]
+enum FakePick {
+    /// Answers with a Response signal.
+    Respond(u32, Option<(f64, f64, f64)>),
+    /// Opens its picker and the user never clicks.
+    NoClick,
+    /// Never answers the call.
+    Silent,
+}
+
+/// A private session bus (its address is handed over, the environment stays as it is) and a fake
+/// xdg-desktop-portal on it; both go when this goes, also when a test fails.
+#[cfg(target_os = "linux")]
+struct FakePortal {
+    bus: std::process::Child,
+    addr: String,
+}
+
+#[cfg(target_os = "linux")]
+impl FakePortal {
+    fn bus() -> FakePortal {
+        use std::io::BufRead;
+        let mut bus = std::process::Command::new("dbus-daemon")
+            .args(["--session", "--nofork", "--print-address"])
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .expect("dbus-daemon (apt install dbus-daemon)");
+        let mut addr = String::new();
+        std::io::BufReader::new(bus.stdout.as_mut().unwrap()).read_line(&mut addr).unwrap();
+        FakePortal { bus, addr: addr.trim().to_string() }
+    }
+
+    fn connect(&self, limit: std::time::Duration) -> zbus::blocking::Connection {
+        crate::screen_pick::portal::limited(zbus::blocking::connection::Builder::address(self.addr.as_str()).unwrap(), limit).unwrap()
+    }
+
+    /// Serve the Screenshot interface (`version`: whether its version is told) and answer the
+    /// PickColor calls in order.
+    fn serve(&self, version: bool, picks: Vec<FakePick>) {
+        use std::collections::HashMap;
+        use zbus::zvariant::{ObjectPath, OwnedValue, Value};
+        let fake = self.connect(std::time::Duration::from_secs(5));
+        // receiving before the name is taken: zbus drops messages no one receives, and a call that
+        // came between the two would never be answered
+        let messages = zbus::blocking::MessageIterator::from(&fake);
+        fake.request_name("org.freedesktop.portal.Desktop").unwrap();
+        // ends with the connection, when the bus goes
+        std::thread::spawn(move || {
+            let mut picks = picks.into_iter();
+            for m in messages {
+                let Ok(m) = m else { return };
+                if m.message_type() != zbus::message::Type::MethodCall {
+                    continue;
+                }
+                let h = m.header();
+                match h.member().map(|n| n.as_str()) {
+                    Some("Get") if version => fake.reply(&h, &Value::from(2u32)).unwrap(),
+                    Some("PickColor") => {
+                        let pick = picks.next().unwrap();
+                        if matches!(pick, FakePick::Silent) {
+                            continue;
+                        }
+                        let (_, opts): (String, HashMap<String, OwnedValue>) = m.body().deserialize().unwrap();
+                        let token: String = opts["handle_token"].try_clone().unwrap().try_into().unwrap();
+                        let sender = h.sender().unwrap().to_string();
+                        let path = crate::screen_pick::request_path(&sender, &token);
+                        fake.reply(&h, &ObjectPath::try_from(path.as_str()).unwrap()).unwrap();
+                        if let FakePick::Respond(code, color) = pick {
+                            let mut results: HashMap<&str, Value> = HashMap::new();
+                            if let Some(c) = color {
+                                results.insert("color", Value::from(c));
+                            }
+                            fake.emit_signal(Some(sender.as_str()), path.as_str(), "org.freedesktop.portal.Request", "Response", &(code, results)).unwrap();
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        });
+    }
+
+    /// Ask the portal as the eyedropper does, from a thread; what it reported comes back.
+    fn ask(&self, limit: std::time::Duration) -> std::sync::mpsc::Receiver<crate::screen_pick::portal::Step> {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let conn = self.connect(limit);
+        std::thread::spawn(move || crate::screen_pick::portal::run(Ok(conn), tx));
+        rx
+    }
+
+    /// The answer to one request, with a limit: a portal that hangs fails the test.
+    fn answer(&self, limit: std::time::Duration) -> crate::screen_pick::Answer {
+        use crate::screen_pick::portal::Step;
+        let rx = self.ask(limit);
+        loop {
+            match rx.recv_timeout(std::time::Duration::from_secs(30)).expect("an answer in time") {
+                Step::Open(_) => {}
+                Step::Done(a) => return a,
+            }
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+impl Drop for FakePortal {
+    fn drop(&mut self) {
+        let _ = self.bus.kill();
+        let _ = self.bus.wait();
+    }
+}
+
 /// Linux, Wayland: the desktop's color picker over D-Bus (xdg-desktop-portal's
 /// `Screenshot.PickColor`), played by a fake portal on a private session bus: the color it
 /// answers, Cancel, and no portal at all. Needs dbus-daemon; run with
-/// `cargo test -p anyvector pick_real_linux -- --ignored --test-threads=1`.
+/// `cargo test -p anyvector clip_real_linux -- --ignored --test-threads=1`.
 #[cfg(target_os = "linux")]
 #[test]
 #[ignore]
-fn pick_real_linux_portal() {
-    use crate::screen_pick::{portal, request_path, Answer};
-    use std::collections::HashMap;
-    use std::io::BufRead;
-    use zbus::zvariant::{ObjectPath, OwnedValue, Value};
-    let mut bus = std::process::Command::new("dbus-daemon")
-        .args(["--session", "--nofork", "--print-address"])
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::null())
-        .spawn()
-        .expect("dbus-daemon");
-    let mut addr = String::new();
-    std::io::BufReader::new(bus.stdout.as_mut().unwrap()).read_line(&mut addr).unwrap();
-    let addr = addr.trim().to_string();
-    let connect = || zbus::blocking::connection::Builder::address(addr.as_str()).unwrap().build().unwrap();
-    let client = connect();
-    assert_eq!(portal::pick(&client), Answer::NoPortal, "nothing on the bus");
-    // the fake portal: version 2 of the Screenshot interface; PickColor answers with `answers`
-    let fake = connect();
-    fake.request_name("org.freedesktop.portal.Desktop").unwrap();
-    let answers: Vec<(u32, Option<(f64, f64, f64)>)> = vec![(0, Some((1.0, 0.5, 0.0))), (1, None)];
-    let server = std::thread::spawn(move || {
-        let mut left = answers.into_iter();
-        for m in zbus::blocking::MessageIterator::from(&fake) {
-            let Ok(m) = m else { continue };
-            if m.message_type() != zbus::message::Type::MethodCall {
-                continue;
-            }
-            let h = m.header();
-            match h.member().map(|n| n.as_str()) {
-                Some("Get") => fake.reply(&h, &Value::from(2u32)).unwrap(),
-                Some("PickColor") => {
-                    let (_, opts): (String, HashMap<String, OwnedValue>) = m.body().deserialize().unwrap();
-                    let token: String = opts["handle_token"].try_clone().unwrap().try_into().unwrap();
-                    let sender = h.sender().unwrap().to_string();
-                    let path = request_path(&sender, &token);
-                    fake.reply(&h, &ObjectPath::try_from(path.as_str()).unwrap()).unwrap();
-                    let (code, color) = left.next().unwrap();
-                    let mut results: HashMap<&str, Value> = HashMap::new();
-                    if let Some(c) = color {
-                        results.insert("color", Value::from(c));
-                    }
-                    fake.emit_signal(Some(sender.as_str()), path.as_str(), "org.freedesktop.portal.Request", "Response", &(code, results)).unwrap();
-                    if left.len() == 0 {
-                        return;
-                    }
-                }
-                _ => {}
-            }
-        }
-    });
-    assert_eq!(portal::pick(&client), Answer::Color(Color::rgb(255, 128, 0)));
-    assert_eq!(portal::pick(&client), Answer::Cancelled);
-    server.join().unwrap();
-    let _ = bus.kill();
-    let _ = bus.wait();
+fn clip_real_linux_pick_portal() {
+    use crate::screen_pick::Answer;
+    let limit = std::time::Duration::from_secs(10);
+    let bus = FakePortal::bus();
+    assert_eq!(bus.answer(limit), Answer::NoPortal, "nothing on the bus");
+    bus.serve(true, vec![FakePick::Respond(0, Some((1.0, 0.5, 0.0))), FakePick::Respond(1, None), FakePick::Respond(2, None)]);
+    assert_eq!(bus.answer(limit), Answer::Color(Color::rgb(255, 128, 0)));
+    assert_eq!(bus.answer(limit), Answer::Cancelled);
+    assert_eq!(bus.answer(limit), Answer::Failed(String::new()));
+}
+
+/// Linux, Wayland: a portal that takes the calls and never answers counts as none after the
+/// limit, and a picker the user never clicks in ends when its connection is closed (the button
+/// turned off again, the program ending). Needs dbus-daemon; run with
+/// `cargo test -p anyvector clip_real_linux -- --ignored --test-threads=1`.
+#[cfg(target_os = "linux")]
+#[test]
+#[ignore]
+fn clip_real_linux_pick_portal_that_hangs() {
+    use crate::screen_pick::{portal::Step, session::PortalPick, Answer};
+    use std::time::{Duration, Instant};
+    let limit = Duration::from_millis(500);
+    for (version, what) in [(false, "the version"), (true, "PickColor")] {
+        let bus = FakePortal::bus();
+        bus.serve(version, vec![FakePick::Silent]);
+        let t = Instant::now();
+        assert_eq!(bus.answer(limit), Answer::NoPortal, "{what} unanswered");
+        assert!(t.elapsed() >= limit && t.elapsed() < Duration::from_secs(10), "{what}: {:?}", t.elapsed());
+    }
+    let bus = FakePortal::bus();
+    bus.serve(true, vec![FakePick::NoClick]);
+    let rx = bus.ask(limit);
+    let Ok(Step::Open(conn)) = rx.recv_timeout(Duration::from_secs(30)) else { panic!("the picker opens") };
+    // no call limit on the user: still waiting well after it
+    assert!(rx.recv_timeout(limit * 3).is_err(), "waits for the click");
+    // given up, as the window does it (it keeps the connection of the open picker)
+    let (tx, steps) = std::sync::mpsc::channel();
+    tx.send(Step::Open(conn)).unwrap();
+    let mut pick = PortalPick::new(steps);
+    assert_eq!(pick.poll(Instant::now() + Duration::from_secs(3600)), None, "an open picker is not given up by itself");
+    drop(pick);
+    let Ok(Step::Done(a)) = rx.recv_timeout(Duration::from_secs(10)) else { panic!("the thread ends") };
+    assert_eq!(a, Answer::Failed(String::new()));
 }
 
 /// Tools ▸ Color Management opens, draws its tabs, and Cancel leaves the settings alone.
