@@ -1543,6 +1543,11 @@ Block Shadow	Ombra blocco
 Block Shadow tool	Strumento Ombra blocco
 Color Eyedropper	Contagocce colore
 Color Eyedropper tool	Strumento Contagocce colore
+AnyVector cannot see the screen outside its window: the desktop's color picker (xdg-desktop-portal) was not found. Install xdg-desktop-portal and your desktop's portal (for example xdg-desktop-portal-gnome or xdg-desktop-portal-kde), or sample colors inside the drawing window.	AnyVector non può vedere lo schermo al di fuori della sua finestra: il selettore colori del desktop (xdg-desktop-portal) non è stato trovato. Installare xdg-desktop-portal e il portale del proprio desktop (ad esempio xdg-desktop-portal-gnome o xdg-desktop-portal-kde), oppure campionare i colori nella finestra di disegno.
+Without the desktop's color picker (xdg-desktop-portal), only the windows of X11 programs can be sampled.	Senza il selettore colori del desktop (xdg-desktop-portal), è possibile campionare solo le finestre dei programmi X11.
+The desktop's color picker failed:	Il selettore colori del desktop non è riuscito:
+The desktop's color picker failed:\n{}	Il selettore colori del desktop non è riuscito:\n{}
+The desktop's color picker failed.	Il selettore colori del desktop non è riuscito.
 Attributes Eyedropper	Contagocce attributi
 Attributes Eyedropper tool	Strumento Contagocce attributi
 Interactive Fill	Riempimento interattivo
@@ -1997,7 +2002,18 @@ The page no longer exists.	La pagina non esiste più.
 The object no longer exists.	L'oggetto non esiste più.
 Nothing to export	Niente da esportare
 No scanner or camera was found. Connect a WIA device and try again.	Nessuno scanner o fotocamera trovati. Collegare un dispositivo WIA e riprovare.
-Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	La scansione non è ancora disponibile in AnyVector su Linux. Acquisire l'immagine con il programma di scansione del sistema (ad esempio Scanner documenti o XSane), salvarla e inserirla nel disegno con File ▸ Importa.
+Select Source	Seleziona origine
+Looking for scanners...	Ricerca degli scanner...
+Choose the scanner to use:	Scegliere lo scanner da usare:
+Scanner:	Scanner:
+Scan	Acquisisci
+Reading the scanner's settings...	Lettura delle impostazioni dello scanner...
+Scanning on Linux uses SANE, and its scanimage program was not found. Install it with your package manager (sane-utils on Debian and Ubuntu, sane-backends on Fedora and Arch) together with your scanner's SANE driver, then try again.	Su Linux la scansione usa SANE, e il suo programma scanimage non è stato trovato. Installarlo con il gestore dei pacchetti (sane-utils su Debian e Ubuntu, sane-backends su Fedora e Arch) insieme al driver SANE dello scanner, quindi riprovare.
+No scanner was found. Check that the scanner is connected and turned on, and that its SANE driver is installed (for network scanners, sane-airscan). The command scanimage -L lists the scanners SANE sees.	Non è stato trovato alcuno scanner. Verificare che lo scanner sia collegato e acceso e che il suo driver SANE sia installato (per gli scanner di rete, sane-airscan). Il comando scanimage -L elenca gli scanner rilevati da SANE.
+Document Scanner (simple-scan) is installed: you can scan with it, save the image and bring it in with File ▸ Import.	Scanner documenti (simple-scan) è installato: è possibile acquisire con questo programma, salvare l'immagine e inserirla nel disegno con File ▸ Importa.
+Looking for scanners failed:	La ricerca degli scanner non è riuscita:
+Looking for scanners failed:\n{}	La ricerca degli scanner non è riuscita:\n{}
+The image could not be acquired:	Impossibile acquisire l'immagine:
 Select WIA Source	Seleziona origine WIA
 The image could not be acquired:\n{}	Impossibile acquisire l'immagine:\n{}
 All File Formats	Tutti i formati di file

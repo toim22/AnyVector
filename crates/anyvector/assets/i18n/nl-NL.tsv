@@ -1543,6 +1543,11 @@ Block Shadow	Blokschaduw
 Block Shadow tool	Hulpmiddel Blokschaduw
 Color Eyedropper	Kleurenpipet
 Color Eyedropper tool	Hulpmiddel Kleurenpipet
+AnyVector cannot see the screen outside its window: the desktop's color picker (xdg-desktop-portal) was not found. Install xdg-desktop-portal and your desktop's portal (for example xdg-desktop-portal-gnome or xdg-desktop-portal-kde), or sample colors inside the drawing window.	AnyVector kan het scherm buiten zijn venster niet zien: de kleurkiezer van het bureaublad (xdg-desktop-portal) is niet gevonden. Installeer xdg-desktop-portal en het portaal van uw bureaublad (bijvoorbeeld xdg-desktop-portal-gnome of xdg-desktop-portal-kde), of neem kleuren op in het tekenvenster.
+Without the desktop's color picker (xdg-desktop-portal), only the windows of X11 programs can be sampled.	Zonder de kleurkiezer van het bureaublad (xdg-desktop-portal) kunnen alleen vensters van X11-programma's worden opgenomen.
+The desktop's color picker failed:	De kleurkiezer van het bureaublad is mislukt:
+The desktop's color picker failed:\n{}	De kleurkiezer van het bureaublad is mislukt:\n{}
+The desktop's color picker failed.	De kleurkiezer van het bureaublad is mislukt.
 Attributes Eyedropper	Kenmerkenpipet
 Attributes Eyedropper tool	Hulpmiddel Kenmerkenpipet
 Interactive Fill	Interactieve vulling
@@ -1997,7 +2002,18 @@ The page no longer exists.	De pagina bestaat niet meer.
 The object no longer exists.	Het object bestaat niet meer.
 Nothing to export	Niets om te exporteren
 No scanner or camera was found. Connect a WIA device and try again.	Er is geen scanner of camera gevonden. Sluit een WIA-apparaat aan en probeer het opnieuw.
-Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	Scannen is in AnyVector onder Linux nog niet beschikbaar. Scan de afbeelding met het scanprogramma van uw systeem (bijvoorbeeld Documentscanner of XSane), sla deze op en haal deze in de tekening met Bestand ▸ Importeren.
+Select Source	Bron selecteren
+Looking for scanners...	Scanners zoeken...
+Choose the scanner to use:	Kies de scanner die u wilt gebruiken:
+Scanner:	Scanner:
+Scan	Scannen
+Reading the scanner's settings...	Instellingen van de scanner lezen...
+Scanning on Linux uses SANE, and its scanimage program was not found. Install it with your package manager (sane-utils on Debian and Ubuntu, sane-backends on Fedora and Arch) together with your scanner's SANE driver, then try again.	Scannen onder Linux gebruikt SANE, en het programma scanimage daarvan is niet gevonden. Installeer het met uw pakketbeheer (sane-utils op Debian en Ubuntu, sane-backends op Fedora en Arch) samen met het SANE-stuurprogramma van uw scanner en probeer het opnieuw.
+No scanner was found. Check that the scanner is connected and turned on, and that its SANE driver is installed (for network scanners, sane-airscan). The command scanimage -L lists the scanners SANE sees.	Er is geen scanner gevonden. Controleer of de scanner is aangesloten en aanstaat, en of het SANE-stuurprogramma ervan is geïnstalleerd (voor netwerkscanners sane-airscan). De opdracht scanimage -L toont de scanners die SANE ziet.
+Document Scanner (simple-scan) is installed: you can scan with it, save the image and bring it in with File ▸ Import.	Documentscanner (simple-scan) is geïnstalleerd: u kunt ermee scannen, de afbeelding opslaan en deze met Bestand ▸ Importeren in de tekening halen.
+Looking for scanners failed:	Het zoeken naar scanners is mislukt:
+Looking for scanners failed:\n{}	Het zoeken naar scanners is mislukt:\n{}
+The image could not be acquired:	De afbeelding kan niet worden opgehaald:
 Select WIA Source	WIA-bron selecteren
 The image could not be acquired:\n{}	De afbeelding kan niet worden opgehaald:\n{}
 All File Formats	Alle bestandsindelingen

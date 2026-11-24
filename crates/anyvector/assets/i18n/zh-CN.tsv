@@ -1543,6 +1543,11 @@ Block Shadow	块阴影
 Block Shadow tool	块阴影工具
 Color Eyedropper	颜色滴管
 Color Eyedropper tool	颜色滴管工具
+AnyVector cannot see the screen outside its window: the desktop's color picker (xdg-desktop-portal) was not found. Install xdg-desktop-portal and your desktop's portal (for example xdg-desktop-portal-gnome or xdg-desktop-portal-kde), or sample colors inside the drawing window.	AnyVector 无法看到其窗口以外的屏幕：未找到桌面的取色器 (xdg-desktop-portal)。请安装 xdg-desktop-portal 和您桌面的门户（例如 xdg-desktop-portal-gnome 或 xdg-desktop-portal-kde），或在绘图窗口内取样颜色。
+Without the desktop's color picker (xdg-desktop-portal), only the windows of X11 programs can be sampled.	没有桌面的取色器 (xdg-desktop-portal) 时，只能从 X11 程序的窗口中取样。
+The desktop's color picker failed:	桌面的取色器失败：
+The desktop's color picker failed:\n{}	桌面的取色器失败：\n{}
+The desktop's color picker failed.	桌面的取色器失败。
 Attributes Eyedropper	属性滴管
 Attributes Eyedropper tool	属性滴管工具
 Interactive Fill	交互式填充
@@ -1997,7 +2002,18 @@ The page no longer exists.	该页面已不存在。
 The object no longer exists.	该对象已不存在。
 Nothing to export	没有可导出的内容
 No scanner or camera was found. Connect a WIA device and try again.	未找到扫描仪或相机。请连接 WIA 设备，然后重试。
-Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	Linux 版 AnyVector 尚不支持扫描。请使用系统的扫描程序（例如文档扫描仪或 XSane）扫描图像并保存，然后通过 文件 ▸ 导入 将其导入绘图。
+Select Source	选择来源
+Looking for scanners...	正在查找扫描仪...
+Choose the scanner to use:	选择要使用的扫描仪：
+Scanner:	扫描仪：
+Scan	扫描
+Reading the scanner's settings...	正在读取扫描仪的设置...
+Scanning on Linux uses SANE, and its scanimage program was not found. Install it with your package manager (sane-utils on Debian and Ubuntu, sane-backends on Fedora and Arch) together with your scanner's SANE driver, then try again.	Linux 上的扫描使用 SANE，但未找到它的 scanimage 程序。请使用软件包管理器（Debian 和 Ubuntu 上为 sane-utils，Fedora 和 Arch 上为 sane-backends）将其与扫描仪的 SANE 驱动程序一起安装，然后重试。
+No scanner was found. Check that the scanner is connected and turned on, and that its SANE driver is installed (for network scanners, sane-airscan). The command scanimage -L lists the scanners SANE sees.	未找到扫描仪。请检查扫描仪是否已连接并打开，以及其 SANE 驱动程序是否已安装（网络扫描仪为 sane-airscan）。命令 scanimage -L 会列出 SANE 能识别的扫描仪。
+Document Scanner (simple-scan) is installed: you can scan with it, save the image and bring it in with File ▸ Import.	已安装文档扫描仪 (simple-scan)：可以用它扫描、保存图像，然后通过 文件 ▸ 导入 将其导入绘图。
+Looking for scanners failed:	查找扫描仪失败：
+Looking for scanners failed:\n{}	查找扫描仪失败：\n{}
+The image could not be acquired:	无法获取图像：
 Select WIA Source	选择 WIA 来源
 The image could not be acquired:\n{}	无法获取图像：\n{}
 All File Formats	所有文件格式

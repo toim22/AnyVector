@@ -1543,6 +1543,11 @@ Block Shadow	Cień blokowy
 Block Shadow tool	Narzędzie Cień blokowy
 Color Eyedropper	Pipeta kolorów
 Color Eyedropper tool	Narzędzie Pipeta kolorów
+AnyVector cannot see the screen outside its window: the desktop's color picker (xdg-desktop-portal) was not found. Install xdg-desktop-portal and your desktop's portal (for example xdg-desktop-portal-gnome or xdg-desktop-portal-kde), or sample colors inside the drawing window.	AnyVector nie widzi ekranu poza swoim oknem: nie znaleziono selektora kolorów pulpitu (xdg-desktop-portal). Zainstaluj xdg-desktop-portal i portal swojego pulpitu (na przykład xdg-desktop-portal-gnome lub xdg-desktop-portal-kde) albo pobieraj kolory w oknie rysunku.
+Without the desktop's color picker (xdg-desktop-portal), only the windows of X11 programs can be sampled.	Bez selektora kolorów pulpitu (xdg-desktop-portal) można pobierać kolory tylko z okien programów X11.
+The desktop's color picker failed:	Selektor kolorów pulpitu nie zadziałał:
+The desktop's color picker failed:\n{}	Selektor kolorów pulpitu nie zadziałał:\n{}
+The desktop's color picker failed.	Selektor kolorów pulpitu nie zadziałał.
 Attributes Eyedropper	Pipeta atrybutów
 Attributes Eyedropper tool	Narzędzie Pipeta atrybutów
 Interactive Fill	Wypełnienie interaktywne
@@ -1997,7 +2002,18 @@ The page no longer exists.	Strona już nie istnieje.
 The object no longer exists.	Obiekt już nie istnieje.
 Nothing to export	Brak elementów do eksportu
 No scanner or camera was found. Connect a WIA device and try again.	Nie znaleziono skanera ani aparatu. Podłącz urządzenie WIA i spróbuj ponownie.
-Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	Skanowanie nie jest jeszcze dostępne w programie AnyVector w systemie Linux. Zeskanuj obraz programem do skanowania w systemie (na przykład Skaner dokumentów lub XSane), zapisz go i wstaw do rysunku za pomocą polecenia Plik ▸ Importuj.
+Select Source	Wybierz źródło
+Looking for scanners...	Wyszukiwanie skanerów...
+Choose the scanner to use:	Wybierz skaner, którego chcesz użyć:
+Scanner:	Skaner:
+Scan	Skanuj
+Reading the scanner's settings...	Odczytywanie ustawień skanera...
+Scanning on Linux uses SANE, and its scanimage program was not found. Install it with your package manager (sane-utils on Debian and Ubuntu, sane-backends on Fedora and Arch) together with your scanner's SANE driver, then try again.	Skanowanie w systemie Linux korzysta z SANE, a jego program scanimage nie został znaleziony. Zainstaluj go menedżerem pakietów (sane-utils w Debianie i Ubuntu, sane-backends w Fedorze i Archu) razem ze sterownikiem SANE skanera i spróbuj ponownie.
+No scanner was found. Check that the scanner is connected and turned on, and that its SANE driver is installed (for network scanners, sane-airscan). The command scanimage -L lists the scanners SANE sees.	Nie znaleziono żadnego skanera. Sprawdź, czy skaner jest podłączony i włączony oraz czy jego sterownik SANE jest zainstalowany (dla skanerów sieciowych sane-airscan). Polecenie scanimage -L wyświetla skanery widoczne dla SANE.
+Document Scanner (simple-scan) is installed: you can scan with it, save the image and bring it in with File ▸ Import.	Skaner dokumentów (simple-scan) jest zainstalowany: możesz nim skanować, zapisać obraz i wstawić go do rysunku za pomocą polecenia Plik ▸ Importuj.
+Looking for scanners failed:	Wyszukiwanie skanerów nie powiodło się:
+Looking for scanners failed:\n{}	Wyszukiwanie skanerów nie powiodło się:\n{}
+The image could not be acquired:	Nie można pobrać obrazu:
 Select WIA Source	Wybierz źródło WIA
 The image could not be acquired:\n{}	Nie można pobrać obrazu:\n{}
 All File Formats	Wszystkie formaty plików

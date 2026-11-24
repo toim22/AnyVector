@@ -94,9 +94,9 @@ pub fn answer(code: u32, color: Option<(f64, f64, f64)>) -> Answer {
     let unit = |v: f64| (v.clamp(0.0, 1.0) * 255.0).round() as u8;
     match (code, color) {
         (0, Some((r, g, b))) if [r, g, b].iter().all(|v| v.is_finite()) => Answer::Color(Color::rgb(unit(r), unit(g), unit(b))),
-        (0, _) => Answer::Failed("no color in the answer".into()),
         (1, _) => Answer::Cancelled,
-        _ => Answer::Failed("the color picker stopped".into()),
+        // the portal gives no reason
+        _ => Answer::Failed(String::new()),
     }
 }
 
@@ -205,6 +205,7 @@ pub mod session {
                 Err(TryRecvError::Empty) => Polled::Waiting,
                 Ok(Answer::Color(c)) => Polled::Color(c),
                 Ok(Answer::Cancelled) => Polled::Cancelled,
+                Ok(Answer::Failed(e)) if e.is_empty() => Polled::Message("The desktop's color picker failed.".into()),
                 Ok(Answer::Failed(e)) => Polled::Message(format!("The desktop's color picker failed:\n{e}")),
                 Ok(Answer::NoPortal) | Err(TryRecvError::Disconnected) => {
                     // no portal after all: X11, when there is one
@@ -356,7 +357,8 @@ pub mod portal {
                 Err(e) => Answer::Failed(e.to_string()),
             };
         }
-        Answer::Failed("the connection to the desktop closed".into())
+        // the bus went away
+        Answer::Failed(String::new())
     }
 }
 

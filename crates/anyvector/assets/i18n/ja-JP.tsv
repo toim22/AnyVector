@@ -1543,6 +1543,11 @@ Block Shadow	ブロック シャドウ
 Block Shadow tool	ブロック シャドウ ツール
 Color Eyedropper	カラー スポイト
 Color Eyedropper tool	カラー スポイト ツール
+AnyVector cannot see the screen outside its window: the desktop's color picker (xdg-desktop-portal) was not found. Install xdg-desktop-portal and your desktop's portal (for example xdg-desktop-portal-gnome or xdg-desktop-portal-kde), or sample colors inside the drawing window.	AnyVector はウィンドウの外の画面を参照できません: デスクトップのカラー ピッカー (xdg-desktop-portal) が見つかりませんでした。xdg-desktop-portal とお使いのデスクトップのポータル (xdg-desktop-portal-gnome や xdg-desktop-portal-kde など) をインストールするか、描画ウィンドウ内でカラーをサンプリングしてください。
+Without the desktop's color picker (xdg-desktop-portal), only the windows of X11 programs can be sampled.	デスクトップのカラー ピッカー (xdg-desktop-portal) がない場合、サンプリングできるのは X11 プログラムのウィンドウだけです。
+The desktop's color picker failed:	デスクトップのカラー ピッカーが失敗しました:
+The desktop's color picker failed:\n{}	デスクトップのカラー ピッカーが失敗しました:\n{}
+The desktop's color picker failed.	デスクトップのカラー ピッカーが失敗しました。
 Attributes Eyedropper	属性スポイト
 Attributes Eyedropper tool	属性スポイト ツール
 Interactive Fill	インタラクティブ塗りつぶし
@@ -1997,7 +2002,18 @@ The page no longer exists.	このページはもう存在しません。
 The object no longer exists.	このオブジェクトはもう存在しません。
 Nothing to export	エクスポートする内容がありません
 No scanner or camera was found. Connect a WIA device and try again.	スキャナまたはカメラが見つかりませんでした。WIA デバイスを接続して、もう一度お試しください。
-Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	Linux 版の AnyVector では、スキャンはまだ使用できません。システムのスキャン プログラム (ドキュメント スキャナーや XSane など) で画像をスキャンして保存し、ファイル ▸ インポート で描画に取り込んでください。
+Select Source	ソースの選択
+Looking for scanners...	スキャナを検索しています...
+Choose the scanner to use:	使用するスキャナを選択してください:
+Scanner:	スキャナ:
+Scan	スキャン
+Reading the scanner's settings...	スキャナの設定を読み込んでいます...
+Scanning on Linux uses SANE, and its scanimage program was not found. Install it with your package manager (sane-utils on Debian and Ubuntu, sane-backends on Fedora and Arch) together with your scanner's SANE driver, then try again.	Linux でのスキャンには SANE を使用しますが、その scanimage プログラムが見つかりませんでした。パッケージ マネージャー (Debian と Ubuntu では sane-utils、Fedora と Arch では sane-backends) で、お使いのスキャナの SANE ドライバーと一緒にインストールしてから、もう一度お試しください。
+No scanner was found. Check that the scanner is connected and turned on, and that its SANE driver is installed (for network scanners, sane-airscan). The command scanimage -L lists the scanners SANE sees.	スキャナが見つかりませんでした。スキャナが接続されて電源が入っていること、およびその SANE ドライバーがインストールされていること (ネットワーク スキャナの場合は sane-airscan) を確認してください。scanimage -L コマンドで SANE が認識しているスキャナを一覧表示できます。
+Document Scanner (simple-scan) is installed: you can scan with it, save the image and bring it in with File ▸ Import.	ドキュメント スキャナー (simple-scan) がインストールされています: それでスキャンして画像を保存し、ファイル ▸ インポート で描画に取り込むことができます。
+Looking for scanners failed:	スキャナの検索に失敗しました:
+Looking for scanners failed:\n{}	スキャナの検索に失敗しました:\n{}
+The image could not be acquired:	イメージを取り込めませんでした:
 Select WIA Source	WIA ソースの選択
 The image could not be acquired:\n{}	イメージを取り込めませんでした:\n{}
 All File Formats	すべてのファイル形式

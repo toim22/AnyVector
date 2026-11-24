@@ -4041,18 +4041,20 @@ pub fn tick(app: &mut AnyVectorApp, ctx: &egui::Context) {
 fn linux_desktop_pick(app: &mut AnyVectorApp, ctx: &egui::Context) {
     use crate::screen_pick::{self, Polled};
     let (rect, pos, down, released) = ctx.input(|i| (i.content_rect(), i.pointer.latest_pos(), i.pointer.primary_down(), i.pointer.primary_released()));
-    // where a drag was last seen: the pointer may be reported gone in the frame it is let go
+    // where a drag from the drawing (not from a ruler) was last seen: the pointer may be reported
+    // gone in the frame it is let go
     let drag_id = egui::Id::unique("eyedropper_drag_at");
-    if let Some(p) = pos.filter(|_| down || released) {
-        ctx.data_mut(|d| d.insert_temp(drag_id, p));
-    }
+    let last = ctx.data(|d| d.get_temp::<Pos2>(drag_id));
+    let dragging = down && app.ts.press.is_some() && app.ts.drag.is_none() && app.tool == ToolId::ColorEyedropper;
     let mut now = false;
-    if released {
-        let last = ctx.data_mut(|d| d.remove_temp::<Pos2>(drag_id));
-        if app.tool == ToolId::ColorEyedropper && last.is_some_and(|p| !rect.contains(p)) {
-            app.ts.desktop_pick = true;
-            now = true;
+    if dragging {
+        if let Some(p) = pos {
+            ctx.data_mut(|d| d.insert_temp(drag_id, p));
         }
+    } else if last.is_some() {
+        ctx.data_mut(|d| d.remove_temp::<Pos2>(drag_id));
+        now = released && app.tool == ToolId::ColorEyedropper && pos.or(last).is_some_and(|p| !rect.contains(p));
+        app.ts.desktop_pick |= now;
     }
     if !app.ts.desktop_pick {
         screen_pick::stop();

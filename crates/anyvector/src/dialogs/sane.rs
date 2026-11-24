@@ -157,10 +157,11 @@ pub fn scan_args(device: &str, mode: Option<&str>, dpi: Option<u32>) -> Vec<Stri
     a
 }
 
-/// The line of `scanimage`'s error output that says what went wrong, without the program name.
+/// The line of `scanimage`'s error output that says what went wrong, without the program name
+/// (empty when there is none).
 pub fn error_line(stderr: &str) -> String {
     let lines: Vec<&str> = stderr.lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with("Output format is not set")).collect();
-    let line = lines.iter().rev().find(|l| l.starts_with("scanimage:")).or(lines.last()).copied().unwrap_or("scanimage stopped");
+    let line = lines.iter().rev().find(|l| l.starts_with("scanimage:")).or(lines.last()).copied().unwrap_or("");
     line.strip_prefix("scanimage:").unwrap_or(line).trim().to_string()
 }
 
@@ -237,6 +238,6 @@ mod tests {
     fn scanimage_errors_read_well() {
         assert_eq!(error_line("scanimage: open of device foo failed: Invalid argument\n"), "open of device foo failed: Invalid argument");
         assert_eq!(error_line("Output format is not set, using pnm as a default.\nscanimage: sane_start: Document feeder out of documents\n"), "sane_start: Document feeder out of documents");
-        assert_eq!(error_line(""), "scanimage stopped");
+        assert_eq!(error_line(""), "");
     }
 }

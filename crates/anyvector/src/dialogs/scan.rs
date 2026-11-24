@@ -87,11 +87,17 @@ fn with_simple_scan(text: &str) -> String {
     }
 }
 
-/// Run `scanimage` with `args`; its output, or why it failed.
+/// What `scanimage` says went wrong, else how it ended.
+fn failure(o: &std::process::Output) -> String {
+    Some(sane::error_line(&String::from_utf8_lossy(&o.stderr))).filter(|e| !e.is_empty()).unwrap_or_else(|| o.status.to_string())
+}
+
+/// Run `scanimage` with `args`; its output, or why it failed. In English, the language
+/// `sane::parse_devices` reads (the device list is translated).
 fn scanimage(args: &[&str]) -> Result<String, ListError> {
-    match std::process::Command::new(sane::SCANIMAGE).args(args).stdin(std::process::Stdio::null()).output() {
+    match std::process::Command::new(sane::SCANIMAGE).args(args).env("LC_ALL", "C").env_remove("LANGUAGE").stdin(std::process::Stdio::null()).output() {
         Ok(o) if o.status.success() => Ok(String::from_utf8_lossy(&o.stdout).into_owned()),
-        Ok(o) => Err(ListError::Failed(sane::error_line(&String::from_utf8_lossy(&o.stderr)))),
+        Ok(o) => Err(ListError::Failed(failure(&o))),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Err(ListError::NotInstalled),
         Err(e) => Err(ListError::Failed(e.to_string())),
     }
@@ -153,7 +159,7 @@ fn scan_to(args: Vec<String>, out: PathBuf) -> Result<String, String> {
     Err(match r {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => with_simple_scan(NO_SANE),
         Err(e) => format!("The image could not be acquired:\n{e}"),
-        Ok(o) => format!("The image could not be acquired:\n{}", sane::error_line(&String::from_utf8_lossy(&o.stderr))),
+        Ok(o) => format!("The image could not be acquired:\n{}", failure(&o)),
     })
 }
 
@@ -168,7 +174,10 @@ fn start_scan(app: &mut AnyVectorApp, device: &Device, mode: Option<&str>, dpi: 
     if dpi.is_some() {
         s.dpi = dpi;
     }
-    let out = crate::platform::temp_dir().join(format!("anyvector-scan-{}.png", std::process::id()));
+    // a file of its own: another scan may still be running
+    static NEXT: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+    let n = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let out = crate::platform::temp_dir().join(format!("anyvector-scan-{}-{n}.png", std::process::id()));
     let args = sane::scan_args(&device.name, mode, dpi);
     let (tx, rx) = channel();
     std::thread::spawn(move || {
