@@ -466,6 +466,15 @@ pub fn parse_lp_job(text: &str) -> Option<String> {
     text.lines().find_map(|l| l.trim().strip_prefix("request id is ")).and_then(|r| r.split_whitespace().next()).map(String::from)
 }
 
+/// Why `lp` failed, without its prefix: "lp: Error - The printer or class does not exist."
+pub fn lp_error(err: &str) -> String {
+    let lines = err.lines().map(str::trim).filter(|l| !l.is_empty()).map(|l| {
+        let l = l.strip_prefix("lp: ").unwrap_or(l);
+        l.strip_prefix("Error - ").unwrap_or(l)
+    });
+    lines.collect::<Vec<_>>().join(" ")
+}
+
 // ------------------------------------------------------------------------------------------
 // running CUPS' programs (Linux)
 // ------------------------------------------------------------------------------------------
@@ -579,11 +588,10 @@ pub fn submit(printer: &str, copies: u32, collate: bool, title: &str, opts: &Opt
     match run("lp", &args, None) {
         None => Err("Could not run lp, the CUPS print command. Install the CUPS client (the cups-client package).".into()),
         Some((true, out, _)) => Ok(parse_lp_job(&out).unwrap_or_default()),
-        Some((false, _, err)) => {
-            let why = err.lines().map(str::trim).filter(|l| !l.is_empty()).collect::<Vec<_>>().join(" ");
-            let why = why.strip_prefix("lp: ").unwrap_or(&why).to_string();
-            Err(format!("The printer did not accept the job: {why}"))
-        }
+        Some((false, _, err)) => Err(match lp_error(&err) {
+            why if why.is_empty() => "The printer did not accept the job.".into(),
+            why => format!("The printer did not accept the job: {why}"),
+        }),
     }
 }
 
@@ -743,6 +751,8 @@ printer-resolution/Print Resolution: *300dpi 600dpi\n";
         assert_eq!(lp_args("PDF", 1, true, "", &Options::default(), "/tmp/a.pdf"), ["-d", "PDF", "-n", "1", "-o", "print-scaling=none", "/tmp/a.pdf"]);
         assert_eq!(parse_lp_job("request id is PDF-3 (1 file(s))\n").as_deref(), Some("PDF-3"));
         assert_eq!(parse_lp_job(""), None);
+        assert_eq!(lp_error("lp: Error - The printer or class does not exist.\n"), "The printer or class does not exist.");
+        assert_eq!(lp_error(""), "");
     }
 
     #[test]

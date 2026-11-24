@@ -1304,6 +1304,9 @@ mod tests {
         assert_eq!(vector_io::pdf_import::page_sizes(&std::fs::read(&one).unwrap()).unwrap().len(), 4);
         assert!(write_pdf_file(&job, &sheets, &[0], &dir.join("missing").join("x.pdf")).unwrap_err().starts_with("Could not write the print file:"));
         let _ = std::fs::remove_dir_all(&dir);
+        // a printer CUPS does not know (or no CUPS at all)
+        let gone = Job { printer: "anyvector-no-such-printer".into(), ..job };
+        assert_eq!(run_job(gone).unwrap_err(), "The printer \"anyvector-no-such-printer\" is not available.");
     }
 
     /// A real job through CUPS to the cups-pdf printer "PDF" (Ubuntu: `apt install cups
