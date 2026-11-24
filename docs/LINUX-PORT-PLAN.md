@@ -247,6 +247,23 @@ dialogs get any-case patterns; links stored as Windows paths (bitmaps, symbol li
 OLE objects, colour profiles, DXF fonts) are found next to the drawing by file name; non-UTF-8 file
 names no longer panic on the command line or lose the settings file.
 
+**Save options (Phase 2, `dialogs/save_options.rs`).** On Windows, Save As is the system dialog with
+AnyVector's controls added (`save_dialog.rs`); rfd cannot add controls, so on Linux Save As has two
+steps: the system dialog (GTK or the portal) picks the folder, name and type, then AnyVector's own
+**Save Drawing** dialog shows the rest with the Windows labels, defaults and rules: the file name
+(Browse... goes back to the system dialog), folder and type; Title, Subject and Rating; for CDR and
+VCT Embed color profiles (size and summary), Embed fonts (size), Version with its note and
+Advanced... (Advanced Save Options: optimize for speed or size, presentation attributes, bitmap and
+object compression, thumbnail; OK keeps, Cancel drops); for CMX, PDF, SVG and EMF the "saves a copy"
+note. Save goes through the same code as the Windows result (`save_with`: the choices are remembered
+and written into the drawing); Cancel saves nothing. Because the dialog is drawn over frames, the
+save returns `Pending` and the dialog carries what comes next (`AfterSave`): closing a modified
+drawing closes it after Save and Close All goes on; Exit saves the next drawing, then quits; Cancel
+stops both, as cancelling the Windows dialog does. Export needs nothing: it is AnyVector's own dialog
+on both systems. Tests give the file names instead of opening rfd (`give_picked_paths`), so the
+flow is also tested on Windows; `visual_save_options_dialog` renders the dialog and its Advanced
+dialog for CDR and VCT, and the PDF copy note.
+
 **Shared bug fixes (also change Windows).**
 - `cmd /C start` targets with `&` (bug-report URLs, file names) were split and could run commands; the
   target now goes through an environment variable, and the mail subject is fully percent-encoded.

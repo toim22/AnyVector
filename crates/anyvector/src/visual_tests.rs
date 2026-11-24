@@ -9686,3 +9686,44 @@ fn visual_dimension_text_positions() {
         assert!(b.union(t) == b, "{name}: the bounds hold the value ({b:?}, {t:?})");
     }
 }
+
+/// Linux File ▸ Save As: AnyVector's Save Options step after the system save dialog, and its
+/// Advanced Save Options, for a .cdr and a .vct drawing; a PDF shows the copy note instead.
+#[test]
+#[ignore]
+fn visual_save_options_dialog() {
+    use crate::dialogs::save_options::give_picked_paths;
+    let mut h = doc_harness();
+    add_selected_rect(&mut h);
+    let i = h.state().active.unwrap();
+    let dir = temp_file("visual_save_options", "x").parent().unwrap().to_path_buf();
+    let shots: [(&str, &str); 3] = [("Poster.cdr", "cdr"), ("Plan.vct", "vct"), ("Poster.pdf", "pdf")];
+    for (k, (name, ext)) in shots.iter().enumerate() {
+        give_picked_paths(vec![Some(dir.join(name))]);
+        h.state_mut().run(Cmd::SaveAs);
+        settle(&mut h);
+        {
+            let st = h.state_mut().dialogs.save_options.as_mut().expect("the Save Options step");
+            assert_eq!(st.ext(), *ext);
+            st.req.title = "Spring poster".into();
+            st.req.subject = "Shop window".into();
+            st.req.rating = 4;
+            st.req.profiles_summary = "sRGB IEC61966-2.1; U.S. Web Coated (SWOP) v2; Dot Gain 20%".into();
+            st.req.profiles_size = 3144;
+        }
+        save(&mut h, &format!("save_options_{:02}_{ext}", k * 2 + 1));
+        if *ext != "pdf" {
+            assert!(has_label(&h, "Advanced..."));
+            click_label(&mut h, "Advanced...");
+            assert!(h.state().dialogs.save_options.as_ref().unwrap().advanced_open.is_some());
+            save(&mut h, &format!("save_options_{:02}_{ext}_advanced", k * 2 + 2));
+            click_label(&mut h, "Cancel");
+        } else {
+            assert!(!has_label(&h, "Advanced..."), "a copy has no drawing options");
+        }
+        crate::dialogs::save_options::cancel(h.state_mut());
+        settle(&mut h);
+        assert!(h.state().dialogs.save_options.is_none());
+        assert!(h.state().docs[i].path.is_none());
+    }
+}
