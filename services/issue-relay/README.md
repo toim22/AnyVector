@@ -36,8 +36,8 @@ repository.
 - `src/index.ts`: `POST /issues` (JSON, or multipart with the JSON in the part `report` and the file in the part
   `file`) → `201 {"url": …}`. It answers 400 when it refuses a report, 413 when the
   report is too large, 429 when there were too many, and 502 when GitHub failed. `GET /` answers `ok`.
-- `src/report.ts`: the checks (kind, required title and description, lengths, version, program) and the issue's
-  text. `@name` mentions and "fixes #1" are defused, so a report can't ping people or close issues.
+- `src/report.ts`: the checks (kind, required title and description, lengths, version, program), the issue's text
+  and its labels: `bug` or `enhancement`, and the system the report comes from (`windows`, `linux` or `macos`). `@name` mentions and "fixes #1" are defused, so a report can't ping people or close issues.
 - `src/attachment.ts`: the attachment rules, the asset name and the issue's *Attachment* section.
 - `src/github.ts`: the GitHub App sign-in, the issue creation and the attachment upload. A JWT signed with the private key gets a one-hour
   installation token, which is kept while valid.

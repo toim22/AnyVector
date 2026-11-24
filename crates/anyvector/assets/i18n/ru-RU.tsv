@@ -1974,6 +1974,7 @@ What happened?	Что произошло?
 Steps to reproduce (optional):	Шаги для воспроизведения (необязательно):
 What did you expect to happen? (optional)	Что вы ожидали? (необязательно)
 Include system information	Включить сведения о системе
+The version of AnyVector and the system it is for (Windows, Linux or macOS) are always sent.	Версия AnyVector и система, для которой она предназначена (Windows, Linux или macOS), отправляются всегда.
 View submitted ideas	Просмотреть отправленные идеи
 View reported bugs	Просмотреть отправленные ошибки
 Cancel	Отмена

@@ -3,7 +3,7 @@
 Status: assessment written 2026-11-23 (AnyVector 0.6.1, commit 7447911). **Phase 0 and Phase 1 done**
 the same day (issue #51, PR #153) and **Phase 2 done** 2026-11-24 (printing, spell check, code pages,
 eyedropper outside the window, scanners, save options): section 8 says what was built. Phase 3
-(packages and updater) is built too; the beta comes with AnyVector 0.7.0. The audit of file names, the 79
+(packages and updater) is built too; the beta is AnyVector 0.1.0 for Linux. The audit of file names, the 79
 closed issues and feature gaps is in [LINUX-AUDIT.md](LINUX-AUDIT.md).
 
 First Linux build (2026-11-23, WSL 2 Ubuntu 24.04, Rust 1.99.1, AnyVector 0.6.2): the whole workspace
@@ -339,11 +339,11 @@ Desktop button.
 `build.yml` builds, checks, installs and starts them and keeps them as the artifact
 `AnyVector-linux-packages`, and `linux-install` starts the .deb in Ubuntu 22.04, 24.04 and Debian 12
 containers. Nothing is published by CI: both files are added to a release by hand.
-- `AnyVector-<version>-x86_64.AppImage`: a squashfs behind the official static runtime (pinned by its
+- `AnyVector-<version>-linux-x86_64.AppImage`: a squashfs behind the official static runtime (pinned by its
   checksum). AppRun is the program itself, with no script and no `LD_LIBRARY_PATH`, so the programs
   AnyVector starts keep the system's environment. It needs `fusermount3`, or
   `--appimage-extract-and-run`; it registers no file types.
-- `anyvector_<version>_amd64.deb`, made with `dpkg-deb`. The window, graphics and D-Bus libraries are
+- `AnyVector-<version>-linux-amd64.deb`, made with `dpkg-deb`. The window, graphics and D-Bus libraries are
   opened at run time, so `control.in` lists them by hand with the reason for each. It depends on
   `xdg-desktop-portal | zenity`, because file dialogs need one of them.
 - File types: AnyVector owns only `.vct`. The other formats it opens are in a hidden second desktop file
@@ -359,11 +359,9 @@ AnyVector never uses sudo and never downloads the .deb.
 - `APPIMAGE` and `APPDIR` are inherited by child programs, so they are not trusted alone: the program must
   be inside `$APPDIR`, `$APPIMAGE` must be a type 2 AppImage for this processor outside it, and the runtime
   must have made that folder (a FUSE mount, or the parent process when extracted).
-- The new version is the highest one in the release list with files for the system (Windows: the setup;
-  Linux: an AppImage or a `.deb`), so a release may be for one system only; it still takes the next
-  number. Publish one without a setup with "Set as the latest release" off: AnyVector up to 0.6.2 reads
-  only the latest release and needs a setup in it.
-- Only `AnyVector-<version>-<arch>.AppImage` of the release is taken. Its size, GitHub's sha256 digest and
+- Linux has its own version numbers and releases (tag `v<version>-linux`); the new version is the highest
+  one of them. See [RELEASING.md](RELEASING.md).
+- Only `AnyVector-<version>-linux-<arch>.AppImage` of the release is taken. Its size, GitHub's sha256 digest and
   its header are checked after the download, when an earlier download is reused, and while it is copied. A
   release without a digest is only announced.
 - It is replaced when AnyVector closes, after the drawings are saved: a copy in the same folder, fsync, an

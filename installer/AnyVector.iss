@@ -1,9 +1,9 @@
 ﻿; AnyVector installer (Inno Setup 6.7 or later). Packages target\release\anyvector.exe.
 ;
 ;   cargo build --release
-;   "%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe" installer\AnyVector.iss      →   dist\AnyVector-<version>-setup.exe
+;   "%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe" installer\AnyVector.iss      →   dist\AnyVector-<version>-windows-x64-setup.exe
 ;
-; The version comes from the workspace Cargo.toml unless /DAppVersion=x.y.z is passed.
+; The version comes from the workspace Cargo.toml (the one of Windows) unless /DAppVersion=x.y.z is passed.
 ; The wizard pictures are drawn from the brand SVGs by `cargo run -p xtask -- brand`.
 ;
 ; Installs for the current user only (no administrator prompt, in %LOCALAPPDATA%\Programs\AnyVector) or, if the user
@@ -19,8 +19,8 @@
 
 #define AppName      "AnyVector"
 #ifndef AppVersion
-  ; `version = "x.y.z"` from the [workspace.package] section of Cargo.toml (the INI reader drops the quotes)
-  #define AppVersion   ReadIni(SourcePath + "..\Cargo.toml", "workspace.package", "version", "0.0.0")
+  ; `windows = "x.y.z"` from the [workspace.metadata.versions] section of Cargo.toml (the INI reader drops the quotes)
+  #define AppVersion   ReadIni(SourcePath + "..\Cargo.toml", "workspace.metadata.versions", "windows", "0.0.0")
 #endif
 #define AppPublisher "AnyVector Team"
 #define AppURL       "https://github.com/toim22/AnyVector"
@@ -46,7 +46,8 @@ DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 OutputDir=..\dist
-OutputBaseFilename=AnyVector-{#AppVersion}-setup
+; the name ends in -setup.exe: AnyVector finds its update by that
+OutputBaseFilename=AnyVector-{#AppVersion}-windows-x64-setup
 SetupIconFile=..\crates\anyvector\assets\anyvector.ico
 UninstallDisplayIcon={app}\{#AppExe}
 UninstallDisplayName={#AppName}

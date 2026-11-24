@@ -14,7 +14,9 @@ permissions:
   contents: read
 
 jobs:
+  # a release tag (v0.8.0-windows, v0.2.0-linux) builds its own system only
   windows:
+    if: ${{ !startsWith(github.ref, 'refs/tags/') || !endsWith(github.ref, '-linux') }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
@@ -28,13 +30,13 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      # a release tag must name the version in Cargo.toml, or the updater would offer the wrong version
+      # a release tag must name the version of its system in Cargo.toml, or the updater would offer the wrong version
       - name: Check the tag against Cargo.toml
         if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         run: |
-          $ver = (Select-String -Path Cargo.toml -Pattern '^version\s*=\s*"([^"]+)"' | Select-Object -First 1).Matches[0].Groups[1].Value
-          if ("v$ver" -ne "${{ github.ref_name }}") { throw "tag ${{ github.ref_name }} does not match version $ver in Cargo.toml" }
+          $ver = (Select-String -Path Cargo.toml -Pattern '^windows\s*=\s*"([^"]+)"' | Select-Object -First 1).Matches[0].Groups[1].Value
+          if ("v$ver-windows" -ne "${{ github.ref_name }}") { throw "tag ${{ github.ref_name }} is not v$ver-windows, the version in Cargo.toml" }
 
       - name: Tests
         shell: cmd
@@ -52,6 +54,7 @@ jobs:
           if-no-files-found: error
 
   linux:
+    if: ${{ !startsWith(github.ref, 'refs/tags/') || !endsWith(github.ref, '-windows') }}
     # the oldest Ubuntu still supported: a program built here runs on newer distributions too (glibc)
     runs-on: ubuntu-22.04
     steps:
@@ -61,8 +64,8 @@ jobs:
       - name: Check the tag against Cargo.toml
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          ver=$(sed -n 's/^version *= *"\([^"]*\)".*/\1/p' Cargo.toml | head -n 1)
-          if [ "v$ver" != "$GITHUB_REF_NAME" ]; then echo "tag $GITHUB_REF_NAME does not match version $ver in Cargo.toml"; exit 1; fi
+          ver=$(sed -n 's/^linux *= *"\([^"]*\)".*/\1/p' Cargo.toml | head -n 1)
+          if [ "v$ver-linux" != "$GITHUB_REF_NAME" ]; then echo "tag $GITHUB_REF_NAME is not v$ver-linux, the version in Cargo.toml"; exit 1; fi
 
       # winit (X11 and Wayland), the GTK file dialogs of rfd, Vulkan/GL through Mesa for wgpu, and the
       # fonts the tests expect to find (Noto, Liberation); then what builds and checks the packages
@@ -109,7 +112,7 @@ jobs:
           appstreamcli validate --no-net packaging/linux/$id.metainfo.xml
           lintian --fail-on error,warning --info --tag-display-limit 0 dist/*.deb
           # the AppImage's files, and its program is the one built above
-          ./dist/AnyVector-*-x86_64.AppImage --appimage-extract >/dev/null
+          ./dist/AnyVector-*-linux-x86_64.AppImage --appimage-extract >/dev/null
           cmp target/release/anyvector squashfs-root/AppRun
           desktop-file-validate squashfs-root/$id.desktop
           test -f squashfs-root/.DirIcon
@@ -117,13 +120,13 @@ jobs:
           rm -rf squashfs-root
 
       - name: Start the AppImage
-        run: packaging/linux/smoke-test.sh dist/smoke-appimage.png ./dist/AnyVector-*-x86_64.AppImage --appimage-extract-and-run
+        run: packaging/linux/smoke-test.sh dist/smoke-appimage.png ./dist/AnyVector-*-linux-x86_64.AppImage --appimage-extract-and-run
 
       # the .deb as apt installs it, the file types it registers, and its program
       - name: Install and start the .deb
         run: |
           set -x
-          sudo apt-get install -y -q --no-install-recommends ./dist/anyvector_*_amd64.deb
+          sudo apt-get install -y -q --no-install-recommends ./dist/AnyVector-*-linux-amd64.deb
           packaging/linux/smoke-test.sh dist/smoke-deb.png anyvector
           for type in application/x-vector-drawing:vct image/x-coreldrawtemplate:cdrt image/x-cmx:cmx application/vnd.corel-draw:cdr; do
             grep -F "${type%:*}:*.${type#*:}" /usr/share/mime/globs2
@@ -176,7 +179,7 @@ jobs:
         run: |
           set -x
           apt-get update -q
-          apt-get install -y -q --no-install-recommends ./dist/anyvector_*_amd64.deb
+          apt-get install -y -q --no-install-recommends ./dist/AnyVector-*-linux-amd64.deb
           apt-get install -y -q --no-install-recommends xvfb xauth xdotool imagemagick mesa-vulkan-drivers
           packaging/linux/smoke-test.sh dist/smoke.png anyvector
 

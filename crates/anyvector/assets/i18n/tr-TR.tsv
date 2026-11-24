@@ -1974,6 +1974,7 @@ What happened?	Ne oldu?
 Steps to reproduce (optional):	Yeniden oluşturma adımları (isteğe bağlı):
 What did you expect to happen? (optional)	Ne olmasını bekliyordunuz? (isteğe bağlı)
 Include system information	Sistem bilgilerini ekle
+The version of AnyVector and the system it is for (Windows, Linux or macOS) are always sent.	AnyVector sürümü ve hangi sistem için olduğu (Windows, Linux veya macOS) her zaman gönderilir.
 View submitted ideas	Gönderilen fikirleri görüntüle
 View reported bugs	Bildirilen hataları görüntüle
 Cancel	İptal

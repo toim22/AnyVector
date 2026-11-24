@@ -1974,6 +1974,7 @@ What happened?	Wat is er gebeurd?
 Steps to reproduce (optional):	Stappen om te reproduceren (optioneel):
 What did you expect to happen? (optional)	Wat had u verwacht? (optioneel)
 Include system information	Systeeminformatie opnemen
+The version of AnyVector and the system it is for (Windows, Linux or macOS) are always sent.	De versie van AnyVector en het systeem waarvoor deze bedoeld is (Windows, Linux of macOS) worden altijd verzonden.
 View submitted ideas	Ingediende ideeën bekijken
 View reported bugs	Gemelde fouten bekijken
 Cancel	Annuleren

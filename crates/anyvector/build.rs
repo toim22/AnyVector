@@ -1,3 +1,7 @@
+#[allow(dead_code)]
+#[path = "../vector-core/version.rs"]
+mod version;
+
 fn main() {
     println!("cargo:rerun-if-changed=assets/anyvector.ico");
     println!("cargo:rerun-if-changed=../../.git/HEAD");
@@ -16,7 +20,16 @@ fn main() {
     println!("cargo:rustc-env=ANYVECTOR_RELEASE={}", release_month());
 
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
+        println!("cargo:rerun-if-changed=../../Cargo.toml");
+        println!("cargo:rerun-if-changed=../vector-core/version.rs");
+        let toml = std::fs::read_to_string("../../Cargo.toml").expect("the workspace's Cargo.toml");
+        let v = version::version_on(&toml, "windows");
+        let number = v.split('.').fold(0, |n, part| n << 16 | part.parse::<u64>().unwrap_or(0)) << 16;
         let mut res = winresource::WindowsResource::new();
+        res.set_version_info(winresource::VersionInfo::FILEVERSION, number);
+        res.set_version_info(winresource::VersionInfo::PRODUCTVERSION, number);
+        res.set("FileVersion", &v);
+        res.set("ProductVersion", &v);
         res.set_icon("assets/anyvector.ico");
         res.set("ProductName", "AnyVector");
         res.set("FileDescription", "AnyVector - vector graphics editor");

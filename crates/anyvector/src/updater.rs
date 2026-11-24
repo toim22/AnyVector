@@ -8,7 +8,8 @@
 //!   choices): keep the product up to date (downloads by itself, asks before installing), check
 //!   and let the user choose when to install, or never check.
 //! - Help ▸ Updates shows the version, checks now and installs a new version.
-//! - The new version is the highest one with files for this system ([`newest_release`]).
+//! - Each system has its own versions and releases (tag `v<version>-<system>`): the new version is the
+//!   highest one of this system ([`newest_release`]), and the others' releases are not looked at.
 //! - The releases are read from the GitHub API; when the repository is private the GitHub CLI
 //!   (`gh`, signed in) reads and downloads it instead.
 //! - Installing runs the downloaded setup silently after AnyVector closes (so open drawings are
@@ -231,7 +232,7 @@ pub fn appimage_dir() -> Option<PathBuf> {
 }
 
 pub fn current_version() -> &'static str {
-    env!("CARGO_PKG_VERSION")
+    vector_core::APP_VERSION
 }
 
 /// "v1.2.3" → [1, 2, 3]
@@ -249,13 +250,24 @@ pub fn is_newer(remote: &str, local: &str) -> bool {
     parse_version(remote) > parse_version(local)
 }
 
+/// The systems a release can be for, as its tag and [`std::env::consts::OS`] name them.
+const SYSTEMS: [&str; 3] = ["windows", "linux", "macos"];
+
+/// The version and the system of a release's tag: `v0.8.0-windows`, `v0.2.0-linux`. The releases before
+/// the systems had their own versions (up to 0.6.2, and `v0.7.0`) have a tag without one and are for Windows.
+fn version_of_tag(tag: &str) -> (&str, &str) {
+    let core = tag.trim_start_matches(['v', 'V']);
+    let named = SYSTEMS.iter().find_map(|s| Some((core.strip_suffix(s)?.strip_suffix('-')?, *s)));
+    named.unwrap_or((core, "windows"))
+}
+
 /// The file of release `version` for the system `os` on an `arch` processor
 /// (`std::env::consts::OS` and `ARCH`), among the release's file names: the setup on Windows
-/// (`AnyVector-0.6.2-setup.exe`), the AppImage on Linux (`AnyVector-0.7.0-x86_64.AppImage`). The .deb
-/// package is never chosen: the system's package manager installs it. Whether AnyVector installs the
-/// file by itself depends on how it was installed ([`Install`]).
+/// (`AnyVector-0.8.0-windows-x64-setup.exe`), the AppImage on Linux (`AnyVector-0.1.0-linux-x86_64.AppImage`).
+/// The .deb package is never chosen: the system's package manager installs it. Whether AnyVector installs
+/// the file by itself depends on how it was installed ([`Install`]).
 pub fn asset_for<'a>(os: &str, arch: &str, version: &str, names: impl IntoIterator<Item = &'a str>) -> Option<&'a str> {
-    let appimage = format!("AnyVector-{version}-{arch}.AppImage");
+    let appimage = format!("AnyVector-{version}-linux-{arch}.AppImage");
     names.into_iter().find(|n| match os {
         "windows" => n.to_ascii_lowercase().ends_with("-setup.exe"),
         // the whole name, which is also a plain file name: no folder, nothing after the extension
@@ -276,15 +288,13 @@ impl Release {
     }
 }
 
-/// The newest release for this system in GitHub's list of releases. A release may be for Windows or
-/// Linux only. One without a setup is published on GitHub without "Set as the latest release", as
-/// AnyVector up to 0.6.2 only looks at the latest release and needs a setup there.
+/// The newest release for this system in GitHub's list of releases.
 pub fn newest_release(list: &serde_json::Value, via_gh: bool) -> Option<Release> {
     newest_for(std::env::consts::OS, std::env::consts::ARCH, list, via_gh)
 }
 
-/// The highest version in GitHub's list with files for the system `os`, in whatever order they come.
-/// Drafts (which the GitHub CLI lists for the project's members) and pre-releases are left out.
+/// The highest version of the system `os` in GitHub's list, in whatever order they come. Drafts (which the
+/// GitHub CLI lists for the project's members) and pre-releases are left out.
 fn newest_for(os: &str, arch: &str, list: &serde_json::Value, via_gh: bool) -> Option<Release> {
     let set = |v: &serde_json::Value, k: &str| v[k].as_bool().unwrap_or(false);
     let mut newest: Option<Release> = None;
@@ -300,22 +310,35 @@ fn newest_for(os: &str, arch: &str, list: &serde_json::Value, via_gh: bool) -> O
     newest
 }
 
-/// Whether a release carries files for the system `os`: the setup on Windows; an AppImage or a .deb,
-/// of any processor, on Linux. Other systems are told of every release.
+/// Whether a release is for the system `os`: its tag says so and it carries the system's files (they may
+/// still be being uploaded), the setup on Windows, an AppImage or a .deb of any processor on Linux.
 fn is_for(os: &str, v: &serde_json::Value) -> bool {
     let ends: &[&str] = match os {
         "windows" => &["-setup.exe"],
         "linux" => &[".appimage", ".deb"],
-        _ => return true,
+        _ => &[".dmg"],
     };
     let mut names = v["assets"].as_array().into_iter().flatten().filter_map(|a| a["name"].as_str());
-    names.any(|n| ends.iter().any(|e| n.to_ascii_lowercase().ends_with(e)))
+    v["tag_name"].as_str().is_some_and(|t| version_of_tag(t).1 == os) && names.any(|n| ends.iter().any(|e| n.to_ascii_lowercase().ends_with(e)))
+}
+
+/// The notes of a release without the list of every system's latest version GitHub shows before them
+/// (`xtask versions` writes both): the users of a system are told of its versions only.
+fn own_notes(body: &str) -> &str {
+    let mut at = 0;
+    for line in body.split_inclusive('\n') {
+        at += line.len();
+        if line.trim_end() == "## What is new" && body.starts_with("## Latest versions") {
+            return body[at..].trim_start();
+        }
+    }
+    body
 }
 
 /// A release described by GitHub's JSON. On Windows only one that carries its setup; elsewhere any.
 fn release_for(os: &str, arch: &str, v: &serde_json::Value, via_gh: bool) -> Option<Release> {
     let tag = v["tag_name"].as_str()?.to_string();
-    let version = tag.trim_start_matches(['v', 'V']).to_string();
+    let version = version_of_tag(&tag).0.to_string();
     let assets = v["assets"].as_array().map(Vec::as_slice).unwrap_or_default();
     let name = asset_for(os, arch, &version, assets.iter().filter_map(|a| a["name"].as_str()));
     let asset = name.and_then(|n| assets.iter().find(|a| a["name"].as_str() == Some(n)));
@@ -326,7 +349,7 @@ fn release_for(os: &str, arch: &str, v: &serde_json::Value, via_gh: bool) -> Opt
     let field = |k: &str| asset.and_then(|a| a[k].as_str()).unwrap_or_default().to_string();
     Some(Release {
         version,
-        notes: v["body"].as_str().unwrap_or_default().to_string(),
+        notes: own_notes(v["body"].as_str().unwrap_or_default()).to_string(),
         page: v["html_url"].as_str().map(str::to_string).unwrap_or_else(|| format!("https://github.com/{REPO}/releases")),
         asset_name: field("name"),
         asset_url: field("browser_download_url"),
@@ -1026,7 +1049,7 @@ onto a second line.
             NoteBlock::Item(0, vec![run("Last", false)]),
         ]);
         // the real notes have no Markdown marks left
-        for b in [include_str!("../../../docs/RELEASE-NOTES-0.3.0.md"), include_str!("../../../docs/RELEASE-NOTES-0.3.1.md"), include_str!("../../../docs/RELEASE-NOTES-0.4.0.md"), include_str!("../../../docs/RELEASE-NOTES-0.4.1.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.0.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.1.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.2.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.3.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.4.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.5.md"), include_str!("../../../docs/RELEASE-NOTES-0.6.0.md"), include_str!("../../../docs/RELEASE-NOTES-0.6.1.md"), include_str!("../../../docs/RELEASE-NOTES-0.6.2.md"), include_str!("../../../docs/RELEASE-NOTES-0.7.0.md")].iter().flat_map(|md| note_blocks(md)) {
+        for b in [include_str!("../../../docs/RELEASE-NOTES-0.3.0.md"), include_str!("../../../docs/RELEASE-NOTES-0.3.1.md"), include_str!("../../../docs/RELEASE-NOTES-0.4.0.md"), include_str!("../../../docs/RELEASE-NOTES-0.4.1.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.0.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.1.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.2.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.3.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.4.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.5.md"), include_str!("../../../docs/RELEASE-NOTES-0.6.0.md"), include_str!("../../../docs/RELEASE-NOTES-0.6.1.md"), include_str!("../../../docs/RELEASE-NOTES-0.6.2.md"), include_str!("../../../docs/RELEASE-NOTES-0.7.0-windows.md"), include_str!("../../../docs/RELEASE-NOTES-0.1.0-linux.md")].iter().flat_map(|md| note_blocks(md)) {
             let (NoteBlock::Heading(r) | NoteBlock::Item(_, r) | NoteBlock::Para(r)) = b;
             for (t, _) in r {
                 assert!(!t.contains("**") && !t.contains('`') && !t.starts_with('#') && !t.starts_with("- "), "{t}");
@@ -1045,22 +1068,21 @@ onto a second line.
         assert!(!is_newer("0.0.9", "0.1.0"));
     }
 
-    /// The JSON of a release with a setup, an AppImage (two processors), a .deb and checksums, as the
-    /// releases from 0.7.0 on.
-    fn release_json() -> serde_json::Value {
+    /// The JSON of the release 0.7.0 of a system, with files of every kind.
+    fn release_json(system: &str) -> serde_json::Value {
         let file = |name: &str, size: u64, digest: serde_json::Value| serde_json::json!({ "name": name, "browser_download_url": format!("https://x/{name}"), "size": size, "digest": digest });
         serde_json::json!({
-            "tag_name": "v0.7.0",
+            "tag_name": format!("v0.7.0-{system}"),
             "body": "New tools",
-            "html_url": "https://github.com/toim22/AnyVector/releases/tag/v0.7.0",
+            "html_url": format!("https://github.com/toim22/AnyVector/releases/tag/v0.7.0-{system}"),
             "assets": [
                 { "name": "notes.txt", "browser_download_url": "https://x/notes.txt" },
-                file("anyvector_0.7.0_amd64.deb", 40_000_000, format!("sha256:{}", "d".repeat(64)).into()),
-                file("AnyVector-0.7.0-aarch64.AppImage", 60_000_001, format!("sha256:{}", "b".repeat(64)).into()),
-                file("AnyVector-0.7.0-x86_64.AppImage", 60_000_000, format!("sha256:{}", "a".repeat(64)).into()),
-                file("AnyVector-0.7.0-x86_64.AppImage.zsync", 1000, format!("sha256:{}", "c".repeat(64)).into()),
-                file("AnyVector-0.7.0-setup.exe", 17_972_048, serde_json::Value::Null),
-                file("AnyVector-0.7.0-setup.exe.sha256", 64, serde_json::Value::Null)
+                file("AnyVector-0.7.0-linux-amd64.deb", 40_000_000, format!("sha256:{}", "d".repeat(64)).into()),
+                file("AnyVector-0.7.0-linux-aarch64.AppImage", 60_000_001, format!("sha256:{}", "b".repeat(64)).into()),
+                file("AnyVector-0.7.0-linux-x86_64.AppImage", 60_000_000, format!("sha256:{}", "a".repeat(64)).into()),
+                file("AnyVector-0.7.0-linux-x86_64.AppImage.zsync", 1000, format!("sha256:{}", "c".repeat(64)).into()),
+                file("AnyVector-0.7.0-windows-x64-setup.exe", 17_972_048, serde_json::Value::Null),
+                file("AnyVector-0.7.0-windows-x64-setup.exe.sha256", 64, serde_json::Value::Null)
             ]
         })
     }
@@ -1071,18 +1093,41 @@ onto a second line.
     }
 
     #[test]
+    fn tags_name_the_system() {
+        for (tag, version, system) in [
+            ("v0.8.0-windows", "0.8.0", "windows"),
+            ("v0.1.0-linux", "0.1.0", "linux"),
+            ("V1.0.0-macos", "1.0.0", "macos"),
+            ("0.2.0-linux", "0.2.0", "linux"),
+            ("v0.2.0-beta.1-linux", "0.2.0-beta.1", "linux"),
+            // before the systems had their own versions
+            ("v0.6.2", "0.6.2", "windows"),
+            ("v0.7.0", "0.7.0", "windows"),
+            // no system's name
+            ("v0.8.0-beta", "0.8.0-beta", "windows"),
+            ("v0.8.0linux", "0.8.0linux", "windows"),
+            ("linux-v0.8.0", "linux-v0.8.0", "windows"),
+        ] {
+            assert_eq!(version_of_tag(tag), (version, system), "{tag}");
+        }
+        // this system has one, if it has releases
+        assert_eq!(SYSTEMS.contains(&std::env::consts::OS), cfg!(any(windows, target_os = "linux", target_os = "macos")));
+    }
+
+    #[test]
     fn release_json_gives_each_system_its_file() {
-        let v = release_json();
         // Windows: the setup, as always, whatever else the release carries
-        let r = release_for("windows", "x86_64", &v, false).unwrap();
-        assert_eq!((r.version.as_str(), r.tag.as_str(), r.notes.as_str()), ("0.7.0", "v0.7.0", "New tools"));
-        assert_eq!((r.asset_name.as_str(), r.asset_url.as_str(), r.asset_size), ("AnyVector-0.7.0-setup.exe", "https://x/AnyVector-0.7.0-setup.exe", 17_972_048));
+        let r = release_for("windows", "x86_64", &release_json("windows"), false).unwrap();
+        assert_eq!((r.version.as_str(), r.tag.as_str(), r.notes.as_str()), ("0.7.0", "v0.7.0-windows", "New tools"));
+        assert_eq!((r.asset_name.as_str(), r.asset_url.as_str(), r.asset_size), ("AnyVector-0.7.0-windows-x64-setup.exe", "https://x/AnyVector-0.7.0-windows-x64-setup.exe", 17_972_048));
         assert_eq!((r.digest.as_str(), r.sha256()), ("", None));
         // Linux: the AppImage of the processor
+        let v = release_json("linux");
         let r = release_for("linux", "x86_64", &v, true).unwrap();
-        assert_eq!((r.asset_name.as_str(), r.asset_url.as_str(), r.asset_size), ("AnyVector-0.7.0-x86_64.AppImage", "https://x/AnyVector-0.7.0-x86_64.AppImage", 60_000_000));
+        assert_eq!((r.version.as_str(), r.tag.as_str()), ("0.7.0", "v0.7.0-linux"));
+        assert_eq!((r.asset_name.as_str(), r.asset_url.as_str(), r.asset_size), ("AnyVector-0.7.0-linux-x86_64.AppImage", "https://x/AnyVector-0.7.0-linux-x86_64.AppImage", 60_000_000));
         assert_eq!((r.sha256(), r.via_gh), (Some([0xaa; 32]), true));
-        assert_eq!(r.page, "https://github.com/toim22/AnyVector/releases/tag/v0.7.0");
+        assert_eq!(r.page, "https://github.com/toim22/AnyVector/releases/tag/v0.7.0-linux");
         assert_eq!(release_for("linux", "aarch64", &v, false).unwrap().sha256(), Some([0xbb; 32]));
         let r = release_for("linux", "riscv64", &v, false).unwrap();
         assert_eq!((r.asset_name.as_str(), r.asset_url.as_str(), r.asset_size, r.digest.as_str()), ("", "", 0, ""));
@@ -1090,13 +1135,13 @@ onto a second line.
 
     #[test]
     fn release_json_without_files() {
-        let none = serde_json::json!({ "tag_name": "v0.2.0", "assets": [] });
-        assert!(release_for("windows", "x86_64", &none, false).is_none(), "Windows installs the setup");
+        let none = |system: &str| serde_json::json!({ "tag_name": format!("v9.2.0-{system}"), "assets": [] });
+        assert!(release_for("windows", "x86_64", &none("windows"), false).is_none(), "Windows installs the setup");
         // Linux: the release is announced, with its page, and nothing to download (never the Windows setup)
-        let r = release_for("linux", "x86_64", &none, true).unwrap();
+        let r = release_for("linux", "x86_64", &none("linux"), true).unwrap();
         assert_eq!((r.page.as_str(), r.asset_name.as_str(), r.via_gh), ("https://github.com/toim22/AnyVector/releases", "", true));
-        let windows_only = serde_json::json!({ "tag_name": "v0.6.3", "assets": [{ "name": "AnyVector-0.6.3-setup.exe", "browser_download_url": "https://x/s", "size": 5 }] });
-        let r = release_for("linux", "x86_64", &windows_only, false).unwrap();
+        let wrong = serde_json::json!({ "tag_name": "v0.6.3-linux", "assets": [{ "name": "AnyVector-0.6.3-windows-x64-setup.exe", "browser_download_url": "https://x/s", "size": 5 }] });
+        let r = release_for("linux", "x86_64", &wrong, false).unwrap();
         assert_eq!((r.asset_name.as_str(), r.asset_url.as_str(), r.asset_size), ("", "", 0));
         for install in [appimage(true), Install::Other, Install::Setup] {
             assert!(!install.installs(&r), "{install:?}");
@@ -1105,67 +1150,103 @@ onto a second line.
             assert!(release_for("linux", "x86_64", &v, false).is_none(), "a release needs its tag: {v}");
         }
         // odd values are not believed
-        let odd = serde_json::json!({ "tag_name": "v0.7.0", "assets": [{ "name": "AnyVector-0.7.0-x86_64.AppImage", "size": "60", "digest": ["sha256:aa"] }, { "name": 3 }, null] });
+        let odd = serde_json::json!({ "tag_name": "v0.7.0-linux", "assets": [{ "name": "AnyVector-0.7.0-linux-x86_64.AppImage", "size": "60", "digest": ["sha256:aa"] }, { "name": 3 }, null] });
         let r = release_for("linux", "x86_64", &odd, false).unwrap();
-        assert_eq!((r.asset_name.as_str(), r.asset_size, r.sha256()), ("AnyVector-0.7.0-x86_64.AppImage", 0, None));
-        // this system
+        assert_eq!((r.asset_name.as_str(), r.asset_size, r.sha256()), ("AnyVector-0.7.0-linux-x86_64.AppImage", 0, None));
+        // this system: a release whose files aren't there yet is not offered
         if cfg!(any(windows, target_os = "linux")) {
-            assert!(newest_release(&serde_json::json!([none]), false).is_none(), "no files for this system");
+            let os = std::env::consts::OS;
+            assert!(newest_release(&serde_json::json!([none(os)]), false).is_none());
+            assert_eq!(newest_release(&serde_json::json!([none(os), release_json(os)]), true).map(|r| (r.version, r.via_gh)), Some(("0.7.0".into(), true)));
         }
-        assert_eq!(newest_release(&serde_json::json!([none, release_json()]), true).map(|r| (r.version, r.via_gh)), Some(("0.7.0".into(), true)));
+    }
+
+    #[test]
+    fn notes_leave_out_the_other_systems_versions() {
+        let list = "## Latest versions\n\n| System | Latest version |\n| --- | --- |\n| **Linux (beta)** | [0.2.0](https://x) |\n\n";
+        let notes = "Intro.\n\n## Fixed\n\n- A thing.\n";
+        let body = format!("{list}## What is new\n\n{notes}");
+        assert_eq!(own_notes(&body), notes);
+        // as GitHub may give it
+        assert_eq!(own_notes(&body.replace('\n', "\r\n")), notes.replace('\n', "\r\n"));
+        // the older notes, and what is not a list
+        for whole in ["", notes, "## What is new\n\n- A thing.", list, "# AnyVector 0.6.2\n\n## What is new\n\nx"] {
+            assert_eq!(own_notes(whole), whole);
+        }
+        let mut v = release_json("windows");
+        v["body"] = body.into();
+        assert_eq!(release_for("windows", "x86_64", &v, false).unwrap().notes, notes);
     }
 
     /// One entry of GitHub's list of releases; `*` in a file name is the version.
-    fn listed(version: &str, files: &[&str]) -> serde_json::Value {
-        let files = files.iter().map(|f| f.replace('*', version));
+    fn listed(tag: &str, files: &[&str]) -> serde_json::Value {
+        let files = files.iter().map(|f| f.replace('*', version_of_tag(tag).0));
         let assets: Vec<_> = files.map(|f| serde_json::json!({ "name": f, "browser_download_url": format!("https://x/{f}"), "size": 5 })).collect();
-        serde_json::json!({ "tag_name": format!("v{version}"), "draft": false, "prerelease": false, "assets": assets })
+        serde_json::json!({ "tag_name": tag, "draft": false, "prerelease": false, "assets": assets })
     }
 
-    const SETUP: &str = "AnyVector-*-setup.exe";
-    const IMAGE: &str = "AnyVector-*-x86_64.AppImage";
-    const DEB: &str = "anyvector_*_amd64.deb";
+    const SETUP: &str = "AnyVector-*-windows-x64-setup.exe";
+    const IMAGE: &str = "AnyVector-*-linux-x86_64.AppImage";
+    const DEB: &str = "AnyVector-*-linux-amd64.deb";
+    const DMG: &str = "AnyVector-*-macos-arm64.dmg";
 
-    /// A release may be for one system only: the other keeps to its own newest one.
+    /// A release of one system says nothing to the others, whatever the numbers are.
     #[test]
     fn each_system_gets_its_own_newest_release() {
-        let both = listed("0.7.0", &[SETUP, IMAGE, DEB]);
-        let linux = listed("0.7.1", &[IMAGE, DEB]);
-        let windows = listed("0.7.2", &[SETUP]);
-        let old = listed("0.6.2", &[SETUP]);
+        // the releases before the systems had their own versions: Windows
+        let old = listed("v0.6.2", &["AnyVector-*-setup.exe"]);
+        let windows = listed("v0.7.0-windows", &[SETUP]);
+        let linux = listed("v0.1.0-linux", &[IMAGE, DEB]);
         let newest = |os: &str, list: &[&serde_json::Value]| newest_for(os, "x86_64", &serde_json::json!(list), false).map(|r| (r.version, r.asset_name));
         let is = |v: &str, f: &str| Some((v.to_string(), f.replace('*', v)));
-        // a Linux-only release
-        assert_eq!(newest("windows", &[&linux, &both, &old]), is("0.7.0", SETUP));
-        assert_eq!(newest("linux", &[&linux, &both, &old]), is("0.7.1", IMAGE));
-        // then a Windows-only one
-        assert_eq!(newest("windows", &[&windows, &linux, &both, &old]), is("0.7.2", SETUP));
-        assert_eq!(newest("linux", &[&windows, &linux, &both, &old]), is("0.7.1", IMAGE));
-        // the version decides, not the order
-        assert_eq!(newest("windows", &[&old, &windows, &both, &linux]), is("0.7.2", SETUP));
-        assert_eq!(newest("linux", &[&old, &both, &linux, &windows]), is("0.7.1", IMAGE));
-        let ten = listed("0.7.10", &[SETUP, IMAGE]);
-        assert_eq!(newest("linux", &[&both, &ten, &linux]), is("0.7.10", IMAGE), "0.7.10 is after 0.7.1");
-        // a release without files of the system is no release for it
-        assert_eq!(newest("linux", &[&old]), None);
-        assert_eq!(newest("windows", &[&linux, &listed("0.8.0", &["AnyVector-*-setup.exe.sha256"])]), None);
+        // Linux 0.1.0 does not take Windows' 0.7.0 or 0.6.2 for its new version, nor the other way round
+        for list in [[&linux, &windows, &old], [&old, &windows, &linux], [&windows, &linux, &old]] {
+            assert_eq!(newest("windows", &list), is("0.7.0", SETUP));
+            assert_eq!(newest("linux", &list), is("0.1.0", IMAGE));
+            assert_eq!(newest("macos", &list), None);
+        }
+        // a new version of one system only
+        let linux2 = listed("v9.0.0-linux", &[IMAGE, DEB]);
+        assert_eq!(newest("windows", &[&linux2, &linux, &windows, &old]), is("0.7.0", SETUP));
+        assert_eq!(newest("linux", &[&linux2, &linux, &windows, &old]), is("9.0.0", IMAGE));
+        let windows2 = listed("v9.1.0-windows", &[SETUP]);
+        let mac = listed("v9.2.0-macos", &[DMG]);
+        assert_eq!(newest("windows", &[&mac, &windows2, &linux, &windows]), is("9.1.0", SETUP));
+        assert_eq!(newest("linux", &[&mac, &windows2, &linux, &windows]), is("0.1.0", IMAGE));
+        assert_eq!(newest("macos", &[&mac, &windows2, &linux, &windows]), Some(("9.2.0".into(), String::new())));
+        // the same number by chance
+        let same = listed("v0.7.0-linux", &[IMAGE, DEB]);
+        assert_eq!(newest("windows", &[&same, &windows]), is("0.7.0", SETUP));
+        assert_eq!(newest("linux", &[&same, &windows]), is("0.7.0", IMAGE));
+        // all of them at 1.0.0
+        let ones: Vec<_> = [("v1.0.0-windows", SETUP), ("v1.0.0-linux", IMAGE), ("v1.0.0-macos", DMG)].iter().map(|(t, f)| listed(t, &[f])).collect();
+        let ones: Vec<_> = ones.iter().chain([&linux, &windows, &mac]).collect();
+        assert_eq!(newest("windows", &ones), is("1.0.0", SETUP));
+        assert_eq!(newest("linux", &ones), is("1.0.0", IMAGE));
+        // 0.1.10 is after 0.1.2
+        assert_eq!(newest("linux", &[&listed("v0.1.2-linux", &[IMAGE]), &listed("v0.1.10-linux", &[IMAGE])]), is("0.1.10", IMAGE));
+        // without files of the system (not uploaded yet), or only another system's, it is no release
+        for files in [&[][..], &["notes.txt"], &[SETUP]] {
+            assert_eq!(newest("linux", &[&listed("v0.2.0-linux", files), &linux]), is("0.1.0", IMAGE), "{files:?}");
+        }
+        for files in [&[][..], &[IMAGE, DEB], &["AnyVector-*-windows-x64-setup.exe.sha256"]] {
+            assert_eq!(newest("windows", &[&listed("v0.8.0-windows", files), &windows]), is("0.7.0", SETUP), "{files:?}");
+        }
         // Linux: a .deb alone, or another processor's AppImage, is announced and there is nothing to download
-        for file in [DEB, "AnyVector-*-aarch64.AppImage"] {
-            assert_eq!(newest("linux", &[&listed("0.7.3", &[file]), &both]), Some(("0.7.3".into(), String::new())), "{file}");
+        for file in [DEB, "AnyVector-*-linux-aarch64.AppImage"] {
+            assert_eq!(newest("linux", &[&listed("v0.3.0-linux", &[file]), &linux]), Some(("0.3.0".into(), String::new())), "{file}");
         }
         // drafts and pre-releases are not offered
         for flag in ["draft", "prerelease"] {
-            let mut v = listed("0.9.0", &[SETUP, IMAGE]);
-            v[flag] = true.into();
-            for os in ["windows", "linux"] {
-                assert_eq!(newest(os, &[&v, &both]).unwrap().0, "0.7.0", "{flag} {os}");
+            for (os, tag, version, files) in [("windows", "v0.9.0-windows", "0.7.0", [SETUP]), ("linux", "v0.9.0-linux", "0.1.0", [IMAGE])] {
+                let mut v = listed(tag, &files);
+                v[flag] = true.into();
+                assert_eq!(newest(os, &[&v, &windows, &linux]).unwrap().0, version, "{flag} {os}");
             }
         }
-        // other systems are told of every release
-        assert_eq!(newest("freebsd", &[&old, &windows]), Some(("0.7.2".into(), String::new())));
         // what is not a list of releases
-        for v in [serde_json::json!({}), serde_json::json!([]), serde_json::json!([null, 3, {}, []]), serde_json::json!("x"), release_json()] {
-            for os in ["windows", "linux", "freebsd"] {
+        for v in [serde_json::json!({}), serde_json::json!([]), serde_json::json!([null, 3, {}, []]), serde_json::json!("x"), release_json("windows"), release_json("linux")] {
+            for os in ["windows", "linux", "macos", "freebsd"] {
                 assert!(newest_for(os, "x86_64", &v, false).is_none(), "{os} {v}");
             }
         }
@@ -1175,70 +1256,72 @@ onto a second line.
     #[test]
     #[cfg(any(windows, target_os = "linux"))]
     fn the_check_finds_the_newest_release_for_this_system() {
-        let image = format!("AnyVector-*-{}.AppImage", std::env::consts::ARCH);
-        let (own, other) = if cfg!(windows) { (SETUP, image.as_str()) } else { (image.as_str(), SETUP) };
+        let image = format!("AnyVector-*-linux-{}.AppImage", std::env::consts::ARCH);
+        let ((os, own), (other_os, other)) = if cfg!(windows) { (("windows", SETUP), ("linux", image.as_str())) } else { (("linux", image.as_str()), ("windows", SETUP)) };
+        let mine = |v: &str| listed(&format!("v{v}-{os}"), &[own]);
+        let theirs = |v: &str| listed(&format!("v{v}-{other_os}"), &[other]);
         let check_list = |list: serde_json::Value| check(&crate::ai_provider::test_server::start(move |_| (200, list.to_string().into_bytes())).url);
-        let found = check_list(serde_json::json!([listed("99.1.0", &[other]), listed("99.0.1", &[own]), listed("99.0.0", &[own, other])])).unwrap().unwrap();
+        let found = check_list(serde_json::json!([theirs("99.1.0"), mine("99.0.1"), mine("99.0.0")])).unwrap().unwrap();
         assert_eq!((found.version.as_str(), found.asset_name, found.via_gh), ("99.0.1", own.replace('*', "99.0.1"), false));
         // up to date, whatever the other system has
-        let list = serde_json::json!([listed("99.0.0", &[other]), listed(current_version(), &[own, other])]);
-        assert!(check_list(list).unwrap().is_none());
+        assert!(check_list(serde_json::json!([theirs("99.0.0"), mine(current_version())])).unwrap().is_none());
         // nothing for this system at all
-        assert_eq!(check_list(serde_json::json!([listed("99.0.0", &[other])])).err(), Some(unusable_release()));
+        assert_eq!(check_list(serde_json::json!([theirs("99.0.0")])).err(), Some(unusable_release()));
         assert_eq!(check_list(serde_json::json!([])).err(), Some(unusable_release()));
         assert!(releases_url().ends_with("/releases?per_page=100"));
     }
 
-    /// AnyVector 0.6.2 is installed on people's computers: it must find its setup in releases that also
-    /// carry Linux files, and so must this version.
+    /// The versions installed on people's computers must find their setup in the new releases, and must not
+    /// take a release of another system for their own.
     #[test]
-    fn windows_updaters_take_the_setup_of_a_release_with_linux_files() {
-        // as released in 0.6.2 (`release_from_json`)
-        let released_0_6_2 = |v: &serde_json::Value| -> Option<(String, String, u64)> {
+    fn released_updaters_understand_the_new_releases() {
+        // as released in 0.6.2 (`release_from_json`, given the latest release) ...
+        let released_0_6_2 = |v: &serde_json::Value| -> Option<(String, String)> {
             let asset = v["assets"].as_array()?.iter().find(|a| a["name"].as_str().is_some_and(|n| n.to_ascii_lowercase().ends_with("-setup.exe")))?;
-            Some((asset["name"].as_str()?.to_string(), asset["browser_download_url"].as_str()?.to_string(), asset["size"].as_u64()?))
+            let version = v["tag_name"].as_str()?.trim_start_matches(['v', 'V']).to_string();
+            is_newer(&version, "0.6.2").then_some((version, asset["name"].as_str()?.to_string()))
         };
-        let mut v = release_json();
-        let files = v["assets"].as_array().unwrap().clone();
-        // whatever order GitHub lists them in
-        for i in 0..files.len() {
-            let mut order = files.clone();
-            order.rotate_left(i);
-            v["assets"] = order.into();
-            let setup = ("AnyVector-0.7.0-setup.exe".to_string(), "https://x/AnyVector-0.7.0-setup.exe".to_string(), 17_972_048);
-            assert_eq!(released_0_6_2(&v), Some(setup.clone()));
-            let r = release_for("windows", "x86_64", &v, false).unwrap();
-            assert_eq!((r.asset_name.clone(), r.asset_url.clone(), r.asset_size), setup);
-            assert!(Install::Setup.installs(&r));
-        }
+        // ... and in 0.7.0 on Windows (`newest_for`, given the list)
+        let released_0_7_0 = |list: &[&serde_json::Value]| -> Option<String> {
+            let has_setup = |v: &&&serde_json::Value| v["assets"].as_array().unwrap().iter().any(|a| a["name"].as_str().unwrap().to_ascii_lowercase().ends_with("-setup.exe"));
+            let versions = list.iter().filter(has_setup).map(|v| v["tag_name"].as_str().unwrap().trim_start_matches(['v', 'V']).to_string());
+            versions.filter(|v| is_newer(v, "0.7.0")).max_by_key(|v| parse_version(v))
+        };
+        let (windows, linux) = (listed("v0.8.0-windows", &[SETUP]), listed("v9.0.0-linux", &[IMAGE, DEB]));
+        assert_eq!(released_0_6_2(&windows), Some(("0.8.0-windows".into(), "AnyVector-0.8.0-windows-x64-setup.exe".into())));
+        assert_eq!(released_0_6_2(&listed("v0.7.0-windows", &[SETUP])).unwrap().0, "0.7.0-windows");
+        assert_eq!(released_0_6_2(&linux), None);
+        assert_eq!(released_0_7_0(&[&linux, &windows]).as_deref(), Some("0.8.0-windows"));
+        assert_eq!(released_0_7_0(&[&linux, &listed("v0.7.0-windows", &[SETUP])]), None);
     }
 
     #[test]
     fn the_asset_each_system_installs() {
-        let names = ["AnyVector-0.7.0-x86_64.AppImage", "anyvector_0.7.0_amd64.deb", "AnyVector-0.7.0-Setup.exe", "AnyVector-0.7.0-setup.exe.sha256"];
+        let names = ["AnyVector-0.7.0-linux-x86_64.AppImage", "AnyVector-0.7.0-linux-amd64.deb", "AnyVector-0.7.0-windows-x64-Setup.exe", "AnyVector-0.7.0-windows-x64-setup.exe.sha256"];
         let of = |os, arch, names: &[&'static str]| asset_for(os, arch, "0.7.0", names.iter().copied());
         for arch in ["x86_64", "aarch64", "x86"] {
-            assert_eq!(of("windows", arch, &names), Some("AnyVector-0.7.0-Setup.exe"));
+            assert_eq!(of("windows", arch, &names), Some("AnyVector-0.7.0-windows-x64-Setup.exe"));
         }
-        assert_eq!(of("windows", "x86_64", &["notes.txt", "setup.exe", "AnyVector-0.7.0-x86_64.AppImage", "anyvector_0.7.0_amd64.deb"]), None);
+        assert_eq!(of("windows", "x86_64", &["notes.txt", "setup.exe", "AnyVector-0.7.0-linux-x86_64.AppImage", "AnyVector-0.7.0-linux-amd64.deb"]), None);
         // Linux: the AppImage for this processor, and never the Windows setup or the package
-        assert_eq!(of("linux", "x86_64", &names), Some("AnyVector-0.7.0-x86_64.AppImage"));
-        assert_eq!(of("linux", "x86_64", &["anyvector-0.7.0-X86_64.appimage"]), Some("anyvector-0.7.0-X86_64.appimage"));
+        assert_eq!(of("linux", "x86_64", &names), Some("AnyVector-0.7.0-linux-x86_64.AppImage"));
+        assert_eq!(of("linux", "x86_64", &["anyvector-0.7.0-LINUX-X86_64.appimage"]), Some("anyvector-0.7.0-LINUX-X86_64.appimage"));
         assert_eq!(of("linux", "aarch64", &names), None, "another processor's");
         for other in [
-            "AnyVector-0.7.0-setup.exe",
-            "anyvector_0.7.0_amd64.deb",
-            "AnyVector-0.6.9-x86_64.AppImage",
-            "AnyVector-x86_64.AppImage",
-            "AnyVector-0.7.0-x86_64.AppImage.zsync",
-            "AnyVector-0.7.0-x86_64.AppImage-setup.exe",
-            "Other-0.7.0-x86_64.AppImage",
-            "../AnyVector-0.7.0-x86_64.AppImage",
+            "AnyVector-0.7.0-windows-x64-setup.exe",
+            "AnyVector-0.7.0-linux-amd64.deb",
+            "AnyVector-0.6.9-linux-x86_64.AppImage",
+            "AnyVector-linux-x86_64.AppImage",
+            "AnyVector-0.7.0-x86_64.AppImage",
+            "AnyVector-0.7.0-linux-x86_64.AppImage.zsync",
+            "AnyVector-0.7.0-linux-x86_64.AppImage-setup.exe",
+            "Other-0.7.0-linux-x86_64.AppImage",
+            "../AnyVector-0.7.0-linux-x86_64.AppImage",
         ] {
             assert_eq!(of("linux", "x86_64", &[other]), None, "{other}");
         }
         // a version with folders in it makes no file name
-        assert_eq!(asset_for("linux", "x86_64", "/../../0.7.0", ["AnyVector-/../../0.7.0-x86_64.AppImage"]), None);
+        assert_eq!(asset_for("linux", "x86_64", "/../../0.7.0", ["AnyVector-/../../0.7.0-linux-x86_64.AppImage"]), None);
         for os in ["macos", "freebsd"] {
             assert_eq!(of(os, "x86_64", &names), None, "{os}");
         }
@@ -1247,18 +1330,18 @@ onto a second line.
     #[test]
     fn what_each_install_does_with_a_release() {
         let arch = std::env::consts::ARCH;
-        let release = |asset: &str, digest: &str| Release { version: "9.9.9".into(), tag: "v9.9.9".into(), asset_name: asset.into(), digest: digest.into(), ..Default::default() };
+        let release = |asset: &str, digest: &str| Release { version: "9.9.9".into(), tag: "v9.9.9-linux".into(), asset_name: asset.into(), digest: digest.into(), ..Default::default() };
         let sum = format!("sha256:{}", "0".repeat(64));
-        let setup = release("AnyVector-9.9.9-setup.exe", "");
-        let image = release(&format!("AnyVector-9.9.9-{arch}.AppImage"), &sum);
+        let setup = release("AnyVector-9.9.9-windows-x64-setup.exe", "");
+        let image = release(&format!("AnyVector-9.9.9-linux-{arch}.AppImage"), &sum);
         // Windows: the setup only (it has no checksum to check, as always)
         assert!(Install::Setup.installs(&setup));
-        for r in [&image, &release("", ""), &release("anyvector_9.9.9_amd64.deb", &sum)] {
+        for r in [&image, &release("", ""), &release("AnyVector-9.9.9-linux-amd64.deb", &sum)] {
             assert!(!Install::Setup.installs(r), "{}", r.asset_name);
         }
         // an AppImage: the AppImage only
         assert!(appimage(true).installs(&image));
-        for r in [&setup, &release("", &sum), &release("anyvector_9.9.9_amd64.deb", &sum), &release("AnyVector-9.9.9-mips.AppImage", &sum), &release(&format!("AnyVector-9.9.8-{arch}.AppImage"), &sum)] {
+        for r in [&setup, &release("", &sum), &release("AnyVector-9.9.9-linux-amd64.deb", &sum), &release("AnyVector-9.9.9-linux-mips.AppImage", &sum), &release(&format!("AnyVector-9.9.8-linux-{arch}.AppImage"), &sum)] {
             assert_eq!(appimage(true).announced_because(r).as_deref(), Some("This release has no AppImage for this computer."), "{}", r.asset_name);
         }
         // without a checksum it can't be checked

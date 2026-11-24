@@ -9,7 +9,6 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/toim22/AnyVector/releases/latest"><img alt="Version 0.7.0" src="https://img.shields.io/badge/version-0.7.0-0a9cff"></a>
   <img alt="Windows 10 and 11, 64-bit" src="https://img.shields.io/badge/Windows-10%20%7C%2011%20(x64)-2b3242">
   <img alt="Linux x86-64, beta" src="https://img.shields.io/badge/Linux-x86--64%20(beta)-2b3242">
   <img alt="15 languages" src="https://img.shields.io/badge/languages-15-43c35a">
@@ -17,12 +16,21 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/toim22/AnyVector/releases/latest"><strong>Download AnyVector 0.7.0</strong></a>
-  ·
-  <a href="docs/RELEASE-NOTES-0.7.0.md">What's new</a>
+  <a href="#latest-versions"><strong>Download AnyVector</strong></a>
   ·
   <a href="https://github.com/toim22/AnyVector/issues">Report a bug or share an idea</a>
 </p>
+
+## Latest versions
+
+<!-- versions: cargo run -p xtask -- versions -->
+| System | Latest version | Download |
+| --- | --- | --- |
+| **Windows** | [0.7.0](https://github.com/toim22/AnyVector/releases/tag/v0.7.0-windows) | [Setup](https://github.com/toim22/AnyVector/releases/download/v0.7.0-windows/AnyVector-0.7.0-windows-x64-setup.exe) |
+| **Linux (beta)** | [0.1.0](https://github.com/toim22/AnyVector/releases/tag/v0.1.0-linux) | [AppImage](https://github.com/toim22/AnyVector/releases/download/v0.1.0-linux/AnyVector-0.1.0-linux-x86_64.AppImage) · [.deb](https://github.com/toim22/AnyVector/releases/download/v0.1.0-linux/AnyVector-0.1.0-linux-amd64.deb) |
+<!-- /versions -->
+
+Each system has its own version numbers and gets its own updates. Click a version to see what is new in it.
 
 ---
 
@@ -74,9 +82,9 @@ Your muscle memory works on day one.
 - Every docker in Window ▸ Dockers, color palettes with a Palette Editor, multiple windows per drawing, and offline
   Help with a User Guide generated from the program itself.
 
-## Install
+## Installing on Windows
 
-1. Download `AnyVector-0.7.0-setup.exe` from the [latest release](https://github.com/toim22/AnyVector/releases/latest).
+1. Download the Windows setup, `AnyVector-<version>-windows-x64-setup.exe`, from [Latest versions](#latest-versions).
 2. Run it. No administrator rights are needed, because AnyVector installs for your user by default. You can also
    choose to install it for all users.
 3. Choose the language AnyVector should start in. You can change it later in
@@ -88,21 +96,20 @@ The setup can add AnyVector to "Open with" for `.cdr` files and can open `.vct` 
 
 ## Installing on Linux (beta)
 
-The Linux version has the same interface and file formats as the Windows one. It is a beta. The
-[latest release](https://github.com/toim22/AnyVector/releases/latest) lists two Linux files next to the Windows setup.
-Use one of them.
+The Linux version has the same interface and file formats as the Windows one. It is a beta, with its
+own version numbers. [Latest versions](#latest-versions) has two files for it. Use one of them.
 
 ### AppImage (any distribution)
 
-1. Download `AnyVector-<version>-x86_64.AppImage` to a folder you can write to.
+1. Download `AnyVector-<version>-linux-x86_64.AppImage` to a folder you can write to.
 2. Make it executable and start it:
 
 ```bash
-chmod +x AnyVector-*-x86_64.AppImage
+chmod +x AnyVector-*-linux-x86_64.AppImage
 ```
 
 ```bash
-./AnyVector-*-x86_64.AppImage
+./AnyVector-*-linux-x86_64.AppImage
 ```
 
 It uses the system's graphics drivers and fonts and registers no file types. The AppImage updates itself: AnyVector
@@ -112,7 +119,7 @@ If the system has no FUSE, start it with `--appimage-extract-and-run`.
 ### Debian and Ubuntu package
 
 ```bash
-sudo apt install ./anyvector_<version>_amd64.deb
+sudo apt install ./AnyVector-<version>-linux-amd64.deb
 ```
 
 It adds AnyVector to the applications menu, opens `.vct` drawings and is offered in "Open with" for `.cdr`, SVG and the
@@ -162,7 +169,7 @@ builds the `.deb` and the AppImage (it needs `dpkg-dev` and `squashfs-tools`).
 
 ## Project status
 
-AnyVector **0.7.0** runs on Windows and, as a beta, on Linux (see [the release notes](docs/RELEASE-NOTES-0.7.0.md)).
+AnyVector runs on Windows and, as a beta, on Linux (see [Latest versions](#latest-versions)).
 It opens drawings saved by every version of CorelDRAW, from CorelDRAW 1 to 2026, and Corel clipart, and saves
 CorelDRAW-compatible CMX copies. See [docs/STATUS.md](docs/STATUS.md) for progress and
 [docs/COVERAGE.md](docs/COVERAGE.md) for the item-by-item list of what is complete. Known limits:

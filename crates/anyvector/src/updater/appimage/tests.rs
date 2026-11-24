@@ -39,9 +39,9 @@ fn sha256(bytes: &[u8]) -> String {
 fn release(bytes: &[u8]) -> Release {
     Release {
         version: "99.0.0".into(),
-        tag: "v99.0.0".into(),
-        page: "https://github.com/toim22/AnyVector/releases/tag/v99.0.0".into(),
-        asset_name: format!("AnyVector-99.0.0-{}.AppImage", std::env::consts::ARCH),
+        tag: "v99.0.0-linux".into(),
+        page: "https://github.com/toim22/AnyVector/releases/tag/v99.0.0-linux".into(),
+        asset_name: format!("AnyVector-99.0.0-linux-{}.AppImage", std::env::consts::ARCH),
         asset_size: bytes.len() as u64,
         digest: sha256(bytes),
         ..Default::default()
@@ -475,7 +475,7 @@ fn open_files_do_not_reach_the_new_appimage() {
 fn the_error_is_told_once_at_the_next_start() {
     let d = folder("error").join("Updates");
     assert_eq!(take_error(&d), None);
-    let e = InstallError { version: "99.0.0".into(), page: "https://github.com/toim22/AnyVector/releases/tag/v99.0.0".into(), reason: "You do not have permission to replace /a \"b\"\n.".into() };
+    let e = InstallError { version: "99.0.0".into(), page: "https://github.com/toim22/AnyVector/releases/tag/v99.0.0-linux".into(), reason: "You do not have permission to replace /a \"b\"\n.".into() };
     keep_error(&d, &e);
     assert_eq!(take_error(&d), Some(e.clone()));
     assert_eq!(take_error(&d), None);
@@ -542,18 +542,18 @@ impl Drop for Server {
 }
 
 /// A server with the release 99.0.0: its AppImage (`described` says what GitHub knows of it, `sent`
-/// what is downloaded), a .deb and a setup for Windows. A later release is for Windows only.
+/// what is downloaded), a .deb and a setup for Windows. A later release is for Windows.
 fn release_server(described: &[u8], sent: &[u8]) -> Server {
     let name = release(described).asset_name;
     let json = |url: &str| {
-        let windows_only = json!({ "tag_name": "v99.0.1", "assets": [{ "name": "AnyVector-99.0.1-setup.exe", "browser_download_url": format!("{url}/setup"), "size": 5, "digest": sha256(b"setup") }] });
+        let windows_only = json!({ "tag_name": "v99.0.1-windows", "assets": [{ "name": "AnyVector-99.0.1-windows-x64-setup.exe", "browser_download_url": format!("{url}/setup"), "size": 5, "digest": sha256(b"setup") }] });
         let release = json!({
-            "tag_name": "v99.0.0",
+            "tag_name": "v99.0.0-linux",
             "body": "## What's new\n\n- Everything",
-            "html_url": "https://github.com/toim22/AnyVector/releases/tag/v99.0.0",
+            "html_url": "https://github.com/toim22/AnyVector/releases/tag/v99.0.0-linux",
             "assets": [
-                { "name": "AnyVector-99.0.0-setup.exe", "browser_download_url": format!("{url}/setup"), "size": 5, "digest": sha256(b"setup") },
-                { "name": "anyvector_99.0.0_amd64.deb", "browser_download_url": format!("{url}/deb"), "size": 3, "digest": sha256(b"deb") },
+                { "name": "AnyVector-99.0.0-windows-x64-setup.exe", "browser_download_url": format!("{url}/setup"), "size": 5, "digest": sha256(b"setup") },
+                { "name": "AnyVector-99.0.0-linux-amd64.deb", "browser_download_url": format!("{url}/deb"), "size": 3, "digest": sha256(b"deb") },
                 { "name": name, "browser_download_url": format!("{url}/appimage"), "size": described.len(), "digest": sha256(described) }
             ]
         });

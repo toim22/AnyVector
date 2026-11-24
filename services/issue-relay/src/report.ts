@@ -2,6 +2,10 @@
 
 export type Kind = "bug" | "idea";
 
+/** The systems AnyVector is for, and how the issue names them. */
+export const PLATFORMS = { windows: "Windows", linux: "Linux", macos: "macOS" } as const;
+export type Platform = keyof typeof PLATFORMS;
+
 export interface Report {
   kind: Kind;
   title: string;
@@ -15,6 +19,8 @@ export interface Report {
   version: string;
   /** "AnyVector" */
   program: string;
+  /** "windows", "linux" or "macos", the issue's second label; empty when an older AnyVector does not say */
+  platform: Platform | "";
   /** AnyVector's own lines ("- Windows: ...", window size and scale), or empty when the user left it out */
   system: string;
 }
@@ -22,6 +28,12 @@ export interface Report {
 export const LIMITS = { title: 200, text: 8000, more: 4000, expected: 2000, version: 32, program: 40, system: 600 } as const;
 
 const PROGRAMS = ["AnyVector"];
+
+/** The system of a report. AnyVector up to 0.7.0 names it only in its system information ("- Windows: ..."). */
+function platformOf(sent: unknown, system: string): Platform | "" {
+  const known = Object.keys(PLATFORMS) as Platform[];
+  return known.find((p) => p === sent) ?? known.find((p) => system.split("\n").some((l) => l.startsWith(`- ${PLATFORMS[p]}: `))) ?? "";
+}
 
 /** The report, or the reason it is refused (shown in the program's log, not to the user). */
 export function parseReport(raw: unknown): Report | string {
@@ -50,7 +62,7 @@ export function parseReport(raw: unknown): Report | string {
   if (!r.title || !r.text) return "the title and the description are required";
   if (!/^\d+\.\d+\.\d+([-.+][0-9A-Za-z.-]+)?$/.test(r.version!)) return "version is not a version number";
   if (!PROGRAMS.includes(r.program!)) return "unknown program";
-  return r as Report;
+  return { ...r, platform: platformOf(o.platform, r.system!) } as Report;
 }
 
 /** Keeps the reporter's text from pinging people or closing issues on GitHub: @name and "fixes #1" lose their effect. */
@@ -60,14 +72,14 @@ export function defuse(s: string): string {
     .replace(/\b(close[sd]?|fix(e[sd])?|resolve[sd]?)(\s+)#/gi, "$1$3#​");
 }
 
-/** The issue: the same headings AnyVector used when it filed issues itself, and the GitHub label. `attachment` is the
+/** The issue: the same headings AnyVector used when it filed issues itself, and the GitHub labels. `attachment` is the
  *  Markdown of the file sent with the report (attachment.ts › attachmentSection), already safe. */
 export function issueOf(r: Report, attachment = ""): { title: string; body: string; labels: string[] } {
   const bug = r.kind === "bug";
   const sections: [string, string][] = [[bug ? "What happened" : "Idea or feedback", r.text]];
   if (r.more) sections.push([bug ? "Steps to reproduce" : "Why it would help", r.more]);
   if (bug && r.expected) sections.push(["Expected behavior", r.expected]);
-  sections.push(["AnyVector version", r.version]);
+  sections.push(["AnyVector version", r.platform ? `${r.version} for ${PLATFORMS[r.platform]}` : r.version]);
   if (r.system) sections.push(["System information", r.system]);
   let body = "";
   for (const [h, t] of sections) {
@@ -77,5 +89,5 @@ export function issueOf(r: Report, attachment = ""): { title: string; body: stri
   }
   const menu = bug ? "Help ▸ Report a Bug" : "Help ▸ Submit Ideas and Feedback";
   body += `_Sent from ${r.program} (${menu}), without a GitHub account._\n`;
-  return { title: defuse(r.title), body, labels: [bug ? "bug" : "enhancement"] };
+  return { title: defuse(r.title), body, labels: [bug ? "bug" : "enhancement", ...(r.platform ? [r.platform] : [])] };
 }

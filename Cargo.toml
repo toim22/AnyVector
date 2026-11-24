@@ -11,8 +11,16 @@ members = [
 # vendor/kurbo is kurbo 0.13.1 with a fix for a curve fitting hang, issue #102 (see vendor/kurbo/README.md)
 exclude = ["vendor"]
 
+# The version of AnyVector on each system. The numbers are independent: change only those of the systems
+# that get a release. The program (crates/vector-core/build.rs), the Windows setup, the Linux packages,
+# the CI's check of release tags (v<version>-<system>) and the README's list read them from here.
+[workspace.metadata.versions]
+windows = "0.7.0"
+linux = "0.1.0"
+
 [workspace.package]
-version = "0.7.0"
+# the crates' own version, shown nowhere
+version = "0.0.0"
 edition = "2021"
 authors = ["AnyVector Team"]
 license = "Proprietary"

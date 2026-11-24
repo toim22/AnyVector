@@ -1974,6 +1974,7 @@ What happened?	Vad hände?
 Steps to reproduce (optional):	Steg för att återskapa (valfritt):
 What did you expect to happen? (optional)	Vad förväntade du dig skulle hända? (valfritt)
 Include system information	Inkludera systeminformation
+The version of AnyVector and the system it is for (Windows, Linux or macOS) are always sent.	AnyVectors version och det system den är avsedd för (Windows, Linux eller macOS) skickas alltid.
 View submitted ideas	Visa skickade idéer
 View reported bugs	Visa rapporterade fel
 Cancel	Avbryt

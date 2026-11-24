@@ -25,12 +25,13 @@ const good = { kind: "bug", title: "Crash", text: "It closed", more: "", version
 {
   const system = "- AnyVector: 0.3.0 (release build)\n- Windows: Microsoft Windows [Version 10.0.26200]";
   const bug = issueOf(parseReport({ ...good, more: "1. Open", expected: "It stays", system }) as Report);
-  assert.deepEqual(bug.labels, ["bug"]);
+  // an AnyVector that doesn't name its system: from the system information
+  assert.deepEqual(bug.labels, ["bug", "windows"]);
   assert.equal(bug.body, [
     "### What happened", "", "It closed", "",
     "### Steps to reproduce", "", "1. Open", "",
     "### Expected behavior", "", "It stays", "",
-    "### AnyVector version", "", "0.3.0", "",
+    "### AnyVector version", "", "0.3.0 for Windows", "",
     "### System information", "", system, "",
     "_Sent from AnyVector (Help ▸ Report a Bug), without a GitHub account._", "",
   ].join("\n"));
@@ -41,6 +42,26 @@ const good = { kind: "bug", title: "Crash", text: "It closed", more: "", version
     "### AnyVector version", "", "0.3.0", "",
     "_Sent from AnyVector (Help ▸ Submit Ideas and Feedback), without a GitHub account._", "",
   ].join("\n"));
+}
+
+// 2b) The system the report comes from: a label and the version's line, with or without the system information
+{
+  const of = (o: object) => issueOf(parseReport({ ...good, ...o }) as Report);
+  for (const [platform, name] of [["windows", "Windows"], ["linux", "Linux"], ["macos", "macOS"]]) {
+    for (const kind of ["bug", "idea"]) {
+      const issue = of({ kind, platform });
+      assert.deepEqual(issue.labels, [kind === "bug" ? "bug" : "enhancement", platform]);
+      assert.ok(issue.body.includes(`### AnyVector version\n\n0.3.0 for ${name}\n`));
+    }
+  }
+  // what AnyVector says wins over the text
+  assert.deepEqual(of({ platform: "linux", system: "- Windows: 11" }).labels, ["bug", "linux"]);
+  // an AnyVector that doesn't name it
+  assert.deepEqual(of({ system: "- AnyVector: 0.7.0 (release build)\n- Linux: Ubuntu 24.04" }).labels, ["bug", "linux"]);
+  for (const platform of ["", "toString", "Windows", "amiga", 5, null, ["linux"], undefined]) {
+    assert.deepEqual(of({ platform }).labels, ["bug"]);
+    assert.ok(of({ platform }).body.includes("### AnyVector version\n\n0.3.0\n"));
+  }
 }
 
 // 3) Mentions and closing keywords lose their effect
