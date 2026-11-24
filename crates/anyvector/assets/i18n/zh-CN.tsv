@@ -2861,7 +2861,14 @@ Release Notes	发行说明
 Install Now	立即安装
 Open Release Page	打开发布页面
 Click Open Release Page to download it.	单击“打开发布页面”进行下载。
-AnyVector cannot install updates by itself on Linux yet.	AnyVector 目前还无法在 Linux 上自行安装更新。
+Only the AppImage of AnyVector installs updates by itself on Linux.	在 Linux 上，只有 AnyVector 的 AppImage 会自行安装更新。
+You do not have permission to replace {}.	您没有替换 {} 的权限。
+This release has no AppImage for this computer.	此版本没有适用于此计算机的 AppImage。
+This release has no checksum to verify its AppImage with.	此版本没有可用于验证其 AppImage 的校验和。
+The downloaded file does not match the checksum of the release. Please try again.	下载的文件与此版本的校验和不符。请重试。
+The downloaded file is not an AppImage for this computer.	下载的文件不是适用于此计算机的 AppImage。
+AnyVector {} could not be installed.	无法安装 AnyVector {}。
+{} was moved or changed while AnyVector was running.	{} 在 AnyVector 运行期间被移动或更改。
 Check Now	立即检查
 Later	稍后
 There is a new version of AnyVector available.	有新版本的 AnyVector 可用。

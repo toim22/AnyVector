@@ -44,7 +44,9 @@ eframe = { workspace = true, features = ["glow"] }
 # tree through eframe (arboard, winit), so no new crates
 x11rb = { version = "0.13", default-features = false }
 wl-clipboard-rs = "0.9"
-rustix = { version = "1", default-features = false, features = ["std", "event"] }
+rustix = { version = "1", default-features = false, features = ["std", "event", "fs", "process"] }
+# checks a downloaded AppImage against the release's checksum (already in the tree through lopdf)
+sha2 = "0.11"
 # the desktop's color picker for the eyedropper under Wayland (xdg-desktop-portal over D-Bus):
 # already in the tree through eframe (AccessKit); only its blocking API is added
 zbus = { version = "5.19", default-features = false, features = ["async-io", "blocking-api"] }

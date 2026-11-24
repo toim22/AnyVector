@@ -2861,7 +2861,14 @@ Release Notes	Poznámky k verzi
 Install Now	Nainstalovat nyní
 Open Release Page	Otevřít stránku verze
 Click Open Release Page to download it.	Kliknutím na Otevřít stránku verze ji stáhnete.
-AnyVector cannot install updates by itself on Linux yet.	AnyVector zatím v Linuxu neumí instalovat aktualizace sám.
+Only the AppImage of AnyVector installs updates by itself on Linux.	V Linuxu instaluje aktualizace sám pouze AppImage aplikace AnyVector.
+You do not have permission to replace {}.	Nemáte oprávnění nahradit {}.
+This release has no AppImage for this computer.	Tato verze neobsahuje AppImage pro tento počítač.
+This release has no checksum to verify its AppImage with.	Tato verze nemá kontrolní součet, kterým by bylo možné její AppImage ověřit.
+The downloaded file does not match the checksum of the release. Please try again.	Stažený soubor neodpovídá kontrolnímu součtu verze. Zkuste to znovu.
+The downloaded file is not an AppImage for this computer.	Stažený soubor není AppImage pro tento počítač.
+AnyVector {} could not be installed.	AnyVector {} nelze nainstalovat.
+{} was moved or changed while AnyVector was running.	Soubor {} byl přesunut nebo změněn, zatímco byl AnyVector spuštěn.
 Check Now	Zkontrolovat nyní
 Later	Později
 There is a new version of AnyVector available.	K dispozici je nová verze aplikace AnyVector.
