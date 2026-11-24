@@ -34,18 +34,38 @@ pub fn status_bar(app: &mut AnyVectorApp, ui: &mut Ui) {
             }
         }
     });
-    // left texts
+    let right = full.right();
+    let ox = right - 268.0;
+    // the fill field makes room for the ⚙ in the narrowest windows
+    let fx = (right - 468.0).max(full.left() + 26.0);
+    // left texts, up to the fill field; a cut one shows whole on hover
     let mode = app.settings.show_tool_hints as usize;
     let (first, second) = left_texts(app, mode);
     let p = ui.painter().clone();
-    p.text(pos2(full.left() + 32.0, cy), egui::Align2::LEFT_CENTER, &first, font.clone(), theme::TEXT());
-    let w1 = p.layout_no_wrap(first.clone(), font.clone(), theme::TEXT()).size().x;
-    let x2 = (full.left() + 156.0).max(full.left() + 32.0 + w1 + 24.0);
-    p.text(pos2(x2, cy), egui::Align2::LEFT_CENTER, &second, font.clone(), theme::TEXT());
+    let (first, second) = (crate::i18n::t(&first), crate::i18n::t(&second));
+    let width = |t: &str| p.layout_no_wrap(t.to_string(), font.clone(), theme::TEXT()).size().x;
+    let left = full.left() + 32.0;
+    let room = (fx - 12.0 - left).max(0.0);
+    let (w1, x2, w2) = left_widths(room, width(&first), width(&second));
+    let mut cut = vec![];
+    for (id, x, w, text) in [("sb_hint", left, w1, &first), ("sb_info", left + x2, w2, &second)] {
+        let shown = fit(&p, text, &font, w);
+        if shown != *text {
+            let r = Rect::from_min_size(pos2(x, full.top()), vec2(w, full.height()));
+            cut.push((id, r, text.clone()));
+        }
+        if shown != "..." {
+            p.text(pos2(x, cy), egui::Align2::LEFT_CENTER, shown, font.clone(), theme::TEXT());
+        }
+    }
+    for (id, r, text) in cut {
+        if r.width() > 0.0 {
+            ui.interact(r, ui.scope_id().with(id), Sense::hover()).on_hover_text(text);
+        }
+    }
 
     // right side: fill · outline · │ · document colour settings
     let (fill, outline) = current_fill_outline(app);
-    let right = full.right();
     let dc = Rect::from_center_size(pos2(right - 16.0, cy), vec2(24.0, 22.0));
     let dcr = ui.interact(dc, ui.scope_id().with("sb_dc"), Sense::click()).on_hover_text("Document Color Settings");
     if dcr.hovered() {
@@ -56,15 +76,13 @@ pub fn status_bar(app: &mut AnyVectorApp, ui: &mut Ui) {
         app.run(crate::commands::Cmd::ColorManagement);
     }
     p.line_segment([pos2(right - 36.0, full.top() + 6.0), pos2(right - 36.0, full.bottom() - 6.0)], egui::Stroke::new(1.0, theme::SEP()));
-    let ox = right - 268.0;
-    let fx = right - 468.0;
     // fill
-    let fr = Rect::from_min_size(pos2(fx, full.top()), vec2(190.0, full.height()));
+    let fr = Rect::from_min_size(pos2(fx, full.top()), vec2(ox - 10.0 - fx, full.height()));
     let fresp = ui.interact(fr, ui.scope_id().with("sb_fill"), Sense::click()).on_hover_text("Fill: double-click to edit");
     icon(app, ui, "fill_icon", Rect::from_center_size(pos2(fx + 10.0, cy), vec2(18.0, 18.0)), 16.0);
     let sw = Rect::from_center_size(pos2(fx + 33.0, cy), vec2(19.0, 19.0));
     swatch(&p, sw, &fill);
-    p.text(pos2(fx + 50.0, cy), egui::Align2::LEFT_CENTER, fit(&p, &fill_text(&fill), &font, 136.0), font.clone(), theme::TEXT());
+    p.text(pos2(fx + 50.0, cy), egui::Align2::LEFT_CENTER, fit(&p, &crate::i18n::t(&fill_text(&fill)), &font, ox - 14.0 - (fx + 50.0)), font.clone(), theme::TEXT());
     if fresp.double_clicked() && app.has_doc() {
         app.run(crate::commands::Cmd::Docker(crate::dockers::DockerId::Properties));
     }
@@ -105,6 +123,24 @@ pub fn status_bar(app: &mut AnyVectorApp, ui: &mut Ui) {
     }
 }
 
+/// The hint keeps this much room (or its own width) before the object information is cut.
+const MIN_HINT: f32 = 120.0;
+
+/// How the hint and the object information, `w1` and `w2` wide, share `room`: the hint's width,
+/// where the information starts and its width. The hint gives up its room first.
+fn left_widths(room: f32, w1: f32, w2: f32) -> (f32, f32, f32) {
+    if w2 == 0.0 {
+        return (w1.min(room), room, 0.0);
+    }
+    let x2 = (w1 + 24.0).max(124.0);
+    if x2 + w2 <= room {
+        return (w1, x2, w2);
+    }
+    let hint = (room - 24.0 - w2).clamp(w1.min(MIN_HINT).min(room), w1.max(0.0).min(room));
+    let x2 = (hint + 24.0).min(room);
+    (hint, x2, w2.min(room - x2))
+}
+
 /// The outline well's texts: the color (none without one) and the width part, "Outline Color"
 /// with no document, "None" without an outline, "Hairline" or the width in `u`.
 pub fn outline_texts(outline: Option<(Option<vector_core::Color>, f64)>, u: vector_core::Unit, dpi: f64) -> (Option<String>, String) {
@@ -135,11 +171,18 @@ fn fit(p: &egui::Painter, text: &str, font: &egui::FontId, width: f32) -> String
     if w(text) <= width {
         return text.to_string();
     }
-    let mut chars: Vec<char> = text.chars().collect();
-    while !chars.is_empty() && w(&format!("{}...", chars.iter().collect::<String>())) > width {
-        chars.pop();
+    // the most characters that fit, found by halves
+    let cut = |n: usize| format!("{}...", text.chars().take(n).collect::<String>());
+    let (mut fits, mut over) = (0, text.chars().count());
+    while over - fits > 1 {
+        let n = (fits + over) / 2;
+        if w(&cut(n)) <= width {
+            fits = n;
+        } else {
+            over = n;
+        }
     }
-    format!("{}...", chars.iter().collect::<String>())
+    cut(fits)
 }
 
 fn swatch(p: &egui::Painter, r: Rect, f: &Option<Fill>) {
@@ -246,4 +289,33 @@ fn object_details(app: &AnyVectorApp) -> String {
     let u = d.doc.settings.unit;
     let dpi = d.doc.settings.dpi;
     format!("W: {}  H: {}  Center: ({}, {})", u.format(bb.width(), dpi), u.format(bb.height(), dpi), u.format(bb.center().x, dpi), u.format(bb.center().y, dpi))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::left_widths;
+
+    #[test]
+    fn the_hint_gives_up_its_room_first() {
+        // room for both: where they always were (the information 156 from the left edge at least)
+        assert_eq!(left_widths(900.0, 400.0, 200.0), (400.0, 424.0, 200.0));
+        assert_eq!(left_widths(900.0, 60.0, 200.0), (60.0, 124.0, 200.0));
+        assert_eq!(left_widths(900.0, 0.0, 200.0), (0.0, 124.0, 200.0));
+        // the hint is cut, the information whole
+        assert_eq!(left_widths(500.0, 400.0, 200.0), (276.0, 300.0, 200.0));
+        // then the information, with 120 left for the hint
+        assert_eq!(left_widths(300.0, 400.0, 200.0), (120.0, 144.0, 156.0));
+        // a short hint stays whole
+        assert_eq!(left_widths(250.0, 60.0, 200.0), (60.0, 84.0, 166.0));
+        // no information: the hint has it all
+        assert_eq!(left_widths(500.0, 800.0, 0.0), (500.0, 500.0, 0.0));
+        assert_eq!(left_widths(500.0, 300.0, 0.0).0, 300.0);
+        // hardly any room, or none
+        for room in [0.0, 10.0, 100.0, 130.0, 200.0, 400.0] {
+            for (w1, w2) in [(0.0, 0.0), (0.0, 300.0), (50.0, 300.0), (500.0, 300.0)] {
+                let (a, x, b) = left_widths(room, w1, w2);
+                assert!(a >= 0.0 && b >= 0.0 && a <= x && x + b <= room, "{room} {w1} {w2}: {a} {x} {b}");
+            }
+        }
+    }
 }
