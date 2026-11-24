@@ -179,7 +179,10 @@ fixes listed at the end of this section.
 
 **Build and CI.** `.github/workflows/build.yml` builds and tests on `windows-latest` and `ubuntu-22.04`
 (the oldest supported Ubuntu, so the binary runs on newer glibc). Local Linux development and
-testing: WSL 2 with Ubuntu 24.04 (WSLg shows the Linux window on the Windows desktop).
+testing: WSL 2 with Ubuntu 24.04 (WSLg shows the Linux window on the Windows desktop). On Linux the
+test harnesses use Vulkan only (Mesa's lavapipe) when a Vulkan adapter exists: with GL as well,
+every harness also made an EGL context, and Mesa's software GL on Ubuntu 22.04 crashed the test
+program when several did that at once. Set `WGPU_BACKEND` to choose another backend.
 
 **Window and graphics** (`main.rs`, `splash.rs`, `renderer.rs`).
 - Wayland: the window does appear (WSLg, Weston 13, sway 1.9, mutter 46). Real bug fixed: winit 0.30
