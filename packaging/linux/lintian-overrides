@@ -1,0 +1,4 @@
+# a desktop program without command-line options: its documentation is inside it (Help)
+anyvector: no-manual-page *
+# the licenses inside the program, kept together as the Windows setup and the AppImage have them
+anyvector: extra-license-file *

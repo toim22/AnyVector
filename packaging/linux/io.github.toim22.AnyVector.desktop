@@ -1,0 +1,29 @@
+[Desktop Entry]
+Type=Application
+Version=1.1
+Name=AnyVector
+Comment=Vector graphics editor
+Comment[cs]=Editor vektorové grafiky
+Comment[de]=Vektorgrafik-Editor
+Comment[es]=Editor de gráficos vectoriales
+Comment[fr]=Éditeur de graphiques vectoriels
+Comment[it]=Editor di grafica vettoriale
+Comment[ja]=ベクター グラフィック エディタ
+Comment[nl]=Editor voor vectorafbeeldingen
+Comment[pl]=Edytor grafiki wektorowej
+Comment[pt_BR]=Editor de gráficos vetoriais
+Comment[ru]=Редактор векторной графики
+Comment[sv]=Program för vektorgrafik
+Comment[tr]=Vektör grafik düzenleyicisi
+Comment[zh_CN]=矢量图形编辑器
+Comment[zh_TW]=向量繪圖編輯器
+Icon=io.github.toim22.AnyVector
+Exec=anyvector %F
+Terminal=false
+StartupWMClass=io.github.toim22.AnyVector
+Categories=Graphics;2DGraphics;VectorGraphics;
+Keywords=vector;drawing;illustration;layout;logo;cdr;svg;pdf;
+# what File > Open reads (vector_io::OPEN_TYPES): "Open with" only, never made the default program
+MimeType=application/vnd.corel-draw;image/x-coreldrawtemplate;image/x-cmx;application/x-vector-drawing;image/svg+xml;image/svg+xml-compressed;application/pdf;image/x-eps;application/postscript;application/illustrator;image/vnd.dxf;
+# on KDE, after the other programs for these types while no default is chosen (programs have 1)
+InitialPreference=0
