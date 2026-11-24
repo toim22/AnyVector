@@ -187,3 +187,30 @@ fn mtext_codes() {
     assert_eq!(mtext_plain("\\U+00B0C"), "°C");
     assert_eq!(special_chars("%%c20 %%p0.1 100%%%"), "Ø20 ±0.1 100%");
 }
+
+/// A text style's font file given as a full Windows path, in capitals (AutoCAD writes
+/// `C:\WINDOWS\Fonts\ARIALBD.TTF`), gives the same family on Linux as on Windows.
+#[test]
+fn text_style_fonts_named_by_windows_paths() {
+    for (file, family) in [
+        (r"C:\WINDOWS\Fonts\ARIALBD.TTF", "Arial"),
+        (r"c:\windows\fonts\times.ttf", "Times New Roman"),
+        ("/usr/share/fonts/truetype/msttcorefonts/Courier_New.ttf", "Courier New"),
+        (r"\server\fonts\Verdana.TTF", "Verdana"),
+        ("calibri.ttf", "Calibri"),
+    ] {
+        let f = dxf(&[
+            (0, "SECTION"), (2, "TABLES"),
+            (0, "TABLE"), (2, "STYLE"), (0, "STYLE"), (2, "Notes"), (3, file), (0, "ENDTAB"),
+            (0, "ENDSEC"),
+            (0, "SECTION"), (2, "ENTITIES"),
+            (0, "TEXT"), (8, "0"), (10, "10"), (20, "80"), (40, "5"), (1, "Text"), (7, "Notes"),
+            (0, "ENDSEC"),
+            (0, "EOF"),
+        ]);
+        let (d, _) = load_with_notes(&f).unwrap();
+        let objs = objects(&d);
+        let ObjKind::Text(t) = &objs[0].1.kind else { panic!("{file}") };
+        assert_eq!(t.format.font, family, "{file}");
+    }
+}

@@ -108,7 +108,7 @@ pub fn open_export(app: &mut AnyVectorApp, name: &str) {
 
 /// Window ▸ Workspace ▸ Import: the file, then the Import Workspace dialog.
 pub fn import(app: &mut AnyVectorApp) {
-    let Some(p) = rfd::FileDialog::new().set_title("Import Workspace").add_filter("Workspace File (*.cdws)", &["cdws"]).pick_file() else { return };
+    let Some(p) = rfd::FileDialog::new().set_title("Import Workspace").add_filter("Workspace File (*.cdws)", &vector_io::paths::dialog_extensions(&["cdws"])).pick_file() else { return };
     open_import(app, &p);
 }
 

@@ -179,13 +179,30 @@ fn mapi_send(path: &Path, subject: &str) -> bool {
     }
 }
 
+/// Send To ▸ Mail Recipient when no mail program took the drawing: the drawing shown in its
+/// folder and a new e-mail started.
+const NO_MAIL_PROGRAM: &str = "No mail program accepted the attachment; the drawing is ready to attach to your message.";
+
+/// File ▸ Acquire Image on Linux: WIA and TWAIN are Windows' ways to talk to scanners.
 #[cfg(not(windows))]
-fn mapi_send(_path: &Path, _subject: &str) -> bool {
-    false
+const NO_SCANNING: &str = "Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.";
+
+/// The order of the Save dialog's filters off Windows (`rfd`): the type chosen first, as the
+/// dialogs start on their first filter, then the others in their order.
+fn save_filter_order(count: usize, chosen: usize) -> Vec<usize> {
+    std::iter::once(chosen).filter(|&c| c < count).chain((0..count).filter(|&k| k != chosen)).collect()
+}
+
+/// The type a drawing saved as `path` gets: the one of its extension, in any case, else the type
+/// chosen in the dialog.
+fn saved_type(types: &[(String, String)], path: &Path, chosen: usize) -> usize {
+    let ext = vector_io::extension(path);
+    types.iter().position(|t| t.1.eq_ignore_ascii_case(&ext)).unwrap_or(chosen)
 }
 
 /// PowerShell for File ▸ Acquire Image through Windows Image Acquisition: select a device
 /// (`select` = true) or scan with the chosen device's dialog and save a PNG to `out`.
+#[cfg(windows)]
 fn wia_script(select: bool, device: Option<&str>, out: &Path) -> String {
     let png = "{B96B3CAF-0728-11D3-9D7B-0000F81EF32E}";
     if select {
@@ -209,10 +226,10 @@ fn wia_script(select: bool, device: Option<&str>, out: &Path) -> String {
 }
 
 /// Run a hidden PowerShell command; returns its output or the error text.
+#[cfg(windows)]
 fn powershell(script: &str) -> Result<String, String> {
     let mut cmd = std::process::Command::new("powershell");
     cmd.args(["-NoProfile", "-NonInteractive", "-STA", "-Command", script]);
-    #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
         cmd.creation_flags(0x0800_0000);
@@ -226,6 +243,7 @@ fn powershell(script: &str) -> Result<String, String> {
 }
 
 /// A readable message for a WIA failure.
+#[cfg(windows)]
 fn wia_error(e: &str) -> String {
     if e.contains("0x80210015") || e.to_lowercase().contains("no wia device") || e.contains("-2145320939") {
         "No scanner or camera was found. Connect a WIA device and try again.".into()
@@ -306,14 +324,6 @@ pub fn selection_document(doc: &Document, ids: &[ObjId]) -> Option<Document> {
     }
     out.pages = vec![page];
     Some(out)
-}
-
-
-fn reveal_in_explorer(path: &Path) {
-    #[cfg(windows)]
-    {
-        let _ = std::process::Command::new("explorer").arg(format!("/select,{}", path.display())).spawn();
-    }
 }
 
 impl AnyVectorApp {
@@ -415,8 +425,7 @@ impl AnyVectorApp {
         for k in 1..st.pages.max(1) {
             doc.add_page(k, st.width, st.height);
         }
-        let name = st.name.trim();
-        let stem = name.strip_suffix(".cdr").or_else(|| name.strip_suffix(".vct")).unwrap_or(name);
+        let stem = vector_io::paths::strip_extension(st.name.trim(), &["cdr", "vct"]);
         let mut dv = DocView::new(doc, format!("{stem}.cdr"), self.settings.undo_levels);
         dv.history.mark_saved();
         self.push_doc(dv);
@@ -449,9 +458,10 @@ impl AnyVectorApp {
                 all.extend(t.extensions.iter().copied());
             }
         }
-        let mut d = d.add_filter("All File Formats", &all);
+        // Linux file dialogs match extensions in their case only
+        let mut d = d.add_filter("All File Formats", &vector_io::paths::dialog_extensions(&all));
         for t in types {
-            d = d.add_filter(t.name, t.extensions);
+            d = d.add_filter(t.name, &t.dialog_extensions());
         }
         d
     }
@@ -533,6 +543,17 @@ impl AnyVectorApp {
             for f in files {
                 self.import_path(&f, None);
             }
+        }
+    }
+
+    /// A file dropped on the window (or pasted from a file manager): drawings open in a tab of
+    /// their own, anything else is imported into the open drawing (opened when there is none).
+    pub fn open_or_import(&mut self, p: &Path, at: Option<Point>) {
+        let ext = vector_io::extension(p);
+        if self.has_doc() && !matches!(ext.as_str(), "cdr" | "cdt" | "cdrt" | "vct") {
+            self.import_path(p, at);
+        } else {
+            self.open_path(p);
         }
     }
 
@@ -660,9 +681,13 @@ impl AnyVectorApp {
                 let res = if cfg!(windows) {
                     crate::save_dialog::show(req)
                 } else {
-                    let fd = types.iter().fold(rfd::FileDialog::new().set_title("Save Drawing"), |fd, t| fd.add_filter(t.0.as_str(), &[t.1.as_str()]));
-                    fd.set_file_name(format!("{stem}.cdr")).save_file().map(|p| crate::save_dialog::SaveResult {
-                        type_index: types.iter().position(|t| t.1 == vector_io::extension(&p)).unwrap_or(0),
+                    // the dialog starts on its first filter: the type of the drawing (.vct stays .vct)
+                    let mut fd = save_filter_order(types.len(), type_index).into_iter().fold(rfd::FileDialog::new().set_title("Save Drawing"), |fd, k| fd.add_filter(types[k].0.as_str(), &[types[k].1.as_str()]));
+                    if let Some(dir) = &req.dir {
+                        fd = fd.set_directory(dir);
+                    }
+                    fd.set_file_name(req.file_name.as_str()).save_file().map(|p| crate::save_dialog::SaveResult {
+                        type_index: saved_type(&types, &p, type_index),
                         path: p,
                         title: d.info.title.clone(),
                         subject: d.info.subject.clone(),
@@ -844,10 +869,11 @@ impl AnyVectorApp {
             });
         }
         let symbols = d.doc.symbols.clone();
-        // system clipboard: SVG, EMF+ metafile, PNG and DIB together (Office pastes vectors)
+        // system clipboard: SVG, EMF+ metafile, PNG and DIB together (Office pastes vectors);
+        // there are no metafiles on the Linux clipboard
         if crate::dialogs::clipboard::system_enabled() {
             let svg = vector_io::svg_export::objects_to_svg(&d.doc, &objs);
-            let emf = vector_io::emf::objects_to_emf(&d.doc, &objs, &Default::default());
+            let emf = if cfg!(windows) { vector_io::emf::objects_to_emf(&d.doc, &objs, &Default::default()) } else { Vec::new() };
             let png = vector_render::render_objects_image(&d.doc, &objs, 1024, None);
             let rgba = png.as_ref().map(vector_render::pixmap_to_rgba);
             let bitmap = png.as_ref().zip(rgba.as_deref()).map(|(pm, px)| (pm.width(), pm.height(), px));
@@ -867,6 +893,16 @@ impl AnyVectorApp {
     pub fn paste_as(&mut self, kind: Option<crate::dialogs::clipboard::PasteKind>, at: Option<Point>) {
         use crate::dialogs::clipboard::PasteKind;
         let want = |k: PasteKind| kind.is_none() || kind == Some(k);
+        // files copied in a file manager (Linux) open or import as if dropped on the window
+        if kind.is_none() {
+            let files = crate::dialogs::clipboard::system_files();
+            if !files.is_empty() {
+                for p in files {
+                    self.open_or_import(&p, at);
+                }
+                return;
+            }
+        }
         if !self.has_doc() {
             self.new_default_document();
         }
@@ -1347,6 +1383,7 @@ impl AnyVectorApp {
                     }
                 }
             }
+            #[cfg(windows)]
             Cmd::SelectWia => {
                 let (tx, rx) = std::sync::mpsc::channel();
                 std::thread::spawn(move || {
@@ -1355,6 +1392,7 @@ impl AnyVectorApp {
                 });
                 self.background.push(rx);
             }
+            #[cfg(windows)]
             Cmd::SelectTwain => {
                 let dsm = ["twaindsm.dll", "twain_32.dll"].iter().any(|n| {
                     let win = std::env::var("WINDIR").unwrap_or_else(|_| "C:\\Windows".into());
@@ -1367,6 +1405,7 @@ impl AnyVectorApp {
                 };
                 self.info_box("Select TWAIN Source", msg);
             }
+            #[cfg(windows)]
             Cmd::Acquire => {
                 let device = self.settings.wia_device.clone();
                 let out = std::env::temp_dir().join(format!("vector-acquire-{}.png", std::process::id()));
@@ -1378,6 +1417,12 @@ impl AnyVectorApp {
                 self.background.push(rx);
                 self.flash("Waiting for the scanner...");
             }
+            #[cfg(not(windows))]
+            Cmd::SelectWia => self.info_box("Select WIA Source", NO_SCANNING),
+            #[cfg(not(windows))]
+            Cmd::SelectTwain => self.info_box("Select TWAIN Source", NO_SCANNING),
+            #[cfg(not(windows))]
+            Cmd::Acquire => self.info_box("Acquire Image", NO_SCANNING),
             Cmd::Import => self.import_dialog(),
             Cmd::Export => {
                 if has_doc {
@@ -1439,7 +1484,7 @@ impl AnyVectorApp {
                     let p = match d.path.clone().filter(|p| p.exists() && !d.history.is_modified()) {
                         Some(p) => p,
                         None => {
-                            let p = std::env::temp_dir().join(format!("{stem}.cdr"));
+                            let p = crate::platform::temp_dir().join(format!("{stem}.cdr"));
                             let opts = self.cdr_options(&d.doc, self.settings.embed_fonts, self.settings.save.embed_color_profiles, self.default_version_index());
                             if let Err(e) = vector_io::cdr::save(&d.doc, &p, &opts) {
                                 self.info_box("Send To Mail", &format!("Could not save the drawing: {e}"));
@@ -1448,10 +1493,30 @@ impl AnyVectorApp {
                             p
                         }
                     };
-                    if !mapi_send(&p, &stem) {
-                        reveal_in_explorer(&p);
-                        let _ = std::process::Command::new("cmd").args(["/C", "start", "", &format!("mailto:?subject={}", stem.replace(' ', "%20"))]).spawn();
-                        self.flash("No mail program accepted the attachment; the drawing is ready to attach to your message.");
+                    #[cfg(windows)]
+                    {
+                        if !mapi_send(&p, &stem) {
+                            crate::platform::reveal(&p);
+                            let _ = crate::platform::open_mailto(&stem);
+                            self.flash(NO_MAIL_PROGRAM);
+                        }
+                    }
+                    // xdg-email answers on another thread; its result comes back as a background message
+                    #[cfg(not(windows))]
+                    {
+                        let (tx, rx) = std::sync::mpsc::channel();
+                        let (file, subject) = (p.clone(), stem.clone());
+                        crate::platform::send_mail(&stem, &p, move |sent| {
+                            let message = if sent {
+                                String::new()
+                            } else {
+                                crate::platform::reveal(&file);
+                                let _ = crate::platform::open_mailto(&subject);
+                                NO_MAIL_PROGRAM.to_string()
+                            };
+                            let _ = tx.send(Ok(message));
+                        });
+                        self.background.push(rx);
                     }
                 }
             }
@@ -2550,7 +2615,7 @@ impl AnyVectorApp {
                 }
             }
             Cmd::RunScript => {
-                if let Some(p) = rfd::FileDialog::new().set_title("Run Script").add_filter("AnyVector script", &["rhai", "vsc"]).set_directory(crate::scripting::scripts_dir()).pick_file() {
+                if let Some(p) = rfd::FileDialog::new().set_title("Run Script").add_filter("AnyVector script", &vector_io::paths::dialog_extensions(&["rhai", "vsc"])).set_directory(crate::scripting::scripts_dir()).pick_file() {
                     match std::fs::read_to_string(&p) {
                         Ok(src) => {
                             if let Err(e) = crate::scripting::run_script(self, &src) {
@@ -2826,6 +2891,20 @@ mod tests {
     fn case_conversions() {
         assert_eq!(title_case("hello big-world"), "Hello Big-World");
         assert_eq!(sentence_case("HELLO. WORLD"), "Hello. World");
+    }
+
+    /// The Linux Save dialog starts on the drawing's type (a .vct drawing on VCT) and a name typed
+    /// with a capital extension still picks its type.
+    #[test]
+    fn save_dialog_types_off_windows() {
+        assert_eq!(save_filter_order(4, 0), [0, 1, 2, 3]);
+        assert_eq!(save_filter_order(4, 2), [2, 0, 1, 3]);
+        assert_eq!(save_filter_order(2, 5), [0, 1]);
+        let types: Vec<(String, String)> = [("CDR", "cdr"), ("VCT", "vct")].iter().map(|(n, e)| (n.to_string(), e.to_string())).collect();
+        assert_eq!(saved_type(&types, Path::new("/home/ana/Logo.VCT"), 0), 1);
+        assert_eq!(saved_type(&types, Path::new("/home/ana/Logo.cdr"), 1), 0);
+        // no extension typed: the type chosen in the dialog
+        assert_eq!(saved_type(&types, Path::new("/home/ana/Logo"), 1), 1);
     }
 }
 

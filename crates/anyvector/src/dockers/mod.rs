@@ -1045,6 +1045,25 @@ pub fn today() -> String {
     format!("{year}-{month:02}-{day:02}")
 }
 
+/// The name the user logged in with: `USERNAME` on Windows, `USER` or `LOGNAME` on Linux and
+/// macOS (which have no `USERNAME`); empty when none is set.
+pub fn login_name() -> String {
+    ["USERNAME", "USER", "LOGNAME"].iter().find_map(|v| std::env::var(v).ok().filter(|s| !s.trim().is_empty())).unwrap_or_default()
+}
+
+/// The author of a new comment: the user name of the options, else the login name, else "User".
+pub fn comment_author(user_name: &str) -> String {
+    if !user_name.is_empty() {
+        return user_name.to_string();
+    }
+    let login = login_name();
+    if login.is_empty() {
+        "User".into()
+    } else {
+        login
+    }
+}
+
 /// A small icon button of the docker toolbars.
 pub(crate) fn icon_button(app: &mut AnyVectorApp, ui: &mut Ui, icon: &str, tip: &str, enabled: bool) -> bool {
     icon_button_resp(app, ui, icon, tip, enabled).clicked() && enabled
@@ -1061,4 +1080,17 @@ pub(crate) fn icon_button_resp(app: &mut AnyVectorApp, ui: &mut Ui, icon: &str, 
         ui.painter().image(t.id, Rect::from_center_size(r.center(), vec2(16.0, 16.0)), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
     }
     resp
+}
+
+#[cfg(test)]
+mod tests {
+    /// Comments are signed with the login name when no user name is set: Linux has `USER`, not
+    /// Windows' `USERNAME`.
+    #[test]
+    fn comments_signed_by_the_login_name() {
+        assert_eq!(super::comment_author("Ana"), "Ana");
+        let login = ["USERNAME", "USER", "LOGNAME"].iter().find_map(|v| std::env::var(v).ok().filter(|s| !s.trim().is_empty()));
+        assert_eq!(super::login_name(), login.clone().unwrap_or_default());
+        assert_eq!(super::comment_author(""), login.unwrap_or_else(|| "User".into()));
+    }
 }

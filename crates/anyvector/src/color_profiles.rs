@@ -1,9 +1,11 @@
 //! Finding the ICC color profiles named in a document's color settings, so "Embed color
 //! profiles" can store the real profile data in the drawing.
 //!
-//! Profiles are looked up in the Windows color directory
-//! (`%WINDIR%\System32\spool\drivers\color`) by the description stored inside each ICC file
-//! (e.g. "sRGB IEC61966-2.1"), which is the name the dialogs show.
+//! Profiles are looked up by the description stored inside each ICC file (e.g. "sRGB
+//! IEC61966-2.1"), which is the name the dialogs show: on Windows in the Windows color directory
+//! (`%WINDIR%\System32\spool\drivers\color`), on Linux among the profiles the color engine finds
+//! in the ICC folders (`~/.local/share/icc`, `/usr/share/color/icc`..., see
+//! `vector_core::cms::unix_profile_dirs`).
 
 use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
@@ -15,6 +17,7 @@ struct Installed {
     description: String,
 }
 
+#[cfg(windows)]
 fn color_dir() -> PathBuf {
     let win = std::env::var_os("WINDIR").map(PathBuf::from).unwrap_or_else(|| PathBuf::from(r"C:\Windows"));
     win.join("System32").join("spool").join("drivers").join("color")
@@ -62,23 +65,31 @@ pub fn icc_description(b: &[u8]) -> Option<String> {
 fn installed() -> &'static Vec<Installed> {
     static LIST: OnceLock<Vec<Installed>> = OnceLock::new();
     LIST.get_or_init(|| {
-        let mut v = vec![];
-        if let Ok(rd) = std::fs::read_dir(color_dir()) {
-            for e in rd.flatten() {
-                let p = e.path();
-                let ext = p.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
-                if ext != "icm" && ext != "icc" {
-                    continue;
-                }
-                // only the header and tag table are needed for the description
-                if let Ok(b) = std::fs::read(&p) {
-                    if let Some(d) = icc_description(&b) {
-                        v.push(Installed { path: p, description: d });
+        #[cfg(windows)]
+        {
+            let mut v = vec![];
+            if let Ok(rd) = std::fs::read_dir(color_dir()) {
+                for e in rd.flatten() {
+                    let p = e.path();
+                    let ext = p.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
+                    if ext != "icm" && ext != "icc" {
+                        continue;
+                    }
+                    // only the header and tag table are needed for the description
+                    if let Ok(b) = std::fs::read(&p) {
+                        if let Some(d) = icc_description(&b) {
+                            v.push(Installed { path: p, description: d });
+                        }
                     }
                 }
             }
+            v
         }
-        v
+        // the folders of Linux have subfolders; the color engine has already read the descriptions
+        #[cfg(not(windows))]
+        {
+            vector_core::cms::installed_profiles().iter().map(|p| Installed { path: p.path.clone(), description: p.description.clone() }).collect()
+        }
     })
 }
 
@@ -125,12 +136,21 @@ mod tests {
         assert_eq!(icc_description(&b).as_deref(), Some("sRGB IEC61966-2.1"));
     }
 
+    #[cfg(windows)]
     #[test]
     fn finds_windows_srgb() {
         // Every Windows install ships the sRGB profile.
-        if cfg!(windows) {
-            let files = profile_files(&ColorSettings::default());
-            assert!(files.iter().any(|f| f.data.len() > 1000), "sRGB profile not found in {}", color_dir().display());
-        }
+        let files = profile_files(&ColorSettings::default());
+        assert!(files.iter().any(|f| f.data.len() > 1000), "sRGB profile not found in {}", color_dir().display());
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn embeds_the_profiles_linux_has() {
+        // whatever RGB profile is installed (colord-data has sRGB, Adobe RGB...) is embedded by its name
+        let Some(p) = vector_core::cms::installed_profiles().iter().find(|p| p.space == "RGB").cloned() else { return };
+        let files = profile_files(&ColorSettings { rgb_profile: p.description.clone(), ..ColorSettings::default() });
+        let name = p.path.file_name().unwrap().to_string_lossy().to_string();
+        assert!(files.iter().any(|f| f.name == name && f.data.len() > 100), "{} ({}) not embedded", p.description, p.path.display());
     }
 }

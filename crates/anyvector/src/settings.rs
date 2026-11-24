@@ -1,4 +1,5 @@
-//! Application settings (Tools > Options), persisted as JSON in %APPDATA%\AnyVector\settings.json.
+//! Application settings (Tools > Options), persisted as JSON in %APPDATA%\AnyVector\settings.json
+//! (on Linux `$XDG_CONFIG_HOME/AnyVector/settings.json`, normally `~/.config/AnyVector`).
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -700,7 +701,8 @@ impl Default for Settings {
             wia_device: None,
             file_locations: vec![],
             show_choose_palette: true,
-            user_name: std::env::var("USERNAME").unwrap_or_default(),
+            // the login name: USERNAME on Windows, USER or LOGNAME on Linux
+            user_name: crate::dockers::login_name(),
             user_company: String::new(),
             usage_stats: false,
             recent_files: vec![],
@@ -847,8 +849,9 @@ pub fn config_dir() -> PathBuf {
     d
 }
 
-/// The user's Windows regional settings: the measurement system (0 metric, 1 U.S.) and the
-/// paper size (1 Letter, 5 Legal, 8 A3, 9 A4), when Windows gives them.
+/// The user's regional settings: the measurement system (0 metric, 1 U.S.) and the paper size
+/// (1 Letter, 5 Legal, 8 A3, 9 A4), when the system gives them: Windows' regional settings, or on
+/// Linux the locale (`LC_MEASUREMENT`, `LC_PAPER`, see `i18n::region_from_locale_env`).
 pub fn system_region() -> Option<(u32, u32)> {
     #[cfg(windows)]
     {
@@ -865,8 +868,25 @@ pub fn system_region() -> Option<(u32, u32)> {
         let measure = read(LOCALE_IMEASURE)?;
         return Some((measure, read(LOCALE_IPAPERSIZE).unwrap_or(0)));
     }
+    #[cfg(not(windows))]
+    {
+        return crate::i18n::region_from_locale_env(|name| std::env::var(name).ok());
+    }
     #[allow(unreachable_code)]
     None
+}
+
+/// Writes a file whole or not at all: through a temporary file renamed over it, so a crash or a
+/// full disk while writing never leaves a cut settings file (the old one stays). Where the rename
+/// can't replace the file, it is written in place.
+fn write_whole(path: &std::path::Path, bytes: &[u8]) -> std::io::Result<()> {
+    let tmp = path.with_extension("json.tmp");
+    let written = std::fs::write(&tmp, bytes).and_then(|()| std::fs::rename(&tmp, path));
+    if written.is_err() {
+        let _ = std::fs::remove_file(&tmp);
+        return std::fs::write(path, bytes);
+    }
+    written
 }
 
 pub fn documents_dir() -> PathBuf {
@@ -881,7 +901,7 @@ impl Settings {
     pub fn load() -> Settings {
         let path = Self::path();
         // a new install (no settings yet) starts in the unit and page size of the Windows
-        // regional settings (#120); an existing settings file is never changed
+        // regional settings or the Linux locale (#120); an existing settings file is never changed
         let first_run = !cfg!(test) && !path.exists();
         let mut s: Settings = std::fs::read(&path).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default();
         if first_run {
@@ -929,9 +949,31 @@ impl Settings {
         if cfg!(test) {
             return;
         }
-        if let Ok(b) = serde_json::to_vec_pretty(self) {
-            let _ = std::fs::write(Self::path(), b);
+        if let Some(b) = self.to_json() {
+            let _ = write_whole(&Self::path(), &b);
         }
+    }
+
+    /// The settings as the JSON of the file. JSON holds Unicode text only, and a Linux file name
+    /// may not be Unicode: such paths (recent files, last folders...) are left out, rather than
+    /// the whole file not being saved.
+    pub fn to_json(&self) -> Option<Vec<u8>> {
+        serde_json::to_vec_pretty(self).ok().or_else(|| serde_json::to_vec_pretty(&self.with_unicode_paths()).ok())
+    }
+
+    /// A copy without the paths that aren't Unicode.
+    fn with_unicode_paths(&self) -> Settings {
+        let ok = |p: &PathBuf| p.to_str().is_some();
+        let mut s = self.clone();
+        for dir in [&mut s.auto_backup_dir, &mut s.last_dir, &mut s.sync_folder, &mut s.last_export_dir, &mut s.backup_dir] {
+            if dir.as_ref().is_some_and(|p| !ok(p)) {
+                *dir = None;
+            }
+        }
+        s.recent_files.retain(ok);
+        s.script_folders.retain(ok);
+        s.plugin_folders.retain(|(p, _)| ok(p));
+        s
     }
 
     pub fn add_recent(&mut self, p: &std::path::Path) {
@@ -1193,5 +1235,61 @@ impl Default for ToolOpts {
             paint_favorites: vec![],
             autofit_margin: 0.0,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_user_name_is_the_login_name() {
+        // USERNAME on Windows; USER or LOGNAME on Linux, which has no USERNAME
+        assert_eq!(Settings::default().user_name, crate::dockers::login_name());
+        if cfg!(unix) && std::env::var("USER").is_ok_and(|u| !u.trim().is_empty()) {
+            assert!(!Settings::default().user_name.is_empty());
+        }
+    }
+
+    #[test]
+    fn settings_are_saved_whatever_the_paths() {
+        let mut s = Settings::default();
+        s.recent_files = vec![PathBuf::from("/home/me/a.cdr"), PathBuf::from("/home/me/b.cdr")];
+        s.last_dir = Some(PathBuf::from("/home/me"));
+        let back: Settings = serde_json::from_slice(&s.to_json().unwrap()).unwrap();
+        assert_eq!((back.recent_files, back.last_dir), (s.recent_files.clone(), s.last_dir.clone()));
+        // a Linux file name that is not Unicode: that path is left out, everything else is saved
+        #[cfg(unix)]
+        {
+            use std::os::unix::ffi::OsStrExt;
+            let odd = PathBuf::from(std::ffi::OsStr::from_bytes(b"/home/me/caf\xe9.cdr"));
+            assert!(serde_json::to_vec(&odd).is_err(), "JSON can't hold it");
+            s.recent_files.insert(1, odd.clone());
+            s.last_dir = Some(odd.clone());
+            s.plugin_folders = vec![(odd.clone(), true), (PathBuf::from("/opt/plugins"), false)];
+            s.user_company = "Kept".into();
+            let back: Settings = serde_json::from_slice(&s.to_json().expect("saved")).unwrap();
+            assert_eq!(back.recent_files, vec![PathBuf::from("/home/me/a.cdr"), PathBuf::from("/home/me/b.cdr")]);
+            assert_eq!(back.last_dir, None);
+            assert_eq!(back.plugin_folders, vec![(PathBuf::from("/opt/plugins"), false)]);
+            assert_eq!(back.user_company, "Kept");
+            // the running program keeps the path
+            assert_eq!(s.recent_files[1], odd);
+        }
+    }
+
+    #[test]
+    fn the_settings_file_is_written_whole() {
+        let dir = std::env::temp_dir().join(format!("anyvector-settings-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("settings.json");
+        std::fs::write(&path, b"old").unwrap();
+        write_whole(&path, b"{\"new\": true}").unwrap();
+        assert_eq!(std::fs::read(&path).unwrap(), b"{\"new\": true}");
+        assert!(!dir.join("settings.json.tmp").exists());
+        write_whole(&dir.join("new.json"), b"{}").unwrap();
+        assert_eq!(std::fs::read(dir.join("new.json")).unwrap(), b"{}");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

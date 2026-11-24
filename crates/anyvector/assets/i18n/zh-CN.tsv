@@ -1867,8 +1867,10 @@ Silhouette	剪影
 Tools ▸ Options ▸ Global ▸ Privacy ▸ AI Generate	工具 ▸ 选项 ▸ 全局 ▸ 隐私 ▸ AI 生成
 Environment	环境
 Type the name of the environment variable first.	请先键入环境变量的名称。
+The name of the environment variable or the key has characters that cannot be saved.	环境变量的名称或密钥包含无法保存的字符。
 Could not save the environment variable (error {}).	无法保存环境变量(错误 {})。
 AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your Windows account, never in its own files.	AI 生成需要 API 密钥。请在 {} 中添加您的密钥：AnyVector 将其保存在您 Windows 帐户的 {} 环境变量中，绝不保存在自己的文件中。
+AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your user account, never in its settings or documents.	AI 生成需要 API 密钥。请在 {} 中添加您的密钥：AnyVector 将其保存在您用户帐户的 {} 环境变量中，绝不保存在其设置或文档中。
 Generating...	正在生成...
 Could not reach the AI service: {}	无法连接 AI 服务：{}
 Invalid response from the AI service: {}	AI 服务返回的响应无效：{}
@@ -1995,6 +1997,8 @@ The page no longer exists.	该页面已不存在。
 The object no longer exists.	该对象已不存在。
 Nothing to export	没有可导出的内容
 No scanner or camera was found. Connect a WIA device and try again.	未找到扫描仪或相机。请连接 WIA 设备，然后重试。
+Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	Linux 版 AnyVector 尚不支持扫描。请使用系统的扫描程序（例如文档扫描仪或 XSane）扫描图像并保存，然后通过 文件 ▸ 导入 将其导入绘图。
+Select WIA Source	选择 WIA 来源
 The image could not be acquired:\n{}	无法获取图像：\n{}
 All File Formats	所有文件格式
 Open Drawing	打开绘图
@@ -2029,6 +2033,7 @@ Could not save the drawing: {}	无法保存绘图：{}
 No mail program accepted the attachment; the drawing is ready to attach to your message.	没有邮件程序接受附件；绘图已准备好附加到您的邮件中。
 the Desktop	桌面
 Documents	文档
+Mail Recipient	邮件收件人
 Select at least one record in the print merge data.	请在合并打印数据中至少选择一条记录。
 Click the object to copy the effect from.	单击要从中复制效果的对象。
 Click the object to place the selection in front of.	单击要将选定内容置于其前面的对象。
@@ -2738,9 +2743,14 @@ Display	显示
 Printing	打印
 AnyVector EXEs & DLLs	AnyVector EXE 和 DLL
 System DLLs	系统 DLL
+AnyVector Programs & Libraries	AnyVector 程序和库
+System Libraries	系统库
 {} GB	{} GB
 AnyVector {} - System Info	AnyVector {} - 系统信息
 Platform:	平台：
+Kernel:	内核：
+Session type:	会话类型：
+Locale:	区域设置：
 Processor:	处理器：
 Number of Processors:	处理器数目：
 Math Coprocessor:	数学协处理器：
@@ -2754,6 +2764,7 @@ Total memory used by app:	应用程序使用的总内存：
 GDI Object Count:	GDI 对象数：
 User Object Count:	用户对象数：
 Available space on drive {}	驱动器 {} 上的可用空间
+Available space in {}:	{} 中的可用空间：
 Windows Directory:	Windows 目录：
 TEMP directory:	TEMP 目录：
 Application directory:	应用程序目录：
@@ -2789,6 +2800,7 @@ Keep the product up to date (recommended)	保持产品为最新版本(建议)
 Check for updates and let me choose when to install them	检查更新，并让我选择安装更新的时间
 Never check for updates	从不检查更新
 Automatically downloads product updates, but prompts you before installing them.	自动下载产品更新，但在安装之前提示您。
+AnyVector looks for a new version at every start and tells you when one is available.	AnyVector 每次启动时都会检查新版本，并在有新版本可用时通知您。
 AnyVector tells you when a new version is available; you choose when to download and install it.	有新版本可用时 AnyVector 会通知您；由您选择何时下载和安装。
 AnyVector never connects to the Internet to look for updates. Help ▸ Updates still checks when you ask.	AnyVector 从不连接互联网查找更新。您主动请求时，“帮助 ▸ 更新”仍会检查。
 An Internet connection is required. Please connect to the Internet and try again.	您必须有网络连接。请连接网络后再次尝试。
@@ -2813,6 +2825,9 @@ The update will be installed when AnyVector closes.	更新将在 AnyVector 关�
 Allow product updates:	允许产品更新：
 Release Notes	发行说明
 Install Now	立即安装
+Open Release Page	打开发布页面
+Click Open Release Page to download it.	单击“打开发布页面”进行下载。
+AnyVector cannot install updates by itself on Linux yet.	AnyVector 目前还无法在 Linux 上自行安装更新。
 Check Now	立即检查
 Later	稍后
 There is a new version of AnyVector available.	有新版本的 AnyVector 可用。
@@ -3942,9 +3957,11 @@ Save Key	保存密钥
 Remove Key	移除密钥
 The key was removed from the {} environment variable.	已从 {} 环境变量中移除密钥。
 The key was saved in the {} environment variable of your Windows account. AI Generate is ready.	密钥已保存在您 Windows 帐户的 {} 环境变量中。AI 生成已就绪。
+The key was saved in the {} environment variable of your user account. AI Generate is ready.	密钥已保存在您用户帐户的 {} 环境变量中。AI 生成已就绪。
 An API key was found in this environment variable.	在此环境变量中找到了 API 密钥。
 AI Generate needs an API key. Paste it above and click Save Key, or set this environment variable yourself.	AI 生成需要 API 密钥。请将其粘贴到上方并单击“保存密钥”，或自行设置此环境变量。
 Save Key writes the key into this environment variable of your Windows account, right away. AnyVector never saves the key in its own settings or documents.	“保存密钥”会立即将密钥写入您 Windows 帐户的此环境变量。AnyVector 绝不会将密钥保存在自己的设置或文档中。
+Save Key writes the key into this environment variable of your user account ({}), right away; other programs see it after you log in again. AnyVector never saves the key in its own settings or documents.	“保存密钥”会立即将密钥写入您用户帐户的此环境变量（{}）；其他程序在您下次登录后即可看到它。AnyVector 绝不会将密钥保存在自己的设置或文档中。
 A reduced set of common tools for new users.	一组精简的常用工具，适合新用户。
 The standard layout with all toolbars, the toolbox and dockers.	包含所有工具栏、工具箱和泊坞窗的标准布局。
 Large controls for touch, stylus and dial use.	适合触摸、触控笔和拨盘使用的大尺寸控件。
@@ -4068,6 +4085,7 @@ Horizon:	地平线：
 Fill page	填充页面
 The perspective field covers the page	透视场覆盖页面
 Bitmap image	位图图像
+PNG image	PNG 图像
 Rich Text Document	RTF 文档
 Text Document	文本文档
 Data	数据

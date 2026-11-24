@@ -241,6 +241,7 @@ dependencies = [
  "resvg",
  "rfd",
  "rhai",
+ "rustix 1.1.6",
  "serde",
  "serde_json",
  "thesaurus-wordnet",
@@ -253,6 +254,8 @@ dependencies = [
  "windows",
  "windows-core",
  "winresource",
+ "wl-clipboard-rs",
+ "x11rb",
  "zip",
 ]
 
@@ -1160,6 +1163,7 @@ dependencies = [
  "egui-winit",
  "egui_glow",
  "egui_system_font_provider",
+ "glow",
  "glutin",
  "glutin-winit",
  "image",

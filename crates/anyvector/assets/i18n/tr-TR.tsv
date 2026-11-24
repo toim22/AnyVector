@@ -1867,8 +1867,10 @@ Silhouette	Siluet
 Tools ▸ Options ▸ Global ▸ Privacy ▸ AI Generate	Araçlar ▸ Seçenekler ▸ Genel ▸ Gizlilik ▸ Yapay Zekâ ile Oluştur
 Environment	Ortam
 Type the name of the environment variable first.	Önce ortam değişkeninin adını yazın.
+The name of the environment variable or the key has characters that cannot be saved.	Ortam değişkeninin adı veya anahtar, kaydedilemeyen karakterler içeriyor.
 Could not save the environment variable (error {}).	Ortam değişkeni kaydedilemedi (hata {}).
 AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your Windows account, never in its own files.	Yapay Zekâ ile Oluştur için bir API anahtarı gerekir. Anahtarınızı {} bölümünde ekleyin: AnyVector anahtarı kendi dosyalarında değil, Windows hesabınızın {} ortam değişkeninde saklar.
+AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your user account, never in its settings or documents.	Yapay Zekâ ile Oluştur için bir API anahtarı gerekir. Anahtarınızı {} bölümünde ekleyin: AnyVector anahtarı ayarlarında veya belgelerinde değil, kullanıcı hesabınızın {} ortam değişkeninde saklar.
 Generating...	Oluşturuluyor...
 Could not reach the AI service: {}	Yapay zekâ hizmetine ulaşılamadı: {}
 Invalid response from the AI service: {}	Yapay zekâ hizmetinden geçersiz yanıt: {}
@@ -1995,6 +1997,8 @@ The page no longer exists.	Sayfa artık yok.
 The object no longer exists.	Nesne artık yok.
 Nothing to export	Dışa aktarılacak bir şey yok
 No scanner or camera was found. Connect a WIA device and try again.	Tarayıcı veya kamera bulunamadı. Bir WIA aygıtı bağlayıp yeniden deneyin.
+Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	Tarama, Linux'ta AnyVector'da henüz kullanılamıyor. Görüntüyü sisteminizin tarama programıyla (örneğin Belge Tarayıcı veya XSane) tarayın, kaydedin ve Dosya ▸ İçe Aktar ile çizime ekleyin.
+Select WIA Source	WIA Kaynağını Seç
 The image could not be acquired:\n{}	Görüntü alınamadı:\n{}
 All File Formats	Tüm Dosya Biçimleri
 Open Drawing	Çizimi Aç
@@ -2029,6 +2033,7 @@ Could not save the drawing: {}	Çizim kaydedilemedi: {}
 No mail program accepted the attachment; the drawing is ready to attach to your message.	Hiçbir posta programı eki kabul etmedi; çizim iletinize eklenmeye hazır.
 the Desktop	Masaüstü
 Documents	Belgeler
+Mail Recipient	Posta alıcısı
 Select at least one record in the print merge data.	Yazdırma birleştirme verilerinde en az bir kayıt seçin.
 Click the object to copy the effect from.	Efektin kopyalanacağı nesneye tıklayın.
 Click the object to place the selection in front of.	Seçimin önüne yerleştirileceği nesneye tıklayın.
@@ -2738,9 +2743,14 @@ Display	Görüntü
 Printing	Yazdırma
 AnyVector EXEs & DLLs	AnyVector EXE ve DLL'leri
 System DLLs	Sistem DLL'leri
+AnyVector Programs & Libraries	AnyVector Programları ve Kitaplıkları
+System Libraries	Sistem Kitaplıkları
 {} GB	{} GB
 AnyVector {} - System Info	AnyVector {} - Sistem Bilgileri
 Platform:	Platform:
+Kernel:	Çekirdek:
+Session type:	Oturum türü:
+Locale:	Yerel ayar:
 Processor:	İşlemci:
 Number of Processors:	İşlemci Sayısı:
 Math Coprocessor:	Matematik İşlemcisi:
@@ -2754,6 +2764,7 @@ Total memory used by app:	Uygulamanın kullandığı toplam bellek:
 GDI Object Count:	GDI Nesne Sayısı:
 User Object Count:	Kullanıcı Nesne Sayısı:
 Available space on drive {}	{} sürücüsündeki kullanılabilir alan
+Available space in {}:	{} içindeki kullanılabilir alan:
 Windows Directory:	Windows Dizini:
 TEMP directory:	TEMP dizini:
 Application directory:	Uygulama dizini:
@@ -2789,6 +2800,7 @@ Keep the product up to date (recommended)	Ürünü güncel tut (önerilir)
 Check for updates and let me choose when to install them	Güncelleştirmeleri denetle ve ne zaman yükleneceklerini bana bırak
 Never check for updates	Güncelleştirmeleri hiçbir zaman denetleme
 Automatically downloads product updates, but prompts you before installing them.	Ürün güncelleştirmelerini otomatik olarak indirir, ancak yüklemeden önce size sorar.
+AnyVector looks for a new version at every start and tells you when one is available.	AnyVector her başlangıçta yeni bir sürüm arar ve yeni bir sürüm çıktığında size bildirir.
 AnyVector tells you when a new version is available; you choose when to download and install it.	AnyVector yeni bir sürüm çıktığında size bildirir; ne zaman indirip yükleyeceğinize siz karar verirsiniz.
 AnyVector never connects to the Internet to look for updates. Help ▸ Updates still checks when you ask.	AnyVector güncelleştirme aramak için hiçbir zaman İnternet'e bağlanmaz. Yardım ▸ Güncelleştirmeler, siz istediğinizde yine denetler.
 An Internet connection is required. Please connect to the Internet and try again.	İnternet bağlantısı gerekiyor. Lütfen İnternet'e bağlanın ve yeniden deneyin.
@@ -2813,6 +2825,9 @@ The update will be installed when AnyVector closes.	Güncelleştirme AnyVector k
 Allow product updates:	Ürün güncelleştirmelerine izin ver:
 Release Notes	Sürüm Notları
 Install Now	Şimdi Yükle
+Open Release Page	Sürüm Sayfasını Aç
+Click Open Release Page to download it.	İndirmek için Sürüm Sayfasını Aç'a tıklayın.
+AnyVector cannot install updates by itself on Linux yet.	AnyVector, Linux'ta güncelleştirmeleri henüz kendisi yükleyemez.
 Check Now	Şimdi Denetle
 Later	Daha Sonra
 There is a new version of AnyVector available.	AnyVector'ün yeni bir sürümü kullanılabilir.
@@ -3942,9 +3957,11 @@ Save Key	Anahtarı Kaydet
 Remove Key	Anahtarı Kaldır
 The key was removed from the {} environment variable.	Anahtar {} ortam değişkeninden kaldırıldı.
 The key was saved in the {} environment variable of your Windows account. AI Generate is ready.	Anahtar, Windows hesabınızın {} ortam değişkenine kaydedildi. Yapay Zekâ ile Oluştur hazır.
+The key was saved in the {} environment variable of your user account. AI Generate is ready.	Anahtar, kullanıcı hesabınızın {} ortam değişkenine kaydedildi. Yapay Zekâ ile Oluştur hazır.
 An API key was found in this environment variable.	Bu ortam değişkeninde bir API anahtarı bulundu.
 AI Generate needs an API key. Paste it above and click Save Key, or set this environment variable yourself.	Yapay Zekâ ile Oluştur için bir API anahtarı gerekir. Anahtarı yukarı yapıştırıp Anahtarı Kaydet'e tıklayın veya bu ortam değişkenini kendiniz ayarlayın.
 Save Key writes the key into this environment variable of your Windows account, right away. AnyVector never saves the key in its own settings or documents.	Anahtarı Kaydet, anahtarı hemen Windows hesabınızın bu ortam değişkenine yazar. AnyVector anahtarı hiçbir zaman kendi ayarlarına veya belgelerine kaydetmez.
+Save Key writes the key into this environment variable of your user account ({}), right away; other programs see it after you log in again. AnyVector never saves the key in its own settings or documents.	Anahtarı Kaydet, anahtarı hemen kullanıcı hesabınızın bu ortam değişkenine ({}) yazar; diğer programlar onu bir sonraki oturum açışınızdan sonra görür. AnyVector anahtarı hiçbir zaman kendi ayarlarına veya belgelerine kaydetmez.
 A reduced set of common tools for new users.	Yeni kullanıcılar için yaygın araçlardan oluşan sınırlı bir küme.
 The standard layout with all toolbars, the toolbox and dockers.	Tüm araç çubukları, araç kutusu ve yerleşik pencerelerle standart yerleşim.
 Large controls for touch, stylus and dial use.	Dokunma, kalem ve kadran kullanımı için büyük denetimler.
@@ -4068,6 +4085,7 @@ Horizon:	Ufuk:
 Fill page	Sayfayı doldur
 The perspective field covers the page	Perspektif alanı sayfayı kaplar
 Bitmap image	Bitmap görüntüsü
+PNG image	PNG görüntüsü
 Rich Text Document	Zengin Metin Belgesi
 Text Document	Metin Belgesi
 Data	Veri

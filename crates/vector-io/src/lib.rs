@@ -13,6 +13,7 @@ pub mod flat;
 pub mod hpgl;
 pub mod image_io;
 pub mod native;
+pub mod paths;
 pub mod pdf;
 pub mod pdf_import;
 pub mod patterns;
@@ -166,10 +167,7 @@ fn open_raw(path: &Path) -> Result<Document> {
         "vct" => native::load(path),
         "dxf" => dxf_import::load_with_notes(&std::fs::read(path)?).map(|(d, _)| d),
         "pdf" => pdf_import::load_with_notes(&std::fs::read(path)?, &Default::default()).map(|(d, _)| d),
-        "svg" | "svgz" => {
-            let data = std::fs::read(path)?;
-            svg_import::document_from_svg(&data)
-        }
+        "svg" | "svgz" => svg_import::document_from_svg_file(path),
         e if image_io::is_image_ext(e) => {
             let bytes = std::fs::read(path)?;
             let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
@@ -297,7 +295,7 @@ fn import_raw(doc: &mut Document, path: &Path) -> Result<Vec<Object>> {
         }
         "eps" | "epsf" | "ps" | "prn" | "ai" => ps_import::import(doc, &bytes).map(|(o, _)| o),
         "svg" | "svgz" => {
-            let other = svg_import::document_from_svg(&bytes)?;
+            let other = svg_import::document_from_svg_in(&bytes, path.parent())?;
             Ok(merge_document(doc, other))
         }
         "pdf" => {

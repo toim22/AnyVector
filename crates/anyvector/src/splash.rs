@@ -1,9 +1,37 @@
 //! Start-up splash screen (the logo), shown in the undecorated start window.
 
 use crate::app::AnyVectorApp;
-use egui::{pos2, vec2, Color32, Rect, Ui};
+use egui::{pos2, vec2, Color32, Rect, Ui, Vec2, ViewportCommand};
 
 const MIN_SECONDS: f64 = 1.8;
+
+/// The size of the splash window.
+pub const SPLASH_SIZE: Vec2 = vec2(620.0, 380.0);
+/// The smallest the main window can be made.
+pub const MIN_WINDOW_SIZE: Vec2 = vec2(480.0, 320.0);
+/// The main window's size before it is maximized.
+const MAIN_SIZE: Vec2 = vec2(1400.0, 860.0);
+
+/// The window commands that turn the splash window into the main window: a title bar and frame,
+/// resizable, opaque, `MAIN_SIZE` centred on the monitor (when its size is known) and maximized
+/// when `maximized`.
+pub fn main_window_commands(monitor_size: Option<Vec2>, maximized: bool) -> Vec<ViewportCommand> {
+    let mut cmds = vec![ViewportCommand::Decorations(true), ViewportCommand::Resizable(true)];
+    // Linux: winit 0.30 on Wayland makes a window that isn't resizable keep its size as its
+    // minimum and maximum, and still has them once it is resizable again, so the main window
+    // stayed as small as the splash and couldn't be maximized (GNOME, KDE, sway): set them again
+    #[cfg(target_os = "linux")]
+    cmds.extend([ViewportCommand::MinInnerSize(MIN_WINDOW_SIZE), ViewportCommand::MaxInnerSize(Vec2::INFINITY)]);
+    cmds.push(ViewportCommand::Transparent(false));
+    cmds.push(ViewportCommand::InnerSize(MAIN_SIZE));
+    if let Some(mon) = monitor_size {
+        cmds.push(ViewportCommand::OuterPosition(pos2(((mon.x - 1400.0) / 2.0).max(0.0), ((mon.y - 900.0) / 2.0).max(0.0))));
+    }
+    if maximized {
+        cmds.push(ViewportCommand::Maximized(true));
+    }
+    cmds
+}
 
 pub struct Splash {
     tex: Option<egui::TextureHandle>,
@@ -32,15 +60,9 @@ pub fn show(app: &mut AnyVectorApp, ui: &mut Ui) -> bool {
         if !sp.switched {
             sp.switched = true;
             // turn the splash window into the main window
-            ctx.send_viewport_cmd(egui::ViewportCommand::Decorations(true));
-            ctx.send_viewport_cmd(egui::ViewportCommand::Resizable(true));
-            ctx.send_viewport_cmd(egui::ViewportCommand::Transparent(false));
-            ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(vec2(1400.0, 860.0)));
-            if let Some(mon) = ctx.input(|i| i.viewport().monitor_size) {
-                ctx.send_viewport_cmd(egui::ViewportCommand::OuterPosition(pos2(((mon.x - 1400.0) / 2.0).max(0.0), ((mon.y - 900.0) / 2.0).max(0.0))));
-            }
-            if maximized {
-                ctx.send_viewport_cmd(egui::ViewportCommand::Maximized(true));
+            let monitor_size = ctx.input(|i| i.viewport().monitor_size);
+            for cmd in main_window_commands(monitor_size, maximized) {
+                ctx.send_viewport_cmd(cmd);
             }
         }
         app.splash = None;
@@ -101,4 +123,36 @@ pub fn show(app: &mut AnyVectorApp, ui: &mut Ui) -> bool {
     p.text(pos2(bar.right(), bar.top() - 9.0), egui::Align2::RIGHT_CENTER, format!("Version {}", vector_core::APP_VERSION), crate::theme::body(11.0), Color32::from_gray(0x8c));
     ctx.request_repaint();
     true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use egui::ViewportCommand as C;
+
+    #[test]
+    fn splash_becomes_a_main_window_that_can_grow() {
+        let cmds = main_window_commands(Some(vec2(1920.0, 1080.0)), true);
+        let at = |c: &C| cmds.iter().position(|x| x == c);
+        let resizable = at(&C::Resizable(true)).expect("resizable");
+        if cfg!(target_os = "linux") {
+            // the splash's fixed size stops being the limit, after Resizable(true) brought it back
+            assert!(at(&C::MinInnerSize(MIN_WINDOW_SIZE)).expect("minimum") > resizable);
+            assert!(at(&C::MaxInnerSize(Vec2::INFINITY)).expect("no maximum") > resizable);
+            assert!(at(&C::InnerSize(MAIN_SIZE)).unwrap() > at(&C::MaxInnerSize(Vec2::INFINITY)).unwrap());
+        } else {
+            // Windows: the commands sent before AnyVector ran on Linux, unchanged
+            let before = [C::Decorations(true), C::Resizable(true), C::Transparent(false), C::InnerSize(vec2(1400.0, 860.0)), C::OuterPosition(pos2(260.0, 90.0)), C::Maximized(true)];
+            assert_eq!(cmds, before);
+        }
+        assert_eq!(at(&C::Decorations(true)), Some(0));
+        assert!(cmds.contains(&C::Transparent(false)));
+        // centred: 1400 × 860 plus the title bar
+        assert!(cmds.contains(&C::OuterPosition(pos2(260.0, 90.0))));
+        assert_eq!(cmds.last(), Some(&C::Maximized(true)));
+        // monitor unknown, not maximized last time: no position, no maximize
+        let plain = main_window_commands(None, false);
+        assert!(!plain.iter().any(|c| matches!(c, C::OuterPosition(_) | C::Maximized(_))), "{plain:?}");
+        assert!(plain.contains(&C::InnerSize(MAIN_SIZE)));
+    }
 }

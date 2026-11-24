@@ -617,8 +617,9 @@ pub fn draw_overlay(painter: &Painter, d: &DocView) {
 
 // ============================================================================== Insert ▸ Object
 
-/// A document type Create New makes: the types Windows can create empty (the New menu of the
-/// desktop), opened in their program once inserted.
+/// A document type Create New makes: the types the desktop can create empty (its New menu: the
+/// ShellNew types of Windows; the templates folder and KDE's Create New templates on Linux),
+/// opened in their program once inserted.
 #[derive(Clone, Debug)]
 pub struct NewType {
     pub name: String,
@@ -638,8 +639,14 @@ pub fn new_types() -> &'static [NewType] {
     TYPES.get_or_init(|| {
         let mut v = load_new_types();
         if v.is_empty() {
+            let image = if cfg!(windows) {
+                NewType { name: "Bitmap image".into(), ext: ".bmp".into(), how: NewHow::Empty }
+            } else {
+                // the image programs of Linux take an empty file for a broken image: a white one
+                NewType { name: "PNG image".into(), ext: ".png".into(), how: NewHow::Data(vector_io::image_io::encode_png(320, 240, &vec![255; 320 * 240 * 4])) }
+            };
             v = vec![
-                NewType { name: "Bitmap image".into(), ext: ".bmp".into(), how: NewHow::Empty },
+                image,
                 NewType { name: "Rich Text Document".into(), ext: ".rtf".into(), how: NewHow::Data(b"{\\rtf1}".to_vec()) },
                 NewType { name: "Text Document".into(), ext: ".txt".into(), how: NewHow::Empty },
             ];
@@ -651,6 +658,7 @@ pub fn new_types() -> &'static [NewType] {
 }
 
 /// A template file of the New menu: absolute, or in the Windows and user template folders.
+#[cfg(windows)]
 fn template_path(f: &str) -> Option<PathBuf> {
     let mut s = f.to_string();
     for (k, v) in std::env::vars() {
@@ -746,9 +754,110 @@ fn load_new_types() -> Vec<NewType> {
     out
 }
 
+/// The New types of Linux: the user's templates folder (xdg-user-dirs' Templates; `~/Templates`
+/// when that is not set; set to the home folder it means none) and KDE's templates in
+/// `templates` of the XDG data folders, the user's first.
 #[cfg(not(windows))]
 fn load_new_types() -> Vec<NewType> {
-    vec![]
+    let home = dirs::home_dir();
+    let user = dirs::template_dir().or_else(|| home.as_ref().map(|h| h.join("Templates")).filter(|d| d.is_dir())).filter(|d| Some(d) != home.as_ref());
+    let var = |k: &str| std::env::var_os(k).filter(|v| !v.is_empty());
+    let mut data: Vec<PathBuf> = vec![];
+    data.extend(var("XDG_DATA_HOME").map(PathBuf::from).or_else(|| home.as_ref().map(|h| h.join(".local/share"))));
+    data.extend(std::env::split_paths(&var("XDG_DATA_DIRS").unwrap_or_else(|| "/usr/local/share:/usr/share".into())));
+    let kde: Vec<PathBuf> = data.into_iter().filter(|d| d.has_root()).map(|d| d.join("templates")).collect();
+    xdg_new_types(user.as_deref(), &kde)
+}
+
+/// The New types of a Linux desktop: each file of the templates folder `templates` (GNOME Files
+/// and Dolphin offer them under New Document), with those of its subfolders two levels down, named
+/// by its file name; then the entries of KDE's Create New menu, `*.desktop` files in the folders
+/// `kde`, where a file of the user's hides the system's of the same name.
+#[cfg(any(not(windows), test))]
+fn xdg_new_types(templates: Option<&Path>, kde: &[PathBuf]) -> Vec<NewType> {
+    let mut out = vec![];
+    if let Some(dir) = templates {
+        template_files(dir, 2, &mut out);
+    }
+    let mut seen = std::collections::HashSet::new();
+    for dir in kde {
+        let Ok(rd) = std::fs::read_dir(dir) else { continue };
+        let mut entries: Vec<PathBuf> = rd.flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|e| e == "desktop")).collect();
+        entries.sort();
+        for p in entries {
+            if seen.insert(p.file_name().map(|n| n.to_os_string())) {
+                out.extend(std::fs::read_to_string(&p).ok().and_then(|t| kde_template(&t, dir)));
+            }
+        }
+    }
+    out
+}
+
+/// The files of the templates folder `dir` and of its subfolders `depth` levels down, in name
+/// order.
+#[cfg(any(not(windows), test))]
+fn template_files(dir: &Path, depth: u32, out: &mut Vec<NewType>) {
+    let Ok(rd) = std::fs::read_dir(dir) else { return };
+    let mut paths: Vec<PathBuf> = rd.flatten().map(|e| e.path()).collect();
+    paths.sort();
+    let mut folders = vec![];
+    for p in paths {
+        let name = p.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+        // hidden files and editor backups are no templates
+        if name.starts_with('.') || name.ends_with('~') {
+            continue;
+        }
+        if p.is_dir() {
+            if depth > 0 {
+                folders.push(p);
+            }
+        } else if p.is_file() {
+            out.push(template_type(&p, None));
+        }
+    }
+    for f in folders {
+        template_files(&f, depth - 1, out);
+    }
+}
+
+/// The New type that copies the template `file`, named `name` or by the file's name.
+#[cfg(any(not(windows), test))]
+fn template_type(file: &Path, name: Option<String>) -> NewType {
+    let ext = file.extension().map(|e| format!(".{}", e.to_string_lossy())).unwrap_or_default();
+    let name = name.unwrap_or_else(|| file.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default());
+    NewType { name, ext, how: NewHow::Template(file.to_path_buf()) }
+}
+
+/// A KDE Create New entry: a `[Desktop Entry]` of `Type=Link` with a `Name` and the template file
+/// in `URL`, relative to the entry's folder `dir`. None for an entry that makes a folder or a link
+/// (no template file), or a hidden one.
+#[cfg(any(not(windows), test))]
+fn kde_template(text: &str, dir: &Path) -> Option<NewType> {
+    let (mut group, mut name, mut url, mut link, mut hidden) = ("", None, None, false, false);
+    for line in text.lines().map(str::trim) {
+        if line.starts_with('[') {
+            group = line;
+            continue;
+        }
+        let Some((key, value)) = line.split_once('=').filter(|_| group == "[Desktop Entry]") else { continue };
+        let value = value.trim();
+        match key.trim() {
+            "Name" => name = Some(value.to_string()),
+            "URL" => url = Some(value.to_string()),
+            "Type" => link = value == "Link",
+            "Hidden" | "NoDisplay" => hidden |= value == "true",
+            _ => {}
+        }
+    }
+    let url = url.filter(|u| link && !hidden && !u.is_empty())?;
+    let file = dir.join(url.strip_prefix("file://").unwrap_or(&url));
+    // a .desktop template makes a link, not a document
+    if !file.is_file() || file.extension().is_some_and(|e| e == "desktop") {
+        return None;
+    }
+    // KDE's names end with "..." (its menu asks for the new file's name)
+    let name = name.map(|n| n.trim_end_matches("...").trim_end_matches('…').trim().to_string()).filter(|n| !n.is_empty());
+    Some(template_type(&file, name))
 }
 
 /// Object ▸ Insert ▸ Object.
@@ -866,7 +975,7 @@ fn new_ole(app: &mut AnyVectorApp, kind: usize, as_icon: bool) -> Result<(), Str
 }
 
 fn ole_dir() -> PathBuf {
-    std::env::temp_dir().join("AnyVector OLE")
+    crate::platform::temp_dir().join("AnyVector OLE")
 }
 
 /// What an object shows: the file's contents when AnyVector can read it, else an icon with its name.
@@ -927,7 +1036,8 @@ fn modified(p: &Path) -> Option<std::time::SystemTime> {
 pub fn open_ole(app: &mut AnyVectorApp, id: ObjId) {
     let Some(Special::Ole { name, path, linked, data, .. }) = app.doc().and_then(|d| d.doc.find(id)).and_then(|o| o.special.clone()) else { return };
     let file = if linked {
-        PathBuf::from(path)
+        // a drawing from Windows or another computer stores the path it had there
+        crate::dockers::misc::linked_file(&path, app.doc().and_then(|d| d.path.as_deref()))
     } else {
         let dir = ole_dir().join(id.to_string());
         let f = dir.join(&name);
@@ -944,7 +1054,7 @@ pub fn open_ole(app: &mut AnyVectorApp, id: ObjId) {
     #[cfg(windows)]
     let _ = std::process::Command::new("explorer").arg(&file).spawn();
     #[cfg(not(windows))]
-    let _ = std::process::Command::new("xdg-open").arg(&file).spawn();
+    let _ = crate::platform::open_file(&file);
     if let Ok(mut w) = WATCH.lock() {
         w.retain(|x| x.0 != id);
         w.push((id, file.clone(), modified(&file)));
@@ -1027,6 +1137,47 @@ mod tests {
         }
         assert_eq!(base64(b"Man"), "TWFu");
         assert_eq!(base64(b"Ma"), "TWE=");
+    }
+
+    /// Insert Object ▸ Create New on Linux: the files of the templates folder and KDE's templates.
+    #[test]
+    fn linux_new_types_come_from_the_template_folders() {
+        let root = std::env::temp_dir().join(format!("anyvector-new-types-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let tpl = root.join("Templates");
+        let (kde_user, kde_system) = (root.join("user").join("templates"), root.join("system").join("templates"));
+        for d in [tpl.join("Office/Old/Older"), kde_user.clone(), kde_system.join(".source/Directory")] {
+            std::fs::create_dir_all(d).unwrap();
+        }
+        let write = |p: PathBuf, s: &str| std::fs::write(p, s).unwrap();
+        write(tpl.join("Text Document.txt"), "");
+        write(tpl.join("Makefile"), "all:\n");
+        write(tpl.join(".hidden.txt"), "");
+        write(tpl.join("notes.txt~"), "");
+        write(tpl.join("Office/Report.odt"), "x");
+        write(tpl.join("Office/Old/Letter.doc"), "x");
+        write(tpl.join("Office/Old/Older/Too Deep.txt"), "x");
+        write(kde_system.join(".source/HTMLFile.html"), "<html></html>");
+        write(kde_system.join(".source/TextFile.txt"), "");
+        write(kde_system.join(".source/linkPath.desktop"), "[Desktop Entry]\nType=Link\nURL=\n");
+        write(kde_system.join("HTMLFile.desktop"), "[Desktop Entry]\nName=HTML File...\nName[pt_BR]=Arquivo HTML...\nComment=Enter HTML filename:\nType=Link\nURL=.source/HTMLFile.html\nIcon=text-html\n");
+        write(kde_system.join("TextFile.desktop"), "[Desktop Entry]\nName=Text File...\nType=Link\nURL=.source/TextFile.txt\n");
+        write(kde_system.join("Directory.desktop"), "[Desktop Entry]\nName=Folder...\nType=Link\nURL=.source/Directory/\n");
+        write(kde_system.join("linkURL.desktop"), "[Desktop Entry]\nName=Link to Location (URL)...\nType=Link\nURL=\n");
+        write(kde_system.join("linkPath.desktop"), "[Desktop Entry]\nName=Link to File or Directory...\nType=Link\nURL=.source/linkPath.desktop\n");
+        write(kde_system.join("Missing.desktop"), "[Desktop Entry]\nName=Missing...\nType=Link\nURL=.source/missing.txt\n");
+        write(kde_system.join("Other.desktop"), "[Other Group]\nName=Other\nType=Link\nURL=.source/TextFile.txt\n");
+        // the user's file of the same name hides the system's
+        write(kde_user.join("TextFile.desktop"), "[Desktop Entry]\nHidden=true\n");
+
+        let types = xdg_new_types(Some(&tpl), &[kde_user, kde_system.clone()]);
+        let got: Vec<(&str, &str)> = types.iter().map(|t| (t.name.as_str(), t.ext.as_str())).collect();
+        assert_eq!(got, [("Makefile", ""), ("Text Document", ".txt"), ("Report", ".odt"), ("Letter", ".doc"), ("HTML File", ".html")]);
+        assert!(matches!(&types[1].how, NewHow::Template(p) if *p == tpl.join("Text Document.txt")));
+        assert!(matches!(&types[4].how, NewHow::Template(p) if *p == kde_system.join(".source/HTMLFile.html")));
+        // no templates folder and no KDE templates: nothing (Create New then offers its own three)
+        assert!(xdg_new_types(None, &[root.join("none")]).is_empty());
+        std::fs::remove_dir_all(&root).unwrap();
     }
 
     #[test]

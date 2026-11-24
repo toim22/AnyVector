@@ -1867,8 +1867,10 @@ Silhouette	Silhouette
 Tools ▸ Options ▸ Global ▸ Privacy ▸ AI Generate	Strumenti ▸ Opzioni ▸ Globale ▸ Privacy ▸ Genera con IA
 Environment	Ambiente
 Type the name of the environment variable first.	Digitare prima il nome della variabile di ambiente.
+The name of the environment variable or the key has characters that cannot be saved.	Il nome della variabile di ambiente o la chiave contiene caratteri che non possono essere salvati.
 Could not save the environment variable (error {}).	Impossibile salvare la variabile di ambiente (errore {}).
 AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your Windows account, never in its own files.	Genera con IA richiede una chiave API. Aggiungere la chiave in {}: AnyVector la conserva nella variabile di ambiente {} del proprio account Windows, mai nei propri file.
+AI Generate needs an API key. Add your key in {}: AnyVector keeps it in the {} environment variable of your user account, never in its settings or documents.	Genera con IA richiede una chiave API. Aggiungere la chiave in {}: AnyVector la conserva nella variabile di ambiente {} del proprio account utente, mai nelle proprie impostazioni o nei documenti.
 Generating...	Generazione in corso...
 Could not reach the AI service: {}	Impossibile raggiungere il servizio IA: {}
 Invalid response from the AI service: {}	Risposta non valida dal servizio IA: {}
@@ -1995,6 +1997,8 @@ The page no longer exists.	La pagina non esiste più.
 The object no longer exists.	L'oggetto non esiste più.
 Nothing to export	Niente da esportare
 No scanner or camera was found. Connect a WIA device and try again.	Nessuno scanner o fotocamera trovati. Collegare un dispositivo WIA e riprovare.
+Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	La scansione non è ancora disponibile in AnyVector su Linux. Acquisire l'immagine con il programma di scansione del sistema (ad esempio Scanner documenti o XSane), salvarla e inserirla nel disegno con File ▸ Importa.
+Select WIA Source	Seleziona origine WIA
 The image could not be acquired:\n{}	Impossibile acquisire l'immagine:\n{}
 All File Formats	Tutti i formati di file
 Open Drawing	Apri disegno
@@ -2029,6 +2033,7 @@ Could not save the drawing: {}	Impossibile salvare il disegno: {}
 No mail program accepted the attachment; the drawing is ready to attach to your message.	Nessun programma di posta ha accettato l'allegato; il disegno è pronto per essere allegato al messaggio.
 the Desktop	il Desktop
 Documents	Documenti
+Mail Recipient	Destinatario posta
 Select at least one record in the print merge data.	Selezionare almeno un record nei dati della stampa unione.
 Click the object to copy the effect from.	Fare clic sull'oggetto da cui copiare l'effetto.
 Click the object to place the selection in front of.	Fare clic sull'oggetto davanti al quale posizionare la selezione.
@@ -2738,9 +2743,14 @@ Display	Schermo
 Printing	Stampa
 AnyVector EXEs & DLLs	EXE e DLL di AnyVector
 System DLLs	DLL di sistema
+AnyVector Programs & Libraries	Programmi e librerie di AnyVector
+System Libraries	Librerie di sistema
 {} GB	{} GB
 AnyVector {} - System Info	AnyVector {} - Informazioni di sistema
 Platform:	Piattaforma:
+Kernel:	Kernel:
+Session type:	Tipo di sessione:
+Locale:	Impostazioni locali:
 Processor:	Processore:
 Number of Processors:	Numero di processori:
 Math Coprocessor:	Coprocessore matematico:
@@ -2754,6 +2764,7 @@ Total memory used by app:	Memoria totale usata dall'applicazione:
 GDI Object Count:	Numero oggetti GDI:
 User Object Count:	Numero oggetti utente:
 Available space on drive {}	Spazio disponibile sull'unità {}
+Available space in {}:	Spazio disponibile in {}:
 Windows Directory:	Directory di Windows:
 TEMP directory:	Directory TEMP:
 Application directory:	Directory dell'applicazione:
@@ -2789,6 +2800,7 @@ Keep the product up to date (recommended)	Mantieni il prodotto aggiornato (consi
 Check for updates and let me choose when to install them	Cerca aggiornamenti e lasciami scegliere quando installarli
 Never check for updates	Non cercare mai aggiornamenti
 Automatically downloads product updates, but prompts you before installing them.	Scarica automaticamente gli aggiornamenti del prodotto, ma chiede conferma prima di installarli.
+AnyVector looks for a new version at every start and tells you when one is available.	AnyVector cerca una nuova versione a ogni avvio e segnala quando ne è disponibile una.
 AnyVector tells you when a new version is available; you choose when to download and install it.	AnyVector segnala quando è disponibile una nuova versione; l'utente sceglie quando scaricarla e installarla.
 AnyVector never connects to the Internet to look for updates. Help ▸ Updates still checks when you ask.	AnyVector non si connette mai a Internet per cercare aggiornamenti. Guida ▸ Aggiornamenti esegue comunque il controllo su richiesta.
 An Internet connection is required. Please connect to the Internet and try again.	È necessaria una connessione a Internet. Connettersi a Internet e riprovare.
@@ -2813,6 +2825,9 @@ The update will be installed when AnyVector closes.	L'aggiornamento verrà insta
 Allow product updates:	Consenti aggiornamenti del prodotto:
 Release Notes	Note sulla versione
 Install Now	Installa ora
+Open Release Page	Apri pagina della versione
+Click Open Release Page to download it.	Fare clic su Apri pagina della versione per scaricarla.
+AnyVector cannot install updates by itself on Linux yet.	AnyVector non può ancora installare da solo gli aggiornamenti su Linux.
 Check Now	Verifica ora
 Later	Più tardi
 There is a new version of AnyVector available.	È disponibile una nuova versione di AnyVector.
@@ -3942,9 +3957,11 @@ Save Key	Salva chiave
 Remove Key	Rimuovi chiave
 The key was removed from the {} environment variable.	La chiave è stata rimossa dalla variabile di ambiente {}.
 The key was saved in the {} environment variable of your Windows account. AI Generate is ready.	La chiave è stata salvata nella variabile di ambiente {} dell'account Windows. Genera con IA è pronto.
+The key was saved in the {} environment variable of your user account. AI Generate is ready.	La chiave è stata salvata nella variabile di ambiente {} dell'account utente. Genera con IA è pronto.
 An API key was found in this environment variable.	In questa variabile di ambiente è stata trovata una chiave API.
 AI Generate needs an API key. Paste it above and click Save Key, or set this environment variable yourself.	Genera con IA richiede una chiave API. Incollarla qui sopra e fare clic su Salva chiave, oppure impostare manualmente questa variabile di ambiente.
 Save Key writes the key into this environment variable of your Windows account, right away. AnyVector never saves the key in its own settings or documents.	Salva chiave scrive subito la chiave in questa variabile di ambiente dell'account Windows. AnyVector non salva mai la chiave nelle proprie impostazioni o nei documenti.
+Save Key writes the key into this environment variable of your user account ({}), right away; other programs see it after you log in again. AnyVector never saves the key in its own settings or documents.	Salva chiave scrive subito la chiave in questa variabile di ambiente dell'account utente ({}); gli altri programmi la vedono dopo il prossimo accesso. AnyVector non salva mai la chiave nelle proprie impostazioni o nei documenti.
 A reduced set of common tools for new users.	Un insieme ridotto di strumenti comuni per i nuovi utenti.
 The standard layout with all toolbars, the toolbox and dockers.	Il layout standard con tutte le barre degli strumenti, la casella degli strumenti e i docker.
 Large controls for touch, stylus and dial use.	Controlli grandi per l'uso con tocco, stilo e dial.
@@ -4068,6 +4085,7 @@ Horizon:	Orizzonte:
 Fill page	Riempi pagina
 The perspective field covers the page	Il campo prospettico copre la pagina
 Bitmap image	Immagine bitmap
+PNG image	Immagine PNG
 Rich Text Document	Documento Rich Text
 Text Document	Documento di testo
 Data	Dati

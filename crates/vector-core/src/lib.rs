@@ -12,6 +12,7 @@ pub mod object;
 pub mod ops;
 pub mod path;
 pub mod style;
+pub mod sysfonts;
 pub mod text;
 pub mod units;
 

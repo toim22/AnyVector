@@ -661,7 +661,7 @@ pub fn export_library(app: &mut AnyVectorApp) {
 
 /// Import Library: the symbols of a library, linked to it.
 pub fn import_library(app: &mut AnyVectorApp) {
-    let Some(path) = rfd::FileDialog::new().set_title("Import Library").add_filter("CSL - Symbol Library (*.csl)", &["csl"]).set_directory(symbols_dir()).pick_file() else { return };
+    let Some(path) = rfd::FileDialog::new().set_title("Import Library").add_filter("CSL - Symbol Library (*.csl)", &vector_io::paths::dialog_extensions(&["csl"])).set_directory(symbols_dir()).pick_file() else { return };
     let link = path.to_string_lossy().to_string();
     match read_library(&link) {
         Ok(syms) => {
@@ -700,9 +700,22 @@ pub fn symbols_dir() -> std::path::PathBuf {
 
 /// Read a symbol library written by Export Library.
 pub fn read_library(path: &str) -> Result<Vec<SymbolDef>, String> {
+    read_library_at(std::path::Path::new(path))
+}
+
+fn read_library_at(path: &std::path::Path) -> Result<Vec<SymbolDef>, String> {
     let b = std::fs::read(path).map_err(|e| e.to_string())?;
     let lib: SymbolLibrary = serde_json::from_slice(&b).map_err(|e| e.to_string())?;
     Ok(lib.symbols)
+}
+
+/// The library file a linked symbol's `link` stands for: the stored path, else a library of
+/// that name (any case) next to the drawing or in the local Symbols folder. A drawing saved on
+/// another computer or system keeps the path the library had there (`C:\Users\…\Logos.csl`).
+fn library_file(link: &str, drawing: Option<&std::path::Path>, symbols: &std::path::Path) -> Option<std::path::PathBuf> {
+    let mut dirs: Vec<&std::path::Path> = drawing.and_then(|p| p.parent()).into_iter().collect();
+    dirs.push(symbols);
+    vector_io::paths::resolve_stored_path(link, &dirs)
 }
 
 pub fn break_link(app: &mut AnyVectorApp) {
@@ -721,7 +734,8 @@ pub fn update_from_link(app: &mut AnyVectorApp) {
     let Some(d) = app.doc() else { return };
     let Some(def) = d.doc.symbols.iter().find(|s| s.id == sid).cloned() else { return };
     let Some(link) = def.link.clone() else { return };
-    let src = match read_library(&link) {
+    let file = library_file(&link, d.path.as_deref(), &symbols_dir()).unwrap_or_else(|| std::path::PathBuf::from(&link));
+    let src = match read_library_at(&file) {
         Ok(v) => v,
         Err(e) => {
             app.dialogs.message_box = Some(("Update from Link".into(), format!("Could not read {link}: {e}")));
@@ -990,5 +1004,34 @@ mod tests {
         set_rollover_state(&mut g, 2);
         let ObjKind::Group(k) = &g.kind else { panic!() };
         assert_eq!(k.iter().map(|x| x.visible).collect::<Vec<_>>(), vec![false, false, true]);
+    }
+
+    /// A drawing saved on Windows keeps its symbol library as `C:\…\Logos.csl`; on another
+    /// computer (or Linux) the library is found next to the drawing or in the Symbols folder,
+    /// whatever the case of its name.
+    #[test]
+    fn linked_symbol_libraries_found_by_name() {
+        let root = std::env::temp_dir().join(format!("anyvector-symlib-{}", std::process::id()));
+        let drawings = root.join("Drawings");
+        let symbols = root.join("Symbols");
+        std::fs::create_dir_all(&drawings).unwrap();
+        std::fs::create_dir_all(&symbols).unwrap();
+        let lib = |name: &str| SymbolLibrary { symbols: vec![SymbolDef { id: 1, name: name.into(), objects: vec![], link: None }] };
+        std::fs::write(drawings.join("Logos.CSL"), serde_json::to_vec(&lib("Star")).unwrap()).unwrap();
+        std::fs::write(symbols.join("arrows.csl"), serde_json::to_vec(&lib("Arrow")).unwrap()).unwrap();
+        let drawing = drawings.join("Poster.cdr");
+
+        let next_to_drawing = library_file(r"C:\Users\someone\Documents\Logos.csl", Some(&drawing), &symbols).unwrap();
+        assert_eq!(read_library_at(&next_to_drawing).unwrap()[0].name, "Star");
+        let in_symbols = library_file(r"D:\Shared\Libraries\Arrows.csl", Some(&drawing), &symbols).unwrap();
+        assert_eq!(read_library_at(&in_symbols).unwrap()[0].name, "Arrow");
+        let unsaved_drawing = library_file("/home/someone/arrows.csl", None, &symbols).unwrap();
+        assert_eq!(read_library_at(&unsaved_drawing).unwrap()[0].name, "Arrow");
+        // a library that is nowhere stays unresolved, so the error names the stored path
+        assert!(library_file(r"C:\Libraries\Missing.csl", Some(&drawing), &symbols).is_none());
+        // the stored path itself still wins when it exists
+        let stored = drawings.join("Logos.CSL");
+        assert_eq!(library_file(&stored.to_string_lossy(), None, &symbols), Some(stored));
+        let _ = std::fs::remove_dir_all(&root);
     }
 }

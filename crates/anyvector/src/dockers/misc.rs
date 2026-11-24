@@ -156,7 +156,7 @@ pub fn comments(app: &mut AnyVectorApp, ui: &mut Ui) {
     if let Some(id) = select {
         app.dockers.ui.comment_sel = Some(id);
     }
-    let author = if app.settings.user_name.is_empty() { std::env::var("USERNAME").unwrap_or_else(|_| "User".into()) } else { app.settings.user_name.clone() };
+    let author = crate::dockers::comment_author(&app.settings.user_name);
     if commit.is_some() {
         app.dockers.ui.comment_edit = None;
     }
@@ -428,7 +428,7 @@ pub fn symbols(app: &mut AnyVectorApp, ui: &mut Ui) {
     ui.add_space(4.0);
     // the libraries
     let locals: Vec<std::path::PathBuf> = {
-        let mut v: Vec<_> = std::fs::read_dir(crate::dialogs::object::symbols_dir()).map(|r| r.filter_map(|e| e.ok()).map(|e| e.path()).filter(|p| p.extension().is_some_and(|e| e == "csl")).collect()).unwrap_or_default();
+        let mut v: Vec<_> = std::fs::read_dir(crate::dialogs::object::symbols_dir()).map(|r| r.filter_map(|e| e.ok()).map(|e| e.path()).filter(|p| vector_io::paths::has_extension(p, &["csl"])).collect()).unwrap_or_default();
         v.sort();
         v
     };
@@ -1280,7 +1280,7 @@ fn image_page(doc: &vector_core::Document, image: u64) -> Option<usize> {
 /// Add linked file: import an image that stays linked to its file.
 fn add_linked_file(app: &mut AnyVectorApp) {
     let exts = ["png", "jpg", "jpeg", "jfif", "bmp", "tif", "tiff", "webp", "jxl", "gif", "ico", "tga"];
-    let mut fd = rfd::FileDialog::new().set_title("Add linked file").add_filter("Bitmaps", &exts);
+    let mut fd = rfd::FileDialog::new().set_title("Add linked file").add_filter("Bitmaps", &vector_io::paths::dialog_extensions(&exts));
     if let Some(d) = app.settings.last_dir.clone() {
         fd = fd.set_directory(d);
     }
@@ -1295,6 +1295,14 @@ fn add_linked_file(app: &mut AnyVectorApp) {
     }
 }
 
+/// Where a linked file is: its stored path; else, for a drawing made on another computer or on
+/// Windows (`C:\Art\logo.png`), the end of that path under the drawing's folder, found without
+/// case; else the stored path as it is (reading it then says what is wrong).
+pub(crate) fn linked_file(stored: &str, drawing: Option<&std::path::Path>) -> std::path::PathBuf {
+    let dirs: Vec<&std::path::Path> = drawing.and_then(std::path::Path::parent).into_iter().collect();
+    vector_io::paths::resolve_stored_path(stored, &dirs).unwrap_or_else(|| std::path::PathBuf::from(stored))
+}
+
 /// Sync linked file: read the linked images again from their files.
 pub(crate) fn sync_links(app: &mut AnyVectorApp, ids: &[u64]) {
     let Some(d) = app.doc() else { return };
@@ -1303,7 +1311,8 @@ pub(crate) fn sync_links(app: &mut AnyVectorApp, ids: &[u64]) {
     for id in ids {
         let Some(path) = d.doc.links.get(id) else { continue };
         let name = d.doc.images.get(id).map(|i| i.name.clone()).unwrap_or_default();
-        match std::fs::read(path).map_err(|e| e.to_string()).and_then(|b| vector_io::image_io::decode(&b, &name).map_err(|e| e.to_string())) {
+        let file = linked_file(path, d.path.as_deref());
+        match std::fs::read(&file).map_err(|e| e.to_string()).and_then(|b| vector_io::image_io::decode(&b, &name).map_err(|e| e.to_string())) {
             Ok(img) => fresh.push((*id, img)),
             Err(e) => failed.push(format!("{path}: {e}")),
         }
@@ -1390,7 +1399,7 @@ pub fn sources(app: &mut AnyVectorApp, ui: &mut Ui) {
     match (act, sel) {
         (Some(0), Some(id)) => {
             if let Some(p) = links.iter().find(|l| l.0 == id) {
-                let _ = std::process::Command::new("cmd").args(["/C", "start", "", &p.1]).spawn();
+                let _ = crate::platform::open_file(&linked_file(&p.1, app.doc().and_then(|d| d.path.as_deref())));
             }
         }
         (Some(1), Some(id)) => sync_links(app, &[id]),
@@ -1597,7 +1606,7 @@ pub fn history(app: &mut AnyVectorApp, ui: &mut Ui) {
 // ------------------------------------------------------------------ Scripts
 
 fn rhai_files(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
-    let mut v: Vec<_> = std::fs::read_dir(dir).map(|r| r.filter_map(|e| e.ok()).map(|e| e.path()).filter(|p| p.extension().is_some_and(|e| e == "rhai")).collect()).unwrap_or_default();
+    let mut v: Vec<_> = std::fs::read_dir(dir).map(|r| r.filter_map(|e| e.ok()).map(|e| e.path()).filter(|p| vector_io::paths::has_extension(p, &["rhai"])).collect()).unwrap_or_default();
     v.sort();
     v
 }
@@ -1812,4 +1821,27 @@ pub fn learn(app: &mut AnyVectorApp, ui: &mut Ui) {
         });
     }
     let _ = app;
+}
+
+#[cfg(test)]
+mod tests {
+    /// A linked file stored with the path it had on Windows or another computer is found next to
+    /// the drawing, in any case; one found nowhere keeps its stored path.
+    #[test]
+    fn linked_files_are_found_next_to_the_drawing() {
+        let dir = std::env::temp_dir().join(format!("anyvector-links-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("Logos")).unwrap();
+        let logo = dir.join("Logos").join("LOGO.png");
+        std::fs::write(&logo, b"x").unwrap();
+        let drawing = dir.join("Card.cdr");
+        let found = super::linked_file(r"C:\Users\Ana\Work\logos\logo.png", Some(&drawing));
+        // Windows names it as stored, its file names having no case; Linux as on the disk
+        assert!(found.file_name().unwrap().eq_ignore_ascii_case(logo.file_name().unwrap()), "{}", found.display());
+        assert!(found.is_file());
+        let stored = logo.to_string_lossy().to_string();
+        assert_eq!(super::linked_file(&stored, None), logo);
+        assert_eq!(super::linked_file(r"C:\Gone\missing.png", Some(&drawing)), std::path::PathBuf::from(r"C:\Gone\missing.png"));
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 }

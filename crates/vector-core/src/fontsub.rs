@@ -1,9 +1,11 @@
 //! Font substitution: which installed family shows text set in a family that isn't installed.
 //!
-//! The order is: the family itself (ignoring case) → a known look-alike from [`ALIASES`] that is
-//! installed → an installed face of the same width class (a "Narrow" name gets a condensed face)
-//! → the generic sans-serif face. `FontDb::resolve` in `text.rs` runs it; this module holds the
-//! data and the name rules, so they can be tested without fonts.
+//! The order is: the family itself (ignoring case) → where Windows' fonts aren't installed (Linux),
+//! the open font made to the Windows font's metrics from [`EQUIVALENTS`] → a known look-alike
+//! from [`ALIASES`] that is installed (or, off Windows, its equivalent) → an installed face of
+//! the same width class (a "Narrow" name gets a condensed face) → the generic sans-serif face.
+//! `FontDb::resolve` in `text.rs` runs it; this module holds the data and the name rules, so they
+//! can be tested without fonts.
 
 /// Fonts that old drawings name but Windows doesn't have, and the installed families that look
 /// and measure most like them, best first. The first entry that is installed is used; when none
@@ -120,6 +122,81 @@ pub const ALIASES: &[(&str, &[&str])] = &[
 /// Condensed families to try, best first, when a condensed name has no installed alias.
 pub const CONDENSED: &[&str] = &["Arial Narrow", "Liberation Sans Narrow", "Roboto Condensed", "DejaVu Sans Condensed", "Noto Sans Condensed"];
 
+/// Fonts that come with Windows (or Office) and that drawings name, and the open fonts that take
+/// their place where they aren't installed, as on Linux, best first. The fonts made to the same
+/// metrics come first: every character as wide as in the Windows font, so text keeps its line
+/// breaks, widths and layout (Liberation Sans for Arial, Carlito for Calibri, Selawik for Segoe
+/// UI...). Then, for fonts that have no such twin, the common look-alike nearest in width. Names
+/// are compared as in [`ALIASES`]. Only used where Windows' fonts aren't the installed fonts (see
+/// `FontDb::with_equivalents`); a Windows font that is installed is always used as it is.
+pub const EQUIVALENTS: &[(&str, &[&str])] = &[
+    // --- the same metrics (open "metric-compatible" fonts) ---
+    // Liberation and the ChromeOS core fonts (Arimo, Tinos, Cousine) are made to Arial's, Times
+    // New Roman's and Courier New's widths; URW's Nimbus to Helvetica's, Times' and Courier's,
+    // which are the same.
+    ("Arial", &["Liberation Sans", "Arimo", "Nimbus Sans", "Nimbus Sans L"]),
+    ("Arial Narrow", &["Liberation Sans Narrow", "Nimbus Sans Narrow"]),
+    ("Times New Roman", &["Liberation Serif", "Tinos", "Nimbus Roman", "Nimbus Roman No9 L"]),
+    ("Courier New", &["Liberation Mono", "Cousine", "Nimbus Mono PS", "Nimbus Mono L"]),
+    // Google's Crosextra fonts, made to the Office fonts' metrics.
+    ("Calibri", &["Carlito"]),
+    ("Cambria", &["Caladea"]),
+    ("Georgia", &["Gelasio"]),
+    // Microsoft's open fallback for Segoe UI, made to its metrics, in Segoe UI's weights.
+    ("Segoe UI", &["Selawik"]),
+    ("Segoe UI Light", &["Selawik Light"]),
+    ("Segoe UI Semilight", &["Selawik Semilight"]),
+    ("Segoe UI Semibold", &["Selawik Semibold"]),
+    ("Comic Sans MS", &["Comic Relief", "Comic Neue"]),
+    // Century Gothic and Book Antiqua were made to ITC Avant Garde's and Palatino's metrics, like
+    // URW's Gothic and P052 (URW Palladio).
+    ("Century Gothic", &["URW Gothic", "URW Gothic L", "TeX Gyre Adventor"]),
+    ("Book Antiqua", &["P052", "URW Palladio L", "TeX Gyre Pagella"]),
+    ("Palatino Linotype", &["P052", "URW Palladio L", "TeX Gyre Pagella"]),
+    ("Bookman Old Style", &["URW Bookman", "URW Bookman L", "TeX Gyre Bonum"]),
+    ("Century Schoolbook", &["C059", "Century Schoolbook L", "TeX Gyre Schola"]),
+    ("Monotype Corsiva", &["Z003", "URW Chancery L", "TeX Gyre Chorus"]),
+    // Lucida Console is as wide as DejaVu Sans Mono (0.6 em).
+    ("Lucida Console", &["DejaVu Sans Mono", "Liberation Mono"]),
+    // IPA's fonts are made to MS Gothic's and MS Mincho's widths.
+    ("MS Gothic", &["IPAGothic", "Noto Sans Mono CJK JP", "Noto Sans CJK JP"]),
+    ("MS PGothic", &["IPAPGothic", "Noto Sans CJK JP", "IPAGothic"]),
+    ("MS Mincho", &["IPAMincho", "Noto Serif CJK JP", "IPAexMincho"]),
+    ("MS PMincho", &["IPAPMincho", "Noto Serif CJK JP", "IPAMincho"]),
+    // --- no open twin: the common look-alike nearest in width ---
+    // Verdana and Tahoma are Matthew Carter's wide and narrow humanist sans; DejaVu Sans (from
+    // Bitstream Vera) is the wide one's look-alike, its condensed face the narrow one's.
+    ("Verdana", &["DejaVu Sans", "Bitstream Vera Sans", "Noto Sans"]),
+    ("Tahoma", &["DejaVu Sans Condensed", "DejaVu Sans", "Noto Sans"]),
+    ("Microsoft Sans Serif", &["Liberation Sans", "Arimo", "DejaVu Sans"]),
+    ("Trebuchet MS", &["Fira Sans", "Noto Sans", "DejaVu Sans"]),
+    ("Consolas", &["Inconsolata", "DejaVu Sans Mono", "Liberation Mono"]),
+    ("Candara", &["Noto Sans", "DejaVu Sans"]),
+    ("Corbel", &["Noto Sans", "DejaVu Sans"]),
+    ("Constantia", &["Noto Serif", "DejaVu Serif"]),
+    ("Garamond", &["EB Garamond", "Cormorant Garamond", "Noto Serif"]),
+    ("Segoe UI Symbol", &["Noto Sans Symbols 2", "Noto Sans Symbols2", "DejaVu Sans", "Symbola"]),
+    // outline faces only: a colour bitmap face (Noto Color Emoji) has no outlines to draw
+    ("Segoe UI Emoji", &["Noto Emoji", "Symbola", "Noto Sans Symbols 2", "Noto Sans Symbols2"]),
+    // East Asian interface fonts
+    ("Yu Gothic", &["Noto Sans CJK JP", "Noto Sans JP", "Source Han Sans JP", "IPAexGothic"]),
+    ("Yu Gothic UI", &["Noto Sans CJK JP", "Noto Sans JP", "Source Han Sans JP", "IPAexGothic"]),
+    ("Meiryo", &["Noto Sans CJK JP", "Noto Sans JP", "Source Han Sans JP", "IPAexGothic"]),
+    ("Yu Mincho", &["Noto Serif CJK JP", "Noto Serif JP", "IPAexMincho"]),
+    ("Microsoft YaHei", &["Noto Sans CJK SC", "Noto Sans SC", "Source Han Sans SC", "WenQuanYi Micro Hei"]),
+    ("Microsoft YaHei UI", &["Noto Sans CJK SC", "Noto Sans SC", "Source Han Sans SC", "WenQuanYi Micro Hei"]),
+    ("SimHei", &["Noto Sans CJK SC", "WenQuanYi Zen Hei", "WenQuanYi Micro Hei"]),
+    ("SimSun", &["Noto Serif CJK SC", "AR PL UMing CN", "AR PL SungtiL GB"]),
+    ("NSimSun", &["Noto Serif CJK SC", "AR PL UMing CN"]),
+    ("Microsoft JhengHei", &["Noto Sans CJK TC", "Noto Sans TC", "Source Han Sans TC", "WenQuanYi Zen Hei"]),
+    ("Microsoft JhengHei UI", &["Noto Sans CJK TC", "Noto Sans TC", "Source Han Sans TC", "WenQuanYi Zen Hei"]),
+    ("PMingLiU", &["Noto Serif CJK TC", "AR PL UMing TW", "AR PL New Sung"]),
+    ("MingLiU", &["Noto Serif CJK TC", "AR PL UMing TW", "AR PL New Sung"]),
+    ("Malgun Gothic", &["Noto Sans CJK KR", "Noto Sans KR", "NanumGothic", "UnDotum"]),
+    ("Gulim", &["Noto Sans CJK KR", "NanumGothic", "UnDotum"]),
+    ("Batang", &["Noto Serif CJK KR", "NanumMyeongjo", "UnBatang"]),
+];
+
 /// Vendor and weight words that trail a font name and don't change which typeface it is, so
 /// "AvantGarde Bk BT" finds the "AvantGarde" entry.
 const TRAILING: &[&str] = &["bt", "mt", "itc", "bk", "md", "book", "medium", "roman", "regular", "normal", "light", "lt", "demi", "bold", "italic"];
@@ -152,7 +229,21 @@ pub fn without_script(name: &str) -> &str {
 
 /// The look-alikes of a font that isn't installed, best first (empty when it has none).
 pub fn aliases(name: &str) -> &'static [&'static str] {
-    let find = |key: &str| ALIASES.iter().find(|(n, _)| squeeze(n) == key).map(|(_, s)| *s);
+    lookup(ALIASES, name)
+}
+
+/// The open fonts that take the place of a Windows font that isn't installed, best first, from
+/// [`EQUIVALENTS`] (empty when it has none). The name is found as Windows lists it too: padded,
+/// with an old font list's script ("Arial Cyr"), or with vendor and weight words after it.
+pub fn equivalents(name: &str) -> &'static [&'static str] {
+    let plain = undecorated(name);
+    [plain, without_script(plain)].into_iter().map(|n| lookup(EQUIVALENTS, n)).find(|s| !s.is_empty()).unwrap_or(&[])
+}
+
+/// The entry of `table` for `name`: by the name without case, spaces or punctuation, then with
+/// trailing vendor and weight words dropped one at a time.
+fn lookup(table: &'static [(&'static str, &'static [&'static str])], name: &str) -> &'static [&'static str] {
+    let find = |key: &str| table.iter().find(|(n, _)| squeeze(n) == key).map(|(_, s)| *s);
     if let Some(s) = find(&squeeze(name)) {
         return s;
     }
@@ -241,12 +332,133 @@ mod tests {
 
     #[test]
     fn the_table_has_no_duplicates() {
-        let mut keys: Vec<String> = ALIASES.iter().map(|(n, _)| squeeze(n)).collect();
-        let n = keys.len();
-        keys.sort();
-        keys.dedup();
-        assert_eq!(keys.len(), n);
-        assert!(ALIASES.iter().all(|(_, s)| !s.is_empty()));
+        for table in [ALIASES, EQUIVALENTS] {
+            let mut keys: Vec<String> = table.iter().map(|(n, _)| squeeze(n)).collect();
+            let n = keys.len();
+            keys.sort();
+            keys.dedup();
+            assert_eq!(keys.len(), n);
+            assert!(table.iter().all(|(_, s)| !s.is_empty()));
+            // a font never stands in for itself
+            assert!(table.iter().all(|(n, s)| !s.iter().any(|x| squeeze(x) == squeeze(n))), "{table:?}");
+        }
+        // a name is either a Windows font with open equivalents or a font Windows doesn't have
+        for (n, _) in EQUIVALENTS {
+            assert!(aliases(n).is_empty(), "{n} is in both tables");
+        }
+        for (n, _) in ALIASES {
+            assert!(equivalents(n).is_empty(), "{n} is in both tables");
+        }
+    }
+
+    #[test]
+    fn windows_fonts_have_their_metric_twins_first() {
+        assert_eq!(equivalents("Arial")[0], "Liberation Sans");
+        assert_eq!(equivalents("Times New Roman")[0], "Liberation Serif");
+        assert_eq!(equivalents("Courier New")[0], "Liberation Mono");
+        assert_eq!(equivalents("Arial Narrow")[0], "Liberation Sans Narrow");
+        assert_eq!(equivalents("Calibri"), &["Carlito"]);
+        assert_eq!(equivalents("Cambria"), &["Caladea"]);
+        assert_eq!(equivalents("Segoe UI"), &["Selawik"]);
+        assert_eq!(equivalents("Segoe UI Semibold"), &["Selawik Semibold"]);
+        assert_eq!(equivalents("Verdana")[0], "DejaVu Sans");
+        assert_eq!(equivalents("Tahoma")[0], "DejaVu Sans Condensed");
+        // found as Windows lists them: capitals, padding, an old list's script, vendor words
+        assert_eq!(equivalents("ARIAL")[0], "Liberation Sans");
+        assert_eq!(equivalents(" Arial\0"), equivalents("Arial"));
+        assert_eq!(equivalents("Arial Cyr"), equivalents("Arial"));
+        assert_eq!(equivalents("Times New Roman CE"), equivalents("Times New Roman"));
+        assert_eq!(equivalents("@MS Gothic")[0], "IPAGothic");
+        assert_eq!(equivalents("Calibri Bold"), &["Carlito"]);
+        // fonts with no entry, and fonts Windows doesn't have
+        assert!(equivalents("Some Font Nobody Has").is_empty());
+        assert!(equivalents("Switzerland").is_empty());
+    }
+
+    /// Selawik, bundled with the app: a real font to give made-up family names.
+    const FONT: &[u8] = include_bytes!("../../anyvector/assets/fonts/selawk.ttf");
+
+    /// Fonts that go by `families` (each is Selawik underneath), with `sans` the sans-serif family.
+    fn made_up(families: &[&str], sans: &str, equivalents: bool) -> crate::text::FontDb {
+        let mut db = fontdb::Database::new();
+        let data: std::sync::Arc<dyn AsRef<[u8]> + Send + Sync> = std::sync::Arc::new(FONT.to_vec());
+        for name in families {
+            for id in db.load_font_source(fontdb::Source::Binary(data.clone())) {
+                let mut face = db.face(id).unwrap().clone();
+                db.remove_face(id);
+                face.families = vec![(name.to_string(), fontdb::Language::English_UnitedStates)];
+                face.post_script_name = squeeze(name);
+                db.push_face_info(face);
+            }
+        }
+        db.set_sans_serif_family(sans);
+        crate::text::FontDb::with_equivalents(db, equivalents)
+    }
+
+    #[test]
+    fn windows_fonts_show_in_their_open_equivalents_off_windows() {
+        let fonts = ["Liberation Sans", "Liberation Serif", "Liberation Mono", "Carlito", "DejaVu Sans", "DejaVu Sans Condensed"];
+        let db = made_up(&fonts, "DejaVu Sans", true);
+        let shown = |name: &str| {
+            let r = db.resolve(name);
+            (r.family, r.how)
+        };
+        for (name, used) in [
+            ("Arial", "Liberation Sans"),
+            ("Times New Roman", "Liberation Serif"),
+            ("Courier New", "Liberation Mono"),
+            ("Calibri", "Carlito"),
+            ("Verdana", "DejaVu Sans"),
+            ("Tahoma", "DejaVu Sans Condensed"),
+            // as Windows lists them
+            ("arial", "Liberation Sans"),
+            ("Arial Cyr", "Liberation Sans"),
+            ("Times New Roman CE", "Liberation Serif"),
+            // an old CorelDRAW name whose look-alike is a Windows font
+            ("Dutch", "Liberation Serif"),
+            ("Monospaced", "Liberation Mono"),
+        ] {
+            assert_eq!(shown(name), (used.to_string(), How::Alias), "{name}");
+            assert_eq!(db.substitute(name).as_deref(), Some(used), "{name}");
+        }
+        // no equivalent installed (Caladea for Cambria): the sans-serif family
+        assert_eq!(shown("Cambria"), ("DejaVu Sans".to_string(), How::Fallback));
+        // installed fonts are themselves
+        assert_eq!(shown("Liberation Sans"), ("Liberation Sans".to_string(), How::Installed));
+        assert!(db.query("Arial", true, false).is_some());
+    }
+
+    #[test]
+    fn windows_keeps_its_substitutions_without_equivalents() {
+        // as on Windows: Arial missing (it never is there) falls back to the sans-serif family;
+        // the look-alikes of ALIASES are the same either way
+        let db = made_up(&["Liberation Sans", "Liberation Serif", "DejaVu Sans"], "DejaVu Sans", false);
+        assert_eq!(db.resolve("Arial").family, "DejaVu Sans");
+        assert_eq!(db.resolve("Arial").how, How::Fallback);
+        assert_eq!(db.resolve("Times New Roman").how, How::Fallback);
+        assert_eq!((db.resolve("Dutch").family.as_str(), db.resolve("Dutch").how), ("Liberation Serif", How::Alias));
+        assert_eq!((db.resolve("Switzerland").family.as_str(), db.resolve("Switzerland").how), ("Liberation Sans", How::Alias));
+    }
+
+    /// The installed fonts: on Linux, with Liberation (most distributions install it), Arial,
+    /// Times New Roman and Courier New show in it; Calibri and Cambria in Carlito and Caladea
+    /// where those are installed. On Windows they are all installed.
+    #[test]
+    fn missing_windows_fonts_show_in_installed_equivalents() {
+        let db = crate::text::fonts().lock();
+        for (name, used) in [("Arial", "Liberation Sans"), ("Times New Roman", "Liberation Serif"), ("Courier New", "Liberation Mono"), ("Calibri", "Carlito"), ("Cambria", "Caladea")] {
+            if db.resolve(name).how == How::Installed || db.resolve(used).how != How::Installed {
+                eprintln!("{name} is installed or {used} isn't; skipped");
+                continue;
+            }
+            assert_eq!(db.substitute(name).as_deref(), Some(used));
+        }
+        // a font with no stand-in shows in an installed face, never in whichever came first
+        let r = db.resolve("No Such Font 12345");
+        if r.how == How::Fallback && !db.families().is_empty() {
+            assert!(db.families().contains(&r.family), "{r:?}");
+            assert_eq!(r.family, db.db.family_name(&fontdb::Family::SansSerif));
+        }
     }
 
     #[test]
@@ -415,8 +627,7 @@ mod tests {
     #[test]
     fn the_resolver_is_deterministic() {
         // a database of its own, so nothing is cached yet
-        let mut fdb = fontdb::Database::new();
-        fdb.load_system_fonts();
+        let fdb = crate::text::system_fonts().clone();
         let a = crate::text::FontDb::new(fdb.clone());
         let b = crate::text::FontDb::new(fdb);
         for name in ["Bedrock", "Dutch", "AvantGarde Md BT", "Imaginary Sans Condensed", "Wide Extended", "No Such Font 12345", "Arial"] {

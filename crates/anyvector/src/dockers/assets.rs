@@ -99,8 +99,10 @@ fn thumbnail(ctx: &egui::Context, p: &Path) -> Option<egui::TextureHandle> {
     Some(ctx.load_texture(format!("asset:{}", p.display()), egui::ColorImage::from_rgba_unmultiplied([w as usize, h as usize], &rgba), egui::TextureOptions::LINEAR))
 }
 
+/// When the file was made; where the file system does not keep that (some Linux ones), when it
+/// was last changed.
 fn created(p: &Path) -> std::time::SystemTime {
-    std::fs::metadata(p).and_then(|m| m.created()).unwrap_or(std::time::UNIX_EPOCH)
+    std::fs::metadata(p).and_then(|m| m.created().or_else(|_| m.modified())).unwrap_or(std::time::UNIX_EPOCH)
 }
 
 fn modified(p: &Path) -> std::time::SystemTime {
@@ -516,7 +518,7 @@ fn act(app: &mut AnyVectorApp, r: &str) {
         }
         "location" => {
             if let Some(p) = sel {
-                let _ = std::process::Command::new("explorer").arg(format!("/select,{}", p.display())).spawn();
+                crate::platform::reveal(&p);
             }
         }
         "properties" => {
@@ -538,12 +540,28 @@ fn act(app: &mut AnyVectorApp, r: &str) {
         "edit" => {
             if let Some(p) = sel {
                 if is_raster(&p) {
-                    let _ = std::process::Command::new("cmd").args(["/C", "start", "", &p.to_string_lossy()]).spawn();
+                    let _ = crate::platform::open_file(&p);
                 } else {
                     app.open_path(&p);
                 }
             }
         }
         _ => {}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    /// A file always has a date to sort by: where the file system keeps no creation time (some
+    /// Linux ones), the time it was changed, not 1970.
+    #[test]
+    fn every_file_has_a_creation_date() {
+        let dir = std::env::temp_dir().join(format!("anyvector-assets-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let f = dir.join("logo.png");
+        std::fs::write(&f, b"x").unwrap();
+        let age = std::time::SystemTime::now().duration_since(super::created(&f)).unwrap_or_default();
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert!(age < std::time::Duration::from_secs(3600), "created {age:?} ago");
     }
 }

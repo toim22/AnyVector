@@ -242,3 +242,77 @@ fn registered_output_conditions() {
     assert_eq!(output_condition("Coated FOGRA39 (ISO 12647-2:2004)").map(|c| c.0), Some("FOGRA39"));
     assert_eq!(output_condition("My Press"), None);
 }
+
+#[test]
+fn linux_profile_folders_come_user_first_and_once() {
+    if cfg!(target_os = "macos") {
+        return;
+    }
+    let p = PathBuf::from;
+    let home = Path::new("/home/ana");
+    let dirs = |data_home: Option<&str>, data_dirs: Option<&[&str]>| {
+        let list = data_dirs.map(|d| std::env::join_paths(d).unwrap());
+        unix_profile_dirs(Some(home), data_home.map(std::ffi::OsStr::new), list.as_deref())
+    };
+    // nothing set: the XDG defaults
+    assert_eq!(dirs(None, None), [p("/home/ana/.local/share/icc"), p("/home/ana/.color/icc"), p("/usr/local/share/color/icc"), p("/usr/share/color/icc"), p("/var/lib/colord/icc")]);
+    // the folders of the variables, in their order, each once; a relative path does not count
+    assert_eq!(
+        dirs(Some("/data/ana"), Some(&["/usr/share/ubuntu", "relative/share", "/usr/share", "/usr/local/share/"])),
+        [p("/data/ana/icc"), p("/home/ana/.color/icc"), p("/usr/share/ubuntu/color/icc"), p("/usr/share/color/icc"), p("/usr/local/share/color/icc"), p("/var/lib/colord/icc")]
+    );
+    // an empty or relative XDG_DATA_HOME means the default one
+    assert_eq!(dirs(Some(""), Some(&[]))[0], p("/home/ana/.local/share/icc"));
+    assert_eq!(dirs(Some("data"), None)[0], p("/home/ana/.local/share/icc"));
+    // without a home folder: the system's folders
+    assert_eq!(unix_profile_dirs(None, None, None), [p("/usr/local/share/color/icc"), p("/usr/share/color/icc"), p("/var/lib/colord/icc")]);
+}
+
+#[test]
+fn profile_files_are_found_in_subfolders_off_windows() {
+    let dir = std::env::temp_dir().join(format!("anyvector-icc-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(dir.join("colord/a/b/c")).unwrap();
+    for f in ["b.icc", "a.ICM", "notes.txt", "colord/sRGB.icc", "colord/a/b/three.icc", "colord/a/b/c/four.icc"] {
+        std::fs::write(dir.join(f), b"x").unwrap();
+    }
+    let mut found: Vec<String> = profile_files_in(&dir).iter().map(|f| f.strip_prefix(&dir).unwrap().to_string_lossy().replace('\\', "/")).collect();
+    std::fs::remove_dir_all(&dir).unwrap();
+    if cfg!(windows) {
+        // the Windows color folder is flat: only its own files, as before
+        found.sort();
+        assert_eq!(found, ["a.ICM", "b.icc"]);
+    } else {
+        // Linux packages install into folders of their own (colord, ghostscript), up to three levels down
+        assert_eq!(found, ["a.ICM", "b.icc", "colord/sRGB.icc", "colord/a/b/three.icc"]);
+    }
+}
+
+#[test]
+fn finds_the_profiles_linux_packages_install() {
+    // colord-data puts sRGB.icc and its other profiles in color/icc/colord of /usr/share (or of
+    // another XDG data folder); the test needs it installed
+    if cfg!(windows) {
+        return;
+    }
+    let Some(colord) = profile_dirs().into_iter().map(|d| d.join("colord")).find(|d| d.join("sRGB.icc").is_file()) else { return };
+    let all = installed_profiles();
+    let found: Vec<&InstalledProfile> = all.iter().filter(|p| p.path.starts_with(&colord)).collect();
+    assert!(found.iter().any(|p| p.space == "RGB" && p.description.contains("sRGB")), "sRGB not found in {}: {found:?}", colord.display());
+    assert!(found.iter().any(|p| p.space == "CMYK"), "no CMYK profile found in {}", colord.display());
+}
+
+#[test]
+fn profiles_stored_as_paths_of_another_system_are_found_by_file_name() {
+    assert_eq!(stored_file_name(r"C:\Windows\System32\spool\drivers\color\sRGB Color Space Profile.icm"), "sRGB Color Space Profile.icm");
+    assert_eq!(stored_file_name("/usr/share/color/icc/colord/sRGB.icc"), "sRGB.icc");
+    assert_eq!(stored_file_name("sRGB.icc"), "sRGB.icc");
+    // whatever profile this computer has, named by a path it never had
+    let all = installed_profiles();
+    let Some(p) = all.first() else { return };
+    let file = p.path.file_name().unwrap().to_string_lossy().to_string();
+    for stored in [format!(r"Z:\Nowhere\color\{file}"), format!("/nowhere/icc/{}", file.to_uppercase())] {
+        let found = find_profile(&stored).unwrap_or_else(|| panic!("{stored} not found"));
+        assert!(found.file_name().unwrap().to_string_lossy().eq_ignore_ascii_case(&file), "{stored} -> {}", found.display());
+    }
+}
