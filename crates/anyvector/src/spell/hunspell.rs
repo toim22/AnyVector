@@ -213,11 +213,7 @@ impl Speller {
             return true;
         }
         // the typographic apostrophe as the dictionaries have it
-        if word.contains('’') && self.dict.check(&word.replace('’', "'")) {
-            return true;
-        }
-        // a hyphenated word whose parts are all words (for dictionaries without BREAK)
-        word.contains('-') && word.split('-').all(|p| !p.is_empty() && (self.ignored.contains(p) || self.dict.check(p)))
+        word.contains('’') && self.dict.check(&word.replace('’', "'"))
     }
 
     /// The auto-correct replacement of a word: its pair, or the pair of its lower-case form
@@ -264,15 +260,26 @@ fn with<R>(lang: &str, f: impl FnOnce(&mut Speller) -> R) -> Option<R> {
     })
 }
 
+/// Whether the language has a dictionary. Looked for again when there was none, so one installed
+/// meanwhile is found.
 pub fn supported(lang: &str) -> bool {
+    let key = if lang.is_empty() { super::DEFAULT_LANG } else { lang };
+    CHECKERS.with(|c| c.borrow_mut().retain(|l, s| l != key || s.is_some()));
     with(lang, |_| ()).is_some()
 }
 
-/// The words of a text: (start, length) in chars. A word is letters and digits, with apostrophes
-/// and hyphens inside it; web and e-mail addresses are not words.
+/// Whether no dictionary was found when the language was last asked for.
+pub fn missing(lang: &str) -> bool {
+    with(lang, |_| ()).is_none()
+}
+
+/// The words of a text, as Windows finds them: (start, length) in chars. A word is letters and
+/// digits, with apostrophes, hyphens, full stops, colons and underscores inside it. Web and e-mail
+/// addresses, and what follows #, @ or $, are not words.
 fn words(text: &str) -> Vec<(usize, usize)> {
     let chars: Vec<char> = text.chars().collect();
-    // the chars of addresses
+    let alnum = |i: usize| chars.get(i).is_some_and(|c| c.is_alphanumeric());
+    // the chars of addresses and tags
     let mut skip = vec![false; chars.len()];
     let mut i = 0;
     while i < chars.len() {
@@ -285,25 +292,67 @@ fn words(text: &str) -> Vec<(usize, usize)> {
             i += 1;
         }
         let chunk: String = chars[s..i].iter().collect::<String>().to_lowercase();
-        if chunk.contains("://") || chunk.contains('@') || chunk.starts_with("www.") {
+        let mail = (s + 1..i).any(|k| chars[k] == '@' && alnum(k - 1) && alnum(k + 1));
+        if chunk.contains("://") || chunk.starts_with("www.") || mail {
             skip[s..i].fill(true);
+        } else if matches!(chars[s], '#' | '@' | '$') {
+            let end = (s + 1..i).find(|k| !chars[*k].is_alphanumeric() && chars[*k] != '_').unwrap_or(i);
+            skip[s..end].fill(true);
         }
     }
-    let inner = |c: char| matches!(c, '\'' | '’' | '-');
+    let inner = |c: char| matches!(c, '\'' | '’' | '-' | '.' | ':' | '_');
     let mut out = vec![];
     let mut i = 0;
     while i < chars.len() {
-        if !chars[i].is_alphanumeric() || skip[i] {
+        if !alnum(i) || skip[i] {
             i += 1;
             continue;
         }
         let s = i;
-        while i < chars.len() && (chars[i].is_alphanumeric() || (inner(chars[i]) && i + 1 < chars.len() && chars[i + 1].is_alphanumeric())) {
+        while i < chars.len() && (alnum(i) || (inner(chars[i]) && alnum(i + 1))) {
             i += 1;
         }
         out.push((s, i - s));
     }
     out
+}
+
+/// Endings that make a word with a full stop a file name, which is not checked.
+const FILE_ENDINGS: &[&str] = &["txt", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "pdf", "rtf", "csv", "cdr", "cdt", "cmx", "svg", "eps", "ai", "psd", "png", "jpg", "jpeg", "gif", "bmp", "tif", "tiff", "webp", "ico", "dxf", "dwg", "emf", "wmf", "ttf", "otf", "zip", "exe", "dll", "htm", "html", "xml", "json", "css", "js", "mp3", "mp4", "com", "org", "net"];
+
+/// The wrong parts of a word: (start, length) in its chars; empty when it is right.
+fn wrong_parts(sp: &Speller, word: &str) -> Vec<(usize, usize)> {
+    let len = word.chars().count();
+    // as Windows: words with digits and words all in capitals are not checked
+    if word.chars().any(char::is_numeric) || !word.chars().any(char::is_lowercase) && word.chars().any(char::is_uppercase) && len > 1 {
+        return vec![];
+    }
+    if sp.correct(word) {
+        return vec![];
+    }
+    if word.contains('.') {
+        let parts: Vec<&str> = word.split('.').collect();
+        let ending = parts.last().copied().unwrap_or_default().to_lowercase();
+        // an abbreviation (its last full stop is not part of the word) or a file name
+        if sp.correct(&format!("{word}.")) || parts.iter().all(|p| p.chars().count() == 1) || FILE_ENDINGS.contains(&ending.as_str()) {
+            return vec![];
+        }
+    }
+    let parts: Vec<&str> = word.split('-').collect();
+    if parts.len() > 1 {
+        // a hyphenated word: the parts that are wrong, or all of it when every part is
+        let mut out = vec![];
+        let mut at = 0;
+        for p in &parts {
+            let n = p.chars().count();
+            out.extend(wrong_parts(sp, p).into_iter().map(|(s, l)| (at + s, l)));
+            at += n + 1;
+        }
+        if out.len() < parts.len() {
+            return out;
+        }
+    }
+    vec![(0, len)]
 }
 
 pub fn check(text: &str, lang: &str) -> Vec<SpellError> {
@@ -314,25 +363,23 @@ pub fn check(text: &str, lang: &str) -> Vec<SpellError> {
         let mut prev: Option<(String, usize)> = None;
         for (s, l) in words(text) {
             let w: String = chars[s..s + l].iter().collect();
-            if w.chars().any(super::unchecked_script) {
+            if w.chars().any(super::unchecked_script) || !w.chars().any(char::is_alphabetic) {
                 prev = None;
                 continue;
             }
-            if !w.chars().any(char::is_alphabetic) {
-                prev = None;
-                continue;
-            }
-            let lower = w.to_lowercase();
+            let lower = w.to_lowercase().replace('’', "'");
             // "the the": the second one goes (only with spaces between them)
             let repeated = prev.as_ref().is_some_and(|(p, end)| *p == lower && chars[*end..s].iter().all(|c| matches!(c, ' ' | '\t' | '\u{A0}')));
             prev = Some((lower, s + l));
-            if repeated {
-                out.push(SpellError { start: s, len: l, delete: true, replacement: None });
-            } else if let Some(to) = sp.auto_for(&w) {
+            if let Some(to) = sp.auto_for(&w) {
                 out.push(SpellError { start: s, len: l, delete: false, replacement: Some(to) });
-            } else if !sp.correct(&w) {
-                out.push(SpellError { start: s, len: l, delete: false, replacement: None });
+                continue;
             }
+            let wrong = wrong_parts(sp, &w);
+            if wrong.is_empty() && repeated {
+                out.push(SpellError { start: s, len: l, delete: true, replacement: None });
+            }
+            out.extend(wrong.into_iter().map(|(a, n)| SpellError { start: s + a, len: n, delete: false, replacement: None }));
         }
         out
     })
@@ -374,7 +421,7 @@ pub fn ignore(word: &str, lang: &str) {
 
 /// Auto Replace: `from` is reported with `to` as its replacement from now on (kept).
 pub fn auto_correct(from: &str, to: &str, lang: &str) {
-    if from.is_empty() || from.contains(['\t', '\n']) || to.contains(['\t', '\n']) {
+    if from.is_empty() || to.is_empty() || from.contains(['\t', '\n']) || to.contains(['\t', '\n']) {
         return;
     }
     with(lang, |sp| {
@@ -522,6 +569,11 @@ mod tests {
         let e = check("teh, Teh", "en-US");
         assert_eq!(e.iter().map(|e| e.replacement.clone()).collect::<Vec<_>>(), [Some("the".into()), Some("The".into())]);
 
+        // a dictionary installed while AnyVector runs
+        assert!(missing("de-DE"));
+        write_dict(&sys, "de_DE");
+        assert!(missing("de-DE") && supported("de-DE") && !missing("de-DE"));
+
         // a new session: the added word and the pair are still there, the skipped word isn't
         use_places(vec![sys.clone()], user.clone());
         assert!(check("helo", "en-US").is_empty());
@@ -548,11 +600,60 @@ mod tests {
         }
     }
 
+    /// What Windows' spell checker answers for the same texts (asked on Windows 11, English): the
+    /// words flagged, "-" before one to delete.
+    #[test]
+    fn check_stops_where_windows_does() {
+        let root = temp("windows");
+        write_dict(&root.join("sys"), "en_US");
+        use_places(vec![root.join("sys")], root.join("user"));
+        for (text, want) in [
+            ("The the world", &["-the"] as &[&str]),
+            ("the THE world", &["-THE"]),
+            ("the\u{a0}the", &["-the"]),
+            ("the\nthe world", &[]),
+            ("the, the", &[]),
+            ("1 1 world", &[]),
+            ("the the the", &["-the", "-the"]),
+            ("wrldd wrldd", &["wrldd", "wrldd"]),
+            ("don't don’t", &["-don’t"]),
+            ("dog2 dog2", &["-dog2"]),
+            ("the-the world", &[]),
+            ("XYZQW", &[]),
+            ("XYZQW tests", &["tests"]),
+            ("abc123 1st 22nd 3d", &[]),
+            ("http://wrld.example wrldd", &["wrldd"]),
+            ("me@wrldd.example", &[]),
+            ("www.wrldd.com", &[]),
+            ("well-knwon", &["knwon"]),
+            ("well-known", &[]),
+            ("Helo-wrldd", &["Helo-wrldd"]),
+            ("wrld's", &["wrld's"]),
+            ("wrldd’s", &["wrldd’s"]),
+            ("tHe wRLDD", &["tHe", "wRLDD"]),
+            ("snake_case_wrd", &["snake_case_wrd"]),
+            ("#wrldd $wrldd @wrldd", &[]),
+            ("wrldd@ wrldd_", &["wrldd", "wrldd"]),
+            ("wrldd.txt U.S.A", &[]),
+            ("hello.wrld", &["hello.wrld"]),
+            ("wrldd:wrlde", &["wrldd:wrlde"]),
+            ("the/wrldd", &["wrldd"]),
+            ("wrldd(s)", &["wrldd"]),
+            ("wrldd—wrlde", &["wrldd", "wrlde"]),
+            ("'wrldd'", &["wrldd"]),
+            ("日本語 日本語", &[]),
+        ] {
+            let got: Vec<String> = check(text, "en-US").iter().map(|e| format!("{}{}", if e.delete { "-" } else { "" }, text.chars().skip(e.start).take(e.len).collect::<String>())).filter(|w| w != "s").collect();
+            assert_eq!(got, want, "{text:?}");
+        }
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
     #[test]
     fn words_and_packages() {
         let w = |t: &str| words(t).into_iter().map(|(s, l)| t.chars().skip(s).take(l).collect::<String>()).collect::<Vec<_>>();
         assert_eq!(w("it's a well-known 'quote' -- end-"), ["it's", "a", "well-known", "quote", "end"]);
-        assert_eq!(w("see www.example.com or a@b.c now"), ["see", "or", "now"]);
+        assert_eq!(w("see www.example.com or a@b.c now. Then #tag and 3.5"), ["see", "or", "now", "Then", "and", "3.5"]);
         assert_eq!(package_for("pt-BR"), "hunspell-pt-br");
         assert_eq!(package_for("en-US"), "hunspell-en-us");
         assert_eq!(package_for("de-AT"), "hunspell-de-at");

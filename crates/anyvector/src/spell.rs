@@ -229,6 +229,7 @@ mod imp {
 }
 
 mod codepages;
+mod upper;
 #[cfg(not(windows))]
 pub mod hunspell;
 
@@ -245,7 +246,7 @@ pub use imp::{add, ansi_code_page, auto_correct, check, code_pages, decode, enco
 /// Windows, whose spell checker gets its languages through Windows' own settings).
 pub fn missing_dictionary_package(lang: &str) -> Option<String> {
     #[cfg(not(windows))]
-    if !supported(lang) {
+    if hunspell::missing(lang) {
         return Some(hunspell::package_for(if lang.is_empty() { DEFAULT_LANG } else { lang }));
     }
     let _ = lang;

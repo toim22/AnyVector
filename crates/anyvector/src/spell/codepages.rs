@@ -1,16 +1,34 @@
-//! Code pages without Windows (Text ▸ Encode on Linux): the pages Windows lists that `encoding_rs`
-//! can read and write, under the names Windows gives them, and the ANSI code page of a locale.
+//! Code pages without Windows (Text ▸ Encode on Linux): the pages Windows lists, under the names
+//! Windows gives them, converted by `encoding_rs` or a table, and the ANSI code page of a locale.
 //! Built on every system so the Windows tests can compare it with Windows' own conversions.
 
 #![cfg_attr(windows, allow(dead_code))]
 
+use super::upper::UPPER;
 use encoding_rs::Encoding;
 
 /// The code pages Text ▸ Encode lists, with the names `GetCPInfoEx` gives them on an English
-/// Windows 11. Windows' other installed pages (OEM pages but 866, EBCDIC, ISCII, the other Mac
-/// pages...) have no converter here, so they are left out.
+/// Windows 11. Left out of the pages Windows installs: EBCDIC, ISCII, the 7-bit ones (IA5, GSM,
+/// ISO-2022 but Japanese), Johab and the old Taiwanese and Mac double-byte ones.
 const PAGES: &[(u32, &str)] = &[
+    (437, "OEM - United States"),
+    (708, "Arabic - ASMO"),
+    (720, "Arabic - Transparent ASMO"),
+    (737, "OEM - Greek 437G"),
+    (775, "OEM - Baltic"),
+    (850, "OEM - Multilingual Latin I"),
+    (852, "OEM - Latin II"),
+    (855, "OEM - Cyrillic"),
+    (857, "OEM - Turkish"),
+    (858, "OEM - Multilingual Latin I + Euro"),
+    (860, "OEM - Portuguese"),
+    (861, "OEM - Icelandic"),
+    (862, "OEM - Hebrew"),
+    (863, "OEM - Canadian French"),
+    (864, "OEM - Arabic"),
+    (865, "OEM - Nordic"),
     (866, "OEM - Russian"),
+    (869, "OEM - Modern Greek"),
     (874, "ANSI/OEM - Thai"),
     (932, "ANSI/OEM - Japanese Shift-JIS"),
     (936, "ANSI/OEM - Simplified Chinese GBK"),
@@ -26,10 +44,20 @@ const PAGES: &[(u32, &str)] = &[
     (1257, "ANSI - Baltic"),
     (1258, "ANSI/OEM - Viet Nam"),
     (10000, "MAC - Roman"),
+    (10004, "MAC - Arabic"),
+    (10005, "MAC - Hebrew"),
+    (10006, "MAC - Greek I"),
+    (10007, "MAC - Cyrillic"),
+    (10010, "MAC - Romania"),
     (10017, "MAC - Ukraine"),
+    (10029, "MAC - Latin II"),
+    (10079, "MAC - Icelandic"),
+    (10081, "MAC - Turkish"),
+    (10082, "MAC - Croatia"),
     (20127, "US-ASCII"),
     (20866, "Russian - KOI8"),
     (20932, "JIS X 0208-1990 & 0212-1990"),
+    (20936, "Simplified Chinese GB2312"),
     (21866, "Ukrainian - KOI8-U"),
     (28591, "ISO 8859-1 Latin I"),
     (28592, "ISO 8859-2 Central Europe"),
@@ -44,61 +72,105 @@ const PAGES: &[(u32, &str)] = &[
     (28605, "ISO 8859-15 Latin 9"),
     (38598, "ISO 8859-8 Hebrew: Logical Ordering"),
     (50220, "ISO-2022 Japanese with no halfwidth Katakana"),
+    (50221, "ISO-2022 Japanese with halfwidth Katakana"),
+    (51949, "EUC-Korean"),
     (54936, "GB18030 Simplified Chinese"),
 ];
 
-/// How a code page is converted.
-enum Codec {
-    Rs(&'static Encoding),
-    /// An ISO 8859 page that the web (and so `encoding_rs`) reads as its Windows page, which
-    /// differs only in 0x80-0x9F: there ISO has the C1 control characters, as Windows' ISO pages do.
-    IsoOf(&'static Encoding),
-    Ascii,
-}
-
-fn codec(cp: u32) -> Option<Codec> {
+/// The `encoding_rs` encoding of a code page with more than one byte a character.
+fn multi_byte(cp: u32) -> Option<&'static Encoding> {
     use encoding_rs::*;
-    let e = match cp {
-        866 => IBM866,
-        874 => WINDOWS_874,
+    Some(match cp {
         932 => SHIFT_JIS,
-        936 => GBK,
-        949 => EUC_KR,
+        936 | 20936 => GBK,
+        949 | 51949 => EUC_KR,
         950 => BIG5,
-        1250 => WINDOWS_1250,
-        1251 => WINDOWS_1251,
-        1252 => WINDOWS_1252,
-        1253 => WINDOWS_1253,
-        1254 => WINDOWS_1254,
-        1255 => WINDOWS_1255,
-        1256 => WINDOWS_1256,
-        1257 => WINDOWS_1257,
-        1258 => WINDOWS_1258,
-        10000 => MACINTOSH,
-        // the web's x-mac-cyrillic is the later Mac Cyrillic, Windows' 10017
-        10017 => X_MAC_CYRILLIC,
-        20127 => return Some(Codec::Ascii),
-        20866 => KOI8_R,
         20932 => EUC_JP,
-        21866 => KOI8_U,
-        28591 => return Some(Codec::IsoOf(WINDOWS_1252)),
-        28592 => ISO_8859_2,
-        28593 => ISO_8859_3,
-        28594 => ISO_8859_4,
-        28595 => ISO_8859_5,
-        28596 => ISO_8859_6,
-        28597 => ISO_8859_7,
-        28598 => ISO_8859_8,
-        28599 => return Some(Codec::IsoOf(WINDOWS_1254)),
-        28603 => ISO_8859_13,
-        28605 => ISO_8859_15,
-        38598 => ISO_8859_8_I,
-        50220 => ISO_2022_JP,
+        50220 | 50221 => ISO_2022_JP,
         54936 => GB18030,
         65001 => UTF_8,
         _ => return None,
+    })
+}
+
+/// The 256 characters of a single-byte code page, the same as Windows'.
+fn single_byte(cp: u32) -> Option<[char; 256]> {
+    use encoding_rs::*;
+    let mut t = ['\0'; 256];
+    for (b, c) in t.iter_mut().enumerate() {
+        *c = b as u8 as char;
+    }
+    if let Some((_, upper)) = UPPER.iter().find(|u| u.0 == cp) {
+        for (c, u) in t[128..].iter_mut().zip(upper.chars()) {
+            *c = u;
+        }
+        return Some(t);
+    }
+    // the encoding, the bytes Windows reads otherwise, and the private-use character Windows gives
+    // the first byte the page leaves undefined (the next ones get the characters after it)
+    let (e, differ, undefined): (&Encoding, &[(u8, char)], u32) = match cp {
+        // ISO 8859-1 is the first 256 characters of Unicode
+        28591 => return Some(t),
+        20127 => {
+            // Windows drops the eighth bit
+            for b in 128..256 {
+                t[b] = t[b - 128];
+            }
+            return Some(t);
+        }
+        866 => (IBM866, &[], 0),
+        874 => (WINDOWS_874, &[], 0xF8C1),
+        1250 => (WINDOWS_1250, &[], 0),
+        1251 => (WINDOWS_1251, &[], 0),
+        1252 => (WINDOWS_1252, &[], 0),
+        1253 => (WINDOWS_1253, &[], 0xF8F9),
+        1254 => (WINDOWS_1254, &[], 0),
+        1255 => (WINDOWS_1255, &[], 0xF88D),
+        1256 => (WINDOWS_1256, &[], 0),
+        1257 => (WINDOWS_1257, &[], 0xF8FC),
+        1258 => (WINDOWS_1258, &[], 0),
+        // the ohm sign, not the capital omega
+        10000 => (MACINTOSH, &[(0xBD, '\u{2126}')], 0),
+        // the web's x-mac-cyrillic is Windows' 10017, but for the euro sign
+        10017 => (X_MAC_CYRILLIC, &[(0xFF, '¤')], 0),
+        20866 => (KOI8_R, &[], 0),
+        21866 => (KOI8_U, &[], 0),
+        28592 => (ISO_8859_2, &[], 0),
+        28593 => (ISO_8859_3, &[], 0xF7F5),
+        28594 => (ISO_8859_4, &[], 0),
+        28595 => (ISO_8859_5, &[], 0),
+        28596 => (ISO_8859_6, &[], 0xF7C8),
+        // Windows has the 1987 edition
+        28597 => (ISO_8859_7, &[(0xA1, '\u{2BD}'), (0xA2, '\u{2BC}'), (0xA4, '\u{F7C2}'), (0xA5, '\u{F7C3}'), (0xAA, '\u{F7C4}')], 0xF7C5),
+        28598 | 38598 => (ISO_8859_8, &[(0xAF, '\u{203E}')], 0xF79C),
+        // the web reads ISO 8859-9 as 1254, which differs in 0x80-0x9F (done below)
+        28599 => (WINDOWS_1254, &[], 0),
+        28603 => (ISO_8859_13, &[], 0),
+        28605 => (ISO_8859_15, &[], 0),
+        _ => return None,
     };
-    Some(Codec::Rs(e))
+    let mut undefined = undefined;
+    for b in 128..256usize {
+        // ISO pages have the control characters there, as `t` already does
+        if cp == 28599 && b < 0xA0 {
+            continue;
+        }
+        let byte = b as u8;
+        if let Some((_, c)) = differ.iter().find(|d| d.0 == byte) {
+            t[b] = *c;
+            continue;
+        }
+        let (s, _) = e.decode_without_bom_handling(&[byte]);
+        t[b] = match s.chars().next() {
+            Some(c) if c != '\u{FFFD}' => c,
+            _ => {
+                let c = char::from_u32(undefined).unwrap_or('\u{FFFD}');
+                undefined += 1;
+                c
+            }
+        };
+    }
+    Some(t)
 }
 
 /// The code pages as (number, name), the name as Windows gives it ("1252  (ANSI - Latin I)"),
@@ -109,38 +181,26 @@ pub fn code_pages() -> Vec<(u32, String)> {
     out
 }
 
-/// Whether `encoding` has the character (as one with nothing else written before it).
-fn has(encoding: &'static Encoding, c: char) -> bool {
+/// Whether a page has the character (as one with nothing else written before it).
+fn has(cp: u32, encoding: &'static Encoding, c: char) -> bool {
     let mut buf = [0u8; 4];
-    !encoding.encode(c.encode_utf8(&mut buf)).2
+    let (bytes, _, missing) = encoding.encode(c.encode_utf8(&mut buf));
+    // GB2312 is the part of GBK with both bytes above 0xA0
+    !missing && (cp != 20936 || c.is_ascii() || bytes.iter().all(|b| *b > 0xA0))
 }
 
 /// The bytes of `text` in a code page; characters it lacks become "?", as Windows writes them. A
 /// code page there is no converter for gives UTF-8, as on Windows when the page isn't installed.
 pub fn encode(text: &str, cp: u32) -> Vec<u8> {
-    match codec(cp) {
+    if let Some(t) = single_byte(cp) {
+        return text.chars().map(|c| t.iter().position(|x| *x == c).map_or(b'?', |b| b as u8)).collect();
+    }
+    match multi_byte(cp) {
         None => text.bytes().collect(),
-        Some(Codec::Ascii) => text.chars().map(|c| if c.is_ascii() { c as u8 } else { b'?' }).collect(),
-        Some(Codec::IsoOf(e)) => text
-            .chars()
-            .map(|c| match c as u32 {
-                n @ 0x80..=0x9F => n as u8,
-                _ => {
-                    let mut buf = [0u8; 4];
-                    let (b, _, bad) = e.encode(c.encode_utf8(&mut buf));
-                    // what the Windows page has in 0x80-0x9F the ISO page lacks
-                    if bad || b.len() != 1 || (0x80..=0x9F).contains(&b[0]) {
-                        b'?'
-                    } else {
-                        b[0]
-                    }
-                }
-            })
-            .collect(),
-        Some(Codec::Rs(e)) => {
+        Some(e) => {
             // encoding_rs writes a missing character as an HTML reference ("&#322;"), so those are
             // replaced first
-            let clean: String = text.chars().map(|c| if has(e, c) { c } else { '?' }).collect();
+            let clean: String = text.chars().map(|c| if has(cp, e, c) { c } else { '?' }).collect();
             e.encode(&clean).0.into_owned()
         }
     }
@@ -148,15 +208,12 @@ pub fn encode(text: &str, cp: u32) -> Vec<u8> {
 
 /// Bytes read in a code page (a page there is no converter for reads them as UTF-8).
 pub fn decode(bytes: &[u8], cp: u32) -> String {
-    match codec(cp) {
+    if let Some(t) = single_byte(cp) {
+        return bytes.iter().map(|b| t[*b as usize]).collect();
+    }
+    match multi_byte(cp) {
         None => String::from_utf8_lossy(bytes).to_string(),
-        // Windows drops the eighth bit
-        Some(Codec::Ascii) => bytes.iter().map(|b| (b & 0x7F) as char).collect(),
-        Some(Codec::IsoOf(e)) => bytes
-            .iter()
-            .map(|&b| if (0x80..=0x9F).contains(&b) { b as char } else { e.decode_without_bom_handling(&[b]).0.chars().next().unwrap_or('\u{FFFD}') })
-            .collect(),
-        Some(Codec::Rs(e)) => e.decode_without_bom_handling(bytes).0.into_owned(),
+        Some(e) => e.decode_without_bom_handling(bytes).0.into_owned(),
     }
 }
 
@@ -216,7 +273,8 @@ mod tests {
         assert!(order.iter().position(|&c| c == 1250) < order.iter().position(|&c| c == 866));
         assert_eq!(*order.last().unwrap(), 950);
         // every listed page converts
-        assert!(pages.iter().all(|p| codec(p.0).is_some()));
+        assert!(pages.iter().all(|p| single_byte(p.0).is_some() || multi_byte(p.0).is_some()));
+        assert_eq!(label(850).as_deref(), Some("850   (OEM - Multilingual Latin I)"));
     }
 
     #[test]
@@ -244,6 +302,14 @@ mod tests {
             (28605, "5 € œ"),
             (28599, "İstanbul"),
             (10000, "Olá"),
+            (10007, "Привет"),
+            (437, "Olá ░▒▓"),
+            (850, "ação ©"),
+            (860, "ação"),
+            (858, "5 €"),
+            (20936, "简体中文"),
+            (51949, "한국어"),
+            (50221, "日本語"),
             (65001, "Olá 日本"),
         ] {
             let bytes = encode(text, cp);
@@ -263,6 +329,10 @@ mod tests {
         assert_eq!(decode(b"\x80", 28591), "\u{80}");
         assert_eq!(decode(b"\x80", 1252), "€");
         assert_eq!(decode(b"\xE9", 20127), "i");
+        // bytes a page leaves undefined get the private-use characters Windows gives them
+        assert_eq!(decode(b"\xAA\xD2", 1253), "\u{F8F9}\u{F8FA}");
+        // GB2312 lacks what GBK added
+        assert_eq!(encode("語", 20936), b"?");
         // a page there is no converter for: UTF-8, as Windows without the page
         assert_eq!(encode("Olá", 37), "Olá".as_bytes());
         assert_eq!(decode("Olá".as_bytes(), 37), "Olá");
@@ -311,44 +381,44 @@ mod tests {
         }
     }
 
-    /// The conversions agree with Windows' own (MultiByteToWideChar, WideCharToMultiByte).
+    /// The names and the conversions are Windows' own (GetCPInfoEx, MultiByteToWideChar,
+    /// WideCharToMultiByte).
     #[cfg(windows)]
     #[test]
     fn code_pages_match_windows() {
-        let windows_pages: Vec<u32> = super::super::imp::code_pages().into_iter().map(|p| p.0).collect();
-        let windows_names = super::super::imp::code_pages();
+        use super::super::imp;
+        let windows = imp::code_pages();
         for (cp, label) in code_pages() {
-            // the same name as Windows gives the page, where it is installed
-            if let Some(w) = windows_names.iter().find(|p| p.0 == cp) {
-                assert_eq!(w.1, label, "name of {cp}");
+            // Windows may not have every page installed, nor its names in English
+            let Some((_, name)) = windows.iter().find(|p| p.0 == cp) else { continue };
+            if windows.iter().any(|p| p.1 == "1252  (ANSI - Latin I)") {
+                assert_eq!(*name, label);
             }
-            if !windows_pages.contains(&cp) {
+            if single_byte(cp).is_some() {
+                for b in 0u8..=255 {
+                    let c = imp::decode(&[b], cp);
+                    assert_eq!(decode(&[b], cp), c, "code page {cp}, byte {b:#04x}");
+                    if cp != 20127 || b < 128 {
+                        assert_eq!(encode(&c, cp), [b], "code page {cp}, byte {b:#04x}");
+                    }
+                }
                 continue;
             }
-            let single = !matches!(cp, 932 | 936 | 949 | 950 | 20932 | 50220 | 54936);
-            if single {
-                for b in 0u8..=255 {
-                    let win = super::super::imp::decode(&[b], cp);
-                    let ours = decode(&[b], cp);
-                    // Windows gives undefined bytes private-use characters; encoding_rs U+FFFD
-                    let undefined = win.chars().all(|c| ('\u{E000}'..='\u{F8FF}').contains(&c)) || ours == "\u{FFFD}";
-                    if !undefined {
-                        assert_eq!(ours, win, "code page {cp}, byte {b:#04x}");
-                        // and back: the same byte
-                        assert_eq!(encode(&ours, cp), super::super::imp::encode(&win, cp), "code page {cp}, U+{:04X}", ours.chars().next().map(|c| c as u32).unwrap_or(0));
-                    }
-                }
-            } else {
-                let text = "Olá 日本語 简体 繁體 한국어 ascii";
-                let ours = decode(&encode(text, cp), cp);
-                let win = super::super::imp::decode(&super::super::imp::encode(text, cp), cp);
-                // the characters the page has come back the same
-                for (a, b) in ours.chars().zip(win.chars()) {
-                    if a != '?' && b != '?' && a != '・' && b != '・' {
-                        assert_eq!(a, b, "code page {cp}: {ours} / {win}");
-                    }
-                }
+            let text = match cp {
+                949 | 51949 => "Text 한국어 漢字",
+                950 => "Text 繁體中文",
+                936 | 20936 => "Text 简体中文",
+                54936 => "Text 简体中文 한국어 ﾊ Ž",
+                50220 => "Text 日本語のテキスト",
+                _ => "Text 日本語のテキスト",
+            };
+            assert_eq!(encode(text, cp), imp::encode(text, cp), "code page {cp}");
+            assert_eq!(decode(&imp::encode(text, cp), cp), text, "code page {cp}");
+            if cp != 54936 {
+                // "?" for what the page lacks
+                assert_eq!(encode("a\u{E000F}b", cp).iter().filter(|b| **b == b'?').count(), 1, "code page {cp}");
             }
         }
+        assert_eq!(encode("漢語", 20936), imp::encode("漢語", 20936));
     }
 }
