@@ -9717,9 +9717,18 @@ fn visual_save_options_dialog() {
             click_label(&mut h, "Advanced...");
             assert!(h.state().dialogs.save_options.as_ref().unwrap().advanced_open.is_some());
             save(&mut h, &format!("save_options_{:02}_{ext}_advanced", k * 2 + 2));
-            click_label(&mut h, "Cancel");
+            h.key_press(egui::Key::Escape);
+            settle(&mut h);
+            assert!(h.state().dialogs.save_options.as_ref().unwrap().advanced_open.is_none());
         } else {
             assert!(!has_label(&h, "Advanced..."), "a copy has no drawing options");
+            // a file of that name that the system dialog did not ask about
+            std::fs::write(dir.join("Poster.svg"), b"another").unwrap();
+            let svg = vector_io::SAVE_TYPES.iter().position(|t| t.extensions[0] == "svg").unwrap();
+            h.state_mut().dialogs.save_options.as_mut().unwrap().set_type(svg);
+            crate::dialogs::save_options::save_clicked(h.state_mut());
+            save(&mut h, "save_options_06_replace");
+            assert_eq!(std::fs::read(dir.join("Poster.svg")).unwrap(), b"another");
         }
         crate::dialogs::save_options::cancel(h.state_mut());
         settle(&mut h);

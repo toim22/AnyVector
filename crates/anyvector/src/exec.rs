@@ -224,6 +224,16 @@ pub(crate) fn save_filter_order(count: usize, chosen: usize) -> Vec<usize> {
     std::iter::once(chosen).filter(|&c| c < count).chain((0..count).filter(|&k| k != chosen)).collect()
 }
 
+/// `path` with the extension of its type added when it has another one (or none).
+pub(crate) fn with_type(path: PathBuf, ext: &str) -> PathBuf {
+    if vector_io::extension(&path) == ext {
+        return path;
+    }
+    let mut s = path.into_os_string();
+    s.push(format!(".{ext}"));
+    PathBuf::from(s)
+}
+
 /// The type a drawing saved as `path` gets: the one of its extension, in any case, else the type
 /// chosen in the dialog.
 pub(crate) fn saved_type(types: &[(String, String)], path: &Path, chosen: usize) -> usize {
@@ -691,7 +701,7 @@ impl AnyVectorApp {
             // the system dialog picks the folder, name and type; the drawing options follow in
             // AnyVector's dialog, as rfd cannot add controls to it
             let Some(p) = crate::dialogs::save_options::pick_path(&req) else { return SaveOutcome::NotSaved };
-            self.dialogs.save_options = Some(crate::dialogs::save_options::SaveOptionsState::new(i, req, p, then));
+            self.dialogs.save_options = Some(crate::dialogs::save_options::SaveOptionsState::new(self.docs[i].uid, req, p, then));
             return SaveOutcome::Pending;
         }
         let Some(r) = crate::save_dialog::show(req) else { return SaveOutcome::NotSaved };
@@ -748,13 +758,7 @@ impl AnyVectorApp {
         info.subject = r.subject;
         info.rating = r.rating;
         let want = vector_io::SAVE_TYPES.get(r.type_index).map(|t| t.extensions[0].to_string()).unwrap_or_else(|| "cdr".into());
-        let path = if vector_io::extension(&r.path) == want {
-            r.path
-        } else {
-            let mut s = r.path.into_os_string();
-            s.push(format!(".{want}"));
-            PathBuf::from(s)
-        };
+        let path = with_type(r.path, &want);
         self.write_doc(i, &path, r.embed_fonts, r.embed_profiles, r.version)
     }
 

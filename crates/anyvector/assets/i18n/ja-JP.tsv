@@ -2564,6 +2564,8 @@ Ver&sion:	バージョン(&S):
 Version:	バージョン:
 Advanced...	詳細設定...
 Folder:	フォルダ:
+{} already exists.	{} は既に存在します。
+Do you want to replace it?	置き換えますか?
 &Advanced...	詳細設定(&A)...
 Advanced Save Options	保存の詳細オプション
 Optimize for	最適化の対象

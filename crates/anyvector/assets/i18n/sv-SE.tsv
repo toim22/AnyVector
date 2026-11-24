@@ -2564,6 +2564,8 @@ Ver&sion:	&Version:
 Version:	Version:
 Advanced...	Avancerat...
 Folder:	Mapp:
+{} already exists.	{} finns redan.
+Do you want to replace it?	Vill du ersätta filen?
 &Advanced...	&Avancerat...
 Advanced Save Options	Avancerade sparalternativ
 Optimize for	Optimera för

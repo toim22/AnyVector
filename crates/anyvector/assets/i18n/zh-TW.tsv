@@ -2564,6 +2564,8 @@ Ver&sion:	版本(&S)：
 Version:	版本：
 Advanced...	進階...
 Folder:	資料夾：
+{} already exists.	{} 已經存在。
+Do you want to replace it?	您要取代它嗎？
 &Advanced...	進階(&A)...
 Advanced Save Options	進階儲存選項
 Optimize for	最佳化目標

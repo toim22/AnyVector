@@ -3,40 +3,73 @@
 //! Title, Subject and Rating; for AnyVector's formats Embed color profiles, Embed fonts, the
 //! version and Advanced...; for the other types the note that a copy is written. Save writes the
 //! drawing with these choices, Cancel drops the save, as cancelling the Windows dialog does.
+//! "Save as type" can still be changed here: rfd does not say which filter was chosen, so the
+//! system dialog only gives the type through the name's extension.
 //!
 //! The dialog is drawn over frames, so the save that opened it has already returned: the state
 //! carries what to do afterwards ([`AfterSave`]: close the document, go on quitting).
 
 use super::{button, combo, note, ok_button, ok_cancel_plain, row, separator, window};
 use crate::app::AnyVectorApp;
-use crate::exec::AfterSave;
+use crate::exec::{save_filter_order, saved_type, with_type, AfterSave};
 use crate::save_dialog::{has_drawing_options, size_text, Advanced, SaveRequest, SaveResult, CDR_NOTE, COPY_NOTE};
-use egui::vec2;
+use egui::{vec2, Ui};
 use std::path::PathBuf;
 
 pub struct SaveOptionsState {
-    /// The document being saved.
-    pub doc: usize,
-    /// Where the system dialog said to save.
+    /// The `uid` of the document being saved (its place among the tabs may change while the
+    /// dialog is open, e.g. by a file dropped on the window).
+    pub doc: u64,
+    /// Where to save, with the extension of its type.
     pub path: PathBuf,
+    /// The name the system dialog returned: it has already asked before replacing that file.
+    picked: PathBuf,
     /// Into `req.types`: the type of `path`.
     pub type_index: usize,
     /// The values shown, changed in place (title, subject, rating, embedding, version, advanced).
     pub req: SaveRequest,
     /// Advanced Save Options while it is open: the values being changed.
     pub advanced_open: Option<Advanced>,
+    /// "... already exists. Do you want to replace it?" is open.
+    pub confirm_replace: bool,
     pub then: AfterSave,
 }
 
 impl SaveOptionsState {
-    pub fn new(doc: usize, req: SaveRequest, path: PathBuf, then: AfterSave) -> Self {
-        let type_index = crate::exec::saved_type(&req.types, &path, req.type_index);
-        Self { doc, path, type_index, req, advanced_open: None, then }
+    pub fn new(doc: u64, req: SaveRequest, path: PathBuf, then: AfterSave) -> Self {
+        let type_index = req.type_index;
+        let mut st = Self { doc, path: PathBuf::new(), picked: PathBuf::new(), type_index, req, advanced_open: None, confirm_replace: false, then };
+        st.set_picked(path);
+        st
+    }
+
+    /// Take over the name the system dialog returned: its extension says the type, and a name
+    /// without one gets the extension of the type.
+    fn set_picked(&mut self, path: PathBuf) {
+        self.type_index = saved_type(&self.req.types, &path, self.type_index);
+        self.path = with_type(path.clone(), self.ext());
+        self.picked = path;
+    }
+
+    /// Another "Save as type": the name changes its extension, as in the Windows dialog.
+    pub fn set_type(&mut self, type_index: usize) {
+        self.type_index = type_index;
+        let known = self.req.types.iter().any(|t| t.1 == vector_io::extension(&self.path));
+        let base = if known { self.path.with_extension("") } else { self.path.clone() };
+        let mut s = base.into_os_string();
+        s.push(format!(".{}", self.ext()));
+        self.path = PathBuf::from(s);
     }
 
     /// The extension of the chosen type.
     pub fn ext(&self) -> &str {
         self.req.types.get(self.type_index).map(|t| t.1.as_str()).unwrap_or("cdr")
+    }
+
+    /// Whether Save replaces a file the system dialog did not ask about (the extension was added
+    /// or the type changed after it).
+    fn replaces_unasked(&self) -> bool {
+        self.path != self.picked && self.path.exists()
     }
 
     /// What the Windows dialog returns, from the values shown.
@@ -67,7 +100,7 @@ pub fn pick_path(req: &SaveRequest) -> Option<PathBuf> {
         return test_seam::next();
     }
     let types = &req.types;
-    let order = crate::exec::save_filter_order(types.len(), req.type_index);
+    let order = save_filter_order(types.len(), req.type_index);
     let mut fd = order.into_iter().fold(rfd::FileDialog::new().set_title(crate::i18n::t("Save Drawing")), |fd, k| fd.add_filter(crate::i18n::t(&types[k].0), &[types[k].1.as_str()]));
     if let Some(dir) = &req.dir {
         fd = fd.set_directory(dir);
@@ -75,74 +108,104 @@ pub fn pick_path(req: &SaveRequest) -> Option<PathBuf> {
     fd.set_file_name(req.file_name.as_str()).save_file()
 }
 
+/// Save: first ask before replacing a file the system dialog did not ask about.
+pub fn save_clicked(app: &mut AnyVectorApp) {
+    match &mut app.dialogs.save_options {
+        Some(st) if st.replaces_unasked() => st.confirm_replace = true,
+        _ => confirm(app),
+    }
+}
+
 /// Save with the values shown, then go on with what started the save.
 pub fn confirm(app: &mut AnyVectorApp) {
     let Some(st) = app.dialogs.save_options.take() else { return };
-    let saved = app.save_with(st.doc, st.result());
-    app.after_save(st.doc, st.then, saved);
+    let Some(i) = app.docs.iter().position(|d| d.uid == st.doc) else { return };
+    let saved = app.save_with(i, st.result());
+    app.after_save(i, st.then, saved);
 }
 
 /// Cancel: nothing is saved, and Close All or Exit stop, as when the Windows dialog is cancelled.
 pub fn cancel(app: &mut AnyVectorApp) {
     let Some(st) = app.dialogs.save_options.take() else { return };
-    app.after_save(st.doc, st.then, false);
+    let Some(i) = app.docs.iter().position(|d| d.uid == st.doc) else { return };
+    app.after_save(i, st.then, false);
 }
 
-/// Browse...: the system dialog again, to change the folder, name or type.
+/// Browse...: the system dialog again, on the name and type shown.
 fn browse(st: &mut SaveOptionsState) {
-    let mut req_dir = st.path.parent().map(|p| p.to_path_buf());
-    std::mem::swap(&mut st.req.dir, &mut req_dir);
-    let name = std::mem::replace(&mut st.req.file_name, st.path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default());
-    let start_type = std::mem::replace(&mut st.req.type_index, st.type_index);
-    let picked = pick_path(&st.req);
-    st.req.dir = req_dir;
-    st.req.file_name = name;
-    st.req.type_index = start_type;
-    if let Some(p) = picked {
-        st.type_index = crate::exec::saved_type(&st.req.types, &p, st.type_index);
-        st.path = p;
+    st.req.dir = st.path.parent().map(|p| p.to_path_buf());
+    st.req.file_name = st.path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+    st.req.type_index = st.type_index;
+    if let Some(p) = pick_path(&st.req) {
+        st.set_picked(p);
     }
 }
 
 const LABEL_W: f32 = 100.0;
 
+/// What was clicked in the dialog.
+#[derive(Clone, Copy, PartialEq)]
+enum Action {
+    Browse,
+    Type(usize),
+    Advanced,
+    Save,
+    Cancel,
+}
+
+/// A name or folder, read only. A text box, because labels are translated and a file's name must
+/// not be. Returns whether Enter (or a click elsewhere) took the focus from it.
+fn path_field(ui: &mut Ui, text: &str, width: f32) -> bool {
+    let mut t = text;
+    ui.add(egui::TextEdit::singleline(&mut t).desired_width(width)).lost_focus()
+}
+
+/// Enter without a modifier.
+fn enter_pressed(ctx: &egui::Context) -> bool {
+    ctx.input(|i| i.key_pressed(egui::Key::Enter) && i.modifiers.is_none())
+}
+
 pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
+    // a message over this dialog has the keys (the note about the drawing saved before this one,
+    // when quitting)
+    let message = app.dialogs.message_box.is_some();
     let Some(st) = app.dialogs.save_options.as_mut() else { return };
-    if st.doc >= app.docs.len() {
+    if !app.docs.iter().any(|d| d.uid == st.doc) {
         app.dialogs.save_options = None;
         return;
     }
-    // the Advanced dialog on top takes Escape and Enter
-    let advanced_was_open = st.advanced_open.is_some();
+    let covered = message || st.advanced_open.is_some() || st.confirm_replace;
+    // Enter is Save unless it belongs to a focused button or to an open list
+    let popup = egui::Popup::is_any_open(ctx);
+    let enter = enter_pressed(ctx);
+    let unfocused = ctx.memory(|m| m.focused().is_none());
+    let mut left_text = false;
     let native = has_drawing_options(st.ext());
-    let (mut save, mut cancel_clicked, mut browse_clicked) = (false, false, false);
-    let size = if native { vec2(540.0, 482.0) } else { vec2(540.0, 330.0) };
+    let mut action = None;
+    let size = if native { vec2(540.0, 478.0) } else { vec2(540.0, 330.0) };
     let ((), dismissed) = window(ctx, "save_options", "Save Drawing", size, |ui| {
         ui.add_space(8.0);
-        let field_w = ui.available_width() - LABEL_W - 8.0;
+        let field_w = ui.available_width() - LABEL_W - 16.0;
         let name = st.path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
         let folder = st.path.parent().map(|p| p.display().to_string()).unwrap_or_default();
         row(ui, "File name:", LABEL_W, |ui| {
-            ui.add_sized(vec2(field_w - 90.0, 22.0), egui::Label::new(egui::RichText::new(name).strong()).truncate().halign(egui::Align::Min));
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                browse_clicked = button(ui, "Browse...", true);
-            });
+            left_text |= path_field(ui, &name, field_w - 92.0);
+            if button(ui, "Browse...", true) {
+                action = Some(Action::Browse);
+            }
         });
-        row(ui, "Folder:", LABEL_W, |ui| {
-            ui.add_sized(vec2(field_w, 20.0), egui::Label::new(folder).truncate().halign(egui::Align::Min));
-        });
-        let type_name = st.req.types.get(st.type_index).map(|t| t.0.clone()).unwrap_or_default();
+        row(ui, "Folder:", LABEL_W, |ui| left_text |= path_field(ui, &folder, field_w));
         row(ui, "Save as type:", LABEL_W, |ui| {
-            ui.add_sized(vec2(field_w, 20.0), egui::Label::new(type_name).truncate().halign(egui::Align::Min));
+            let names: Vec<&str> = st.req.types.iter().map(|t| t.0.as_str()).collect();
+            let mut k = st.type_index;
+            if combo(ui, "save_type", &mut k, &names, field_w) {
+                action = Some(Action::Type(k));
+            }
         });
         separator(ui);
         // the shell's property fields of the Windows dialog
-        row(ui, "Title:", LABEL_W, |ui| {
-            ui.add(egui::TextEdit::singleline(&mut st.req.title).desired_width(field_w));
-        });
-        row(ui, "Subject:", LABEL_W, |ui| {
-            ui.add(egui::TextEdit::singleline(&mut st.req.subject).desired_width(field_w));
-        });
+        row(ui, "Title:", LABEL_W, |ui| left_text |= ui.add(egui::TextEdit::singleline(&mut st.req.title).desired_width(field_w)).lost_focus());
+        row(ui, "Subject:", LABEL_W, |ui| left_text |= ui.add(egui::TextEdit::singleline(&mut st.req.subject).desired_width(field_w)).lost_focus());
         row(ui, "Rating:", LABEL_W, |ui| {
             let mut r = st.req.rating.min(5) as usize;
             if combo(ui, "save_rating", &mut r, &super::docprops::RATINGS, 140.0) {
@@ -167,7 +230,7 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
                     st.req.version = v;
                 }
             });
-            ui.add(egui::Label::new(egui::RichText::new(CDR_NOTE).color(crate::theme::TEXT_DIM()).size(12.0)).wrap());
+            note(ui, CDR_NOTE);
         } else {
             note(ui, COPY_NOTE);
         }
@@ -175,18 +238,46 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
         let rect = egui::Rect::from_min_max(egui::pos2(ui.max_rect().left(), ui.max_rect().bottom() - 24.0), ui.max_rect().right_bottom());
         ui.scope_builder(egui::UiBuilder::new().max_rect(rect), |ui| {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                cancel_clicked = button(ui, "Cancel", true);
+                if button(ui, "Cancel", true) {
+                    action = Some(Action::Cancel);
+                }
                 ui.add_space(4.0);
-                save = ok_button(ui, "Save", true);
+                if ok_button(ui, "Save", true) {
+                    action = Some(Action::Save);
+                }
                 if native {
                     ui.add_space(4.0);
                     if button(ui, "Advanced...", true) {
-                        st.advanced_open = Some(st.req.advanced);
+                        action = Some(Action::Advanced);
                     }
                 }
             });
         });
     });
+    if covered {
+        on_top(app, ctx);
+        return;
+    }
+    if action.is_none() && !popup {
+        if enter && (unfocused || left_text) {
+            action = Some(Action::Save);
+        } else if dismissed {
+            action = Some(Action::Cancel);
+        }
+    }
+    match action {
+        Some(Action::Browse) => browse(st),
+        Some(Action::Type(k)) => st.set_type(k),
+        Some(Action::Advanced) => st.advanced_open = Some(st.req.advanced),
+        Some(Action::Save) => save_clicked(app),
+        Some(Action::Cancel) => cancel(app),
+        None => {}
+    }
+}
+
+/// The dialogs on top of this one: Advanced Save Options and the question before replacing a file.
+fn on_top(app: &mut AnyVectorApp, ctx: &egui::Context) {
+    let Some(st) = app.dialogs.save_options.as_mut() else { return };
     if let Some(a) = st.advanced_open.as_mut() {
         match advanced_dialog(ctx, a) {
             Some(true) => {
@@ -196,23 +287,39 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
             Some(false) => st.advanced_open = None,
             None => {}
         }
-    }
-    if advanced_was_open {
-        return;
-    }
-    let enter = ctx.input(|i| i.key_pressed(egui::Key::Enter)) && !egui::Popup::is_any_open(ctx);
-    if browse_clicked {
-        browse(st);
-    } else if save || enter {
-        confirm(app);
-    } else if cancel_clicked || dismissed {
-        cancel(app);
+    } else if st.confirm_replace {
+        let name = st.path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+        let enter = enter_pressed(ctx) && ctx.memory(|m| m.focused().is_none());
+        let mut choice = None;
+        let ((), dismissed) = window(ctx, "save_replace", "Save Drawing", vec2(420.0, 150.0), |ui| {
+            ui.add_space(14.0);
+            ui.label(format!("{name} already exists.\nDo you want to replace it?"));
+            ui.with_layout(egui::Layout::bottom_up(egui::Align::Max), |ui| {
+                ui.horizontal(|ui| {
+                    // No is the default, as in the Windows dialog
+                    if ok_button(ui, "No", true) {
+                        choice = Some(false);
+                    }
+                    if button(ui, "Yes", true) {
+                        choice = Some(true);
+                    }
+                });
+            });
+        });
+        if choice.is_none() && (dismissed || enter) {
+            choice = Some(false);
+        }
+        match choice {
+            Some(true) => confirm(app),
+            Some(false) => st.confirm_replace = false,
+            None => {}
+        }
     }
 }
 
-/// Advanced Save Options, as the Windows dialog behind Advanced... (also on Options ▸ Document ▸
-/// Save). Some(true) on OK, Some(false) on Cancel, None while open.
+/// Advanced Save Options, as the Windows dialog behind Advanced... Some(true) on OK, Some(false) on Cancel, None while open.
 fn advanced_dialog(ctx: &egui::Context, a: &mut Advanced) -> Option<bool> {
+    let enter = enter_pressed(ctx) && ctx.memory(|m| m.focused().is_none());
     let ((ok, cancel), dismissed) = window(ctx, "save_advanced", "Advanced Save Options", vec2(380.0, 236.0), |ui| {
         ui.add_space(4.0);
         super::group(ui, "Optimize for", |ui| {
@@ -231,16 +338,12 @@ fn advanced_dialog(ctx: &egui::Context, a: &mut Advanced) -> Option<bool> {
         ui.checkbox(&mut a.bitmap_compression, "Use bitmap compression");
         ui.checkbox(&mut a.object_compression, "Use graphic object compression");
         ui.checkbox(&mut a.thumbnail, "Save thumbnail");
-        let enter = ui.input(|i| i.key_pressed(egui::Key::Enter));
-        let (ok, cancel) = ok_cancel_plain(ui, true);
-        (ok || enter, cancel)
+        ok_cancel_plain(ui, true)
     });
-    if ok {
-        Some(true)
-    } else if cancel || dismissed {
+    if cancel || dismissed {
         Some(false)
     } else {
-        None
+        (ok || enter).then_some(true)
     }
 }
 
@@ -289,7 +392,6 @@ mod tests {
     use crate::commands::Cmd;
     use egui_kittest::kittest::Queryable;
     use egui_kittest::Harness;
-    use std::path::Path;
 
     fn harness<'a>() -> Harness<'a, AnyVectorApp> {
         let mut h = Harness::builder().with_size(vec2(1600.0, 900.0)).build_eframe(|cc| {
@@ -310,6 +412,12 @@ mod tests {
 
     fn click(h: &mut Harness<'_, AnyVectorApp>, label: &str) {
         h.get_by_label(label).click_accesskit();
+        settle(h);
+    }
+
+    /// A button of the dialog on top, when the one under it has the same.
+    fn click_on_top(h: &mut Harness<'_, AnyVectorApp>, label: &str) {
+        h.get_all_by_label(label).last().unwrap().click_accesskit();
         settle(h);
     }
 
@@ -414,7 +522,8 @@ mod tests {
         click(&mut h, "Advanced...");
         assert!(state(&h).advanced_open.is_some());
         click(&mut h, "Save thumbnail");
-        click(&mut h, "Cancel");
+        assert!(!state(&h).advanced_open.unwrap().thumbnail);
+        click_on_top(&mut h, "Cancel");
         assert!(state(&h).advanced_open.is_none() && state(&h).req.advanced.thumbnail, "cancelled");
         click(&mut h, "Advanced...");
         click(&mut h, "Save thumbnail");
@@ -422,7 +531,7 @@ mod tests {
         click(&mut h, "OK");
         assert!(state(&h).advanced_open.is_none());
         assert!(!state(&h).req.advanced.thumbnail && state(&h).req.advanced.optimize_for_size);
-        confirm(&mut h.state_mut());
+        confirm(h.state_mut());
         settle(&mut h);
         assert!(h.state().dialogs.save_options.is_none());
         let d = &h.state().docs[i];
@@ -525,15 +634,16 @@ mod tests {
         settle(&mut h);
         click(&mut h, "Yes");
         let first = state(&h).doc;
-        confirm(&mut h.state_mut());
+        confirm(h.state_mut());
         assert!(!h.state().quit_requested, "the second drawing is still to save");
-        assert_eq!(h.state().docs[first].path.as_deref(), Some(dir.join("One.cdr").as_path()));
+        let d = h.state().docs.iter().find(|d| d.uid == first).unwrap();
+        assert_eq!(d.path.as_deref(), Some(dir.join("One.cdr").as_path()));
         let second = state(&h).doc;
         assert_ne!(first, second);
         assert_eq!(state(&h).ext(), "vct");
-        confirm(&mut h.state_mut());
+        confirm(h.state_mut());
         assert!(h.state().quit_requested, "all saved: quit");
-        assert!(Path::new(&dir.join("Two.vct")).exists());
+        assert!(dir.join("Two.vct").exists());
         // Cancel in the options does not quit
         let mut h = harness();
         drawing(&mut h);
@@ -541,7 +651,144 @@ mod tests {
         h.state_mut().dialogs.confirm_quit = true;
         settle(&mut h);
         click(&mut h, "Yes");
-        cancel(&mut h.state_mut());
+        cancel(h.state_mut());
         assert!(!h.state().quit_requested && !h.state().allow_close);
+    }
+
+    /// The system dialog asks before replacing the name it was given; when the extension is added
+    /// or the type changed afterwards, AnyVector asks. No (and Escape) goes back to the options.
+    #[test]
+    fn a_file_the_system_dialog_did_not_ask_about_is_not_replaced_unasked() {
+        let mut h = harness();
+        let i = drawing(&mut h);
+        let dir = temp_dir("replace");
+        let p = dir.join("Logo.cdr");
+        std::fs::write(&p, b"another drawing").unwrap();
+        give_picked_paths(vec![Some(dir.join("Logo"))]);
+        assert!(!h.state_mut().save_doc(i, true));
+        settle(&mut h);
+        assert_eq!(state(&h).path, p, "the name is shown with its extension");
+        for no in ["No", "Escape"] {
+            save_clicked(h.state_mut());
+            settle(&mut h);
+            assert!(has(&h, "Logo.cdr already exists.\nDo you want to replace it?"));
+            if no == "No" {
+                click(&mut h, "No");
+            } else {
+                h.key_press(egui::Key::Escape);
+                settle(&mut h);
+            }
+            assert!(!state(&h).confirm_replace, "{no}: back to the options");
+            assert_eq!(std::fs::read(&p).unwrap(), b"another drawing");
+        }
+        save_clicked(h.state_mut());
+        settle(&mut h);
+        click(&mut h, "Yes");
+        assert!(h.state().dialogs.save_options.is_none());
+        assert_eq!(vector_io::cdr::detect(&std::fs::read(&p).unwrap()), vector_io::cdr::CdrKind::AnyVector);
+        // the name the system dialog asked about itself is not asked again
+        give_picked_paths(vec![Some(p.clone())]);
+        assert!(!h.state_mut().save_doc(i, true));
+        save_clicked(h.state_mut());
+        assert!(h.state().dialogs.save_options.is_none());
+    }
+
+    /// "Save as type" changes the extension of the name and which controls show, as on Windows.
+    #[test]
+    fn changing_the_type_changes_the_extension() {
+        let mut h = harness();
+        let i = drawing(&mut h);
+        let dir = temp_dir("type");
+        give_picked_paths(vec![Some(dir.join("Logo v1.2.cdr"))]);
+        assert!(!h.state_mut().save_doc(i, true));
+        settle(&mut h);
+        let pos = |ext: &str| vector_io::SAVE_TYPES.iter().position(|t| t.extensions[0] == ext).unwrap();
+        for (ext, native) in [("svg", false), ("vct", true), ("cmx", false), ("cdr", true)] {
+            h.state_mut().dialogs.save_options.as_mut().unwrap().set_type(pos(ext));
+            settle(&mut h);
+            assert_eq!(state(&h).path, dir.join(format!("Logo v1.2.{ext}")));
+            assert_eq!((has(&h, "Advanced..."), has(&h, COPY_NOTE)), (native, !native), "{ext}");
+        }
+        // a dot in a name without one of the extensions is part of the name
+        let st = h.state_mut().dialogs.save_options.as_mut().unwrap();
+        st.set_picked(dir.join("Logo v1.2"));
+        assert_eq!(st.path, dir.join("Logo v1.2.cdr"));
+        cancel(h.state_mut());
+    }
+
+    /// Enter saves and Escape cancels, but not while they belong to Advanced Save Options or to a
+    /// message on top.
+    #[test]
+    fn enter_saves_and_escape_cancels() {
+        let mut h = harness();
+        let i = drawing(&mut h);
+        let dir = temp_dir("keys");
+        let press = |h: &mut Harness<'_, AnyVectorApp>, k: egui::Key| {
+            h.key_press(k);
+            settle(h);
+        };
+        give_picked_paths(vec![Some(dir.join("A.cdr"))]);
+        h.state_mut().save_doc(i, true);
+        settle(&mut h);
+        press(&mut h, egui::Key::Escape);
+        assert!(h.state().dialogs.save_options.is_none() && !dir.join("A.cdr").exists());
+
+        give_picked_paths(vec![Some(dir.join("B.cdr"))]);
+        h.state_mut().save_doc(i, true);
+        settle(&mut h);
+        // Advanced Save Options has the keys while it is open
+        let st = h.state_mut().dialogs.save_options.as_mut().unwrap();
+        st.advanced_open = Some(Advanced { thumbnail: !st.req.advanced.thumbnail, ..st.req.advanced });
+        let thumbnail = st.req.advanced.thumbnail;
+        press(&mut h, egui::Key::Escape);
+        assert!(state(&h).advanced_open.is_none() && state(&h).req.advanced.thumbnail == thumbnail);
+        let st = h.state_mut().dialogs.save_options.as_mut().unwrap();
+        st.advanced_open = Some(Advanced { thumbnail: !thumbnail, ..st.req.advanced });
+        press(&mut h, egui::Key::Enter);
+        assert!(state(&h).advanced_open.is_none() && state(&h).req.advanced.thumbnail != thumbnail);
+        // so does a message (the .cdr note of the drawing saved before, when quitting)
+        h.state_mut().dialogs.message_box = Some(("Save".into(), "A note".into()));
+        press(&mut h, egui::Key::Escape);
+        assert!(h.state().dialogs.message_box.is_none());
+        assert!(h.state().dialogs.save_options.is_some() && !dir.join("B.cdr").exists());
+        press(&mut h, egui::Key::Enter);
+        assert!(h.state().dialogs.save_options.is_none() && dir.join("B.cdr").exists());
+    }
+
+    /// The document is found by its identity: one closed or opened meanwhile does not matter.
+    #[test]
+    fn the_drawing_is_saved_wherever_its_tab_is() {
+        let mut h = harness();
+        let first = drawing(&mut h);
+        let second = drawing(&mut h);
+        let dir = temp_dir("uid");
+        give_picked_paths(vec![Some(dir.join("Second.cdr"))]);
+        assert!(!h.state_mut().save_doc(second, true));
+        let uid = h.state().docs[second].uid;
+        h.state_mut().docs.remove(first);
+        h.state_mut().active = Some(0);
+        confirm(h.state_mut());
+        let d = h.state().docs.iter().find(|d| d.uid == uid).unwrap();
+        assert_eq!(d.path.as_deref(), Some(dir.join("Second.cdr").as_path()));
+        // its own document gone: the dialog goes too
+        give_picked_paths(vec![Some(dir.join("Gone.cdr"))]);
+        assert!(!h.state_mut().save_doc(0, true));
+        h.state_mut().docs.clear();
+        h.state_mut().active = None;
+        settle(&mut h);
+        assert!(h.state().dialogs.save_options.is_none() && !dir.join("Gone.cdr").exists());
+    }
+
+    /// The main window is not closed under the dialog.
+    #[test]
+    fn the_window_stays_while_the_options_are_asked() {
+        let mut h = harness();
+        let i = drawing(&mut h);
+        give_picked_paths(vec![Some(temp_dir("window").join("A.cdr"))]);
+        assert!(!h.state_mut().save_doc(i, true));
+        settle(&mut h);
+        h.input_mut().viewports.entry(egui::ViewportId::ROOT).or_default().events.push(egui::ViewportEvent::Close);
+        settle(&mut h);
+        assert!(!h.state().dialogs.confirm_quit && h.state().dialogs.save_options.is_some());
     }
 }

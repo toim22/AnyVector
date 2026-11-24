@@ -247,22 +247,22 @@ dialogs get any-case patterns; links stored as Windows paths (bitmaps, symbol li
 OLE objects, colour profiles, DXF fonts) are found next to the drawing by file name; non-UTF-8 file
 names no longer panic on the command line or lose the settings file.
 
-**Save options (Phase 2, `dialogs/save_options.rs`).** On Windows, Save As is the system dialog with
-AnyVector's controls added (`save_dialog.rs`); rfd cannot add controls, so on Linux Save As has two
-steps: the system dialog (GTK or the portal) picks the folder, name and type, then AnyVector's own
-**Save Drawing** dialog shows the rest with the Windows labels, defaults and rules: the file name
-(Browse... goes back to the system dialog), folder and type; Title, Subject and Rating; for CDR and
-VCT Embed color profiles (size and summary), Embed fonts (size), Version with its note and
-Advanced... (Advanced Save Options: optimize for speed or size, presentation attributes, bitmap and
-object compression, thumbnail; OK keeps, Cancel drops); for CMX, PDF, SVG and EMF the "saves a copy"
-note. Save goes through the same code as the Windows result (`save_with`: the choices are remembered
-and written into the drawing); Cancel saves nothing. Because the dialog is drawn over frames, the
-save returns `Pending` and the dialog carries what comes next (`AfterSave`): closing a modified
-drawing closes it after Save and Close All goes on; Exit saves the next drawing, then quits; Cancel
-stops both, as cancelling the Windows dialog does. Export needs nothing: it is AnyVector's own dialog
-on both systems. Tests give the file names instead of opening rfd (`give_picked_paths`), so the
-flow is also tested on Windows; `visual_save_options_dialog` renders the dialog and its Advanced
-dialog for CDR and VCT, and the PDF copy note.
+**Save options** (Phase 2, `dialogs/save_options.rs`). On Windows, Save As is the system dialog with
+AnyVector's controls in it (`save_dialog.rs`). rfd cannot add controls, so on Linux Save As has two
+steps: the system dialog (GTK or the portal) picks the folder, name and type, then AnyVector's **Save
+Drawing** dialog shows the rest, with the Windows labels, defaults and rules.
+- File name, folder and type. Browse... goes back to the system dialog; the type can be changed here,
+  because rfd does not say which filter was chosen (the extension gives the type).
+- Title, Subject and Rating for every type. For CDR and VCT: Embed color profiles, Embed fonts, Version
+  and Advanced... (Advanced Save Options); for CMX, PDF, SVG and EMF the "saves a copy" note instead.
+- A name the system dialog did not ask about (extension added, type changed) is not replaced unasked.
+- Save runs the same code as the Windows result (`save_with`); Cancel saves nothing.
+- The dialog is drawn over frames, so the save returns `SaveOutcome::Pending` and the dialog carries
+  what comes next (`AfterSave`): Close and Close All go on after Save, Exit saves the next drawing and
+  then quits, Cancel stops them. The main window does not close while the dialog is open.
+- File ▸ Export needs nothing: it is AnyVector's own dialog on both systems.
+- Tests give the file names instead of opening rfd (`give_picked_paths`), so the flow is tested on
+  Windows too; `visual_save_options_dialog` renders the dialogs.
 
 **Shared bug fixes (also change Windows).**
 - `cmd /C start` targets with `&` (bug-report URLs, file names) were split and could run commands; the
