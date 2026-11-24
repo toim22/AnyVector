@@ -3,7 +3,7 @@
 Status: assessment written 2026-11-23 (AnyVector 0.6.1, commit 7447911). **Phase 0 and Phase 1 done**
 the same day (issue #51, PR #153) and **Phase 2 done** 2026-11-24 (printing, spell check, code pages,
 eyedropper outside the window, scanners, save options): section 8 says what was built. Phase 3
-(packages and updater) is built too; the beta is not published yet. The audit of file names, the 79
+(packages and updater) is built too; the beta comes with AnyVector 0.7.0. The audit of file names, the 79
 closed issues and feature gaps is in [LINUX-AUDIT.md](LINUX-AUDIT.md).
 
 First Linux build (2026-11-23, WSL 2 Ubuntu 24.04, Rust 1.99.1, AnyVector 0.6.2): the whole workspace

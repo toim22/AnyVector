@@ -1,11 +1,12 @@
 # AnyVector — Status
 
-Last updated: 2026-11-23.
+Last updated: 2026-11-24.
 
 ## Version history
 
 | Version | Date | What it brings |
 | --- | --- | --- |
+| [0.7.0](RELEASE-NOTES-0.7.0.md) | 2026-11-24 | AnyVector for Linux (beta) as an AppImage and a `.deb`, on X11 and Wayland, with printing, spell check, scanning and the eyedropper; moved linked files found next to the drawing; file extensions in capitals; the status bar hint no longer covers the fill and outline. |
 | [0.6.2](RELEASE-NOTES-0.6.2.md) | 2026-11-23 | Ctrl+click and Ctrl+Shift+click inside groups; select and drag a blend's start and end with live preview; Dimension Text Position (above, through, below, centred, horizontal, boxed) for new and selected dimensions and exports. |
 | [0.6.1](RELEASE-NOTES-0.6.1.md) | 2026-11-22 | Input methods (IME) on the canvas with font fallback for CJK text; blends along a path with start/end editing, split, fuse and map nodes; hold a palette swatch for its tints, shades and hues; rearrangeable dockers that dock left or right, stack and float. |
 | [0.6.0](RELEASE-NOTES-0.6.0.md) | 2026-11-21 | 27 CorelDRAW-parity fixes: CorelDRAW-compatible CMX copies, Alt+click behind, PowerClip editing and toolbar, clickable and separable shadows, right-drag menu, Outline Pen dialog and default outline, unit-aware outline and text sizes, inch-fraction rulers, toolbar customization by dragging, shortcut keys for every command. |
