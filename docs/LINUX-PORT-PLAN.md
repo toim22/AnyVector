@@ -249,8 +249,8 @@ names no longer panic on the command line or lose the settings file.
 
 **Save options** (Phase 2, `dialogs/save_options.rs`). On Windows, Save As is the system dialog with
 AnyVector's controls in it (`save_dialog.rs`). rfd cannot add controls, so on Linux Save As has two
-steps: the system dialog (GTK or the portal) picks the folder, name and type, then AnyVector's **Save
-Drawing** dialog shows the rest, with the Windows labels, defaults and rules.
+steps: the system dialog (the desktop portal, or zenity without one) picks the folder, name and type,
+then AnyVector's **Save Drawing** dialog shows the rest, with the Windows labels, defaults and rules.
 - File name, folder and type. Browse... goes back to the system dialog; the type can be changed here,
   because rfd does not say which filter was chosen (the extension gives the type).
 - Title, Subject and Rating for every type. For CDR and VCT: Embed color profiles, Embed fonts, Version
