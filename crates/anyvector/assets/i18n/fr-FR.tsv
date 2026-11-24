@@ -2553,6 +2553,18 @@ The printer "{}" is not available.	L'imprimante « {} » n'est pas disponible.
 There are no pages to print.	Il n'y a aucune page à imprimer.
 Printed {} page(s) to {}	{} page(s) imprimée(s) sur {}
 Sent {} page(s) to {}	{} page(s) envoyée(s) à {}
+{} Printing Preferences	Options d'impression de {}
+Paper size:	Format du papier :
+Print on both sides:	Impression recto verso :
+Flip on long edge	Retourner sur le bord long
+Flip on short edge	Retourner sur le bord court
+The printer's options could not be read.	Impossible de lire les options de l'imprimante.
+There is no printer installed. Add a printer in the system's printer settings (CUPS), or install the cups-pdf printer to print to PDF files.	Aucune imprimante n'est installée. Ajoutez une imprimante dans les paramètres d'impression du système (CUPS) ou installez l'imprimante cups-pdf pour imprimer dans des fichiers PDF.
+Sent {} page(s) to {} (job {})	{} page(s) envoyée(s) à {} (tâche {})
+The printer did not accept the job: {}	L'imprimante n'a pas accepté la tâche : {}
+Could not write the print file: {}	Impossible d'écrire le fichier d'impression : {}
+Could not run lp, the CUPS print command. Install the CUPS client (the cups-client package).	Impossible d'exécuter lp, la commande d'impression de CUPS. Installez le client CUPS (paquet cups-client).
+Printing uses CUPS. Documents are sent as high-resolution page images in a PDF, which works with every printer CUPS can print to.	L'impression utilise CUPS. Les documents sont envoyés sous forme d'images de page haute résolution dans un PDF, ce qui fonctionne avec toutes les imprimantes sur lesquelles CUPS peut imprimer.
 0 bytes	0 octet
 {} bytes	{} octets
 {} KB	{} Ko

@@ -2081,7 +2081,10 @@ fn printing(app: &mut AnyVectorApp, ui: &mut Ui) {
                 }
             });
         } else {
+            #[cfg(windows)]
             note(ui, "Printing uses the Windows print system. Documents are sent as high-resolution page images through the system print dialog, which works with every installed printer driver.");
+            #[cfg(not(windows))]
+            note(ui, "Printing uses CUPS. Documents are sent as high-resolution page images in a PDF, which works with every printer CUPS can print to.");
         }
     });
 }

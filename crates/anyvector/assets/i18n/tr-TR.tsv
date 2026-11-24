@@ -2553,6 +2553,18 @@ The printer "{}" is not available.	"{}" yazıcısı kullanılamıyor.
 There are no pages to print.	Yazdırılacak sayfa yok.
 Printed {} page(s) to {}	{} sayfa şuraya yazdırıldı: {}
 Sent {} page(s) to {}	{} sayfa şuraya gönderildi: {}
+{} Printing Preferences	{} Yazdırma Tercihleri
+Paper size:	Kâğıt boyutu:
+Print on both sides:	Her iki yüze yazdır:
+Flip on long edge	Uzun kenardan çevir
+Flip on short edge	Kısa kenardan çevir
+The printer's options could not be read.	Yazıcının seçenekleri okunamadı.
+There is no printer installed. Add a printer in the system's printer settings (CUPS), or install the cups-pdf printer to print to PDF files.	Yüklü yazıcı yok. Sistemin yazıcı ayarlarından (CUPS) bir yazıcı ekleyin veya PDF dosyalarına yazdırmak için cups-pdf yazıcısını yükleyin.
+Sent {} page(s) to {} (job {})	{} sayfa şuraya gönderildi: {} (iş {})
+The printer did not accept the job: {}	Yazıcı işi kabul etmedi: {}
+Could not write the print file: {}	Yazdırma dosyası yazılamadı: {}
+Could not run lp, the CUPS print command. Install the CUPS client (the cups-client package).	CUPS yazdırma komutu lp çalıştırılamadı. CUPS istemcisini (cups-client paketi) yükleyin.
+Printing uses CUPS. Documents are sent as high-resolution page images in a PDF, which works with every printer CUPS can print to.	Yazdırma CUPS'ı kullanır. Belgeler, CUPS'ın yazdırabildiği tüm yazıcılarla çalışan bir PDF içinde yüksek çözünürlüklü sayfa görüntüleri olarak gönderilir.
 0 bytes	0 bayt
 {} bytes	{} bayt
 {} KB	{} KB

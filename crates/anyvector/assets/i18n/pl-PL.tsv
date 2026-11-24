@@ -2553,6 +2553,18 @@ The printer "{}" is not available.	Drukarka „{}” jest niedostępna.
 There are no pages to print.	Brak stron do wydrukowania.
 Printed {} page(s) to {}	Wydrukowane strony: {} na {}
 Sent {} page(s) to {}	Wysłane strony: {} do {}
+{} Printing Preferences	Preferencje drukowania – {}
+Paper size:	Rozmiar papieru:
+Print on both sides:	Drukuj dwustronnie:
+Flip on long edge	Odwróć wzdłuż długiej krawędzi
+Flip on short edge	Odwróć wzdłuż krótkiej krawędzi
+The printer's options could not be read.	Nie można odczytać opcji drukarki.
+There is no printer installed. Add a printer in the system's printer settings (CUPS), or install the cups-pdf printer to print to PDF files.	Nie zainstalowano żadnej drukarki. Dodaj drukarkę w ustawieniach drukarek systemu (CUPS) lub zainstaluj drukarkę cups-pdf, aby drukować do plików PDF.
+Sent {} page(s) to {} (job {})	Wysłane strony: {} do {} (zadanie {})
+The printer did not accept the job: {}	Drukarka nie przyjęła zadania: {}
+Could not write the print file: {}	Nie można zapisać pliku wydruku: {}
+Could not run lp, the CUPS print command. Install the CUPS client (the cups-client package).	Nie można uruchomić lp, polecenia drukowania CUPS. Zainstaluj klienta CUPS (pakiet cups-client).
+Printing uses CUPS. Documents are sent as high-resolution page images in a PDF, which works with every printer CUPS can print to.	Drukowanie korzysta z CUPS. Dokumenty są wysyłane jako obrazy stron w wysokiej rozdzielczości w pliku PDF, co działa z każdą drukarką, na której CUPS może drukować.
 0 bytes	0 bajtów
 {} bytes	{} B
 {} KB	{} KB

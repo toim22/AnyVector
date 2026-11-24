@@ -28,6 +28,8 @@ arboard = { workspace = true }
 log = { workspace = true }
 ureq = { workspace = true }
 zip = { workspace = true }
+# compresses the page images of the PDF a Linux print job sends to CUPS (already in the tree)
+flate2 = { workspace = true }
 thesaurus-wordnet = "0.2"
 # the main window's handle, for coloring its border (already in the tree through eframe)
 raw-window-handle = "0.6"

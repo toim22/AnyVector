@@ -2553,6 +2553,18 @@ The printer "{}" is not available.	Tiskárna „{}“ není k dispozici.
 There are no pages to print.	Nejsou žádné stránky k tisku.
 Printed {} page(s) to {}	Vytištěno stránek: {} na {}
 Sent {} page(s) to {}	Odesláno stránek: {} do {}
+{} Printing Preferences	Předvolby tisku – {}
+Paper size:	Velikost papíru:
+Print on both sides:	Tisk na obě strany:
+Flip on long edge	Převrátit podél dlouhé strany
+Flip on short edge	Převrátit podél krátké strany
+The printer's options could not be read.	Možnosti tiskárny se nepodařilo načíst.
+There is no printer installed. Add a printer in the system's printer settings (CUPS), or install the cups-pdf printer to print to PDF files.	Není nainstalována žádná tiskárna. Přidejte tiskárnu v nastavení tiskáren systému (CUPS) nebo nainstalujte tiskárnu cups-pdf pro tisk do souborů PDF.
+Sent {} page(s) to {} (job {})	Odesláno stránek: {} do {} (úloha {})
+The printer did not accept the job: {}	Tiskárna úlohu nepřijala: {}
+Could not write the print file: {}	Tiskový soubor se nepodařilo zapsat: {}
+Could not run lp, the CUPS print command. Install the CUPS client (the cups-client package).	Nelze spustit lp, tiskový příkaz systému CUPS. Nainstalujte klienta CUPS (balíček cups-client).
+Printing uses CUPS. Documents are sent as high-resolution page images in a PDF, which works with every printer CUPS can print to.	Tisk využívá CUPS. Dokumenty se odesílají jako obrazy stránek ve vysokém rozlišení v souboru PDF, což funguje se všemi tiskárnami, na které CUPS umí tisknout.
 0 bytes	0 bajtů
 {} bytes	{} bajtů
 {} KB	{} KB

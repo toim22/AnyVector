@@ -2553,6 +2553,18 @@ The printer "{}" is not available.	De printer "{}" is niet beschikbaar.
 There are no pages to print.	Er zijn geen pagina's om af te drukken.
 Printed {} page(s) to {}	{} pagina('s) afgedrukt naar {}
 Sent {} page(s) to {}	{} pagina('s) verzonden naar {}
+{} Printing Preferences	Voorkeuren voor afdrukken van {}
+Paper size:	Papierformaat:
+Print on both sides:	Dubbelzijdig afdrukken:
+Flip on long edge	Omslaan langs lange zijde
+Flip on short edge	Omslaan langs korte zijde
+The printer's options could not be read.	De opties van de printer konden niet worden gelezen.
+There is no printer installed. Add a printer in the system's printer settings (CUPS), or install the cups-pdf printer to print to PDF files.	Er is geen printer geïnstalleerd. Voeg een printer toe in de printerinstellingen van het systeem (CUPS), of installeer de printer cups-pdf om naar PDF-bestanden af te drukken.
+Sent {} page(s) to {} (job {})	{} pagina('s) verzonden naar {} (taak {})
+The printer did not accept the job: {}	De printer heeft de taak niet geaccepteerd: {}
+Could not write the print file: {}	Het afdrukbestand kon niet worden geschreven: {}
+Could not run lp, the CUPS print command. Install the CUPS client (the cups-client package).	lp, de afdrukopdracht van CUPS, kon niet worden uitgevoerd. Installeer de CUPS-client (pakket cups-client).
+Printing uses CUPS. Documents are sent as high-resolution page images in a PDF, which works with every printer CUPS can print to.	Afdrukken gebruikt CUPS. Documenten worden als paginabeelden met hoge resolutie in een PDF verzonden, wat werkt met elke printer waarop CUPS kan afdrukken.
 0 bytes	0 bytes
 {} bytes	{} bytes
 {} KB	{} KB

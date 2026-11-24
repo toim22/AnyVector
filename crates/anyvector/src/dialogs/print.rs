@@ -26,6 +26,8 @@ pub struct PrintState {
     /// The dialog was opened from Print Merge ▸ Print Merged Document.
     pub merge: bool,
     issues: Option<(u64, Vec<Issue>)>,
+    /// Printing Preferences is open (Linux: AnyVector's own dialog over the Print dialog).
+    pub prefs: Option<PrefsState>,
 }
 
 #[derive(Default)]
@@ -62,6 +64,7 @@ impl PrintState {
             preview: preview.then(PreviewState::default),
             merge: false,
             issues: None,
+            prefs: None,
         }
     }
 
@@ -131,13 +134,21 @@ fn sheets(st: &mut PrintState, job: &printing::Job) -> Vec<(printing::Sheet, Pap
 /// Start printing `job` on a background thread; the result shows as a status message.
 pub fn send(app: &mut AnyVectorApp, mut job: printing::Job) {
     if job.printer.is_empty() {
-        app.dialogs.message_box = Some(("Print".into(), "There is no printer installed. Add a printer in Windows Settings > Bluetooth & devices > Printers & scanners.".into()));
+        #[cfg(windows)]
+        let msg = "There is no printer installed. Add a printer in Windows Settings > Bluetooth & devices > Printers & scanners.";
+        #[cfg(not(windows))]
+        let msg = "There is no printer installed. Add a printer in the system's printer settings (CUPS), or install the cups-pdf printer to print to PDF files.";
+        app.dialogs.message_box = Some(("Print".into(), msg.into()));
         return;
     }
     if job.settings.to_file {
-        let ext = "prn";
-        let name = format!("{}.{ext}", vector_io::paths::strip_extension(&job.title, &["cdr"]));
-        match rfd::FileDialog::new().set_title("Print to File").add_filter("Print file (*.prn)", &["prn"]).add_filter("PostScript file (*.ps)", &["ps"]).set_file_name(name).save_file() {
+        let stem = vector_io::paths::strip_extension(&job.title, &["cdr"]);
+        // the file is the driver's output on Windows; on Linux it is the PDF CUPS would get
+        #[cfg(windows)]
+        let dialog = rfd::FileDialog::new().set_title("Print to File").add_filter("Print file (*.prn)", &["prn"]).add_filter("PostScript file (*.ps)", &["ps"]).set_file_name(format!("{stem}.prn"));
+        #[cfg(not(windows))]
+        let dialog = rfd::FileDialog::new().set_title("Print to File").add_filter("PDF - Portable Document Format (*.pdf)", &vector_io::paths::dialog_extensions(&["pdf"])).set_file_name(format!("{stem}.pdf"));
+        match dialog.save_file() {
             Some(p) => job.file = Some(p),
             None => return,
         }
@@ -239,6 +250,14 @@ pub fn show(app: &mut AnyVectorApp, ctx: &egui::Context) {
             });
         });
     });
+    // Printing Preferences sits over the Print dialog: Escape and the clicks are its own
+    let prefs_open = st.prefs.is_some();
+    if let Some(ok) = st.prefs.as_mut().and_then(|p| prefs_window(ctx, p)) {
+        if let Some(p) = st.prefs.take().filter(|_| ok) {
+            p.apply(&mut st);
+        }
+    }
+    let (action, dismissed) = if prefs_open { (None, false) } else { (action, dismissed) };
     let keep = |app: &mut AnyVectorApp, st: &PrintState| {
         app.settings.print = st.settings.clone();
         if !st.printer.is_empty() {
@@ -283,9 +302,15 @@ fn general(ui: &mut Ui, st: &mut PrintState, has_sel: bool, doc_names: &[String]
                 st.paper.clear();
             }
             if super::button(ui, "Preferences...", !st.printer.is_empty()) {
+                #[cfg(windows)]
                 if let Some(dm) = printing::open_preferences(&st.printer, st.devmode.as_deref()) {
                     st.devmode = Some(dm);
                     st.paper.clear();
+                }
+                // CUPS drivers have no dialog of their own
+                #[cfg(not(windows))]
+                {
+                    st.prefs = Some(PrefsState::new(&st.printer, printing::cups::caps(&st.printer), st.devmode.as_deref(), &st.settings));
                 }
             }
         });
@@ -542,6 +567,111 @@ fn mini_texture(app: &AnyVectorApp, ctx: &egui::Context, st: &mut PrintState) ->
     let img = printing::render_sheet(&j.docs[sheet.doc], &sheet, &paper, &st.settings, sheet.page + 1, 30.0)?;
     let ci = egui::ColorImage::from_rgba_premultiplied([img.width() as usize, img.height() as usize], img.data());
     Some(ctx.load_texture("print_mini", ci, egui::TextureOptions::LINEAR))
+}
+
+// ------------------------------------------------------------------------------------------
+// Printing Preferences (Linux)
+// ------------------------------------------------------------------------------------------
+
+/// Printer ▸ Preferences on Linux. Windows opens the printer driver's own dialog; CUPS drivers
+/// have none, so AnyVector shows the choices the printer offers (`lpoptions -l`): paper size,
+/// 2-sided printing, color and resolution, with the orientation and copies of the Print dialog.
+/// The choices are kept as the dialog's printer settings (`PrintState::devmode`) and go to `lp`.
+#[cfg_attr(windows, allow(dead_code))]
+pub struct PrefsState {
+    pub printer: String,
+    pub caps: printing::cups::Caps,
+    pub options: printing::cups::Options,
+    pub landscape: bool,
+    pub copies: u32,
+    /// The orientation when the dialog opened: only a change is passed on (Match orientation stays).
+    landscape_at_open: bool,
+}
+
+#[cfg_attr(windows, allow(dead_code))]
+impl PrefsState {
+    pub fn new(printer: &str, caps: printing::cups::Caps, stored: Option<&[u8]>, settings: &PrintSettings) -> PrefsState {
+        use printing::cups::*;
+        let mut options = Options::from_bytes(stored);
+        // the printer's own defaults for what the dialog shows, so the job asks for what was seen
+        for keys in [&PAPER_KEYS[..], &DUPLEX_KEYS, &COLOR_KEYS, &RESOLUTION_KEYS] {
+            if let Some((k, v)) = caps.chosen(keys, &options) {
+                options.set(&k, &v);
+            }
+        }
+        let landscape = settings.orientation == Orientation::Landscape;
+        PrefsState { printer: printer.to_string(), caps, options, landscape, copies: settings.copies.max(1), landscape_at_open: landscape }
+    }
+
+    /// OK: the options become the Print dialog's printer settings.
+    fn apply(self, st: &mut PrintState) {
+        st.devmode = Some(self.options.to_bytes());
+        st.paper.clear();
+        if self.landscape != self.landscape_at_open {
+            st.settings.orientation = if self.landscape { Orientation::Landscape } else { Orientation::Portrait };
+        }
+        st.settings.copies = self.copies;
+    }
+}
+
+/// A row with a combo box over one printer option, when the printer has it.
+fn option_row(ui: &mut Ui, p: &mut PrefsState, keys: &[&str], label: &str, id: &str, caption: &dyn Fn(&printing::cups::Caps, &str, &str) -> String) {
+    let Some(o) = p.caps.option(keys).cloned() else { return };
+    // the PPD's custom size is a template, not a size
+    let choices: Vec<&String> = o.choices.iter().filter(|c| !c.starts_with("Custom.")).collect();
+    let mut names: Vec<String> = choices.iter().map(|c| caption(&p.caps, &o.key, c)).collect();
+    // two choices with the same caption (Gray and KGray both "Grayscale") show their own names too
+    let dup: Vec<bool> = names.iter().map(|n| names.iter().filter(|m| *m == n).count() > 1).collect();
+    for (i, n) in names.iter_mut().enumerate() {
+        if dup[i] && *n != *choices[i] {
+            *n = format!("{n} ({})", choices[i]);
+        }
+    }
+    let current = p.options.get(&o.key).map(String::from).or_else(|| o.default.and_then(|i| o.choices.get(i).cloned()));
+    let mut i = choices.iter().position(|c| Some(c.as_str()) == current.as_deref()).unwrap_or(0);
+    let refs: Vec<&str> = names.iter().map(String::as_str).collect();
+    row(ui, label, 130.0, |ui| {
+        if combo(ui, id, &mut i, &refs, 250.0) {
+            p.options.set(&o.key, choices[i]);
+        }
+    });
+}
+
+/// The Printing Preferences window: Some(true) for OK, Some(false) for Cancel or ✕.
+pub fn prefs_window(ctx: &egui::Context, p: &mut PrefsState) -> Option<bool> {
+    use printing::cups::{choice_label, paper_label, COLOR_KEYS, DUPLEX_KEYS, PAPER_KEYS, RESOLUTION_KEYS};
+    let title = format!("{} Printing Preferences", p.printer);
+    let mut done = None;
+    let ((), dismissed) = window(ctx, "print_prefs", &title, vec2(440.0, 330.0), |ui| {
+        ui.add_space(4.0);
+        ui.spacing_mut().item_spacing.y = 6.0;
+        group(ui, "Paper", |ui| {
+            option_row(ui, p, &PAPER_KEYS, "Paper size:", "pp_paper", &|caps, _, c| paper_label(caps, c));
+            row(ui, "Orientation:", 130.0, |ui| {
+                ui.radio_value(&mut p.landscape, false, "Portrait");
+                ui.radio_value(&mut p.landscape, true, "Landscape");
+            });
+        });
+        group(ui, "Output", |ui| {
+            option_row(ui, p, &DUPLEX_KEYS, "Print on both sides:", "pp_duplex", &|_, k, c| choice_label(k, c));
+            option_row(ui, p, &COLOR_KEYS, "Color:", "pp_color", &|_, k, c| choice_label(k, c));
+            option_row(ui, p, &RESOLUTION_KEYS, "Resolution:", "pp_resolution", &|_, k, c| choice_label(k, c));
+            row(ui, "Copies:", 130.0, |ui| ui.add(egui::DragValue::new(&mut p.copies).range(1..=999)));
+        });
+        if p.caps.options.is_empty() {
+            super::note(ui, "The printer's options could not be read.");
+        }
+        let (ok, cancel) = super::ok_cancel_plain(ui, true);
+        if ok {
+            done = Some(true);
+        } else if cancel {
+            done = Some(false);
+        }
+    });
+    if dismissed && done.is_none() {
+        done = Some(false);
+    }
+    done
 }
 
 // ------------------------------------------------------------------------------------------
