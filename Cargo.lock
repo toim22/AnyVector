@@ -234,6 +234,7 @@ dependencies = [
  "eframe",
  "egui",
  "egui_kittest",
+ "flate2",
  "image",
  "kurbo",
  "log",

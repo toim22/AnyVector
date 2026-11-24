@@ -9686,3 +9686,73 @@ fn visual_dimension_text_positions() {
         assert!(b.union(t) == b, "{name}: the bounds hold the value ({b:?}, {t:?})");
     }
 }
+
+/// File ▸ Print with the printers CUPS lists on Linux (instances included) and Printing
+/// Preferences, AnyVector's own dialog for a CUPS printer's options (Windows opens the driver's
+/// dialog instead): paper sizes from the PPD, 2-sided, color, resolution. OK keeps the choices as
+/// the job's options. The printer data are captured `lpoptions -l` and PPD text, so the scenario
+/// runs the same with or without CUPS (and on Windows).
+#[test]
+#[ignore]
+fn visual_print_linux_printers_and_preferences() {
+    use crate::dialogs::print::{PrefsState, PrintState};
+    use crate::printing::cups;
+    use egui_kittest::kittest::Queryable;
+    let mut h = harness();
+    h.state_mut().new_default_document();
+    let mut st = PrintState::new(h.state(), false);
+    st.printers = vec!["Office_Laser".into(), "Office_Laser/draft".into(), "PDF".into()];
+    st.printer = "Office_Laser".into();
+    h.state_mut().dialogs.print = Some(st);
+    save(&mut h, "print_linux_01_dialog");
+    h.get_by_value("Office_Laser").click();
+    save(&mut h, "print_linux_02_printer_list");
+    h.get_by_label("PDF").click();
+    h.run_steps(3);
+    assert_eq!(h.state().dialogs.print.as_ref().map(|s| s.printer.as_str()), Some("PDF"));
+    let lpoptions = "PageSize/Media Size: *Letter Legal A4 A5 Env10 Custom.WIDTHxHEIGHT\n\
+Duplex/2-Sided Printing: *None DuplexNoTumble DuplexTumble\n\
+ColorModel/Color Mode: Gray KGray *RGB\n\
+Resolution/Resolution: 300dpi *600dpi 1200x600dpi\n";
+    let ppd = "*PageSize Letter/US Letter: \"<</PageSize[612 792]>>setpagedevice\"\n\
+*PageSize Env10/Envelope #10: \"<</PageSize[297 684]>>setpagedevice\"\n\
+*ImageableArea Letter/US Letter: \"18 36 594 774\"\n\
+*ImageableArea A4/A4: \"12 12 583 830\"\n\
+*PaperDimension Letter/US Letter: \"612 792\"\n\
+*PaperDimension A4/A4: \"595 842\"\n";
+    let caps = cups::Caps { options: cups::parse_lpoptions(lpoptions), ppd: cups::parse_ppd(ppd) };
+    {
+        let st = h.state_mut().dialogs.print.as_mut().unwrap();
+        st.printer = "Office_Laser".into();
+        st.prefs = Some(PrefsState::new("Office_Laser", caps, None, &st.settings));
+    }
+    save(&mut h, "print_linux_03_preferences");
+    h.get_by_value("US Letter (8.5 × 11 in)").click();
+    save(&mut h, "print_linux_04_paper_sizes");
+    assert!(h.query_by_label_contains("WIDTHxHEIGHT").is_none(), "the custom size template is not a paper");
+    h.get_by_label("A4 (210 × 297 mm)").click();
+    h.run_steps(3);
+    h.get_by_value("Off").click();
+    h.run_steps(3);
+    h.get_by_label("Flip on long edge").click();
+    h.run_steps(3);
+    // Gray and KGray are both grayscale: their own names tell them apart
+    h.get_by_value("Color").click();
+    save(&mut h, "print_linux_05_color_choices");
+    assert!(h.query_by_label("Grayscale (KGray)").is_some());
+    h.get_by_label("Grayscale (Gray)").click();
+    h.run_steps(3);
+    h.get_by_role_and_label(egui::accesskit::Role::RadioButton, "Landscape").click();
+    save(&mut h, "print_linux_06_chosen");
+    h.get_by_label("OK").click();
+    h.run_steps(3);
+    let st = h.state().dialogs.print.as_ref().expect("the Print dialog stays open");
+    assert!(st.prefs.is_none());
+    let opts = cups::Options::from_bytes(st.devmode.as_deref());
+    assert_eq!(opts.get("PageSize"), Some("A4"));
+    assert_eq!(opts.get("Duplex"), Some("DuplexNoTumble"));
+    assert_eq!(opts.get("ColorModel"), Some("Gray"));
+    assert_eq!(opts.get("Resolution"), Some("600dpi"));
+    assert_eq!(st.settings.orientation, crate::printing::Orientation::Landscape);
+    save(&mut h, "print_linux_07_after_ok");
+}

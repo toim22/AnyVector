@@ -2544,7 +2544,6 @@ Empty text objects print nothing and can be deleted.	空のテキスト オブ�
 Very thin outlines may not print, or print unevenly. Use at least 0.25 pt.	非常に細いアウトラインは印刷されないか、ムラが出る場合があります。0.25 pt 以上にしてください。
 Printers' marks do not fit on the paper.	プリンタ マークが用紙に収まりません。
 The paper must be larger than the page to hold crop marks, registration marks and the other printers' marks. Choose a larger paper, or Fit to page on the Layout tab.	トンボ、レジストレーション マーク、その他のプリンタ マークを入れるには、用紙をページより大きくする必要があります。より大きな用紙を選択するか、[レイアウト] タブで [ページに合わせる] を選択してください。
-Printing is available on Windows only.	印刷は Windows でのみ使用できます。
 Could not open the printer "{}".	プリンタ "{}" を開けませんでした。
 The printer did not accept the job.	プリンタがジョブを受け付けませんでした。
 The printer stopped the job.	プリンタがジョブを停止しました。
@@ -2553,6 +2552,19 @@ The printer "{}" is not available.	プリンタ "{}" は使用できません。
 There are no pages to print.	印刷するページがありません。
 Printed {} page(s) to {}	{} ページを {} に印刷しました
 Sent {} page(s) to {}	{} ページを {} に送信しました
+{} Printing Preferences	{} の印刷設定
+Paper size:	用紙サイズ:
+Print on both sides:	両面印刷:
+Flip on long edge	長辺とじ
+Flip on short edge	短辺とじ
+The printer's options could not be read.	プリンタのオプションを読み取れませんでした。
+There is no printer installed. Add a printer in the system's printer settings (CUPS), or install the cups-pdf printer to print to PDF files.	プリンタがインストールされていません。システムのプリンタ設定 (CUPS) でプリンタを追加するか、PDF ファイルに印刷するには cups-pdf プリンタをインストールしてください。
+Sent {} page(s) to {} (job {})	{} ページを {} に送信しました (ジョブ {})
+The printer did not accept the job: {}	プリンタがジョブを受け付けませんでした: {}
+Could not write the print file: {}	印刷ファイルを書き込めませんでした: {}
+The page could not be rendered.	ページをレンダリングできませんでした。
+Could not run lp, the CUPS print command. Install the CUPS client (the cups-client package).	CUPS の印刷コマンド lp を実行できませんでした。CUPS クライアント (cups-client パッケージ) をインストールしてください。
+Printing uses CUPS. Documents are sent as high-resolution page images in a PDF, which works with every printer CUPS can print to.	印刷には CUPS を使用します。ドキュメントは高解像度のページ イメージとして PDF で送信されるため、CUPS が印刷できるすべてのプリンタで動作します。
 0 bytes	0 バイト
 {} bytes	{} バイト
 {} KB	{} KB

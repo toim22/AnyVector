@@ -2544,7 +2544,6 @@ Empty text objects print nothing and can be deleted.	空文本对象不会打印
 Very thin outlines may not print, or print unevenly. Use at least 0.25 pt.	非常细的轮廓可能无法打印或打印不均匀。请至少使用 0.25 pt。
 Printers' marks do not fit on the paper.	打印标记超出纸张范围。
 The paper must be larger than the page to hold crop marks, registration marks and the other printers' marks. Choose a larger paper, or Fit to page on the Layout tab.	纸张必须大于页面，才能容纳裁剪标记、套准标记和其他打印标记。请选择更大的纸张，或在“布局”选项卡上选择“适合页面”。
-Printing is available on Windows only.	仅 Windows 支持打印。
 Could not open the printer "{}".	无法打开打印机“{}”。
 The printer did not accept the job.	打印机未接受该作业。
 The printer stopped the job.	打印机停止了该作业。
@@ -2553,6 +2552,19 @@ The printer "{}" is not available.	打印机“{}”不可用。
 There are no pages to print.	没有要打印的页面。
 Printed {} page(s) to {}	已将 {} 页打印到 {}
 Sent {} page(s) to {}	已将 {} 页发送到 {}
+{} Printing Preferences	{} 打印首选项
+Paper size:	纸张大小：
+Print on both sides:	双面打印：
+Flip on long edge	沿长边翻转
+Flip on short edge	沿短边翻转
+The printer's options could not be read.	无法读取打印机的选项。
+There is no printer installed. Add a printer in the system's printer settings (CUPS), or install the cups-pdf printer to print to PDF files.	未安装打印机。请在系统的打印机设置 (CUPS) 中添加打印机，或安装 cups-pdf 打印机以打印到 PDF 文件。
+Sent {} page(s) to {} (job {})	已将 {} 页发送到 {}（作业 {}）
+The printer did not accept the job: {}	打印机未接受该作业：{}
+Could not write the print file: {}	无法写入打印文件：{}
+The page could not be rendered.	无法渲染页面。
+Could not run lp, the CUPS print command. Install the CUPS client (the cups-client package).	无法运行 CUPS 打印命令 lp。请安装 CUPS 客户端（cups-client 软件包）。
+Printing uses CUPS. Documents are sent as high-resolution page images in a PDF, which works with every printer CUPS can print to.	打印使用 CUPS。文档以高分辨率页面图像的形式放在 PDF 中发送，适用于 CUPS 能够打印的所有打印机。
 0 bytes	0 字节
 {} bytes	{} 字节
 {} KB	{} KB

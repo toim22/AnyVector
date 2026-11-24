@@ -2544,7 +2544,6 @@ Empty text objects print nothing and can be deleted.	Objetos de texto vazios nã
 Very thin outlines may not print, or print unevenly. Use at least 0.25 pt.	Contornos muito finos podem não ser impressos ou sair irregulares. Use pelo menos 0,25 pt.
 Printers' marks do not fit on the paper.	As marcas de impressão não cabem no papel.
 The paper must be larger than the page to hold crop marks, registration marks and the other printers' marks. Choose a larger paper, or Fit to page on the Layout tab.	O papel deve ser maior que a página para conter marcas de corte, marcas de registro e as demais marcas de impressão. Escolha um papel maior ou Ajustar à página na guia Layout.
-Printing is available on Windows only.	A impressão está disponível apenas no Windows.
 Could not open the printer "{}".	Não foi possível abrir a impressora "{}".
 The printer did not accept the job.	A impressora não aceitou o trabalho.
 The printer stopped the job.	A impressora interrompeu o trabalho.
@@ -2553,6 +2552,19 @@ The printer "{}" is not available.	A impressora "{}" não está disponível.
 There are no pages to print.	Não há páginas para imprimir.
 Printed {} page(s) to {}	{} página(s) impressa(s) em {}
 Sent {} page(s) to {}	{} página(s) enviada(s) para {}
+{} Printing Preferences	Preferências de impressão de {}
+Paper size:	Tamanho do papel:
+Print on both sides:	Imprimir em frente e verso:
+Flip on long edge	Virar na borda longa
+Flip on short edge	Virar na borda curta
+The printer's options could not be read.	Não foi possível ler as opções da impressora.
+There is no printer installed. Add a printer in the system's printer settings (CUPS), or install the cups-pdf printer to print to PDF files.	Não há impressora instalada. Adicione uma impressora nas configurações de impressoras do sistema (CUPS) ou instale a impressora cups-pdf para imprimir em arquivos PDF.
+Sent {} page(s) to {} (job {})	{} página(s) enviada(s) para {} (trabalho {})
+The printer did not accept the job: {}	A impressora não aceitou o trabalho: {}
+Could not write the print file: {}	Não foi possível gravar o arquivo de impressão: {}
+The page could not be rendered.	Não foi possível renderizar a página.
+Could not run lp, the CUPS print command. Install the CUPS client (the cups-client package).	Não foi possível executar o lp, o comando de impressão do CUPS. Instale o cliente do CUPS (pacote cups-client).
+Printing uses CUPS. Documents are sent as high-resolution page images in a PDF, which works with every printer CUPS can print to.	A impressão usa o CUPS. Os documentos são enviados como imagens de página em alta resolução em um PDF, o que funciona com todas as impressoras em que o CUPS consegue imprimir.
 0 bytes	0 bytes
 {} bytes	{} bytes
 {} KB	{} KB
