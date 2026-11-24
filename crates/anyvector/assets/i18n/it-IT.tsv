@@ -1974,6 +1974,7 @@ What happened?	Cosa è successo?
 Steps to reproduce (optional):	Passaggi per riprodurre il problema (facoltativo):
 What did you expect to happen? (optional)	Cosa ci si aspettava che accadesse? (facoltativo)
 Include system information	Includi informazioni di sistema
+The version of AnyVector and the system it is for (Windows, Linux or macOS) are always sent.	La versione di AnyVector e il sistema a cui è destinata (Windows, Linux o macOS) vengono sempre inviati.
 View submitted ideas	Visualizza idee inviate
 View reported bugs	Visualizza bug segnalati
 Cancel	Annulla

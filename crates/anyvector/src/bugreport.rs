@@ -168,24 +168,15 @@ pub fn system_info(ctx: &egui::Context) -> String {
     let screen = ctx.content_rect().size() * ppp;
     format!(
         "- AnyVector: {} ({})\n- {}: {}\n- Window size: {:.0} × {:.0} px, scale {:.0}%",
-        env!("CARGO_PKG_VERSION"),
+        vector_core::APP_VERSION,
         if cfg!(debug_assertions) { "debug build" } else { "release build" },
-        OS_NAME,
+        vector_core::APP_SYSTEM,
         os,
         screen.x,
         screen.y,
         ppp * 100.0
     )
 }
-
-/// The name of the system in the report.
-const OS_NAME: &str = if cfg!(windows) {
-    "Windows"
-} else if cfg!(target_os = "linux") {
-    "Linux"
-} else {
-    std::env::consts::OS
-};
 
 #[cfg(windows)]
 fn os_version() -> String {
@@ -233,6 +224,7 @@ pub fn issue_body(st: &BugReportState, system: Option<&str>) -> String {
         b.push_str(st.expected.trim());
         b.push_str("\n\n");
     }
+    b.push_str(&format!("### AnyVector version\n\n{} for {}\n\n", vector_core::APP_VERSION, vector_core::APP_SYSTEM));
     if let Some(s) = system {
         b.push_str("### System information\n\n");
         b.push_str(s);
@@ -255,7 +247,9 @@ pub fn url_encode(s: &str) -> String {
 }
 
 pub fn new_issue_url(label: &str, title: &str, body: &str) -> String {
-    format!("https://github.com/{REPO}/issues/new?labels={label}&title={}&body={}", url_encode(title), url_encode(body))
+    // GitHub takes the labels of the project's members only; everyone's report names the system in its text
+    let system = std::env::consts::OS;
+    format!("https://github.com/{REPO}/issues/new?labels={label},{system}&title={}&body={}", url_encode(title), url_encode(body))
 }
 
 /// Open a page in the default browser: false when the browser could not be started.
@@ -284,8 +278,10 @@ pub fn relay_body(st: &BugReportState, system: Option<&str>) -> String {
         "text": clip(st.what_happened.trim(), 8000),
         "more": clip(st.steps.trim(), 4000),
         "expected": if st.idea { String::new() } else { clip(st.expected.trim(), 2000) },
-        "version": env!("CARGO_PKG_VERSION"),
+        "version": vector_core::APP_VERSION,
         "program": "AnyVector",
+        // always sent: the relay labels the issue with it (windows, linux, macos)
+        "platform": std::env::consts::OS,
         "system": system.map(|s| clip(s.trim(), 600)).unwrap_or_default(),
     })
     .to_string()
@@ -305,7 +301,7 @@ fn send_to_relay(base: &str, body: &str, file: Option<&Path>) -> Result<String, 
     let secs = 20 + payload.len() as u64 / (64 * 1024);
     let agent: ureq::Agent = ureq::Agent::config_builder().http_status_as_error(false).timeout_global(Some(std::time::Duration::from_secs(secs))).build().into();
     let url = format!("{}/issues", base.trim_end_matches('/'));
-    let ua = format!("AnyVector/{}", env!("CARGO_PKG_VERSION"));
+    let ua = format!("AnyVector/{}", vector_core::APP_VERSION);
     match agent.post(&url).header("Content-Type", &kind).header("User-Agent", &ua).send(&payload[..]) {
         Ok(mut r) => {
             let status = r.status().as_u16();
@@ -346,6 +342,12 @@ fn send(relay: String, label: &'static str, title: String, body: String, file: O
     });
     rx
 }
+
+/// The size of the two dialogs: room for every language's captions.
+pub const SIZE: egui::Vec2 = vec2(560.0, 690.0);
+
+/// What a report says with or without the system information.
+pub const ALWAYS_SENT: &str = "The version of AnyVector and the system it is for (Windows, Linux or macOS) are always sent.";
 
 /// "Attach a file (optional)": Attach File..., then the chosen file with its size and Remove.
 fn attachment_row(ui: &mut egui::Ui, st: &mut BugReportState) {
@@ -401,7 +403,7 @@ pub fn dialog(app: &mut AnyVectorApp, ctx: &egui::Context, idea: bool) {
     let system = system_info(ctx);
     let mut close = false;
     let (id, title) = if idea { ("feedback", "Submit Ideas and Feedback") } else { ("bug_report", "Report a Bug") };
-    let ((), dismissed) = window(ctx, id, title, vec2(560.0, 640.0), |ui| {
+    let ((), dismissed) = window(ctx, id, title, SIZE, |ui| {
         ui.add_space(8.0);
         ui.spacing_mut().item_spacing.y = 6.0;
         if let Some(r) = &st.result {
@@ -477,6 +479,7 @@ pub fn dialog(app: &mut AnyVectorApp, ctx: &egui::Context, idea: bool) {
                 ui.label(RichText::new(system.as_str()).color(theme::TEXT_DIM()).size(11.5));
             });
         }
+        ui.label(RichText::new(ALWAYS_SENT).color(theme::TEXT_DIM()).size(11.5));
         ui.add_space((ui.available_height() - 34.0).max(0.0));
         ui.horizontal(|ui| {
             if ui.link(if st.idea { "View submitted ideas" } else { "View reported bugs" }).clicked() {
@@ -517,13 +520,18 @@ mod tests {
         assert!(body.contains("### Steps to reproduce"));
         assert!(!body.contains("### Expected behavior"));
         let url = new_issue_url(st.label(), "T", &body);
-        assert!(url.starts_with("https://github.com/toim22/AnyVector/issues/new?labels=bug&title=T&body="));
+        let system = if cfg!(windows) { ("Windows", "windows") } else if cfg!(target_os = "linux") { ("Linux", "linux") } else { ("macOS", "macos") };
+        assert!(url.starts_with(&format!("https://github.com/toim22/AnyVector/issues/new?labels=bug,{}&title=T&body=", system.1)));
+        // the system, with or without the system information
+        let version = format!("### AnyVector version\n\n{} for {}\n", vector_core::APP_VERSION, system.0);
+        assert!(body.contains(&version), "{body}");
+        assert!(body.contains("### System information\n\n- AnyVector: 0.1.0"));
         let idea = BugReportState { title: "Snap".into(), what_happened: "Snap to page center".into(), steps: "Faster layout".into(), ..BugReportState::idea() };
         let body = issue_body(&idea, None);
         assert!(body.contains("### Idea or feedback\n\nSnap to page center"));
         assert!(body.contains("### Why it would help\n\nFaster layout"));
-        assert!(!body.contains("System information"));
-        assert!(new_issue_url(idea.label(), "Snap", &body).contains("labels=enhancement&"));
+        assert!(!body.contains("System information") && body.contains(&version), "{body}");
+        assert!(new_issue_url(idea.label(), "Snap", &body).contains(&format!("labels=enhancement,{}&", system.1)));
 
         // what the relay reads (services/issue-relay/src/report.ts)
         let v: serde_json::Value = serde_json::from_str(&relay_body(&st, Some("- Windows: 11"))).unwrap();
@@ -532,16 +540,18 @@ mod tests {
         assert_eq!(v["text"], "Crash");
         assert_eq!(v["more"], "1. Open");
         assert_eq!(v["program"], "AnyVector");
-        assert_eq!(v["version"], env!("CARGO_PKG_VERSION"));
+        assert_eq!(v["version"], vector_core::APP_VERSION);
+        assert_eq!(v["platform"], system.1);
         assert_eq!(v["system"], "- Windows: 11");
         let v: serde_json::Value = serde_json::from_str(&relay_body(&BugReportState { expected: "x".into(), title: "é".repeat(300), ..idea }, None)).unwrap();
         assert_eq!((v["kind"].as_str(), v["expected"].as_str(), v["system"].as_str()), (Some("idea"), Some(""), Some("")));
+        assert_eq!(v["platform"], system.1, "sent without the system information too");
         assert_eq!(v["title"].as_str().unwrap().chars().count(), 200);
     }
 
     #[test]
     fn os_name_names_the_system() {
-        assert_eq!(OS_NAME, if cfg!(windows) { "Windows" } else if cfg!(target_os = "linux") { "Linux" } else { std::env::consts::OS });
+        assert_eq!(vector_core::APP_SYSTEM, if cfg!(windows) { "Windows" } else if cfg!(target_os = "linux") { "Linux" } else if cfg!(target_os = "macos") { "macOS" } else { std::env::consts::OS });
     }
 
     #[test]

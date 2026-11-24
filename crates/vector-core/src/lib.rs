@@ -24,5 +24,16 @@ pub use style::{Fill, Outline, Style, Transparency};
 pub use units::Unit;
 
 pub const APP_NAME: &str = "AnyVector";
-pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
+/// The version on this system; each system has its own (Cargo.toml, build.rs).
+pub const APP_VERSION: &str = env!("ANYVECTOR_VERSION");
+/// The system this AnyVector is for, in words (issues, release notes).
+pub const APP_SYSTEM: &str = if cfg!(windows) {
+    "Windows"
+} else if cfg!(target_os = "linux") {
+    "Linux"
+} else if cfg!(target_os = "macos") {
+    "macOS"
+} else {
+    std::env::consts::OS
+};
 pub const FILE_EXT: &str = "vct";

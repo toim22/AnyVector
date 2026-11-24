@@ -4,6 +4,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 
+#[allow(dead_code)]
+#[path = "../../crates/vector-core/version.rs"]
+mod version;
+
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().expect("xtask lives in the repository").to_path_buf()
 }
@@ -185,7 +189,7 @@ fn metainfo_lists_this_version_first() {
     let text = file("metainfo.xml");
     let doc = roxmltree::Document::parse(&text).unwrap();
     let releases: Vec<(&str, &str)> = doc.descendants().filter(|n| n.has_tag_name("release")).map(|n| (n.attribute("version").unwrap(), n.attribute("date").unwrap())).collect();
-    assert_eq!(releases[0].0, env!("CARGO_PKG_VERSION"), "add this version, with its release date, to packaging/linux/{}.metainfo.xml", app_id());
+    assert_eq!(releases[0].0, version::version_on(&read("Cargo.toml"), "linux"), "add this version, with its release date, to packaging/linux/{}.metainfo.xml", app_id());
     let number = |v: &str| v.split('.').map(|n| n.parse::<u32>().unwrap()).collect::<Vec<_>>();
     for w in releases.windows(2) {
         assert!(number(w[0].0) > number(w[1].0) && w[0].1 >= w[1].1, "{w:?}");

@@ -239,6 +239,45 @@ fn visual_new_document_and_bug_report() {
     save(&mut h, "09_report_bug");
 }
 
+/// Report a Bug and Submit Ideas and Feedback say that the system is always sent, with and without the
+/// system information, and everything fits in the dialog in every language.
+#[test]
+#[ignore]
+fn visual_report_names_its_system() {
+    use egui_kittest::kittest::Queryable;
+    let mut h = harness();
+    let mut codes: Vec<String> = crate::i18n::Lang::ALL.iter().map(|l| l.code().to_string()).collect();
+    assert_eq!(codes.len(), 15);
+    codes.push("en-US".into());
+    for code in codes {
+        h.state_mut().settings.language = code.clone();
+        for (name, cmd) in [("bug", Cmd::ReportBug), ("idea", Cmd::Feedback)] {
+            h.state_mut().run(cmd);
+            for system in [true, false] {
+                let d = &mut h.state_mut().dialogs;
+                d.bug_report.iter_mut().chain(d.feedback.iter_mut()).for_each(|st| st.include_system = system);
+                for _ in 0..4 {
+                    h.step();
+                }
+                let dialog = egui::Rect::from_center_size(h.ctx.content_rect().center(), crate::bugreport::SIZE);
+                for what in [crate::bugreport::ALWAYS_SENT, "Cancel"] {
+                    let shown = crate::i18n::t(what);
+                    assert!(code == "en-US" || what == "Cancel" || shown != what, "{code}: not translated");
+                    let found = h.query_all_by_label(what).next().or_else(|| h.query_all_by_label(&shown).next());
+                    let r = found.unwrap_or_else(|| panic!("{code} {name}: {what} is missing")).rect();
+                    assert!(dialog.shrink(6.0).contains_rect(r), "{code} {name} {system}: {what} {r:?} in {dialog:?}");
+                }
+            }
+            if ["en-US", "de-DE", "ja-JP"].contains(&code.as_str()) {
+                save(&mut h, &format!("09_report_{name}_{code}"));
+            }
+            h.state_mut().dialogs.bug_report = None;
+            h.state_mut().dialogs.feedback = None;
+        }
+    }
+    assert_eq!(crate::i18n::lang(), crate::i18n::Lang::EnUs);
+}
+
 #[test]
 #[ignore]
 fn visual_about_and_system_info() {
@@ -504,7 +543,7 @@ fn update_release(version: &str, asset: &str, notes: &str) -> crate::updater::Re
 }
 
 fn update_appimage_name(version: &str) -> String {
-    format!("AnyVector-{version}-{}.AppImage", std::env::consts::ARCH)
+    format!("AnyVector-{version}-linux-{}.AppImage", std::env::consts::ARCH)
 }
 
 /// An AnyVector that runs from an AppImage.
@@ -556,7 +595,7 @@ fn visual_updates_dialog() {
     use egui_kittest::kittest::Queryable;
     let mut h = harness();
     let notes = include_str!("../../../docs/RELEASE-NOTES-0.3.0.md");
-    let kinds = [("92_updates", Install::Setup, "AnyVector-9.9.9-setup.exe".to_string()), ("92_updates_appimage", update_from_appimage(true), update_appimage_name("9.9.9"))];
+    let kinds = [("92_updates", Install::Setup, "AnyVector-9.9.9-windows-x64-setup.exe".to_string()), ("92_updates_appimage", update_from_appimage(true), update_appimage_name("9.9.9"))];
     for (name, install, asset) in kinds {
         let r = update_release("9.9.9", &asset, notes);
         h.state_mut().update.install = install.clone();
@@ -566,7 +605,7 @@ fn visual_updates_dialog() {
         assert!(h.query_all_by_label("Install Now").next().is_some(), "Install Now is missing when a version is available");
         assert!(h.query_all_by_label("Open Release Page").next().is_none());
         // the other system's file is only announced
-        let other = if asset.ends_with(".exe") { update_appimage_name("9.9.9") } else { "AnyVector-9.9.9-setup.exe".into() };
+        let other = if asset.ends_with(".exe") { update_appimage_name("9.9.9") } else { "AnyVector-9.9.9-windows-x64-setup.exe".into() };
         h.state_mut().update.status = Status::Available(update_release("9.9.9", &other, notes));
         for _ in 0..3 {
             h.step();

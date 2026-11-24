@@ -276,7 +276,7 @@ fn system() -> Rows {
         ("Windows Directory:".into(), win::windows_dir()),
         ("TEMP directory:".into(), with_backslash(&std::env::temp_dir())),
         ("Application directory:".into(), app_dir().display().to_string()),
-        ("Box name:".into(), format!("Vector_{}", env!("CARGO_PKG_VERSION_MAJOR"))),
+        ("Box name:".into(), format!("Vector_{}", vector_core::APP_VERSION.split('.').next().unwrap_or_default())),
     ]
 }
 
@@ -751,7 +751,7 @@ fn system() -> Rows {
     }
     rows.push(("TEMP directory:".into(), with_slash(&std::env::temp_dir())));
     rows.push(("Application directory:".into(), app_dir().display().to_string()));
-    rows.push(("Box name:".into(), format!("Vector_{}", env!("CARGO_PKG_VERSION_MAJOR"))));
+    rows.push(("Box name:".into(), format!("Vector_{}", vector_core::APP_VERSION.split('.').next().unwrap_or_default())));
     rows
 }
 

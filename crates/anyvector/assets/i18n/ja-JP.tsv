@@ -1974,6 +1974,7 @@ What happened?	何が起きましたか?
 Steps to reproduce (optional):	再現手順 (省略可):
 What did you expect to happen? (optional)	本来はどうなるはずでしたか? (省略可)
 Include system information	システム情報を含める
+The version of AnyVector and the system it is for (Windows, Linux or macOS) are always sent.	AnyVector のバージョンと対象システム（Windows、Linux、macOS）は常に送信されます。
 View submitted ideas	送信済みのアイデアを表示
 View reported bugs	報告済みのバグを表示
 Cancel	キャンセル

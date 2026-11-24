@@ -1974,6 +1974,7 @@ What happened?	发生了什么？
 Steps to reproduce (optional):	重现步骤(可选)：
 What did you expect to happen? (optional)	您期望发生什么？(可选)
 Include system information	包括系统信息
+The version of AnyVector and the system it is for (Windows, Linux or macOS) are always sent.	始终会发送 AnyVector 的版本及其适用的系统（Windows、Linux 或 macOS）。
 View submitted ideas	查看已提交的想法
 View reported bugs	查看已报告的错误
 Cancel	取消

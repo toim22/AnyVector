@@ -142,7 +142,7 @@ pub fn xmp(doc: &Document, opts: &SaveOptions) -> String {
     }
     s.push_str(&alt("dc:rights", &i.copyright));
     s.push_str(&format!("   <xmp:Rating>{}</xmp:Rating>\n", i.rating.min(5)));
-    s.push_str(&format!("   <xmp:CreatorTool>{} {}</xmp:CreatorTool>\n", vector_core::APP_NAME, env!("CARGO_PKG_VERSION")));
+    s.push_str(&format!("   <xmp:CreatorTool>{} {}</xmp:CreatorTool>\n", vector_core::APP_NAME, vector_core::APP_VERSION));
     s.push_str(&format!("   <xmp:ModifyDate>{now}</xmp:ModifyDate>\n   <xmp:MetadataDate>{now}</xmp:MetadataDate>\n"));
     s.push_str(&format!("   <vct:FormatVersion>{}</vct:FormatVersion>\n", xml_escape(&opts.version)));
     s.push_str(&format!("   <vct:ColorProfiles>{}</vct:ColorProfiles>\n", xml_escape(&doc.settings.color.summary())));
@@ -240,7 +240,7 @@ fn write_zip<W: Write + Seek>(doc: &Document, opts: &SaveOptions, w: &mut W) -> 
             parts.push(("previews/thumbnail.png".into(), "image/png"));
         }
     }
-    let mut m = format!("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<manifest xmlns=\"https://github.com/toim22/Vector/ns/cdr/1.0/\" version=\"{}\" generator=\"{} {}\">\n", xml_escape(&opts.version), vector_core::APP_NAME, env!("CARGO_PKG_VERSION"));
+    let mut m = format!("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<manifest xmlns=\"https://github.com/toim22/Vector/ns/cdr/1.0/\" version=\"{}\" generator=\"{} {}\">\n", xml_escape(&opts.version), vector_core::APP_NAME, vector_core::APP_VERSION);
     for (p, t) in &parts {
         m.push_str(&format!(" <part path=\"{}\" type=\"{}\"/>\n", xml_escape(p), t));
     }

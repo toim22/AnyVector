@@ -1,8 +1,9 @@
 // anyvector-issues: lets AnyVector's Help › Report a Bug / Submit Ideas and Feedback file a GitHub issue
 // without the user having a GitHub account. The programs POST the report here; the Worker checks it, limits how often
-// one address may send, and creates the issue as the AnyVector Reports GitHub App (labels bug or enhancement).
+// one address may send, and creates the issue as the AnyVector Reports GitHub App (labels bug or enhancement, and windows,
+// linux or macos).
 //
-//   POST /issues   {"kind":"bug"|"idea","title","text","more","expected","version","program","system"}
+//   POST /issues   {"kind":"bug"|"idea","title","text","more","expected","version","program","platform","system"}
 //                  or multipart/form-data with that JSON in the part "report" and one file in the part "file"
 //                  (GitHub's attachment types and sizes, attachment.ts): the file is kept as an asset of the
 //                  "report-attachments" release of ATTACHMENTS_REPO and the issue links to it (shows it, for an image)

@@ -2,10 +2,10 @@
 # Builds AnyVector's Linux packages into dist/ (x86-64 only):
 #
 #   packaging/linux/build.sh                 # both
-#   packaging/linux/build.sh deb             # dist/anyvector_<version>_amd64.deb
-#   packaging/linux/build.sh appimage        # dist/AnyVector-<version>-x86_64.AppImage
+#   packaging/linux/build.sh deb             # dist/AnyVector-<version>-linux-amd64.deb
+#   packaging/linux/build.sh appimage        # dist/AnyVector-<version>-linux-x86_64.AppImage
 #
-# The version is the one of the workspace Cargo.toml. A program built on the oldest system to
+# The version is the one of Linux in the workspace Cargo.toml. A program built on the oldest system to
 # support (ubuntu-22.04, as .github/workflows/build.yml does) runs on newer ones too.
 #
 # Needs dpkg-dev, squashfs-tools (and cargo, unless ANYVECTOR_BIN is set).
@@ -36,9 +36,9 @@ for what in "$@"; do
   esac
 done
 
-# `version = "x.y.z"` of [workspace.package]: the first one of the file
-version=$(sed -n 's/^version *= *"\([^"]*\)".*/\1/p' "$root/Cargo.toml" | head -n 1)
-[ -n "$version" ] || die "no version in Cargo.toml"
+# `linux = "x.y.z"` of [workspace.metadata.versions]
+version=$(sed -n '/^\[workspace\.metadata\.versions\]/,/^\[workspace\.package\]/s/^linux *= *"\([^"]*\)".*/\1/p' "$root/Cargo.toml")
+[ -n "$version" ] || die "no version for linux in Cargo.toml"
 
 dist=${DIST:-$root/dist}
 mkdir -p "$dist"
@@ -94,7 +94,7 @@ stage() {
 date_all() { find "$1" -print0 | xargs -0r touch --no-dereference --date="@$SOURCE_DATE_EPOCH"; }
 
 build_deb() {
-  local dir=$work/deb out=$dist/anyvector_${version}_amd64.deb depends
+  local dir=$work/deb out=$dist/AnyVector-$version-linux-amd64.deb depends
   stage "$dir"
   # "Open with" for other programs' files; not in the AppImage, which is not installed
   text "$here/zz-$id-open.desktop" "$dir/usr/share/applications/zz-$id-open.desktop"
@@ -103,7 +103,7 @@ build_deb() {
     echo "anyvector ($version) stable; urgency=medium"
     echo
     echo "  * AnyVector $version. What is new:"
-    echo "    https://github.com/toim22/AnyVector/releases/tag/v$version"
+    echo "    https://github.com/toim22/AnyVector/releases/tag/v$version-linux"
     echo
     echo " -- $(sed -n 's/^Maintainer: //p' "$here/control.in" | tr -d '\r')  $(date -R -d "@$SOURCE_DATE_EPOCH")"
   } | gzip -9n >"$dir/usr/share/doc/anyvector/changelog.gz"
@@ -141,7 +141,7 @@ runtime() {
 }
 
 build_appimage() {
-  local dir=$work/AnyVector.AppDir out=$dist/AnyVector-$version-x86_64.AppImage
+  local dir=$work/AnyVector.AppDir out=$dist/AnyVector-$version-linux-x86_64.AppImage
   runtime
   stage "$dir"
   text "$here/appimage-runtime.txt" "$dir/usr/share/doc/anyvector/legal/appimage-runtime.txt"

@@ -7,8 +7,11 @@ use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::path::PathBuf;
 
-/// The release notes of this version (also shown by Help ▸ Updates).
-const RELEASE_NOTES: &str = include_str!("../../../docs/RELEASE-NOTES-0.7.0.md");
+/// The release notes of this version on this system (also shown by Help ▸ Updates).
+#[cfg(windows)]
+const RELEASE_NOTES: &str = include_str!("../../../docs/RELEASE-NOTES-0.7.0-windows.md");
+#[cfg(not(windows))]
+const RELEASE_NOTES: &str = include_str!("../../../docs/RELEASE-NOTES-0.1.0-linux.md");
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Page {
