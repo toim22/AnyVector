@@ -9705,10 +9705,10 @@ fn visual_print_linux_printers_and_preferences() {
     st.printer = "Office_Laser".into();
     h.state_mut().dialogs.print = Some(st);
     save(&mut h, "print_linux_01_dialog");
-    h.get_by_label("Office_Laser").click();
+    h.get_by_value("Office_Laser").click();
     save(&mut h, "print_linux_02_printer_list");
     h.get_by_label("PDF").click();
-    h.step();
+    h.run_steps(3);
     assert_eq!(h.state().dialogs.print.as_ref().map(|s| s.printer.as_str()), Some("PDF"));
     let lpoptions = "PageSize/Media Size: *Letter Legal A4 A5 Env10 Custom.WIDTHxHEIGHT\n\
 Duplex/2-Sided Printing: *None DuplexNoTumble DuplexTumble\n\
@@ -9727,25 +9727,25 @@ Resolution/Resolution: 300dpi *600dpi 1200x600dpi\n";
         st.prefs = Some(PrefsState::new("Office_Laser", caps, None, &st.settings));
     }
     save(&mut h, "print_linux_03_preferences");
-    h.get_by_label("US Letter (8.5 × 11 in)").click();
+    h.get_by_value("US Letter (8.5 × 11 in)").click();
     save(&mut h, "print_linux_04_paper_sizes");
     assert!(h.query_by_label_contains("WIDTHxHEIGHT").is_none(), "the custom size template is not a paper");
     h.get_by_label("A4 (210 × 297 mm)").click();
-    h.step();
-    h.get_by_label("Off").click();
-    h.step();
+    h.run_steps(3);
+    h.get_by_value("Off").click();
+    h.run_steps(3);
     h.get_by_label("Flip on long edge").click();
-    h.step();
+    h.run_steps(3);
     // Gray and KGray are both grayscale: their own names tell them apart
-    h.get_by_label("Color").click();
+    h.get_by_value("Color").click();
     save(&mut h, "print_linux_05_color_choices");
     assert!(h.query_by_label("Grayscale (KGray)").is_some());
     h.get_by_label("Grayscale (Gray)").click();
-    h.step();
-    h.get_by_label("Landscape").click();
+    h.run_steps(3);
+    h.get_by_role_and_label(egui::accesskit::Role::RadioButton, "Landscape").click();
     save(&mut h, "print_linux_06_chosen");
     h.get_by_label("OK").click();
-    h.step();
+    h.run_steps(3);
     let st = h.state().dialogs.print.as_ref().expect("the Print dialog stays open");
     assert!(st.prefs.is_none());
     let opts = cups::Options::from_bytes(st.devmode.as_deref());
