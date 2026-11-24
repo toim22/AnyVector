@@ -107,6 +107,8 @@ pub struct AnyVectorApp {
     /// The graphics adapter the window renders with (Help > About > System Info).
     pub gpu: String,
     pub splash: Option<crate::splash::Splash>,
+    /// Linux (X11): the main window is maximized again if the desktop undid it.
+    pub maximize_again: Option<crate::splash::MaximizeAgain>,
     pub palettes: crate::palette::PaletteState,
     pub status_hover: String,
     pub cursor_doc: Option<kurbo::Point>,
@@ -186,7 +188,8 @@ impl AnyVectorApp {
             temp_script: String::new(),
             default_fill: Color::BLACK,
             start_time: std::time::Instant::now(),
-            splash: Some(crate::splash::Splash::new()),
+            splash: Some(crate::splash::Splash::new(crate::splash::transparent())),
+            maximize_again: None,
             status_hover: String::new(),
             cursor_doc: None,
             ai: Default::default(),
@@ -311,6 +314,7 @@ impl AnyVectorApp {
                 return;
             }
         }
+        crate::splash::maximize_again(self, &ctx);
         self.handle_dropped_files(&ctx);
         crate::tools::ime::begin_frame(self);
         crate::shortcuts::handle(self, &ctx);
@@ -537,8 +541,8 @@ impl eframe::App for AnyVectorApp {
     }
 
     fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
-        if self.splash.is_some() {
-            return [0.0, 0.0, 0.0, 0.0];
+        if let Some(splash) = &self.splash {
+            return splash.clear_color();
         }
         [0.149, 0.149, 0.149, 1.0]
     }

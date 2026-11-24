@@ -24,6 +24,19 @@ use self::win as os;
 #[cfg(not(windows))]
 use self::xdg as os;
 
+/// Linux: whether an environment variable is set and not empty.
+#[cfg(target_os = "linux")]
+pub fn env_set(name: &str) -> bool {
+    std::env::var_os(name).is_some_and(|v| !v.is_empty())
+}
+
+/// Linux: whether AnyVector's window is on Wayland. Otherwise it is on X11 (winit decides the
+/// same way).
+#[cfg(target_os = "linux")]
+pub fn on_wayland() -> bool {
+    env_set("WAYLAND_DISPLAY") || env_set("WAYLAND_SOCKET")
+}
+
 /// Open a web page in the default browser (also a page on disk: Help writes its pages there).
 pub fn open_url(url: &str) -> io::Result<()> {
     os::open_url(url)

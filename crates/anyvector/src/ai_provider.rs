@@ -649,6 +649,32 @@ pub mod test_server {
         }
     }
 
+    /// A local address where nothing listens. A port that was only closed again could be given to
+    /// another test's server at once; this one stays taken, as the port of a client's connection.
+    pub struct NoServer {
+        pub url: String,
+        _client: std::net::TcpStream,
+        _listener: std::net::TcpListener,
+    }
+
+    pub fn none() -> NoServer {
+        let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let c = std::net::TcpStream::connect(l.local_addr().unwrap()).unwrap();
+        NoServer { url: format!("http://{}", c.local_addr().unwrap()), _client: c, _listener: l }
+    }
+
+    #[test]
+    fn nothing_listens_where_there_is_no_server() {
+        let none: Vec<NoServer> = (0..20).map(|_| none()).collect();
+        let servers: Vec<Server> = (0..20).map(|_| start(|_| (200, vec![]))).collect();
+        for n in &none {
+            assert!(servers.iter().all(|s| s.url != n.url), "the port was given to a server");
+        }
+        // one is enough: Windows takes two seconds to say no
+        let e = std::net::TcpStream::connect(none[0].url.trim_start_matches("http://")).unwrap_err();
+        assert_eq!(e.kind(), std::io::ErrorKind::ConnectionRefused);
+    }
+
     pub fn start(handler: impl Fn(&Req) -> (u16, Vec<u8>) + Send + Sync + 'static) -> Server {
         let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let url = format!("http://{}", l.local_addr().unwrap());
@@ -927,10 +953,8 @@ mod tests {
 
     #[test]
     fn local_server_not_running() {
-        let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-        let url = format!("http://{}", l.local_addr().unwrap());
-        drop(l);
-        let mut t = target(Provider::Ollama, &url);
+        let none = super::test_server::none();
+        let mut t = target(Provider::Ollama, &none.url);
         t.key = None;
         let e = chat(&t, "s", "d", "d", None).unwrap_err();
         assert!(e.starts_with("Could not connect to Ollama at 127.0.0.1:"), "{e}");

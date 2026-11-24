@@ -1,6 +1,7 @@
 #!/bin/bash
 # Starts AnyVector on a virtual X display and passes when its main window opens (a window of the
-# desktop file's StartupWMClass, larger than the splash) and is still there a few seconds later:
+# desktop file's StartupWMClass, larger than the splash), is still there a few seconds later and
+# has something drawn in it:
 #
 #   packaging/linux/smoke-test.sh screenshot.png anyvector [file...]
 #
@@ -43,7 +44,16 @@ for ((i = 0; i < 60; i++)); do
   sleep 1
 done
 sleep 4
-import -window root "$shot" || true
+# a window that isn't drawn is one color (software Vulkan on some systems); the main window has
+# thousands
+colors=0
+for _ in 1 2 3 4 5 6; do
+  import -window root "$shot" || true
+  colors=$(identify -format %k "$shot" 2>/dev/null || echo 0)
+  if [ "$colors" -ge 100 ]; then break; fi
+  sleep 2
+done
 kill -0 "$pid" 2>/dev/null || { echo "smoke-test: the program ended" >&2; exit 1; }
 [ "$(width)" -gt 700 ] || { echo "smoke-test: no main window after $i s" >&2; exit 1; }
-echo "smoke-test: main window open after about $i s, $(width) wide"
+[ "$colors" -ge 100 ] || { echo "smoke-test: the main window is blank ($colors colors)" >&2; exit 1; }
+echo "smoke-test: main window open after about $i s, $(width) wide, $colors colors"
