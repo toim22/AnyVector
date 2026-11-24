@@ -78,9 +78,9 @@ pub fn parse_lpstat_d(text: &str) -> Option<String> {
 pub fn parse_lpoptions(text: &str) -> Vec<PrinterOption> {
     let mut out = vec![];
     for line in text.lines() {
-        // "Key/Caption: a *b c"; the caption may itself hold a colon, the key never does
+        // "Key/Caption: a *b c"; a line without the slash is a message ("lpoptions: Unable to...")
         let Some((head, rest)) = line.split_once(": ") else { continue };
-        let (key, caption) = head.split_once('/').unwrap_or((head, head));
+        let Some((key, caption)) = head.split_once('/') else { continue };
         let key = key.trim();
         if key.is_empty() || key.contains(char::is_whitespace) {
             continue;
@@ -336,7 +336,7 @@ pub fn paper_label(caps: &Caps, name: &str) -> String {
     let base = caps.ppd.names.get(name).cloned().unwrap_or_else(|| pwg_caption(name));
     let Some((w, h)) = caps.ppd.sizes.get(name).copied().or_else(|| paper_size(name)) else { return base };
     let num = |v: f64| {
-        let s = format!("{v:.2}");
+        let s = format!("{v:.3}");
         s.trim_end_matches('0').trim_end_matches('.').to_string()
     };
     if is_metric(name) {
@@ -752,7 +752,7 @@ printer-resolution/Print Resolution: *300dpi 600dpi\n";
         assert_eq!(paper_label(&caps, "A4"), "A4 (210 × 297 mm)");
         assert_eq!(paper_label(&Caps::default(), "iso_a4_210x297mm"), "A4 (210 × 297 mm)");
         assert_eq!(paper_label(&Caps::default(), "na_letter_8.5x11in"), "Letter (8.5 × 11 in)");
-        assert_eq!(paper_label(&Caps::default(), "Env10"), "Env10 (4.13 × 9.5 in)");
+        assert_eq!(paper_label(&Caps::default(), "Env10"), "Env10 (4.125 × 9.5 in)");
         assert_eq!(choice_label("Duplex", "DuplexNoTumble"), "Flip on long edge");
         assert_eq!(choice_label("sides", "one-sided"), "Off");
         assert_eq!(choice_label("ColorModel", "Gray"), "Grayscale");
