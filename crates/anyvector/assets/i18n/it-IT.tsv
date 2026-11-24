@@ -2727,6 +2727,7 @@ Duplicate word	Parola ripetuta
 `{}` is repeated.	`{}` è ripetuta.
 Spelling	Ortografia
 `{}` is not in the spelling dictionary.	`{}` non è nel dizionario ortografico.
+No spelling dictionary for {} is installed. Install the {} package.	Nessun dizionario ortografico installato per {}. Installare il pacchetto {}.
 Capitalization	Maiuscole
 The first word of a sentence starts with a capital letter.	La prima parola di una frase inizia con la lettera maiuscola.
 Article	Articolo

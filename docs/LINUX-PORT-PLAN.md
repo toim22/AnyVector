@@ -281,6 +281,28 @@ then AnyVector's **Save Drawing** dialog shows the rest, with the Windows labels
 - Tests give the file names instead of opening rfd (`give_picked_paths`), so the flow is tested on
   Windows too; `visual_save_options_dialog` renders the dialogs.
 
+**Spell check and code pages (Phase 2, `spell/hunspell.rs`, `spell/codepages.rs`).**
+- Dictionaries: the system's Hunspell ones, read by `spellbook` (pure Rust, MPL-2.0; no libhunspell),
+  looked for in `$DICPATH`, `~/.local/share/hunspell`, `hunspell` in each `$XDG_DATA_DIRS` folder and
+  the old MySpell folders. A language tag takes its own dictionary (pt-BR → `pt_BR`), else the
+  language's (`pt`), else another country's (`pt_PT`; for English `en_US` first). Other character sets
+  (`SET ISO8859-1`, KOI8-R...) are converted on loading; each dictionary is loaded once.
+- Checking stops where the Windows checker does (its answers, asked on Windows 11, are a test): words
+  with digits, words in capitals, addresses, #tags and file names are not checked; of a hyphenated word
+  only the wrong part is marked; a repeated word is offered for deletion.
+- Add keeps the word in `~/.config/AnyVector/Spelling/<language>/default.dic` and Auto Replace the pair
+  in `default.acl` (Windows: `%AppData%\Microsoft\Spelling\<language>`); Skip All lasts until AnyVector
+  closes. Without a dictionary the Spell Checker's "Not found" line names the package to install
+  (`hunspell-en-us`, `hunspell-pt-br`, `hunspell-fr`... as Debian and Ubuntu call them).
+- Text ▸ Encode lists 64 of Windows' code pages with Windows' names and order: the ANSI, OEM, Mac,
+  ISO 8859 and KOI8 pages and the East Asian ones, by `encoding_rs` and, for the OEM and Mac pages it
+  lacks, `spell/upper.rs`. Not there: EBCDIC, ISCII, the 7-bit pages, Johab and the old Taiwanese and
+  Mac double-byte pages. A Windows test compares the names and conversions with Windows' own.
+  Characters a page lacks become "?" (Windows first tries a look-alike, such as "Ł" → "L").
+- The ANSI code page is the one Windows gives the locale's language (`LC_ALL`, `LC_CTYPE`, `LANG`): 1250
+  for Czech and Polish, 1251 for Russian, 932 for Japanese, 1252 for C and Western languages.
+- The Legal Notices now also list the crates only the Linux build links.
+
 **Shared bug fixes (also change Windows).**
 - `cmd /C start` targets with `&` (bug-report URLs, file names) were split and could run commands; the
   target now goes through an environment variable, and the mail subject is fully percent-encoded.
@@ -290,5 +312,5 @@ then AnyVector's **Save Drawing** dialog shows the rest, with the Windows labels
   with `=` or NUL no longer crashes AI Save Key.
 
 **Known limits after Phase 1.** No native-Wayland drag and drop (winit 0.30); clipboard contents vanish
-on exit under Wayland without a clipboard manager; spell check, code pages, the eyedropper
-outside the window and scanners are Phase 2; packaging and the self-updating AppImage are Phase 3.
+on exit under Wayland without a clipboard manager; the eyedropper outside the window and scanners are
+Phase 2; packaging and the self-updating AppImage are Phase 3.

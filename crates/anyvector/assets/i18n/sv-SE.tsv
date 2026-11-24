@@ -2727,6 +2727,7 @@ Duplicate word	Dubbla ord
 `{}` is repeated.	`{}` upprepas.
 Spelling	Stavning
 `{}` is not in the spelling dictionary.	`{}` finns inte i stavningsordlistan.
+No spelling dictionary for {} is installed. Install the {} package.	Ingen stavningsordlista för {} är installerad. Installera paketet {}.
 Capitalization	Versaler
 The first word of a sentence starts with a capital letter.	Första ordet i en mening börjar med stor bokstav.
 Article	Artikel

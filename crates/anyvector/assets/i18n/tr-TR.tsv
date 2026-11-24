@@ -2727,6 +2727,7 @@ Duplicate word	Yinelenen sözcük
 `{}` is repeated.	`{}` yineleniyor.
 Spelling	Yazım
 `{}` is not in the spelling dictionary.	`{}` yazım sözlüğünde yok.
+No spelling dictionary for {} is installed. Install the {} package.	{} için yüklü bir yazım sözlüğü yok. {} paketini yükleyin.
 Capitalization	Büyük Harf Kullanımı
 The first word of a sentence starts with a capital letter.	Cümlenin ilk sözcüğü büyük harfle başlar.
 Article	Tanımlık

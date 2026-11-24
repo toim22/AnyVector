@@ -2727,6 +2727,7 @@ Duplicate word	Zdvojené slovo
 `{}` is repeated.	`{}` se opakuje.
 Spelling	Pravopis
 `{}` is not in the spelling dictionary.	`{}` není ve slovníku pravopisu.
+No spelling dictionary for {} is installed. Install the {} package.	Pro {} není nainstalován žádný slovník pravopisu. Nainstalujte balíček {}.
 Capitalization	Velká písmena
 The first word of a sentence starts with a capital letter.	První slovo věty začíná velkým písmenem.
 Article	Člen

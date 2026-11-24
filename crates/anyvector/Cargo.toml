@@ -33,6 +33,8 @@ flate2 = { workspace = true }
 thesaurus-wordnet = "0.2"
 # the main window's handle, for coloring its border (already in the tree through eframe)
 raw-window-handle = "0.6"
+# code pages for Text ▸ Encode off Windows (and its tests on Windows); already in the tree through vector-io
+encoding_rs = "0.8"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # OpenGL, the renderer AnyVector falls back to when wgpu can't start on the machine's graphics
@@ -43,6 +45,11 @@ eframe = { workspace = true, features = ["glow"] }
 x11rb = { version = "0.13", default-features = false }
 wl-clipboard-rs = "0.9"
 rustix = { version = "1", default-features = false, features = ["std", "event"] }
+
+[target.'cfg(not(windows))'.dependencies]
+# spell checking with the system's Hunspell dictionaries (pure Rust, MPL-2.0); Windows uses its own
+# spell checker
+spellbook = "0.4"
 
 [target.'cfg(windows)'.dependencies]
 windows-core = "0.62"

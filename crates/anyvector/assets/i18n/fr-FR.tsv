@@ -2727,6 +2727,7 @@ Duplicate word	Mot répété
 `{}` is repeated.	`{}` est répété.
 Spelling	Orthographe
 `{}` is not in the spelling dictionary.	`{}` ne figure pas dans le dictionnaire orthographique.
+No spelling dictionary for {} is installed. Install the {} package.	Aucun dictionnaire orthographique n'est installé pour {}. Installez le paquet {}.
 Capitalization	Majuscules
 The first word of a sentence starts with a capital letter.	Le premier mot d'une phrase commence par une majuscule.
 Article	Article

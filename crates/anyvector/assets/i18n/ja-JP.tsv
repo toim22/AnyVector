@@ -2727,6 +2727,7 @@ Duplicate word	単語の重複
 `{}` is repeated.	`{}` が重複しています。
 Spelling	スペル
 `{}` is not in the spelling dictionary.	`{}` はスペル辞書にありません。
+No spelling dictionary for {} is installed. Install the {} package.	{} のスペル辞書がインストールされていません。{} パッケージをインストールしてください。
 Capitalization	大文字小文字
 The first word of a sentence starts with a capital letter.	文の最初の単語は大文字で始まります。
 Article	冠詞
