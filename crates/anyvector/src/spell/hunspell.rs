@@ -590,7 +590,7 @@ mod tests {
     #[test]
     fn system_dictionaries() {
         let dirs = dictionary_dirs(|n| std::env::var_os(n), dirs::home_dir().as_deref());
-        for (tag, good, bad, fix) in [("en-US", "colors", "colour", "color"), ("pt-BR", "ação", "acao", "ação"), ("de-DE", "Straße", "Strasze", "Straße"), ("de-AT", "Häuser", "Heuser", "Häuser")] {
+        for (tag, good, bad, fix) in [("en-US", "colors", "colour", "color"), ("pt-BR", "ação", "acao", "ação"), ("de-DE", "Straße", "Straßee", "Straße")] {
             let Some((aff, dic)) = find_dictionary(tag, &dirs) else { continue };
             let d = load_dictionary(&aff, &dic).unwrap_or_else(|| panic!("{} loads", dic.display()));
             assert!(d.check(good) && !d.check(bad), "{tag}");

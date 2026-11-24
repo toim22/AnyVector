@@ -160,7 +160,8 @@ fn single_byte(cp: u32) -> Option<[char; 256]> {
             t[b] = *c;
             continue;
         }
-        let (s, _) = e.decode_without_bom_handling(&[byte]);
+        let one = [byte];
+        let (s, _) = e.decode_without_bom_handling(&one);
         t[b] = match s.chars().next() {
             Some(c) if c != '\u{FFFD}' => c,
             _ => {
@@ -398,9 +399,10 @@ mod tests {
                 for b in 0u8..=255 {
                     let c = imp::decode(&[b], cp);
                     assert_eq!(decode(&[b], cp), c, "code page {cp}, byte {b:#04x}");
-                    if cp != 20127 || b < 128 {
-                        assert_eq!(encode(&c, cp), [b], "code page {cp}, byte {b:#04x}");
-                    }
+                    // back to the same byte, or another one the page has for the character
+                    // (US-ASCII's upper half, Mac Hebrew's)
+                    let back = encode(&c, cp);
+                    assert!(back == [b] || imp::decode(&back, cp) == c, "code page {cp}, byte {b:#04x}: {back:?}");
                 }
                 continue;
             }
