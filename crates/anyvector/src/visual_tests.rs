@@ -3681,7 +3681,7 @@ fn scan_real_linux_sane_test_backend() {
     assert_eq!(clip_kind_count(&h, |k| matches!(k, ObjKind::Image(_))), 1);
 }
 
-/// Linux, X11: "Select color from desktop" reads the screen pixel under the pointer (a window of
+/// Linux, X11: "Select from Desktop" reads the screen pixel under the pointer (a window of
 /// a known color on an Xvfb display of the test's own). Needs Xvfb; run with
 /// `cargo test -p anyvector pick_real_linux -- --ignored --test-threads=1`.
 #[cfg(target_os = "linux")]
@@ -3708,6 +3708,28 @@ fn pick_real_linux_x11() {
     assert_eq!(screen_pick::poll(false, false), Polled::Waiting);
     assert_eq!(screen_pick::poll(true, false), Polled::Color(Color::rgb(0xff, 0x80, 0x20)));
     screen_pick::stop();
+    // in the program: the eyedropper dragged from the drawing and let go outside the window
+    let mut h = dialog_harness();
+    h.state_mut().tool = crate::tools::ToolId::ColorEyedropper;
+    let d = h.state().doc().unwrap();
+    let p = d.to_screen(Point::new(100.0, 100.0));
+    drag(&mut h, p, egui::pos2(1900.0, 400.0));
+    settle(&mut h);
+    assert_eq!(h.state().ts.eyedrop_color, Some(Color::rgb(0xff, 0x80, 0x20)), "the screen pixel, not the drawing's");
+    assert!(h.state().ts.eye_apply && !h.state().ts.desktop_pick, "ready to apply it");
+    // a drag that ends in the drawing stays the drawing's sample
+    h.state_mut().ts.eye_apply = false;
+    drag(&mut h, p, p + egui::vec2(60.0, 40.0));
+    settle(&mut h);
+    assert_eq!(h.state().ts.eyedrop_color, Some(Color::WHITE), "the empty page");
+    // Select from Desktop on: a click in the drawing samples the drawing and ends it
+    h.state_mut().ts.desktop_pick = true;
+    h.state_mut().ts.eye_apply = false;
+    settle(&mut h);
+    assert!(h.state().ts.desktop_pick, "waits for a click");
+    click(&mut h, p);
+    assert!(h.state().ts.eye_apply && !h.state().ts.desktop_pick);
+    assert_eq!(h.state().ts.eyedrop_color, Some(Color::WHITE));
 }
 
 /// Linux, Wayland: the desktop's color picker over D-Bus (xdg-desktop-portal's

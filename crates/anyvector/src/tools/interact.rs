@@ -3332,7 +3332,7 @@ impl<'a> Cx<'a> {
             let c = Color::rgb((r / k) as u8, (g / k) as u8, (b / k) as u8);
             self.ts.eyedrop_color = Some(c);
             self.ts.eye_apply = true;
-            // Linux: a click in the drawing ends "Select color from desktop", as the click
+            // Linux: a click in the drawing ends "Select from Desktop", as the click
             // Windows reads from the screen does (X11 leaves clicks inside the window to this)
             #[cfg(target_os = "linux")]
             {
@@ -4034,7 +4034,7 @@ pub fn tick(app: &mut AnyVectorApp, ctx: &egui::Context) {
     linux_desktop_pick(app, ctx);
 }
 
-/// "Select color from desktop" on Linux (see `screen_pick`): X11 reads the pixel clicked outside
+/// "Select from Desktop" on Linux (see `screen_pick`): X11 reads the pixel clicked outside
 /// the window, Wayland asks the desktop's color picker. The Color Eyedropper dragged from the
 /// drawing and let go outside the window samples the screen there too.
 #[cfg(target_os = "linux")]

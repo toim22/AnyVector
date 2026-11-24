@@ -224,7 +224,7 @@ program when several did that at once. Set `WGPU_BACKEND` to choose another back
 | Show in folder | `explorer /select,` | D-Bus `org.freedesktop.FileManager1.ShowItems`, else open the folder |
 | Send To ▸ Mail Recipient | Simple MAPI | `xdg-email --attach`; on failure show the file and open `mailto:` |
 | File ▸ Send To list | the SendTo folder | Desktop, Documents, Mail Recipient |
-| Acquire Image | WIA | message: scan with the system's scanner app, then File ▸ Import (SANE: Phase 2) |
+| Acquire Image | WIA | SANE (`scanimage`), see Scanning below |
 | Insert Object ▸ Create New | ShellNew registry | XDG templates folder and KDE template entries |
 | Colour profiles | Windows color folder | XDG ICC folders and colord, 3 levels deep |
 | Temporary files, auto-backups | `%TEMP%` | `$XDG_RUNTIME_DIR/AnyVector` (0700), `~/.local/state/AnyVector/Backups` |
@@ -255,6 +255,28 @@ names no longer panic on the command line or lose the settings file.
 - `settings.json` is written through a temporary file, so a crash cannot truncate it; a variable name
   with `=` or NUL no longer crashes AI Save Key.
 
+**Eyedropper outside the window (Phase 2)** (`screen_pick.rs`). The Color Eyedropper's Select from
+Desktop button.
+- Wayland: the desktop's own color picker (xdg-desktop-portal `Screenshot.PickColor`, version 2, through
+  zbus, already in the tree) opens as soon as the button is pressed. X11: the pixel clicked is read from
+  the root window (`GetImage`, any visual) while the button is polled, as Windows does with GDI. Chosen as
+  the clipboard is: the portal under Wayland, else X11. Under XWayland only X11 programs' windows can be
+  sampled, and AnyVector says so; with neither way, a message says what to install.
+- Clicks inside the window stay with the drawing's eyedropper. The eyedropper dragged out of the drawing
+  and let go outside the window samples the screen too.
+- Tests with a display or a bus of their own (Xvfb; a fake portal on dbus-daemon):
+  `cargo test -p anyvector pick_real_linux -- --ignored --test-threads=1`.
+
+**Scanning (Phase 2)** (`dialogs/scan.rs`, `dialogs/sane.rs`). File ▸ Acquire Image through SANE's
+`scanimage` (sane-utils).
+- Select WIA Source and Select TWAIN Source both list the scanners (`scanimage -L`); the chosen one is
+  kept in the settings. Acquire asks for the resolution and color mode, from the scanner's own options
+  (`scanimage -A`), scans in the background to a PNG in the private temporary folder and imports it as
+  the WIA scan is. Without `scanimage` or a scanner a message says what to install, and mentions Document
+  Scanner (simple-scan) when it is there.
+- Real scan with SANE's virtual test scanner:
+  `cargo test -p anyvector scan_real_linux -- --ignored --test-threads=1` (needs sane-utils).
+
 **Known limits after Phase 1.** No native-Wayland drag and drop (winit 0.30); clipboard contents vanish
-on exit under Wayland without a clipboard manager; printing, spell check, code pages, the eyedropper
-outside the window and scanners are Phase 2; packaging and the self-updating AppImage are Phase 3.
+on exit under Wayland without a clipboard manager; printing, spell check and code pages are Phase 2;
+packaging and the self-updating AppImage are Phase 3.

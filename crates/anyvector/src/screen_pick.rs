@@ -1,4 +1,4 @@
-//! The Color Eyedropper's "Select color from desktop" on Linux: the color of a pixel anywhere on
+//! The Color Eyedropper's "Select from Desktop" on Linux: the color of a pixel anywhere on
 //! the screen, as Windows reads it with GDI.
 //!
 //! - X11: the pixel under the pointer, read from the root window (`GetImage`) when the left
