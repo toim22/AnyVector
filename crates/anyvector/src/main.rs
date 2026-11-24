@@ -76,7 +76,8 @@ fn window_icon() -> Option<egui::IconData> {
     Some(egui::IconData { rgba: img.into_raw(), width: w, height: h })
 }
 
-fn native_options() -> eframe::NativeOptions {
+/// The start window. `transparent` is [`splash::transparent`]'s answer.
+fn native_options(transparent: bool) -> eframe::NativeOptions {
     let mut viewport = egui::ViewportBuilder::default()
         .with_title(vector_core::APP_NAME)
         .with_app_id(APP_ID)
@@ -84,7 +85,7 @@ fn native_options() -> eframe::NativeOptions {
         .with_inner_size(splash::SPLASH_SIZE)
         .with_decorations(false)
         .with_resizable(false)
-        .with_transparent(true)
+        .with_transparent(transparent)
         .with_min_inner_size(splash::MIN_WINDOW_SIZE);
     if let Some(icon) = window_icon() {
         viewport = viewport.with_icon(std::sync::Arc::new(icon));
@@ -100,7 +101,7 @@ fn native_options() -> eframe::NativeOptions {
 
 #[cfg(not(target_os = "linux"))]
 fn main() -> eframe::Result<()> {
-    eframe::run_native(vector_core::APP_NAME, native_options(), Box::new(|cc| Ok(Box::new(app::AnyVectorApp::new(cc)))))
+    eframe::run_native(vector_core::APP_NAME, native_options(splash::transparent()), Box::new(|cc| Ok(Box::new(app::AnyVectorApp::new(cc)))))
 }
 
 /// Linux: starts with wgpu and, when that fails before the window has opened (a graphics
@@ -130,7 +131,7 @@ fn main() -> eframe::Result<()> {
 /// the renderer works and the app is being created.
 #[cfg(target_os = "linux")]
 fn run(backend: eframe::Renderer, started: std::sync::Arc<std::sync::atomic::AtomicBool>) -> eframe::Result<()> {
-    let mut options = native_options();
+    let mut options = native_options(splash::transparent());
     options.renderer = backend;
     eframe::run_native(
         vector_core::APP_NAME,
@@ -165,12 +166,18 @@ mod tests {
 
     #[test]
     fn window_opens_as_the_splash() {
-        let o = native_options();
+        let o = native_options(true);
         assert_eq!(o.viewport.app_id.as_deref(), Some(APP_ID));
         assert_eq!(o.viewport.title.as_deref(), Some(vector_core::APP_NAME));
         assert_eq!(o.viewport.inner_size, Some(egui::vec2(620.0, 380.0)));
         assert_eq!(o.viewport.min_inner_size, Some(egui::vec2(480.0, 320.0)));
         assert_eq!((o.viewport.decorations, o.viewport.resizable, o.viewport.transparent), (Some(false), Some(false), Some(true)));
+        assert_eq!(native_options(false).viewport.transparent, Some(false));
+        // Windows and Wayland have a see-through start window, X11 an opaque one
+        #[cfg(not(target_os = "linux"))]
+        assert!(splash::transparent());
+        #[cfg(target_os = "linux")]
+        assert_eq!(splash::transparent(), platform::on_wayland());
         assert!(o.viewport.icon.is_some(), "the window icon (X11 and Windows)");
         // wgpu first everywhere; on Linux OpenGL only when wgpu fails or is turned off
         assert_eq!(o.renderer, eframe::Renderer::Wgpu);

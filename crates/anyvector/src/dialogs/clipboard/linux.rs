@@ -40,16 +40,12 @@ pub fn choose(wayland: bool, data_control: impl FnOnce() -> bool, x11: bool) -> 
     }
 }
 
-fn env_set(name: &str) -> bool {
-    std::env::var_os(name).is_some_and(|v| !v.is_empty())
-}
-
 static BACKEND: std::sync::Mutex<Option<Option<Backend>>> = std::sync::Mutex::new(None);
 
 /// The clipboard in use (decided once).
 pub fn backend() -> Option<Backend> {
     let mut b = BACKEND.lock().unwrap_or_else(|e| e.into_inner());
-    *b.get_or_insert_with(|| choose(env_set("WAYLAND_DISPLAY") || env_set("WAYLAND_SOCKET"), wayland::available, env_set("DISPLAY")))
+    *b.get_or_insert_with(|| choose(crate::platform::on_wayland(), wayland::available, crate::platform::env_set("DISPLAY")))
 }
 
 /// Tests: decide again (after the displays were changed) and drop the X11 connection.

@@ -33,7 +33,69 @@ pub fn main_window_commands(monitor_size: Option<Vec2>, maximized: bool) -> Vec<
     cmds
 }
 
+/// Whether the start window is see-through, for the splash's rounded corners. Not on X11: there it
+/// is a window with an alpha channel (32 bits deep), and into those Mesa's software Vulkan
+/// (lavapipe) draws nothing before about Mesa 25 (Ubuntu 22.04's and Debian 12's, in a virtual
+/// machine or without a graphics driver). An X11 window can't lose its alpha channel later, so
+/// the main window would stay black too.
+pub fn transparent() -> bool {
+    #[cfg(target_os = "linux")]
+    return crate::platform::on_wayland();
+    #[cfg(not(target_os = "linux"))]
+    true
+}
+
+/// Asks for the maximized window again after these many seconds (see [`MaximizeAgain`]).
+const MAXIMIZE_AGAIN: [f64; 3] = [0.2, 0.6, 1.2];
+
+/// Linux (X11): GNOME (mutter 46) un-maximizes the main window while it adds the title bar that
+/// the splash didn't have, some milliseconds after maximizing it. So AnyVector looks a few times
+/// whether the window is still maximized and asks again when it isn't.
+pub struct MaximizeAgain {
+    since: f64,
+    next: usize,
+}
+
+impl MaximizeAgain {
+    /// Starts with the main window, at `now`.
+    pub fn new(now: f64) -> MaximizeAgain {
+        MaximizeAgain { since: now, next: 0 }
+    }
+
+    /// Whether to ask for the maximized window now.
+    fn due(&mut self, now: f64, maximized: Option<bool>) -> bool {
+        let before = self.next;
+        while self.wait(now).is_some_and(|w| w <= 0.0) {
+            self.next += 1;
+        }
+        self.next > before && maximized == Some(false)
+    }
+
+    /// The seconds until the next look, `None` after the last one.
+    fn wait(&self, now: f64) -> Option<f64> {
+        MAXIMIZE_AGAIN.get(self.next).map(|d| self.since + d - now)
+    }
+}
+
+/// Maximizes the main window again when the desktop undid it (see [`MaximizeAgain`]).
+pub fn maximize_again(app: &mut AnyVectorApp, ctx: &egui::Context) {
+    let Some(again) = app.maximize_again.as_mut() else { return };
+    let (now, maximized) = ctx.input(|i| (i.time, i.viewport().maximized));
+    if again.due(now, maximized) {
+        ctx.send_viewport_cmd(ViewportCommand::Maximized(true));
+    }
+    match again.wait(now) {
+        Some(w) => ctx.request_repaint_after(std::time::Duration::from_secs_f64(w.max(0.0))),
+        None => app.maximize_again = None,
+    }
+}
+
+/// The splash's color.
+const CARD: Color32 = Color32::from_rgb(0x1c, 0x1f, 0x26);
+
 pub struct Splash {
+    /// The window is see-through: the corners are round. Otherwise the card fills the window.
+    transparent: bool,
     tex: Option<egui::TextureHandle>,
     started: Option<f64>,
     switched: bool,
@@ -41,8 +103,17 @@ pub struct Splash {
 }
 
 impl Splash {
-    pub fn new() -> Splash {
-        Splash { tex: None, started: None, switched: false, status: 0 }
+    pub fn new(transparent: bool) -> Splash {
+        Splash { transparent, tex: None, started: None, switched: false, status: 0 }
+    }
+
+    /// The window's color behind the card.
+    pub fn clear_color(&self) -> [f32; 4] {
+        if self.transparent {
+            [0.0; 4]
+        } else {
+            CARD.to_normalized_gamma_f32()
+        }
     }
 }
 
@@ -64,6 +135,10 @@ pub fn show(app: &mut AnyVectorApp, ui: &mut Ui) -> bool {
             for cmd in main_window_commands(monitor_size, maximized) {
                 ctx.send_viewport_cmd(cmd);
             }
+            // an opaque splash is on X11
+            if maximized && !sp.transparent {
+                app.maximize_again = Some(MaximizeAgain::new(now));
+            }
         }
         app.splash = None;
         ctx.request_repaint();
@@ -79,13 +154,15 @@ pub fn show(app: &mut AnyVectorApp, ui: &mut Ui) -> bool {
         })
         .clone();
     let status = STEPS[sp.status.min(STEPS.len() - 1)];
+    let transparent = sp.transparent;
 
     let full = ui.max_rect();
     let p = ui.painter();
     // card
-    let card = full.shrink(1.0);
-    p.rect_filled(card, 10.0, Color32::from_rgb(0x1c, 0x1f, 0x26));
-    p.rect_stroke(card, 10.0, egui::Stroke::new(1.0, Color32::from_rgb(0x3a, 0x3f, 0x4a)), egui::StrokeKind::Inside);
+    let card = full.shrink(if transparent { 1.0 } else { 0.0 });
+    let round = if transparent { 10.0 } else { 0.0 };
+    p.rect_filled(card, round, CARD);
+    p.rect_stroke(card, round, egui::Stroke::new(1.0, Color32::from_rgb(0x3a, 0x3f, 0x4a)), egui::StrokeKind::Inside);
     // subtle glow behind the airship
     let c = pos2(card.center().x, card.top() + card.height() * 0.40);
     for i in 0..18 {
@@ -154,5 +231,34 @@ mod tests {
         let plain = main_window_commands(None, false);
         assert!(!plain.iter().any(|c| matches!(c, C::OuterPosition(_) | C::Maximized(_))), "{plain:?}");
         assert!(plain.contains(&C::InnerSize(MAIN_SIZE)));
+    }
+
+    #[test]
+    fn opaque_splash_has_the_cards_color_behind_it() {
+        assert_eq!(Splash::new(true).clear_color(), [0.0; 4]);
+        let c = Splash::new(false).clear_color();
+        assert_eq!(c[3], 1.0);
+        assert_eq!(c.map(|v| (v * 255.0).round() as u8), [0x1c, 0x1f, 0x26, 0xff]);
+    }
+
+    #[test]
+    fn asks_again_only_while_not_maximized() {
+        // undone by the desktop, then maximized
+        let mut m = MaximizeAgain::new(10.0);
+        assert!(!m.due(10.0, Some(false)), "not at once: the first request may still be on its way");
+        assert!((m.wait(10.0).unwrap() - 0.2).abs() < 1e-9);
+        assert!(m.due(10.25, Some(false)));
+        assert!(!m.due(10.3, Some(false)), "once per look");
+        assert!(!m.due(10.7, Some(true)), "it is maximized now");
+        // undone later (a slow computer)
+        assert!(m.due(11.3, Some(false)));
+        assert_eq!(m.wait(11.3), None);
+        // after the last look the window is the user's
+        assert!(!m.due(20.0, Some(false)));
+        // one request after a long frame, and none while the state isn't known
+        let mut m = MaximizeAgain::new(0.0);
+        assert!(m.due(5.0, Some(false)));
+        assert_eq!(m.wait(5.0), None);
+        assert!(!MaximizeAgain::new(0.0).due(5.0, None));
     }
 }

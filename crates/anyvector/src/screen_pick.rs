@@ -190,14 +190,10 @@ pub mod session {
 
     static SESSION: Mutex<Option<Session>> = Mutex::new(None);
 
-    fn env_set(name: &str) -> bool {
-        std::env::var_os(name).is_some_and(|v| !v.is_empty())
-    }
-
     /// Begin; `portal` is off once the portal has not answered.
     fn start(portal: bool) -> Result<(Session, Option<String>), String> {
-        let wayland = env_set("WAYLAND_DISPLAY") || env_set("WAYLAND_SOCKET");
-        match super::choose(wayland, portal, env_set("DISPLAY")) {
+        let wayland = crate::platform::on_wayland();
+        match super::choose(wayland, portal, crate::platform::env_set("DISPLAY")) {
             Some(Way::Portal) => Ok((Session::Portal(PortalPick::start()), None)),
             Some(Way::X11) => {
                 let screen = super::x11::Screen::open().ok_or_else(|| super::NO_PICKER.to_string())?;

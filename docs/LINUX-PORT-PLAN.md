@@ -189,6 +189,12 @@ program when several did that at once. Set `WGPU_BACKEND` to choose another back
 - Wayland: the window does appear (WSLg, Weston 13, sway 1.9, mutter 46). Real bug fixed: winit 0.30
   keeps a non-resizable window's size as its limits, so after the 620×380 splash the main window still
   advertised a 620×415 maximum; on Linux the switch now re-sends min 480×320 and no maximum.
+- X11: the start window is opaque, so the splash has square corners there (round on Wayland and
+  Windows). Mesa's software Vulkan (lavapipe) in Ubuntu 22.04 (23.2) and Debian 12 (22.3) draws nothing
+  into an X11 window with an alpha channel, so with no graphics driver the whole window stayed black;
+  Ubuntu 24.04's (25.2) draws either way. CI's `smoke-test.sh` now fails on a blank window.
+- X11, GNOME: mutter 46 un-maximizes the main window while it adds the title bar; AnyVector asks again
+  (`MaximizeAgain`).
 - OpenGL fallback: if wgpu cannot start, AnyVector restarts itself with eframe's glow renderer
   (`ANYVECTOR_RENDERER=gl` forces it).
 - App id `io.github.toim22.AnyVector` (Wayland app_id, X11 WM_CLASS): the .desktop file must have this
@@ -373,5 +379,11 @@ AnyVector never uses sudo and never downloads the .deb.
 
 **Known limits after Phase 3.** No native-Wayland drag and drop (winit 0.30); clipboard contents vanish
 on exit under Wayland without a clipboard manager; a program AnyVector opened (such as the browser) keeps
-the old AppImage's mount until it closes. Not tried yet: a physical printer or scanner, and a real GNOME or
-KDE desktop (color picker, menus, "Open with").
+the old AppImage's mount until it closes. "Open with" lists AnyVector twice for the formats of the second
+desktop file (GNOME: Recommended and Other Apps). Not tried yet: a physical printer or scanner, KDE.
+
+**Checked on a real desktop** (2026-11-24, Ubuntu 24.04.5 in a QEMU virtual machine, GNOME 46, the packages CI
+built): the `.deb` installed by apt, its menu entry and icon; on Wayland and X11 opening a `.cdr`, the Open
+dialog, the color picker, copied objects read by a GTK program and the AppImage (mounted); on Wayland also the
+save dialog, pasting text and opening files from Files; on X11 also dragging a file into the window. It found
+the two X11 window bugs above.

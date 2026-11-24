@@ -276,6 +276,58 @@ fn visual_splash() {
     img.save(out_dir().join("00_splash.png")).unwrap();
 }
 
+/// The splash of an opaque window (X11): the card fills the window, corners included.
+#[test]
+#[ignore]
+fn visual_splash_opaque() {
+    for transparent in [true, false] {
+        let mut h = Harness::builder().with_size(egui::vec2(620.0, 380.0)).wgpu_setup(test_wgpu()).build_eframe(|cc| {
+            let mut app = AnyVectorApp::new(cc);
+            app.splash = Some(crate::splash::Splash::new(transparent));
+            app
+        });
+        for _ in 0..2 {
+            h.step();
+        }
+        let img = h.render().expect("render");
+        img.save(out_dir().join(if transparent { "00_splash_transparent.png" } else { "00_splash_opaque.png" })).unwrap();
+        // the border, one pixel wide, then the card: only where the corner isn't cut off
+        let card = image::Rgba([0x1c, 0x1f, 0x26, 0xff]);
+        for (x, y) in [(2, 2), (img.width() - 3, 2), (2, img.height() - 3), (img.width() - 3, img.height() - 3)] {
+            assert_eq!(*img.get_pixel(x, y) == card, !transparent, "({x}, {y})");
+        }
+    }
+}
+
+/// On X11 (an opaque splash) the main window is maximized again when the desktop undid it, and
+/// not when the user keeps it small (`window_maximized` off) or the splash was see-through.
+#[test]
+fn main_window_is_maximized_again_on_x11() {
+    for (transparent, wanted) in [(false, true), (false, false), (true, true)] {
+        let mut h = Harness::builder().with_size(crate::splash::SPLASH_SIZE).build_eframe(|cc| {
+            let mut app = AnyVectorApp::new(cc);
+            app.pending.clear();
+            app.settings.window_maximized = wanted;
+            app.splash = Some(crate::splash::Splash::new(transparent));
+            app
+        });
+        let asked = |h: &Harness<'_, AnyVectorApp>| h.output().viewport_output[&egui::ViewportId::ROOT].commands.contains(&egui::ViewportCommand::Maximized(true));
+        while h.state().splash.is_some() {
+            h.step();
+        }
+        assert_eq!(asked(&h), wanted, "with the main window");
+        assert_eq!(h.state().maximize_again.is_some(), wanted && !transparent);
+        let mut again = 0;
+        for _ in 0..40 {
+            h.input_mut().viewports.entry(egui::ViewportId::ROOT).or_default().maximized = Some(false);
+            h.step();
+            again += usize::from(asked(&h));
+        }
+        assert_eq!(again, if wanted && !transparent { 3 } else { 0 });
+        assert!(h.state().maximize_again.is_none());
+    }
+}
+
 /// After 1.8 s the splash window turns into the main window, in one frame: title bar, resizable
 /// with the real size limits again (Linux: winit on Wayland kept the splash's size as the
 /// limits), opaque, main window size, maximized.
