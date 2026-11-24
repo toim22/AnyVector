@@ -28,6 +28,8 @@ Known limits of the beta:
 
 - **Status bar.** In a narrow window the tool hint no longer covers the fill and outline. It is cut
   short, and the object information stays whole as long as possible.
+- **Updates.** AnyVector offers the newest version made for your system, so a fix for one system can
+  be released without an update for the other.
 - **Moved files are found.** Symbol libraries, Print Merge data, linked files and color profiles that
   a drawing names in a folder of another computer are looked for next to the drawing.
 - **Images linked from an SVG** are read from the SVG's own folder.

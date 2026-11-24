@@ -542,11 +542,12 @@ impl Drop for Server {
 }
 
 /// A server with the release 99.0.0: its AppImage (`described` says what GitHub knows of it, `sent`
-/// what is downloaded), a .deb and a setup for Windows.
+/// what is downloaded), a .deb and a setup for Windows. A later release is for Windows only.
 fn release_server(described: &[u8], sent: &[u8]) -> Server {
     let name = release(described).asset_name;
     let json = |url: &str| {
-        json!({
+        let windows_only = json!({ "tag_name": "v99.0.1", "assets": [{ "name": "AnyVector-99.0.1-setup.exe", "browser_download_url": format!("{url}/setup"), "size": 5, "digest": sha256(b"setup") }] });
+        let release = json!({
             "tag_name": "v99.0.0",
             "body": "## What's new\n\n- Everything",
             "html_url": "https://github.com/toim22/AnyVector/releases/tag/v99.0.0",
@@ -555,10 +556,10 @@ fn release_server(described: &[u8], sent: &[u8]) -> Server {
                 { "name": "anyvector_99.0.0_amd64.deb", "browser_download_url": format!("{url}/deb"), "size": 3, "digest": sha256(b"deb") },
                 { "name": name, "browser_download_url": format!("{url}/appimage"), "size": described.len(), "digest": sha256(described) }
             ]
-        })
-        .to_string()
+        });
+        json!([windows_only, release]).to_string()
     };
-    Server::start(|url| vec![("/latest".into(), json(url).into_bytes()), ("/appimage".into(), sent.to_vec()), ("/setup".into(), b"setup".to_vec()), ("/deb".into(), b"deb".to_vec())])
+    Server::start(|url| vec![("/releases".into(), json(url).into_bytes()), ("/appimage".into(), sent.to_vec()), ("/setup".into(), b"setup".to_vec()), ("/deb".into(), b"deb".to_vec())])
 }
 
 /// AnyVector without a window, running from the AppImage `file`, with its downloads in `dir`.
@@ -608,7 +609,7 @@ fn an_appimage_updates_itself() {
     let new = program("new");
     let server = release_server(&new, &new);
     let mut h = anyvector(&file, &cache);
-    start_check_at(h.state_mut(), true, format!("{}/latest", server.url));
+    start_check_at(h.state_mut(), true, format!("{}/releases", server.url));
     wait_until(&mut h, "download", |s| matches!(s, Status::Ready(..)));
     let download = cache.join(release(&new).asset_name);
     assert_eq!(fs::read(&download).unwrap(), new);
@@ -620,7 +621,7 @@ fn an_appimage_updates_itself() {
     crate::updater::run_pending_install(h.state_mut());
     assert_eq!(fs::read(&file).unwrap(), program("old"));
     let mut h = anyvector(&file, &cache);
-    start_check_at(h.state_mut(), true, format!("{}/latest", server.url));
+    start_check_at(h.state_mut(), true, format!("{}/releases", server.url));
     wait_until(&mut h, "download used again", |s| matches!(s, Status::Ready(..)));
     assert_eq!(server.served("/appimage"), 1);
     // unless it was damaged meanwhile
@@ -628,7 +629,7 @@ fn an_appimage_updates_itself() {
     damaged[new.len() - 1] ^= 1;
     fs::write(&download, &damaged).unwrap();
     let mut h = anyvector(&file, &cache);
-    start_check_at(h.state_mut(), true, format!("{}/latest", server.url));
+    start_check_at(h.state_mut(), true, format!("{}/releases", server.url));
     wait_until(&mut h, "downloaded again", |s| matches!(s, Status::Ready(..)));
     assert_eq!((server.served("/appimage"), fs::read(&download).unwrap()), (2, new.clone()));
     // OK
@@ -658,7 +659,7 @@ fn a_wrong_download_is_refused() {
     put(&file, &program("old"), 0o755);
     let server = release_server(&program("new"), &program("bad"));
     let mut h = anyvector(&file, &cache);
-    start_check_at(h.state_mut(), true, format!("{}/latest", server.url));
+    start_check_at(h.state_mut(), true, format!("{}/releases", server.url));
     // the check at start stays quiet: the version is still announced
     wait_until(&mut h, "refused", |s| matches!(s, Status::Available(_)) && server.served("/appimage") == 1);
     wait_until(&mut h, "settled", |s| matches!(s, Status::Available(_)));
@@ -688,7 +689,7 @@ fn an_update_that_fails_on_exit_is_told_at_the_next_start() {
     let new = program("new");
     let server = release_server(&new, &new);
     let mut h = anyvector(&file, &cache);
-    start_check_at(h.state_mut(), true, format!("{}/latest", server.url));
+    start_check_at(h.state_mut(), true, format!("{}/releases", server.url));
     wait_until(&mut h, "download", |s| matches!(s, Status::Ready(..)));
     click(&mut h, "OK");
     fs::set_permissions(&apps, fs::Permissions::from_mode(0o555)).unwrap();
@@ -704,7 +705,7 @@ fn an_update_that_fails_on_exit_is_told_at_the_next_start() {
     assert!(h.query_all_by_label(&reason).next().is_some(), "{reason}");
     click(&mut h, "Close");
     // and now it is known to be read-only: announced, nothing downloaded again
-    start_check_at(h.state_mut(), true, format!("{}/latest", server.url));
+    start_check_at(h.state_mut(), true, format!("{}/releases", server.url));
     wait_until(&mut h, "announced", |s| matches!(s, Status::Available(_)));
     assert!(h.query_all_by_label("Open Release Page").next().is_some());
     assert!(h.query_all_by_label("OK").next().is_none());
@@ -715,7 +716,7 @@ fn an_update_that_fails_on_exit_is_told_at_the_next_start() {
     // read-only between the message and OK: the message says so now, and AnyVector doesn't close
     fs::set_permissions(&apps, fs::Permissions::from_mode(0o755)).unwrap();
     let mut h = anyvector(&file, &cache);
-    start_check_at(h.state_mut(), true, format!("{}/latest", server.url));
+    start_check_at(h.state_mut(), true, format!("{}/releases", server.url));
     wait_until(&mut h, "download", |s| matches!(s, Status::Ready(..)));
     assert!(h.query_all_by_label("OK").next().is_some());
     fs::set_permissions(&apps, fs::Permissions::from_mode(0o555)).unwrap();
@@ -736,12 +737,12 @@ fn a_package_is_only_told() {
     let server = release_server(&program("new"), &program("new"));
     let mut h = anyvector(&file, &cache);
     h.state_mut().update.install = Install::Other;
-    start_check_at(h.state_mut(), true, format!("{}/latest", server.url));
+    start_check_at(h.state_mut(), true, format!("{}/releases", server.url));
     wait_until(&mut h, "announced", |s| matches!(s, Status::Available(_)));
     click(&mut h, "Open Release Page");
     assert!(!h.state().update.prompt);
     assert!(!cache.exists());
-    assert_eq!(*server.served.lock().unwrap(), ["/latest"]);
+    assert_eq!(*server.served.lock().unwrap(), ["/releases"]);
     // fetching is for AppImages; the file of a release that isn't one is refused
     let (tx, _rx) = std::sync::mpsc::channel();
     let mut r = release(&program("new"));
