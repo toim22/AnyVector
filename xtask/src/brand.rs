@@ -1,7 +1,8 @@
 //! Brand assets drawn from the two SVGs in `crates/anyvector/assets/brand/`:
 //!
 //! - `anyvector-icon.svg` (the airship on its rounded dark tile) is the program's icon: the exe and
-//!   window icon, shortcuts, file associations and the installer's icon.
+//!   window icon, shortcuts, file associations and the installer's icon, and the Linux packages'
+//!   icons (`packaging/linux/icons`).
 //! - `anyvector-logo.svg` (the airship alone) is the logo: splash screen, About box, Welcome screen
 //!   and the installer's side picture.
 
@@ -13,6 +14,10 @@ use std::path::Path;
 
 /// Sizes stored in the .ico (Windows picks the closest one for each place it shows the icon).
 const ICO_SIZES: [u32; 10] = [16, 20, 24, 32, 40, 48, 64, 96, 128, 256];
+/// Sizes of the Linux packages' icons (the hicolor theme's; the SVG itself is its `scalable` one).
+const HICOLOR_SIZES: [u32; 9] = [16, 22, 24, 32, 48, 64, 128, 256, 512];
+/// The name of the Linux icons: the program's application id (`APP_ID` in the anyvector crate).
+const LINUX_ICON: &str = "io.github.toim22.AnyVector.png";
 /// Display scales the installer has a picture for (Setup picks the one that fits the screen).
 const SCALES: [u32; 6] = [100, 125, 150, 175, 200, 250];
 
@@ -123,6 +128,13 @@ pub fn run() -> Result<()> {
     IcoEncoder::new(std::fs::File::create(&ico)?).encode_images(&frames)?;
     println!("  {} ({} sizes)", ico.strip_prefix(&root).unwrap_or(&ico).display(), frames.len());
     save_png(&render(&icon, 256, 256, &opt)?, &assets.join("icon-256.png"))?;
+
+    println!("Linux icons:");
+    for n in HICOLOR_SIZES {
+        let dir = root.join(format!("packaging/linux/icons/hicolor/{n}x{n}/apps"));
+        std::fs::create_dir_all(&dir)?;
+        save_png(&render(&icon, n, n, &opt)?, &dir.join(LINUX_ICON))?;
+    }
 
     println!("logo:");
     let (vb, _) = split_svg(&logo)?;

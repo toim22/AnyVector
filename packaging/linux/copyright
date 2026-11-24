@@ -1,0 +1,45 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: AnyVector
+Source: https://github.com/toim22/AnyVector
+Comment:
+ AnyVector is proprietary software. The open-source components inside the program
+ are listed with their licenses and addresses in legal/third-party-licenses.txt,
+ next to this file, and in Help > About AnyVector > Legal Notices.
+ .
+ Components under the Mozilla Public License 2.0, and where to get their source:
+ .
+  - the libcdr colour palette tables: legal/palettes.rs, next to this file, is the
+    source as AnyVector uses it
+  - option-ext: https://crates.io/crates/option-ext
+  - smartstring: https://crates.io/crates/smartstring
+  - spellbook: https://crates.io/crates/spellbook
+ .
+ AnyVector uses option-ext, smartstring and spellbook unchanged, in the versions
+ legal/third-party-licenses.txt gives.
+
+Files: *
+Copyright: 2026 AnyVector Team
+License: AnyVector
+
+Files: usr/share/doc/anyvector/legal/palettes.rs
+Copyright: the authors of libcdr, part of the LibreOffice project
+License: MPL-2.0
+Comment: Taken from https://git.libreoffice.org/libcdr.
+
+Files: usr/share/doc/anyvector/legal/Selawik-OFL.txt
+Copyright: 2015 Microsoft Corporation
+License: OFL-1.1
+Comment:
+ The Selawik font, inside the program, is the interface's font where Segoe UI is not
+ installed.
+
+License: AnyVector
+ Copyright (c) 2026 AnyVector Team. All rights reserved. AnyVector is proprietary
+ software.
+
+License: MPL-2.0
+ The license text is legal/MPL-2.0.txt, next to this file, and
+ /usr/share/common-licenses/MPL-2.0 on Debian and Ubuntu.
+
+License: OFL-1.1
+ The license text is legal/Selawik-OFL.txt, next to this file.

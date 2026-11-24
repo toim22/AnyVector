@@ -2861,7 +2861,14 @@ Release Notes	Заметки о выпуске
 Install Now	Установить
 Open Release Page	Открыть страницу выпуска
 Click Open Release Page to download it.	Нажмите «Открыть страницу выпуска», чтобы загрузить ее.
-AnyVector cannot install updates by itself on Linux yet.	AnyVector пока не умеет сам устанавливать обновления в Linux.
+Only the AppImage of AnyVector installs updates by itself on Linux.	В Linux только AppImage AnyVector сам устанавливает обновления.
+You do not have permission to replace {}.	У вас нет разрешения на замену {}.
+This release has no AppImage for this computer.	В этом выпуске нет AppImage для этого компьютера.
+This release has no checksum to verify its AppImage with.	В этом выпуске нет контрольной суммы для проверки его AppImage.
+The downloaded file does not match the checksum of the release. Please try again.	Загруженный файл не соответствует контрольной сумме выпуска. Повторите попытку.
+The downloaded file is not an AppImage for this computer.	Загруженный файл не является AppImage для этого компьютера.
+AnyVector {} could not be installed.	Не удалось установить AnyVector {}.
+{} was moved or changed while AnyVector was running.	Файл {} был перемещен или изменен во время работы AnyVector.
 Check Now	Проверить
 Later	Позже
 There is a new version of AnyVector available.	Доступна новая версия AnyVector.

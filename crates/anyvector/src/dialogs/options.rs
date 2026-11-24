@@ -2006,7 +2006,7 @@ fn global_general(app: &mut AnyVectorApp, ui: &mut Ui) {
         combo(ui, "upd_mode", &mut m, &crate::updater::MODES, 330.0);
         s.update_mode = m.min(2) as u8;
     });
-    let mode_note = crate::updater::MODE_NOTES[(s.update_mode as usize).min(2)];
+    let mode_note = app.update.install.mode_note(s.update_mode);
     let check = ui.indent("upd_note", |ui| {
         note(ui, mode_note);
         ui.button("Check Now").clicked()

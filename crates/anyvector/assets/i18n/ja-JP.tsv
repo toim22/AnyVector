@@ -2861,7 +2861,14 @@ Release Notes	リリース ノート
 Install Now	今すぐインストール
 Open Release Page	リリース ページを開く
 Click Open Release Page to download it.	ダウンロードするには [リリース ページを開く] をクリックしてください。
-AnyVector cannot install updates by itself on Linux yet.	AnyVector は Linux ではまだ更新プログラムを自動でインストールできません。
+Only the AppImage of AnyVector installs updates by itself on Linux.	Linux で更新プログラムを自動でインストールするのは、AnyVector の AppImage だけです。
+You do not have permission to replace {}.	{} を置き換える権限がありません。
+This release has no AppImage for this computer.	このリリースには、このコンピューター用の AppImage がありません。
+This release has no checksum to verify its AppImage with.	このリリースには、AppImage を検証するためのチェックサムがありません。
+The downloaded file does not match the checksum of the release. Please try again.	ダウンロードしたファイルがリリースのチェックサムと一致しません。もう一度お試しください。
+The downloaded file is not an AppImage for this computer.	ダウンロードしたファイルは、このコンピューター用の AppImage ではありません。
+AnyVector {} could not be installed.	AnyVector {} をインストールできませんでした。
+{} was moved or changed while AnyVector was running.	AnyVector の実行中に {} が移動または変更されました。
 Check Now	今すぐ確認
 Later	後で
 There is a new version of AnyVector available.	AnyVector の新しいバージョンが利用可能です。

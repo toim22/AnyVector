@@ -2,7 +2,8 @@
 
 Status: assessment written 2026-11-23 (AnyVector 0.6.1, commit 7447911). **Phase 0 and Phase 1 done**
 the same day (issue #51, PR #153) and **Phase 2 done** 2026-11-24 (printing, spell check, code pages,
-eyedropper outside the window, scanners, save options): section 8 says what was built. The audit of file names, the 79
+eyedropper outside the window, scanners, save options): section 8 says what was built. Phase 3
+(packages and updater) is built too; the beta is not published yet. The audit of file names, the 79
 closed issues and feature gaps is in [LINUX-AUDIT.md](LINUX-AUDIT.md).
 
 First Linux build (2026-11-23, WSL 2 Ubuntu 24.04, Rust 1.99.1, AnyVector 0.6.2): the whole workspace
@@ -145,7 +146,7 @@ licence file.
 
 **Phase 3 – Packaging and release (about 1 week)**
 1. `.desktop` file, icons, MIME types, AppStream metadata.
-2. AppImage build in CI; `.deb` with `cargo-deb`.
+2. AppImage build in CI; `.deb` (built with `dpkg-deb`, not `cargo-deb`: no extra tool to install).
 3. Updater: find the asset for the running platform (`-setup.exe` on Windows, `.AppImage` on Linux)
    and replace the AppImage; packaged installs only announce new versions.
 4. Release notes and README section "Installing on Linux"; publish the first Linux build as a beta
@@ -172,7 +173,7 @@ Rough total for a first public Linux beta: **4–6 weeks** of focused work, most
    two real implementations, and it prepares a future macOS port). Suggestion: the `platform/`
    module, done gradually as each feature gets its Linux version.
 
-## 8. What Phases 0 to 2 built (from 2026-11-23, PR #153)
+## 8. What Phases 0 to 3 built (from 2026-11-23, PRs #153 and #154)
 
 The Linux code sits behind `cfg`, so the Windows program is unchanged, apart from the shared bug
 fixes listed at the end of this section.
@@ -211,8 +212,7 @@ program when several did that at once. Set `WGPU_BACKEND` to choose another back
 - System Info: os-release, /proc, WSL detection, XDG desktop and session, xrandr or /sys/class/drm,
   `df`, CUPS `lpstat`, loaded libraries from /proc/self/maps; `sysinfo::platform_summary()` is the bug
   report's system line.
-- Updates: `asset_for` picks each system's file; Linux only announces new releases with **Open Release
-  Page** (nothing is downloaded or run) until the AppImage exists.
+- Updates: see Updater below.
 - AI keys: `~/.config/environment.d/anyvector.conf` (mode 0600) plus `systemctl --user
   import-environment`; AnyVector reads the file itself, so the key works at once.
 
@@ -329,6 +329,40 @@ Desktop button.
   Scanner (simple-scan) when it is there.
 - A real scan with SANE's virtual test scanner is one of the `clip_real_linux` tests (needs sane-utils).
 
+**Packages (Phase 3, `packaging/linux`).** `build.sh` writes both packages to `dist/`; the `linux` job of
+`build.yml` builds, checks, installs and starts them and keeps them as the artifact
+`AnyVector-linux-packages`, and `linux-install` starts the .deb in Ubuntu 22.04, 24.04 and Debian 12
+containers. Nothing is published by CI: both files are added to a release by hand.
+- `AnyVector-<version>-x86_64.AppImage`: a squashfs behind the official static runtime (pinned by its
+  checksum). AppRun is the program itself, with no script and no `LD_LIBRARY_PATH`, so the programs
+  AnyVector starts keep the system's environment. It needs `fusermount3`, or
+  `--appimage-extract-and-run`; it registers no file types.
+- `anyvector_<version>_amd64.deb`, made with `dpkg-deb`. The window, graphics and D-Bus libraries are
+  opened at run time, so `control.in` lists them by hand with the reason for each. It depends on
+  `xdg-desktop-portal | zenity`, because file dialogs need one of them.
+- File types: AnyVector owns only `.vct`. The other formats it opens are in a hidden second desktop file
+  (`zz-...-open.desktop`) that sorts last, so "Open with" offers AnyVector but it never becomes the
+  default for another program's files (as with the Windows setup).
+- The legal files are in `/usr/share/doc/anyvector/legal`. `cargo run -p xtask -- brand` draws the icons.
+- A new version needs its line (version and date) in `io.github.toim22.AnyVector.metainfo.xml`; the test
+  `metainfo_lists_this_version_first` fails until it is there.
+
+**Updater (Phase 3, `updater.rs`, `updater/appimage.rs`).** The AppImage replaces itself; a .deb, a plain
+program or an AppImage the user can't write is only told of new versions, with **Open Release Page**.
+AnyVector never uses sudo and never downloads the .deb.
+- `APPIMAGE` and `APPDIR` are inherited by child programs, so they are not trusted alone: the program must
+  be inside `$APPDIR`, `$APPIMAGE` must be a type 2 AppImage for this processor outside it, and the runtime
+  must have made that folder (a FUSE mount, or the parent process when extracted).
+- Only `AnyVector-<version>-<arch>.AppImage` of the release is taken. Its size, GitHub's sha256 digest and
+  its header are checked after the download, when an earlier download is reused, and while it is copied. A
+  release without a digest is only announced.
+- It is replaced when AnyVector closes, after the drawings are saved: a copy in the same folder, fsync, an
+  atomic rename. Links, the user's file name and the permissions stay. On any failure the old file is left
+  alone and the next AnyVector window says why.
+- The new one starts when the old process has ended, with the AppImage variables removed.
+  `ANYVECTOR_RENDERER_FALLBACK` marks a renderer AnyVector chose itself, so the new version tries wgpu again.
+- Downloads are kept in `~/.cache/AnyVector/Updates`. The end-to-end tests use a local HTTP server.
+
 **Shared bug fixes (also change Windows).**
 - `cmd /C start` targets with `&` (bug-report URLs, file names) were split and could run commands; the
   target now goes through an environment variable, and the mail subject is fully percent-encoded.
@@ -337,7 +371,7 @@ Desktop button.
 - `settings.json` is written through a temporary file, so a crash cannot truncate it; a variable name
   with `=` or NUL no longer crashes AI Save Key.
 
-**Known limits after Phase 2.** No native-Wayland drag and drop (winit 0.30); clipboard contents vanish
-on exit under Wayland without a clipboard manager; packaging and the self-updating AppImage are Phase 3
-(the packages should depend on xdg-desktop-portal or zenity: without one of them file dialogs do not
-open). Not tried yet: a physical printer or scanner, and the color picker of a real GNOME or KDE desktop.
+**Known limits after Phase 3.** No native-Wayland drag and drop (winit 0.30); clipboard contents vanish
+on exit under Wayland without a clipboard manager; a program AnyVector opened (such as the browser) keeps
+the old AppImage's mount until it closes. Not tried yet: a physical printer or scanner, and a real GNOME or
+KDE desktop (color picker, menus, "Open with").

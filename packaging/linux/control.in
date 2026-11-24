@@ -1,0 +1,40 @@
+# The .deb's control file. build.sh fills in @VERSION@, @SIZE@ and @SHLIBS@ (the libraries the
+# program is linked with: libc, libgcc) and takes out these comments.
+#
+# Depends:
+# - the window's libraries are opened at run time, so dpkg-shlibdeps does not see them. X11 and
+#   Wayland, keyboard, OpenGL, Vulkan: without the X11, keyboard or Wayland ones no window opens in
+#   that session; OpenGL is the fallback where Vulkan does not work, and the other way round.
+#   libfontconfig: the fonts of the system. libdbus: the file dialogs of the desktop (rfd).
+# - xdg-desktop-portal or zenity: without either, Open and Save show nothing at all.
+# - xdg-utils: pages, files, folders and e-mails open through it.
+# These names are the same in Ubuntu 22.04 and later and Debian 12 and later (none has a t64 name).
+#
+# Recommends: drivers for a machine without its maker's, the portal that shows GTK file dialogs, the
+# Windows fonts' twins and the other alphabets, the command-line programs File > Print uses, a
+# spelling dictionary, dbus-send for "show in folder" (in dbus, or in the dbus-bin it brings), and what
+# registers the file types and the program for "Open with".
+#
+# Suggests: scanning (File > Acquire Image) and the screens in Help > About > System Info.
+Package: anyvector
+Version: @VERSION@
+Architecture: amd64
+Maintainer: AnyVector Team <toim22@users.noreply.github.com>
+Installed-Size: @SIZE@
+Depends: @SHLIBS@, libx11-6, libx11-xcb1, libxcb1, libxcursor1, libxi6, libxkbcommon0, libxkbcommon-x11-0, libwayland-client0, libwayland-egl1, libegl1, libgl1, libvulkan1, libfontconfig1, libdbus-1-3, hicolor-icon-theme, xdg-utils, xdg-desktop-portal | zenity
+Recommends: mesa-vulkan-drivers | vulkan-icd, libgl1-mesa-dri, xdg-desktop-portal-gtk | xdg-desktop-portal-backend | zenity, shared-mime-info, desktop-file-utils, dbus, cups-client, hunspell-en-us | hunspell-dictionary, fonts-liberation, fonts-crosextra-carlito, fonts-crosextra-caladea, fonts-dejavu-core, fonts-noto-core, fonts-noto-cjk | fonts-wqy-microhei
+Suggests: sane-utils, x11-xserver-utils
+Section: graphics
+Priority: optional
+Homepage: https://github.com/toim22/AnyVector
+Description: vector graphics editor
+ AnyVector is a vector graphics editor for illustrations, layouts and logos.
+ Its menus, toolbars, tools, property bars, dockers and dialogs follow the
+ CorelDRAW layout, with the same captions, shortcuts and order.
+ .
+ It opens drawings saved by CorelDRAW, and SVG, PDF, EPS, PostScript, Adobe
+ Illustrator, DXF and CMX files, and publishes to PDF. Its interface is
+ available in 15 languages.
+ .
+ CorelDRAW is a trademark of its owner. AnyVector is an independent product,
+ not affiliated with it.

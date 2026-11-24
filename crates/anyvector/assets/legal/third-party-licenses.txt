@@ -674,9 +674,9 @@ libc 0.2.191
 libcdr colour palette tables
     License: MPL-2.0
     Taken from https://git.libreoffice.org/libcdr. The source as AnyVector uses it is
-    legal\palettes.rs in the install folder, and
+    legal\palettes.rs in the install folder (on Linux, in /usr/share/doc/anyvector/legal), and
     https://github.com/toim22/AnyVector/blob/main/crates/vector-io/src/corel/palettes.rs
-    The license text is legal\MPL-2.0.txt in the install folder.
+    The license text is legal\MPL-2.0.txt in the same folder.
 libflate 1.4.0
     License: MIT
     https://github.com/sile/libflate
