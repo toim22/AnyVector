@@ -1651,7 +1651,9 @@ pub fn writing_tools(app: &mut AnyVectorApp, ctx: &egui::Context) {
                                 match missing {
                                     Some(p) => {
                                         let t = format!("No spelling dictionary for {} is installed. Install the {} package.", st.lang, p);
-                                        ui.add_sized(vec2(176.0, 48.0), egui::Label::new(dim(&t)).wrap());
+                                        // up to the Check list, without moving it down
+                                        let r = ERect::from_min_size(ui.cursor().min - vec2(0.0, 2.0), vec2(240.0, 44.0));
+                                        ui.new_child(egui::UiBuilder::new().max_rect(r).layout(egui::Layout::top_down(egui::Align::Min))).add(egui::Label::new(dim(&t)).wrap());
                                     }
                                     None => {
                                         ui.label(dim(&t));

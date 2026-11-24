@@ -8245,6 +8245,11 @@ fn visual_spell_checker_hunspell() {
     h.state_mut().dialogs.writing = Some(st);
     assert_eq!(crate::spell::missing_dictionary_package("it-IT").as_deref(), Some("hunspell-it"));
     save(&mut h, "spell_hunspell_04_no_dictionary");
+    // the longest translation
+    h.state_mut().settings.language = "de-DE".into();
+    save(&mut h, "spell_hunspell_05_no_dictionary_german");
+    h.state_mut().settings.language = "en-US".into();
+    h.step();
     let _ = std::fs::remove_dir_all(&root);
 }
 
