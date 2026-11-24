@@ -438,22 +438,38 @@ fn visual_interface_fonts() {
     img.save(out_dir().join("93_interface_fonts.png")).unwrap();
 }
 
-/// The message shown at start when a new version is found, in English and in Brazilian Portuguese.
+/// A release of this version with this file, checksum and notes.
+fn update_release(version: &str, asset: &str, notes: &str) -> crate::updater::Release {
+    crate::updater::Release {
+        version: version.into(),
+        tag: format!("v{version}"),
+        notes: notes.into(),
+        page: format!("https://github.com/toim22/AnyVector/releases/tag/v{version}"),
+        asset_name: asset.into(),
+        digest: format!("sha256:{}", "0".repeat(64)),
+        ..Default::default()
+    }
+}
+
+fn update_appimage_name(version: &str) -> String {
+    format!("AnyVector-{version}-{}.AppImage", std::env::consts::ARCH)
+}
+
+/// An AnyVector that runs from an AppImage.
+fn update_from_appimage(writable: bool) -> crate::updater::Install {
+    crate::updater::Install::AppImage(crate::updater::AppImage { file: "/opt/apps/AnyVector.AppImage".into(), id: (1, 2), extracted: false, writable })
+}
+
+/// The message shown at start when a new version is found, in English and in Brazilian Portuguese:
+/// the same on Windows (the setup) and for an AppImage.
 #[test]
 #[ignore]
 fn visual_update_prompt() {
-    use crate::updater::{Release, Status};
+    use crate::updater::{Install, Status};
+    use egui_kittest::kittest::Queryable;
     let mut h = harness();
-    let r = Release {
-        version: "0.2.0".into(),
-        tag: "v0.2.0".into(),
-        notes: String::new(),
-        page: String::new(),
-        asset_name: "AnyVector-0.2.0-setup.exe".into(),
-        asset_url: String::new(),
-        asset_size: 0,
-        via_gh: false,
-    };
+    h.state_mut().update.install = Install::Setup;
+    let r = update_release("0.2.0", "AnyVector-0.2.0-setup.exe", "");
     h.state_mut().update.status = Status::Available(r.clone());
     h.state_mut().update.prompt = true;
     save(&mut h, "91_update_prompt");
@@ -464,101 +480,187 @@ fn visual_update_prompt() {
     h.state_mut().update.install_when_ready = true;
     save(&mut h, "91_update_prompt_ptbr_downloading");
     h.state_mut().settings.language = "en-US".into();
-    h.state_mut().update.prompt = false;
     h.state_mut().update.install_when_ready = false;
+    // an AppImage that replaces itself: the same message
+    h.state_mut().update.install = update_from_appimage(true);
+    h.state_mut().update.status = Status::Available(update_release("9.9.9", &update_appimage_name("9.9.9"), ""));
+    save(&mut h, "91_update_prompt_appimage");
+    assert!(h.query_all_by_label("OK").next().is_some(), "OK installs the new AppImage");
+    assert!(h.query_all_by_label("Open Release Page").next().is_none());
+    h.state_mut().settings.language = "pt-BR".into();
+    save(&mut h, "91_update_prompt_appimage_ptbr");
+    h.state_mut().settings.language = "en-US".into();
+    h.state_mut().update.prompt = false;
     h.step();
     assert_eq!(crate::i18n::lang(), crate::i18n::Lang::EnUs);
 }
 
 /// Help > Updates with a new version found: the Install Now button must show with long release
-/// notes, and while the setup downloads in the background (issue #33).
+/// notes, and while the setup (or AppImage) downloads in the background (issue #33).
 #[test]
 #[ignore]
 fn visual_updates_dialog() {
+    use crate::updater::{Install, Status};
     use egui_kittest::kittest::Queryable;
-    use crate::updater::{Release, Status};
     let mut h = harness();
-    let notes = include_str!("../../../docs/RELEASE-NOTES-0.3.0.md").to_string();
-    let r = Release {
-        version: "9.9.9".into(),
-        tag: "v9.9.9".into(),
-        notes,
-        page: String::new(),
-        asset_name: "AnyVector-9.9.9-setup.exe".into(),
-        asset_url: String::new(),
-        asset_size: 0,
-        via_gh: false,
-    };
-    h.state_mut().update.dialog = true;
-    h.state_mut().update.status = Status::Available(r.clone());
-    save(&mut h, "92_updates_available");
-    // a Windows setup is never installed on Linux: the version is only announced (visual_update_announced)
-    let offered = h.query_all_by_label("Install Now").next().is_some();
-    assert_eq!(offered, cfg!(windows), "Install Now when a version is available (Windows only)");
-    h.state_mut().update.status = Status::Downloading(r.clone(), 0.4);
-    save(&mut h, "92_updates_downloading");
-    assert!(h.query_all_by_label("Install Now").next().is_some(), "Install Now is missing while the setup downloads");
-    // pressing it while the download runs: AnyVector installs as soon as it ends
-    let at = h.get_by_label("Install Now").rect().center();
-    click(&mut h, at);
-    assert!(h.state().update.install_when_ready);
-    save(&mut h, "92_updates_downloading_install");
-    h.state_mut().update.install_when_ready = false;
-    h.state_mut().settings.language = "pt-BR".into();
-    save(&mut h, "92_updates_downloading_ptbr");
-    h.state_mut().settings.language = "en-US".into();
-    h.state_mut().update.status = Status::Ready(r, std::path::PathBuf::from("setup.exe"));
-    save(&mut h, "92_updates_ready");
-    assert!(h.query_all_by_label("Install Now").next().is_some(), "Install Now is missing when the setup is ready");
+    let notes = include_str!("../../../docs/RELEASE-NOTES-0.3.0.md");
+    let kinds = [("92_updates", Install::Setup, "AnyVector-9.9.9-setup.exe".to_string()), ("92_updates_appimage", update_from_appimage(true), update_appimage_name("9.9.9"))];
+    for (name, install, asset) in kinds {
+        let r = update_release("9.9.9", &asset, notes);
+        h.state_mut().update.install = install.clone();
+        h.state_mut().update.dialog = true;
+        h.state_mut().update.status = Status::Available(r.clone());
+        save(&mut h, &format!("{name}_available"));
+        assert!(h.query_all_by_label("Install Now").next().is_some(), "Install Now is missing when a version is available");
+        assert!(h.query_all_by_label("Open Release Page").next().is_none());
+        // the other system's file is only announced
+        let other = if asset.ends_with(".exe") { update_appimage_name("9.9.9") } else { "AnyVector-9.9.9-setup.exe".into() };
+        h.state_mut().update.status = Status::Available(update_release("9.9.9", &other, notes));
+        for _ in 0..3 {
+            h.step();
+        }
+        assert!(h.query_all_by_label("Install Now").next().is_none(), "{other} is not for {install:?}");
+        h.state_mut().update.status = Status::Downloading(r.clone(), 0.4);
+        save(&mut h, &format!("{name}_downloading"));
+        assert!(h.query_all_by_label("Install Now").next().is_some(), "Install Now is missing while the setup downloads");
+        // pressing it while the download runs: AnyVector installs as soon as it ends
+        let at = h.get_by_label("Install Now").rect().center();
+        click(&mut h, at);
+        assert!(h.state().update.install_when_ready);
+        save(&mut h, &format!("{name}_downloading_install"));
+        h.state_mut().update.install_when_ready = false;
+        h.state_mut().settings.language = "pt-BR".into();
+        save(&mut h, &format!("{name}_downloading_ptbr"));
+        h.state_mut().settings.language = "en-US".into();
+        // Install Now looked whether the file can be replaced (this one doesn't exist)
+        h.state_mut().update.install = install;
+        h.state_mut().update.status = Status::Ready(r, std::path::PathBuf::from(&asset));
+        save(&mut h, &format!("{name}_ready"));
+        assert!(h.query_all_by_label("Install Now").next().is_some(), "Install Now is missing when the setup is ready");
+    }
     h.state_mut().update.dialog = false;
     h.state_mut().update.status = Status::Idle;
     h.step();
 }
 
-/// A new version with nothing this system installs (always on Linux: AnyVector has no Linux
-/// package to update yet): the message at start and Help > Updates announce it, with Open Release
-/// Page instead of OK and Install Now, and nothing is downloaded.
+/// A new version this copy of AnyVector doesn't install by itself (Linux): a package or a plain
+/// program, an AppImage the user can't write, a release without an AppImage for this computer or
+/// without its checksum. The message at start and Help > Updates announce it and say why, with Open
+/// Release Page instead of OK and Install Now, and nothing is downloaded.
 #[test]
 #[ignore]
 fn visual_update_announced() {
+    use crate::updater::{Install, Status};
     use egui_kittest::kittest::Queryable;
-    use crate::updater::{Release, Status};
     let mut h = harness();
-    let r = Release {
-        version: "9.9.9".into(),
-        tag: "v9.9.9".into(),
-        notes: include_str!("../../../docs/RELEASE-NOTES-0.3.0.md").to_string(),
-        page: "https://github.com/toim22/AnyVector/releases/tag/v9.9.9".into(),
-        asset_name: String::new(),
-        asset_url: String::new(),
-        asset_size: 0,
-        via_gh: false,
-    };
-    assert!(!r.installable());
-    h.state_mut().update.status = Status::Available(r.clone());
-    h.state_mut().update.prompt = true;
-    save(&mut h, "92_updates_announced_prompt");
-    assert!(h.query_all_by_label("Open Release Page").next().is_some(), "Open Release Page is missing in the message");
-    assert!(h.query_all_by_label("OK").next().is_none(), "OK would install a setup this system doesn't have");
-    h.state_mut().settings.language = "pt-BR".into();
-    save(&mut h, "92_updates_announced_prompt_ptbr");
-    h.state_mut().settings.language = "en-US".into();
-    h.step();
-    // Open Release Page takes the user to the page (no browser in tests) and closes the message
-    click_label(&mut h, "Open Release Page");
-    assert!(!h.state().update.prompt, "the message stays after Open Release Page");
-    assert!(matches!(h.state().update.status, Status::Available(_)), "nothing is downloaded");
-    h.state_mut().update.dialog = true;
-    save(&mut h, "92_updates_announced_dialog");
-    assert!(h.query_all_by_label("Open Release Page").next().is_some(), "Open Release Page is missing in Help > Updates");
-    assert!(h.query_all_by_label("Install Now").next().is_none(), "Install Now would install a setup this system doesn't have");
-    click_label(&mut h, "Open Release Page");
-    assert!(matches!(h.state().update.status, Status::Available(_)), "nothing is downloaded");
-    assert!(h.state().update.dialog, "Help > Updates stays open");
-    h.state_mut().update.dialog = false;
+    let notes = include_str!("../../../docs/RELEASE-NOTES-0.3.0.md");
+    let image = update_release("9.9.9", &update_appimage_name("9.9.9"), notes);
+    let mut unsigned = image.clone();
+    unsigned.digest = String::new();
+    let cases = [
+        ("package", Install::Other, image.clone()),
+        ("readonly", update_from_appimage(false), image),
+        ("noappimage", update_from_appimage(true), update_release("9.9.9", "", notes)),
+        ("nochecksum", update_from_appimage(true), unsigned),
+    ];
+    for (name, install, r) in cases {
+        assert!(!install.installs(&r));
+        h.state_mut().update.install = install;
+        h.state_mut().update.status = Status::Available(r.clone());
+        h.state_mut().update.prompt = true;
+        save(&mut h, &format!("92_updates_announced_{name}_prompt"));
+        assert!(h.query_all_by_label("Open Release Page").next().is_some(), "Open Release Page is missing in the message");
+        assert!(h.query_all_by_label("OK").next().is_none(), "OK would install what can't be installed");
+        let why = h.state().update.install.announced_because(&r).unwrap();
+        assert!(h.query_all_by_label(&why).next().is_some(), "the message doesn't say why");
+        h.state_mut().settings.language = "pt-BR".into();
+        save(&mut h, &format!("92_updates_announced_{name}_prompt_ptbr"));
+        assert_ne!(crate::i18n::t(&why), why, "not translated");
+        h.state_mut().settings.language = "en-US".into();
+        h.step();
+        // Open Release Page takes the user to the page (no browser in tests) and closes the message
+        click_label(&mut h, "Open Release Page");
+        assert!(!h.state().update.prompt, "the message stays after Open Release Page");
+        assert!(matches!(h.state().update.status, Status::Available(_)), "nothing is downloaded");
+        h.state_mut().update.dialog = true;
+        save(&mut h, &format!("92_updates_announced_{name}_dialog"));
+        assert!(h.query_all_by_label("Open Release Page").next().is_some(), "Open Release Page is missing in Help > Updates");
+        assert!(h.query_all_by_label("Install Now").next().is_none(), "Install Now would install what can't be installed");
+        h.state_mut().settings.language = "pt-BR".into();
+        save(&mut h, &format!("92_updates_announced_{name}_dialog_ptbr"));
+        h.state_mut().settings.language = "en-US".into();
+        h.step();
+        click_label(&mut h, "Open Release Page");
+        assert!(matches!(h.state().update.status, Status::Available(_)), "nothing is downloaded");
+        assert!(h.state().update.dialog, "Help > Updates stays open");
+        h.state_mut().update.dialog = false;
+    }
     h.state_mut().update.status = Status::Idle;
     h.step();
     assert_eq!(crate::i18n::lang(), crate::i18n::Lang::EnUs);
+}
+
+/// The message at the start after an update that could not be installed when AnyVector closed
+/// (Linux); a new version found meanwhile is offered once it is closed.
+#[test]
+#[ignore]
+fn visual_update_failed() {
+    use crate::updater::{InstallError, Status};
+    use egui_kittest::kittest::Queryable;
+    let mut h = harness();
+    let error = |reason: &str| InstallError { version: "9.9.9".into(), page: "https://github.com/toim22/AnyVector/releases/tag/v9.9.9".into(), reason: reason.into() };
+    let file = "/home/ana/Aplicativos e programas/AnyVector.AppImage";
+    let reasons = [
+        ("permission", format!("You do not have permission to replace {file}.")),
+        ("moved", format!("{file} was moved or changed while AnyVector was running.")),
+        ("full", format!("Could not write {file}: No space left on device (os error 28)")),
+        ("checksum", "The downloaded file does not match the checksum of the release. Please try again.".to_string()),
+        ("notappimage", "The downloaded file is not an AppImage for this computer.".to_string()),
+    ];
+    h.state_mut().update.install = update_from_appimage(true);
+    h.state_mut().update.status = Status::Available(update_release("9.9.9", &update_appimage_name("9.9.9"), ""));
+    h.state_mut().update.prompt = true;
+    for (name, reason) in &reasons {
+        h.state_mut().update.error = Some(error(reason));
+        save(&mut h, &format!("92_updates_failed_{name}"));
+        assert!(h.query_all_by_label(reason).next().is_some(), "{reason}");
+        assert!(h.query_all_by_label("OK").next().is_none(), "one message at a time");
+        h.state_mut().settings.language = "pt-BR".into();
+        save(&mut h, &format!("92_updates_failed_{name}_ptbr"));
+        assert_ne!(crate::i18n::t(reason), *reason, "not translated");
+        h.state_mut().settings.language = "en-US".into();
+        h.step();
+    }
+    h.get_by_role_and_label(egui::accesskit::Role::Button, "Close").click_accesskit();
+    settle(&mut h);
+    assert!(h.state().update.error.is_none());
+    assert!(h.query_all_by_label("OK").next().is_some(), "the new version is offered again");
+    h.state_mut().update.error = Some(error(&reasons[0].1));
+    settle(&mut h);
+    click_label(&mut h, "Open Release Page");
+    assert!(h.state().update.error.is_none() && !h.state().update.prompt, "the page is open: both messages have done their job");
+    h.state_mut().update.status = Status::Idle;
+    h.step();
+    assert_eq!(crate::i18n::lang(), crate::i18n::Lang::EnUs);
+}
+
+/// Tools > Options > Global > General says what each update setting does for this copy of AnyVector.
+#[test]
+#[ignore]
+fn visual_update_options_note() {
+    use crate::updater::Install;
+    use egui_kittest::kittest::Queryable;
+    let mut h = harness();
+    h.state_mut().settings.update_mode = crate::updater::KEEP_UP_TO_DATE;
+    h.state_mut().open_options(crate::commands::OptionsPage::Global, Some("General"));
+    settle(&mut h);
+    let kinds = [("setup", Install::Setup), ("appimage", update_from_appimage(true)), ("readonly", update_from_appimage(false)), ("package", Install::Other)];
+    for (name, install) in kinds {
+        let note = install.mode_note(crate::updater::KEEP_UP_TO_DATE);
+        h.state_mut().update.install = install;
+        save(&mut h, &format!("92_updates_options_{name}"));
+        assert!(h.query_all_by_label(note).next().is_some(), "{name}: {note}");
+    }
 }
 
 fn right_click(h: &mut Harness<'_, AnyVectorApp>, p: egui::Pos2) {

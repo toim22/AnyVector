@@ -792,9 +792,9 @@ fn printing() -> Rows {
 /// AppImage's own libraries are those inside it (`$APPDIR`).
 #[cfg(not(windows))]
 fn modules(own: bool) -> Rows {
-    use std::path::{Path, PathBuf};
+    use std::path::Path;
     let exe = std::env::current_exe().ok();
-    let root = std::env::var_os("APPDIR").map(PathBuf::from).filter(|d| d.is_absolute() && exe.as_ref().is_some_and(|e| e.starts_with(d))).unwrap_or_else(app_dir);
+    let root = crate::updater::appimage_dir().unwrap_or_else(app_dir);
     let exe_str = exe.as_ref().map(|e| e.to_string_lossy().to_string());
     let mut rows: Rows = vec![];
     for path in linux::mapped_modules(&unix::read("/proc/self/maps"), exe_str.as_deref()) {

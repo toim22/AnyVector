@@ -8,6 +8,11 @@
 #[cfg(target_os = "linux")]
 pub const ENV: &str = "ANYVECTOR_RENDERER";
 
+/// Set by [`restart_with_opengl`]: AnyVector chose OpenGL itself, not the user, so an update that
+/// starts AnyVector again lets it try wgpu first.
+#[cfg(target_os = "linux")]
+pub const FALLBACK_ENV: &str = "ANYVECTOR_RENDERER_FALLBACK";
+
 /// The renderer `ANYVECTOR_RENDERER` asks for: OpenGL for `gl`, `glow` or `opengl`, else wgpu.
 #[cfg(target_os = "linux")]
 pub fn from_env(value: Option<&str>) -> eframe::Renderer {
@@ -43,6 +48,12 @@ pub fn wgpu_failure(app_started: bool, result: &std::thread::Result<eframe::Resu
 /// `ANYVECTOR_RENDERER=gl`, in this process (exec). A fresh start, as the failed attempt may
 /// have left the display connection or the graphics driver half set up. Only returns if that
 /// fails.
+///
+/// In an AppImage the program is in a folder that lives as long as a process holds the runtime's
+/// pipe (a mounted AppImage) or as long as the process the runtime waits for (an extracted one).
+/// Replacing this process keeps its id and its open files, so the folder stays; a child process
+/// would lose it when this one ended. The program is started directly, not through AppRun, with
+/// the environment AppRun prepared.
 #[cfg(target_os = "linux")]
 pub fn restart_with_opengl() -> std::io::Error {
     use std::os::unix::process::CommandExt as _;
@@ -55,7 +66,7 @@ pub fn restart_with_opengl() -> std::io::Error {
     if let Some(arg0) = args.next() {
         cmd.arg0(arg0);
     }
-    cmd.args(args).env(ENV, "gl").exec()
+    cmd.args(args).env(ENV, "gl").env(FALLBACK_ENV, "1").exec()
 }
 
 /// The OpenGL renderer drawing the window, for Help ▸ System Info, like the wgpu adapter's name:

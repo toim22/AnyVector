@@ -2861,7 +2861,14 @@ Release Notes	Note sulla versione
 Install Now	Installa ora
 Open Release Page	Apri pagina della versione
 Click Open Release Page to download it.	Fare clic su Apri pagina della versione per scaricarla.
-AnyVector cannot install updates by itself on Linux yet.	AnyVector non può ancora installare da solo gli aggiornamenti su Linux.
+Only the AppImage of AnyVector installs updates by itself on Linux.	Su Linux, solo l'AppImage di AnyVector installa da sola gli aggiornamenti.
+You do not have permission to replace {}.	Non si dispone dell'autorizzazione per sostituire {}.
+This release has no AppImage for this computer.	Questa versione non ha un'AppImage per questo computer.
+This release has no checksum to verify its AppImage with.	Questa versione non ha un checksum con cui verificare la sua AppImage.
+The downloaded file does not match the checksum of the release. Please try again.	Il file scaricato non corrisponde al checksum della versione. Riprovare.
+The downloaded file is not an AppImage for this computer.	Il file scaricato non è un'AppImage per questo computer.
+AnyVector {} could not be installed.	Impossibile installare AnyVector {}.
+{} was moved or changed while AnyVector was running.	{} è stato spostato o modificato mentre AnyVector era in esecuzione.
 Check Now	Verifica ora
 Later	Più tardi
 There is a new version of AnyVector available.	È disponibile una nuova versione di AnyVector.

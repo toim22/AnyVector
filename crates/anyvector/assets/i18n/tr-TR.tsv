@@ -2861,7 +2861,14 @@ Release Notes	Sürüm Notları
 Install Now	Şimdi Yükle
 Open Release Page	Sürüm Sayfasını Aç
 Click Open Release Page to download it.	İndirmek için Sürüm Sayfasını Aç'a tıklayın.
-AnyVector cannot install updates by itself on Linux yet.	AnyVector, Linux'ta güncelleştirmeleri henüz kendisi yükleyemez.
+Only the AppImage of AnyVector installs updates by itself on Linux.	Linux'ta güncelleştirmeleri yalnızca AnyVector'ün AppImage dosyası kendisi yükler.
+You do not have permission to replace {}.	{} dosyasını değiştirme izniniz yok.
+This release has no AppImage for this computer.	Bu sürümde bu bilgisayar için bir AppImage yok.
+This release has no checksum to verify its AppImage with.	Bu sürümde AppImage dosyasını doğrulayacak bir sağlama toplamı yok.
+The downloaded file does not match the checksum of the release. Please try again.	İndirilen dosya sürümün sağlama toplamıyla eşleşmiyor. Lütfen yeniden deneyin.
+The downloaded file is not an AppImage for this computer.	İndirilen dosya bu bilgisayar için bir AppImage değil.
+AnyVector {} could not be installed.	AnyVector {} yüklenemedi.
+{} was moved or changed while AnyVector was running.	{} dosyası AnyVector çalışırken taşındı veya değiştirildi.
 Check Now	Şimdi Denetle
 Later	Daha Sonra
 There is a new version of AnyVector available.	AnyVector'ün yeni bir sürümü kullanılabilir.
