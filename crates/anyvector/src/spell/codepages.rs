@@ -142,7 +142,7 @@ fn single_byte(cp: u32) -> Option<[char; 256]> {
         28596 => (ISO_8859_6, &[], 0xF7C8),
         // Windows has the 1987 edition
         28597 => (ISO_8859_7, &[(0xA1, '\u{2BD}'), (0xA2, '\u{2BC}'), (0xA4, '\u{F7C2}'), (0xA5, '\u{F7C3}'), (0xAA, '\u{F7C4}')], 0xF7C5),
-        28598 | 38598 => (ISO_8859_8, &[(0xAF, '\u{203E}')], 0xF79C),
+        28598 | 38598 => (ISO_8859_8, &[(0xAF, '\u{203E}'), (0xFD, '\u{F7BF}'), (0xFE, '\u{F7C0}'), (0xFF, '\u{F7C1}')], 0xF79C),
         // the web reads ISO 8859-9 as 1254, which differs in 0x80-0x9F (done below)
         28599 => (WINDOWS_1254, &[], 0),
         28603 => (ISO_8859_13, &[], 0),
@@ -388,6 +388,9 @@ mod tests {
     #[test]
     fn code_pages_match_windows() {
         use super::super::imp;
+        // the spell checker's DLLs first: loading them while this thread loads the DLLs of the
+        // ISO-2022 and GB18030 pages (another test may) locks Windows up
+        imp::suggest("wrld", "en-US");
         let windows = imp::code_pages();
         for (cp, label) in code_pages() {
             // Windows may not have every page installed, nor its names in English
