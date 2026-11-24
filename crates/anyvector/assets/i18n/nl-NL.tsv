@@ -2544,7 +2544,6 @@ Empty text objects print nothing and can be deleted.	Lege tekstobjecten drukken 
 Very thin outlines may not print, or print unevenly. Use at least 0.25 pt.	Zeer dunne omtrekken worden mogelijk niet of ongelijkmatig afgedrukt. Gebruik minstens 0,25 pt.
 Printers' marks do not fit on the paper.	Drukkerstekens passen niet op het papier.
 The paper must be larger than the page to hold crop marks, registration marks and the other printers' marks. Choose a larger paper, or Fit to page on the Layout tab.	Het papier moet groter zijn dan de pagina om snijtekens, paspoorttekens en de andere drukkerstekens te bevatten. Kies groter papier, of Aan pagina aanpassen op het tabblad Indeling.
-Printing is available on Windows only.	Afdrukken is alleen beschikbaar in Windows.
 Could not open the printer "{}".	Kan de printer "{}" niet openen.
 The printer did not accept the job.	De printer heeft de taak niet geaccepteerd.
 The printer stopped the job.	De printer heeft de taak gestopt.
@@ -2563,6 +2562,7 @@ There is no printer installed. Add a printer in the system's printer settings (C
 Sent {} page(s) to {} (job {})	{} pagina('s) verzonden naar {} (taak {})
 The printer did not accept the job: {}	De printer heeft de taak niet geaccepteerd: {}
 Could not write the print file: {}	Het afdrukbestand kon niet worden geschreven: {}
+The page could not be rendered.	De pagina kon niet worden gerenderd.
 Could not run lp, the CUPS print command. Install the CUPS client (the cups-client package).	lp, de afdrukopdracht van CUPS, kon niet worden uitgevoerd. Installeer de CUPS-client (pakket cups-client).
 Printing uses CUPS. Documents are sent as high-resolution page images in a PDF, which works with every printer CUPS can print to.	Afdrukken gebruikt CUPS. Documenten worden als paginabeelden met hoge resolutie in een PDF verzonden, wat werkt met elke printer waarop CUPS kan afdrukken.
 0 bytes	0 bytes

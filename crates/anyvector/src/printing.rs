@@ -767,7 +767,10 @@ pub fn run_job(job: Job) -> Result<String, String> {
     static JOBS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
     let k = JOBS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let tmp = crate::platform::temp_dir().join(format!("print-{}-{k}.pdf", std::process::id()));
-    let sent = write_pdf_file(&job, &sheets, &(0..n).collect::<Vec<_>>(), &tmp).and_then(|_| cups::submit(&job.printer, copies as u32, job.settings.collate, &job.title, &opts, &tmp));
+    // left by a crashed AnyVector with the same process number
+    let _ = std::fs::remove_file(&tmp);
+    let file = std::fs::OpenOptions::new().write(true).create_new(true).open(&tmp).map_err(|e| format!("Could not write the print file: {e}"))?;
+    let sent = write_pdf_to(&job, &sheets, &(0..n).collect::<Vec<_>>(), file).and_then(|_| cups::submit(&job.printer, copies as u32, job.settings.collate, &job.title, &opts, &tmp));
     // lp has handed the whole file to the scheduler when it returns
     let _ = std::fs::remove_file(&tmp);
     let id = sent?;
@@ -778,13 +781,23 @@ pub fn run_job(job: Job) -> Result<String, String> {
 /// `write_pdf` into a file.
 #[cfg_attr(windows, allow(dead_code))]
 fn write_pdf_file(job: &Job, sheets: &[(Sheet, Paper)], order: &[usize], path: &std::path::Path) -> Result<usize, String> {
-    let fail = |e: std::io::Error| format!("Could not write the print file: {e}");
-    let f = std::fs::File::create(path).map_err(fail)?;
+    let f = std::fs::File::create(path).map_err(|e| format!("Could not write the print file: {e}"))?;
+    write_pdf_to(job, sheets, order, f)
+}
+
+#[cfg_attr(windows, allow(dead_code))]
+fn write_pdf_to(job: &Job, sheets: &[(Sheet, Paper)], order: &[usize], f: std::fs::File) -> Result<usize, String> {
+    let fail = |e: std::io::Error| match e.to_string() {
+        e if e == NOT_RENDERED => e,
+        e => format!("Could not write the print file: {e}"),
+    };
     let mut w = std::io::BufWriter::new(f);
     let n = write_pdf(job, sheets, order, &mut w).map_err(fail)?;
     std::io::Write::flush(&mut w).map_err(fail)?;
     Ok(n)
 }
+
+const NOT_RENDERED: &str = "The page could not be rendered.";
 
 /// A writer that counts the bytes written (the offsets of a PDF's objects).
 struct Counted<W> {
@@ -849,7 +862,7 @@ pub fn write_pdf(job: &Job, sheets: &[(Sheet, Paper)], order: &[usize], out: imp
             let mut y = 0;
             while y < hpx {
                 let h = band.min(hpx - y);
-                let pm = render_band(&mut renderer, jd, sheet, paper, &job.settings, sheet.page + 1, dpi, y, h).ok_or_else(|| std::io::Error::other("the page could not be rendered"))?;
+                let pm = render_band(&mut renderer, jd, sheet, paper, &job.settings, sheet.page + 1, dpi, y, h).ok_or_else(|| std::io::Error::other(NOT_RENDERED))?;
                 row.clear();
                 for px in pm.pixels() {
                     let c = px.demultiply();

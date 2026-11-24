@@ -591,7 +591,7 @@ pub struct PrefsState {
 #[cfg_attr(windows, allow(dead_code))]
 impl PrefsState {
     pub fn new(printer: &str, caps: printing::cups::Caps, stored: Option<&[u8]>, settings: &PrintSettings) -> PrefsState {
-        use printing::cups::*;
+        use printing::cups::{Options, COLOR_KEYS, DUPLEX_KEYS, PAPER_KEYS, RESOLUTION_KEYS};
         let mut options = Options::from_bytes(stored);
         // the printer's own defaults for what the dialog shows, so the job asks for what was seen
         for keys in [&PAPER_KEYS[..], &DUPLEX_KEYS, &COLOR_KEYS, &RESOLUTION_KEYS] {
@@ -617,22 +617,25 @@ impl PrefsState {
 /// A row with a combo box over one printer option, when the printer has it.
 fn option_row(ui: &mut Ui, p: &mut PrefsState, keys: &[&str], label: &str, id: &str, caption: &dyn Fn(&printing::cups::Caps, &str, &str) -> String) {
     let Some(o) = p.caps.option(keys).cloned() else { return };
-    // the PPD's custom size is a template, not a size
-    let choices: Vec<&String> = o.choices.iter().filter(|c| !c.starts_with("Custom.")).collect();
+    let current = p.caps.chosen(keys, &p.options).map(|(_, v)| v);
+    // the PPD's custom size is a template, not a size; a custom size in use is listed
+    let mut choices: Vec<String> = o.choices.iter().filter(|c| !printing::cups::is_template(c)).cloned().collect();
+    if let Some(c) = current.as_ref().filter(|c| !choices.contains(c)) {
+        choices.insert(0, c.clone());
+    }
     let mut names: Vec<String> = choices.iter().map(|c| caption(&p.caps, &o.key, c)).collect();
     // two choices with the same caption (Gray and KGray both "Grayscale") show their own names too
     let dup: Vec<bool> = names.iter().map(|n| names.iter().filter(|m| *m == n).count() > 1).collect();
     for (i, n) in names.iter_mut().enumerate() {
-        if dup[i] && *n != *choices[i] {
-            *n = format!("{n} ({})", choices[i]);
+        if dup[i] && *n != choices[i] {
+            *n = format!("{} ({})", crate::i18n::t(n), choices[i]);
         }
     }
-    let current = p.options.get(&o.key).map(String::from).or_else(|| o.default.and_then(|i| o.choices.get(i).cloned()));
-    let mut i = choices.iter().position(|c| Some(c.as_str()) == current.as_deref()).unwrap_or(0);
+    let mut i = choices.iter().position(|c| Some(c) == current.as_ref()).unwrap_or(0);
     let refs: Vec<&str> = names.iter().map(String::as_str).collect();
     row(ui, label, 130.0, |ui| {
         if combo(ui, id, &mut i, &refs, 250.0) {
-            p.options.set(&o.key, choices[i]);
+            p.options.set(&o.key, &choices[i]);
         }
     });
 }

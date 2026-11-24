@@ -247,6 +247,23 @@ dialogs get any-case patterns; links stored as Windows paths (bitmaps, symbol li
 OLE objects, colour profiles, DXF fonts) are found next to the drawing by file name; non-UTF-8 file
 names no longer panic on the command line or lose the settings file.
 
+**Printing** (Phase 2; `printing.rs`, `printing/cups.rs`, `dialogs/print.rs`). File ▸ Print, Print Preview
+and Print Merge print through CUPS with its command-line programs only (no libcups): `lpstat` lists the
+printers and the default one, `lpoptions -l` gives the choices (PPD or IPP names), and the PPD the
+scheduler serves over HTTP gives the paper sizes and printable areas (without it, the size comes from the
+name, with quarter-inch margins).
+- The job is a PDF with one page image per sheet, made from the same bands Windows sends to GDI, so
+  marks, tiles, mirror, invert and grayscale are identical. `lp` gets the copies, collation, the chosen
+  options and `print-scaling=none`; the status message shows the CUPS job.
+- Preferences... opens AnyVector's own Printing Preferences (paper size, orientation, both sides, color,
+  resolution, copies, as the printer offers), because CUPS drivers have no dialog. The choices are kept
+  as `key=value` lines where Windows keeps a DEVMODE, until the Print dialog closes.
+- Print to file writes that PDF (Windows writes the driver's `.prn`).
+- Limits: raster pages, as on Windows; CUPS on a socket only (no `localhost:631`) gives no printable
+  areas; a `ServerName` in `client.conf` is not read for the PPD (`CUPS_SERVER` is).
+- Real job test: `cargo test -p anyvector print_job_to_cups_pdf -- --ignored` (needs cups and
+  printer-driver-cups-pdf).
+
 **Shared bug fixes (also change Windows).**
 - `cmd /C start` targets with `&` (bug-report URLs, file names) were split and could run commands; the
   target now goes through an environment variable, and the mail subject is fully percent-encoded.
@@ -256,5 +273,5 @@ names no longer panic on the command line or lose the settings file.
   with `=` or NUL no longer crashes AI Save Key.
 
 **Known limits after Phase 1.** No native-Wayland drag and drop (winit 0.30); clipboard contents vanish
-on exit under Wayland without a clipboard manager; printing, spell check, code pages, the eyedropper
+on exit under Wayland without a clipboard manager; spell check, code pages, the eyedropper
 outside the window and scanners are Phase 2; packaging and the self-updating AppImage are Phase 3.

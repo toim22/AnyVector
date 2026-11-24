@@ -2544,7 +2544,6 @@ Empty text objects print nothing and can be deleted.	Boş metin nesneleri hiçbi
 Very thin outlines may not print, or print unevenly. Use at least 0.25 pt.	Çok ince anahatlar yazdırılmayabilir veya düzensiz yazdırılabilir. En az 0,25 pt kullanın.
 Printers' marks do not fit on the paper.	Yazıcı işaretleri kâğıda sığmıyor.
 The paper must be larger than the page to hold crop marks, registration marks and the other printers' marks. Choose a larger paper, or Fit to page on the Layout tab.	Kırpma işaretlerini, kayıt işaretlerini ve diğer yazıcı işaretlerini içerebilmesi için kâğıdın sayfadan büyük olması gerekir. Daha büyük bir kâğıt seçin veya Yerleşim sekmesinde Sayfaya sığdır'ı seçin.
-Printing is available on Windows only.	Yazdırma yalnızca Windows'ta kullanılabilir.
 Could not open the printer "{}".	"{}" yazıcısı açılamadı.
 The printer did not accept the job.	Yazıcı işi kabul etmedi.
 The printer stopped the job.	Yazıcı işi durdurdu.
@@ -2563,6 +2562,7 @@ There is no printer installed. Add a printer in the system's printer settings (C
 Sent {} page(s) to {} (job {})	{} sayfa şuraya gönderildi: {} (iş {})
 The printer did not accept the job: {}	Yazıcı işi kabul etmedi: {}
 Could not write the print file: {}	Yazdırma dosyası yazılamadı: {}
+The page could not be rendered.	Sayfa işlenemedi.
 Could not run lp, the CUPS print command. Install the CUPS client (the cups-client package).	CUPS yazdırma komutu lp çalıştırılamadı. CUPS istemcisini (cups-client paketi) yükleyin.
 Printing uses CUPS. Documents are sent as high-resolution page images in a PDF, which works with every printer CUPS can print to.	Yazdırma CUPS'ı kullanır. Belgeler, CUPS'ın yazdırabildiği tüm yazıcılarla çalışan bir PDF içinde yüksek çözünürlüklü sayfa görüntüleri olarak gönderilir.
 0 bytes	0 bayt

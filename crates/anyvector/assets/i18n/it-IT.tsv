@@ -2544,7 +2544,6 @@ Empty text objects print nothing and can be deleted.	Gli oggetti di testo vuoti 
 Very thin outlines may not print, or print unevenly. Use at least 0.25 pt.	I contorni molto sottili potrebbero non essere stampati o essere stampati in modo irregolare. Usare almeno 0,25 pt.
 Printers' marks do not fit on the paper.	I segni di stampa non entrano nel foglio.
 The paper must be larger than the page to hold crop marks, registration marks and the other printers' marks. Choose a larger paper, or Fit to page on the Layout tab.	Il foglio deve essere più grande della pagina per contenere i segni di taglio, i segni di registro e gli altri segni di stampa. Scegliere un foglio più grande oppure Adatta alla pagina nella scheda Layout.
-Printing is available on Windows only.	La stampa è disponibile solo in Windows.
 Could not open the printer "{}".	Impossibile aprire la stampante "{}".
 The printer did not accept the job.	La stampante non ha accettato il lavoro.
 The printer stopped the job.	La stampante ha interrotto il lavoro.
@@ -2563,6 +2562,7 @@ There is no printer installed. Add a printer in the system's printer settings (C
 Sent {} page(s) to {} (job {})	{} pagine inviate a {} (lavoro {})
 The printer did not accept the job: {}	La stampante non ha accettato il lavoro: {}
 Could not write the print file: {}	Impossibile scrivere il file di stampa: {}
+The page could not be rendered.	Impossibile eseguire il rendering della pagina.
 Could not run lp, the CUPS print command. Install the CUPS client (the cups-client package).	Impossibile eseguire lp, il comando di stampa di CUPS. Installare il client CUPS (pacchetto cups-client).
 Printing uses CUPS. Documents are sent as high-resolution page images in a PDF, which works with every printer CUPS can print to.	La stampa usa CUPS. I documenti vengono inviati come immagini di pagina ad alta risoluzione in un PDF, compatibile con tutte le stampanti su cui CUPS può stampare.
 0 bytes	0 byte

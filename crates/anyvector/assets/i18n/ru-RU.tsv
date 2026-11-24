@@ -2544,7 +2544,6 @@ Empty text objects print nothing and can be deleted.	Пустые текстов
 Very thin outlines may not print, or print unevenly. Use at least 0.25 pt.	Очень тонкий абрис может не напечататься или напечататься неравномерно. Используйте не менее 0,25 pt.
 Printers' marks do not fit on the paper.	Типографские метки не помещаются на бумаге.
 The paper must be larger than the page to hold crop marks, registration marks and the other printers' marks. Choose a larger paper, or Fit to page on the Layout tab.	Бумага должна быть больше страницы, чтобы поместились метки обреза, приводки и другие типографские метки. Выберите бумагу большего размера или «По размеру страницы» на вкладке «Макет».
-Printing is available on Windows only.	Печать доступна только в Windows.
 Could not open the printer "{}".	Не удалось открыть принтер «{}».
 The printer did not accept the job.	Принтер не принял задание.
 The printer stopped the job.	Принтер остановил задание.
@@ -2563,6 +2562,7 @@ There is no printer installed. Add a printer in the system's printer settings (C
 Sent {} page(s) to {} (job {})	Отправлено страниц: {} на {} (задание {})
 The printer did not accept the job: {}	Принтер не принял задание: {}
 Could not write the print file: {}	Не удалось записать файл печати: {}
+The page could not be rendered.	Не удалось отрисовать страницу.
 Could not run lp, the CUPS print command. Install the CUPS client (the cups-client package).	Не удалось запустить lp, команду печати CUPS. Установите клиент CUPS (пакет cups-client).
 Printing uses CUPS. Documents are sent as high-resolution page images in a PDF, which works with every printer CUPS can print to.	Печать использует CUPS. Документы отправляются как изображения страниц высокого разрешения в PDF, что работает с любым принтером, на котором может печатать CUPS.
 0 bytes	0 байт

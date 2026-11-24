@@ -139,6 +139,11 @@ pub fn parse_ppd(text: &str) -> Ppd {
     p
 }
 
+/// Whether a paper choice is the PPD's custom size template ("Custom.WIDTHxHEIGHT"), not a size.
+pub fn is_template(choice: &str) -> bool {
+    choice.starts_with("Custom.") && paper_size(choice).is_none()
+}
+
 impl Caps {
     /// The first option with one of these keys.
     pub fn option(&self, keys: &[&str]) -> Option<&PrinterOption> {
@@ -149,7 +154,7 @@ impl Caps {
     pub fn chosen(&self, keys: &[&str], opts: &Options) -> Option<(String, String)> {
         let o = self.option(keys)?;
         let c = opts.get(&o.key).map(String::from).or_else(|| o.default.and_then(|i| o.choices.get(i).cloned()))?;
-        Some((o.key.clone(), c))
+        (!is_template(&c)).then(|| (o.key.clone(), c))
     }
 
     /// The paper the printer prints on with these options, in this orientation.
@@ -171,11 +176,13 @@ impl Caps {
             None => Rect::new(FALLBACK_MARGIN, FALLBACK_MARGIN, w - FALLBACK_MARGIN, h - FALLBACK_MARGIN),
         };
         let area = if area.width() > 1.0 && area.height() > 1.0 { area } else { Rect::new(0.0, 0.0, w, h) };
-        if !landscape {
+        // some sizes are wide as they are fed (Ledger, A4.Transverse): those turn for portrait
+        if landscape == (w > h) {
             return Paper { width: w, height: h, printable: area, dpi };
         }
-        // landscape turns the paper a quarter turn counter-clockwise (CUPS' orientation-requested=4):
-        // the portrait left margin is at the top, its bottom margin at the left
+        // CUPS turns a page that lies across the paper a quarter turn counter-clockwise (pdftopdf,
+        // as orientation-requested=4): the paper's left margin is the page's top one, the paper's
+        // bottom margin its left one
         let printable = Rect::new(h - area.y1, area.x0, h - area.y0, area.x1);
         Paper { width: h, height: w, printable, dpi: (dpi.1, dpi.0) }
     }
@@ -267,7 +274,7 @@ pub fn paper_size(name: &str) -> Option<(f64, f64)> {
             n = s.to_string();
         }
     }
-    for suffix in [".transverse", "rotated", ".rotated"] {
+    for suffix in [".transverse", ".rotated", "rotated"] {
         if let Some(s) = n.strip_suffix(suffix) {
             n = s.to_string();
             turned = true;
@@ -435,7 +442,7 @@ impl Options {
     }
 }
 
-/// The arguments of `lp` for a job: printer, copies, title, collation, then the options.
+/// The arguments of `lp` for a job: printer, copies, title, collation, no scaling, then the options.
 pub fn lp_args(printer: &str, copies: u32, collate: bool, title: &str, opts: &Options, file: &str) -> Vec<String> {
     let mut a: Vec<String> = vec!["-d".into(), printer.into(), "-n".into(), copies.max(1).to_string()];
     if !title.trim().is_empty() {
@@ -444,6 +451,9 @@ pub fn lp_args(printer: &str, copies: u32, collate: bool, title: &str, opts: &Op
     if copies > 1 {
         a.extend(["-o".into(), format!("collate={collate}")]);
     }
+    // the pages are the size of the paper: never scaled to its printable area, whatever the user's
+    // lpoptions say (the drawing must print at its size)
+    a.extend(["-o".into(), "print-scaling=none".into()]);
     for (k, v) in &opts.0 {
         a.extend(["-o".into(), format!("{k}={v}")]);
     }
@@ -494,7 +504,7 @@ fn run(program: &str, args: &[String], timeout: Option<std::time::Duration>) -> 
 }
 
 #[cfg(not(windows))]
-const ASK: Option<std::time::Duration> = Some(std::time::Duration::from_secs(3));
+const ASK: Option<std::time::Duration> = Some(std::time::Duration::from_secs(5));
 
 /// The printers CUPS knows (none without CUPS or when its scheduler is not running).
 #[cfg(not(windows))]
@@ -507,12 +517,26 @@ pub fn default_printer() -> Option<String> {
     run("lpstat", &["-d".into()], ASK).and_then(|(_, out, _)| parse_lpstat_d(&out))
 }
 
-/// The printer's options and paper geometry.
+/// The printer's options and paper geometry. The Print dialog asks for both orientations, then the
+/// preferences and the job ask again: the answer is kept for a few seconds.
 #[cfg(not(windows))]
 pub fn caps(printer: &str) -> Caps {
+    use std::time::{Duration, Instant};
+    static LAST: std::sync::Mutex<Option<(String, Instant, Caps)>> = std::sync::Mutex::new(None);
+    if let Some((name, at, caps)) = LAST.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
+        if name == printer && at.elapsed() < Duration::from_secs(10) {
+            return caps.clone();
+        }
+    }
     let options = run("lpoptions", &["-p".into(), printer.into(), "-l".into()], ASK).map(|(_, out, _)| parse_lpoptions(&out)).unwrap_or_default();
+    if options.is_empty() {
+        // the printer is gone or did not answer: ask again the next time
+        return Caps::default();
+    }
     let ppd = fetch_ppd(printer).map(|t| parse_ppd(&t)).unwrap_or_default();
-    Caps { options, ppd }
+    let caps = Caps { options, ppd };
+    *LAST.lock().unwrap_or_else(|e| e.into_inner()) = Some((printer.to_string(), Instant::now(), caps.clone()));
+    caps
 }
 
 /// The printer's PPD from the CUPS scheduler (`/printers/<name>.ppd`): the copy in /etc/cups/ppd
@@ -521,7 +545,8 @@ pub fn caps(printer: &str) -> Caps {
 fn fetch_ppd(printer: &str) -> Option<String> {
     let queue = printer.split('/').next().unwrap_or(printer);
     let url = format!("http://{}/printers/{}.ppd", cups_server(std::env::var("CUPS_SERVER").ok().as_deref()), percent(queue));
-    let agent: ureq::Agent = ureq::Agent::config_builder().http_status_as_error(false).timeout_global(Some(std::time::Duration::from_secs(3))).build().into();
+    // never through the desktop's web proxy
+    let agent: ureq::Agent = ureq::Agent::config_builder().http_status_as_error(false).proxy(None).timeout_global(Some(std::time::Duration::from_secs(3))).build().into();
     let mut r = agent.get(&url).call().ok()?;
     if r.status().as_u16() != 200 {
         return None;
@@ -628,7 +653,10 @@ printer-resolution/Print Resolution: *300dpi 600dpi\n";
         assert!(near(paper_size("A4.Fullbleed"), 595.3, 841.9));
         assert!(near(paper_size("A4Small"), 595.3, 841.9));
         assert!(near(paper_size("A4.Transverse"), 841.9, 595.3));
+        assert!(near(paper_size("A4.Rotated"), 841.9, 595.3) && near(paper_size("A4Rotated"), 841.9, 595.3));
         assert!(near(paper_size("A3"), 841.9, 1190.6));
+        assert!(near(paper_size("Custom.200x300"), 200.0, 300.0));
+        assert!(is_template("Custom.WIDTHxHEIGHT") && !is_template("Custom.200x300mm") && !is_template("Banner"));
         assert!(near(paper_size("Legal"), 612.0, 1008.0));
         assert!(near(paper_size("Env10"), 297.0, 684.0));
         assert!(near(paper_size("EnvC5"), 459.2, 649.1));
@@ -678,6 +706,10 @@ printer-resolution/Print Resolution: *300dpi 600dpi\n";
         let p = caps.paper(&a4, false);
         assert_eq!((p.width, p.height, p.dpi), (595.0, 842.0, (600.0, 600.0)));
         assert!((p.printable.x0 - 12.24).abs() < 1e-9 && (p.printable.y0 - 12.06).abs() < 1e-9);
+        // a size that is wide as it is fed: landscape as it is, portrait turned
+        let ledger = Options(vec![("PageSize".into(), "Ledger".into())]);
+        let (p, l) = (caps.paper(&ledger, false), caps.paper(&ledger, true));
+        assert_eq!((p.width, p.height, l.width, l.height), (792.0, 1224.0, 1224.0, 792.0));
         // no PPD (driverless queue): the size from the PWG name, quarter-inch margins
         let caps = Caps { options: parse_lpoptions(IPP), ..Default::default() };
         let p = caps.paper(&Options::default(), false);
@@ -707,8 +739,8 @@ printer-resolution/Print Resolution: *300dpi 600dpi\n";
     #[test]
     fn lp_command_line() {
         let o = Options(vec![("PageSize".into(), "A4".into())]);
-        assert_eq!(lp_args("PDF", 2, false, "Logo", &o, "/run/user/1000/AnyVector/print.pdf"), ["-d", "PDF", "-n", "2", "-t", "Logo", "-o", "collate=false", "-o", "PageSize=A4", "/run/user/1000/AnyVector/print.pdf"]);
-        assert_eq!(lp_args("PDF", 1, true, "", &Options::default(), "/tmp/a.pdf"), ["-d", "PDF", "-n", "1", "/tmp/a.pdf"]);
+        assert_eq!(lp_args("PDF", 2, false, "Logo", &o, "/run/user/1000/AnyVector/print.pdf"), ["-d", "PDF", "-n", "2", "-t", "Logo", "-o", "collate=false", "-o", "print-scaling=none", "-o", "PageSize=A4","/run/user/1000/AnyVector/print.pdf"]);
+        assert_eq!(lp_args("PDF", 1, true, "", &Options::default(), "/tmp/a.pdf"), ["-d", "PDF", "-n", "1", "-o", "print-scaling=none", "/tmp/a.pdf"]);
         assert_eq!(parse_lp_job("request id is PDF-3 (1 file(s))\n").as_deref(), Some("PDF-3"));
         assert_eq!(parse_lp_job(""), None);
     }
