@@ -1543,6 +1543,11 @@ Block Shadow	Blockschatten
 Block Shadow tool	Blockschatten-Hilfsmittel
 Color Eyedropper	Farbpipette
 Color Eyedropper tool	Farbpipetten-Hilfsmittel
+AnyVector cannot see the screen outside its window: the desktop's color picker (xdg-desktop-portal) was not found. Install xdg-desktop-portal and your desktop's portal (for example xdg-desktop-portal-gnome or xdg-desktop-portal-kde), or sample colors inside the drawing window.	AnyVector kann den Bildschirm außerhalb seines Fensters nicht sehen: Die Farbauswahl des Desktops (xdg-desktop-portal) wurde nicht gefunden. Installieren Sie xdg-desktop-portal und das Portal Ihres Desktops (zum Beispiel xdg-desktop-portal-gnome oder xdg-desktop-portal-kde), oder nehmen Sie Farben im Zeichenfenster auf.
+Without the desktop's color picker (xdg-desktop-portal), only the windows of X11 programs can be sampled.	Ohne die Farbauswahl des Desktops (xdg-desktop-portal) können nur Fenster von X11-Programmen aufgenommen werden.
+The desktop's color picker failed:	Die Farbauswahl des Desktops ist fehlgeschlagen:
+The desktop's color picker failed:\n{}	Die Farbauswahl des Desktops ist fehlgeschlagen:\n{}
+The desktop's color picker failed.	Die Farbauswahl des Desktops ist fehlgeschlagen.
 Attributes Eyedropper	Attributpipette
 Attributes Eyedropper tool	Attributpipetten-Hilfsmittel
 Interactive Fill	Interaktive Füllung
@@ -1997,7 +2002,18 @@ The page no longer exists.	Die Seite existiert nicht mehr.
 The object no longer exists.	Das Objekt existiert nicht mehr.
 Nothing to export	Nichts zu exportieren
 No scanner or camera was found. Connect a WIA device and try again.	Kein Scanner und keine Kamera gefunden. Schließen Sie ein WIA-Gerät an und versuchen Sie es erneut.
-Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	Scannen ist in AnyVector unter Linux noch nicht verfügbar. Scannen Sie das Bild mit dem Scanprogramm Ihres Systems (zum Beispiel Dokumentenscanner oder XSane), speichern Sie es und holen Sie es mit Datei ▸ Importieren in die Zeichnung.
+Select Source	Quelle auswählen
+Looking for scanners...	Scanner werden gesucht...
+Choose the scanner to use:	Wählen Sie den zu verwendenden Scanner:
+Scanner:	Scanner:
+Scan	Scannen
+Reading the scanner's settings...	Die Einstellungen des Scanners werden gelesen...
+Scanning on Linux uses SANE, and its scanimage program was not found. Install it with your package manager (sane-utils on Debian and Ubuntu, sane-backends on Fedora and Arch) together with your scanner's SANE driver, then try again.	Scannen unter Linux verwendet SANE, und dessen Programm scanimage wurde nicht gefunden. Installieren Sie es mit Ihrer Paketverwaltung (sane-utils unter Debian und Ubuntu, sane-backends unter Fedora und Arch) zusammen mit dem SANE-Treiber Ihres Scanners, und versuchen Sie es erneut.
+No scanner was found. Check that the scanner is connected and turned on, and that its SANE driver is installed (for network scanners, sane-airscan). The command scanimage -L lists the scanners SANE sees.	Es wurde kein Scanner gefunden. Prüfen Sie, ob der Scanner angeschlossen und eingeschaltet ist und ob sein SANE-Treiber installiert ist (für Netzwerkscanner sane-airscan). Der Befehl scanimage -L listet die Scanner auf, die SANE erkennt.
+Document Scanner (simple-scan) is installed: you can scan with it, save the image and bring it in with File ▸ Import.	Dokumentenscanner (simple-scan) ist installiert: Sie können damit scannen, das Bild speichern und es mit Datei ▸ Importieren in die Zeichnung holen.
+Looking for scanners failed:	Die Suche nach Scannern ist fehlgeschlagen:
+Looking for scanners failed:\n{}	Die Suche nach Scannern ist fehlgeschlagen:\n{}
+The image could not be acquired:	Das Bild konnte nicht erfasst werden:
 Select WIA Source	WIA-Quelle auswählen
 The image could not be acquired:\n{}	Das Bild konnte nicht erfasst werden:\n{}
 All File Formats	Alle Dateiformate
@@ -2544,7 +2560,6 @@ Empty text objects print nothing and can be deleted.	Leere Textobjekte drucken n
 Very thin outlines may not print, or print unevenly. Use at least 0.25 pt.	Sehr dünne Umrisse werden möglicherweise nicht oder ungleichmäßig gedruckt. Verwenden Sie mindestens 0,25 pt.
 Printers' marks do not fit on the paper.	Druckermarken passen nicht auf das Papier.
 The paper must be larger than the page to hold crop marks, registration marks and the other printers' marks. Choose a larger paper, or Fit to page on the Layout tab.	Das Papier muss größer als die Seite sein, um Schnittmarken, Passermarken und die anderen Druckermarken aufzunehmen. Wählen Sie ein größeres Papier oder „An Seite anpassen“ auf der Registerkarte „Layout“.
-Printing is available on Windows only.	Drucken ist nur unter Windows verfügbar.
 Could not open the printer "{}".	Der Drucker „{}“ konnte nicht geöffnet werden.
 The printer did not accept the job.	Der Drucker hat den Auftrag nicht angenommen.
 The printer stopped the job.	Der Drucker hat den Auftrag angehalten.
@@ -2553,6 +2568,19 @@ The printer "{}" is not available.	Der Drucker „{}“ ist nicht verfügbar.
 There are no pages to print.	Es gibt keine Seiten zu drucken.
 Printed {} page(s) to {}	{} Seite(n) gedruckt auf {}
 Sent {} page(s) to {}	{} Seite(n) gesendet an {}
+{} Printing Preferences	Druckeinstellungen für {}
+Paper size:	Papierformat:
+Print on both sides:	Beidseitig drucken:
+Flip on long edge	An langer Kante wenden
+Flip on short edge	An kurzer Kante wenden
+The printer's options could not be read.	Die Optionen des Druckers konnten nicht gelesen werden.
+There is no printer installed. Add a printer in the system's printer settings (CUPS), or install the cups-pdf printer to print to PDF files.	Es ist kein Drucker installiert. Fügen Sie in den Druckereinstellungen des Systems (CUPS) einen Drucker hinzu, oder installieren Sie den Drucker cups-pdf, um in PDF-Dateien zu drucken.
+Sent {} page(s) to {} (job {})	{} Seite(n) gesendet an {} (Auftrag {})
+The printer did not accept the job: {}	Der Drucker hat den Auftrag nicht angenommen: {}
+Could not write the print file: {}	Die Druckdatei konnte nicht geschrieben werden: {}
+The page could not be rendered.	Die Seite konnte nicht gerendert werden.
+Could not run lp, the CUPS print command. Install the CUPS client (the cups-client package).	lp, der Druckbefehl von CUPS, konnte nicht ausgeführt werden. Installieren Sie den CUPS-Client (Paket cups-client).
+Printing uses CUPS. Documents are sent as high-resolution page images in a PDF, which works with every printer CUPS can print to.	Das Drucken verwendet CUPS. Dokumente werden als hochauflösende Seitenbilder in einer PDF-Datei gesendet, was mit jedem Drucker funktioniert, auf dem CUPS drucken kann.
 0 bytes	0 Bytes
 {} bytes	{} Bytes
 {} KB	{} KB
@@ -2561,6 +2589,11 @@ Embed color profiles ({})	Farbprofile einbetten ({})
 Color profiles:	Farbprofile:
 Embed fonts ({})	Schriften einbetten ({})
 Ver&sion:	&Version:
+Version:	Version:
+Advanced...	Erweitert...
+Folder:	Ordner:
+{} already exists.	{} ist bereits vorhanden.
+Do you want to replace it?	Möchten Sie die Datei ersetzen?
 &Advanced...	&Erweitert...
 Advanced Save Options	Erweiterte Speicheroptionen
 Optimize for	Optimieren für
@@ -2710,6 +2743,7 @@ Duplicate word	Doppeltes Wort
 `{}` is repeated.	`{}` wird wiederholt.
 Spelling	Rechtschreibung
 `{}` is not in the spelling dictionary.	`{}` ist nicht im Rechtschreibwörterbuch enthalten.
+No spelling dictionary for {} is installed. Install the {} package.	Für {} ist kein Rechtschreibwörterbuch installiert. Installieren Sie das Paket {}.
 Capitalization	Großschreibung
 The first word of a sentence starts with a capital letter.	Das erste Wort eines Satzes beginnt mit einem Großbuchstaben.
 Article	Artikel

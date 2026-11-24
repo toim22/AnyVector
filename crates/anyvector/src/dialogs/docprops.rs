@@ -30,7 +30,7 @@ pub const LANGUAGES: [&str; 15] = [
     "Turkish",
 ];
 
-const RATINGS: [&str; 6] = ["None", "1 star", "2 stars", "3 stars", "4 stars", "5 stars"];
+pub(crate) const RATINGS: [&str; 6] = ["None", "1 star", "2 stars", "3 stars", "4 stars", "5 stars"];
 
 /// The statistics shown under the fields: (section, [(label, value)]).
 pub fn sections(doc: &Document, name: &str) -> Vec<(&'static str, Vec<(String, String)>)> {

@@ -1,10 +1,12 @@
 //! Printing (File ▸ Print, Print Preview, Print Merge): the print settings and print styles,
 //! where each page lands on the paper (Layout tab), the printers' marks (Prepress tab), the
-//! preflight checks, and the print job itself, sent to a Windows printer through GDI.
+//! preflight checks, and the print job itself, sent to a Windows printer through GDI, or on Linux
+//! to CUPS as a PDF (`cups`).
 //!
 //! Pages are rendered by AnyVector's own renderer at the printer resolution (capped at 600 dpi, or
 //! at the "Print as bitmap" resolution) and sent to the printer in bands, so any printer driver
-//! works, including "Microsoft Print to PDF".
+//! works, including "Microsoft Print to PDF". On Linux the same bands make the page images of the
+//! PDF, so what prints (marks, tiles, mirror, invert, grayscale) is the same on both systems.
 
 use kurbo::{Affine, BezPath, Point, Rect, Shape};
 use serde::{Deserialize, Serialize};
@@ -703,25 +705,199 @@ pub fn page_range(s: &str, n: usize, parity: Parity) -> Vec<usize> {
 #[cfg(windows)]
 pub use win::{default_printer, open_preferences, paper_for, printers, run_job};
 
+pub mod cups;
+
 #[cfg(not(windows))]
 pub fn printers() -> Vec<String> {
-    vec![]
+    cups::printers()
 }
 #[cfg(not(windows))]
 pub fn default_printer() -> Option<String> {
-    None
+    cups::default_printer()
 }
+/// The paper the printer uses in this orientation, with the options of Printing Preferences.
 #[cfg(not(windows))]
-pub fn paper_for(_printer: &str, _devmode: Option<&[u8]>, landscape: bool) -> Paper {
-    Paper::fallback(landscape)
+pub fn paper_for(printer: &str, options: Option<&[u8]>, landscape: bool) -> Paper {
+    cups::caps(printer).paper(&cups::Options::from_bytes(options), landscape)
 }
+
+/// Print the job through CUPS: the sheets become a PDF of page images in the private temporary
+/// folder, which `lp` sends with the copies and the options of Printing Preferences. Print to file
+/// writes that PDF (with the copies, as Windows writes them) instead. Returns a short report for
+/// the status message.
 #[cfg(not(windows))]
-pub fn open_preferences(_printer: &str, _devmode: Option<&[u8]>) -> Option<Vec<u8>> {
-    None
+pub fn run_job(job: Job) -> Result<String, String> {
+    if !cups::printers().contains(&job.printer) {
+        return Err(format!("The printer \"{}\" is not available.", job.printer));
+    }
+    let caps = cups::caps(&job.printer);
+    let opts = cups::Options::from_bytes(job.devmode.as_deref());
+    let (portrait, landscape) = (caps.paper(&opts, false), caps.paper(&opts, true));
+    let sheets = layout(&job.settings, &job.page_list(), &|l| if l { landscape } else { portrait });
+    if sheets.is_empty() {
+        return Err("There are no pages to print.".into());
+    }
+    let n = sheets.len();
+    let copies = job.settings.copies.max(1) as usize;
+    if let Some(path) = &job.file {
+        let mut order = vec![];
+        if job.settings.collate {
+            for _ in 0..copies {
+                order.extend(0..n);
+            }
+        } else {
+            for i in 0..n {
+                order.extend(std::iter::repeat_n(i, copies));
+            }
+        }
+        let mut total = 0;
+        if job.settings.file_mode == ToFile::PerPage && n > 1 {
+            let stem = path.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+            let ext = path.extension().map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| "pdf".into());
+            for i in 0..n {
+                let one: Vec<usize> = order.iter().copied().filter(|x| *x == i).collect();
+                total += write_pdf_file(&job, &sheets, &one, &path.with_file_name(format!("{stem}_{}.{ext}", i + 1)))?;
+            }
+        } else {
+            total += write_pdf_file(&job, &sheets, &order, path)?;
+        }
+        return Ok(format!("Printed {total} page(s) to {}", path.display()));
+    }
+    // one set of sheets; CUPS makes the copies, collated or not
+    static JOBS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let k = JOBS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let tmp = crate::platform::temp_dir().join(format!("print-{}-{k}.pdf", std::process::id()));
+    // left by a crashed AnyVector with the same process number
+    let _ = std::fs::remove_file(&tmp);
+    let file = std::fs::OpenOptions::new().write(true).create_new(true).open(&tmp).map_err(|e| format!("Could not write the print file: {e}"))?;
+    let sent = write_pdf_to(&job, &sheets, &(0..n).collect::<Vec<_>>(), file).and_then(|_| cups::submit(&job.printer, copies as u32, job.settings.collate, &job.title, &opts, &tmp));
+    // lp has handed the whole file to the scheduler when it returns
+    let _ = std::fs::remove_file(&tmp);
+    let id = sent?;
+    let total = n * copies;
+    Ok(if id.is_empty() { format!("Sent {total} page(s) to {}", job.printer) } else { format!("Sent {total} page(s) to {} (job {id})", job.printer) })
 }
-#[cfg(not(windows))]
-pub fn run_job(_job: Job) -> Result<String, String> {
-    Err("Printing is available on Windows only.".into())
+
+/// `write_pdf` into a file.
+#[cfg_attr(windows, allow(dead_code))]
+fn write_pdf_file(job: &Job, sheets: &[(Sheet, Paper)], order: &[usize], path: &std::path::Path) -> Result<usize, String> {
+    let f = std::fs::File::create(path).map_err(|e| format!("Could not write the print file: {e}"))?;
+    write_pdf_to(job, sheets, order, f)
+}
+
+#[cfg_attr(windows, allow(dead_code))]
+fn write_pdf_to(job: &Job, sheets: &[(Sheet, Paper)], order: &[usize], f: std::fs::File) -> Result<usize, String> {
+    let fail = |e: std::io::Error| match e.to_string() {
+        e if e == NOT_RENDERED => e,
+        e => format!("Could not write the print file: {e}"),
+    };
+    let mut w = std::io::BufWriter::new(f);
+    let n = write_pdf(job, sheets, order, &mut w).map_err(fail)?;
+    std::io::Write::flush(&mut w).map_err(fail)?;
+    Ok(n)
+}
+
+const NOT_RENDERED: &str = "The page could not be rendered.";
+
+/// A writer that counts the bytes written (the offsets of a PDF's objects).
+struct Counted<W> {
+    w: W,
+    n: u64,
+}
+
+impl<W: std::io::Write> std::io::Write for Counted<W> {
+    fn write(&mut self, b: &[u8]) -> std::io::Result<usize> {
+        let k = self.w.write(b)?;
+        self.n += k as u64;
+        Ok(k)
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.w.flush()
+    }
+}
+
+/// A number in a PDF: at most 3 decimals, no trailing zeros.
+fn pdf_num(v: f64) -> String {
+    let s = format!("{v:.3}");
+    s.trim_end_matches('0').trim_end_matches('.').to_string()
+}
+
+/// The sheets in `order` as a PDF, one page per sheet, the size of its paper, holding the sheet as
+/// one image rendered band by band at the job's resolution (the printer's, capped at 600 dpi or at
+/// "Print as bitmap", as on Windows). The bands are compressed as they are made, so a page never
+/// sits in memory uncompressed. Grayscale output is a gray image. Returns the pages written.
+#[cfg_attr(windows, allow(dead_code))]
+pub fn write_pdf(job: &Job, sheets: &[(Sheet, Paper)], order: &[usize], out: impl std::io::Write) -> std::io::Result<usize> {
+    use std::io::Write;
+    let mut f = Counted { w: out, n: 0 };
+    // objects: 1 catalog, 2 pages, 3 info, then 4 per page (page, contents, image, image length)
+    let mut offsets = vec![0u64; 4 + 4 * order.len()];
+    f.write_all(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")?;
+    let gray = job.settings.output == OutputColor::Grayscale;
+    let mut renderer = vector_render::Renderer::new();
+    let mut kids = String::new();
+    for (i, &si) in order.iter().enumerate() {
+        let (sheet, paper) = &sheets[si];
+        let jd = &job.docs[sheet.doc];
+        let cap = if job.settings.as_bitmap { job.settings.bitmap_dpi as f64 } else { 600.0 };
+        let dpi = paper.dpi.0.min(cap).max(72.0);
+        let k = dpi / 72.0;
+        let wpx = (paper.width * k).round().max(1.0) as u32;
+        let hpx = (paper.height * k).round().max(1.0) as u32;
+        let base = 4 + 4 * i;
+        kids.push_str(&format!("{base} 0 R "));
+        offsets[base] = f.n;
+        write!(f, "{base} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {} {}] /Resources << /XObject << /Im0 {} 0 R >> >> /Contents {} 0 R >>\nendobj\n", pdf_num(paper.width), pdf_num(paper.height), base + 2, base + 1)?;
+        let content = format!("q {} 0 0 {} 0 0 cm /Im0 Do Q\n", pdf_num(paper.width), pdf_num(paper.height));
+        offsets[base + 1] = f.n;
+        write!(f, "{} 0 obj\n<< /Length {} >>\nstream\n{content}endstream\nendobj\n", base + 1, content.len())?;
+        offsets[base + 2] = f.n;
+        let space = if gray { "DeviceGray" } else { "DeviceRGB" };
+        write!(f, "{} 0 obj\n<< /Type /XObject /Subtype /Image /Width {wpx} /Height {hpx} /ColorSpace /{space} /BitsPerComponent 8 /Filter /FlateDecode /Length {} 0 R >>\nstream\n", base + 2, base + 3)?;
+        let start = f.n;
+        {
+            let mut z = flate2::write::ZlibEncoder::new(&mut f, flate2::Compression::default());
+            let band = ((48u64 << 20) / (wpx as u64 * 4)).clamp(16, 4096) as u32;
+            let mut row = Vec::new();
+            let mut y = 0;
+            while y < hpx {
+                let h = band.min(hpx - y);
+                let pm = render_band(&mut renderer, jd, sheet, paper, &job.settings, sheet.page + 1, dpi, y, h).ok_or_else(|| std::io::Error::other(NOT_RENDERED))?;
+                row.clear();
+                for px in pm.pixels() {
+                    let c = px.demultiply();
+                    if gray {
+                        row.push(c.red());
+                    } else {
+                        row.extend_from_slice(&[c.red(), c.green(), c.blue()]);
+                    }
+                }
+                z.write_all(&row)?;
+                y += h;
+            }
+            z.finish()?;
+        }
+        let len = f.n - start;
+        f.write_all(b"\nendstream\nendobj\n")?;
+        offsets[base + 3] = f.n;
+        write!(f, "{} 0 obj\n{len}\nendobj\n", base + 3)?;
+    }
+    offsets[2] = f.n;
+    write!(f, "2 0 obj\n<< /Type /Pages /Count {} /Kids [{}] >>\nendobj\n", order.len(), kids.trim_end())?;
+    // the title as UTF-16 (any language)
+    let title: String = std::iter::once(0xfeffu16).chain(job.title.encode_utf16()).map(|u| format!("{u:04X}")).collect();
+    offsets[3] = f.n;
+    write!(f, "3 0 obj\n<< /Title <{title}> /Producer ({}) >>\nendobj\n", vector_core::APP_NAME)?;
+    offsets[1] = f.n;
+    f.write_all(b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n")?;
+    let xref = f.n;
+    write!(f, "xref\n0 {}\n0000000000 65535 f \n", offsets.len())?;
+    for o in &offsets[1..] {
+        write!(f, "{o:010} 00000 n \n")?;
+    }
+    write!(f, "trailer\n<< /Size {} /Root 1 0 R /Info 3 0 R >>\nstartxref\n{xref}\n%%EOF\n", offsets.len())?;
+    f.flush()?;
+    Ok(order.len())
 }
 
 #[cfg(windows)]
@@ -1054,6 +1230,97 @@ mod tests {
         let sheets = layout(&st, &[(0, 0, 612.0, 792.0, Rect::new(0.0, 0.0, 612.0, 792.0))], &|_| paper);
         let pm = render_sheet(&jd, &sheets[0].0, &paper, &st, 1, 36.0).unwrap();
         assert_eq!((pm.width(), pm.height()), (306, 396));
+    }
+
+    /// A two-page job (a portrait and a landscape page) with a red square on page 1.
+    fn two_page_job(st: PrintSettings) -> (Job, Vec<(Sheet, Paper)>) {
+        let mut doc = Document::new(612.0, 792.0);
+        doc.add_page(1, 792.0, 612.0);
+        let mut sq = fill_rect(Rect::new(72.0, 72.0, 216.0, 216.0), Color::rgb(255, 0, 0));
+        sq.id = doc.new_id();
+        doc.pages[0].layers[0].objects.push(sq);
+        let job = Job { printer: "PDF".into(), devmode: None, docs: vec![JobDoc { doc, name: "t".into(), only: None }], pages: vec![(0, 0), (0, 1)], settings: st, file: None, title: "Logo – Prova".into() };
+        // a low printer resolution keeps the test quick
+        let paper = |l: bool| Paper { dpi: (36.0, 36.0), ..Paper::fallback(l) };
+        let sheets = layout(&job.settings, &job.page_list(), &paper);
+        (job, sheets)
+    }
+
+    /// The PDF a Linux print job sends to CUPS: a page per sheet in the order given (copies
+    /// included), each page the size of its paper (the landscape sheet turned), each a page image
+    /// at the job's resolution that the PDF importer reads back, with the artwork in place.
+    #[test]
+    fn print_job_pdf_pages_and_sizes() {
+        let (job, sheets) = two_page_job(PrintSettings::default());
+        assert_eq!(sheets.len(), 2);
+        let mut pdf = vec![];
+        assert_eq!(write_pdf(&job, &sheets, &[0, 1, 0], &mut pdf).unwrap(), 3);
+        assert_eq!(vector_io::pdf_import::page_sizes(&pdf).unwrap(), [(612.0, 792.0), (792.0, 612.0), (612.0, 792.0)]);
+        let (doc, _) = vector_io::pdf_import::load_with_notes(&pdf, &Default::default()).unwrap();
+        assert_eq!(doc.pages.len(), 3);
+        // 36 dpi is below the 72 dpi floor: the images are 1 pixel per point
+        let mut sizes: Vec<(u32, u32)> = doc.images.values().map(|i| (i.width, i.height)).collect();
+        sizes.sort();
+        sizes.dedup();
+        assert_eq!(sizes, [(612, 792), (792, 612)]);
+        // the red square of page 1 is 1 inch from the top-left of the centred page
+        let first = doc.images.values().find(|i| i.width == 612 && !i.rgba.is_empty()).unwrap();
+        let px = |x: usize, y: usize| &first.rgba[(y * 612 + x) * 4..(y * 612 + x) * 4 + 3];
+        assert_eq!(px(144, 144), [255, 0, 0]);
+        assert_eq!(px(300, 500), [255, 255, 255]);
+        assert!(String::from_utf8_lossy(&pdf).ends_with("\n%%EOF\n"));
+    }
+
+    /// Grayscale output makes gray page images; Print as bitmap sets their resolution.
+    #[test]
+    fn print_job_pdf_grayscale_and_bitmap_resolution() {
+        let st = PrintSettings { output: OutputColor::Grayscale, as_bitmap: true, bitmap_dpi: 144, ..Default::default() };
+        let (job, mut sheets) = two_page_job(st);
+        for s in &mut sheets {
+            s.1.dpi = (600.0, 600.0);
+        }
+        let mut pdf = vec![];
+        write_pdf(&job, &sheets, &[0], &mut pdf).unwrap();
+        let text = String::from_utf8_lossy(&pdf);
+        assert!(text.contains("/Width 1224 /Height 1584 /ColorSpace /DeviceGray"), "{}", &text[..400.min(text.len())]);
+        let (doc, _) = vector_io::pdf_import::load_with_notes(&pdf, &Default::default()).unwrap();
+        let img = doc.images.values().next().unwrap();
+        let i = (288 * 1224 + 288) * 4;
+        let g = img.rgba[i];
+        assert!(g == img.rgba[i + 1] && g == img.rgba[i + 2] && g < 128, "red prints dark gray");
+    }
+
+    /// Print to file on Linux writes the PDF; with Pages to separate files one file per sheet,
+    /// numbered, each with its copies.
+    #[cfg(not(windows))]
+    #[test]
+    fn print_to_file_writes_pdfs() {
+        let dir = std::env::temp_dir().join(format!("anyvector-print-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let (job, sheets) = two_page_job(PrintSettings { copies: 2, collate: false, ..Default::default() });
+        let one = dir.join("Logo.pdf");
+        assert_eq!(write_pdf_file(&job, &sheets, &[0, 0, 1, 1], &one).unwrap(), 4);
+        assert_eq!(vector_io::pdf_import::page_sizes(&std::fs::read(&one).unwrap()).unwrap().len(), 4);
+        assert!(write_pdf_file(&job, &sheets, &[0], &dir.join("missing").join("x.pdf")).unwrap_err().starts_with("Could not write the print file:"));
+        let _ = std::fs::remove_dir_all(&dir);
+        // a printer CUPS does not know (or no CUPS at all)
+        let gone = Job { printer: "anyvector-no-such-printer".into(), ..job };
+        assert_eq!(run_job(gone).unwrap_err(), "The printer \"anyvector-no-such-printer\" is not available.");
+    }
+
+    /// A real job through CUPS to the cups-pdf printer "PDF" (Ubuntu: `apt install cups
+    /// printer-driver-cups-pdf`); the PDF lands in ~/PDF. Run with
+    /// `cargo test -p anyvector print_job_to_cups_pdf -- --ignored`.
+    #[cfg(not(windows))]
+    #[test]
+    #[ignore]
+    fn print_job_to_cups_pdf() {
+        assert!(printers().contains(&"PDF".to_string()), "no cups-pdf printer: {:?}", printers());
+        let (mut job, _) = two_page_job(PrintSettings { copies: 2, ..Default::default() });
+        job.title = format!("anyvector-test-{}", std::process::id());
+        let report = run_job(job).unwrap();
+        assert!(report.starts_with("Sent 4 page(s) to PDF (job PDF-"), "{report}");
     }
 
     /// Print styles whose extension is in capitals (copied from another computer) are listed and

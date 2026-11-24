@@ -1543,6 +1543,11 @@ Block Shadow	Blokschaduw
 Block Shadow tool	Hulpmiddel Blokschaduw
 Color Eyedropper	Kleurenpipet
 Color Eyedropper tool	Hulpmiddel Kleurenpipet
+AnyVector cannot see the screen outside its window: the desktop's color picker (xdg-desktop-portal) was not found. Install xdg-desktop-portal and your desktop's portal (for example xdg-desktop-portal-gnome or xdg-desktop-portal-kde), or sample colors inside the drawing window.	AnyVector kan het scherm buiten zijn venster niet zien: de kleurkiezer van het bureaublad (xdg-desktop-portal) is niet gevonden. Installeer xdg-desktop-portal en het portaal van uw bureaublad (bijvoorbeeld xdg-desktop-portal-gnome of xdg-desktop-portal-kde), of neem kleuren op in het tekenvenster.
+Without the desktop's color picker (xdg-desktop-portal), only the windows of X11 programs can be sampled.	Zonder de kleurkiezer van het bureaublad (xdg-desktop-portal) kunnen alleen vensters van X11-programma's worden opgenomen.
+The desktop's color picker failed:	De kleurkiezer van het bureaublad is mislukt:
+The desktop's color picker failed:\n{}	De kleurkiezer van het bureaublad is mislukt:\n{}
+The desktop's color picker failed.	De kleurkiezer van het bureaublad is mislukt.
 Attributes Eyedropper	Kenmerkenpipet
 Attributes Eyedropper tool	Hulpmiddel Kenmerkenpipet
 Interactive Fill	Interactieve vulling
@@ -1997,7 +2002,18 @@ The page no longer exists.	De pagina bestaat niet meer.
 The object no longer exists.	Het object bestaat niet meer.
 Nothing to export	Niets om te exporteren
 No scanner or camera was found. Connect a WIA device and try again.	Er is geen scanner of camera gevonden. Sluit een WIA-apparaat aan en probeer het opnieuw.
-Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	Scannen is in AnyVector onder Linux nog niet beschikbaar. Scan de afbeelding met het scanprogramma van uw systeem (bijvoorbeeld Documentscanner of XSane), sla deze op en haal deze in de tekening met Bestand ▸ Importeren.
+Select Source	Bron selecteren
+Looking for scanners...	Scanners zoeken...
+Choose the scanner to use:	Kies de scanner die u wilt gebruiken:
+Scanner:	Scanner:
+Scan	Scannen
+Reading the scanner's settings...	Instellingen van de scanner lezen...
+Scanning on Linux uses SANE, and its scanimage program was not found. Install it with your package manager (sane-utils on Debian and Ubuntu, sane-backends on Fedora and Arch) together with your scanner's SANE driver, then try again.	Scannen onder Linux gebruikt SANE, en het programma scanimage daarvan is niet gevonden. Installeer het met uw pakketbeheer (sane-utils op Debian en Ubuntu, sane-backends op Fedora en Arch) samen met het SANE-stuurprogramma van uw scanner en probeer het opnieuw.
+No scanner was found. Check that the scanner is connected and turned on, and that its SANE driver is installed (for network scanners, sane-airscan). The command scanimage -L lists the scanners SANE sees.	Er is geen scanner gevonden. Controleer of de scanner is aangesloten en aanstaat, en of het SANE-stuurprogramma ervan is geïnstalleerd (voor netwerkscanners sane-airscan). De opdracht scanimage -L toont de scanners die SANE ziet.
+Document Scanner (simple-scan) is installed: you can scan with it, save the image and bring it in with File ▸ Import.	Documentscanner (simple-scan) is geïnstalleerd: u kunt ermee scannen, de afbeelding opslaan en deze met Bestand ▸ Importeren in de tekening halen.
+Looking for scanners failed:	Het zoeken naar scanners is mislukt:
+Looking for scanners failed:\n{}	Het zoeken naar scanners is mislukt:\n{}
+The image could not be acquired:	De afbeelding kan niet worden opgehaald:
 Select WIA Source	WIA-bron selecteren
 The image could not be acquired:\n{}	De afbeelding kan niet worden opgehaald:\n{}
 All File Formats	Alle bestandsindelingen
@@ -2544,7 +2560,6 @@ Empty text objects print nothing and can be deleted.	Lege tekstobjecten drukken 
 Very thin outlines may not print, or print unevenly. Use at least 0.25 pt.	Zeer dunne omtrekken worden mogelijk niet of ongelijkmatig afgedrukt. Gebruik minstens 0,25 pt.
 Printers' marks do not fit on the paper.	Drukkerstekens passen niet op het papier.
 The paper must be larger than the page to hold crop marks, registration marks and the other printers' marks. Choose a larger paper, or Fit to page on the Layout tab.	Het papier moet groter zijn dan de pagina om snijtekens, paspoorttekens en de andere drukkerstekens te bevatten. Kies groter papier, of Aan pagina aanpassen op het tabblad Indeling.
-Printing is available on Windows only.	Afdrukken is alleen beschikbaar in Windows.
 Could not open the printer "{}".	Kan de printer "{}" niet openen.
 The printer did not accept the job.	De printer heeft de taak niet geaccepteerd.
 The printer stopped the job.	De printer heeft de taak gestopt.
@@ -2553,6 +2568,19 @@ The printer "{}" is not available.	De printer "{}" is niet beschikbaar.
 There are no pages to print.	Er zijn geen pagina's om af te drukken.
 Printed {} page(s) to {}	{} pagina('s) afgedrukt naar {}
 Sent {} page(s) to {}	{} pagina('s) verzonden naar {}
+{} Printing Preferences	Voorkeuren voor afdrukken van {}
+Paper size:	Papierformaat:
+Print on both sides:	Dubbelzijdig afdrukken:
+Flip on long edge	Omslaan langs lange zijde
+Flip on short edge	Omslaan langs korte zijde
+The printer's options could not be read.	De opties van de printer konden niet worden gelezen.
+There is no printer installed. Add a printer in the system's printer settings (CUPS), or install the cups-pdf printer to print to PDF files.	Er is geen printer geïnstalleerd. Voeg een printer toe in de printerinstellingen van het systeem (CUPS), of installeer de printer cups-pdf om naar PDF-bestanden af te drukken.
+Sent {} page(s) to {} (job {})	{} pagina('s) verzonden naar {} (taak {})
+The printer did not accept the job: {}	De printer heeft de taak niet geaccepteerd: {}
+Could not write the print file: {}	Het afdrukbestand kon niet worden geschreven: {}
+The page could not be rendered.	De pagina kon niet worden gerenderd.
+Could not run lp, the CUPS print command. Install the CUPS client (the cups-client package).	lp, de afdrukopdracht van CUPS, kon niet worden uitgevoerd. Installeer de CUPS-client (pakket cups-client).
+Printing uses CUPS. Documents are sent as high-resolution page images in a PDF, which works with every printer CUPS can print to.	Afdrukken gebruikt CUPS. Documenten worden als paginabeelden met hoge resolutie in een PDF verzonden, wat werkt met elke printer waarop CUPS kan afdrukken.
 0 bytes	0 bytes
 {} bytes	{} bytes
 {} KB	{} KB
@@ -2561,6 +2589,11 @@ Embed color profiles ({})	Kleurprofielen insluiten ({})
 Color profiles:	Kleurprofielen:
 Embed fonts ({})	Lettertypen insluiten ({})
 Ver&sion:	&Versie:
+Version:	Versie:
+Advanced...	Geavanceerd...
+Folder:	Map:
+{} already exists.	{} bestaat al.
+Do you want to replace it?	Wilt u dit bestand vervangen?
 &Advanced...	&Geavanceerd...
 Advanced Save Options	Geavanceerde opslagopties
 Optimize for	Optimaliseren voor
@@ -2710,6 +2743,7 @@ Duplicate word	Dubbel woord
 `{}` is repeated.	`{}` wordt herhaald.
 Spelling	Spelling
 `{}` is not in the spelling dictionary.	`{}` staat niet in het spellingwoordenboek.
+No spelling dictionary for {} is installed. Install the {} package.	Er is geen spellingwoordenboek voor {} geïnstalleerd. Installeer het pakket {}.
 Capitalization	Hoofdlettergebruik
 The first word of a sentence starts with a capital letter.	Het eerste woord van een zin begint met een hoofdletter.
 Article	Lidwoord

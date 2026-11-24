@@ -1543,6 +1543,11 @@ Block Shadow	Blokový stín
 Block Shadow tool	Nástroj Blokový stín
 Color Eyedropper	Kapátko barev
 Color Eyedropper tool	Nástroj Kapátko barev
+AnyVector cannot see the screen outside its window: the desktop's color picker (xdg-desktop-portal) was not found. Install xdg-desktop-portal and your desktop's portal (for example xdg-desktop-portal-gnome or xdg-desktop-portal-kde), or sample colors inside the drawing window.	AnyVector nevidí obrazovku mimo své okno: výběr barvy pracovního prostředí (xdg-desktop-portal) nebyl nalezen. Nainstalujte xdg-desktop-portal a portál svého pracovního prostředí (například xdg-desktop-portal-gnome nebo xdg-desktop-portal-kde), nebo vzorkujte barvy v okně kresby.
+Without the desktop's color picker (xdg-desktop-portal), only the windows of X11 programs can be sampled.	Bez výběru barvy pracovního prostředí (xdg-desktop-portal) lze vzorkovat pouze okna programů X11.
+The desktop's color picker failed:	Výběr barvy pracovního prostředí selhal:
+The desktop's color picker failed:\n{}	Výběr barvy pracovního prostředí selhal:\n{}
+The desktop's color picker failed.	Výběr barvy pracovního prostředí selhal.
 Attributes Eyedropper	Kapátko atributů
 Attributes Eyedropper tool	Nástroj Kapátko atributů
 Interactive Fill	Interaktivní výplň
@@ -1997,7 +2002,18 @@ The page no longer exists.	Stránka již neexistuje.
 The object no longer exists.	Objekt již neexistuje.
 Nothing to export	Není co exportovat
 No scanner or camera was found. Connect a WIA device and try again.	Nebyl nalezen žádný skener ani fotoaparát. Připojte zařízení WIA a zkuste to znovu.
-Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	Skenování zatím v AnyVectoru v Linuxu není k dispozici. Naskenujte obrázek skenovacím programem systému (například Skener dokumentů nebo XSane), uložte jej a vložte jej do kresby pomocí Soubor ▸ Importovat.
+Select Source	Vybrat zdroj
+Looking for scanners...	Hledání skenerů...
+Choose the scanner to use:	Vyberte skener, který chcete použít:
+Scanner:	Skener:
+Scan	Skenovat
+Reading the scanner's settings...	Načítání nastavení skeneru...
+Scanning on Linux uses SANE, and its scanimage program was not found. Install it with your package manager (sane-utils on Debian and Ubuntu, sane-backends on Fedora and Arch) together with your scanner's SANE driver, then try again.	Skenování v Linuxu používá SANE a jeho program scanimage nebyl nalezen. Nainstalujte jej správcem balíčků (sane-utils v Debianu a Ubuntu, sane-backends ve Fedoře a Archu) spolu s ovladačem SANE vašeho skeneru a zkuste to znovu.
+No scanner was found. Check that the scanner is connected and turned on, and that its SANE driver is installed (for network scanners, sane-airscan). The command scanimage -L lists the scanners SANE sees.	Nebyl nalezen žádný skener. Zkontrolujte, zda je skener připojen a zapnut a zda je nainstalován jeho ovladač SANE (pro síťové skenery sane-airscan). Příkaz scanimage -L vypíše skenery, které SANE vidí.
+Document Scanner (simple-scan) is installed: you can scan with it, save the image and bring it in with File ▸ Import.	Skener dokumentů (simple-scan) je nainstalován: můžete jím skenovat, uložit obrázek a vložit jej do kresby pomocí Soubor ▸ Importovat.
+Looking for scanners failed:	Hledání skenerů se nezdařilo:
+Looking for scanners failed:\n{}	Hledání skenerů se nezdařilo:\n{}
+The image could not be acquired:	Obrázek nelze načíst:
 Select WIA Source	Vybrat zdroj WIA
 The image could not be acquired:\n{}	Obrázek nelze načíst:\n{}
 All File Formats	Všechny formáty souborů
@@ -2544,7 +2560,6 @@ Empty text objects print nothing and can be deleted.	Prázdné textové objekty 
 Very thin outlines may not print, or print unevenly. Use at least 0.25 pt.	Velmi tenké obrysy se nemusí vytisknout nebo se vytisknou nerovnoměrně. Použijte alespoň 0,25 pt.
 Printers' marks do not fit on the paper.	Tiskové značky se nevejdou na papír.
 The paper must be larger than the page to hold crop marks, registration marks and the other printers' marks. Choose a larger paper, or Fit to page on the Layout tab.	Papír musí být větší než stránka, aby se na něj vešly ořezové značky, soutiskové značky a další tiskové značky. Zvolte větší papír nebo možnost Přizpůsobit stránce na kartě Rozvržení.
-Printing is available on Windows only.	Tisk je k dispozici pouze v systému Windows.
 Could not open the printer "{}".	Tiskárnu „{}“ nelze otevřít.
 The printer did not accept the job.	Tiskárna úlohu nepřijala.
 The printer stopped the job.	Tiskárna úlohu zastavila.
@@ -2553,6 +2568,19 @@ The printer "{}" is not available.	Tiskárna „{}“ není k dispozici.
 There are no pages to print.	Nejsou žádné stránky k tisku.
 Printed {} page(s) to {}	Vytištěno stránek: {} na {}
 Sent {} page(s) to {}	Odesláno stránek: {} do {}
+{} Printing Preferences	Předvolby tisku – {}
+Paper size:	Velikost papíru:
+Print on both sides:	Tisk na obě strany:
+Flip on long edge	Převrátit podél dlouhé strany
+Flip on short edge	Převrátit podél krátké strany
+The printer's options could not be read.	Možnosti tiskárny se nepodařilo načíst.
+There is no printer installed. Add a printer in the system's printer settings (CUPS), or install the cups-pdf printer to print to PDF files.	Není nainstalována žádná tiskárna. Přidejte tiskárnu v nastavení tiskáren systému (CUPS) nebo nainstalujte tiskárnu cups-pdf pro tisk do souborů PDF.
+Sent {} page(s) to {} (job {})	Odesláno stránek: {} do {} (úloha {})
+The printer did not accept the job: {}	Tiskárna úlohu nepřijala: {}
+Could not write the print file: {}	Tiskový soubor se nepodařilo zapsat: {}
+The page could not be rendered.	Stránku se nepodařilo vykreslit.
+Could not run lp, the CUPS print command. Install the CUPS client (the cups-client package).	Nelze spustit lp, tiskový příkaz systému CUPS. Nainstalujte klienta CUPS (balíček cups-client).
+Printing uses CUPS. Documents are sent as high-resolution page images in a PDF, which works with every printer CUPS can print to.	Tisk využívá CUPS. Dokumenty se odesílají jako obrazy stránek ve vysokém rozlišení v souboru PDF, což funguje se všemi tiskárnami, na které CUPS umí tisknout.
 0 bytes	0 bajtů
 {} bytes	{} bajtů
 {} KB	{} KB
@@ -2561,6 +2589,11 @@ Embed color profiles ({})	Vložit barevné profily ({})
 Color profiles:	Barevné profily:
 Embed fonts ({})	Vložit písma ({})
 Ver&sion:	&Verze:
+Version:	Verze:
+Advanced...	Upřesnit...
+Folder:	Složka:
+{} already exists.	{} již existuje.
+Do you want to replace it?	Chcete jej nahradit?
 &Advanced...	&Upřesnit...
 Advanced Save Options	Upřesňující možnosti ukládání
 Optimize for	Optimalizovat pro
@@ -2710,6 +2743,7 @@ Duplicate word	Zdvojené slovo
 `{}` is repeated.	`{}` se opakuje.
 Spelling	Pravopis
 `{}` is not in the spelling dictionary.	`{}` není ve slovníku pravopisu.
+No spelling dictionary for {} is installed. Install the {} package.	Pro {} není nainstalován žádný slovník pravopisu. Nainstalujte balíček {}.
 Capitalization	Velká písmena
 The first word of a sentence starts with a capital letter.	První slovo věty začíná velkým písmenem.
 Article	Člen

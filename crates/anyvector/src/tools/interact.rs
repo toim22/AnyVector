@@ -3332,6 +3332,12 @@ impl<'a> Cx<'a> {
             let c = Color::rgb((r / k) as u8, (g / k) as u8, (b / k) as u8);
             self.ts.eyedrop_color = Some(c);
             self.ts.eye_apply = true;
+            // Linux: a click in the drawing ends "Select from Desktop", as the click
+            // Windows reads from the screen does (X11 leaves clicks inside the window to this)
+            #[cfg(target_os = "linux")]
+            {
+                self.ts.desktop_pick = false;
+            }
             self.out.flash = Some(format!("Sampled color R{} G{} B{}", c.r, c.g, c.b));
             return;
         }
@@ -4014,6 +4020,7 @@ pub fn tick(app: &mut AnyVectorApp, ctx: &egui::Context) {
             ctx.request_repaint_after(std::time::Duration::from_secs_f64(left.max(0.01)));
         }
     }
+    #[cfg(not(target_os = "linux"))]
     if app.ts.desktop_pick {
         ctx.request_repaint_after(std::time::Duration::from_millis(30));
         if let Some(c) = desktop_click_color() {
@@ -4021,6 +4028,53 @@ pub fn tick(app: &mut AnyVectorApp, ctx: &egui::Context) {
             app.ts.eyedrop_color = Some(c);
             app.ts.eye_apply = true;
             app.flash(format!("Sampled color R{} G{} B{}", c.r, c.g, c.b));
+        }
+    }
+    #[cfg(target_os = "linux")]
+    linux_desktop_pick(app, ctx);
+}
+
+/// "Select from Desktop" on Linux (see `screen_pick`): X11 reads the pixel clicked outside
+/// the window, Wayland asks the desktop's color picker. The Color Eyedropper dragged from the
+/// drawing and let go outside the window samples the screen there too.
+#[cfg(target_os = "linux")]
+fn linux_desktop_pick(app: &mut AnyVectorApp, ctx: &egui::Context) {
+    use crate::screen_pick::{self, Polled};
+    let (rect, pos, down, released) = ctx.input(|i| (i.content_rect(), i.pointer.latest_pos(), i.pointer.primary_down(), i.pointer.primary_released()));
+    // where a drag from the drawing (not from a ruler) was last seen: the pointer may be reported
+    // gone in the frame it is let go
+    let drag_id = egui::Id::unique("eyedropper_drag_at");
+    let last = ctx.data(|d| d.get_temp::<Pos2>(drag_id));
+    let dragging = down && app.ts.press.is_some() && app.ts.drag.is_none() && app.tool == ToolId::ColorEyedropper;
+    let mut now = false;
+    if dragging {
+        if let Some(p) = pos {
+            ctx.data_mut(|d| d.insert_temp(drag_id, p));
+        }
+    } else if last.is_some() {
+        ctx.data_mut(|d| d.remove_temp::<Pos2>(drag_id));
+        now = released && app.tool == ToolId::ColorEyedropper && pos.or(last).is_some_and(|p| !rect.contains(p));
+        app.ts.desktop_pick |= now;
+    }
+    if !app.ts.desktop_pick {
+        screen_pick::stop();
+        return;
+    }
+    ctx.request_repaint_after(std::time::Duration::from_millis(30));
+    let inside = pos.is_some_and(|p| rect.contains(p));
+    match screen_pick::poll(now, inside) {
+        Polled::Waiting => {}
+        Polled::Note(m) => app.flash(m),
+        Polled::Color(c) => {
+            app.ts.desktop_pick = false;
+            app.ts.eyedrop_color = Some(c);
+            app.ts.eye_apply = true;
+            app.flash(format!("Sampled color R{} G{} B{}", c.r, c.g, c.b));
+        }
+        Polled::Cancelled => app.ts.desktop_pick = false,
+        Polled::Message(m) => {
+            app.ts.desktop_pick = false;
+            app.dialogs.message_box = Some(("Color Eyedropper".into(), m));
         }
     }
 }
@@ -4057,7 +4111,7 @@ fn desktop_click_color() -> Option<Color> {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "linux")))]
 fn desktop_click_color() -> Option<Color> {
     None
 }

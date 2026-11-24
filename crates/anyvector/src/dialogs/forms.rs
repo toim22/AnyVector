@@ -32,6 +32,9 @@ pub fn show_all(app: &mut AnyVectorApp, ctx: &egui::Context) {
     if app.dialogs.confirm_close.is_some() {
         confirm_close(app, ctx);
     }
+    if app.dialogs.save_options.is_some() {
+        super::save_options::show(app, ctx);
+    }
     if app.dialogs.new_doc.is_some() {
         super::new_doc::show(app, ctx);
     }
@@ -107,16 +110,7 @@ fn confirm_quit(app: &mut AnyVectorApp, ctx: &egui::Context) {
     match choice {
         Some(super::Choice::Yes) => {
             app.dialogs.confirm_quit = false;
-            let mut ok = true;
-            for i in 0..app.docs.len() {
-                if app.docs[i].history.is_modified() && !app.save_doc(i, false) {
-                    ok = false;
-                    break;
-                }
-            }
-            if ok {
-                app.quit_requested = true;
-            }
+            app.save_all_then_quit();
         }
         Some(super::Choice::No) => {
             app.dialogs.confirm_quit = false;
@@ -158,11 +152,11 @@ fn confirm_close(app: &mut AnyVectorApp, ctx: &egui::Context) {
     match choice {
         Some(super::Choice::Yes) => {
             app.dialogs.confirm_close = None;
-            if app.save_doc(i, false) {
-                app.close_doc_now(i);
-                app.continue_close_queue();
-            } else {
-                app.dialogs.close_queue.clear();
+            use crate::exec::{AfterSave, SaveOutcome};
+            match app.save_doc_then(i, false, AfterSave::Close) {
+                // the Save Options dialog closes the document when it is done
+                SaveOutcome::Pending => {}
+                o => app.after_save(i, AfterSave::Close, o == SaveOutcome::Saved),
             }
         }
         Some(super::Choice::No) => {

@@ -3511,22 +3511,394 @@ fn pdf_import_of_a_broken_file_says_so() {
     h.step();
 }
 
-/// File ▸ Acquire Image on Linux: WIA and TWAIN are Windows' ways to reach a scanner, so each
-/// command says how to bring a scan in instead of silently doing nothing. The commands run
-/// directly: the message is what counts here, not how the message box draws it.
+/// File ▸ Acquire Image off Windows: the Select Source items (WIA and TWAIN alike) and Acquire
+/// open the SANE scan dialog, which starts by looking for scanners; nothing is scanned yet.
 #[cfg(not(windows))]
 #[test]
-fn acquire_image_on_linux_says_how_to_scan() {
+fn acquire_image_off_windows_opens_the_sane_dialog() {
     let mut h = dialog_harness();
     let ctx = h.ctx.clone();
-    for (cmd, title) in [(Cmd::SelectTwain, "Select TWAIN Source"), (Cmd::SelectWia, "Select WIA Source"), (Cmd::Acquire, "Acquire Image")] {
-        h.state_mut().dialogs.message_box = None;
+    h.state_mut().settings.scan = Default::default();
+    for cmd in [Cmd::SelectTwain, Cmd::SelectWia, Cmd::Acquire] {
+        h.state_mut().dialogs.scan = None;
         h.state_mut().execute(&ctx, cmd);
-        let (shown, text) = h.state().dialogs.message_box.clone().expect("a message");
-        assert_eq!(shown, title);
-        assert!(text.contains("File ▸ Import"), "{text}");
-        assert!(h.state().background.is_empty(), "nothing is started for {title}");
+        assert!(h.state().dialogs.scan.is_some(), "{cmd:?} opens the scan dialog");
+        assert!(h.state().dialogs.message_box.is_none());
+        assert!(h.state().background.is_empty(), "nothing is scanned by {cmd:?}");
     }
+}
+
+/// Two scanners as `scanimage -L` lists them.
+#[cfg(not(windows))]
+fn scan_devices() -> Vec<crate::dialogs::sane::Device> {
+    use crate::dialogs::sane::Device;
+    vec![
+        Device { name: "pixma:04A91912".into(), label: "CANON Canon PIXMA MG5200 multi-function peripheral".into() },
+        Device { name: "airscan:e0:Canon MF240".into(), label: "eSCL Canon MF240 ip=192.168.1.20".into() },
+    ]
+}
+
+/// File ▸ Acquire Image off Windows (SANE): Select Source lists the scanners and keeps the one
+/// chosen; Acquire shows the scan settings (the resolutions and color modes the scanner offers)
+/// and Cancel scans nothing. The scanner list and options are given, so no scanner is needed.
+#[cfg(not(windows))]
+#[test]
+#[ignore]
+fn visual_scan_dialog() {
+    use crate::dialogs::{sane, scan::ScanState};
+    use egui_kittest::kittest::Queryable;
+    let mut h = doc_harness();
+    h.state_mut().settings.scan = Default::default();
+    let devices = scan_devices();
+    h.state_mut().dialogs.scan = Some(ScanState::choosing(devices.clone(), false));
+    settle(&mut h);
+    save(&mut h, "scan_01_select_source");
+    click_label(&mut h, &devices[1].label);
+    click_label(&mut h, "OK");
+    assert!(h.state().dialogs.scan.is_none(), "OK closes Select Source");
+    assert_eq!(h.state().settings.scan.device.as_deref(), Some("airscan:e0:Canon MF240"), "the chosen scanner is kept");
+    assert!(h.state().background.is_empty(), "choosing scans nothing");
+    // Acquire: the scanner's own resolutions and modes, 300 dpi and color to start with
+    let opts = sane::parse_options("    --resolution 75|150|300|600|1200dpi [75]\n    --mode Lineart|Gray|Color [Lineart]\n");
+    h.state_mut().dialogs.scan = Some(ScanState::settings(devices[0].clone(), opts));
+    settle(&mut h);
+    assert!(has_label(&h, "Scan") && has_label(&h, &devices[0].label));
+    assert_eq!(h.state().dialogs.scan.as_ref().unwrap().chosen(), Some(("Color".into(), 300)), "of what the scanner offers");
+    let window = egui::Rect::from_center_size(h.ctx.content_rect().center(), egui::vec2(420.0, 220.0));
+    for b in ["Scan", "Cancel"] {
+        assert!(window.contains_rect(h.get_by_label(b).rect()), "a long scanner name leaves {b} inside the dialog");
+    }
+    save(&mut h, "scan_02_settings");
+    click_label(&mut h, "Cancel");
+    assert!(h.state().dialogs.scan.is_none(), "Cancel closes it");
+    assert!(h.state().background.is_empty(), "Cancel scans nothing");
+    // Acquire with several scanners and none chosen: the list first, then the settings
+    h.state_mut().dialogs.scan = Some(ScanState::choosing(devices.clone(), true));
+    settle(&mut h);
+    save(&mut h, "scan_03_acquire_choose");
+    click_label(&mut h, "OK");
+    assert!(h.state().dialogs.scan.is_some(), "on to the scan settings");
+    assert_eq!(h.state().settings.scan.device.as_deref(), Some("airscan:e0:Canon MF240"), "the scanner Acquire takes is kept only once it scans");
+    h.state_mut().dialogs.scan = None;
+}
+
+/// File ▸ Acquire Image off Windows without a scanner, and without SANE: a message says why and
+/// what to install; no dialog stays open.
+#[cfg(not(windows))]
+#[test]
+#[ignore]
+fn visual_scan_no_scanner_message() {
+    use crate::dialogs::scan::{ListError, ScanState, NO_SANE, NO_SCANNER};
+    let mut h = doc_harness();
+    for (r, text, name) in [(Ok(vec![]), NO_SCANNER, "scan_04_no_scanner"), (Err(ListError::NotInstalled), NO_SANE, "scan_05_no_sane")] {
+        h.state_mut().dialogs.message_box = None;
+        h.state_mut().dialogs.scan = Some(ScanState::listed(r, true));
+        settle(&mut h);
+        assert!(h.state().dialogs.scan.is_none(), "{name}: the dialog closes");
+        let (title, shown) = h.state().dialogs.message_box.clone().expect("a message");
+        assert_eq!(title, "Acquire Image");
+        assert!(shown.starts_with(text), "{shown}");
+        save(&mut h, name);
+    }
+    assert!(NO_SANE.contains("sane-utils"), "says what to install");
+    // a single scanner is taken without asking
+    h.state_mut().dialogs.message_box = None;
+    h.state_mut().dialogs.scan = Some(ScanState::listed(Ok(scan_devices()[..1].to_vec()), true));
+    settle(&mut h);
+    assert!(h.state().dialogs.scan.is_some() && has_label(&h, "Scan"), "straight to the scan settings");
+    h.state_mut().dialogs.scan = None;
+}
+
+/// A private SANE configuration with only the "test" backend (two virtual scanners); the
+/// variable is put back when this goes.
+#[cfg(target_os = "linux")]
+struct SaneTestBackend {
+    dir: std::path::PathBuf,
+    old: Option<std::ffi::OsString>,
+}
+
+#[cfg(target_os = "linux")]
+impl SaneTestBackend {
+    fn new() -> SaneTestBackend {
+        let dir = std::env::temp_dir().join(format!("anyvector-sane-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("dll.conf"), "test\n").unwrap();
+        let old = std::env::var_os("SANE_CONFIG_DIR");
+        std::env::set_var("SANE_CONFIG_DIR", &dir);
+        SaneTestBackend { dir, old }
+    }
+}
+
+#[cfg(target_os = "linux")]
+impl Drop for SaneTestBackend {
+    fn drop(&mut self) {
+        match &self.old {
+            Some(v) => std::env::set_var("SANE_CONFIG_DIR", v),
+            None => std::env::remove_var("SANE_CONFIG_DIR"),
+        }
+        let _ = std::fs::remove_dir_all(&self.dir);
+    }
+}
+
+/// Linux, a real scan: SANE's "test" backend (virtual scanners, in a SANE configuration of the
+/// test's own) is listed, scans a PNG, and Scan in the dialog imports it as the Windows WIA scan
+/// is. Needs sane-utils (scanimage with PNG output); run with
+/// `cargo test -p anyvector clip_real_linux -- --ignored --test-threads=1`.
+#[cfg(target_os = "linux")]
+#[test]
+#[ignore]
+fn clip_real_linux_scan_sane_test_backend() {
+    use crate::dialogs::{sane, scan};
+    use std::time::{Duration, Instant};
+    let _sane = SaneTestBackend::new();
+    let devices = scan::devices_now().expect("scanimage (apt install sane-utils)");
+    let test = devices.iter().find(|d| d.name == "test:0").unwrap_or_else(|| panic!("the test backend is listed: {devices:?}")).clone();
+    assert!(test.label.contains("frontend-tester"), "{test:?}");
+    // the scan itself, to a PNG
+    let out = temp_file("scan_real", "scan.png");
+    let r = scan::scan_now(&test.name, Some("Color"), Some(75), &out).expect("scanned");
+    assert_eq!(r, format!("\u{1}import:{}", out.display()));
+    let img = image::open(&out).expect("a PNG");
+    assert!(img.width() > 100 && img.height() > 100, "{}x{}", img.width(), img.height());
+    // an unknown device: the error scanimage gives
+    let e = scan::scan_now("nonexistent:0", None, None, &out).unwrap_err();
+    assert!(e.starts_with("The image could not be acquired:\n"), "{e}");
+    assert!(!out.exists(), "no empty file is left");
+    // through the dialog: Scan imports the image into the drawing
+    let mut h = dialog_harness();
+    h.state_mut().settings.scan = Default::default();
+    let before = object_count(&h);
+    let opts = sane::parse_options("    --mode Gray|Color [Gray]\n    --resolution 1..1200dpi (in steps of 1) [50]\n");
+    h.state_mut().dialogs.scan = Some(scan::ScanState::settings(test.clone(), opts));
+    settle(&mut h);
+    click_label(&mut h, "Scan");
+    assert!(h.state().dialogs.scan.is_none());
+    assert_eq!(h.state().settings.scan.device.as_deref(), Some("test:0"), "the scanner used is kept");
+    let t = Instant::now();
+    while !h.state().background.is_empty() {
+        assert!(t.elapsed() < Duration::from_secs(60), "the scan never finished");
+        std::thread::sleep(Duration::from_millis(100));
+        h.step();
+    }
+    h.step();
+    assert!(h.state().dialogs.message_box.is_none(), "{:?}", h.state().dialogs.message_box);
+    assert_eq!(object_count(&h), before + 1, "the scan was imported");
+    assert_eq!(clip_kind_count(&h, |k| matches!(k, ObjKind::Image(_))), 1);
+}
+
+/// Linux, X11: "Select from Desktop" reads the screen pixel under the pointer (a window of
+/// a known color on an Xvfb display of the test's own). Needs Xvfb; run with
+/// `cargo test -p anyvector clip_real_linux -- --ignored --test-threads=1`.
+#[cfg(target_os = "linux")]
+#[test]
+#[ignore]
+fn clip_real_linux_pick_x11() {
+    use crate::screen_pick::{self, x11::Screen, Polled};
+    use x11rb::connection::Connection;
+    use x11rb::protocol::xproto::{ConnectionExt, CreateWindowAux, WindowClass};
+    use x11rb::wrapper::ConnectionExt as _;
+    let _x = ClipDisplay::xvfb();
+    // another program's window, orange
+    let (c, n) = x11rb::rust_connection::RustConnection::connect(None).unwrap();
+    let root = c.setup().roots[n].root;
+    let w = c.generate_id().unwrap();
+    c.create_window(x11rb::COPY_DEPTH_FROM_PARENT, w, root, 100, 50, 40, 30, 0, WindowClass::INPUT_OUTPUT, 0, &CreateWindowAux::new().background_pixel(0x00ff_8020).override_redirect(1)).unwrap();
+    c.map_window(w).unwrap();
+    c.warp_pointer(x11rb::NONE, root, 0, 0, 0, 0, 110, 60).unwrap();
+    c.sync().unwrap();
+    let screen = Screen::open().expect("the display");
+    assert_eq!(screen.pixel(110, 60), Some(Color::rgb(0xff, 0x80, 0x20)));
+    assert_eq!(screen.pointer().map(|p| (p.0, p.1)), Some((110, 60)));
+    // picking: a frame without a click waits; the eyedropper let go outside the window samples
+    assert_eq!(screen_pick::poll(false, false), Polled::Waiting);
+    assert_eq!(screen_pick::poll(true, false), Polled::Color(Color::rgb(0xff, 0x80, 0x20)));
+    screen_pick::stop();
+    // in the program: the eyedropper dragged from the drawing and let go outside the window
+    let mut h = dialog_harness();
+    h.state_mut().tool = crate::tools::ToolId::ColorEyedropper;
+    let d = h.state().doc().unwrap();
+    let p = d.to_screen(Point::new(100.0, 100.0));
+    drag(&mut h, p, egui::pos2(1900.0, 400.0));
+    settle(&mut h);
+    assert_eq!(h.state().ts.eyedrop_color, Some(Color::rgb(0xff, 0x80, 0x20)), "the screen pixel, not the drawing's");
+    assert!(h.state().ts.eye_apply && !h.state().ts.desktop_pick, "ready to apply it");
+    // a drag that ends in the drawing stays the drawing's sample
+    h.state_mut().ts.eye_apply = false;
+    drag(&mut h, p, p + egui::vec2(60.0, 40.0));
+    settle(&mut h);
+    assert_eq!(h.state().ts.eyedrop_color, Some(Color::WHITE), "the empty page");
+    // Select from Desktop on: a click in the drawing samples the drawing and ends it
+    h.state_mut().ts.desktop_pick = true;
+    h.state_mut().ts.eye_apply = false;
+    settle(&mut h);
+    assert!(h.state().ts.desktop_pick, "waits for a click");
+    click(&mut h, p);
+    assert!(h.state().ts.eye_apply && !h.state().ts.desktop_pick);
+    assert_eq!(h.state().ts.eyedrop_color, Some(Color::WHITE));
+}
+
+/// What the fake portal does with a PickColor call.
+#[cfg(target_os = "linux")]
+enum FakePick {
+    /// Answers with a Response signal.
+    Respond(u32, Option<(f64, f64, f64)>),
+    /// Opens its picker and the user never clicks.
+    NoClick,
+    /// Never answers the call.
+    Silent,
+}
+
+/// A private session bus (its address is handed over, the environment stays as it is) and a fake
+/// xdg-desktop-portal on it; both go when this goes, also when a test fails.
+#[cfg(target_os = "linux")]
+struct FakePortal {
+    bus: std::process::Child,
+    addr: String,
+}
+
+#[cfg(target_os = "linux")]
+impl FakePortal {
+    fn bus() -> FakePortal {
+        use std::io::BufRead;
+        let mut bus = std::process::Command::new("dbus-daemon")
+            .args(["--session", "--nofork", "--print-address"])
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .expect("dbus-daemon (apt install dbus-daemon)");
+        let mut addr = String::new();
+        std::io::BufReader::new(bus.stdout.as_mut().unwrap()).read_line(&mut addr).unwrap();
+        FakePortal { bus, addr: addr.trim().to_string() }
+    }
+
+    fn connect(&self, limit: std::time::Duration) -> zbus::blocking::Connection {
+        crate::screen_pick::portal::limited(zbus::blocking::connection::Builder::address(self.addr.as_str()).unwrap(), limit).unwrap()
+    }
+
+    /// Serve the Screenshot interface (`version`: whether its version is told) and answer the
+    /// PickColor calls in order.
+    fn serve(&self, version: bool, picks: Vec<FakePick>) {
+        use std::collections::HashMap;
+        use zbus::zvariant::{ObjectPath, OwnedValue, Value};
+        let fake = self.connect(std::time::Duration::from_secs(5));
+        // receiving before the name is taken: zbus drops messages no one receives, and a call that
+        // came between the two would never be answered
+        let messages = zbus::blocking::MessageIterator::from(&fake);
+        fake.request_name("org.freedesktop.portal.Desktop").unwrap();
+        // ends with the connection, when the bus goes
+        std::thread::spawn(move || {
+            let mut picks = picks.into_iter();
+            for m in messages {
+                let Ok(m) = m else { return };
+                if m.message_type() != zbus::message::Type::MethodCall {
+                    continue;
+                }
+                let h = m.header();
+                match h.member().map(|n| n.as_str()) {
+                    Some("Get") if version => fake.reply(&h, &Value::from(2u32)).unwrap(),
+                    Some("PickColor") => {
+                        let pick = picks.next().unwrap();
+                        if matches!(pick, FakePick::Silent) {
+                            continue;
+                        }
+                        let (_, opts): (String, HashMap<String, OwnedValue>) = m.body().deserialize().unwrap();
+                        let token: String = opts["handle_token"].try_clone().unwrap().try_into().unwrap();
+                        let sender = h.sender().unwrap().to_string();
+                        let path = crate::screen_pick::request_path(&sender, &token);
+                        fake.reply(&h, &ObjectPath::try_from(path.as_str()).unwrap()).unwrap();
+                        if let FakePick::Respond(code, color) = pick {
+                            let mut results: HashMap<&str, Value> = HashMap::new();
+                            if let Some(c) = color {
+                                results.insert("color", Value::from(c));
+                            }
+                            fake.emit_signal(Some(sender.as_str()), path.as_str(), "org.freedesktop.portal.Request", "Response", &(code, results)).unwrap();
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        });
+    }
+
+    /// Ask the portal as the eyedropper does, from a thread; what it reported comes back.
+    fn ask(&self, limit: std::time::Duration) -> std::sync::mpsc::Receiver<crate::screen_pick::portal::Step> {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let conn = self.connect(limit);
+        std::thread::spawn(move || crate::screen_pick::portal::run(Ok(conn), tx));
+        rx
+    }
+
+    /// The answer to one request, with a limit: a portal that hangs fails the test.
+    fn answer(&self, limit: std::time::Duration) -> crate::screen_pick::Answer {
+        use crate::screen_pick::portal::Step;
+        let rx = self.ask(limit);
+        loop {
+            match rx.recv_timeout(std::time::Duration::from_secs(30)).expect("an answer in time") {
+                Step::Open(_) => {}
+                Step::Done(a) => return a,
+            }
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+impl Drop for FakePortal {
+    fn drop(&mut self) {
+        let _ = self.bus.kill();
+        let _ = self.bus.wait();
+    }
+}
+
+/// Linux, Wayland: the desktop's color picker over D-Bus (xdg-desktop-portal's
+/// `Screenshot.PickColor`), played by a fake portal on a private session bus: the color it
+/// answers, Cancel, and no portal at all. Needs dbus-daemon; run with
+/// `cargo test -p anyvector clip_real_linux -- --ignored --test-threads=1`.
+#[cfg(target_os = "linux")]
+#[test]
+#[ignore]
+fn clip_real_linux_pick_portal() {
+    use crate::screen_pick::Answer;
+    let limit = std::time::Duration::from_secs(10);
+    let bus = FakePortal::bus();
+    assert_eq!(bus.answer(limit), Answer::NoPortal, "nothing on the bus");
+    bus.serve(true, vec![FakePick::Respond(0, Some((1.0, 0.5, 0.0))), FakePick::Respond(1, None), FakePick::Respond(2, None)]);
+    assert_eq!(bus.answer(limit), Answer::Color(Color::rgb(255, 128, 0)));
+    assert_eq!(bus.answer(limit), Answer::Cancelled);
+    assert_eq!(bus.answer(limit), Answer::Failed(String::new()));
+}
+
+/// Linux, Wayland: a portal that takes the calls and never answers counts as none after the
+/// limit, and a picker the user never clicks in ends when its connection is closed (the button
+/// turned off again, the program ending). Needs dbus-daemon; run with
+/// `cargo test -p anyvector clip_real_linux -- --ignored --test-threads=1`.
+#[cfg(target_os = "linux")]
+#[test]
+#[ignore]
+fn clip_real_linux_pick_portal_that_hangs() {
+    use crate::screen_pick::{portal::Step, session::PortalPick, Answer};
+    use std::time::{Duration, Instant};
+    let limit = Duration::from_millis(500);
+    for (version, what) in [(false, "the version"), (true, "PickColor")] {
+        let bus = FakePortal::bus();
+        bus.serve(version, vec![FakePick::Silent]);
+        let t = Instant::now();
+        assert_eq!(bus.answer(limit), Answer::NoPortal, "{what} unanswered");
+        assert!(t.elapsed() >= limit && t.elapsed() < Duration::from_secs(10), "{what}: {:?}", t.elapsed());
+    }
+    let bus = FakePortal::bus();
+    bus.serve(true, vec![FakePick::NoClick]);
+    let rx = bus.ask(limit);
+    let Ok(Step::Open(conn)) = rx.recv_timeout(Duration::from_secs(30)) else { panic!("the picker opens") };
+    // no call limit on the user: still waiting well after it
+    assert!(rx.recv_timeout(limit * 3).is_err(), "waits for the click");
+    // given up, as the window does it (it keeps the connection of the open picker)
+    let (tx, steps) = std::sync::mpsc::channel();
+    tx.send(Step::Open(conn)).unwrap();
+    let mut pick = PortalPick::new(steps);
+    assert_eq!(pick.poll(Instant::now() + Duration::from_secs(3600)), None, "an open picker is not given up by itself");
+    drop(pick);
+    let Ok(Step::Done(a)) = rx.recv_timeout(Duration::from_secs(10)) else { panic!("the thread ends") };
+    assert_eq!(a, Answer::Failed(String::new()));
 }
 
 /// Tools ▸ Color Management opens, draws its tabs, and Cancel leaves the settings alone.
@@ -8199,6 +8571,88 @@ fn ime_text_is_not_spell_checked_as_english() {
     assert!(flagged.iter().any(|w| w == "wrld"), "{flagged:?}");
 }
 
+/// Text ▸ Writing Tools ▸ Spell Checker off Windows: a Hunspell dictionary (a small one the test
+/// writes) stops at the misspelled words with its suggestions, Add keeps a word, a repeated word is
+/// offered for deletion, and a language without a dictionary says which package has one.
+#[cfg(not(windows))]
+#[test]
+#[ignore]
+fn visual_spell_checker_hunspell() {
+    use vector_core::text::{CharFormat, TextObj};
+    let root = std::env::temp_dir().join(format!("anyvector-visual-spell-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    crate::spell::hunspell::write_test_dictionary(&root.join("dicts"), "en_US");
+    crate::spell::hunspell::use_places(vec![root.join("dicts")], root.join("user"));
+    let (mut h, _) = shape_object(ObjKind::Text(TextObj::artistic("Helo wrld, this is is artistic text", CharFormat { size: 36.0, ..CharFormat::default() })), (100.0, 200.0));
+    h.state_mut().run(Cmd::WritingTools(0));
+    save(&mut h, "spell_hunspell_01_misspelled");
+    let found = |h: &Harness<'_, AnyVectorApp>| h.state().dialogs.writing.as_ref().and_then(|st| st.found.as_ref().map(|f| (f.word.clone(), f.rule)));
+    {
+        let st = h.state().dialogs.writing.as_ref().unwrap();
+        assert_eq!(found(&h), Some(("Helo".into(), "Spelling")));
+        assert!(st.replacements.iter().any(|r| r == "Hello"), "{:?}", st.replacements);
+    }
+    // Add: the word is right from now on (and kept in the user's dictionary)
+    crate::spell::add("Helo", "en-US");
+    let mut st = h.state_mut().dialogs.writing.take().unwrap();
+    st.pos = (0, 0);
+    st.next(h.state());
+    h.state_mut().dialogs.writing = Some(st);
+    assert_eq!(found(&h).map(|f| f.0), Some("wrld".into()));
+    assert!(root.join("user/en-US/default.dic").is_file());
+    save(&mut h, "spell_hunspell_02_after_add");
+    let mut st = h.state_mut().dialogs.writing.take().unwrap();
+    st.pos = (0, 5);
+    crate::spell::ignore("wrld", "en-US");
+    st.next(h.state());
+    h.state_mut().dialogs.writing = Some(st);
+    assert_eq!(found(&h), Some(("is".into(), "Duplicate word")));
+    save(&mut h, "spell_hunspell_03_duplicate");
+    // Italian: no dictionary here
+    let mut st = h.state_mut().dialogs.writing.take().unwrap();
+    st.lang = "it-IT".into();
+    st.pos = (0, 0);
+    st.next(h.state());
+    assert!(st.done && st.found.is_none());
+    h.state_mut().dialogs.writing = Some(st);
+    assert_eq!(crate::spell::missing_dictionary_package("it-IT").as_deref(), Some("hunspell-it"));
+    save(&mut h, "spell_hunspell_04_no_dictionary");
+    // the longest translation
+    h.state_mut().settings.language = "de-DE".into();
+    save(&mut h, "spell_hunspell_05_no_dictionary_german");
+    h.state_mut().settings.language = "en-US".into();
+    h.step();
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// Text ▸ Encode: the code pages under their Windows names, the ANSI code page chosen, and the text
+/// read again in another page (Cyrillic) in the preview.
+#[test]
+#[ignore]
+fn visual_encode_code_pages() {
+    use vector_core::text::{CharFormat, TextObj};
+    let (mut h, id) = shape_object(ObjKind::Text(TextObj::artistic("Olá, ação", CharFormat { size: 36.0, ..CharFormat::default() })), (100.0, 200.0));
+    h.state_mut().run(Cmd::EncodeText);
+    save(&mut h, "encode_01_code_pages");
+    {
+        let st = h.state().dialogs.encode.as_ref().unwrap();
+        let acp = crate::spell::ansi_code_page();
+        assert_eq!(st.pages[st.sel].0, acp);
+        assert!(st.pages.iter().any(|p| p.1 == "1251  (ANSI - Cyrillic)"), "{:?}", st.pages);
+    }
+    let st = h.state_mut().dialogs.encode.as_mut().unwrap();
+    st.other = true;
+    st.sel = st.pages.iter().position(|p| p.0 == 1251).unwrap();
+    st.scrolled = false;
+    save(&mut h, "encode_02_other_encoding");
+    // as read in 1251, from the ANSI page's bytes
+    let preview = h.state().dialogs.encode.as_ref().unwrap().preview("Olá, ação");
+    if crate::spell::ansi_code_page() == 1252 {
+        assert_eq!(preview, "Olб, aзгo");
+    }
+    assert!(matches!(kind_of(&h, id), ObjKind::Text(t) if t.content == "Olá, ação"));
+}
+
 // ---- Dockers that can be rearranged (#144) ----
 
 /// A document with `dockers` open in one group on the right (as 0.6.0 had them), the first
@@ -9684,5 +10138,125 @@ fn visual_dimension_text_positions() {
         let b = h.state().doc().unwrap().doc.bounds_of(h.state().doc().unwrap().doc.find(ids[i * 4]).unwrap());
         let t = kurbo::Shape::bounding_box(&vector_core::object::dimension_text(&d).ink_outline().unwrap());
         assert!(b.union(t) == b, "{name}: the bounds hold the value ({b:?}, {t:?})");
+    }
+}
+
+/// File ▸ Print with the printers CUPS lists on Linux (instances included) and Printing
+/// Preferences, AnyVector's own dialog for a CUPS printer's options (Windows opens the driver's
+/// dialog instead): paper sizes from the PPD, 2-sided, color, resolution. OK keeps the choices as
+/// the job's options. The printer data are captured `lpoptions -l` and PPD text, so the scenario
+/// runs the same with or without CUPS (and on Windows).
+#[test]
+#[ignore]
+fn visual_print_linux_printers_and_preferences() {
+    use crate::dialogs::print::{PrefsState, PrintState};
+    use crate::printing::cups;
+    use egui_kittest::kittest::Queryable;
+    let mut h = harness();
+    h.state_mut().new_default_document();
+    let mut st = PrintState::new(h.state(), false);
+    st.printers = vec!["Office_Laser".into(), "Office_Laser/draft".into(), "PDF".into()];
+    st.printer = "Office_Laser".into();
+    h.state_mut().dialogs.print = Some(st);
+    save(&mut h, "print_linux_01_dialog");
+    h.get_by_value("Office_Laser").click();
+    save(&mut h, "print_linux_02_printer_list");
+    h.get_by_label("PDF").click();
+    h.run_steps(3);
+    assert_eq!(h.state().dialogs.print.as_ref().map(|s| s.printer.as_str()), Some("PDF"));
+    let lpoptions = "PageSize/Media Size: *Letter Legal A4 A5 Env10 Custom.WIDTHxHEIGHT\n\
+Duplex/2-Sided Printing: *None DuplexNoTumble DuplexTumble\n\
+ColorModel/Color Mode: Gray KGray *RGB\n\
+Resolution/Resolution: 300dpi *600dpi 1200x600dpi\n";
+    let ppd = "*PageSize Letter/US Letter: \"<</PageSize[612 792]>>setpagedevice\"\n\
+*PageSize Env10/Envelope #10: \"<</PageSize[297 684]>>setpagedevice\"\n\
+*ImageableArea Letter/US Letter: \"18 36 594 774\"\n\
+*ImageableArea A4/A4: \"12 12 583 830\"\n\
+*PaperDimension Letter/US Letter: \"612 792\"\n\
+*PaperDimension A4/A4: \"595 842\"\n";
+    let caps = cups::Caps { options: cups::parse_lpoptions(lpoptions), ppd: cups::parse_ppd(ppd) };
+    {
+        let st = h.state_mut().dialogs.print.as_mut().unwrap();
+        st.printer = "Office_Laser".into();
+        st.prefs = Some(PrefsState::new("Office_Laser", caps, None, &st.settings));
+    }
+    save(&mut h, "print_linux_03_preferences");
+    h.get_by_value("US Letter (8.5 × 11 in)").click();
+    save(&mut h, "print_linux_04_paper_sizes");
+    assert!(h.query_by_label_contains("WIDTHxHEIGHT").is_none(), "the custom size template is not a paper");
+    h.get_by_label("A4 (210 × 297 mm)").click();
+    h.run_steps(3);
+    h.get_by_value("Off").click();
+    h.run_steps(3);
+    h.get_by_label("Flip on long edge").click();
+    h.run_steps(3);
+    // Gray and KGray are both grayscale: their own names tell them apart
+    h.get_by_value("Color").click();
+    save(&mut h, "print_linux_05_color_choices");
+    assert!(h.query_by_label("Grayscale (KGray)").is_some());
+    h.get_by_label("Grayscale (Gray)").click();
+    h.run_steps(3);
+    h.get_by_role_and_label(egui::accesskit::Role::RadioButton, "Landscape").click();
+    save(&mut h, "print_linux_06_chosen");
+    h.get_by_label("OK").click();
+    h.run_steps(3);
+    let st = h.state().dialogs.print.as_ref().expect("the Print dialog stays open");
+    assert!(st.prefs.is_none());
+    let opts = cups::Options::from_bytes(st.devmode.as_deref());
+    assert_eq!(opts.get("PageSize"), Some("A4"));
+    assert_eq!(opts.get("Duplex"), Some("DuplexNoTumble"));
+    assert_eq!(opts.get("ColorModel"), Some("Gray"));
+    assert_eq!(opts.get("Resolution"), Some("600dpi"));
+    assert_eq!(st.settings.orientation, crate::printing::Orientation::Landscape);
+    save(&mut h, "print_linux_07_after_ok");
+}
+
+/// Linux File ▸ Save As: AnyVector's Save Options step after the system save dialog, and its
+/// Advanced Save Options, for a .cdr and a .vct drawing; a PDF shows the copy note instead.
+#[test]
+#[ignore]
+fn visual_save_options_dialog() {
+    use crate::dialogs::save_options::give_picked_paths;
+    let mut h = doc_harness();
+    add_selected_rect(&mut h);
+    let i = h.state().active.unwrap();
+    let dir = temp_file("visual_save_options", "x").parent().unwrap().to_path_buf();
+    let shots: [(&str, &str); 3] = [("Poster.cdr", "cdr"), ("Plan.vct", "vct"), ("Poster.pdf", "pdf")];
+    for (k, (name, ext)) in shots.iter().enumerate() {
+        give_picked_paths(vec![Some(dir.join(name))]);
+        h.state_mut().run(Cmd::SaveAs);
+        settle(&mut h);
+        {
+            let st = h.state_mut().dialogs.save_options.as_mut().expect("the Save Options step");
+            assert_eq!(st.ext(), *ext);
+            st.req.title = "Spring poster".into();
+            st.req.subject = "Shop window".into();
+            st.req.rating = 4;
+            st.req.profiles_summary = "sRGB IEC61966-2.1; U.S. Web Coated (SWOP) v2; Dot Gain 20%".into();
+            st.req.profiles_size = 3144;
+        }
+        save(&mut h, &format!("save_options_{:02}_{ext}", k * 2 + 1));
+        if *ext != "pdf" {
+            assert!(has_label(&h, "Advanced..."));
+            click_label(&mut h, "Advanced...");
+            assert!(h.state().dialogs.save_options.as_ref().unwrap().advanced_open.is_some());
+            save(&mut h, &format!("save_options_{:02}_{ext}_advanced", k * 2 + 2));
+            h.key_press(egui::Key::Escape);
+            settle(&mut h);
+            assert!(h.state().dialogs.save_options.as_ref().unwrap().advanced_open.is_none());
+        } else {
+            assert!(!has_label(&h, "Advanced..."), "a copy has no drawing options");
+            // a file of that name that the system dialog did not ask about
+            std::fs::write(dir.join("Poster.svg"), b"another").unwrap();
+            let svg = vector_io::SAVE_TYPES.iter().position(|t| t.extensions[0] == "svg").unwrap();
+            h.state_mut().dialogs.save_options.as_mut().unwrap().set_type(svg);
+            crate::dialogs::save_options::save_clicked(h.state_mut());
+            save(&mut h, "save_options_06_replace");
+            assert_eq!(std::fs::read(dir.join("Poster.svg")).unwrap(), b"another");
+        }
+        crate::dialogs::save_options::cancel(h.state_mut());
+        settle(&mut h);
+        assert!(h.state().dialogs.save_options.is_none());
+        assert!(h.state().docs[i].path.is_none());
     }
 }

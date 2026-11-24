@@ -183,19 +183,56 @@ fn mapi_send(path: &Path, subject: &str) -> bool {
 /// folder and a new e-mail started.
 const NO_MAIL_PROGRAM: &str = "No mail program accepted the attachment; the drawing is ready to attach to your message.";
 
-/// File ▸ Acquire Image on Linux: WIA and TWAIN are Windows' ways to talk to scanners.
-#[cfg(not(windows))]
-const NO_SCANNING: &str = "Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.";
+/// What happens once a save that a confirmation started is done. On Linux Save As finishes in
+/// the Save Options dialog after the call that started it has returned, so the dialog carries it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AfterSave {
+    Nothing,
+    /// Save changes? ▸ Yes while closing: close the document and go on with Close All.
+    Close,
+    /// Exit ▸ Yes: save the next modified document, then quit.
+    Quit,
+}
+
+/// The end of [`AnyVectorApp::save_doc_then`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SaveOutcome {
+    Saved,
+    /// Cancelled, failed, or a copy for other programs written (the drawing is not saved).
+    NotSaved,
+    /// The Save Options dialog is open; it does the [`AfterSave`] when it closes.
+    Pending,
+}
+
+impl From<bool> for SaveOutcome {
+    fn from(saved: bool) -> Self {
+        if saved {
+            SaveOutcome::Saved
+        } else {
+            SaveOutcome::NotSaved
+        }
+    }
+}
 
 /// The order of the Save dialog's filters off Windows (`rfd`): the type chosen first, as the
 /// dialogs start on their first filter, then the others in their order.
-fn save_filter_order(count: usize, chosen: usize) -> Vec<usize> {
+pub(crate) fn save_filter_order(count: usize, chosen: usize) -> Vec<usize> {
     std::iter::once(chosen).filter(|&c| c < count).chain((0..count).filter(|&k| k != chosen)).collect()
+}
+
+/// `path` with the extension of its type added when it has another one (or none).
+pub(crate) fn with_type(path: PathBuf, ext: &str) -> PathBuf {
+    if vector_io::extension(&path) == ext {
+        return path;
+    }
+    let mut s = path.into_os_string();
+    s.push(format!(".{ext}"));
+    PathBuf::from(s)
 }
 
 /// The type a drawing saved as `path` gets: the one of its extension, in any case, else the type
 /// chosen in the dialog.
-fn saved_type(types: &[(String, String)], path: &Path, chosen: usize) -> usize {
+pub(crate) fn saved_type(types: &[(String, String)], path: &Path, chosen: usize) -> usize {
     let ext = vector_io::extension(path);
     types.iter().position(|t| t.1.eq_ignore_ascii_case(&ext)).unwrap_or(chosen)
 }
@@ -639,91 +676,91 @@ impl AnyVectorApp {
         }
     }
 
-    /// Save document `i`. Returns false if cancelled or failed.
+    /// Save document `i`. Returns false if cancelled or failed (and, on Linux, while Save As
+    /// still waits for its Save Options step).
     pub fn save_doc(&mut self, i: usize, save_as: bool) -> bool {
+        self.save_doc_then(i, save_as, AfterSave::Nothing) == SaveOutcome::Saved
+    }
+
+    /// Save document `i`, and say whether it was saved. On Linux Save As ends in AnyVector's own
+    /// Save Options dialog, a frame later: then this returns `Pending` and the dialog does `then`.
+    pub fn save_doc_then(&mut self, i: usize, save_as: bool, then: AfterSave) -> SaveOutcome {
+        if i >= self.docs.len() {
+            return SaveOutcome::NotSaved;
+        }
+        if let (Some(p), false) = (self.docs[i].path.clone(), save_as) {
+            let (fonts, profiles, version) = (self.settings.embed_fonts, self.settings.save.embed_color_profiles, self.default_version_index());
+            return SaveOutcome::from(self.write_doc(i, &p, fonts, profiles, version));
+        }
+        let req = self.save_request(i);
+        if crate::dialogs::save_options::own_step() {
+            // the system dialog picks the folder, name and type; the drawing options follow in
+            // AnyVector's dialog, as rfd cannot add controls to it
+            let Some(p) = crate::dialogs::save_options::pick_path(&req) else { return SaveOutcome::NotSaved };
+            self.dialogs.save_options = Some(crate::dialogs::save_options::SaveOptionsState::new(self.docs[i].uid, req, p, then));
+            return SaveOutcome::Pending;
+        }
+        let Some(r) = crate::save_dialog::show(req) else { return SaveOutcome::NotSaved };
+        SaveOutcome::from(self.save_with(i, r))
+    }
+
+    /// What the Save dialog starts with for document `i`.
+    fn save_request(&self, i: usize) -> crate::save_dialog::SaveRequest {
+        let stem = self.docs[i].stem();
+        let dir = self.docs[i].path.as_ref().and_then(|p| p.parent()).map(|p| p.to_path_buf()).or_else(|| self.settings.last_dir.clone()).or_else(|| Some(crate::settings::documents_dir()));
+        let types: Vec<(String, String)> = vector_io::SAVE_TYPES.iter().map(|t| (t.name.to_string(), t.extensions[0].to_string())).collect();
+        // a .vct document stays .vct unless the user picks CDR; anything else starts as CDR
+        let type_index = match self.docs[i].path.as_ref().map(|p| vector_io::extension(p)) {
+            Some(e) if e == "vct" => types.iter().position(|t| t.1 == "vct").unwrap_or(0),
+            _ => 0,
+        };
+        let d = &self.docs[i].doc;
+        let fonts_size: u64 = vector_core::text::font_files(&d.used_fonts()).iter().filter(|f| f.embeddable).map(|f| f.data.len() as u64).sum();
+        let profiles_size: u64 = crate::color_profiles::profile_files(&d.settings.color).iter().map(|f| f.data.len() as u64).sum();
+        crate::save_dialog::SaveRequest {
+            dir,
+            file_name: format!("{stem}.{}", types[type_index].1),
+            types,
+            type_index,
+            title: d.info.title.clone(),
+            subject: d.info.subject.clone(),
+            rating: d.info.rating,
+            embed_profiles: self.settings.save.embed_color_profiles,
+            profiles_size,
+            profiles_summary: d.settings.color.summary(),
+            embed_fonts: self.settings.embed_fonts,
+            fonts_size,
+            versions: crate::settings::FILE_VERSIONS.iter().map(|v| v.to_string()).collect(),
+            version: self.default_version_index(),
+            advanced: self.advanced_from_settings(),
+        }
+    }
+
+    /// Save document `i` with what the Save dialog returned: the choices are remembered for next
+    /// time and go into the drawing's information, then the file is written.
+    pub(crate) fn save_with(&mut self, i: usize, r: crate::save_dialog::SaveResult) -> bool {
         if i >= self.docs.len() {
             return false;
         }
-        let mut version = self.default_version_index();
-        let (mut embed_fonts, mut embed_profiles) = (self.settings.embed_fonts, self.settings.save.embed_color_profiles);
-        let path = match (&self.docs[i].path, save_as) {
-            (Some(p), false) => p.clone(),
-            _ => {
-                let stem = self.docs[i].stem();
-                let dir = self.docs[i].path.as_ref().and_then(|p| p.parent()).map(|p| p.to_path_buf()).or_else(|| self.settings.last_dir.clone()).or_else(|| Some(crate::settings::documents_dir()));
-                let types: Vec<(String, String)> = vector_io::SAVE_TYPES.iter().map(|t| (t.name.to_string(), t.extensions[0].to_string())).collect();
-                // a .vct document stays .vct unless the user picks CDR; anything else starts as CDR
-                let type_index = match self.docs[i].path.as_ref().map(|p| vector_io::extension(p)) {
-                    Some(e) if e == "vct" => types.iter().position(|t| t.1 == "vct").unwrap_or(0),
-                    _ => 0,
-                };
-                let advanced = self.advanced_from_settings();
-                let d = &self.docs[i].doc;
-                let fonts_size: u64 = vector_core::text::font_files(&d.used_fonts()).iter().filter(|f| f.embeddable).map(|f| f.data.len() as u64).sum();
-                let profiles_size: u64 = crate::color_profiles::profile_files(&d.settings.color).iter().map(|f| f.data.len() as u64).sum();
-                let req = crate::save_dialog::SaveRequest {
-                    dir,
-                    file_name: format!("{stem}.{}", types[type_index].1),
-                    types: types.clone(),
-                    type_index,
-                    title: d.info.title.clone(),
-                    subject: d.info.subject.clone(),
-                    rating: d.info.rating,
-                    embed_profiles,
-                    profiles_size,
-                    profiles_summary: d.settings.color.summary(),
-                    embed_fonts,
-                    fonts_size,
-                    versions: crate::settings::FILE_VERSIONS.iter().map(|v| v.to_string()).collect(),
-                    version,
-                    advanced,
-                };
-                let res = if cfg!(windows) {
-                    crate::save_dialog::show(req)
-                } else {
-                    // the dialog starts on its first filter: the type of the drawing (.vct stays .vct)
-                    let mut fd = save_filter_order(types.len(), type_index).into_iter().fold(rfd::FileDialog::new().set_title("Save Drawing"), |fd, k| fd.add_filter(types[k].0.as_str(), &[types[k].1.as_str()]));
-                    if let Some(dir) = &req.dir {
-                        fd = fd.set_directory(dir);
-                    }
-                    fd.set_file_name(req.file_name.as_str()).save_file().map(|p| crate::save_dialog::SaveResult {
-                        type_index: saved_type(&types, &p, type_index),
-                        path: p,
-                        title: d.info.title.clone(),
-                        subject: d.info.subject.clone(),
-                        rating: d.info.rating,
-                        embed_profiles,
-                        embed_fonts,
-                        version,
-                        advanced,
-                    })
-                };
-                let Some(r) = res else { return false };
-                // remember the choices for next time
-                embed_fonts = r.embed_fonts;
-                embed_profiles = r.embed_profiles;
-                version = r.version;
-                self.settings.embed_fonts = r.embed_fonts;
-                self.settings.save.embed_color_profiles = r.embed_profiles;
-                self.settings.save.optimize_for_size = r.advanced.optimize_for_size;
-                self.settings.save.save_presentation_attributes = r.advanced.presentation_attributes;
-                self.settings.save.bitmap_compression = r.advanced.bitmap_compression;
-                self.settings.save.object_compression = r.advanced.object_compression;
-                self.settings.save.save_thumbnail = r.advanced.thumbnail;
-                let info = &mut self.docs[i].doc.info;
-                info.title = r.title;
-                info.subject = r.subject;
-                info.rating = r.rating;
-                let want = types.get(r.type_index).map(|t| t.1.clone()).unwrap_or_else(|| "cdr".into());
-                if vector_io::extension(&r.path) == want {
-                    r.path
-                } else {
-                    let mut s = r.path.into_os_string();
-                    s.push(format!(".{want}"));
-                    PathBuf::from(s)
-                }
-            }
-        };
+        self.settings.embed_fonts = r.embed_fonts;
+        self.settings.save.embed_color_profiles = r.embed_profiles;
+        self.settings.save.optimize_for_size = r.advanced.optimize_for_size;
+        self.settings.save.save_presentation_attributes = r.advanced.presentation_attributes;
+        self.settings.save.bitmap_compression = r.advanced.bitmap_compression;
+        self.settings.save.object_compression = r.advanced.object_compression;
+        self.settings.save.save_thumbnail = r.advanced.thumbnail;
+        let info = &mut self.docs[i].doc.info;
+        info.title = r.title;
+        info.subject = r.subject;
+        info.rating = r.rating;
+        let want = vector_io::SAVE_TYPES.get(r.type_index).map(|t| t.extensions[0].to_string()).unwrap_or_else(|| "cdr".into());
+        let path = with_type(r.path, &want);
+        self.write_doc(i, &path, r.embed_fonts, r.embed_profiles, r.version)
+    }
+
+    /// Write document `i` to `path`: a copy for other programs, or the drawing itself.
+    fn write_doc(&mut self, i: usize, path: &Path, embed_fonts: bool, embed_profiles: bool, version: usize) -> bool {
+        let path = path.to_path_buf();
         // CMX, PDF, SVG, EMF: a copy for other programs (the drawing stays as it is)
         if vector_io::saves_a_copy(&vector_io::extension(&path)) {
             return self.save_copy(i, &path);
@@ -758,6 +795,32 @@ impl AnyVectorApp {
                 false
             }
         }
+    }
+
+    /// Go on after a save that a confirmation started: close the document, or save the next one
+    /// before quitting. A save that was cancelled or failed stops Close All and Exit.
+    pub(crate) fn after_save(&mut self, i: usize, then: AfterSave, saved: bool) {
+        match then {
+            AfterSave::Nothing => {}
+            AfterSave::Close if saved => {
+                self.close_doc_now(i);
+                self.continue_close_queue();
+            }
+            AfterSave::Close => self.dialogs.close_queue.clear(),
+            AfterSave::Quit if saved => self.save_all_then_quit(),
+            AfterSave::Quit => {}
+        }
+    }
+
+    /// Exit ▸ Save changes? ▸ Yes: save every modified document, then quit. Stops at the first
+    /// one that is not saved; a pending Save Options step comes back here when it is done.
+    pub(crate) fn save_all_then_quit(&mut self) {
+        for i in 0..self.docs.len() {
+            if self.docs[i].history.is_modified() && self.save_doc_then(i, false, AfterSave::Quit) != SaveOutcome::Saved {
+                return;
+            }
+        }
+        self.quit_requested = true;
     }
 
     /// Close a tab, asking to save changes first.
@@ -1417,12 +1480,11 @@ impl AnyVectorApp {
                 self.background.push(rx);
                 self.flash("Waiting for the scanner...");
             }
+            // off Windows both "Select Source" items choose a SANE scanner
             #[cfg(not(windows))]
-            Cmd::SelectWia => self.info_box("Select WIA Source", NO_SCANNING),
+            Cmd::SelectWia | Cmd::SelectTwain => crate::dialogs::scan::select_source(self),
             #[cfg(not(windows))]
-            Cmd::SelectTwain => self.info_box("Select TWAIN Source", NO_SCANNING),
-            #[cfg(not(windows))]
-            Cmd::Acquire => self.info_box("Acquire Image", NO_SCANNING),
+            Cmd::Acquire => crate::dialogs::scan::acquire(self),
             Cmd::Import => self.import_dialog(),
             Cmd::Export => {
                 if has_doc {

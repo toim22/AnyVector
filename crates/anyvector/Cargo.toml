@@ -28,9 +28,13 @@ arboard = { workspace = true }
 log = { workspace = true }
 ureq = { workspace = true }
 zip = { workspace = true }
+# compresses the page images of the PDF a Linux print job sends to CUPS (already in the tree)
+flate2 = { workspace = true }
 thesaurus-wordnet = "0.2"
 # the main window's handle, for coloring its border (already in the tree through eframe)
 raw-window-handle = "0.6"
+# code pages for Text ▸ Encode off Windows (and its tests on Windows); already in the tree through vector-io
+encoding_rs = "0.8"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # OpenGL, the renderer AnyVector falls back to when wgpu can't start on the machine's graphics
@@ -41,6 +45,14 @@ eframe = { workspace = true, features = ["glow"] }
 x11rb = { version = "0.13", default-features = false }
 wl-clipboard-rs = "0.9"
 rustix = { version = "1", default-features = false, features = ["std", "event"] }
+# the desktop's color picker for the eyedropper under Wayland (xdg-desktop-portal over D-Bus):
+# already in the tree through eframe (AccessKit); only its blocking API is added
+zbus = { version = "5.19", default-features = false, features = ["async-io", "blocking-api"] }
+
+[target.'cfg(not(windows))'.dependencies]
+# spell checking with the system's Hunspell dictionaries (pure Rust, MPL-2.0); Windows uses its own
+# spell checker
+spellbook = "0.4"
 
 [target.'cfg(windows)'.dependencies]
 windows-core = "0.62"

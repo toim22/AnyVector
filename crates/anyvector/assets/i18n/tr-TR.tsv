@@ -1543,6 +1543,11 @@ Block Shadow	Blok Gölge
 Block Shadow tool	Blok Gölge aracı
 Color Eyedropper	Renk Damlalığı
 Color Eyedropper tool	Renk Damlalığı aracı
+AnyVector cannot see the screen outside its window: the desktop's color picker (xdg-desktop-portal) was not found. Install xdg-desktop-portal and your desktop's portal (for example xdg-desktop-portal-gnome or xdg-desktop-portal-kde), or sample colors inside the drawing window.	AnyVector penceresinin dışındaki ekranı göremiyor: masaüstünün renk seçicisi (xdg-desktop-portal) bulunamadı. xdg-desktop-portal ile masaüstünüzün portalını (örneğin xdg-desktop-portal-gnome veya xdg-desktop-portal-kde) kurun ya da renkleri çizim penceresinin içinden alın.
+Without the desktop's color picker (xdg-desktop-portal), only the windows of X11 programs can be sampled.	Masaüstünün renk seçicisi (xdg-desktop-portal) olmadan yalnızca X11 programlarının pencerelerinden renk alınabilir.
+The desktop's color picker failed:	Masaüstünün renk seçicisi başarısız oldu:
+The desktop's color picker failed:\n{}	Masaüstünün renk seçicisi başarısız oldu:\n{}
+The desktop's color picker failed.	Masaüstünün renk seçicisi başarısız oldu.
 Attributes Eyedropper	Öznitelik Damlalığı
 Attributes Eyedropper tool	Öznitelik Damlalığı aracı
 Interactive Fill	Etkileşimli Dolgu
@@ -1997,7 +2002,18 @@ The page no longer exists.	Sayfa artık yok.
 The object no longer exists.	Nesne artık yok.
 Nothing to export	Dışa aktarılacak bir şey yok
 No scanner or camera was found. Connect a WIA device and try again.	Tarayıcı veya kamera bulunamadı. Bir WIA aygıtı bağlayıp yeniden deneyin.
-Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	Tarama, Linux'ta AnyVector'da henüz kullanılamıyor. Görüntüyü sisteminizin tarama programıyla (örneğin Belge Tarayıcı veya XSane) tarayın, kaydedin ve Dosya ▸ İçe Aktar ile çizime ekleyin.
+Select Source	Kaynak Seç
+Looking for scanners...	Tarayıcılar aranıyor...
+Choose the scanner to use:	Kullanılacak tarayıcıyı seçin:
+Scanner:	Tarayıcı:
+Scan	Tara
+Reading the scanner's settings...	Tarayıcının ayarları okunuyor...
+Scanning on Linux uses SANE, and its scanimage program was not found. Install it with your package manager (sane-utils on Debian and Ubuntu, sane-backends on Fedora and Arch) together with your scanner's SANE driver, then try again.	Linux'ta tarama SANE ile yapılır ve onun scanimage programı bulunamadı. Paket yöneticinizle (Debian ve Ubuntu'da sane-utils, Fedora ve Arch'ta sane-backends) tarayıcınızın SANE sürücüsüyle birlikte kurun ve yeniden deneyin.
+No scanner was found. Check that the scanner is connected and turned on, and that its SANE driver is installed (for network scanners, sane-airscan). The command scanimage -L lists the scanners SANE sees.	Tarayıcı bulunamadı. Tarayıcının bağlı ve açık olduğunu ve SANE sürücüsünün kurulu olduğunu (ağ tarayıcıları için sane-airscan) denetleyin. scanimage -L komutu SANE'nin gördüğü tarayıcıları listeler.
+Document Scanner (simple-scan) is installed: you can scan with it, save the image and bring it in with File ▸ Import.	Belge Tarayıcı (simple-scan) kurulu: onunla tarayabilir, görüntüyü kaydedebilir ve Dosya ▸ İçe Aktar ile çizime ekleyebilirsiniz.
+Looking for scanners failed:	Tarayıcı araması başarısız oldu:
+Looking for scanners failed:\n{}	Tarayıcı araması başarısız oldu:\n{}
+The image could not be acquired:	Görüntü alınamadı:
 Select WIA Source	WIA Kaynağını Seç
 The image could not be acquired:\n{}	Görüntü alınamadı:\n{}
 All File Formats	Tüm Dosya Biçimleri
@@ -2544,7 +2560,6 @@ Empty text objects print nothing and can be deleted.	Boş metin nesneleri hiçbi
 Very thin outlines may not print, or print unevenly. Use at least 0.25 pt.	Çok ince anahatlar yazdırılmayabilir veya düzensiz yazdırılabilir. En az 0,25 pt kullanın.
 Printers' marks do not fit on the paper.	Yazıcı işaretleri kâğıda sığmıyor.
 The paper must be larger than the page to hold crop marks, registration marks and the other printers' marks. Choose a larger paper, or Fit to page on the Layout tab.	Kırpma işaretlerini, kayıt işaretlerini ve diğer yazıcı işaretlerini içerebilmesi için kâğıdın sayfadan büyük olması gerekir. Daha büyük bir kâğıt seçin veya Yerleşim sekmesinde Sayfaya sığdır'ı seçin.
-Printing is available on Windows only.	Yazdırma yalnızca Windows'ta kullanılabilir.
 Could not open the printer "{}".	"{}" yazıcısı açılamadı.
 The printer did not accept the job.	Yazıcı işi kabul etmedi.
 The printer stopped the job.	Yazıcı işi durdurdu.
@@ -2553,6 +2568,19 @@ The printer "{}" is not available.	"{}" yazıcısı kullanılamıyor.
 There are no pages to print.	Yazdırılacak sayfa yok.
 Printed {} page(s) to {}	{} sayfa şuraya yazdırıldı: {}
 Sent {} page(s) to {}	{} sayfa şuraya gönderildi: {}
+{} Printing Preferences	{} Yazdırma Tercihleri
+Paper size:	Kâğıt boyutu:
+Print on both sides:	Her iki yüze yazdır:
+Flip on long edge	Uzun kenardan çevir
+Flip on short edge	Kısa kenardan çevir
+The printer's options could not be read.	Yazıcının seçenekleri okunamadı.
+There is no printer installed. Add a printer in the system's printer settings (CUPS), or install the cups-pdf printer to print to PDF files.	Yüklü yazıcı yok. Sistemin yazıcı ayarlarından (CUPS) bir yazıcı ekleyin veya PDF dosyalarına yazdırmak için cups-pdf yazıcısını yükleyin.
+Sent {} page(s) to {} (job {})	{} sayfa şuraya gönderildi: {} (iş {})
+The printer did not accept the job: {}	Yazıcı işi kabul etmedi: {}
+Could not write the print file: {}	Yazdırma dosyası yazılamadı: {}
+The page could not be rendered.	Sayfa işlenemedi.
+Could not run lp, the CUPS print command. Install the CUPS client (the cups-client package).	CUPS yazdırma komutu lp çalıştırılamadı. CUPS istemcisini (cups-client paketi) yükleyin.
+Printing uses CUPS. Documents are sent as high-resolution page images in a PDF, which works with every printer CUPS can print to.	Yazdırma CUPS'ı kullanır. Belgeler, CUPS'ın yazdırabildiği tüm yazıcılarla çalışan bir PDF içinde yüksek çözünürlüklü sayfa görüntüleri olarak gönderilir.
 0 bytes	0 bayt
 {} bytes	{} bayt
 {} KB	{} KB
@@ -2561,6 +2589,11 @@ Embed color profiles ({})	Renk profillerini göm ({})
 Color profiles:	Renk profilleri:
 Embed fonts ({})	Yazı tiplerini göm ({})
 Ver&sion:	&Sürüm:
+Version:	Sürüm:
+Advanced...	Gelişmiş...
+Folder:	Klasör:
+{} already exists.	{} zaten var.
+Do you want to replace it?	Değiştirmek istiyor musunuz?
 &Advanced...	&Gelişmiş...
 Advanced Save Options	Gelişmiş Kaydetme Seçenekleri
 Optimize for	En iyi duruma getirme
@@ -2710,6 +2743,7 @@ Duplicate word	Yinelenen sözcük
 `{}` is repeated.	`{}` yineleniyor.
 Spelling	Yazım
 `{}` is not in the spelling dictionary.	`{}` yazım sözlüğünde yok.
+No spelling dictionary for {} is installed. Install the {} package.	{} için yüklü bir yazım sözlüğü yok. {} paketini yükleyin.
 Capitalization	Büyük Harf Kullanımı
 The first word of a sentence starts with a capital letter.	Cümlenin ilk sözcüğü büyük harfle başlar.
 Article	Tanımlık

@@ -1543,6 +1543,11 @@ Block Shadow	Блочная тень
 Block Shadow tool	Инструмент «Блочная тень»
 Color Eyedropper	Пипетка цвета
 Color Eyedropper tool	Инструмент «Пипетка цвета»
+AnyVector cannot see the screen outside its window: the desktop's color picker (xdg-desktop-portal) was not found. Install xdg-desktop-portal and your desktop's portal (for example xdg-desktop-portal-gnome or xdg-desktop-portal-kde), or sample colors inside the drawing window.	AnyVector не видит экран за пределами своего окна: средство выбора цвета рабочего стола (xdg-desktop-portal) не найдено. Установите xdg-desktop-portal и портал вашего рабочего стола (например, xdg-desktop-portal-gnome или xdg-desktop-portal-kde) или берите цвета внутри окна рисунка.
+Without the desktop's color picker (xdg-desktop-portal), only the windows of X11 programs can be sampled.	Без средства выбора цвета рабочего стола (xdg-desktop-portal) цвет можно взять только из окон программ X11.
+The desktop's color picker failed:	Сбой средства выбора цвета рабочего стола:
+The desktop's color picker failed:\n{}	Сбой средства выбора цвета рабочего стола:\n{}
+The desktop's color picker failed.	Сбой средства выбора цвета рабочего стола.
 Attributes Eyedropper	Пипетка атрибутов
 Attributes Eyedropper tool	Инструмент «Пипетка атрибутов»
 Interactive Fill	Интерактивная заливка
@@ -1997,7 +2002,18 @@ The page no longer exists.	Страница больше не существуе
 The object no longer exists.	Объект больше не существует.
 Nothing to export	Нечего экспортировать
 No scanner or camera was found. Connect a WIA device and try again.	Сканер или камера не найдены. Подключите устройство WIA и повторите попытку.
-Scanning is not available in AnyVector on Linux yet. Scan the image with your system's scanning program (for example Document Scanner or XSane), save it, and bring it in with File ▸ Import.	Сканирование в AnyVector для Linux пока недоступно. Отсканируйте изображение программой сканирования вашей системы (например, «Сканер документов» или XSane), сохраните его и добавьте в рисунок командой Файл ▸ Импорт.
+Select Source	Выбрать источник
+Looking for scanners...	Поиск сканеров...
+Choose the scanner to use:	Выберите сканер:
+Scanner:	Сканер:
+Scan	Сканировать
+Reading the scanner's settings...	Чтение параметров сканера...
+Scanning on Linux uses SANE, and its scanimage program was not found. Install it with your package manager (sane-utils on Debian and Ubuntu, sane-backends on Fedora and Arch) together with your scanner's SANE driver, then try again.	Сканирование в Linux выполняется через SANE, но его программа scanimage не найдена. Установите её менеджером пакетов (sane-utils в Debian и Ubuntu, sane-backends в Fedora и Arch) вместе с драйвером SANE для вашего сканера и повторите попытку.
+No scanner was found. Check that the scanner is connected and turned on, and that its SANE driver is installed (for network scanners, sane-airscan). The command scanimage -L lists the scanners SANE sees.	Сканер не найден. Убедитесь, что сканер подключён и включён и что его драйвер SANE установлен (для сетевых сканеров — sane-airscan). Команда scanimage -L выводит сканеры, которые видит SANE.
+Document Scanner (simple-scan) is installed: you can scan with it, save the image and bring it in with File ▸ Import.	Установлена программа «Сканер документов» (simple-scan): отсканируйте изображение в ней, сохраните его и добавьте в рисунок командой Файл ▸ Импорт.
+Looking for scanners failed:	Не удалось найти сканеры:
+Looking for scanners failed:\n{}	Не удалось найти сканеры:\n{}
+The image could not be acquired:	Не удалось получить изображение:
 Select WIA Source	Выбрать источник WIA
 The image could not be acquired:\n{}	Не удалось получить изображение:\n{}
 All File Formats	Все форматы файлов
@@ -2544,7 +2560,6 @@ Empty text objects print nothing and can be deleted.	Пустые текстов
 Very thin outlines may not print, or print unevenly. Use at least 0.25 pt.	Очень тонкий абрис может не напечататься или напечататься неравномерно. Используйте не менее 0,25 pt.
 Printers' marks do not fit on the paper.	Типографские метки не помещаются на бумаге.
 The paper must be larger than the page to hold crop marks, registration marks and the other printers' marks. Choose a larger paper, or Fit to page on the Layout tab.	Бумага должна быть больше страницы, чтобы поместились метки обреза, приводки и другие типографские метки. Выберите бумагу большего размера или «По размеру страницы» на вкладке «Макет».
-Printing is available on Windows only.	Печать доступна только в Windows.
 Could not open the printer "{}".	Не удалось открыть принтер «{}».
 The printer did not accept the job.	Принтер не принял задание.
 The printer stopped the job.	Принтер остановил задание.
@@ -2553,6 +2568,19 @@ The printer "{}" is not available.	Принтер «{}» недоступен.
 There are no pages to print.	Нет страниц для печати.
 Printed {} page(s) to {}	Напечатано страниц: {} на {}
 Sent {} page(s) to {}	Отправлено страниц: {} на {}
+{} Printing Preferences	Настройка печати: {}
+Paper size:	Размер бумаги:
+Print on both sides:	Двусторонняя печать:
+Flip on long edge	Переворот по длинному краю
+Flip on short edge	Переворот по короткому краю
+The printer's options could not be read.	Не удалось прочитать параметры принтера.
+There is no printer installed. Add a printer in the system's printer settings (CUPS), or install the cups-pdf printer to print to PDF files.	Принтер не установлен. Добавьте принтер в системных настройках принтеров (CUPS) или установите принтер cups-pdf для печати в PDF-файлы.
+Sent {} page(s) to {} (job {})	Отправлено страниц: {} на {} (задание {})
+The printer did not accept the job: {}	Принтер не принял задание: {}
+Could not write the print file: {}	Не удалось записать файл печати: {}
+The page could not be rendered.	Не удалось отрисовать страницу.
+Could not run lp, the CUPS print command. Install the CUPS client (the cups-client package).	Не удалось запустить lp, команду печати CUPS. Установите клиент CUPS (пакет cups-client).
+Printing uses CUPS. Documents are sent as high-resolution page images in a PDF, which works with every printer CUPS can print to.	Печать использует CUPS. Документы отправляются как изображения страниц высокого разрешения в PDF, что работает с любым принтером, на котором может печатать CUPS.
 0 bytes	0 байт
 {} bytes	{} байт
 {} KB	{} КБ
@@ -2561,6 +2589,11 @@ Embed color profiles ({})	Внедрить цветовые профили ({})
 Color profiles:	Цветовые профили:
 Embed fonts ({})	Внедрить шрифты ({})
 Ver&sion:	&Версия:
+Version:	Версия:
+Advanced...	Дополнительно...
+Folder:	Папка:
+{} already exists.	{} уже существует.
+Do you want to replace it?	Заменить этот файл?
 &Advanced...	&Дополнительно...
 Advanced Save Options	Дополнительные параметры сохранения
 Optimize for	Оптимизировать для
@@ -2710,6 +2743,7 @@ Duplicate word	Повтор слова
 `{}` is repeated.	`{}` повторяется.
 Spelling	Орфография
 `{}` is not in the spelling dictionary.	`{}` нет в орфографическом словаре.
+No spelling dictionary for {} is installed. Install the {} package.	Орфографический словарь для {} не установлен. Установите пакет {}.
 Capitalization	Прописные буквы
 The first word of a sentence starts with a capital letter.	Первое слово предложения начинается с прописной буквы.
 Article	Артикль
