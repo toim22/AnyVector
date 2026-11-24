@@ -104,8 +104,8 @@ chmod +x AnyVector-*-x86_64.AppImage
 ./AnyVector-*-x86_64.AppImage
 ```
 
-It uses the system's graphics drivers and fonts and registers no file types. The AppImage updates itself: AnyVector downloads a new version and replaces the file when you close it, after asking you
-to save your drawings. If the system has no FUSE, start it with `--appimage-extract-and-run`.
+It uses the system's graphics drivers and fonts and registers no file types. The AppImage updates itself: AnyVector downloads a new
+version, checks it, and replaces the file when you close it, after asking you to save your drawings. If the system has no FUSE, start it with `--appimage-extract-and-run`.
 
 ### Debian and Ubuntu package
 

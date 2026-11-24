@@ -212,8 +212,7 @@ program when several did that at once. Set `WGPU_BACKEND` to choose another back
 - System Info: os-release, /proc, WSL detection, XDG desktop and session, xrandr or /sys/class/drm,
   `df`, CUPS `lpstat`, loaded libraries from /proc/self/maps; `sysinfo::platform_summary()` is the bug
   report's system line.
-- Updates: `asset_for` picks each system's file; Linux only announces new releases with **Open Release
-  Page** (nothing is downloaded or run) until the AppImage exists.
+- Updates: see Updater below.
 - AI keys: `~/.config/environment.d/anyvector.conf` (mode 0600) plus `systemctl --user
   import-environment`; AnyVector reads the file itself, so the key works at once.
 
@@ -348,6 +347,22 @@ containers. Nothing is published by CI: both files are added to a release by han
 - A new version needs its line (version and date) in `io.github.toim22.AnyVector.metainfo.xml`; the test
   `metainfo_lists_this_version_first` fails until it is there.
 
+**Updater (Phase 3, `updater.rs`, `updater/appimage.rs`).** The AppImage replaces itself; a .deb, a plain
+program or an AppImage the user can't write is only told of new versions, with **Open Release Page**.
+AnyVector never uses sudo and never downloads the .deb.
+- `APPIMAGE` and `APPDIR` are inherited by child programs, so they are not trusted alone: the program must
+  be inside `$APPDIR`, `$APPIMAGE` must be a type 2 AppImage for this processor outside it, and the runtime
+  must have made that folder (a FUSE mount, or the parent process when extracted).
+- Only `AnyVector-<version>-<arch>.AppImage` of the release is taken. Its size, GitHub's sha256 digest and
+  its header are checked after the download, when an earlier download is reused, and while it is copied. A
+  release without a digest is only announced.
+- It is replaced when AnyVector closes, after the drawings are saved: a copy in the same folder, fsync, an
+  atomic rename. Links, the user's file name and the permissions stay. On any failure the old file is left
+  alone and the next AnyVector window says why.
+- The new one starts when the old process has ended, with the AppImage variables removed.
+  `ANYVECTOR_RENDERER_FALLBACK` marks a renderer AnyVector chose itself, so the new version tries wgpu again.
+- Downloads are kept in `~/.cache/AnyVector/Updates`. The end-to-end tests use a local HTTP server.
+
 **Shared bug fixes (also change Windows).**
 - `cmd /C start` targets with `&` (bug-report URLs, file names) were split and could run commands; the
   target now goes through an environment variable, and the mail subject is fully percent-encoded.
@@ -356,7 +371,7 @@ containers. Nothing is published by CI: both files are added to a release by han
 - `settings.json` is written through a temporary file, so a crash cannot truncate it; a variable name
   with `=` or NUL no longer crashes AI Save Key.
 
-**Known limits after Phase 2.** No native-Wayland drag and drop (winit 0.30); clipboard contents vanish
-on exit under Wayland without a clipboard manager; packaging and the self-updating AppImage are Phase 3
-(the packages should depend on xdg-desktop-portal or zenity: without one of them file dialogs do not
-open). Not tried yet: a physical printer or scanner, and the color picker of a real GNOME or KDE desktop.
+**Known limits after Phase 3.** No native-Wayland drag and drop (winit 0.30); clipboard contents vanish
+on exit under Wayland without a clipboard manager; a program AnyVector opened (such as the browser) keeps
+the old AppImage's mount until it closes. Not tried yet: a physical printer or scanner, and a real GNOME or
+KDE desktop (color picker, menus, "Open with").
