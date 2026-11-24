@@ -24,8 +24,41 @@ fn out_dir() -> std::path::PathBuf {
     d
 }
 
+/// The wgpu setup of the test harnesses. Linux: Vulkan only when the machine has a Vulkan adapter
+/// (Mesa's lavapipe, the one the adapter choice takes anyway). With GL in the instance every
+/// harness also makes an EGL context, and the software GL of older Mesa (Ubuntu 22.04, the CI
+/// machine) crashes the test program when test threads do that at the same time.
+/// `WGPU_BACKEND` still decides when it is set.
+fn test_wgpu() -> eframe::egui_wgpu::WgpuSetup {
+    #[allow(unused_mut)]
+    let mut setup = egui_kittest::wgpu::default_wgpu_setup();
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("WGPU_BACKEND").is_none() && has_vulkan_adapter() {
+        if let eframe::egui_wgpu::WgpuSetup::CreateNew(s) = &mut setup {
+            s.instance_descriptor.backends = eframe::egui_wgpu::wgpu::Backends::VULKAN;
+        }
+    }
+    setup
+}
+
+/// Whether wgpu finds a Vulkan adapter (asked once).
+#[cfg(target_os = "linux")]
+fn has_vulkan_adapter() -> bool {
+    use eframe::egui_wgpu::wgpu;
+    static HAS: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *HAS.get_or_init(|| {
+        let mut d = wgpu::InstanceDescriptor::new_without_display_handle();
+        d.backends = wgpu::Backends::VULKAN;
+        let instance = wgpu::Instance::new(d);
+        // a native adapter list is ready at once
+        let mut list = std::pin::pin!(instance.enumerate_adapters(wgpu::Backends::VULKAN));
+        let mut cx = std::task::Context::from_waker(std::task::Waker::noop());
+        matches!(std::future::Future::poll(list.as_mut(), &mut cx), std::task::Poll::Ready(a) if !a.is_empty())
+    })
+}
+
 fn harness<'a>() -> Harness<'a, AnyVectorApp> {
-    let mut h = Harness::builder().with_size(egui::vec2(1920.0, 1051.0)).wgpu().build_eframe(|cc| {
+    let mut h = Harness::builder().with_size(egui::vec2(1920.0, 1051.0)).wgpu_setup(test_wgpu()).build_eframe(|cc| {
         let mut app = AnyVectorApp::new(cc);
         app.splash = None;
         app.pending.clear();
@@ -234,7 +267,7 @@ fn visual_about_and_system_info() {
 #[test]
 #[ignore]
 fn visual_splash() {
-    let mut h = Harness::builder().with_size(egui::vec2(620.0, 380.0)).wgpu().build_eframe(|cc| AnyVectorApp::new(cc));
+    let mut h = Harness::builder().with_size(egui::vec2(620.0, 380.0)).wgpu_setup(test_wgpu()).build_eframe(|cc| AnyVectorApp::new(cc));
     // the splash shows for 1.8 s of app time; render it right after it has faded in
     for _ in 0..2 {
         h.step();
@@ -381,7 +414,7 @@ fn visual_interface_fonts() {
     // the symbols are in the regular family's fonts (Segoe UI Symbol on Windows)
     let symbols = "✓ ✔ ▸ ▶ ◀ ◂ △ □ ○ ◯ ◇ ◦ ★ ☆ ⚠ ✦ → − ⊕ ⊣ ⊥ ⌄ ⏷ ⟳ ℹ 📋 🔒";
     let installed = std::cell::Cell::new(false);
-    let mut h = Harness::builder().with_size(egui::vec2(760.0, 470.0)).wgpu().build_ui(move |ui| {
+    let mut h = Harness::builder().with_size(egui::vec2(760.0, 470.0)).wgpu_setup(test_wgpu()).build_ui(move |ui| {
         // the fonts are installed in the first pass and used from the next one
         if !installed.replace(true) {
             theme::apply(ui.ctx());
