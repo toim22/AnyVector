@@ -2710,6 +2710,7 @@ Duplicate word	Doppeltes Wort
 `{}` is repeated.	`{}` wird wiederholt.
 Spelling	Rechtschreibung
 `{}` is not in the spelling dictionary.	`{}` ist nicht im Rechtschreibwörterbuch enthalten.
+No spelling dictionary for {} is installed. Install the {} package.	Für {} ist kein Rechtschreibwörterbuch installiert. Installieren Sie das Paket {}.
 Capitalization	Großschreibung
 The first word of a sentence starts with a capital letter.	Das erste Wort eines Satzes beginnt mit einem Großbuchstaben.
 Article	Artikel

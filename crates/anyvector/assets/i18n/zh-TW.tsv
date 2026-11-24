@@ -2710,6 +2710,7 @@ Duplicate word	重複的字
 `{}` is repeated.	`{}` 重複了。
 Spelling	拼字
 `{}` is not in the spelling dictionary.	`{}` 不在拼字字典中。
+No spelling dictionary for {} is installed. Install the {} package.	未安裝 {} 的拼字字典。請安裝 {} 套件。
 Capitalization	大小寫
 The first word of a sentence starts with a capital letter.	句子的第一個字以大寫字母開頭。
 Article	冠詞

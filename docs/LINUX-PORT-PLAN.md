@@ -256,5 +256,26 @@ names no longer panic on the command line or lose the settings file.
   with `=` or NUL no longer crashes AI Save Key.
 
 **Known limits after Phase 1.** No native-Wayland drag and drop (winit 0.30); clipboard contents vanish
-on exit under Wayland without a clipboard manager; printing, spell check, code pages, the eyedropper
-outside the window and scanners are Phase 2; packaging and the self-updating AppImage are Phase 3.
+on exit under Wayland without a clipboard manager; printing, the eyedropper outside the window and
+scanners are Phase 2; packaging and the self-updating AppImage are Phase 3.
+
+**Spell check and code pages (Phase 2, `spell/hunspell.rs`, `spell/codepages.rs`).** The spell checker
+reads the system's Hunspell dictionaries with `spellbook` (pure Rust, MPL-2.0; no libhunspell), looked
+for in `$DICPATH`, `~/.local/share/hunspell`, `hunspell` in each `$XDG_DATA_DIRS` folder and the old
+MySpell folders. A language tag finds its own dictionary (pt-BR → `pt_BR`), else the language's
+(`pt`), else another country's (`pt_PT`; for English `en_US` first). Dictionaries in other character
+sets (`SET ISO8859-1`, KOI8-R...) are converted on loading, and each is loaded once per language. It does
+what the Windows Spell Checking API does for the callers: words with Chinese, Japanese, Korean or Thai
+characters, numbers and web/e-mail addresses are not checked; a repeated word is offered for
+deletion; Add keeps the word in `~/.config/AnyVector/Spelling/<language>/default.dic` and Auto Replace
+the pair in `default.acl` (Windows keeps both in `%AppData%\Microsoft\Spelling\<language>`); Skip All
+lasts until AnyVector closes. Without a dictionary for the language the Spell Checker's "Not found"
+line says which package to install (`hunspell-en-us`, `hunspell-pt-br`, `hunspell-fr`...). Text ▸
+Encode lists the 35 code pages Windows installs that `encoding_rs` converts (Windows' ANSI pages, 866,
+Mac Roman and Ukrainian, KOI8, ISO 8859, Shift-JIS, EUC-JP, ISO-2022-JP, GBK, GB18030, Big5, Korean,
+US-ASCII), with Windows' names ("1252  (ANSI - Latin I)") and order; characters a page lacks become
+"?" (Windows' best-fit replacements, such as "Ł" → "L", are not made). The ANSI code page comes from the
+locale's language (`LC_ALL`, `LC_CTYPE`, `LANG`), as Windows gives it from the system locale: 1250 for
+Czech and Polish, 1251 for Russian, 932 for Japanese, 1252 for C and Western languages. On Windows a
+test compares these conversions with Windows' own for every page. The Legal Notices now also list the
+crates only the Linux build links.

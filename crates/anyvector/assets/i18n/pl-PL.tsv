@@ -2710,6 +2710,7 @@ Duplicate word	Powtórzony wyraz
 `{}` is repeated.	Wyraz `{}` jest powtórzony.
 Spelling	Pisownia
 `{}` is not in the spelling dictionary.	Wyrazu `{}` nie ma w słowniku pisowni.
+No spelling dictionary for {} is installed. Install the {} package.	Nie zainstalowano słownika pisowni dla {}. Zainstaluj pakiet {}.
 Capitalization	Wielkie litery
 The first word of a sentence starts with a capital letter.	Pierwszy wyraz zdania zaczyna się wielką literą.
 Article	Rodzajnik

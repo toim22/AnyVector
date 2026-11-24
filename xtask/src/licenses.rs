@@ -1,6 +1,6 @@
 //! `crates/anyvector/assets/legal/third-party-licenses.txt`: the open-source components that go
-//! into anyvector.exe (every crate the app depends on for Windows, build and test tools excluded),
-//! with their licenses. Shown by Help ▸ About AnyVector ▸ Legal Notices.
+//! into anyvector.exe and the Linux build (every crate the app depends on for Windows, then the
+//! ones only the Linux build adds, marked; build and test tools excluded), with their licenses. Shown by Help ▸ About AnyVector ▸ Legal Notices.
 
 use crate::{root, Result};
 use serde_json::Value;
@@ -22,48 +22,11 @@ const BUNDLED: [(&str, &str, &str); 2] = [
 ];
 
 pub fn run() -> Result<()> {
-    let out = std::process::Command::new(env!("CARGO"))
-        .current_dir(root())
-        .args(["metadata", "--format-version", "1", "--filter-platform", "x86_64-pc-windows-msvc"])
-        .output()?;
-    if !out.status.success() {
-        return Err(format!("cargo metadata failed: {}", String::from_utf8_lossy(&out.stderr)).into());
-    }
-    let meta: Value = serde_json::from_slice(&out.stdout)?;
-    let packages: HashMap<&str, &Value> = meta["packages"].as_array().ok_or("no packages")?.iter().filter_map(|p| Some((p["id"].as_str()?, p))).collect();
-    let nodes: HashMap<&str, &Value> = meta["resolve"]["nodes"].as_array().ok_or("no resolve")?.iter().filter_map(|n| Some((n["id"].as_str()?, n))).collect();
-    let app = packages.values().find(|p| p["name"] == "anyvector").and_then(|p| p["id"].as_str()).ok_or("anyvector not found")?;
-
-    // everything anyvector.exe links: normal dependencies only (no dev- or build-dependencies)
-    let mut seen: HashSet<&str> = HashSet::new();
-    let mut stack = vec![app];
-    while let Some(id) = stack.pop() {
-        if !seen.insert(id) {
-            continue;
-        }
-        for d in nodes.get(id).and_then(|n| n["deps"].as_array()).into_iter().flatten() {
-            let normal = d["dep_kinds"].as_array().is_some_and(|k| k.iter().any(|k| k["kind"].is_null()));
-            if normal {
-                if let Some(pkg) = d["pkg"].as_str() {
-                    stack.push(pkg);
-                }
-            }
-        }
-    }
-
-    let mut by_name: BTreeMap<String, (String, String, String)> = BTreeMap::new();
-    for id in &seen {
-        let p = packages[id];
-        let name = p["name"].as_str().unwrap_or_default().to_string();
-        // the workspace's own crates
-        if name == "anyvector" || name.starts_with("vector-") {
-            continue;
-        }
-        let version = p["version"].as_str().unwrap_or_default().to_string();
-        let license = p["license"].as_str().map(str::to_string).or_else(|| p["license_file"].as_str().map(|f| format!("see {f}"))).unwrap_or_else(|| "unspecified".into());
-        let repo = p["repository"].as_str().or(p["homepage"].as_str()).unwrap_or_default().to_string();
-        let key = format!("{name} {version}");
-        by_name.insert(key.to_lowercase(), (key, license, repo));
+    let mut by_name = components("x86_64-pc-windows-msvc")?;
+    // what only the Linux build links (its clipboard, the Hunspell spell checker...), marked
+    for (k, (key, license, repo)) in components("x86_64-unknown-linux-gnu")? {
+        let repo = if repo.is_empty() { "(Linux build only)".to_string() } else { format!("{repo}\n    (Linux build only)") };
+        by_name.entry(k).or_insert((key, license, repo));
     }
 
     // code taken from other projects into the workspace's own crates
@@ -96,4 +59,53 @@ pub fn run() -> Result<()> {
     std::fs::write(&path, s)?;
     println!("wrote {} ({} components)", path.display(), by_name.len());
     Ok(())
+}
+
+/// The components anyvector links on a platform (a target triple), by lower-case name and version:
+/// (name and version, license, repository).
+fn components(platform: &str) -> Result<BTreeMap<String, (String, String, String)>> {
+    let out = std::process::Command::new(env!("CARGO"))
+        .current_dir(root())
+        .args(["metadata", "--format-version", "1", "--filter-platform", platform])
+        .output()?;
+    if !out.status.success() {
+        return Err(format!("cargo metadata failed: {}", String::from_utf8_lossy(&out.stderr)).into());
+    }
+    let meta: Value = serde_json::from_slice(&out.stdout)?;
+    let packages: HashMap<&str, &Value> = meta["packages"].as_array().ok_or("no packages")?.iter().filter_map(|p| Some((p["id"].as_str()?, p))).collect();
+    let nodes: HashMap<&str, &Value> = meta["resolve"]["nodes"].as_array().ok_or("no resolve")?.iter().filter_map(|n| Some((n["id"].as_str()?, n))).collect();
+    let app = packages.values().find(|p| p["name"] == "anyvector").and_then(|p| p["id"].as_str()).ok_or("anyvector not found")?;
+
+    // everything anyvector links: normal dependencies only (no dev- or build-dependencies)
+    let mut seen: HashSet<&str> = HashSet::new();
+    let mut stack = vec![app];
+    while let Some(id) = stack.pop() {
+        if !seen.insert(id) {
+            continue;
+        }
+        for d in nodes.get(id).and_then(|n| n["deps"].as_array()).into_iter().flatten() {
+            let normal = d["dep_kinds"].as_array().is_some_and(|k| k.iter().any(|k| k["kind"].is_null()));
+            if normal {
+                if let Some(pkg) = d["pkg"].as_str() {
+                    stack.push(pkg);
+                }
+            }
+        }
+    }
+
+    let mut by_name: BTreeMap<String, (String, String, String)> = BTreeMap::new();
+    for id in &seen {
+        let p = packages[id];
+        let name = p["name"].as_str().unwrap_or_default().to_string();
+        // the workspace's own crates
+        if name == "anyvector" || name.starts_with("vector-") {
+            continue;
+        }
+        let version = p["version"].as_str().unwrap_or_default().to_string();
+        let license = p["license"].as_str().map(str::to_string).or_else(|| p["license_file"].as_str().map(|f| format!("see {f}"))).unwrap_or_else(|| "unspecified".into());
+        let repo = p["repository"].as_str().or(p["homepage"].as_str()).unwrap_or_default().to_string();
+        let key = format!("{name} {version}");
+        by_name.insert(key.to_lowercase(), (key, license, repo));
+    }
+    Ok(by_name)
 }

@@ -1,5 +1,6 @@
-//! Writing tools backed by Windows: the spell checker (Windows Spell Checking API) and the system code
-//! pages used by Text ▸ Encode.
+//! Writing tools backed by the system: the spell checker (Windows Spell Checking API; off Windows the
+//! Hunspell dictionaries, see `hunspell`) and the code pages used by Text ▸ Encode (Windows' own; off
+//! Windows `encoding_rs`, see `codepages`).
 
 /// A misspelled or repeated word: char range in the checked text, and what Windows suggests doing.
 #[derive(Clone, Debug, PartialEq)]
@@ -18,7 +19,6 @@ pub const DEFAULT_LANG: &str = "en-US";
 /// A character of a script the spell checkers of Western languages cannot judge (Chinese,
 /// Japanese, Korean, Thai): a word with one is not marked as misspelled, as CorelDRAW does not
 /// mark text typed through those input methods (#147).
-#[cfg_attr(not(windows), allow(dead_code))]
 pub fn unchecked_script(c: char) -> bool {
     matches!(c as u32, 0x0E00..=0x0EFF | 0x1100..=0x11FF | 0x2E80..=0x2FDF | 0x3000..=0x33FF | 0x3400..=0x4DBF | 0x4E00..=0x9FFF | 0xA960..=0xA97F | 0xAC00..=0xD7FF | 0xF900..=0xFAFF | 0xFF00..=0xFFEF | 0x20000..=0x3FFFF)
 }
@@ -228,36 +228,29 @@ mod imp {
     }
 }
 
+mod codepages;
+#[cfg(not(windows))]
+pub mod hunspell;
+
+/// Off Windows: Hunspell dictionaries and `encoding_rs` code pages.
 #[cfg(not(windows))]
 mod imp {
-    use super::SpellError;
-    pub fn supported(_lang: &str) -> bool {
-        false
-    }
-    pub fn check(_text: &str, _lang: &str) -> Vec<SpellError> {
-        vec![]
-    }
-    pub fn suggest(_word: &str, _lang: &str) -> Vec<String> {
-        vec![]
-    }
-    pub fn add(_word: &str, _lang: &str) {}
-    pub fn ignore(_word: &str, _lang: &str) {}
-    pub fn auto_correct(_from: &str, _to: &str, _lang: &str) {}
-    pub fn code_pages() -> Vec<(u32, String)> {
-        vec![(1252, "1252  (ANSI - Latin I)".into())]
-    }
-    pub fn encode(text: &str, _cp: u32) -> Vec<u8> {
-        text.bytes().collect()
-    }
-    pub fn decode(bytes: &[u8], _cp: u32) -> String {
-        String::from_utf8_lossy(bytes).to_string()
-    }
-    pub fn ansi_code_page() -> u32 {
-        1252
-    }
+    pub use super::codepages::{ansi_code_page, code_pages, decode, encode};
+    pub use super::hunspell::{add, auto_correct, check, ignore, suggest, supported};
 }
 
 pub use imp::{add, ansi_code_page, auto_correct, check, code_pages, decode, encode, ignore, suggest, supported};
+
+/// The package to install for a language's spelling dictionary when the system has none (off
+/// Windows, whose spell checker gets its languages through Windows' own settings).
+pub fn missing_dictionary_package(lang: &str) -> Option<String> {
+    #[cfg(not(windows))]
+    if !supported(lang) {
+        return Some(hunspell::package_for(if lang.is_empty() { DEFAULT_LANG } else { lang }));
+    }
+    let _ = lang;
+    None
+}
 
 /// Text ▸ Writing Tools ▸ Language: the languages text can be tagged with, as the reference lists them
 /// (name, code shown, BCP 47 tag).

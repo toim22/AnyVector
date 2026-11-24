@@ -2710,6 +2710,7 @@ Duplicate word	Dubbel woord
 `{}` is repeated.	`{}` wordt herhaald.
 Spelling	Spelling
 `{}` is not in the spelling dictionary.	`{}` staat niet in het spellingwoordenboek.
+No spelling dictionary for {} is installed. Install the {} package.	Er is geen spellingwoordenboek voor {} geïnstalleerd. Installeer het pakket {}.
 Capitalization	Hoofdlettergebruik
 The first word of a sentence starts with a capital letter.	Het eerste woord van een zin begint met een hoofdletter.
 Article	Lidwoord

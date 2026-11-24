@@ -8199,6 +8199,83 @@ fn ime_text_is_not_spell_checked_as_english() {
     assert!(flagged.iter().any(|w| w == "wrld"), "{flagged:?}");
 }
 
+/// Text ▸ Writing Tools ▸ Spell Checker off Windows: a Hunspell dictionary (a small one the test
+/// writes) stops at the misspelled words with its suggestions, Add keeps a word, a repeated word is
+/// offered for deletion, and a language without a dictionary says which package has one.
+#[cfg(not(windows))]
+#[test]
+#[ignore]
+fn visual_spell_checker_hunspell() {
+    use vector_core::text::{CharFormat, TextObj};
+    let root = std::env::temp_dir().join(format!("anyvector-visual-spell-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    crate::spell::hunspell::write_test_dictionary(&root.join("dicts"), "en_US");
+    crate::spell::hunspell::use_places(vec![root.join("dicts")], root.join("user"));
+    let (mut h, _) = shape_object(ObjKind::Text(TextObj::artistic("Helo wrld, this is is artistic text", CharFormat { size: 36.0, ..CharFormat::default() })), (100.0, 200.0));
+    h.state_mut().run(Cmd::WritingTools(0));
+    save(&mut h, "spell_hunspell_01_misspelled");
+    let found = |h: &Harness<'_, AnyVectorApp>| h.state().dialogs.writing.as_ref().and_then(|st| st.found.as_ref().map(|f| (f.word.clone(), f.rule)));
+    {
+        let st = h.state().dialogs.writing.as_ref().unwrap();
+        assert_eq!(found(&h), Some(("Helo".into(), "Spelling")));
+        assert!(st.replacements.iter().any(|r| r == "Hello"), "{:?}", st.replacements);
+    }
+    // Add: the word is right from now on (and kept in the user's dictionary)
+    crate::spell::add("Helo", "en-US");
+    let mut st = h.state_mut().dialogs.writing.take().unwrap();
+    st.pos = (0, 0);
+    st.next(h.state());
+    h.state_mut().dialogs.writing = Some(st);
+    assert_eq!(found(&h).map(|f| f.0), Some("wrld".into()));
+    assert!(root.join("user/en-US/default.dic").is_file());
+    save(&mut h, "spell_hunspell_02_after_add");
+    let mut st = h.state_mut().dialogs.writing.take().unwrap();
+    st.pos = (0, 5);
+    crate::spell::ignore("wrld", "en-US");
+    st.next(h.state());
+    h.state_mut().dialogs.writing = Some(st);
+    assert_eq!(found(&h), Some(("is".into(), "Duplicate word")));
+    save(&mut h, "spell_hunspell_03_duplicate");
+    // Italian: no dictionary here
+    let mut st = h.state_mut().dialogs.writing.take().unwrap();
+    st.lang = "it-IT".into();
+    st.pos = (0, 0);
+    st.next(h.state());
+    assert!(st.done && st.found.is_none());
+    h.state_mut().dialogs.writing = Some(st);
+    assert_eq!(crate::spell::missing_dictionary_package("it-IT").as_deref(), Some("hunspell-it"));
+    save(&mut h, "spell_hunspell_04_no_dictionary");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// Text ▸ Encode: the code pages under their Windows names, the ANSI code page chosen, and the text
+/// read again in another page (Cyrillic) in the preview.
+#[test]
+#[ignore]
+fn visual_encode_code_pages() {
+    use vector_core::text::{CharFormat, TextObj};
+    let (mut h, id) = shape_object(ObjKind::Text(TextObj::artistic("Olá, ação", CharFormat { size: 36.0, ..CharFormat::default() })), (100.0, 200.0));
+    h.state_mut().run(Cmd::EncodeText);
+    save(&mut h, "encode_01_code_pages");
+    {
+        let st = h.state().dialogs.encode.as_ref().unwrap();
+        let acp = crate::spell::ansi_code_page();
+        assert_eq!(st.pages[st.sel].0, acp);
+        assert!(st.pages.iter().any(|p| p.1 == "1251  (ANSI - Cyrillic)"), "{:?}", st.pages);
+    }
+    let st = h.state_mut().dialogs.encode.as_mut().unwrap();
+    st.other = true;
+    st.sel = st.pages.iter().position(|p| p.0 == 1251).unwrap();
+    st.scrolled = false;
+    save(&mut h, "encode_02_other_encoding");
+    // as read in 1251, from the ANSI page's bytes
+    let preview = h.state().dialogs.encode.as_ref().unwrap().preview("Olá, ação");
+    if crate::spell::ansi_code_page() == 1252 {
+        assert_eq!(preview, "Olб, aзгo");
+    }
+    assert!(matches!(kind_of(&h, id), ObjKind::Text(t) if t.content == "Olá, ação"));
+}
+
 // ---- Dockers that can be rearranged (#144) ----
 
 /// A document with `dockers` open in one group on the right (as 0.6.0 had them), the first
