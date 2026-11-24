@@ -2,7 +2,8 @@
 
 Status: assessment written 2026-11-23 (AnyVector 0.6.1, commit 7447911). **Phase 0 and Phase 1 done**
 the same day (issue #51, PR #153) and **Phase 2 done** 2026-11-24 (printing, spell check, code pages,
-eyedropper outside the window, scanners, save options): section 8 says what was built. The audit of file names, the 79
+eyedropper outside the window, scanners, save options): section 8 says what was built. Phase 3
+(packages and updater) is built too; the beta is not published yet. The audit of file names, the 79
 closed issues and feature gaps is in [LINUX-AUDIT.md](LINUX-AUDIT.md).
 
 First Linux build (2026-11-23, WSL 2 Ubuntu 24.04, Rust 1.99.1, AnyVector 0.6.2): the whole workspace
@@ -145,7 +146,7 @@ licence file.
 
 **Phase 3 – Packaging and release (about 1 week)**
 1. `.desktop` file, icons, MIME types, AppStream metadata.
-2. AppImage build in CI; `.deb` with `cargo-deb`.
+2. AppImage build in CI; `.deb` (built with `dpkg-deb`, not `cargo-deb`: no extra tool to install).
 3. Updater: find the asset for the running platform (`-setup.exe` on Windows, `.AppImage` on Linux)
    and replace the AppImage; packaged installs only announce new versions.
 4. Release notes and README section "Installing on Linux"; publish the first Linux build as a beta
@@ -172,7 +173,7 @@ Rough total for a first public Linux beta: **4–6 weeks** of focused work, most
    two real implementations, and it prepares a future macOS port). Suggestion: the `platform/`
    module, done gradually as each feature gets its Linux version.
 
-## 8. What Phases 0 to 2 built (from 2026-11-23, PR #153)
+## 8. What Phases 0 to 3 built (from 2026-11-23, PRs #153 and #154)
 
 The Linux code sits behind `cfg`, so the Windows program is unchanged, apart from the shared bug
 fixes listed at the end of this section.
@@ -328,6 +329,24 @@ Desktop button.
   the WIA scan is. Without `scanimage` or a scanner a message says what to install, and mentions Document
   Scanner (simple-scan) when it is there.
 - A real scan with SANE's virtual test scanner is one of the `clip_real_linux` tests (needs sane-utils).
+
+**Packages (Phase 3, `packaging/linux`).** `build.sh` writes both packages to `dist/`; the `linux` job of
+`build.yml` builds, checks, installs and starts them and keeps them as the artifact
+`AnyVector-linux-packages`, and `linux-install` starts the .deb in Ubuntu 22.04, 24.04 and Debian 12
+containers. Nothing is published by CI: both files are added to a release by hand.
+- `AnyVector-<version>-x86_64.AppImage`: a squashfs behind the official static runtime (pinned by its
+  checksum). AppRun is the program itself, with no script and no `LD_LIBRARY_PATH`, so the programs
+  AnyVector starts keep the system's environment. It needs `fusermount3`, or
+  `--appimage-extract-and-run`; it registers no file types.
+- `anyvector_<version>_amd64.deb`, made with `dpkg-deb`. The window, graphics and D-Bus libraries are
+  opened at run time, so `control.in` lists them by hand with the reason for each. It depends on
+  `xdg-desktop-portal | zenity`, because file dialogs need one of them.
+- File types: AnyVector owns only `.vct`. The other formats it opens are in a hidden second desktop file
+  (`zz-...-open.desktop`) that sorts last, so "Open with" offers AnyVector but it never becomes the
+  default for another program's files (as with the Windows setup).
+- The legal files are in `/usr/share/doc/anyvector/legal`. `cargo run -p xtask -- brand` draws the icons.
+- A new version needs its line (version and date) in `io.github.toim22.AnyVector.metainfo.xml`; the test
+  `metainfo_lists_this_version_first` fails until it is there.
 
 **Shared bug fixes (also change Windows).**
 - `cmd /C start` targets with `&` (bug-report URLs, file names) were split and could run commands; the

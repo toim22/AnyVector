@@ -11,7 +11,7 @@ const BUNDLED: [(&str, &str, &str); 2] = [
     (
         "libcdr colour palette tables",
         "MPL-2.0",
-        "Taken from https://git.libreoffice.org/libcdr. The source as AnyVector uses it is\n    legal\\palettes.rs in the install folder, and\n    https://github.com/toim22/AnyVector/blob/main/crates/vector-io/src/corel/palettes.rs\n    The license text is legal\\MPL-2.0.txt in the install folder.",
+        "Taken from https://git.libreoffice.org/libcdr. The source as AnyVector uses it is\n    legal\\palettes.rs in the install folder (on Linux, in /usr/share/doc/anyvector/legal), and\n    https://github.com/toim22/AnyVector/blob/main/crates/vector-io/src/corel/palettes.rs\n    The license text is legal\\MPL-2.0.txt in the same folder.",
     ),
     // crates/anyvector/assets/fonts (see ui_fonts.rs); its license is legal/Selawik-OFL.txt
     (

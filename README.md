@@ -104,7 +104,7 @@ chmod +x AnyVector-*-x86_64.AppImage
 ./AnyVector-*-x86_64.AppImage
 ```
 
-The AppImage updates itself: AnyVector downloads a new version and replaces the file when you close it, after asking you
+It uses the system's graphics drivers and fonts and registers no file types. The AppImage updates itself: AnyVector downloads a new version and replaces the file when you close it, after asking you
 to save your drawings. If the system has no FUSE, start it with `--appimage-extract-and-run`.
 
 ### Debian and Ubuntu package
@@ -113,7 +113,8 @@ to save your drawings. If the system has no FUSE, start it with `--appimage-extr
 sudo apt install ./anyvector_<version>_amd64.deb
 ```
 
-It adds AnyVector to the applications menu and to "Open with" for drawings. AnyVector tells you when a new version is
+It adds AnyVector to the applications menu, opens `.vct` drawings and is offered in "Open with" for `.cdr`, SVG and the
+other formats it reads. Remove it with `sudo apt remove anyvector`. AnyVector tells you when a new version is
 out; install the new package the same way.
 
 **Requirements:** a 64-bit (x86-64) distribution with glibc 2.35 or later (Ubuntu 22.04, Debian 12, Fedora 36 or newer),
@@ -143,7 +144,8 @@ cargo test
 ```
 
 On Windows the program is built to `target\release\anyvector.exe`. To package it, compile `installer\AnyVector.iss` with
-Inno Setup (`ISCC.exe installer\AnyVector.iss`), which writes `dist\AnyVector-<version>-setup.exe`.
+Inno Setup (`ISCC.exe installer\AnyVector.iss`), which writes `dist\AnyVector-<version>-setup.exe`. On Linux, `packaging/linux/build.sh`
+builds the `.deb` and the AppImage (it needs `dpkg-dev` and `squashfs-tools`).
 
 | Folder | What's inside |
 | --- | --- |
@@ -153,6 +155,7 @@ Inno Setup (`ISCC.exe installer\AnyVector.iss`), which writes `dist\AnyVector-<v
 | `crates/vector-io` | File formats: `.cdr`, `.vct`, SVG, PDF, DXF and bitmaps |
 | `xtask` | Build helpers for brand assets, interface data and coverage reports |
 | `installer` | The Inno Setup script and wizard images |
+| `packaging/linux` | The AppImage and `.deb`: build script, desktop files, icons and file types |
 | `docs` | Architecture, status, coverage and release notes |
 
 ## Project status
