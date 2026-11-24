@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/toim22/AnyVector/releases/latest"><img alt="Version 0.6.2" src="https://img.shields.io/badge/version-0.6.2-0a9cff"></a>
+  <a href="https://github.com/toim22/AnyVector/releases/latest"><img alt="Version 0.7.0" src="https://img.shields.io/badge/version-0.7.0-0a9cff"></a>
   <img alt="Windows 10 and 11, 64-bit" src="https://img.shields.io/badge/Windows-10%20%7C%2011%20(x64)-2b3242">
   <img alt="Linux x86-64, beta" src="https://img.shields.io/badge/Linux-x86--64%20(beta)-2b3242">
   <img alt="15 languages" src="https://img.shields.io/badge/languages-15-43c35a">
@@ -17,9 +17,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/toim22/AnyVector/releases/latest"><strong>Download AnyVector 0.6.2</strong></a>
+  <a href="https://github.com/toim22/AnyVector/releases/latest"><strong>Download AnyVector 0.7.0</strong></a>
   ·
-  <a href="docs/RELEASE-NOTES-0.6.2.md">What's new</a>
+  <a href="docs/RELEASE-NOTES-0.7.0.md">What's new</a>
   ·
   <a href="https://github.com/toim22/AnyVector/issues">Report a bug or share an idea</a>
 </p>
@@ -76,7 +76,7 @@ Your muscle memory works on day one.
 
 ## Install
 
-1. Download `AnyVector-0.6.2-setup.exe` from the [latest release](https://github.com/toim22/AnyVector/releases/latest).
+1. Download `AnyVector-0.7.0-setup.exe` from the [latest release](https://github.com/toim22/AnyVector/releases/latest).
 2. Run it. No administrator rights are needed, because AnyVector installs for your user by default. You can also
    choose to install it for all users.
 3. Choose the language AnyVector should start in. You can change it later in
@@ -88,8 +88,9 @@ The setup can add AnyVector to "Open with" for `.cdr` files and can open `.vct` 
 
 ## Installing on Linux (beta)
 
-The Linux version has the same interface and file formats as the Windows one. It is a beta: releases after 0.6.2 that
-include it list two Linux files next to the Windows setup. Use one of them.
+The Linux version has the same interface and file formats as the Windows one. It is a beta. The
+[latest release](https://github.com/toim22/AnyVector/releases/latest) lists two Linux files next to the Windows setup.
+Use one of them.
 
 ### AppImage (any distribution)
 
@@ -161,8 +162,9 @@ builds the `.deb` and the AppImage (it needs `dpkg-dev` and `squashfs-tools`).
 
 ## Project status
 
-AnyVector **0.6.2** opens drawings saved by every version of CorelDRAW, from CorelDRAW 1 to 2026, and Corel
-clipart, and saves CorelDRAW-compatible CMX copies (see [the release notes](docs/RELEASE-NOTES-0.6.2.md)). See [docs/STATUS.md](docs/STATUS.md) for progress and
+AnyVector **0.7.0** runs on Windows and, as a beta, on Linux (see [the release notes](docs/RELEASE-NOTES-0.7.0.md)).
+It opens drawings saved by every version of CorelDRAW, from CorelDRAW 1 to 2026, and Corel clipart, and saves
+CorelDRAW-compatible CMX copies. See [docs/STATUS.md](docs/STATUS.md) for progress and
 [docs/COVERAGE.md](docs/COVERAGE.md) for the item-by-item list of what is complete. Known limits:
 
 - Licensed palette books (PANTONE, TRUMATCH and others) are not included.

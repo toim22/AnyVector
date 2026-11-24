@@ -8,7 +8,8 @@
 //!   choices): keep the product up to date (downloads by itself, asks before installing), check
 //!   and let the user choose when to install, or never check.
 //! - Help ▸ Updates shows the version, checks now and installs a new version.
-//! - The release is read from the GitHub API; when the repository is private the GitHub CLI
+//! - The new version is the highest one with files for this system ([`newest_release`]).
+//! - The releases are read from the GitHub API; when the repository is private the GitHub CLI
 //!   (`gh`, signed in) reads and downloads it instead.
 //! - Installing runs the downloaded setup silently after AnyVector closes (so open drawings are
 //!   saved first); the setup starts AnyVector again when it is done.
@@ -275,12 +276,43 @@ impl Release {
     }
 }
 
-/// The release described by GitHub's JSON. On Windows only one that carries its setup; elsewhere
-/// every release, to announce it.
-pub fn release_from_json(v: &serde_json::Value, via_gh: bool) -> Option<Release> {
-    release_for(std::env::consts::OS, std::env::consts::ARCH, v, via_gh)
+/// The newest release for this system in GitHub's list of releases. A release may be for Windows or
+/// Linux only. One without a setup is published on GitHub without "Set as the latest release", as
+/// AnyVector up to 0.6.2 only looks at the latest release and needs a setup there.
+pub fn newest_release(list: &serde_json::Value, via_gh: bool) -> Option<Release> {
+    newest_for(std::env::consts::OS, std::env::consts::ARCH, list, via_gh)
 }
 
+/// The highest version in GitHub's list with files for the system `os`, in whatever order they come.
+/// Drafts (which the GitHub CLI lists for the project's members) and pre-releases are left out.
+fn newest_for(os: &str, arch: &str, list: &serde_json::Value, via_gh: bool) -> Option<Release> {
+    let set = |v: &serde_json::Value, k: &str| v[k].as_bool().unwrap_or(false);
+    let mut newest: Option<Release> = None;
+    for v in list.as_array()? {
+        if set(v, "draft") || set(v, "prerelease") || !is_for(os, v) {
+            continue;
+        }
+        let Some(r) = release_for(os, arch, v, via_gh) else { continue };
+        if newest.as_ref().is_none_or(|n| is_newer(&r.version, &n.version)) {
+            newest = Some(r);
+        }
+    }
+    newest
+}
+
+/// Whether a release carries files for the system `os`: the setup on Windows; an AppImage or a .deb,
+/// of any processor, on Linux. Other systems are told of every release.
+fn is_for(os: &str, v: &serde_json::Value) -> bool {
+    let ends: &[&str] = match os {
+        "windows" => &["-setup.exe"],
+        "linux" => &[".appimage", ".deb"],
+        _ => return true,
+    };
+    let mut names = v["assets"].as_array().into_iter().flatten().filter_map(|a| a["name"].as_str());
+    names.any(|n| ends.iter().any(|e| n.to_ascii_lowercase().ends_with(e)))
+}
+
+/// A release described by GitHub's JSON. On Windows only one that carries its setup; elsewhere any.
 fn release_for(os: &str, arch: &str, v: &serde_json::Value, via_gh: bool) -> Option<Release> {
     let tag = v["tag_name"].as_str()?.to_string();
     let version = tag.trim_start_matches(['v', 'V']).to_string();
@@ -312,13 +344,13 @@ fn agent(timeout: u64) -> ureq::Agent {
 const NO_SETUP: &str = "The latest release has no setup for Windows.";
 const NO_INTERNET: &str = "An Internet connection is required. Please connect to the Internet and try again.";
 
-/// Where GitHub describes the latest release.
-fn latest_url() -> String {
-    format!("https://api.github.com/repos/{REPO}/releases/latest")
+/// Where GitHub lists the releases (a page holds 100 at most).
+fn releases_url() -> String {
+    format!("https://api.github.com/repos/{REPO}/releases?per_page=100")
 }
 
-/// The latest release, described at `url` ([`latest_url`]): `Ok(None)` when it is not newer than
-/// this version.
+/// The newest release for this system, from the list at `url` ([`releases_url`]): `Ok(None)` when it
+/// is not newer than this version.
 fn check(url: &str) -> Result<Option<Release>, String> {
     let ua = format!("AnyVector/{}", current_version());
     let web = agent(20).get(url).header("Accept", "application/vnd.github+json").header("User-Agent", &ua).call();
@@ -326,7 +358,7 @@ fn check(url: &str) -> Result<Option<Release>, String> {
     let release = match web {
         Ok(mut r) if r.status().as_u16() == 200 => {
             let v: serde_json::Value = r.body_mut().read_json().map_err(|e| format!("Invalid answer from the update server: {e}"))?;
-            Some(release_from_json(&v, false).ok_or_else(unusable_release)?)
+            Some(newest_release(&v, false).ok_or_else(unusable_release)?)
         }
         Ok(_) => {
             reached = true;
@@ -337,8 +369,8 @@ fn check(url: &str) -> Result<Option<Release>, String> {
     let release = match release {
         Some(r) => r,
         // not public (or no network): the GitHub CLI, when it is signed in, can read a private repository
-        None => match gh_json(&["api", &format!("repos/{REPO}/releases/latest")]) {
-            Some(v) => release_from_json(&v, true).ok_or_else(unusable_release)?,
+        None => match gh_json(&["api", &format!("repos/{REPO}/releases?per_page=100")]) {
+            Some(v) => newest_release(&v, true).ok_or_else(unusable_release)?,
             None if reached => return Err(format!("No published release was found at github.com/{REPO}.")),
             None => return Err(NO_INTERNET.into()),
         },
@@ -346,8 +378,7 @@ fn check(url: &str) -> Result<Option<Release>, String> {
     Ok(is_newer(&release.version, current_version()).then_some(release))
 }
 
-/// Why the latest release is of no use ([`release_from_json`] refused it): Windows needs its setup;
-/// elsewhere only a release without a tag is refused.
+/// Why none of the releases is of use ([`newest_release`] found none): Windows needs a setup.
 fn unusable_release() -> String {
     if cfg!(windows) {
         NO_SETUP.to_string()
@@ -443,7 +474,7 @@ fn download(r: &Release, dir: &Path, tx: &Sender<Msg>) -> Result<PathBuf, String
 
 /// Start a check in the background. `quiet`: started by the program, so a failure is not shown.
 pub fn start_check(app: &mut AnyVectorApp, quiet: bool) {
-    start_check_at(app, quiet, latest_url());
+    start_check_at(app, quiet, releases_url());
 }
 
 fn start_check_at(app: &mut AnyVectorApp, quiet: bool, url: String) {
@@ -995,7 +1026,7 @@ onto a second line.
             NoteBlock::Item(0, vec![run("Last", false)]),
         ]);
         // the real notes have no Markdown marks left
-        for b in [include_str!("../../../docs/RELEASE-NOTES-0.3.0.md"), include_str!("../../../docs/RELEASE-NOTES-0.3.1.md"), include_str!("../../../docs/RELEASE-NOTES-0.4.0.md"), include_str!("../../../docs/RELEASE-NOTES-0.4.1.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.0.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.1.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.2.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.3.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.4.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.5.md"), include_str!("../../../docs/RELEASE-NOTES-0.6.0.md"), include_str!("../../../docs/RELEASE-NOTES-0.6.1.md"), include_str!("../../../docs/RELEASE-NOTES-0.6.2.md")].iter().flat_map(|md| note_blocks(md)) {
+        for b in [include_str!("../../../docs/RELEASE-NOTES-0.3.0.md"), include_str!("../../../docs/RELEASE-NOTES-0.3.1.md"), include_str!("../../../docs/RELEASE-NOTES-0.4.0.md"), include_str!("../../../docs/RELEASE-NOTES-0.4.1.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.0.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.1.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.2.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.3.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.4.md"), include_str!("../../../docs/RELEASE-NOTES-0.5.5.md"), include_str!("../../../docs/RELEASE-NOTES-0.6.0.md"), include_str!("../../../docs/RELEASE-NOTES-0.6.1.md"), include_str!("../../../docs/RELEASE-NOTES-0.6.2.md"), include_str!("../../../docs/RELEASE-NOTES-0.7.0.md")].iter().flat_map(|md| note_blocks(md)) {
             let (NoteBlock::Heading(r) | NoteBlock::Item(_, r) | NoteBlock::Para(r)) = b;
             for (t, _) in r {
                 assert!(!t.contains("**") && !t.contains('`') && !t.starts_with('#') && !t.starts_with("- "), "{t}");
@@ -1078,8 +1109,84 @@ onto a second line.
         let r = release_for("linux", "x86_64", &odd, false).unwrap();
         assert_eq!((r.asset_name.as_str(), r.asset_size, r.sha256()), ("AnyVector-0.7.0-x86_64.AppImage", 0, None));
         // this system
-        assert_eq!(release_from_json(&none, false).is_some(), !cfg!(windows));
-        assert!(release_from_json(&release_json(), false).is_some());
+        if cfg!(any(windows, target_os = "linux")) {
+            assert!(newest_release(&serde_json::json!([none]), false).is_none(), "no files for this system");
+        }
+        assert_eq!(newest_release(&serde_json::json!([none, release_json()]), true).map(|r| (r.version, r.via_gh)), Some(("0.7.0".into(), true)));
+    }
+
+    /// One entry of GitHub's list of releases; `*` in a file name is the version.
+    fn listed(version: &str, files: &[&str]) -> serde_json::Value {
+        let files = files.iter().map(|f| f.replace('*', version));
+        let assets: Vec<_> = files.map(|f| serde_json::json!({ "name": f, "browser_download_url": format!("https://x/{f}"), "size": 5 })).collect();
+        serde_json::json!({ "tag_name": format!("v{version}"), "draft": false, "prerelease": false, "assets": assets })
+    }
+
+    const SETUP: &str = "AnyVector-*-setup.exe";
+    const IMAGE: &str = "AnyVector-*-x86_64.AppImage";
+    const DEB: &str = "anyvector_*_amd64.deb";
+
+    /// A release may be for one system only: the other keeps to its own newest one.
+    #[test]
+    fn each_system_gets_its_own_newest_release() {
+        let both = listed("0.7.0", &[SETUP, IMAGE, DEB]);
+        let linux = listed("0.7.1", &[IMAGE, DEB]);
+        let windows = listed("0.7.2", &[SETUP]);
+        let old = listed("0.6.2", &[SETUP]);
+        let newest = |os: &str, list: &[&serde_json::Value]| newest_for(os, "x86_64", &serde_json::json!(list), false).map(|r| (r.version, r.asset_name));
+        let is = |v: &str, f: &str| Some((v.to_string(), f.replace('*', v)));
+        // a Linux-only release
+        assert_eq!(newest("windows", &[&linux, &both, &old]), is("0.7.0", SETUP));
+        assert_eq!(newest("linux", &[&linux, &both, &old]), is("0.7.1", IMAGE));
+        // then a Windows-only one
+        assert_eq!(newest("windows", &[&windows, &linux, &both, &old]), is("0.7.2", SETUP));
+        assert_eq!(newest("linux", &[&windows, &linux, &both, &old]), is("0.7.1", IMAGE));
+        // the version decides, not the order
+        assert_eq!(newest("windows", &[&old, &windows, &both, &linux]), is("0.7.2", SETUP));
+        assert_eq!(newest("linux", &[&old, &both, &linux, &windows]), is("0.7.1", IMAGE));
+        let ten = listed("0.7.10", &[SETUP, IMAGE]);
+        assert_eq!(newest("linux", &[&both, &ten, &linux]), is("0.7.10", IMAGE), "0.7.10 is after 0.7.1");
+        // a release without files of the system is no release for it
+        assert_eq!(newest("linux", &[&old]), None);
+        assert_eq!(newest("windows", &[&linux, &listed("0.8.0", &["AnyVector-*-setup.exe.sha256"])]), None);
+        // Linux: a .deb alone, or another processor's AppImage, is announced and there is nothing to download
+        for file in [DEB, "AnyVector-*-aarch64.AppImage"] {
+            assert_eq!(newest("linux", &[&listed("0.7.3", &[file]), &both]), Some(("0.7.3".into(), String::new())), "{file}");
+        }
+        // drafts and pre-releases are not offered
+        for flag in ["draft", "prerelease"] {
+            let mut v = listed("0.9.0", &[SETUP, IMAGE]);
+            v[flag] = true.into();
+            for os in ["windows", "linux"] {
+                assert_eq!(newest(os, &[&v, &both]).unwrap().0, "0.7.0", "{flag} {os}");
+            }
+        }
+        // other systems are told of every release
+        assert_eq!(newest("freebsd", &[&old, &windows]), Some(("0.7.2".into(), String::new())));
+        // what is not a list of releases
+        for v in [serde_json::json!({}), serde_json::json!([]), serde_json::json!([null, 3, {}, []]), serde_json::json!("x"), release_json()] {
+            for os in ["windows", "linux", "freebsd"] {
+                assert!(newest_for(os, "x86_64", &v, false).is_none(), "{os} {v}");
+            }
+        }
+    }
+
+    /// The same, read from a (local) server.
+    #[test]
+    #[cfg(any(windows, target_os = "linux"))]
+    fn the_check_finds_the_newest_release_for_this_system() {
+        let image = format!("AnyVector-*-{}.AppImage", std::env::consts::ARCH);
+        let (own, other) = if cfg!(windows) { (SETUP, image.as_str()) } else { (image.as_str(), SETUP) };
+        let check_list = |list: serde_json::Value| check(&crate::ai_provider::test_server::start(move |_| (200, list.to_string().into_bytes())).url);
+        let found = check_list(serde_json::json!([listed("99.1.0", &[other]), listed("99.0.1", &[own]), listed("99.0.0", &[own, other])])).unwrap().unwrap();
+        assert_eq!((found.version.as_str(), found.asset_name, found.via_gh), ("99.0.1", own.replace('*', "99.0.1"), false));
+        // up to date, whatever the other system has
+        let list = serde_json::json!([listed("99.0.0", &[other]), listed(current_version(), &[own, other])]);
+        assert!(check_list(list).unwrap().is_none());
+        // nothing for this system at all
+        assert_eq!(check_list(serde_json::json!([listed("99.0.0", &[other])])).err(), Some(unusable_release()));
+        assert_eq!(check_list(serde_json::json!([])).err(), Some(unusable_release()));
+        assert!(releases_url().ends_with("/releases?per_page=100"));
     }
 
     /// AnyVector 0.6.2 is installed on people's computers: it must find its setup in releases that also
