@@ -23,7 +23,5 @@ Terminal=false
 StartupWMClass=io.github.toim22.AnyVector
 Categories=Graphics;2DGraphics;VectorGraphics;
 Keywords=vector;drawing;illustration;layout;logo;cdr;svg;pdf;
-# what File > Open reads (vector_io::OPEN_TYPES): "Open with" only, never made the default program
-MimeType=application/vnd.corel-draw;image/x-coreldrawtemplate;image/x-cmx;application/x-vector-drawing;image/svg+xml;image/svg+xml-compressed;application/pdf;image/x-eps;application/postscript;application/illustrator;image/vnd.dxf;
-# on KDE, after the other programs for these types while no default is chosen (programs have 1)
-InitialPreference=0
+# AnyVector's own type; zz-io.github.toim22.AnyVector-open.desktop has the other programs' types
+MimeType=application/x-vector-drawing;

@@ -96,6 +96,8 @@ date_all() { find "$1" -print0 | xargs -0r touch --no-dereference --date="@$SOUR
 build_deb() {
   local dir=$work/deb out=$dist/anyvector_${version}_amd64.deb depends
   stage "$dir"
+  # "Open with" for other programs' files; not in the AppImage, which is not installed
+  text "$here/zz-$id-open.desktop" "$dir/usr/share/applications/zz-$id-open.desktop"
   text "$here/lintian-overrides" "$dir/usr/share/lintian/overrides/anyvector"
   {
     echo "anyvector ($version) stable; urgency=medium"

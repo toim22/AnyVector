@@ -1,4 +1,4 @@
 # a desktop program without command-line options: its documentation is inside it (Help)
 anyvector: no-manual-page *
-# the licenses inside the program, kept together as the Windows setup and the AppImage have them
-anyvector: extra-license-file *
+# the Rust port of zlib (zlib-rs, in legal/third-party-licenses.txt), which keeps zlib's version text
+anyvector: embedded-library *zlib*

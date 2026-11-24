@@ -105,7 +105,7 @@ jobs:
         run: |
           set -x
           id=io.github.toim22.AnyVector
-          desktop-file-validate packaging/linux/$id.desktop
+          desktop-file-validate packaging/linux/*.desktop
           appstreamcli validate --no-net packaging/linux/$id.metainfo.xml
           lintian --fail-on error,warning --info --tag-display-limit 0 dist/*.deb
           # the AppImage's files, and its program is the one built above
@@ -129,6 +129,9 @@ jobs:
             grep -F "${type%:*}:*.${type#*:}" /usr/share/mime/globs2
           done
           grep -F application/x-vector-drawing=io.github.toim22.AnyVector.desktop /usr/share/applications/mimeinfo.cache
+          grep -F zz-io.github.toim22.AnyVector-open.desktop /usr/share/applications/mimeinfo.cache
+          # no other program's type has AnyVector first
+          if grep -E '=io\.github\.toim22\.AnyVector\.desktop|=zz-io.*;.+' /usr/share/applications/mimeinfo.cache | grep -v application/x-vector-drawing=; then exit 1; fi
           sudo apt-get remove -y -q anyvector
           if grep -F vector-drawing /usr/share/mime/globs2; then exit 1; fi
 

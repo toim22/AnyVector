@@ -23,16 +23,30 @@ fn file(ext: &str) -> String {
     read(&format!("packaging/linux/{}.{ext}", app_id()))
 }
 
-/// The keys of the desktop file.
-fn desktop() -> BTreeMap<String, String> {
-    let text = file("desktop");
-    assert!(text.starts_with("[Desktop Entry]\n"));
+fn keys_of(text: &str) -> BTreeMap<String, String> {
+    let mut lines = text.lines().filter(|l| !l.is_empty() && !l.starts_with('#'));
+    assert_eq!(lines.next(), Some("[Desktop Entry]"));
     let mut keys = BTreeMap::new();
-    for l in text.lines().skip(1).filter(|l| !l.is_empty() && !l.starts_with('#')) {
+    for l in lines {
         let (k, v) = l.split_once('=').unwrap_or_else(|| panic!("{l}"));
         assert!(keys.insert(k.to_string(), v.to_string()).is_none(), "{k} twice");
     }
     keys
+}
+
+/// The keys of the desktop file.
+fn desktop() -> BTreeMap<String, String> {
+    keys_of(&file("desktop"))
+}
+
+/// The keys of the hidden one, "Open with" for the other programs' types.
+fn open_with() -> BTreeMap<String, String> {
+    keys_of(&read(&format!("packaging/linux/zz-{}-open.desktop", app_id())))
+}
+
+/// The types of a desktop file.
+fn types(keys: &BTreeMap<String, String>) -> Vec<&str> {
+    keys["MimeType"].strip_suffix(';').expect("a ; at the end").split(';').collect()
 }
 
 /// The MIME type of each extension of File ▸ Open.
@@ -79,10 +93,19 @@ fn desktop_file_is_the_app_ids() {
     assert_eq!(keys["Categories"], format!("{};", categories.join(";")));
 }
 
+/// AnyVector's own type is in the desktop file; the other programs' ones are in the hidden one,
+/// which never comes before another program's, so that installing AnyVector takes no file from it.
 #[test]
-fn desktop_file_opens_what_file_open_reads() {
-    let keys = desktop();
-    let listed: Vec<&str> = keys["MimeType"].strip_suffix(';').expect("a ; at the end").split(';').collect();
+fn desktop_files_open_what_file_open_reads() {
+    let (main, other) = (desktop(), open_with());
+    assert_eq!(types(&main), [vector_io::native::MIMETYPE]);
+    for key in ["Type", "Name", "Icon", "Exec", "Terminal"] {
+        assert_eq!(main[key], other[key], "{key}");
+    }
+    assert_eq!((other["NoDisplay"].as_str(), other["InitialPreference"].as_str()), ("true", "0"));
+    // the window belongs to the first one
+    assert!(!other.contains_key("StartupWMClass"));
+    let listed = [types(&main), types(&other)].concat();
     let mut opened = BTreeSet::new();
     for t in vector_io::OPEN_TYPES {
         for ext in t.extensions {
@@ -111,10 +134,10 @@ fn mime_file_has_the_types_the_system_lacks() {
     }
     let own: BTreeMap<String, String> = OWN.iter().map(|e| (e.to_string(), mime_of(e).to_string())).collect();
     assert_eq!(globs, own);
-    // what the desktop file lists and shared-mime-info lacks is here, and nothing more
-    let listed = &desktop()["MimeType"];
+    // each one is in a desktop file
+    let (main, other) = (desktop(), open_with());
     for ty in globs.values() {
-        assert!(listed.split(';').any(|l| l == ty), "{ty}");
+        assert!(types(&main).contains(&ty.as_str()) || types(&other).contains(&ty.as_str()), "{ty}");
     }
     // a .vct is told from a vCard by its first bytes
     let vct = vector_io::native::save_to_bytes(&vector_core::document::Document::new(100.0, 100.0)).unwrap();

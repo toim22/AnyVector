@@ -28,13 +28,13 @@ Section: graphics
 Priority: optional
 Homepage: https://github.com/toim22/AnyVector
 Description: vector graphics editor
- AnyVector is a vector graphics editor for illustrations, layouts and logos. Its
- menus, toolbars, tools, property bars, dockers and dialogs follow the CorelDRAW
- layout, with the same captions, shortcuts and order.
+ AnyVector is a vector graphics editor for illustrations, layouts and logos.
+ Its menus, toolbars, tools, property bars, dockers and dialogs follow the
+ CorelDRAW layout, with the same captions, shortcuts and order.
  .
  It opens drawings saved by CorelDRAW, and SVG, PDF, EPS, PostScript, Adobe
- Illustrator, DXF and CMX files, and publishes to PDF. Its interface is available
- in 15 languages.
+ Illustrator, DXF and CMX files, and publishes to PDF. Its interface is
+ available in 15 languages.
  .
- CorelDRAW is a trademark of its owner. AnyVector is an independent product, not
- affiliated with it.
+ CorelDRAW is a trademark of its owner. AnyVector is an independent product,
+ not affiliated with it.
