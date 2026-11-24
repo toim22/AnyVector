@@ -5,12 +5,13 @@
 <h1 align="center">AnyVector</h1>
 
 <p align="center">
-  <strong>Professional vector graphics for Windows, with the workspace CorelDRAW users already know.</strong>
+  <strong>Professional vector graphics for Windows and Linux, with the workspace CorelDRAW users already know.</strong>
 </p>
 
 <p align="center">
   <a href="https://github.com/toim22/AnyVector/releases/latest"><img alt="Version 0.6.2" src="https://img.shields.io/badge/version-0.6.2-0a9cff"></a>
   <img alt="Windows 10 and 11, 64-bit" src="https://img.shields.io/badge/Windows-10%20%7C%2011%20(x64)-2b3242">
+  <img alt="Linux x86-64, beta" src="https://img.shields.io/badge/Linux-x86--64%20(beta)-2b3242">
   <img alt="15 languages" src="https://img.shields.io/badge/languages-15-43c35a">
   <img alt="Built with Rust" src="https://img.shields.io/badge/built%20with-Rust-f57c00">
 </p>
@@ -35,7 +36,7 @@ Your muscle memory works on day one.
   right-click menus and dockers are where you expect them.
 - **Opens your work.** Reads and writes CorelDRAW-compatible `.cdr` files and `.cdrt` templates, plus SVG, PDF, DXF and
   the common bitmap formats.
-- **Fast and lightweight.** A single native Windows program written in Rust. No account, no cloud sign-in, no
+- **Fast and lightweight.** A single native program written in Rust. No account, no cloud sign-in, no
   subscription screens.
 - **Your language.** The whole interface is available in the 15 languages CorelDRAW offers: English, Chinese
   (Simplified and Traditional), Czech, Dutch, French, German, Italian, Japanese, Polish, Brazilian Portuguese,
@@ -55,7 +56,8 @@ Your muscle memory works on day one.
 
 ### Text and tables
 - Artistic and paragraph text with tabs, columns, bullets, numbering, drop caps, hyphenation and linked frames.
-- Spell check, Grammatik, Thesaurus and QuickCorrect, using the Windows spell checker.
+- Spell check, Grammatik, Thesaurus and QuickCorrect, using the Windows spell checker, or the system's
+  Hunspell dictionaries on Linux.
 - Tables with cell selection, merging, splitting and row and column editing.
 
 ### Effects and bitmaps
@@ -84,6 +86,50 @@ The setup can add AnyVector to "Open with" for `.cdr` files and can open `.vct` 
 
 **Requirements:** Windows 10 or 11, 64-bit.
 
+## Installing on Linux (beta)
+
+The Linux version has the same interface and file formats as the Windows one. It is a beta: releases after 0.6.2 that
+include it list two Linux files next to the Windows setup. Use one of them.
+
+### AppImage (any distribution)
+
+1. Download `AnyVector-<version>-x86_64.AppImage` to a folder you can write to.
+2. Make it executable and start it:
+
+```bash
+chmod +x AnyVector-*-x86_64.AppImage
+```
+
+```bash
+./AnyVector-*-x86_64.AppImage
+```
+
+The AppImage updates itself: AnyVector downloads a new version and replaces the file when you close it, after asking you
+to save your drawings. If the system has no FUSE, start it with `--appimage-extract-and-run`.
+
+### Debian and Ubuntu package
+
+```bash
+sudo apt install ./anyvector_<version>_amd64.deb
+```
+
+It adds AnyVector to the applications menu and to "Open with" for drawings. AnyVector tells you when a new version is
+out; install the new package the same way.
+
+**Requirements:** a 64-bit (x86-64) distribution with glibc 2.35 or later (Ubuntu 22.04, Debian 12, Fedora 36 or newer),
+on X11 or Wayland, with Vulkan or OpenGL. File dialogs need `xdg-desktop-portal` (every current desktop has it) or
+`zenity`.
+
+| For | Install |
+| --- | --- |
+| Printing | CUPS (`cups-client`) |
+| Spell check | the Hunspell dictionary of your language, such as `hunspell-en-us` |
+| Scanning | `sane-utils` |
+| Drawings made with Windows fonts | `fonts-liberation`, `fonts-crosextra-carlito`, `fonts-crosextra-caladea` |
+
+Known limits of the beta: files can't be dragged into the window on Wayland (they can on X11), and printing and scanning
+have not been tried with every device.
+
 ## Build from source
 
 You need [Rust](https://rustup.rs) (stable) and, to build the installer, [Inno Setup](https://jrsoftware.org/isinfo.php) 6.7 or later.
@@ -96,12 +142,12 @@ cargo build --release
 cargo test
 ```
 
-The program is built to `target\release\anyvector.exe`. To package it, compile `installer\AnyVector.iss` with
+On Windows the program is built to `target\release\anyvector.exe`. To package it, compile `installer\AnyVector.iss` with
 Inno Setup (`ISCC.exe installer\AnyVector.iss`), which writes `dist\AnyVector-<version>-setup.exe`.
 
 | Folder | What's inside |
 | --- | --- |
-| `crates/anyvector` | The Windows program: interface, tools, dialogs and dockers |
+| `crates/anyvector` | The program: interface, tools, dialogs and dockers |
 | `crates/vector-core` | Document model, geometry, styles, text layout and undo history |
 | `crates/vector-render` | Rendering and bitmap effects |
 | `crates/vector-io` | File formats: `.cdr`, `.vct`, SVG, PDF, DXF and bitmaps |
