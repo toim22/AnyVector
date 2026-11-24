@@ -1,0 +1,17 @@
+# "Open with" AnyVector for the other programs' types File > Open reads (vector_io::OPEN_TYPES).
+#
+# Where no one chose the program for a type, GNOME and xdg-open take the first one in alphabetical
+# order of the desktop files: listed in io.github.toim22.AnyVector.desktop, .cdr and SVG files would
+# open with AnyVector instead of Inkscape (org.inkscape...) as soon as it is installed. This entry is
+# the last one instead, and not in the menus; on KDE it comes after the others by its preference
+# (programs have 1).
+[Desktop Entry]
+Type=Application
+Version=1.1
+Name=AnyVector
+Icon=io.github.toim22.AnyVector
+Exec=anyvector %F
+Terminal=false
+NoDisplay=true
+MimeType=application/vnd.corel-draw;image/x-coreldrawtemplate;image/x-cmx;image/svg+xml;image/svg+xml-compressed;application/pdf;image/x-eps;application/postscript;application/illustrator;image/vnd.dxf;
+InitialPreference=0

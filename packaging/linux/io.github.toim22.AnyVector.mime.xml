@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The file types AnyVector opens that shared-mime-info does not have. It already has .cdr
+     (application/vnd.corel-draw), .svg, .pdf, .eps, .ps, .ai and .dxf: those are not repeated here. -->
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <!-- AnyVector's older drawing format: a zip whose first entry, stored, is named "mimetype" and
+       holds the type (vector_io::native::MIMETYPE), as in OpenDocument. shared-mime-info gives
+       *.vct to vCards too; with the same weight, the contents decide. -->
+  <mime-type type="application/x-vector-drawing">
+    <comment>AnyVector Drawing (older format)</comment>
+    <comment xml:lang="cs">Kresba AnyVector, starší formát</comment>
+    <comment xml:lang="de">AnyVector-Zeichnung, alt</comment>
+    <comment xml:lang="es">Dibujo de AnyVector, heredado</comment>
+    <comment xml:lang="fr">Dessin AnyVector, ancien format</comment>
+    <comment xml:lang="it">Disegno AnyVector, formato precedente</comment>
+    <comment xml:lang="ja">AnyVector 描画、旧形式</comment>
+    <comment xml:lang="nl">AnyVector-tekening, oud formaat</comment>
+    <comment xml:lang="pl">Rysunek AnyVector, starszy format</comment>
+    <comment xml:lang="pt_BR">Desenho do AnyVector (formato antigo)</comment>
+    <comment xml:lang="ru">Рисунок AnyVector, старый формат</comment>
+    <comment xml:lang="sv">AnyVector-teckning, äldre format</comment>
+    <comment xml:lang="tr">AnyVector Çizimi, eski biçim</comment>
+    <comment xml:lang="zh_CN">AnyVector 绘图，旧格式</comment>
+    <comment xml:lang="zh_TW">AnyVector 繪圖，舊格式</comment>
+    <icon name="io.github.toim22.AnyVector"/>
+    <generic-icon name="image-x-generic"/>
+    <sub-class-of type="application/zip"/>
+    <magic priority="80">
+      <match type="string" value="PK\003\004" offset="0">
+        <match type="string" value="mimetypeapplication/x-vector-drawing" offset="30"/>
+      </match>
+    </magic>
+    <glob pattern="*.vct"/>
+  </mime-type>
+  <mime-type type="image/x-coreldrawtemplate">
+    <comment>CorelDRAW Template</comment>
+    <comment xml:lang="cs">Šablona CorelDRAW</comment>
+    <comment xml:lang="de">CorelDRAW-Vorlage</comment>
+    <comment xml:lang="es">Plantilla de CorelDRAW</comment>
+    <comment xml:lang="fr">Modèle CorelDRAW</comment>
+    <comment xml:lang="it">Modello CorelDRAW</comment>
+    <comment xml:lang="ja">CorelDRAW テンプレート</comment>
+    <comment xml:lang="nl">CorelDRAW-sjabloon</comment>
+    <comment xml:lang="pl">Szablon CorelDRAW</comment>
+    <comment xml:lang="pt_BR">Modelo do CorelDRAW</comment>
+    <comment xml:lang="ru">шаблон CorelDRAW</comment>
+    <comment xml:lang="sv">CorelDRAW-mall</comment>
+    <comment xml:lang="tr">CorelDRAW Şablonu</comment>
+    <comment xml:lang="zh_CN">CorelDRAW 模板</comment>
+    <comment xml:lang="zh_TW">CorelDRAW 範本</comment>
+    <sub-class-of type="application/vnd.corel-draw"/>
+    <generic-icon name="image-x-generic"/>
+    <glob pattern="*.cdt"/>
+    <glob pattern="*.cdrt"/>
+  </mime-type>
+  <mime-type type="image/x-cmx">
+    <comment>Corel Presentation Exchange</comment>
+    <acronym>CMX</acronym>
+    <expanded-acronym>Corel Presentation Exchange</expanded-acronym>
+    <generic-icon name="image-x-generic"/>
+    <magic priority="80">
+      <match type="string" value="RIFF" offset="0">
+        <match type="string" value="CMX" offset="8"/>
+      </match>
+      <match type="string" value="RIFX" offset="0">
+        <match type="string" value="CMX" offset="8"/>
+      </match>
+    </magic>
+    <glob pattern="*.cmx"/>
+  </mime-type>
+</mime-info>

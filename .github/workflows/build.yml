@@ -1,6 +1,6 @@
 # Builds and tests AnyVector on GitHub Actions, on Windows and on Linux (issue #51), and keeps the
-# release program of each system as an artifact. The Windows setup is still built locally with
-# installer/AnyVector.iss; Linux packages (AppImage, .deb) come with Phase 3 of docs/LINUX-PORT-PLAN.md.
+# release program of each system as an artifact, and the Linux packages (packaging/linux: the .deb and
+# the AppImage). The Windows setup is still built locally with installer/AnyVector.iss.
 name: Build
 
 on:
@@ -57,8 +57,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # as in the Windows job
+      - name: Check the tag against Cargo.toml
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          ver=$(sed -n 's/^version *= *"\([^"]*\)".*/\1/p' Cargo.toml | head -n 1)
+          if [ "v$ver" != "$GITHUB_REF_NAME" ]; then echo "tag $GITHUB_REF_NAME does not match version $ver in Cargo.toml"; exit 1; fi
+
       # winit (X11 and Wayland), the GTK file dialogs of rfd, Vulkan/GL through Mesa for wgpu, and the
-      # fonts the tests expect to find (Noto, Liberation)
+      # fonts the tests expect to find (Noto, Liberation); then what builds and checks the packages
       - name: System packages
         run: |
           sudo apt-get update -q
@@ -66,7 +73,9 @@ jobs:
             build-essential pkg-config libxkbcommon-dev libxkbcommon-x11-0 libwayland-dev \
             libx11-dev libxcursor-dev libxrandr-dev libxi-dev libgtk-3-dev \
             libvulkan1 mesa-vulkan-drivers fonts-noto-core fonts-liberation2 \
-            fonts-dejavu-core fonts-wqy-microhei fonts-crosextra-carlito fonts-crosextra-caladea
+            fonts-dejavu-core fonts-wqy-microhei fonts-crosextra-carlito fonts-crosextra-caladea \
+            dpkg-dev squashfs-tools desktop-file-utils appstream lintian shared-mime-info \
+            xvfb xdotool imagemagick
 
       - name: Rust (stable)
         run: |
@@ -88,3 +97,93 @@ jobs:
           name: AnyVector-linux-x64
           path: target/release/anyvector
           if-no-files-found: error
+
+      - name: Build the packages
+        run: ANYVECTOR_BIN=target/release/anyvector packaging/linux/build.sh
+
+      - name: Check the packages
+        run: |
+          set -x
+          id=io.github.toim22.AnyVector
+          desktop-file-validate packaging/linux/*.desktop
+          appstreamcli validate --no-net packaging/linux/$id.metainfo.xml
+          lintian --fail-on error,warning --info --tag-display-limit 0 dist/*.deb
+          # the AppImage's files, and its program is the one built above
+          ./dist/AnyVector-*-x86_64.AppImage --appimage-extract >/dev/null
+          cmp target/release/anyvector squashfs-root/AppRun
+          desktop-file-validate squashfs-root/$id.desktop
+          test -f squashfs-root/.DirIcon
+          ls squashfs-root/usr/share/doc/anyvector/legal
+          rm -rf squashfs-root
+
+      - name: Start the AppImage
+        run: packaging/linux/smoke-test.sh dist/smoke-appimage.png ./dist/AnyVector-*-x86_64.AppImage --appimage-extract-and-run
+
+      # the .deb as apt installs it, the file types it registers, and its program
+      - name: Install and start the .deb
+        run: |
+          set -x
+          sudo apt-get install -y -q --no-install-recommends ./dist/anyvector_*_amd64.deb
+          packaging/linux/smoke-test.sh dist/smoke-deb.png anyvector
+          for type in application/x-vector-drawing:vct image/x-coreldrawtemplate:cdrt image/x-cmx:cmx application/vnd.corel-draw:cdr; do
+            grep -F "${type%:*}:*.${type#*:}" /usr/share/mime/globs2
+          done
+          grep -F application/x-vector-drawing=io.github.toim22.AnyVector.desktop /usr/share/applications/mimeinfo.cache
+          grep -F zz-io.github.toim22.AnyVector-open.desktop /usr/share/applications/mimeinfo.cache
+          # no other program's type has AnyVector first
+          if grep -E '=io\.github\.toim22\.AnyVector\.desktop|=zz-io.*;.+' /usr/share/applications/mimeinfo.cache | grep -v application/x-vector-drawing=; then exit 1; fi
+          sudo apt-get remove -y -q anyvector
+          if grep -F vector-drawing /usr/share/mime/globs2; then exit 1; fi
+
+      - name: Upload the packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: AnyVector-linux-packages
+          path: |
+            dist/*.deb
+            dist/*.AppImage
+          if-no-files-found: error
+
+      - name: Upload the pictures of the started programs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: AnyVector-linux-smoke
+          path: dist/smoke-*.png
+          if-no-files-found: ignore
+
+  # the .deb in the other systems it is for, without their desktops: what it depends on is enough to
+  # start (recommended packages left out; the screen and its drivers come from the packages named)
+  linux-install:
+    needs: linux
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [ 'ubuntu:22.04', 'ubuntu:24.04', 'debian:12' ]
+    container: ${{ matrix.image }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: AnyVector-linux-packages
+          path: dist
+
+      - name: Install and start the .deb
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          set -x
+          apt-get update -q
+          apt-get install -y -q --no-install-recommends ./dist/anyvector_*_amd64.deb
+          apt-get install -y -q --no-install-recommends xvfb xauth xdotool imagemagick mesa-vulkan-drivers
+          packaging/linux/smoke-test.sh dist/smoke.png anyvector
+
+      - name: Upload the picture of the started program
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: AnyVector-linux-smoke-${{ strategy.job-index }}
+          path: dist/smoke.png
+          if-no-files-found: ignore

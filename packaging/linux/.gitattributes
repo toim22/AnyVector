@@ -1,0 +1,2 @@
+# read by Linux programs, also when packaged from a Windows checkout: always LF
+* text=auto eol=lf

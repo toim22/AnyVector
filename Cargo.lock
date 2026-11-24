@@ -5785,6 +5785,8 @@ dependencies = [
  "resvg",
  "roxmltree 0.21.2",
  "serde_json",
+ "vector-core",
+ "vector-io",
 ]
 
 [[package]]
