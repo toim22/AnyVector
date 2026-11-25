@@ -82,7 +82,7 @@ fn mime_of(ext: &str) -> &'static str {
 fn desktop_file_is_the_app_ids() {
     let id = app_id();
     let keys = desktop();
-    for (key, value) in [("Type", "Application"), ("Name", "AnyVector"), ("Icon", &id), ("StartupWMClass", &id), ("Exec", "anyvector %F"), ("Terminal", "false")] {
+    for (key, value) in [("Type", "Application"), ("Name", "AnyVector"), ("Icon", &id), ("StartupWMClass", &id), ("Exec", "anyvector"), ("Terminal", "false")] {
         assert_eq!(keys.get(key).map(String::as_str), Some(value), "{key}");
     }
     // the metainfo file is the same program's
@@ -97,19 +97,22 @@ fn desktop_file_is_the_app_ids() {
     assert_eq!(keys["Categories"], format!("{};", categories.join(";")));
 }
 
-/// AnyVector's own type is in the desktop file; the other programs' ones are in the hidden one,
-/// which never comes before another program's, so that installing AnyVector takes no file from it.
+/// The hidden desktop file opens the files. It never comes before another program's, so that
+/// installing AnyVector takes no file from it. The one in the menus has no types and takes no files:
+/// "Open with" (GTK) would list it too, next to the hidden one.
 #[test]
 fn desktop_files_open_what_file_open_reads() {
     let (main, other) = (desktop(), open_with());
-    assert_eq!(types(&main), [vector_io::native::MIMETYPE]);
-    for key in ["Type", "Name", "Icon", "Exec", "Terminal"] {
+    assert!(!main.contains_key("MimeType") && !main["Exec"].contains('%'));
+    assert_eq!(other["Exec"], format!("{} %F", main["Exec"]));
+    for key in ["Type", "Name", "Icon", "Terminal"] {
         assert_eq!(main[key], other[key], "{key}");
     }
     assert_eq!((other["NoDisplay"].as_str(), other["InitialPreference"].as_str()), ("true", "0"));
     // the window belongs to the first one
     assert!(!other.contains_key("StartupWMClass"));
-    let listed = [types(&main), types(&other)].concat();
+    let listed = types(&other);
+    assert_eq!(listed[0], vector_io::native::MIMETYPE);
     let mut opened = BTreeSet::new();
     for t in vector_io::OPEN_TYPES {
         for ext in t.extensions {
@@ -118,6 +121,9 @@ fn desktop_files_open_what_file_open_reads() {
     }
     assert_eq!(listed.iter().copied().collect::<BTreeSet<_>>(), opened);
     assert_eq!(listed.len(), opened.len(), "a type listed twice");
+    // the AppImage has the first one only, which opens AnyVector's own files there
+    let build = read("packaging/linux/build.sh");
+    assert!(build.contains(&format!("echo \"MimeType={};\"", vector_io::native::MIMETYPE)) && build.contains("s/^Exec=anyvector$/Exec=anyvector %F/"));
 }
 
 #[test]
@@ -138,10 +144,10 @@ fn mime_file_has_the_types_the_system_lacks() {
     }
     let own: BTreeMap<String, String> = OWN.iter().map(|e| (e.to_string(), mime_of(e).to_string())).collect();
     assert_eq!(globs, own);
-    // each one is in a desktop file
-    let (main, other) = (desktop(), open_with());
+    // each one is in the desktop file that opens files
+    let other = open_with();
     for ty in globs.values() {
-        assert!(types(&main).contains(&ty.as_str()) || types(&other).contains(&ty.as_str()), "{ty}");
+        assert!(types(&other).contains(&ty.as_str()), "{ty}");
     }
     // a .vct is told from a vCard by its first bytes
     let vct = vector_io::native::save_to_bytes(&vector_core::document::Document::new(100.0, 100.0)).unwrap();
