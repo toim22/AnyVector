@@ -8,6 +8,8 @@ mod app;
 mod blendpath;
 mod bugreport;
 mod canvas;
+#[cfg(target_os = "linux")]
+mod carried;
 mod cmdbar;
 mod color_profiles;
 mod comfyui;
@@ -110,6 +112,7 @@ fn main() -> eframe::Result<()> {
 fn main() -> eframe::Result<()> {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
+    carried::open_libraries();
     let first = renderer::from_env(std::env::var(renderer::ENV).ok().as_deref());
     if first == eframe::Renderer::Glow {
         return run(first, Arc::default());

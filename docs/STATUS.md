@@ -1,11 +1,12 @@
 # AnyVector — Status
 
-Last updated: 2026-11-24.
+Last updated: 2026-11-25.
 
 ## Version history
 
 | Version | Date | What it brings |
 | --- | --- | --- |
+| [0.1.1 for Linux](RELEASE-NOTES-0.1.1-linux.md) | 2026-11-25 | The AppImage carries the keyboard and X11 libraries that not every system has, so it starts there too. |
 | [0.1.0 for Linux](RELEASE-NOTES-0.1.0-linux.md) | 2026-11-24 | The first AnyVector for Linux (beta), as an AppImage and a `.deb`, on X11 and Wayland, with printing, spell check, scanning and the eyedropper. Same code as 0.7.0 for Windows. |
 | [0.7.0 for Windows](RELEASE-NOTES-0.7.0-windows.md) | 2026-11-24 | Moved linked files found next to the drawing; file extensions in capitals; the status bar hint no longer covers the fill and outline; own version numbers for each system; reports name their system. |
 | [0.6.2](RELEASE-NOTES-0.6.2.md) | 2026-11-23 | Ctrl+click and Ctrl+Shift+click inside groups; select and drag a blend's start and end with live preview; Dimension Text Position (above, through, below, centred, horizontal, boxed) for new and selected dimensions and exports. |

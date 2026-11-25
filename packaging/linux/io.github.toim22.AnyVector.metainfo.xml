@@ -51,6 +51,9 @@
   <content_rating type="oars-1.1"/>
   <!-- the Linux versions, newest first; add the version here when it changes in Cargo.toml (xtask/tests/linux_packaging.rs) -->
   <releases>
+    <release version="0.1.1" date="2026-11-25">
+      <url>https://github.com/toim22/AnyVector/releases/tag/v0.1.1-linux</url>
+    </release>
     <release version="0.1.0" date="2026-11-24">
       <url>https://github.com/toim22/AnyVector/releases/tag/v0.1.0-linux</url>
     </release>

@@ -13,7 +13,8 @@
 #   DIST                 the output folder instead of dist/
 #   APPIMAGE_RUNTIME     the AppImage runtime (its checksum is checked); downloaded in CI when not set
 #   SOURCE_DATE_EPOCH    the date of everything in the packages; the last commit's when not set. The
-#                        same program, date and tools give the same packages, byte for byte.
+#                        same program, date, tools and carried libraries (appimage-libraries.txt) give
+#                        the same packages, byte for byte.
 set -euo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -140,11 +141,32 @@ runtime() {
   cp "$file" "$work/runtime.checked"
 }
 
+# the libraries of appimage-libraries.txt and their licenses, in the AppImage's folder $1
+libraries() {
+  local dir=$1 legal=$1/usr/share/doc/anyvector/legal/appimage-libraries.txt soname package file
+  {
+    echo "The AppImage carries these libraries, unchanged, from packages of $(sed -n 's/^PRETTY_NAME="\(.*\)"/\1/p' /etc/os-release)."
+    echo "AnyVector uses them only on a system that does not have its own. Their licenses:"
+  } >"$legal"
+  while read -r soname package; do
+    case $soname in '' | '#'*) continue ;; esac
+    file=/usr/lib/x86_64-linux-gnu/$soname
+    [ -f "$file" ] && [ -f "/usr/share/doc/$package/copyright" ] || die "no $soname or its license: install $package"
+    install -Dm644 "$file" "$dir/usr/lib/anyvector/$soname"
+    {
+      printf '\n==== %s: %s %s\n\n' "$soname" "$package" "$(dpkg-query -W -f '${Version}' "$package")"
+      cat "/usr/share/doc/$package/copyright"
+    } >>"$legal"
+  done <"$here/appimage-libraries.txt"
+  chmod 644 "$legal"
+}
+
 build_appimage() {
   local dir=$work/AnyVector.AppDir out=$dist/AnyVector-$version-linux-x86_64.AppImage
   runtime
   stage "$dir"
   text "$here/appimage-runtime.txt" "$dir/usr/share/doc/anyvector/legal/appimage-runtime.txt"
+  libraries "$dir"
   echo "X-AppImage-Version=$version" >>"$dir/usr/share/applications/$id.desktop"
   # AppRun is the program itself: no script and no LD_LIBRARY_PATH, so what AnyVector starts
   # (xdg-open, lp, the mail program...) gets the system's environment

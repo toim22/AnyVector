@@ -27,7 +27,7 @@
 | System | Latest version | Download |
 | --- | --- | --- |
 | **Windows** | [0.7.0](https://github.com/toim22/AnyVector/releases/tag/v0.7.0-windows) | [Setup](https://github.com/toim22/AnyVector/releases/download/v0.7.0-windows/AnyVector-0.7.0-windows-x64-setup.exe) |
-| **Linux (beta)** | [0.1.0](https://github.com/toim22/AnyVector/releases/tag/v0.1.0-linux) | [AppImage](https://github.com/toim22/AnyVector/releases/download/v0.1.0-linux/AnyVector-0.1.0-linux-x86_64.AppImage) · [.deb](https://github.com/toim22/AnyVector/releases/download/v0.1.0-linux/AnyVector-0.1.0-linux-amd64.deb) |
+| **Linux (beta)** | [0.1.1](https://github.com/toim22/AnyVector/releases/tag/v0.1.1-linux) | [AppImage](https://github.com/toim22/AnyVector/releases/download/v0.1.1-linux/AnyVector-0.1.1-linux-x86_64.AppImage) · [.deb](https://github.com/toim22/AnyVector/releases/download/v0.1.1-linux/AnyVector-0.1.1-linux-amd64.deb) |
 <!-- /versions -->
 
 Each system has its own version numbers and gets its own updates. Click a version to see what is new in it.

@@ -343,6 +343,12 @@ containers. Nothing is published by CI: both files are added to a release by han
   checksum). AppRun is the program itself, with no script and no `LD_LIBRARY_PATH`, so the programs
   AnyVector starts keep the system's environment. It needs `fusermount3`, or
   `--appimage-extract-and-run`; it registers no file types.
+- The AppImage carries the libraries of `appimage-libraries.txt` (keyboard and X11, with their licenses), from the
+  system that builds it. AnyVector opens one only where the system has none (`carried.rs`), so a newer system's
+  own always come first. Found by the AppImage catalog's test of 0.1.0: each library opened at run time was
+  hidden in turn, and these were the ones that stop the start without being on every system. Hidden alone,
+  OpenGL, Vulkan, fontconfig and D-Bus don't stop it. CI starts the AppImage without them
+  (`without-libraries.sh`).
 - `AnyVector-<version>-linux-amd64.deb`, made with `dpkg-deb`. The window, graphics and D-Bus libraries are
   opened at run time, so `control.in` lists them by hand with the reason for each. It depends on
   `xdg-desktop-portal | zenity`, because file dialogs need one of them.

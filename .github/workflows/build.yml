@@ -117,10 +117,22 @@ jobs:
           desktop-file-validate squashfs-root/$id.desktop
           test -f squashfs-root/.DirIcon
           ls squashfs-root/usr/share/doc/anyvector/legal
+          # the libraries it carries
+          sed -n 's/^\(lib[^ ]*\) .*/\1/p' packaging/linux/appimage-libraries.txt | sort >carried.txt
+          ls squashfs-root/usr/lib/anyvector | sort | diff - carried.txt
+          rm carried.txt
           rm -rf squashfs-root
 
       - name: Start the AppImage
         run: packaging/linux/smoke-test.sh dist/smoke-appimage.png ./dist/AnyVector-*-linux-x86_64.AppImage --appimage-extract-and-run
+
+      # not every system has the libraries the AppImage carries
+      - name: Start the AppImage without the libraries it carries
+        run: |
+          set -x
+          packaging/linux/smoke-test.sh dist/smoke-appimage-bare.png packaging/linux/without-libraries.sh ./dist/AnyVector-*-linux-x86_64.AppImage --appimage-extract-and-run
+          # the program alone doesn't start there: the libraries are really hidden
+          if packaging/linux/smoke-test.sh dist/smoke-none.png packaging/linux/without-libraries.sh target/release/anyvector; then exit 1; fi
 
       # the .deb as apt installs it, the file types it registers, and its program
       - name: Install and start the .deb
