@@ -306,13 +306,16 @@ pub fn document_palette(app: &mut AnyVectorApp, ui: &mut Ui) {
     let right_w = 40.0;
     if colors.is_empty() {
         let hovering_drop = resp.dnd_hover_payload::<ColorDrag>().is_some();
-        p.text(
-            pos2(full.center().x - right_w / 2.0, full.center().y),
-            egui::Align2::CENTER_CENTER,
-            "Drag colors (or objects) here to store these colors with your document",
-            egui::FontId::new(12.0, egui::FontFamily::Proportional),
-            if hovering_drop { theme::STRONG() } else { theme::TEXT_DIM() },
-        );
+        // cut in a narrow window, with the whole text when pointed at
+        let room = Rect::from_min_max(full.min + vec2(4.0, 0.0), pos2((full.right() - right_w - 2.0).max(full.left() + 4.0), full.bottom()));
+        let font = egui::FontId::new(12.0, egui::FontFamily::Proportional);
+        let hint = crate::i18n::t("Drag colors (or objects) here to store these colors with your document");
+        let shown = crate::statusbar::fit(&p, &hint, &font, room.width());
+        if shown != hint {
+            ui.interact(room, ui.scope_id().with("docpal_hint"), Sense::hover()).on_hover_text(hint.to_string());
+        }
+        // centered in the strip without the buttons, as far as there is room
+        p.text(room.center(), egui::Align2::CENTER_CENTER, shown, font, if hovering_drop { theme::STRONG() } else { theme::TEXT_DIM() });
         // italic look: draw via galley with italics is unavailable for system fonts; dim text matches.
     } else {
         let sw = 18.0;

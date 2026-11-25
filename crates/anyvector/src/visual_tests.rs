@@ -911,24 +911,26 @@ fn visual_context_menus() {
     }
 }
 
-/// The texts drawn in the status bar (the bottom 30 points of the window), left to right.
-fn status_bar_texts(h: &Harness<'_, AnyVectorApp>) -> Vec<(String, egui::Rect)> {
-    fn add(s: &egui::Shape, top: f32, out: &mut Vec<(String, egui::Rect)>) {
+/// Every text drawn in the window, with where it is.
+fn texts_drawn(h: &Harness<'_, AnyVectorApp>, out: &mut Vec<(String, egui::Rect)>) {
+    fn add(s: &egui::Shape, out: &mut Vec<(String, egui::Rect)>) {
         match s {
-            egui::Shape::Vec(v) => v.iter().for_each(|s| add(s, top, out)),
-            egui::Shape::Text(t) => {
-                let r = t.galley.rect.translate(t.pos.to_vec2());
-                if r.center().y > top && !t.galley.text().is_empty() {
-                    out.push((t.galley.text().to_string(), r));
-                }
-            }
+            egui::Shape::Vec(v) => v.iter().for_each(|s| add(s, out)),
+            egui::Shape::Text(t) if !t.galley.text().is_empty() => out.push((t.galley.text().to_string(), t.galley.rect.translate(t.pos.to_vec2()))),
             _ => {}
         }
     }
-    let mut out = vec![];
     for c in &h.output().shapes {
-        add(&c.shape, h.ctx.content_rect().bottom() - 30.0, &mut out);
+        add(&c.shape, out);
     }
+}
+
+/// The texts drawn in the status bar (the bottom 30 points of the window), left to right.
+fn status_bar_texts(h: &Harness<'_, AnyVectorApp>) -> Vec<(String, egui::Rect)> {
+    let mut out = vec![];
+    texts_drawn(h, &mut out);
+    let top = h.ctx.content_rect().bottom() - 30.0;
+    out.retain(|(_, r)| r.center().y > top);
     out.sort_by(|a, b| a.1.left().total_cmp(&b.1.left()));
     out
 }
@@ -975,6 +977,62 @@ fn status_bar_texts_never_overlap() {
                 }
             }
         }
+    }
+}
+
+/// The hint of the empty document palette ends before its arrows, however narrow the window is: it
+/// is cut with "...". Where there is room it is whole.
+#[test]
+fn document_palette_hint_never_covers_its_arrows() {
+    const HINT: &str = "Drag colors (or objects) here to store these colors with your document";
+    let mut cut = 0;
+    for lang in crate::i18n::Lang::ALL.iter().map(|l| l.code().to_string()).chain(["en-US".into()]) {
+        for width in [1400.0f32, 640.0, 480.0] {
+            let mut h = Harness::builder().with_size(egui::vec2(width, 700.0)).build_eframe(|cc| {
+                let mut app = AnyVectorApp::new(cc);
+                app.splash = None;
+                app.pending.clear();
+                app.settings.language = lang.clone();
+                app
+            });
+            h.state_mut().new_default_document();
+            for _ in 0..3 {
+                h.step();
+            }
+            assert!(h.state().settings.doc_palette_visible);
+            let whole = crate::i18n::t(HINT).to_string();
+            let mut texts = vec![];
+            texts_drawn(&h, &mut texts);
+            let start: String = whole.chars().take(4).collect();
+            let (text, r) = texts.iter().find(|(t, _)| t.starts_with(&start) && (*t == whole || t.ends_with("..."))).unwrap_or_else(|| panic!("{lang} {width}: no hint in {texts:?}"));
+            // the arrows: the » of the same strip
+            let (_, arrows) = texts.iter().find(|(t, a)| t == "»" && (a.center().y - r.center().y).abs() < 4.0).unwrap_or_else(|| panic!("{lang} {width}: no arrows"));
+            assert!(r.left() >= 0.0 && r.right() <= arrows.left() - 17.0, "{lang} {width}: {text:?} {r:?} over the arrows at {arrows:?}");
+            assert!(width < 1000.0 || *text == whole, "{lang} {width}: {text:?} is cut");
+            cut += usize::from(*text != whole);
+        }
+    }
+    assert!(cut > 0, "nothing was narrow enough to cut the hint");
+    crate::i18n::set_lang(crate::i18n::Lang::EnUs);
+}
+
+/// The empty document palette in a narrow window.
+#[test]
+#[ignore]
+fn visual_document_palette_hint() {
+    for (width, lang) in [(1400.0f32, "en-US"), (480.0, "en-US"), (480.0, "de-DE"), (480.0, "ja-JP")] {
+        let mut h = Harness::builder().with_size(egui::vec2(width, 500.0)).wgpu_setup(test_wgpu()).build_eframe(|cc| {
+            let mut app = AnyVectorApp::new(cc);
+            app.splash = None;
+            app.pending.clear();
+            app.settings.language = lang.into();
+            app
+        });
+        h.state_mut().new_default_document();
+        for _ in 0..4 {
+            h.step();
+        }
+        save(&mut h, &format!("33_document_palette_{width}_{lang}"));
     }
 }
 

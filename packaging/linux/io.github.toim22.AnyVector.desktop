@@ -18,10 +18,10 @@ Comment[tr]=Vektör grafik düzenleyicisi
 Comment[zh_CN]=矢量图形编辑器
 Comment[zh_TW]=向量繪圖編輯器
 Icon=io.github.toim22.AnyVector
-Exec=anyvector %F
+Exec=anyvector
 Terminal=false
 StartupWMClass=io.github.toim22.AnyVector
 Categories=Graphics;2DGraphics;VectorGraphics;
 Keywords=vector;drawing;illustration;layout;logo;cdr;svg;pdf;
-# AnyVector's own type; zz-io.github.toim22.AnyVector-open.desktop has the other programs' types
-MimeType=application/x-vector-drawing;
+# No types and no %F: zz-io.github.toim22.AnyVector-open.desktop opens the files. With them here too, "Open with"
+# lists AnyVector twice: the entry that has the type, and every other one that takes files.

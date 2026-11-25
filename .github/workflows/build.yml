@@ -115,6 +115,7 @@ jobs:
           ./dist/AnyVector-*-linux-x86_64.AppImage --appimage-extract >/dev/null
           cmp target/release/anyvector squashfs-root/AppRun
           desktop-file-validate squashfs-root/$id.desktop
+          grep -x 'Exec=anyvector %F' squashfs-root/$id.desktop
           test -f squashfs-root/.DirIcon
           ls squashfs-root/usr/share/doc/anyvector/legal
           # the libraries it carries
@@ -143,10 +144,10 @@ jobs:
           for type in application/x-vector-drawing:vct image/x-coreldrawtemplate:cdrt image/x-cmx:cmx application/vnd.corel-draw:cdr; do
             grep -F "${type%:*}:*.${type#*:}" /usr/share/mime/globs2
           done
-          grep -F application/x-vector-drawing=io.github.toim22.AnyVector.desktop /usr/share/applications/mimeinfo.cache
+          grep -F application/x-vector-drawing=zz-io.github.toim22.AnyVector-open.desktop /usr/share/applications/mimeinfo.cache
           grep -F zz-io.github.toim22.AnyVector-open.desktop /usr/share/applications/mimeinfo.cache
-          # no other program's type has AnyVector first
-          if grep -E '=io\.github\.toim22\.AnyVector\.desktop|=zz-io.*;.+' /usr/share/applications/mimeinfo.cache | grep -v application/x-vector-drawing=; then exit 1; fi
+          # no other program's type has AnyVector first, and the menu entry has no type ("Open with" would list both)
+          if grep -E '[=;]io\.github\.toim22\.AnyVector\.desktop|=zz-io.*;.+' /usr/share/applications/mimeinfo.cache; then exit 1; fi
           sudo apt-get remove -y -q anyvector
           if grep -F vector-drawing /usr/share/mime/globs2; then exit 1; fi
 

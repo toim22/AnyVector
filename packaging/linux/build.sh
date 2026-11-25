@@ -97,7 +97,7 @@ date_all() { find "$1" -print0 | xargs -0r touch --no-dereference --date="@$SOUR
 build_deb() {
   local dir=$work/deb out=$dist/AnyVector-$version-linux-amd64.deb depends
   stage "$dir"
-  # "Open with" for other programs' files; not in the AppImage, which is not installed
+  # "Open with"; not in the AppImage, which is not installed
   text "$here/zz-$id-open.desktop" "$dir/usr/share/applications/zz-$id-open.desktop"
   text "$here/lintian-overrides" "$dir/usr/share/lintian/overrides/anyvector"
   {
@@ -167,7 +167,12 @@ build_appimage() {
   stage "$dir"
   text "$here/appimage-runtime.txt" "$dir/usr/share/doc/anyvector/legal/appimage-runtime.txt"
   libraries "$dir"
-  echo "X-AppImage-Version=$version" >>"$dir/usr/share/applications/$id.desktop"
+  # one desktop file here, for the programs that install AppImages: it opens AnyVector's own files
+  sed -i 's/^Exec=anyvector$/Exec=anyvector %F/' "$dir/usr/share/applications/$id.desktop"
+  {
+    echo "MimeType=application/x-vector-drawing;"
+    echo "X-AppImage-Version=$version"
+  } >>"$dir/usr/share/applications/$id.desktop"
   # AppRun is the program itself: no script and no LD_LIBRARY_PATH, so what AnyVector starts
   # (xdg-open, lp, the mail program...) gets the system's environment
   ln -s usr/bin/anyvector "$dir/AppRun"

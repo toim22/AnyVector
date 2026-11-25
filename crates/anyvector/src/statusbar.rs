@@ -166,7 +166,7 @@ fn color_text(c: vector_core::Color) -> String {
 }
 
 /// `text` cut to `width` with "..." at the end, as the status bar fields show long values.
-fn fit(p: &egui::Painter, text: &str, font: &egui::FontId, width: f32) -> String {
+pub fn fit(p: &egui::Painter, text: &str, font: &egui::FontId, width: f32) -> String {
     let w = |s: &str| p.layout_no_wrap(s.to_string(), font.clone(), theme::TEXT()).size().x;
     if w(text) <= width {
         return text.to_string();

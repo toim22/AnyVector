@@ -352,9 +352,11 @@ containers. Nothing is published by CI: both files are added to a release by han
 - `AnyVector-<version>-linux-amd64.deb`, made with `dpkg-deb`. The window, graphics and D-Bus libraries are
   opened at run time, so `control.in` lists them by hand with the reason for each. It depends on
   `xdg-desktop-portal | zenity`, because file dialogs need one of them.
-- File types: AnyVector owns only `.vct`. The other formats it opens are in a hidden second desktop file
+- File types: AnyVector owns only `.vct`. All the formats it opens are in a hidden second desktop file
   (`zz-...-open.desktop`) that sorts last, so "Open with" offers AnyVector but it never becomes the
-  default for another program's files (as with the Windows setup).
+  default for another program's files (as with the Windows setup). The desktop file in the menus has no types
+  and no `%F`, because GTK's "Open with" lists every entry that takes files (NoDisplay or not): AnyVector was
+  there twice up to 0.1.1.
 - The legal files are in `/usr/share/doc/anyvector/legal`. `cargo run -p xtask -- brand` draws the icons.
 - A new version needs its line (version and date) in `io.github.toim22.AnyVector.metainfo.xml`; the test
   `metainfo_lists_this_version_first` fails until it is there.
@@ -387,8 +389,7 @@ AnyVector never uses sudo and never downloads the .deb.
 
 **Known limits after Phase 3.** No native-Wayland drag and drop (winit 0.30); clipboard contents vanish
 on exit under Wayland without a clipboard manager; a program AnyVector opened (such as the browser) keeps
-the old AppImage's mount until it closes. "Open with" lists AnyVector twice for the formats of the second
-desktop file (GNOME: Recommended and Other Apps). Not tried yet: a physical printer or scanner, KDE.
+the old AppImage's mount until it closes. Not tried yet: a physical printer or scanner, KDE.
 
 **Checked on a real desktop** (2026-11-24, Ubuntu 24.04.5 in a QEMU virtual machine, GNOME 46, the packages CI
 built): the `.deb` installed by apt, its menu entry and icon; on Wayland and X11 opening a `.cdr`, the Open
