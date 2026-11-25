@@ -237,6 +237,27 @@ fn deb_needs_what_anyvector_starts() {
     }
 }
 
+/// The libraries the AppImage carries are the ones the .deb depends on, by itself or through those.
+#[test]
+fn appimage_carries_the_windows_libraries() {
+    let list = read("packaging/linux/appimage-libraries.txt");
+    let rows: Vec<Vec<&str>> = list.lines().filter(|l| !l.starts_with('#')).map(|l| l.split(' ').collect()).collect();
+    assert!(rows.iter().all(|r| r.len() == 2 && r[0].starts_with("lib") && r[0].contains(".so.")), "{rows:?}");
+    assert_eq!(rows.iter().map(|r| r[0]).collect::<BTreeSet<_>>().len(), rows.len(), "a library listed twice");
+    let packages: BTreeSet<&str> = rows.iter().map(|r| r[1]).collect();
+    let control = read("packaging/linux/control.in");
+    let depends: BTreeSet<&str> = control.lines().find_map(|l| l.strip_prefix("Depends: ")).unwrap().split(", ").collect();
+    // opened by AnyVector's window; the system's own are not carried
+    for p in ["libxkbcommon0", "libxkbcommon-x11-0", "libxi6", "libxcursor1"] {
+        assert!(packages.contains(p) && depends.contains(p), "{p}");
+    }
+    for p in ["libx11-6", "libx11-xcb1", "libxcb1", "libwayland-client0", "libegl1", "libgl1", "libvulkan1"] {
+        assert!(!packages.contains(p) && depends.contains(p), "{p}");
+    }
+    // their licenses are packaged
+    assert!(read("packaging/linux/build.sh").contains("/usr/share/doc/$package/copyright"));
+}
+
 /// A shell script with CRLF lines, or a desktop file with them, does not work on Linux.
 #[test]
 fn files_have_lf_lines() {

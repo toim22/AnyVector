@@ -11,7 +11,7 @@ use std::path::PathBuf;
 #[cfg(windows)]
 const RELEASE_NOTES: &str = include_str!("../../../docs/RELEASE-NOTES-0.7.0-windows.md");
 #[cfg(not(windows))]
-const RELEASE_NOTES: &str = include_str!("../../../docs/RELEASE-NOTES-0.1.0-linux.md");
+const RELEASE_NOTES: &str = include_str!("../../../docs/RELEASE-NOTES-0.1.1-linux.md");
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Page {

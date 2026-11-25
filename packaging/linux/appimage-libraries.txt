@@ -1,0 +1,14 @@
+# The libraries the AppImage carries, and the Debian packages they come from. AnyVector opens them
+# when it starts and no window opens without them, but not every system has them (the .deb depends
+# on them instead). The system's own one is used where there is one (crates/anyvector/src/carried.rs).
+#
+# A library comes after the ones it needs. Not here, because every system with a window has them and
+# they must be the system's own: libX11, libX11-xcb, libxcb, libwayland-client and the graphics drivers.
+libxkbcommon.so.0 libxkbcommon0
+libxcb-xkb.so.1 libxcb-xkb1
+libxkbcommon-x11.so.0 libxkbcommon-x11-0
+libXext.so.6 libxext6
+libXrender.so.1 libxrender1
+libXfixes.so.3 libxfixes3
+libXi.so.6 libxi6
+libXcursor.so.1 libxcursor1
